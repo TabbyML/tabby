@@ -9,8 +9,6 @@ ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_V
 FROM ${BASE_CUDA_DEV_CONTAINER} as build
 
 ENV DEBIAN_FRONTEND=noninteractive
-# Install latest cmake
-RUN wget -qO - https://apt.kitware.com/kitware-archive.sh | bash -s -- --release focal
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -19,6 +17,13 @@ RUN apt-get update && \
         libssl-dev \
         protobuf-compiler \
         git \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install latest cmake
+RUN curl https://apt.kitware.com/kitware-archive.sh | bash -s -- --release focal \
+    apt-get install -y --no-install-recommends \
         cmake \
         && \
     apt-get clean && \
