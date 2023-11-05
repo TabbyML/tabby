@@ -9,12 +9,10 @@ ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_V
 FROM ${BASE_CUDA_DEV_CONTAINER} as build
 
 ENV DEBIAN_FRONTEND=noninteractive
-# Use kitware's repo to make sure CMake is newer than 3.17.
-RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
-        gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null && \
-    echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | \
-        tee /etc/apt/sources.list.d/kitware.list >/dev/null && \
-    apt-get update && \
+# Install latest cmake
+RUN wget -qO - https://apt.kitware.com/kitware-archive.sh | bash -s -- --release focal
+
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
         pkg-config \
