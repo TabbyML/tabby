@@ -18,7 +18,7 @@ function processContext(
   lines: string[],
   prefixLines: string[],
   suffixLines: string[],
-  config: AgentConfig["postprocess"]["limitScopeByIndentation"],
+  config: AgentConfig["postprocess"]["limitScope"]["indentation"],
 ): { indentLevelLimit: number; allowClosingLine: (closingLine: string) => boolean } {
   let allowClosingLine = false;
   let result = { indentLevelLimit: 0, allowClosingLine: (closingLine: string) => allowClosingLine };
@@ -103,7 +103,7 @@ function processContext(
 
 export function limitScopeByIndentation(
   context: CompletionContext,
-  config: AgentConfig["postprocess"]["limitScopeByIndentation"],
+  config: AgentConfig["postprocess"]["limitScope"]["indentation"],
 ): PostprocessFilter {
   return (input) => {
     const { prefix, suffix, prefixLines, suffixLines } = context;
@@ -139,7 +139,7 @@ export function limitScopeByIndentation(
       }
     }
     if (index < inputLines.length) {
-      logger.debug({ input, prefix, suffix, scopeEndAt: index }, "Remove content out of scope");
+      logger.debug({ input, prefix, suffix, scopeEndAt: index }, "Remove content out of indent scope");
       return inputLines.slice(0, index).join("").trimEnd();
     }
     return input;

@@ -8,6 +8,13 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "openapi-codegen": "openapi-typescript ./openapi/tabby.json -o ./src/types/tabbyApi.d.ts",
+    "tree-sitter-build-wasm": "yarn tree-sitter-build-wasm:copy-main & yarn tree-sitter-build-wasm:tsx & yarn tree-sitter-build-wasm:python & yarn tree-sitter-build-wasm:go & yarn tree-sitter-build-wasm:rust & yarn tree-sitter-build-wasm:ruby",
+    "tree-sitter-build-wasm:copy-main": "cpy ../../node_modules/web-tree-sitter/tree-sitter.wasm ./wasm/ --flat",
+    "tree-sitter-build-wasm:tsx": "cd wasm/ && tree-sitter build-wasm ../../../node_modules/tree-sitter-typescript/tsx",
+    "tree-sitter-build-wasm:python": "cd wasm/ && tree-sitter build-wasm ../../../node_modules/tree-sitter-python",
+    "tree-sitter-build-wasm:go": "cd wasm/ && tree-sitter build-wasm ../../../node_modules/tree-sitter-go",
+    "tree-sitter-build-wasm:rust": "cd wasm/ && tree-sitter build-wasm ../../../node_modules/tree-sitter-rust",
+    "tree-sitter-build-wasm:ruby": "cd wasm/ && tree-sitter build-wasm ../../../node_modules/tree-sitter-ruby",
     "dev": "tsup --watch --no-minify --no-treeshake",
     "build": "tsup",
     "test": "mocha",
@@ -22,12 +29,20 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.12.0",
     "chai": "^4.3.7",
+    "cpy-cli": "^4.2.0",
     "dedent": "^0.7.0",
+    "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "mocha": "^10.2.0",
     "openapi-typescript": "^6.6.1",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.1",
+    "tree-sitter-cli": "^0.20.8",
+    "tree-sitter-go": "^0.20.0",
+    "tree-sitter-python": "^0.20.4",
+    "tree-sitter-ruby": "^0.19.0",
+    "tree-sitter-rust": "^0.20.4",
+    "tree-sitter-typescript": "^0.20.3",
     "ts-node": "^10.9.1",
     "tsup": "^7.1.0",
     "typescript": "^5.0.3"
@@ -47,6 +62,7 @@
     "rotating-file-stream": "^3.1.0",
     "stats-logscale": "^1.0.7",
     "toml": "^3.0.0",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "web-tree-sitter": "^0.20.8"
   }
 }
