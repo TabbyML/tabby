@@ -7,9 +7,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          lfs: 'true'
       - uses: olivr/copybara-action@v1.2.3
         with:
           ssh_key: ${{ secrets.VIM_RELEASE_SSH_KEY }}
