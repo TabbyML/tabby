@@ -56,6 +56,7 @@ class Model:
         my_env["TABBY_DISABLE_USAGE_COLLECTION"] = 1
         self.launcher = subprocess.Popen(["/opt/tabby/bin/tabby"] + LAUNCH_FLAGS, env=my_env)
         self.client = Client("http://127.0.0.1:8000")
+        self.client.raise_on_unexpected_status
 
         # Poll until webserver at 127.0.0.1:8000 accepts connections before running inputs.
         def webserver_ready():
@@ -117,10 +118,10 @@ class Model:
             if resp.parsed != None:
                 return resp.parsed.choices[0].text
             else:
-                return f"<{resp.status_code}>"
+                return f"status code: `{resp.status_code}`"
         except Exception as e:
             #print(e)
-            return f"<{e}>"
+            return f"error: `{e}`"
 
 
 
