@@ -229,4 +229,125 @@ describe("postprocess", () => {
       expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
     });
   });
+
+  describe("limitScopeBySyntax go", () => {
+    it("should limit scope at function_declaration.", async () => {
+      const context = {
+        ...documentContext`
+        func findMin(arr []int) int {║}
+        `,
+        language: "go",
+      };
+      const completion = inline`
+                                     ├
+          min := math.MaxInt64
+          for _, v := range arr {
+            if v < min {
+              min = v
+            }
+          }
+          return min
+        }
+        
+        func main() {
+          arr := []int{5, 2, 9, 8, 1, 3}
+          fmt.Println(findMin(arr)) // Output: 1
+        }┤
+      `;
+      const expected = inline`
+                                     ├
+          min := math.MaxInt64
+          for _, v := range arr {
+            if v < min {
+              min = v
+            }
+          }
+          return min
+        }┤
+      `;
+      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+    });
+
+    it("should limit scope at for_statement.", async () => {
+      const context = {
+        ...documentContext`
+        func findMin(arr []int) int {
+          min := math.MaxInt64
+          for║
+        `,
+        language: "go",
+      };
+      const completion = inline`
+             ├ _, v := range arr {
+            if v < min {
+              min = v
+            }
+          }
+          return min
+        }┤
+      `;
+      const expected = inline`
+             ├ _, v := range arr {
+            if v < min {
+              min = v
+            }
+          }┤
+        ┴┴
+      `;
+      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+    });
+  });
+
+  describe("limitScopeBySyntax rust", () => {
+    it("should limit scope at function_item.", async () => {
+      const context = {
+        ...documentContext`
+        fn find_min(arr: &[i32]) -> i32 {║}
+        `,
+        language: "rust",
+      };
+      const completion = inline`
+                                         ├
+          *arr.iter().min().unwrap()
+        }
+
+        fn main() {
+          let arr = vec![5, 2, 9, 8, 1, 3];
+          println!("{}", find_min(&arr)); // Output: 1
+        }┤
+      `;
+      const expected = inline`
+                                         ├
+          *arr.iter().min().unwrap()
+        }┤
+      `;
+      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+    });
+  });
+
+
+  describe("limitScopeBySyntax ruby", () => {
+    it("should limit scope at for.", async () => {
+      const context = {
+        ...documentContext`
+        def fibonacci(n)║
+        `,
+        language: "ruby",
+      };
+      const completion = inline`
+                        ├
+          return n if n <= 1
+          fibonacci(n - 1) + fibonacci(n - 2)
+        end
+        puts fibonacci(10)┤
+      `;
+      const expected = inline`
+                        ├
+          return n if n <= 1
+          fibonacci(n - 1) + fibonacci(n - 2)
+        end┤
+      `;
+      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+    });
+  });
 });
