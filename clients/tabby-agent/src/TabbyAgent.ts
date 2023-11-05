@@ -104,7 +104,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
       // If auth token is provided, use it directly.
       this.auth = null;
     }
-    await this.setupApi();
 
     // If server config changed, clear server related state
     if (!deepEqual(oldConfig.server, this.config.server)) {
@@ -112,7 +111,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.completionProviderStats.resetWindowed();
       this.popIssue("slowCompletionResponseTime");
       this.popIssue("highCompletionTimeoutRate");
+    }
 
+    await this.setupApi();
+
+    if (!deepEqual(oldConfig.server, this.config.server)) {
       // If server config changed and status remain `unauthorized`, we want to emit `authRequired` again.
       // but `changeStatus` will not emit `authRequired` if status is not changed, so we emit it manually here.
       if (oldStatus === "unauthorized" && this.status === "unauthorized") {
