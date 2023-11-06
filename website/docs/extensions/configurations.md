@@ -49,7 +49,7 @@ Tabby IDE extensions collect aggregated anonymous usage data and sends it to the
 
 **Do not worry, your code, generated completions, or any identifying information is never tracked or transmitted.**  
 
-The data we collect, as of the latest update on November 6, 2023, includes:
+The data we collect, as of the latest update on November 6, 2023, contains following major parts:
 
 - System info and extension version info
 - Completions statistics
