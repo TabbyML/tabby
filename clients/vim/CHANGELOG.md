@@ -1,3 +1,9 @@
+## 1.0.2
+
+### Fixes:
+
+- Fixed a bug causing status stuck in 'initializing' when script not found.
+
 ## 1.0.1
 
 ### Fixes:

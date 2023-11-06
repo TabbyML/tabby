@@ -50,5 +50,5 @@ function! tabby#globals#Load()
 
 
   " Version of Tabby plugin. Not configurable.
-  let g:tabby_version = "1.0.1"
+  let g:tabby_version = "1.0.2"
 endfunction
