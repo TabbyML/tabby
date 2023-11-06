@@ -86,11 +86,12 @@ export const defaultAgentConfig: AgentConfig = {
 
 const configTomlTemplate = `## Tabby agent configuration file
 
-## You can uncomment any block to enable settings.
-## Configurations in this file has lower priority than in IDE settings.
+## Online documentation: https://tabby.tabbyml.com/docs/extensions/configuration
+## You can uncomment and edit the values below to change the default settings.
+## Configurations in this file have lower priority than the IDE settings.
 
 ## Server
-## You can set the server endpoint here, and auth token if server requires.
+## You can set the server endpoint here and an optional authentication token if required.
 # [server]
 # endpoint = "http://localhost:8080" # http or https URL
 # token = "your-token-here" # if token is set, request header Authorization = "Bearer $token" will be added automatically
@@ -98,7 +99,7 @@ const configTomlTemplate = `## Tabby agent configuration file
 ## You can add custom request headers.
 # [server.requestHeaders]
 # Header1 = "Value1" # list your custom headers here
-# Header2 = "Value2" # value can be string, number or boolean
+# Header2 = "Value2" # values can be strings, numbers or booleans
 
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
@@ -106,7 +107,10 @@ const configTomlTemplate = `## Tabby agent configuration file
 # level = "silent" # "silent" or "error" or "debug"
 
 ## Anonymous usage tracking
-## You can disable anonymous usage tracking here.
+## Tabby collects anonymous usage data and sends it to the Tabby team to help improve our products.
+## Your code, generated completions, or any sensitive information is never tracked or sent.
+## For more details on data collection, see https://tabby.tabbyml.com/docs/extensions/configuration#usage-collection
+## Your contribution is greatly appreciated. However, if you prefer not to participate, you can disable anonymous usage tracking here.
 # [anonymousUsageTracking]
 # disable = false # set to true to disable
 
