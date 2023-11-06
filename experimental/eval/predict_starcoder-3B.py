@@ -3,12 +3,14 @@ from pathlib import Path
 import modal
 from modal import Image, Mount, Secret, Stub, asgi_app, gpu, method
 
-GPU_CONFIG = gpu.T4()
+import asyncio
+
+GPU_CONFIG = gpu.A100()
+#MODEL_ID = "TabbyML/StarCoder-3B"#os.environ.get("MODEL_ID", "TabbyML/StarCoder-3B")
 MODEL_ID = "TabbyML/StarCoder-3B"
 LAUNCH_FLAGS = ["serve", "--model", MODEL_ID, "--port", "8000", "--device", "cuda"]
 
-import httpx
-
+from datetime import datetime
 
 def download_model():
     import subprocess
@@ -40,7 +42,8 @@ stub = Stub("tabby-" + MODEL_ID.split("/")[-1], image=image)
 
 @stub.cls(
     gpu=GPU_CONFIG,
-    allow_concurrent_inputs=10,
+    concurrency_limit=10,
+    allow_concurrent_inputs=1,
     container_idle_timeout=60 * 10,
     timeout=360,
 )
@@ -53,10 +56,11 @@ class Model:
         from tabby_python_client import Client
 
         my_env = os.environ.copy()
-        my_env["TABBY_DISABLE_USAGE_COLLECTION"] = 1
+        my_env["TABBY_DISABLE_USAGE_COLLECTION"] = "1"
         self.launcher = subprocess.Popen(["/opt/tabby/bin/tabby"] + LAUNCH_FLAGS, env=my_env)
-        self.client = Client("http://127.0.0.1:8000")
-        self.client.raise_on_unexpected_status
+        self.client = Client("http://127.0.0.1:8000", timeout=120)
+
+        # self.client.raise_on_unexpected_status = True
 
         # Poll until webserver at 127.0.0.1:8000 accepts connections before running inputs.
         def webserver_ready():
@@ -89,7 +93,8 @@ class Model:
         return resp.to_dict()
 
     @method()
-    async def complete(self, language: str, prompt: str):
+    async def complete(self, language, crossfile_context, json_line):
+        import traceback 
         from tabby_python_client.api.v1 import completion
         from tabby_python_client.models import (
             CompletionRequest,
@@ -98,8 +103,17 @@ class Model:
             Segments,
         )
         from tabby_python_client.types import Response
+        from tabby_python_client import errors
+        import json
 
-        
+        obj = json.loads(json_line)
+        if crossfile_context:
+            prompt = obj["crossfile_context"]["text"] + obj["prompt"]
+        else:
+            prompt = obj["prompt"]
+        groundtruth = obj["groundtruth"]
+        #print(f'prompt: {prompt}')
+        #print(f"groundtruth: {groundtruth} begin at {datetime.now()}")
         request = CompletionRequest(
             language=language, debug_options=DebugOptions(raw_prompt=prompt)
         )
@@ -111,22 +125,22 @@ class Model:
                 client=self.client, json_body=request
             )
             #print(resp.status_code)
-            
-        # except httpx.TimeoutException:
-        #     print("time out!")
-        
+
+            #print(f"groundtruth: {groundtruth} end at {datetime.now()}")
             if resp.parsed != None:
-                return resp.parsed.choices[0].text
+                return (prompt, groundtruth, resp.parsed.choices[0].text)
             else:
-                return f"status code: `{resp.status_code}`"
-        except Exception as e:
+                return (prompt, groundtruth, f"status code: <{resp.status_code}>")
+        except errors.UnexpectedStatus as e:
             #print(e)
-            return f"error: `{e}`"
-
-
+            return (prompt, groundtruth, f"error: code={e.status_code} content={e.content} error={e}")
+        except Exception as e:
+            print(f'error occurs!!! {type(e)}')
+            #traceback.print_exc()
+            return None, None, None
 
 @stub.local_entrypoint()
-def main(language, file):
+async def main(language, file):
     import json
 
     model = Model()
@@ -139,22 +153,32 @@ def main(language, file):
         crossfile_context = False
     else:
         crossfile_context = True
+        
 
+    # with open(output_file, "w") as fout:
+    #     with open(input_file) as fin:
+    #         for line in fin:
+    #             x = json.loads(line)
+    #             if crossfile_context:
+    #                 prompt = x["crossfile_context"]["text"] + x["prompt"]
+    #             else:
+    #                 prompt = x["prompt"]
+    #             label = x["groundtruth"]
+                
+    #             prediction = model.complete.remote(language, prompt)
+                
+    #             json.dump(dict(prompt=prompt, label=label, prediction=prediction), fout)
+    #             fout.write("\n")
+    
+    output = []
+    with open(input_file) as fin:
+        output = await asyncio.gather(*[model.complete.remote.aio(language, crossfile_context, line) for line in fin])
+        # for line in fin:
+        #     o = model.complete.local(language, crossfile_context, line)
+        #     output.append(o)
 
     with open(output_file, "w") as fout:
-        with open(input_file) as fin:
-            for line in fin:
-                x = json.loads(line)
-                if crossfile_context:
-                    prompt = x["crossfile_context"]["text"] + x["prompt"]
-                else:
-                    prompt = x["prompt"]
-                label = x["groundtruth"]
-                
-                prediction = model.complete.remote(language, prompt)
-                
-                json.dump(dict(prompt=prompt, label=label, prediction=prediction), fout)
-                fout.write("\n")
+        for prompt, label, prediction in output:
+            json.dump(dict(prompt=prompt, label=label, prediction=prediction), fout)
+            fout.write("\n")
 
-
-                
