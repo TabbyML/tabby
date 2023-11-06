@@ -23,7 +23,7 @@ def download_model():
 
 image = (
     Image.from_registry(
-        "tabbyml/tabby@sha256:64d71ec4c7d9ae7269e6301ad4106baad70ee997408691a6af17d7186283a856",
+        "tabbyml/tabby:0.4.0",
         add_python="3.11",
     )
     .dockerfile_commands("ENTRYPOINT []")
@@ -103,18 +103,35 @@ class Model:
 
 
 @stub.local_entrypoint()
-def main():
+def main(language, file):
     import json
 
     model = Model()
     print(model.health.remote())
 
-    with open("./output.jsonl", "w") as fout:
-        with open("./sample.jsonl") as fin:
+    input_file = "./" + language + "/" + file
+    output_file = "./" + language + "/output_" + file
+
+    if file == 'line_completion.jsonl':
+        crossfile_context = False
+    else:
+        crossfile_context = True
+
+
+    with open(output_file, "w") as fout:
+        with open(input_file) as fin:
             for line in fin:
                 x = json.loads(line)
-                prompt = x["crossfile_context"]["text"] + x["prompt"]
+                if crossfile_context:
+                    prompt = x["crossfile_context"]["text"] + x["prompt"]
+                else:
+                    prompt = x["prompt"]
                 label = x["groundtruth"]
-                prediction = model.complete.remote("python", prompt)
-
+                prediction = model.complete.remote(language, prompt)
+ 
                 json.dump(dict(prompt=prompt, label=label, prediction=prediction), fout)
+                fout.write("\n")
+
+                
+
+                
