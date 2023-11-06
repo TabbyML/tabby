@@ -13,8 +13,8 @@ def analyze(model, language, file):
                 prompt = obj["prompt"]
                 groundtruth = obj["label"]
                 prediction = obj["prediction"]
-                first_line_groundtruth = groundtruth.split("\n")[0].strip()
-                first_line_prediction = prediction.split("\n")[0].strip()
+                first_line_groundtruth = groundtruth.split("\n")[0]
+                first_line_prediction = prediction.split("\n")[0]
 
                 if first_line_groundtruth == first_line_prediction:
                     match = 1
