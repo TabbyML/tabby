@@ -8,16 +8,18 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useCombobox } from 'downshift'
-import type { UseComboboxReturnValue } from 'downshift'
+import type {
+  UseComboboxReturnValue,
+  UseComboboxState,
+  UseComboboxStateChangeOptions
+} from 'downshift'
 import Textarea from 'react-textarea-autosize'
-import { isNil, omitBy } from 'lodash'
+import { isNil, omitBy } from 'lodash-es'
 
 interface ComboboxContextValue<T = any> extends UseComboboxReturnValue<T> {
   open: boolean
-  inputRef: React.MutableRefObject<
-    HTMLInputElement | HTMLTextAreaElement | null
-  >
-  anchorRef: React.MutableRefObject<HTMLElement | null>
+  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement>
+  anchorRef: React.RefObject<HTMLElement>
 }
 
 export const ComboboxContext = React.createContext({} as ComboboxContextValue)
@@ -133,7 +135,12 @@ export const ComboboxOption = React.forwardRef<
           disabled && 'pointer-events-none opacity-50',
           className
         )}
-        {...getItemProps({ item, index })}
+        {...getItemProps({
+          item,
+          index,
+          onMouseLeave: e => e.preventDefault(),
+          onMouseOut: e => e.preventDefault()
+        })}
         {...rest}
       >
         {typeof children === 'function'
@@ -148,24 +155,48 @@ ComboboxOption.displayName = 'ComboboxOption'
 interface ComboboxProps<T> {
   options: T[] | undefined
   onSelect?: (
-    ref: React.MutableRefObject<HTMLTextAreaElement | HTMLInputElement | null>,
+    ref: React.RefObject<HTMLTextAreaElement | HTMLInputElement>,
     data: T
   ) => void
+  inputRef?: React.RefObject<HTMLTextAreaElement | HTMLInputElement>
   children?:
     | React.ReactNode
     | React.ReactNode[]
-    | ((p: ComboboxContextValue) => React.ReactNode)
+    | ((contextValue: ComboboxContextValue) => React.ReactNode)
 }
+
 export function Combobox<T extends { id: number }>({
   options,
   onSelect,
+  inputRef: propsInputRef,
   children
 }: ComboboxProps<T>) {
   const [manualOpen, setManualOpen] = React.useState(false)
-  const inputRef = React.useRef<HTMLTextAreaElement | HTMLInputElement | null>(
+  const internalInputRef = React.useRef<HTMLTextAreaElement | HTMLInputElement>(
     null
   )
-  const anchorRef = React.useRef<HTMLElement | null>(null)
+  const inputRef = propsInputRef ?? internalInputRef
+  const anchorRef = React.useRef<HTMLElement>(null)
+
+  const stateReducer = React.useCallback(
+    (
+      state: UseComboboxState<T>,
+      actionAndChanges: UseComboboxStateChangeOptions<T>
+    ) => {
+      const { type, changes } = actionAndChanges
+      switch (type) {
+        case useCombobox.stateChangeTypes.MenuMouseLeave:
+          return {
+            ...changes,
+            highlightedIndex: state.highlightedIndex
+          }
+        default:
+          return changes
+      }
+    },
+    []
+  )
+
   const comboboxValue = useCombobox({
     items: options ?? [],
     isOpen: manualOpen,
@@ -179,11 +210,12 @@ export function Combobox<T extends { id: number }>({
       if (!isOpen) {
         setManualOpen(false)
       }
-    }
+    },
+    stateReducer
   })
 
-  const { setHighlightedIndex, highlightedIndex, isOpen } = comboboxValue
-  const open = isOpen && !!options?.length
+  const { setHighlightedIndex, highlightedIndex } = comboboxValue
+  const open = manualOpen && !!options?.length
 
   React.useEffect(() => {
     if (open && !!options.length && highlightedIndex === -1) {
@@ -192,7 +224,7 @@ export function Combobox<T extends { id: number }>({
     if (open && !options.length) {
       setManualOpen(false)
     }
-  }, [open])
+  }, [open, options])
 
   React.useEffect(() => {
     if (options?.length) {

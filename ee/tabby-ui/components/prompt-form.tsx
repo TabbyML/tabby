@@ -1,7 +1,12 @@
 import { UseChatHelpers } from 'ai/react'
 import * as React from 'react'
+import useSWR from 'swr'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { IconArrowElbow, IconEdit } from '@/components/ui/icons'
+import {
+  IconArrowElbow,
+  IconEdit,
+  IconSymbolFunction
+} from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
@@ -16,11 +21,11 @@ import {
 } from '@/components/ui/combobox'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
-import { cn, getSearchCompletionQueryName } from '@/lib/utils'
-import useSWR from 'swr'
+import { cn } from '@/lib/utils'
 import fetcher from '@/lib/tabby-fetcher'
-import { debounce, has } from 'lodash'
-import { ISearchHit, SearchReponse } from '@/lib/types'
+import { debounce, has } from 'lodash-es'
+import type { ISearchHit, SearchReponse } from '@/lib/types'
+import { lightfair } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -39,6 +44,12 @@ export function PromptForm({
     string | null
   >(null)
   const latestFetchKey = React.useRef('')
+  const inputRef = React.useRef<HTMLTextAreaElement>(null)
+  const nextInputSelectionRange = React.useRef<[number, number]>()
+  const [options, setOptions] = React.useState<SearchReponse['hits']>([])
+  const [selectedCompletionsMap, setSelectedCompletionsMap] = React.useState<
+    Record<string, ISearchHit>
+  >({})
 
   useSWR<SearchReponse>(queryCompletionUrl, fetcher, {
     revalidateOnFocus: false,
@@ -50,14 +61,24 @@ export function PromptForm({
     }
   })
 
-  const [options, setOptions] = React.useState<SearchReponse['hits']>([])
-  const onSearch = React.useMemo(() => {
+  React.useLayoutEffect(() => {
+    if (nextInputSelectionRange.current?.length) {
+      inputRef.current?.setSelectionRange?.(
+        nextInputSelectionRange.current[0],
+        nextInputSelectionRange.current[1]
+      )
+      nextInputSelectionRange.current = undefined
+    }
+  })
+
+  const handleSearchCompletion = React.useMemo(() => {
     return debounce((e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const value = e.target?.value ?? ''
       const end = e.target?.selectionEnd ?? 0
-      const queryname = getSearchCompletionQueryName(value, end)
-      if (queryname) {
-        const query = encodeURIComponent(`name:${queryname} kind:function`)
+      const queryNameMatches = getSearchCompletionQueryName(value, end)
+      const queryName = queryNameMatches?.[1]
+      if (queryName) {
+        const query = encodeURIComponent(`name:${queryName} kind:function`)
         const url = `/v1beta/search?q=${query}`
         latestFetchKey.current = url
         setQueryCompletionUrl(url)
@@ -67,39 +88,60 @@ export function PromptForm({
     }, 200)
   }, [])
 
-  const onSelectCompletion = (
-    inputRef: React.MutableRefObject<
-      HTMLTextAreaElement | HTMLInputElement | null
-    >,
+  const handleCompletionSelect = (
+    inputRef: React.RefObject<HTMLTextAreaElement | HTMLInputElement>,
     item: ISearchHit
   ) => {
-    const replaceString = '`@' + item?.doc?.name + '` '
     const selectionEnd = inputRef.current?.selectionEnd ?? 0
-    const queryname = getSearchCompletionQueryName(input, selectionEnd)
-    const prevInput = input
-      .substring(0, selectionEnd)
-      .replace(new RegExp(`@${queryname}$`), '')
-    if (queryname) {
-      setInput(prevInput + replaceString + input.substring(selectionEnd))
+    const queryNameMatches = getSearchCompletionQueryName(input, selectionEnd)
+    if (queryNameMatches) {
+      setSelectedCompletionsMap({
+        ...selectedCompletionsMap,
+        [queryNameMatches[0]]: item
+      })
+      // insert a space to break the search query
+      setInput(input.slice(0, selectionEnd) + ' ' + input.slice(selectionEnd))
+      // store the selection range and update it when layout
+      nextInputSelectionRange.current = [selectionEnd + 1, selectionEnd + 1]
     }
-
     setOptions([])
   }
 
+  const handlePromptSubmit: React.FormEventHandler<
+    HTMLFormElement
+  > = async e => {
+    e.preventDefault()
+    if (!input?.trim()) {
+      return
+    }
+
+    let finalInput = input
+    // replace queryname to doc.body of selected completions
+    Object.keys(selectedCompletionsMap).forEach(key => {
+      const completion = selectedCompletionsMap[key]
+      if (!completion?.doc) return
+      finalInput = finalInput.replaceAll(
+        key,
+        `${'```'}${completion.doc?.language ?? ''}\n${
+          completion.doc.body ?? ''
+        }\n${'```'}\n`
+      )
+    })
+
+    setInput('')
+    await onSubmit(finalInput)
+  }
+
   return (
-    <form
-      onSubmit={async e => {
-        e.preventDefault()
-        if (!input?.trim()) {
-          return
-        }
-        setInput('')
-        await onSubmit(input)
-      }}
-      ref={formRef}
-    >
-      <Combobox options={options} onSelect={onSelectCompletion}>
-        {({ open, inputRef, highlightedIndex }) => {
+    <form onSubmit={handlePromptSubmit} ref={formRef}>
+      <Combobox
+        inputRef={inputRef}
+        options={options}
+        onSelect={handleCompletionSelect}
+      >
+        {({ open, highlightedIndex }) => {
+          const highlightedOption = options?.[highlightedIndex]
+
           return (
             <>
               <ComboboxAnchor>
@@ -119,14 +161,11 @@ export function PromptForm({
                     spellCheck={false}
                     className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none sm:text-sm"
                     value={input}
-                    ref={
-                      inputRef as React.MutableRefObject<HTMLTextAreaElement>
-                    }
+                    ref={inputRef}
                     onChange={e => {
                       if (has(e, 'target.value')) {
-                        let event = e as React.ChangeEvent<HTMLTextAreaElement>
-                        setInput(event.target.value)
-                        onSearch?.(event)
+                        setInput(e.target.value)
+                        handleSearchCompletion(e)
                       }
                     }}
                     onKeyDown={onKeyDown}
@@ -151,11 +190,10 @@ export function PromptForm({
               <ComboboxContent
                 align="start"
                 onOpenAutoFocus={e => e.preventDefault()}
-                // popupMatchAnchorWidth
-                className="w-1/2 max-w-xl"
+                className="w-[60vw] md:w-[430px]"
               >
-                <Popover open={!!options?.[highlightedIndex]}>
-                  <PopoverAnchor>
+                <Popover open={open && !!highlightedOption}>
+                  <PopoverAnchor asChild>
                     <div className="max-h-[300px] overflow-y-scroll">
                       {open &&
                         !!options?.length &&
@@ -165,9 +203,14 @@ export function PromptForm({
                             index={index}
                             key={item?.id}
                           >
-                            <div className="flex flex-col overflow-x-hidden">
-                              <div className="truncate">{item?.doc?.name}</div>
-                              <div className="text-muted-foreground truncate text-sm">
+                            <div className="flex w-full items-center justify-between gap-8 overflow-x-hidden">
+                              <div className="flex items-center gap-1">
+                                <IconForCompletionKind kind={item?.doc?.kind} />
+                                <div className="max-w-[200px] truncate">
+                                  {item?.doc?.name}(...)
+                                </div>
+                              </div>
+                              <div className="text-muted-foreground flex-1 truncate text-right text-sm">
                                 {item?.doc?.body}
                               </div>
                             </div>
@@ -177,20 +220,23 @@ export function PromptForm({
                   </PopoverAnchor>
                   <PopoverContent
                     asChild
-                    align="end"
+                    align="start"
                     side="right"
                     alignOffset={-4}
                     onOpenAutoFocus={e => e.preventDefault()}
-                    onFocus={e => e.preventDefault()}
-                    onClick={e => e.preventDefault()}
-                    className="max-w-xl rounded-none"
+                    onKeyDownCapture={e => e.preventDefault()}
+                    className="rounded-none"
+                    collisionPadding={{ bottom: 120 }}
                   >
-                    <div className="flex flex-col px-2">
+                    <div className="flex max-h-[70vh] w-[20vw] flex-col overflow-y-auto px-2 md:w-[240px] lg:w-[340px]">
                       <div className="mb-2">
-                        {options?.[highlightedIndex]?.doc?.name}
+                        {highlightedOption?.doc?.kind
+                          ? `(${highlightedOption?.doc?.kind}) `
+                          : ''}
+                        {highlightedOption?.doc?.name}
                       </div>
-                      <div className="text-muted-foreground flex-1 overflow-auto whitespace-pre">
-                        {options?.[highlightedIndex]?.doc?.body}
+                      <div className="text-muted-foreground flex-1 whitespace-pre-wrap break-all">
+                        {highlightedOption?.doc?.body}
                       </div>
                     </div>
                   </PopoverContent>
@@ -202,4 +248,31 @@ export function PromptForm({
       </Combobox>
     </form>
   )
+}
+
+/**
+ * Retrieves the name of the completion query from a given string@.
+ * @param {string} val - The input string to search for the completion query name.
+ * @param {number | undefined} selectionEnd - The index at which the selection ends in the input string.
+ * @return {string | undefined} - The name of the completion query if found, otherwise undefined.
+ */
+export function getSearchCompletionQueryName(
+  val: string,
+  selectionEnd: number | undefined
+): RegExpExecArray | null {
+  const queryString = val.substring(0, selectionEnd)
+  const matches = /@(\w+)$/.exec(queryString)
+  return matches
+}
+
+function IconForCompletionKind({
+  kind,
+  ...rest
+}: { kind: string | undefined } & React.ComponentProps<'svg'>) {
+  switch (kind) {
+    case 'function':
+      return <IconSymbolFunction {...rest} />
+    default:
+      return <IconSymbolFunction {...rest} />
+  }
 }

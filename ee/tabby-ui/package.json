@@ -33,7 +33,7 @@
     "compare-versions": "^6.1.0",
     "downshift": "^8.2.2",
     "focus-trap-react": "^10.1.1",
-    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "nanoid": "^4.0.2",
     "next": "^13.4.7",
     "next-auth": "0.0.0-manual.83c4ebd1",
@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.9",
-    "@types/lodash": "^4.14.200",
+    "@types/lodash-es": "^4.17.10",
     "@types/node": "^17.0.12",
     "@types/react": "^18.0.22",
     "@types/react-dom": "^18.0.7",
