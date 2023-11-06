@@ -57,9 +57,10 @@ export function PromptForm({
       const end = e.target?.selectionEnd ?? 0
       const queryname = getSearchCompletionQueryName(value, end)
       if (queryname) {
-        let url = `/v1beta/search?q=name:${queryname}`
+        const query = encodeURIComponent(`name:${queryname} kind:function`)
+        const url = `/v1beta/search?q=${query}`
         latestFetchKey.current = url
-        setQueryCompletionUrl(`/v1beta/search?q=name:${queryname}`)
+        setQueryCompletionUrl(url)
       } else {
         setOptions([])
       }
