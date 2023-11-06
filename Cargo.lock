@@ -2138,6 +2138,7 @@ dependencies = [
  "futures",
  "tabby-inference",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

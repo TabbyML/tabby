@@ -18,3 +18,4 @@ tabby-inference = { path = "../tabby-inference" }
 derive_builder = { workspace = true }
 futures.workspace = true
 async-stream.workspace = true
+tracing.workspace = true

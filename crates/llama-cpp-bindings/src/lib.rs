@@ -1,3 +1,5 @@
+mod utils;
+
 use std::{collections::HashMap, sync::Arc};
 
 use async_stream::stream;
@@ -77,7 +79,7 @@ impl AsyncTextInferenceEngine {
         let result = match engine.as_mut().unwrap().step() {
             Ok(result) => result,
             Err(err) => {
-                panic!("Failed to step: {}", err)
+                fatal!("Failed to step: {}", err)
             }
         };
 
@@ -161,7 +163,7 @@ impl LlamaTextGeneration {
     pub fn create(options: LlamaTextGenerationOptions) -> Self {
         let engine = create_engine(options.use_gpu, &options.model_path);
         if engine.is_null() {
-            panic!("Unable to load model: {}", options.model_path);
+            fatal!("Unable to load model: {}", options.model_path);
         }
         let ret = LlamaTextGeneration {
             engine: Arc::new(AsyncTextInferenceEngine::create(engine)),
