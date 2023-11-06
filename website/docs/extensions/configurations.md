@@ -51,14 +51,7 @@ Tabby IDE extensions collect aggregated anonymous usage data and sends it to the
 
 The data we collect, as of the latest update on November 6, 2023, includes:
 
-- Installed Tabby extension version
-- IDE name and version
-- Node.js build version running the Tabby agent (Desktop IDEs only)
-- Browser agent string (Web IDEs only)
-- [Health State](https://tabby.tabbyml.com/docs/configuration#what-data-is-collected) of connected Tabby server
-- UI settings
-  - Completion trigger mode: automatic / manual
-  - Keybindings style (VSCode only)
+- System info and extension version info
 - Completions statistics
   - Completion count
   - Completion accepted count
