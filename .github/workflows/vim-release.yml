@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout tabby repo
