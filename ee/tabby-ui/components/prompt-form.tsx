@@ -122,7 +122,7 @@ export function PromptForm({
       if (!completion?.doc) return
       finalInput = finalInput.replaceAll(
         key,
-        `${'```'}${completion.doc?.language ?? ''}\n${
+        `\n${'```'}${completion.doc?.language ?? ''}\n${
           completion.doc.body ?? ''
         }\n${'```'}\n`
       )
