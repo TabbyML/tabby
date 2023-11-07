@@ -879,6 +879,8 @@ class WhisperLoader(BartLoader):
         spec = whisper_spec.WhisperSpec(
             model.config.encoder_layers,
             model.config.encoder_attention_heads,
+            model.config.decoder_layers,
+            model.config.decoder_attention_heads,
         )
 
         self.set_encoder(spec.encoder, model.model.encoder)

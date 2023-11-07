@@ -26,17 +26,27 @@ class WhisperConfig(model_spec.ModelConfig):
 class WhisperSpec(model_spec.LanguageModelSpec):
     """Describes a Whisper model."""
 
-    def __init__(self, num_layers, num_heads):
+    def __init__(
+        self,
+        num_encoder_layers,
+        num_encoder_heads,
+        num_decoder_layers,
+        num_decoder_heads,
+    ):
         """Initializes the model specification.
 
         Args:
-          num_layers: The number of encoder and decoder layers.
-          num_heads: The number of attention heads.
+          num_encoder_layers: The number of encoder layers.
+          num_encoder_heads: The number of encoder attention heads.
+          num_decoder_layers: The number of decoder layers.
+          num_decoder_heads: The number of decoder attention heads.
         """
         super().__init__()
-        self.encoder = WhisperEncoderSpec(num_layers, num_heads)
+        self.encoder = WhisperEncoderSpec(num_encoder_layers, num_encoder_heads)
         self.decoder = transformer_spec.TransformerDecoderSpec(
-            num_layers, num_heads, activation=common_spec.Activation.GELU
+            num_decoder_layers,
+            num_decoder_heads,
+            activation=common_spec.Activation.GELU,
         )
         self.decoder.scale_embeddings = False
 
