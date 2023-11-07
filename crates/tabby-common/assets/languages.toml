@@ -20,6 +20,28 @@ top_level_keywords = [
 ]
 
 [[config]]
+languages = ["java"]
+line_comment = "//"
+top_level_keywords = [
+    "abstract",
+    "public",
+    "private",
+    "class",
+    "const",
+    "exports",
+    "extends",
+    "implements",
+    "static",
+    "import",
+    "interface",
+    "module",
+    "package",
+    "var",
+    "enum",
+    "return",
+]
+
+[[config]]
 languages = ["javascript", "typescript", "javascriptreact", "typescriptreact"]
 line_comment = "//"
 top_level_keywords = [
