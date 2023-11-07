@@ -25,7 +25,6 @@ import { cn } from '@/lib/utils'
 import fetcher from '@/lib/tabby-fetcher'
 import { debounce, has } from 'lodash-es'
 import type { ISearchHit, SearchReponse } from '@/lib/types'
-import { lightfair } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -45,6 +44,9 @@ export function PromptForm({
   >(null)
   const latestFetchKey = React.useRef('')
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
+  // store the input selection for replacing inputValue
+  const prevInputSelectionEnd = React.useRef<number>()
+  // for updating the input selection after replacing
   const nextInputSelectionRange = React.useRef<[number, number]>()
   const [options, setOptions] = React.useState<SearchReponse['hits']>([])
   const [selectedCompletionsMap, setSelectedCompletionsMap] = React.useState<
@@ -53,10 +55,9 @@ export function PromptForm({
 
   useSWR<SearchReponse>(queryCompletionUrl, fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 500,
+    dedupingInterval: 0,
     onSuccess: (data, key) => {
       if (key !== latestFetchKey.current) return
-
       setOptions(data?.hits ?? [])
     }
   })
@@ -88,21 +89,23 @@ export function PromptForm({
     }, 200)
   }, [])
 
-  const handleCompletionSelect = (
-    inputRef: React.RefObject<HTMLTextAreaElement | HTMLInputElement>,
-    item: ISearchHit
-  ) => {
-    const selectionEnd = inputRef.current?.selectionEnd ?? 0
+  const handleCompletionSelect = (item: ISearchHit) => {
+    const selectionEnd = prevInputSelectionEnd.current ?? 0
     const queryNameMatches = getSearchCompletionQueryName(input, selectionEnd)
     if (queryNameMatches) {
       setSelectedCompletionsMap({
         ...selectedCompletionsMap,
-        [queryNameMatches[0]]: item
+        [`@${item.doc?.name}`]: item
       })
-      // insert a space to break the search query
-      setInput(input.slice(0, selectionEnd) + ' ' + input.slice(selectionEnd))
+      const replaceString = `@${item?.doc?.name} `
+      const prevInput = input
+        .substring(0, selectionEnd)
+        .replace(new RegExp(queryNameMatches[0]), '')
+      const nextSelectionEnd = prevInput.length + replaceString.length
       // store the selection range and update it when layout
-      nextInputSelectionRange.current = [selectionEnd + 1, selectionEnd + 1]
+      nextInputSelectionRange.current = [nextSelectionEnd, nextSelectionEnd]
+      // insert a space to break the search query
+      setInput(prevInput + replaceString + input.slice(selectionEnd))
     }
     setOptions([])
   }
@@ -130,6 +133,17 @@ export function PromptForm({
 
     setInput('')
     await onSubmit(finalInput)
+  }
+
+  const handleTextareaKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    isOpen: boolean
+  ) => {
+    if (isOpen && ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) {
+      setOptions([])
+    } else {
+      onKeyDown(e)
+    }
   }
 
   return (
@@ -164,11 +178,14 @@ export function PromptForm({
                     ref={inputRef}
                     onChange={e => {
                       if (has(e, 'target.value')) {
+                        prevInputSelectionEnd.current = e.target.selectionEnd
                         setInput(e.target.value)
                         handleSearchCompletion(e)
+                      } else {
+                        prevInputSelectionEnd.current = undefined
                       }
                     }}
-                    onKeyDown={onKeyDown}
+                    onKeyDown={e => handleTextareaKeyDown(e, open)}
                   />
                   <div className="absolute right-0 top-4 sm:right-4">
                     <Tooltip>
@@ -189,6 +206,7 @@ export function PromptForm({
               </ComboboxAnchor>
               <ComboboxContent
                 align="start"
+                side="top"
                 onOpenAutoFocus={e => e.preventDefault()}
                 className="w-[60vw] md:w-[430px]"
               >

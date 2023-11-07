@@ -48,7 +48,7 @@ export const ComboboxTextarea = React.forwardRef<
             onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
               if (e.key === 'Enter' && open) {
                 e.preventDefault()
-              } else if (!open) {
+              } else {
                 onKeyDown?.(e)
               }
             },
@@ -154,10 +154,7 @@ ComboboxOption.displayName = 'ComboboxOption'
 
 interface ComboboxProps<T> {
   options: T[] | undefined
-  onSelect?: (
-    ref: React.RefObject<HTMLTextAreaElement | HTMLInputElement>,
-    data: T
-  ) => void
+  onSelect?: (data: T) => void
   inputRef?: React.RefObject<HTMLTextAreaElement | HTMLInputElement>
   children?:
     | React.ReactNode
@@ -202,7 +199,7 @@ export function Combobox<T extends { id: number }>({
     isOpen: manualOpen,
     onSelectedItemChange({ selectedItem }) {
       if (selectedItem) {
-        onSelect?.(inputRef, selectedItem)
+        onSelect?.(selectedItem)
         setManualOpen(false)
       }
     },
