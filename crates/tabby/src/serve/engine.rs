@@ -64,5 +64,5 @@ fn create_ggml_engine(device: &super::Device, model_path: &str) -> Box<dyn TextG
         .build()
         .unwrap();
 
-    Box::new(llama_cpp_bindings::LlamaTextGeneration::create(options))
+    Box::new(llama_cpp_bindings::LlamaTextGeneration::new(options))
 }
