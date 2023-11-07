@@ -2,7 +2,7 @@
 
 ## Features
 
-# v0.5.0
+# v0.5.2
 
 ## Notice
 
