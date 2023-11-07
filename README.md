@@ -25,7 +25,7 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 </p>
 
 ## 🔥 What's New
-* **11/07/2023** [v0.5.3](https://github.com/TabbyML/tabby/releases/tag/v0.5.3) released! With a redesign of UI + performance improvement.
+* **11/07/2023** <s>[v0.5.3](https://github.com/TabbyML/tabby/releases/tag/v0.5.3)</s> [v0.5.4](https://github.com/TabbyML/tabby/releases/tag/v0.5.4) released! With a redesign of UI + performance improvement.
 * **10/24/2023** ⛳️ Major updates for Tabby IDE plugins across [VSCode/Vim/IntelliJ](https://tabby.tabbyml.com/docs/extensions)!
 * **10/15/2023** RAG-based code completion is enabled by detail in [v0.3.0](https://github.com/TabbyML/tabby/releases/tag/v0.3.0)🎉! Check out the [blogpost](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion/) explaining how Tabby utilizes repo-level context to get even smarter!
 
