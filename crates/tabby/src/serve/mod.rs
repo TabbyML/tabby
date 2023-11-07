@@ -76,6 +76,7 @@ pub enum Device {
     Cpu,
 
     #[cfg(feature = "cuda")]
+    #[strum(serialize = "cuda")]
     Cuda,
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
