@@ -1,4 +1,5 @@
 #include "ctranslate2/layers/attention.h"
+#include "ctranslate2/ops/split.h"
 
 #include <algorithm>
 #include <cmath>
@@ -400,6 +401,7 @@ namespace ctranslate2 {
                                   && !_relative_position_keys
                                   && !_relative_position_values)
       , _cache_time_dim(_merge_time_and_head_dims ? 1 : 2)
+      , _sliding_window(model.get_attribute_with_default<int32_t>(scope + "/sliding_window", 0))
     {
       if (_relative_position_keys)
         _maximum_relative_position = (_relative_position_keys->dim(0) - 1) / 2;
@@ -629,7 +631,7 @@ namespace ctranslate2 {
 
       if (!_sin || offset + max_time > _sin.dim(0)) {
         const dim_t cur_num_positions = _sin ? _sin.dim(0) : 0;
-        const dim_t new_num_positions = cur_num_positions + _num_initial_positions;
+        const dim_t new_num_positions = std::max(offset + max_time, cur_num_positions + _num_initial_positions);
         initialize(new_num_positions, dim, device, dtype);
       }
 

@@ -70,6 +70,7 @@ namespace ctranslate2 {
       const dim_t _num_heads_kv;
       const bool _merge_time_and_head_dims;
       const dim_t _cache_time_dim;
+      const dim_t _sliding_window;
     };
 
     enum class RotaryScalingType {
