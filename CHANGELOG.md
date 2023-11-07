@@ -2,6 +2,12 @@
 
 ## Features
 
+# v0.5.4
+
+## Fixes and Improvements
+
+* Fix deadlock issue reported in https://github.com/TabbyML/tabby/issues/718
+
 # v0.5.3
 
 ## Notice
