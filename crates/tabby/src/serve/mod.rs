@@ -28,7 +28,7 @@ use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
 };
-use crate::{fatal, search::CodeSearchService};
+use crate::{chat::ChatService, fatal, search::CodeSearchService};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -57,9 +57,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completions::Snippet,
         completions::DebugOptions,
         completions::DebugData,
-        chat::ChatCompletionRequest,
-        chat::Message,
-        chat::ChatCompletionChunk,
+        crate::chat::ChatCompletionRequest,
+        crate::chat::Message,
+        crate::chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
         crate::search::SearchResponse,
@@ -189,7 +189,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
             panic!("Chat model requires specifying prompt template");
         };
         let engine = Arc::new(engine);
-        let state = chat::ChatState::new(engine, chat_template);
+        let state = ChatService::new(engine, chat_template);
         Some(Arc::new(state))
     } else {
         None
