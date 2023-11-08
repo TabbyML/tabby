@@ -123,7 +123,7 @@ pub struct ServeArgs {
 
     /// Parallelism for model serving - increasing this number will have a significant impact on the
     /// memory requirement e.g., GPU vRAM.
-    #[clap(long, default_value_t=1)]
+    #[clap(long, default_value_t=4)]
     parallelism: u8,
 }
 
