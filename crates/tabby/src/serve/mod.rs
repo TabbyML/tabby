@@ -108,7 +108,7 @@ impl Device {
 pub struct ServeArgs {
     /// Model id for `/completions` API endpoint.
     #[clap(long)]
-    model: String,
+    model: Option<String>,
 
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
@@ -131,11 +131,17 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     if args.device != Device::ExperimentalHttp {
-        if fs::metadata(&args.model).is_ok() {
-            info!("Loading model from local path {}", &args.model);
-        } else {
-            download_model(&args.model, true).await;
-            if let Some(chat_model) = &args.chat_model {
+        if let Some(model) = &args.model {
+            if fs::metadata(model).is_ok() {
+                info!("Loading model from local path {}", model);
+            } else {
+                download_model(model, true).await;
+            }
+        }
+        if let Some(chat_model) = &args.chat_model {
+            if fs::metadata(chat_model).is_ok() {
+                info!("Loading chat model from local path {}", chat_model);
+            } else {
                 download_model(chat_model, true).await;
             }
         }
@@ -173,20 +179,22 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let index_server = Arc::new(IndexServer::new());
-    let completion_state = {
+    let completion_state = if let Some(model) = &args.model {
         let (
             engine,
             EngineInfo {
                 prompt_template, ..
             },
-        ) = create_engine(&args.model, args).await;
+        ) = create_engine(model, args).await;
         let engine = Arc::new(engine);
         let state = completions::CompletionState::new(
             engine.clone(),
             index_server.clone(),
             prompt_template,
         );
-        Arc::new(state)
+        Some(Arc::new(state))
+    } else {
+        None
     };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
@@ -217,16 +225,18 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
             )
     });
 
-    routers.push({
-        Router::new()
-            .route(
-                "/v1/completions",
-                routing::post(completions::completions).with_state(completion_state),
-            )
-            .layer(TimeoutLayer::new(Duration::from_secs(
-                config.server.completion_timeout,
-            )))
-    });
+    if let Some(completion_state) = completion_state {
+        routers.push({
+            Router::new()
+                .route(
+                    "/v1/completions",
+                    routing::post(completions::completions).with_state(completion_state),
+                )
+                .layer(TimeoutLayer::new(Duration::from_secs(
+                    config.server.completion_timeout,
+                )))
+        });
+    }
 
     if let Some(chat_state) = chat_state {
         routers.push({
@@ -255,6 +265,10 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
 fn valid_args(args: &ServeArgs) {
     if !args.device_indices.is_empty() {
         warn!("--device-indices is deprecated and will be removed in future release.");
+    }
+
+    if args.model.is_none() && args.chat_model.is_none() {
+        panic!("Please specify either --model or --chat-model");
     }
 }
 

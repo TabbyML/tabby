@@ -227,7 +227,8 @@
         ],
         "properties": {
           "model": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "chat_model": {
             "type": "string",

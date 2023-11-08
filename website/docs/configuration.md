@@ -89,7 +89,7 @@ As of the date 10/07/2023, the following information has been collected:
 
 ```rust
 struct HealthState {
-    model: String,
+    model: Option<String>,
     chat_model: Option<String>,
     device: String,
     arch: String,

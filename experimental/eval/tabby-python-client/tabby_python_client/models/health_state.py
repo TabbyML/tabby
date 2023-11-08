@@ -15,7 +15,7 @@ T = TypeVar("T", bound="HealthState")
 class HealthState:
     """
     Attributes:
-        model (str):
+        model (Union[Unset, None, str]):
         device (str):
         arch (str):
         cpu_info (str):
@@ -25,7 +25,7 @@ class HealthState:
         chat_model (Union[Unset, None, str]):
     """
 
-    model: str
+    model: Union[Unset, None, str] = UNSET
     device: str
     arch: str
     cpu_info: str
@@ -60,6 +60,9 @@ class HealthState:
                 "version": version,
             }
         )
+        if model is not UNSET:
+            field_dict["model"] = model        
+        
         if chat_model is not UNSET:
             field_dict["chat_model"] = chat_model
 
@@ -70,7 +73,7 @@ class HealthState:
         from ..models.version import Version
 
         d = src_dict.copy()
-        model = d.pop("model")
+        model = d.pop("model", UNSET)
 
         device = d.pop("device")
 
