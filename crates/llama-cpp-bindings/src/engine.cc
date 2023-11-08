@@ -14,17 +14,6 @@ namespace llama {
 TextInferenceEngine::~TextInferenceEngine() {}
 
 namespace {
-int get_parallelism() {
-  const char* parallelism = std::getenv("LLAMA_CPP_PARALLELISM");
-  if (parallelism) {
-    return std::stoi(parallelism);
-  } else {
-    return 4;
-  }
-}
-
-static size_t N_CONCURRENT_REQUESTS = get_parallelism();
-
 constexpr size_t N_BATCH = 512;  // # per batch inference.
 constexpr size_t N_CTX = 4096;   // # max kv history.
  
@@ -95,10 +84,11 @@ using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
 class TextInferenceEngineImpl : public TextInferenceEngine {
  public:
-  TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx) :
+  TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx, uint8_t parallelism) :
     model_(std::move(model)),
-    ctx_(std::move(ctx)) {
-      batch_ = llama_batch_init(N_CTX * N_CONCURRENT_REQUESTS, 0, 1);
+    ctx_(std::move(ctx)),
+    parallelism_(parallelism) {
+      batch_ = llama_batch_init(N_CTX * parallelism, 0, 1);
       // warm up
       {
         batch_.n_tokens = 16;
@@ -155,7 +145,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     }
 
     // Add pending requests.
-    while (pending_requests_.size() > 0 && requests_.size() < N_CONCURRENT_REQUESTS) {
+    while (pending_requests_.size() > 0 && requests_.size() < parallelism_) {
       Request request = std::move(pending_requests_.front());
       pending_requests_.pop_front();
 
@@ -283,6 +273,8 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   std::vector<Request> requests_;
   std::deque<Request> pending_requests_;
   std::unordered_set<uint32_t> stopped_requests_;
+
+  uint32_t parallelism_;
 };
 
 static int g_llama_cpp_log_level = 0;
@@ -310,7 +302,7 @@ struct BackendInitializer {
 
 } // namespace
 
-std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model_path) {
+std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model_path, uint8_t parallelism) {
   static BackendInitializer initializer;
 
   llama_model_params model_params = llama_model_default_params();
@@ -322,13 +314,14 @@ std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model
   }
 
   llama_context_params ctx_params = llama_context_default_params();
-  ctx_params.n_ctx = N_CTX * N_CONCURRENT_REQUESTS;
+  ctx_params.n_ctx = N_CTX * parallelism;
   ctx_params.n_batch = N_BATCH;
   llama_context* ctx = llama_new_context_with_model(model, ctx_params);
 
   return std::make_unique<TextInferenceEngineImpl>(
       owned<llama_model>(model, llama_free_model),
-      owned<llama_context>(ctx, llama_free)
+      owned<llama_context>(ctx, llama_free),
+      parallelism
   );
 }
 

@@ -15,7 +15,7 @@ pub async fn create_engine(
             let path = PathBuf::from(model_id);
             let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
             let engine =
-                create_ggml_engine(&args.device, model_path.display().to_string().as_str());
+                create_ggml_engine(&args.device, model_path.display().to_string().as_str(), args.parallelism);
             let engine_info = EngineInfo::read(path.join("tabby.json"));
             (engine, engine_info)
         } else {
@@ -23,7 +23,7 @@ pub async fn create_engine(
             let registry = ModelRegistry::new(registry).await;
             let model_path = registry.get_model_path(name).display().to_string();
             let model_info = registry.get_model_info(name);
-            let engine = create_ggml_engine(&args.device, &model_path);
+            let engine = create_ggml_engine(&args.device, &model_path, args.parallelism);
             (
                 engine,
                 EngineInfo {
@@ -57,10 +57,11 @@ impl EngineInfo {
     }
 }
 
-fn create_ggml_engine(device: &super::Device, model_path: &str) -> Box<dyn TextGeneration> {
+fn create_ggml_engine(device: &super::Device, model_path: &str, parallelism: u8) -> Box<dyn TextGeneration> {
     let options = llama_cpp_bindings::LlamaTextGenerationOptionsBuilder::default()
         .model_path(model_path.to_owned())
         .use_gpu(device.ggml_use_gpu())
+        .parallelism(parallelism)
         .build()
         .unwrap();
 
