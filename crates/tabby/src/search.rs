@@ -1,9 +1,7 @@
-use std::{
-    sync::Mutex,
-    time::{Duration, SystemTime},
-};
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
+use axum::async_trait;
 use serde::Serialize;
 use tabby_common::{index::IndexExt, path};
 use tantivy::{
@@ -13,6 +11,7 @@ use tantivy::{
     DocAddress, Document, Index, IndexReader, Term,
 };
 use thiserror::Error;
+use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
 use utoipa::ToSchema;
 
@@ -51,15 +50,16 @@ pub enum CodeSearchError {
     TantivyError(#[from] tantivy::TantivyError),
 }
 
+#[async_trait]
 pub trait CodeSearch {
-    fn search(
+    async fn search(
         &self,
         q: &str,
         limit: usize,
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError>;
 
-    fn search_with_query(
+    async fn search_with_query(
         &self,
         q: &dyn tantivy::query::Query,
         limit: usize,
@@ -104,6 +104,22 @@ impl CodeSearchImpl {
         })
     }
 
+    async fn load_async() -> CodeSearchImpl {
+        loop {
+            match CodeSearchImpl::load() {
+                Ok(code) => {
+                    info!("Index is ready, enabling server...");
+                    return code;
+                }
+                Err(err) => {
+                    debug!("Source code index is not ready `{}`", err);
+                }
+            };
+
+            sleep(Duration::from_secs(60)).await;
+        }
+    }
+
     fn create_hit(&self, score: f32, doc: Document, doc_address: DocAddress) -> Hit {
         Hit {
             score,
@@ -120,18 +136,19 @@ impl CodeSearchImpl {
     }
 }
 
+#[async_trait]
 impl CodeSearch for CodeSearchImpl {
-    fn search(
+    async fn search(
         &self,
         q: &str,
         limit: usize,
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError> {
         let query = self.query_parser.parse_query(q)?;
-        self.search_with_query(&query, limit, offset)
+        self.search_with_query(&query, limit, offset).await
     }
 
-    fn search_with_query(
+    async fn search_with_query(
         &self,
         q: &dyn tantivy::query::Query,
         limit: usize,
@@ -161,63 +178,50 @@ fn get_field(doc: &Document, field: Field) -> String {
 }
 
 pub struct CodeSearchService {
-    search: Mutex<Option<CodeSearchImpl>>,
-    last_load_time: Mutex<SystemTime>,
+    search: Arc<Mutex<Option<CodeSearchImpl>>>,
 }
 
 impl CodeSearchService {
     pub fn new() -> Self {
+        let search = Arc::new(Mutex::new(None));
+
         let ret = Self {
-            search: Mutex::new(None),
-            last_load_time: Mutex::new(SystemTime::UNIX_EPOCH),
+            search: search.clone(),
         };
-        ret.load();
+
+        tokio::spawn(async move {
+            let code = CodeSearchImpl::load_async().await;
+            *search.lock().await = Some(code);
+        });
+
         ret
     }
 
-    fn with_impl<T, F>(&self, op: F) -> Result<T, CodeSearchError>
+    async fn with_impl<T, F>(&self, op: F) -> Result<T, CodeSearchError>
     where
         F: FnOnce(&CodeSearchImpl) -> Result<T, CodeSearchError>,
     {
-        if let Some(imp) = self.search.lock().unwrap().as_ref() {
+        if let Some(imp) = self.search.lock().await.as_ref() {
             op(imp)
         } else {
-            self.load();
             Err(CodeSearchError::NotReady)
         }
     }
 
-    fn load(&self) {
-        let mut last_load_time = self.last_load_time.lock().unwrap();
-        let duration = SystemTime::now().duration_since(*last_load_time).unwrap();
-
-        if duration < Duration::from_secs(60) {
-            return;
-        }
-
-        match CodeSearchImpl::load() {
-            Ok(code) => {
-                info!("Index is ready, enabling server...");
-                *self.search.lock().unwrap() = Some(code)
-            }
-            Err(err) => {
-                debug!("Source code index is not ready `{}`", err);
-            }
-        };
-
-        *last_load_time = SystemTime::now();
-    }
-
-    pub fn language_query(&self, language: &str) -> Result<Box<TermQuery>, CodeSearchError> {
+    pub async fn language_query(&self, language: &str) -> Result<Box<TermQuery>, CodeSearchError> {
         self.with_impl(|imp| {
             Ok(Box::new(TermQuery::new(
                 Term::from_field_text(imp.field_language, language),
                 IndexRecordOption::WithFreqsAndPositions,
             )))
         })
+        .await
     }
 
-    pub fn body_query(&self, tokens: &[String]) -> Result<Box<TermSetQuery>, CodeSearchError> {
+    pub async fn body_query(
+        &self,
+        tokens: &[String],
+    ) -> Result<Box<TermSetQuery>, CodeSearchError> {
         self.with_impl(|imp| {
             Ok(Box::new(TermSetQuery::new(
                 tokens
@@ -225,25 +229,35 @@ impl CodeSearchService {
                     .map(|x| Term::from_field_text(imp.field_body, x)),
             )))
         })
+        .await
     }
 }
 
+#[async_trait]
 impl CodeSearch for CodeSearchService {
-    fn search(
+    async fn search(
         &self,
         q: &str,
         limit: usize,
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError> {
-        self.with_impl(|imp| imp.search(q, limit, offset))
+        if let Some(imp) = self.search.lock().await.as_ref() {
+            imp.search(q, limit, offset).await
+        } else {
+            Err(CodeSearchError::NotReady)
+        }
     }
 
-    fn search_with_query(
+    async fn search_with_query(
         &self,
         q: &dyn tantivy::query::Query,
         limit: usize,
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError> {
-        self.with_impl(|imp| imp.search_with_query(q, limit, offset))
+        if let Some(imp) = self.search.lock().await.as_ref() {
+            imp.search_with_query(q, limit, offset).await
+        } else {
+            Err(CodeSearchError::NotReady)
+        }
     }
 }

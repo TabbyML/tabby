@@ -40,11 +40,14 @@ pub async fn search(
     State(state): State<Arc<CodeSearchService>>,
     query: Query<SearchQuery>,
 ) -> Result<Json<SearchResponse>, StatusCode> {
-    match state.search(
-        &query.q,
-        query.limit.unwrap_or(20),
-        query.offset.unwrap_or(0),
-    ) {
+    match state
+        .search(
+            &query.q,
+            query.limit.unwrap_or(20),
+            query.offset.unwrap_or(0),
+        )
+        .await
+    {
         Ok(serp) => Ok(Json(serp)),
         Err(CodeSearchError::NotReady) => Err(StatusCode::NOT_IMPLEMENTED),
         Err(CodeSearchError::TantivyError(err)) => {

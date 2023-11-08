@@ -36,9 +36,9 @@ impl PromptBuilder {
         strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
     }
 
-    pub fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
+    pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         if let Some(code) = &self.code {
-            collect_snippets(code, language, &segments.prefix)
+            collect_snippets(code, language, &segments.prefix).await
         } else {
             vec![]
         }
@@ -105,14 +105,14 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-fn collect_snippets(code: &CodeSearchService, language: &str, text: &str) -> Vec<Snippet> {
+async fn collect_snippets(code: &CodeSearchService, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
-    let Ok(language_query) = code.language_query(language) else {
+    let Ok(language_query) = code.language_query(language).await else {
         return vec![];
     };
-    let Ok(body_query) = code.body_query(&tokens) else {
+    let Ok(body_query) = code.body_query(&tokens).await else {
         return vec![];
     };
     let query = BooleanQuery::new(vec![
@@ -120,7 +120,10 @@ fn collect_snippets(code: &CodeSearchService, language: &str, text: &str) -> Vec
         (Occur::Must, body_query),
     ]);
 
-    let serp = match code.search_with_query(&query, MAX_SNIPPETS_TO_FETCH, 0) {
+    let serp = match code
+        .search_with_query(&query, MAX_SNIPPETS_TO_FETCH, 0)
+        .await
+    {
         Ok(serp) => serp,
         Err(CodeSearchError::NotReady) => {
             // Ignore.
