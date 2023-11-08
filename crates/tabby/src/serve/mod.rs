@@ -27,9 +27,8 @@ use utoipa_swagger_ui::SwaggerUi;
 use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
-    search::IndexServer,
 };
-use crate::fatal;
+use crate::{fatal, search::CodeSearchService};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -63,9 +62,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
-        search::SearchResponse,
-        search::Hit,
-        search::HitDocument
+        crate::search::SearchResponse,
+        crate::search::Hit,
+        crate::search::HitDocument
     ))
 )]
 struct ApiDoc;
@@ -170,7 +169,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let index_server = Arc::new(IndexServer::new());
+    let code = Arc::new(CodeSearchService::new());
     let completion_state = {
         let (
             engine,
@@ -179,11 +178,8 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
             },
         ) = create_engine(&args.model, args).await;
         let engine = Arc::new(engine);
-        let state = completions::CompletionState::new(
-            engine.clone(),
-            index_server.clone(),
-            prompt_template,
-        );
+        let state =
+            completions::CompletionState::new(engine.clone(), code.clone(), prompt_template);
         Arc::new(state)
     };
 
@@ -238,7 +234,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     routers.push({
         Router::new().route(
             "/v1beta/search",
-            routing::get(search::search).with_state(index_server),
+            routing::get(search::search).with_state(code),
         )
     });
 

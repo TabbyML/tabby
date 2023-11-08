@@ -10,7 +10,7 @@ use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
-use super::search::IndexServer;
+use crate::search::CodeSearchService;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -210,12 +210,12 @@ pub struct CompletionState {
 impl CompletionState {
     pub fn new(
         engine: Arc<Box<dyn TextGeneration>>,
-        index_server: Arc<IndexServer>,
+        code: Arc<CodeSearchService>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {
             engine,
-            prompt_builder: prompt::PromptBuilder::new(prompt_template, Some(index_server)),
+            prompt_builder: prompt::PromptBuilder::new(prompt_template, Some(code)),
         }
     }
 }
