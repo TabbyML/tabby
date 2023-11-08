@@ -284,6 +284,69 @@ describe("postprocess", () => {
     });
   });
 
+  describe("limitScopeByIndentation: bad cases", () => {
+    let limitScopeByIndentationDefault = (context) => {
+      return limitScopeByIndentation(context, { experimentalKeepBlockScopeWhenCompletingLine: false });
+    };
+    it("cannot handle the case of indent that does'nt have a close line, e.g. chaining call", () => {
+      const context = {
+        ...documentContext`
+        function sortWords(input) {
+          const output = input.trim()
+            .split("\n")
+            .map((line) => line.split(" "))
+            ║
+        }
+        `,
+        language: "javascript",
+      };
+      const completion = inline`
+            ├.flat()
+            .sort()
+            .join(" ");
+          console.log(output);
+          return output;
+        }
+        sortWord("world hello");┤
+      `;
+      const expected = inline`
+            ├.flat()
+            .sort()
+            .join(" ");
+          console.log(output);
+          return output;
+        };┤
+      `;
+      expect(limitScopeByIndentationDefault(context)(completion)).not.to.eq(expected);
+    })
+
+    it("cannot handle the case of indent that does'nt have a close line, e.g. python def function", () => {
+      const context = {
+        ...documentContext`
+        def findMax(arr):
+          ║
+        `,
+        language: "python",
+      };
+      const completion = inline`
+          ├max = arr[0]
+          for i in range(1, len(arr)):
+            if arr[i] > max:
+              max = arr[i]
+          return max
+        findMax([1, 2, 3, 4, 5])┤
+      `;
+      const expected = inline`
+          ├max = arr[0]
+          for i in range(1, len(arr)):
+            if arr[i] > max:
+              max = arr[i]
+          return max┤
+      `;
+      expect(limitScopeByIndentationDefault(context)(completion)).not.to.eq(expected);
+    });
+  });
+
   describe("limitScopeByIndentation: with experimentalKeepBlockScopeWhenCompletingLine on", () => {
     let limitScopeByIndentationKeepBlock = (context) => {
       return limitScopeByIndentation(context, { experimentalKeepBlockScopeWhenCompletingLine: true });

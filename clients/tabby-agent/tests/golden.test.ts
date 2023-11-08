@@ -68,29 +68,28 @@ describe("agent golden test", () => {
     return { request, expected };
   };
 
+  const config = {
+    server: {
+      endpoint: "http://127.0.0.1:8087",
+      token: "",
+      requestHeaders: {},
+      requestTimeout: 30000,
+    },
+    completion: {
+      prompt: { experimentalStripAutoClosingCharacters: false, maxPrefixLines: 20, maxSuffixLines: 20 },
+      debounce: { mode: "adaptive", interval: 250 },
+      timeout: { auto: 4000, manually: 4000 },
+    },
+    postprocess: {
+      limitScopeByIndentation: { experimentalKeepBlockScopeWhenCompletingLine: false },
+    },
+    logs: { level: "debug" },
+    anonymousUsageTracking: { disable: true },
+  };
+
+  let requestId = 0;
   it("initialize", async () => {
-    const requestId = 1;
-    const config = {
-      server: {
-        endpoint: "http://127.0.0.1:8087",
-        token: "",
-        requestHeaders: {},
-        requestTimeout: 30000,
-      },
-      completion: {
-        prompt: { experimentalStripAutoClosingCharacters: false, maxPrefixLines: 20, maxSuffixLines: 20 },
-        debounce: { mode: "adaptive", interval: 250 },
-        timeout: { auto: 4000, manually: 4000 },
-      },
-      postprocess: {
-        limitScope: {
-          experimentalSyntax: false,
-          indentation: { experimentalKeepBlockScopeWhenCompletingLine: false },
-        },
-      },
-      logs: { level: "debug" },
-      anonymousUsageTracking: { disable: true },
-    };
+    requestId++;
     const initRequest = [
       requestId,
       {
@@ -108,21 +107,39 @@ describe("agent golden test", () => {
 
   const goldenFiles = fs.readdirSync(path.join(__dirname, "golden")).map((file) => {
     return {
-      name: file,
-      path: path.join(__dirname, "golden", file),
+      path: path.join("golden", file),
+      absolutePath: path.join(__dirname, "golden", file),
     };
   });
-  const baseRequestId = 2;
   goldenFiles.forEach((goldenFile, index) => {
-    it(goldenFile.name, async () => {
-      const test = await createGoldenTest(goldenFile.path);
-      const requestId = baseRequestId + index;
+    it(goldenFile.path, async () => {
+      const test = await createGoldenTest(goldenFile.absolutePath);
+      requestId++;
       const request = [requestId, { func: "provideCompletions", args: [test.request] }];
       agent.stdin.write(JSON.stringify(request) + "\n");
       await waitForResponse(requestId);
       const response = output.shift();
       expect(response[0]).to.equal(requestId);
       expect(response[1].choices).to.deep.equal(test.expected.choices);
+    });
+  });
+
+  const badCasesFiles = fs.readdirSync(path.join(__dirname, "bad_cases")).map((file) => {
+    return {
+      path: path.join("bad_cases", file),
+      absolutePath: path.join(__dirname, "bad_cases", file),
+    };
+  });
+  badCasesFiles.forEach((goldenFile, index) => {
+    it(goldenFile.path, async () => {
+      const test = await createGoldenTest(goldenFile.absolutePath);
+      requestId++;
+      const request = [requestId, { func: "provideCompletions", args: [test.request] }];
+      agent.stdin.write(JSON.stringify(request) + "\n");
+      await waitForResponse(requestId);
+      const response = output.shift();
+      expect(response[0]).to.equal(requestId);
+      expect(response[1].choices).not.to.deep.equal(test.expected.choices);
     });
   });
 
