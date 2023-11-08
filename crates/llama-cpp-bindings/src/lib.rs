@@ -23,7 +23,11 @@ mod ffi {
 
         type TextInferenceEngine;
 
-        fn create_engine(use_gpu: bool, model_path: &str, parallelism: u8) -> UniquePtr<TextInferenceEngine>;
+        fn create_engine(
+            use_gpu: bool,
+            model_path: &str,
+            parallelism: u8,
+        ) -> UniquePtr<TextInferenceEngine>;
 
         fn add_request(
             self: Pin<&mut TextInferenceEngine>,
