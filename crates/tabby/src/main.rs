@@ -1,4 +1,5 @@
 mod download;
+mod search;
 mod serve;
 
 use clap::{Parser, Subcommand};

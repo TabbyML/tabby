@@ -9,7 +9,7 @@ use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
-use crate::serve::search::{IndexServer, IndexServerError};
+use crate::search::{CodeSearch, CodeSearchError, CodeSearchService};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
@@ -17,14 +17,14 @@ static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
     prompt_template: Option<String>,
-    index_server: Option<Arc<IndexServer>>,
+    code: Option<Arc<CodeSearchService>>,
 }
 
 impl PromptBuilder {
-    pub fn new(prompt_template: Option<String>, index_server: Option<Arc<IndexServer>>) -> Self {
+    pub fn new(prompt_template: Option<String>, code: Option<Arc<CodeSearchService>>) -> Self {
         PromptBuilder {
             prompt_template,
-            index_server,
+            code,
         }
     }
 
@@ -36,9 +36,9 @@ impl PromptBuilder {
         strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
     }
 
-    pub fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
-        if let Some(index_server) = &self.index_server {
-            collect_snippets(index_server, language, &segments.prefix)
+    pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
+        if let Some(code) = &self.code {
+            collect_snippets(code, language, &segments.prefix).await
         } else {
             vec![]
         }
@@ -105,14 +105,14 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> Vec<Snippet> {
+async fn collect_snippets(code: &CodeSearchService, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
-    let Ok(language_query) = index_server.language_query(language) else {
+    let Ok(language_query) = code.language_query(language).await else {
         return vec![];
     };
-    let Ok(body_query) = index_server.body_query(&tokens) else {
+    let Ok(body_query) = code.body_query(&tokens).await else {
         return vec![];
     };
     let query = BooleanQuery::new(vec![
@@ -120,14 +120,21 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
         (Occur::Must, body_query),
     ]);
 
-    let serp = match index_server.search_with_query(&query, MAX_SNIPPETS_TO_FETCH, 0) {
+    let serp = match code
+        .search_with_query(&query, MAX_SNIPPETS_TO_FETCH, 0)
+        .await
+    {
         Ok(serp) => serp,
-        Err(IndexServerError::NotReady) => {
+        Err(CodeSearchError::NotReady) => {
             // Ignore.
             return vec![];
         }
-        Err(IndexServerError::TantivyError(err)) => {
-            warn!("Failed to search query: {}", err);
+        Err(CodeSearchError::TantivyError(err)) => {
+            warn!("Failed to search: {}", err);
+            return ret;
+        }
+        Err(CodeSearchError::QueryParserError(err)) => {
+            warn!("Failed to parse query: {}", err);
             return ret;
         }
     };

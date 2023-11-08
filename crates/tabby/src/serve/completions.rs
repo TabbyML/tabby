@@ -10,7 +10,7 @@ use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
-use super::search::IndexServer;
+use crate::search::CodeSearchService;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -137,7 +137,8 @@ pub async fn completions(
         (prompt, None, vec![])
     } else if let Some(segments) = request.segments {
         debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
-        let (prompt, snippets) = build_prompt(&state, &request.debug_options, &language, &segments);
+        let (prompt, snippets) =
+            build_prompt(&state, &request.debug_options, &language, &segments).await;
         (prompt, Some(segments), snippets)
     } else {
         return Err(StatusCode::BAD_REQUEST);
@@ -180,7 +181,7 @@ pub async fn completions(
     }))
 }
 
-fn build_prompt(
+async fn build_prompt(
     state: &Arc<CompletionState>,
     debug_options: &Option<DebugOptions>,
     language: &str,
@@ -190,7 +191,7 @@ fn build_prompt(
         .as_ref()
         .is_some_and(|x| x.disable_retrieval_augmented_code_completion)
     {
-        state.prompt_builder.collect(language, segments)
+        state.prompt_builder.collect(language, segments).await
     } else {
         vec![]
     };
@@ -210,12 +211,12 @@ pub struct CompletionState {
 impl CompletionState {
     pub fn new(
         engine: Arc<Box<dyn TextGeneration>>,
-        index_server: Arc<IndexServer>,
+        code: Arc<CodeSearchService>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {
             engine,
-            prompt_builder: prompt::PromptBuilder::new(prompt_template, Some(index_server)),
+            prompt_builder: prompt::PromptBuilder::new(prompt_template, Some(code)),
         }
     }
 }
