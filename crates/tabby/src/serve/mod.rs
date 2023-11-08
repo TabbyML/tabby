@@ -121,15 +121,13 @@ pub struct ServeArgs {
     #[clap(long, default_value_t=Device::Cpu)]
     device: Device,
 
-    /// DEPRECATED: Do not use.
-    #[deprecated(since = "0.5.0")]
-    #[clap(long, hide(true))]
-    device_indices: Vec<i32>,
+    /// Parallelism for model serving - increasing this number will have a significant impact on the
+    /// memory requirement e.g., GPU vRAM.
+    #[clap(long, default_value_t = 1)]
+    parallelism: u8,
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
-    valid_args(args);
-
     if args.device != Device::ExperimentalHttp {
         if fs::metadata(&args.model).is_ok() {
             info!("Loading model from local path {}", &args.model);
@@ -250,12 +248,6 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     }
     root.layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
-}
-
-fn valid_args(args: &ServeArgs) {
-    if !args.device_indices.is_empty() {
-        warn!("--device-indices is deprecated and will be removed in future release.");
-    }
 }
 
 fn start_heartbeat(args: &ServeArgs) {
