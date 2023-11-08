@@ -4062,6 +4062,7 @@ dependencies = [
  "axum-streams",
  "axum-tracing-opentelemetry",
  "clap 4.4.7",
+ "futures",
  "http-api-bindings",
  "hyper",
  "lazy_static",
