@@ -8,15 +8,17 @@ import os
 import asyncio
 
 GPU_CONFIG = gpu.A10G()
-#MODEL_ID =  os.environ.get("MODEL_ID", "abc")
-MODEL_ID = "TabbyML/StarCoder-7B"
+#MODEL_ID =  os.environ.get("MODEL_ID", "")
+#MODEL_ID = "TabbyML/StarCoder-7B"
+MODEL_ID = os.popen("cat /tmp/tabby_model_id").read().strip()
 LAUNCH_FLAGS = ["serve", "--model", MODEL_ID, "--port", "8000", "--device", "cuda"]
 #print(f'MODEL_ID = `{MODEL_ID}`')
 
-
 def download_model():
     import subprocess
-    print(f'Loading model `{MODEL_ID}`')
+    import os
+    MODEL_ID = os.popen("cat /tmp/tabby_model_id").read().strip()
+    print(f'MODEL_ID={MODEL_ID}')
     subprocess.run(
         [
             "/opt/tabby/bin/tabby",
@@ -29,7 +31,7 @@ def download_model():
 
 image = (
     Image.from_registry(
-        "tabbyml/tabby:0.5.4",
+        "tabbyml/tabby:0.5.5",
         add_python="3.11",
     )
     .dockerfile_commands("ENTRYPOINT []")
@@ -37,7 +39,8 @@ image = (
         "git+https://github.com/TabbyML/tabby.git#egg=tabby-python-client&subdirectory=experimental/eval/tabby-python-client",
         "pandas"
     )
-    .run_function(download_model)
+    .copy_local_file(local_path="/tmp/tabby_model_id", remote_path="/tmp/tabby_model_id")
+    .run_function(download_model, force_build=True)
 )
 
 stub = Stub("tabby-" + MODEL_ID.split("/")[-1], image=image)
@@ -60,6 +63,9 @@ class Model:
 
         my_env = os.environ.copy()
         my_env["TABBY_DISABLE_USAGE_COLLECTION"] = "1"
+        MODEL_ID = os.popen("cat /tmp/tabby_model_id").read().strip()
+        print(f'MODEL_ID={MODEL_ID}')
+        LAUNCH_FLAGS = ["serve", "--model", MODEL_ID, "--port", "8000", "--device", "cuda"]
         self.launcher = subprocess.Popen(["/opt/tabby/bin/tabby"] + LAUNCH_FLAGS, env=my_env)
         self.client = Client("http://127.0.0.1:8000", timeout=60)
 
