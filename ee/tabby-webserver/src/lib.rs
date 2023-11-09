@@ -1,6 +1,17 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+mod juniper_axum;
+
+use std::{
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use async_trait::async_trait;
+use axum::{
+    routing::{get, post},
+    Extension, Router,
+};
+use juniper::{graphql_object, EmptyMutation, EmptySubscription, RootNode};
+use juniper_axum::{graphiql, graphql, playground};
 use tabby_common::api::code::{CodeSearch, CodeSearchError, SearchResponse};
 
 #[derive(Default)]
@@ -51,4 +62,31 @@ fn random_index(size: usize) -> usize {
         .as_nanos();
     let index = unix_timestamp % (size as u128);
     index as usize
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Query;
+
+#[graphql_object]
+impl Query {
+    fn workers() -> i32 {
+        100
+    }
+
+    fn add(a: i32, b: i32) -> i32 {
+        a + b
+    }
+}
+
+type Schema = RootNode<'static, Query, EmptyMutation, EmptySubscription>;
+
+pub fn api_router() -> Router {
+    let schema = Schema::new(Query, EmptyMutation::new(), EmptySubscription::new());
+
+    let app = Router::new()
+        .route("/graphql", post(graphql::<Arc<Schema>>))
+        .route("/graphql", get(playground("/graphql", None)))
+        .route("/graphiql", get(graphiql("/graphql", None)))
+        .layer(Extension(Arc::new(schema)));
+    app
 }
