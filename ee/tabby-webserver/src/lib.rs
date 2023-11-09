@@ -9,16 +9,18 @@ use axum::{
     http::Request,
     middleware::{from_fn_with_state, Next},
     response::IntoResponse,
-    Router,
+    routing, Extension, Router,
 };
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use tracing::warn;
+use proxy::ProxyError;
+use tokio::sync::RwLock;
+use tracing::{warn, error};
 
 #[derive(Default)]
 pub struct Webserver {
     client: Client<HttpConnector>,
-    completion: worker::WorkerGroup,
-    chat: worker::WorkerGroup,
+    completion: WorkerGroup,
+    chat: WorkerGroup,
 }
 
 impl Webserver {
