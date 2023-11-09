@@ -4,14 +4,14 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
-    index::IndexExt,
+    index::{self, register_tokenizers, CodeSearchSchema},
     path,
 };
 use tantivy::{
     collector::{Count, TopDocs},
-    query::{QueryParser, TermQuery, TermSetQuery},
-    schema::{Field, IndexRecordOption},
-    DocAddress, Document, Index, IndexReader, Term,
+    query::QueryParser,
+    schema::Field,
+    DocAddress, Document, Index, IndexReader,
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
@@ -20,23 +20,20 @@ struct CodeSearchImpl {
     reader: IndexReader,
     query_parser: QueryParser,
 
-    field_body: Field,
-    field_filepath: Field,
-    field_git_url: Field,
-    field_kind: Field,
-    field_language: Field,
-    field_name: Field,
+    schema: CodeSearchSchema,
 }
 
 impl CodeSearchImpl {
     fn load() -> Result<Self> {
+        let code_schema = index::CodeSearchSchema::new();
         let index = Index::open_in_dir(path::index_dir())?;
-        index.register_tokenizer();
+        register_tokenizers(&index);
 
-        let schema = index.schema();
-        let field_body = schema.get_field("body").unwrap();
-        let query_parser =
-            QueryParser::new(schema.clone(), vec![field_body], index.tokenizers().clone());
+        let query_parser = QueryParser::new(
+            code_schema.schema.clone(),
+            vec![code_schema.field_body],
+            index.tokenizers().clone(),
+        );
         let reader = index
             .reader_builder()
             .reload_policy(tantivy::ReloadPolicy::OnCommit)
@@ -44,12 +41,7 @@ impl CodeSearchImpl {
         Ok(Self {
             reader,
             query_parser,
-            field_body,
-            field_filepath: schema.get_field("filepath").unwrap(),
-            field_git_url: schema.get_field("git_url").unwrap(),
-            field_kind: schema.get_field("kind").unwrap(),
-            field_language: schema.get_field("language").unwrap(),
-            field_name: schema.get_field("name").unwrap(),
+            schema: code_schema,
         })
     }
 
@@ -73,12 +65,12 @@ impl CodeSearchImpl {
         Hit {
             score,
             doc: HitDocument {
-                body: get_field(&doc, self.field_body),
-                filepath: get_field(&doc, self.field_filepath),
-                git_url: get_field(&doc, self.field_git_url),
-                kind: get_field(&doc, self.field_kind),
-                name: get_field(&doc, self.field_name),
-                language: get_field(&doc, self.field_language),
+                body: get_field(&doc, self.schema.field_body),
+                filepath: get_field(&doc, self.schema.field_filepath),
+                git_url: get_field(&doc, self.schema.field_git_url),
+                kind: get_field(&doc, self.schema.field_kind),
+                name: get_field(&doc, self.schema.field_name),
+                language: get_field(&doc, self.schema.field_language),
             },
             id: doc_address.doc_id,
         }
@@ -144,41 +136,6 @@ impl CodeSearchService {
         });
 
         ret
-    }
-
-    async fn with_impl<T, F>(&self, op: F) -> Result<T, CodeSearchError>
-    where
-        F: FnOnce(&CodeSearchImpl) -> Result<T, CodeSearchError>,
-    {
-        if let Some(imp) = self.search.lock().await.as_ref() {
-            op(imp)
-        } else {
-            Err(CodeSearchError::NotReady)
-        }
-    }
-
-    pub async fn language_query(&self, language: &str) -> Result<Box<TermQuery>, CodeSearchError> {
-        self.with_impl(|imp| {
-            Ok(Box::new(TermQuery::new(
-                Term::from_field_text(imp.field_language, language),
-                IndexRecordOption::WithFreqsAndPositions,
-            )))
-        })
-        .await
-    }
-
-    pub async fn body_query(
-        &self,
-        tokens: &[String],
-    ) -> Result<Box<TermSetQuery>, CodeSearchError> {
-        self.with_impl(|imp| {
-            Ok(Box::new(TermSetQuery::new(
-                tokens
-                    .iter()
-                    .map(|x| Term::from_field_text(imp.field_body, x)),
-            )))
-        })
-        .await
     }
 }
 
