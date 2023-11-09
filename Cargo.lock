@@ -430,9 +430,9 @@ dependencies = [
 
 [[package]]
 name = "axum"
-version = "0.6.18"
+version = "0.6.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8175979259124331c1d7bf6586ee7e0da434155e4b2d48ec2c8386281d8df39"
+checksum = "3b829e4e32b91e643de6eafe82b1d90675f5874230191a4ffbc1b336dec4d6bf"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -1820,9 +1820,9 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
-version = "0.14.26"
+version = "0.14.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab302d72a6f11a3b910431ff93aae7e773078c769f0a3ef15fb9ec692ed147d4"
+checksum = "ffb1cfd654a8219eaef89881fdb3bb3b1cdc5fa75ded05d6933b2b382e395468"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -4078,14 +4078,12 @@ dependencies = [
  "hyper",
  "lazy_static",
  "llama-cpp-bindings",
- "mime_guess",
  "minijinja",
  "nvml-wrapper",
  "opentelemetry",
  "opentelemetry-otlp",
  "regex",
  "reqwest",
- "rust-embed 8.0.0",
  "serde",
  "serde_json",
  "serdeconv",
@@ -4096,6 +4094,7 @@ dependencies = [
  "tabby-download",
  "tabby-inference",
  "tabby-scheduler",
+ "tabby-webserver",
  "tantivy",
  "textdistance",
  "tokio",
@@ -4179,6 +4178,21 @@ dependencies = [
  "tree-sitter-rust",
  "tree-sitter-tags",
  "tree-sitter-typescript",
+]
+
+[[package]]
+name = "tabby-webserver"
+version = "0.6.0-dev"
+dependencies = [
+ "anyhow",
+ "axum",
+ "hyper",
+ "lazy_static",
+ "mime_guess",
+ "rust-embed 8.0.0",
+ "tokio",
+ "tracing",
+ "unicase",
 ]
 
 [[package]]
@@ -5037,9 +5051,9 @@ checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 
 [[package]]
 name = "unicase"
-version = "2.6.0"
+version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50f37be617794602aabbeee0be4f259dc1778fabe05e2d67ee8f79326d5cb4f6"
+checksum = "f7d2d4dafb69621809a81864c9c1b864479e1235c0dd4e199924b9742439ed89"
 dependencies = [
  "version_check",
 ]

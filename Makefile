@@ -13,8 +13,7 @@ fix-ui:
 
 update-ui:
 	cd ee/tabby-ui && yarn build
-	rm -rf crates/tabby/ui && cp -R ee/tabby-ui/out crates/tabby/ui
-	cp ee/LICENSE crates/tabby/ui/
+	rm -rf ee/tabby-webserver/ui && cp -R ee/tabby-ui/out ee/tabby-webserver/ui
 
 bump-version:
 	cargo ws version --no-git-tag --force "*"
