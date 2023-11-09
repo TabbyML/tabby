@@ -4,6 +4,14 @@
 
 ### Fixes and improvements
 
+## [v3.21.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.21.0) (2023-11-09)
+
+### New features
+
+* Minimal Support for Mistral (Loader and Rotary extension for long sequence). No sliding yet
+* Support Distil-Whisper
+* Support Whisper-large-v3
+
 ## [v3.20.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.20.0) (2023-09-18)
 
 ### New features
