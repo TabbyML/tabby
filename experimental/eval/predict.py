@@ -3,19 +3,20 @@ from pathlib import Path
 import modal
 from modal import Image, Mount, Secret, Stub, asgi_app, gpu, method
 import os
-import pandas as pd
+
 
 import asyncio
 
-GPU_CONFIG = gpu.A100()
-MODEL_ID =  os.environ.get("MODEL_ID", "TabbyML/StarCoder-3B")
+GPU_CONFIG = gpu.A10G()
+#MODEL_ID =  os.environ.get("MODEL_ID", "TabbyML/StarCoder-3B")
+MODEL_ID = "TabbyML/StarCoder-7B"
 LAUNCH_FLAGS = ["serve", "--model", MODEL_ID, "--port", "8000", "--device", "cuda"]
-
+#print(f'MODEL_ID = `{MODEL_ID}`')
 
 
 def download_model():
     import subprocess
-
+    print(f'Loading model `{MODEL_ID}`')
     subprocess.run(
         [
             "/opt/tabby/bin/tabby",
@@ -28,15 +29,15 @@ def download_model():
 
 image = (
     Image.from_registry(
-        "tabbyml/tabby:0.5.0",
+        "tabbyml/tabby:0.5.4",
         add_python="3.11",
     )
     .dockerfile_commands("ENTRYPOINT []")
-    .run_function(download_model)
     .pip_install(
         "git+https://github.com/TabbyML/tabby.git#egg=tabby-python-client&subdirectory=experimental/eval/tabby-python-client",
         "pandas"
     )
+    .run_function(download_model, force_build=True)
 )
 
 stub = Stub("tabby-" + MODEL_ID.split("/")[-1], image=image)
@@ -103,6 +104,7 @@ class Model:
         )
         from tabby_python_client.types import Response
         from tabby_python_client import errors
+        import pandas as pd
 
         if 'prediction' in row and not pd.isnull(row['prediction']):
             return None, None, None
@@ -139,11 +141,16 @@ class Model:
 @stub.local_entrypoint()
 async def main(language, file):
     import json
+    import pandas as pd
+
 
     print(MODEL_ID)
 
     model = Model()
-    print(model.health.remote())
+    print("model info:")
+    health_resp = model.health.remote()
+    print(health_resp)
+    assert(health_resp['model'] == MODEL_ID)
 
     whole_path_file = "./data/" + MODEL_ID.split("/")[-1] + "/" + language + "/" + file
 
