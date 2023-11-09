@@ -4096,6 +4096,7 @@ dependencies = [
  "tabby-download",
  "tabby-inference",
  "tabby-scheduler",
+ "tabby-webserver",
  "tantivy",
  "textdistance",
  "tokio",
