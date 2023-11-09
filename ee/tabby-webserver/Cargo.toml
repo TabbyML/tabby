@@ -1,0 +1,20 @@
+[package]
+name = "tabby-webserver"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+hyper = { workspace = true, features=["client"]}
+lazy_static = "1.4.0"
+mime_guess = "2.0.4"
+rust-embed = "8.0.0"
+tokio.workspace = true
+tracing.workspace = true
+unicase = "2.7.0"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }
