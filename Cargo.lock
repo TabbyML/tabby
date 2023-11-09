@@ -430,9 +430,9 @@ dependencies = [
 
 [[package]]
 name = "axum"
-version = "0.6.18"
+version = "0.6.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8175979259124331c1d7bf6586ee7e0da434155e4b2d48ec2c8386281d8df39"
+checksum = "3b829e4e32b91e643de6eafe82b1d90675f5874230191a4ffbc1b336dec4d6bf"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -4184,6 +4184,17 @@ dependencies = [
 [[package]]
 name = "tabby-webserver"
 version = "0.6.0-dev"
+<<<<<<< HEAD
+=======
+dependencies = [
+ "async-trait",
+ "axum",
+ "serde",
+ "tabby-common",
+ "tantivy",
+ "tokio",
+]
+>>>>>>> caf14c34 (add code search worker registry)
 
 [[package]]
 name = "tantivy"

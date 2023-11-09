@@ -11,7 +11,7 @@ tabby-common = { path = "../tabby-common" }
 tabby-scheduler = { path = "../tabby-scheduler" }
 tabby-download = { path = "../tabby-download" }
 tabby-inference = { path = "../tabby-inference" }
-axum = "0.6"
+axum.workspace = true
 hyper = { version = "0.14", features = ["full"] }
 tokio = { workspace = true, features = ["full"] }
 utoipa = { workspace= true, features = ["axum_extras", "preserve_order"] }

@@ -5,6 +5,10 @@ edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+async-trait.workspace = true
+axum.workspace = true
+serde.workspace = true
+tabby-common = { path = "../../crates/tabby-common" }
+tantivy.workspace = true
+tokio.workspace = true
