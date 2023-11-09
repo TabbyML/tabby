@@ -60,7 +60,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private completionCache: CompletionCache = new CompletionCache();
   private completionDebounce: CompletionDebounce = new CompletionDebounce();
   private nonParallelProvideCompletionAbortController: AbortController | null = null;
-  private completionProviderStats: CompletionProviderStats = new CompletionProviderStats();
+  private completionProviderStats: CompletionProviderStats = new CompletionProviderStats(
+    this.config.completion.statistics,
+  );
   static readonly tryConnectInterval = 1000 * 30; // 30s
   private tryingConnectTimer: ReturnType<typeof setInterval> | null = null;
   static readonly submitStatsInterval = 1000 * 60 * 60 * 24; // 24h
@@ -121,6 +123,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
       if (oldStatus === "unauthorized" && this.status === "unauthorized") {
         this.emitAuthRequired();
       }
+    }
+
+    if (!deepEqual(oldConfig.completion.statistics, this.config.completion.statistics)) {
+      this.completionProviderStats.updateConfig(this.config.completion.statistics);
+      this.popIssue("slowCompletionResponseTime");
+      this.popIssue("highCompletionTimeoutRate");
     }
 
     const event: AgentEvent = { event: "configUpdated", config: this.config };
@@ -588,7 +596,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
         if (stats.requestSent && !stats.requestCanceled) {
           const windowedStats = this.completionProviderStats.windowed();
-          const checkResult = CompletionProviderStats.check(windowedStats);
+          const checkResult = this.completionProviderStats.check(windowedStats);
           switch (checkResult) {
             case "healthy":
               this.popIssue("slowCompletionResponseTime");

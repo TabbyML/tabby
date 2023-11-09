@@ -21,6 +21,23 @@ export type AgentConfig = {
       auto: number;
       manually: number;
     };
+    statistics: {
+      windowSize: number;
+      checks: {
+        disable: boolean;
+
+        // Mark as healthy if the latency is less than the threshold for each latest windowSize requests.
+        healthy: { windowSize: number; latency: number };
+
+        // otherwise, config the threshold for slow response time warning
+        // If there is at least {count} requests, and the average response time is higher than the {latency}, show warning
+        slowResponseTime: { latency: number; count: number };
+
+        // otherwise, config the threshold for high timeout rate warning
+        // If there is at least {count} timeouts, and the timeout rate is higher than the {rate}, show warning
+        highTimeoutRate: { rate: number; count: number };
+      };
+    };
   };
   postprocess: {
     limitScopeByIndentation: {
@@ -65,10 +82,18 @@ export const defaultAgentConfig: AgentConfig = {
       mode: "adaptive",
       interval: 250, // ms
     },
-    // Deprecated: There is a timeout of 3s on the server side since v0.3.0.
     timeout: {
       auto: 4000, // 4s
       manually: 4000, // 4s
+    },
+    statistics: {
+      windowSize: 10,
+      checks: {
+        disable: false,
+        healthy: { windowSize: 3, latency: 3000 },
+        slowResponseTime: { latency: 4000, count: 3 },
+        highTimeoutRate: { rate: 0.5, count: 3 },
+      },
     },
   },
   postprocess: {
@@ -100,6 +125,17 @@ const configTomlTemplate = `## Tabby agent configuration file
 # [server.requestHeaders]
 # Header1 = "Value1" # list your custom headers here
 # Header2 = "Value2" # values can be strings, numbers or booleans
+
+## Completion
+## You can set the completion request timeout here.
+## Note that there is also a timeout config at the server side.
+# [completion.timeout]
+# auto = 4000 # 4s, for auto trigger
+# manually = 4000 # 4s, for manual trigger
+
+## (Since 1.1.0) If you want to disable the warning message for high timeout rate or slow response time.
+# [completion.statistics.checks]
+# disable = false # set to true to disable
 
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.

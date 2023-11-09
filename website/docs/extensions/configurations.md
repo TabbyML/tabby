@@ -32,6 +32,23 @@ Header1 = "Value1" # list your custom headers here
 Header2 = "Value2" # values can be strings, numbers or booleans
 ```
 
+## Completion
+
+If you have changed the default response timeout at Tabby server side, you may also need to change the timeout configurations here.
+
+```toml
+# Completion
+# You can set the completion request timeout here. 
+# Note that there is also a timeout config at the server side.
+[completion.timeout]
+auto = 4000 # 4s, for auto trigger
+manually = 4000 # 4s, for manual trigger
+
+# (Since 1.1.0) If you want to disable the warning message for high timeout rate or slow response time.
+[completion.statistics.checks]
+disable = false # set to true to disable
+```
+
 ## Logs
 
 If you encounter any issues with the Tabby IDE extensions and need to report a bug, you can enable debug logs to help us investigate the issue.
