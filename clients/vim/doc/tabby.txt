@@ -23,8 +23,8 @@ Commands~
 :Tabby  status		Check the status of Tabby. Report error message if any 
 			issue exists.
 					*:Tabby-auth*
-:Tabby  auth		Check the status of Tabby. Report error message if any 
-			issue exists.
+:Tabby  auth		Start to complete the authentication process. Only used
+			when you are using a Tabby Cloud endpoint.
 					*:Tabby-help*
 :Tabby  help [subject]  Search for help information in this document using
 			VIM command `:help`.
