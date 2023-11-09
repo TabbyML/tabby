@@ -46,7 +46,7 @@ stub = Stub("tabby-" + MODEL_ID.split("/")[-1], image=image)
 @stub.cls(
     gpu=GPU_CONFIG,
     concurrency_limit=10,
-    allow_concurrent_inputs=1,
+    allow_concurrent_inputs=4,
     container_idle_timeout=60 * 10,
     timeout=360,
 )
