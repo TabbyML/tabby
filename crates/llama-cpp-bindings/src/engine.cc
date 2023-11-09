@@ -316,8 +316,8 @@ std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model
   llama_context_params ctx_params = llama_context_default_params();
   ctx_params.n_ctx = N_CTX * parallelism;
   ctx_params.n_batch = N_BATCH;
-  if (const char* _n_threads = std::getenv("LLAMA_CPP_N_THREADS")) {
-    int n_threads = std::stoi(_n_threads);
+  if (const char* n_thread_str = std::getenv("LLAMA_CPP_N_THREADS")) {
+    int n_threads = std::stoi(n_thread_str);
     ctx_params.n_threads = n_threads;
     ctx_params.n_threads_batch = n_threads;
   }
