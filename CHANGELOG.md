@@ -2,13 +2,9 @@
 
 ## Features
 
-# v0.5.4
+# v0.5.5
 
 ## Fixes and Improvements
-
-* Fix deadlock issue reported in https://github.com/TabbyML/tabby/issues/718
-
-# v0.5.3
 
 ## Notice
 
@@ -26,6 +22,7 @@
 * add `server.completion_timeout` to control the code completion interface timeout: https://github.com/TabbyML/tabby/pull/637
 * Cuda backend is switched to llama.cpp: https://github.com/TabbyML/tabby/pull/656
 * Tokenizer implementation is switched to llama.cpp, so tabby no longer need to download additional tokenizer file: https://github.com/TabbyML/tabby/pull/683
+* Fix deadlock issue reported in https://github.com/TabbyML/tabby/issues/718
 
 # v0.4.0
 
