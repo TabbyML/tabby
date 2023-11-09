@@ -3,13 +3,16 @@ use std::sync::Arc;
 use lazy_static::lazy_static;
 use regex::Regex;
 use strfmt::strfmt;
-use tabby_common::languages::get_language;
+use tabby_common::{
+    api::code::{CodeSearch, CodeSearchError},
+    languages::get_language,
+};
 use tantivy::{query::BooleanQuery, query_grammar::Occur};
 use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
-use crate::search::{CodeSearch, CodeSearchError, CodeSearchService};
+use crate::search::CodeSearchService;
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;

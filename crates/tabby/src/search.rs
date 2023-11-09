@@ -1,71 +1,20 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
-use axum::async_trait;
-use serde::Serialize;
-use tabby_common::{index::IndexExt, path};
+use async_trait::async_trait;
+use tabby_common::{
+    api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
+    index::IndexExt,
+    path,
+};
 use tantivy::{
     collector::{Count, TopDocs},
     query::{QueryParser, TermQuery, TermSetQuery},
     schema::{Field, IndexRecordOption},
     DocAddress, Document, Index, IndexReader, Term,
 };
-use thiserror::Error;
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
-use utoipa::ToSchema;
-
-#[derive(Serialize, ToSchema)]
-pub struct SearchResponse {
-    pub num_hits: usize,
-    pub hits: Vec<Hit>,
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct Hit {
-    pub score: f32,
-    pub doc: HitDocument,
-    pub id: u32,
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct HitDocument {
-    pub body: String,
-    pub filepath: String,
-    pub git_url: String,
-    pub kind: String,
-    pub language: String,
-    pub name: String,
-}
-
-#[derive(Error, Debug)]
-pub enum CodeSearchError {
-    #[error("index not ready")]
-    NotReady,
-
-    #[error("{0}")]
-    QueryParserError(#[from] tantivy::query::QueryParserError),
-
-    #[error("{0}")]
-    TantivyError(#[from] tantivy::TantivyError),
-}
-
-#[async_trait]
-pub trait CodeSearch {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-        offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError>;
-
-    async fn search_with_query(
-        &self,
-        q: &dyn tantivy::query::Query,
-        limit: usize,
-        offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError>;
-}
 
 struct CodeSearchImpl {
     reader: IndexReader,

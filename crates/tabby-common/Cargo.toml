@@ -15,6 +15,9 @@ tokio = { workspace = true, features = ["rt", "macros"] }
 uuid = { version = "1.4.1", features = ["v4"] }
 tantivy.workspace = true
 anyhow.workspace = true
+async-trait.workspace = true
+thiserror.workspace = true
+utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
 
 [features]
 testutils = []

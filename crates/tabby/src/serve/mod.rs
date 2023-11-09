@@ -16,7 +16,11 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::{config::Config, usage};
+use tabby_common::{
+    api::code::{Hit, HitDocument, SearchResponse},
+    config::Config,
+    usage,
+};
 use tabby_download::download_model;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
@@ -62,9 +66,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         crate::chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
-        crate::search::SearchResponse,
-        crate::search::Hit,
-        crate::search::HitDocument
+        SearchResponse,
+        Hit,
+        HitDocument
     ))
 )]
 struct ApiDoc;
