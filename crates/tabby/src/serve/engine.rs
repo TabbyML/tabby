@@ -1,28 +1,42 @@
-use std::path::Path;
+use std::{fs, path::PathBuf};
 
 use serde::Deserialize;
-use tabby_common::path::ModelDir;
+use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
 use tabby_inference::TextGeneration;
 
 use crate::fatal;
 
-pub fn create_engine(
-    model: &str,
+pub async fn create_engine(
+    model_id: &str,
     args: &crate::serve::ServeArgs,
 ) -> (Box<dyn TextGeneration>, EngineInfo) {
     if args.device != super::Device::ExperimentalHttp {
-        let model_dir = get_model_dir(model);
-        let metadata = read_metadata(&model_dir);
-        let engine = create_ggml_engine(&args.device, &model_dir);
-        (
-            engine,
-            EngineInfo {
-                prompt_template: metadata.prompt_template,
-                chat_template: metadata.chat_template,
-            },
-        )
+        if fs::metadata(model_id).is_ok() {
+            let path = PathBuf::from(model_id);
+            let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
+            let engine = create_ggml_engine(
+                &args.device,
+                model_path.display().to_string().as_str(),
+                args.parallelism,
+            );
+            let engine_info = EngineInfo::read(path.join("tabby.json"));
+            (engine, engine_info)
+        } else {
+            let (registry, name) = parse_model_id(model_id);
+            let registry = ModelRegistry::new(registry).await;
+            let model_path = registry.get_model_path(name).display().to_string();
+            let model_info = registry.get_model_info(name);
+            let engine = create_ggml_engine(&args.device, &model_path, args.parallelism);
+            (
+                engine,
+                EngineInfo {
+                    prompt_template: model_info.prompt_template.clone(),
+                    chat_template: model_info.chat_template.clone(),
+                },
+            )
+        }
     } else {
-        let (engine, prompt_template) = http_api_bindings::create(model);
+        let (engine, prompt_template) = http_api_bindings::create(model_id);
         (
             engine,
             EngineInfo {
@@ -33,38 +47,30 @@ pub fn create_engine(
     }
 }
 
+#[derive(Deserialize)]
 pub struct EngineInfo {
     pub prompt_template: Option<String>,
     pub chat_template: Option<String>,
 }
 
-fn create_ggml_engine(device: &super::Device, model_dir: &ModelDir) -> Box<dyn TextGeneration> {
-    let options = llama_cpp_bindings::LlamaTextGenerationOptionsBuilder::default()
-        .model_path(model_dir.ggml_q8_0_v2_file())
-        .use_gpu(device.ggml_use_gpu())
-        .build()
-        .unwrap();
-
-    Box::new(llama_cpp_bindings::LlamaTextGeneration::create(options))
-}
-
-fn get_model_dir(model: &str) -> ModelDir {
-    if Path::new(model).exists() {
-        ModelDir::from(model)
-    } else {
-        ModelDir::new(model)
+impl EngineInfo {
+    fn read(filepath: PathBuf) -> EngineInfo {
+        serdeconv::from_json_file(&filepath)
+            .unwrap_or_else(|_| fatal!("Invalid metadata file: {}", filepath.display()))
     }
 }
 
-#[derive(Deserialize)]
-struct Metadata {
-    #[allow(dead_code)]
-    auto_model: String,
-    prompt_template: Option<String>,
-    chat_template: Option<String>,
-}
+fn create_ggml_engine(
+    device: &super::Device,
+    model_path: &str,
+    parallelism: u8,
+) -> Box<dyn TextGeneration> {
+    let options = llama_cpp_bindings::LlamaTextGenerationOptionsBuilder::default()
+        .model_path(model_path.to_owned())
+        .use_gpu(device.ggml_use_gpu())
+        .parallelism(parallelism)
+        .build()
+        .unwrap();
 
-fn read_metadata(model_dir: &ModelDir) -> Metadata {
-    serdeconv::from_json_file(model_dir.metadata_file())
-        .unwrap_or_else(|_| fatal!("Invalid metadata file: {}", model_dir.metadata_file()))
+    Box::new(llama_cpp_bindings::LlamaTextGeneration::new(options))
 }

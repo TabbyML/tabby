@@ -104,7 +104,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
       // If auth token is provided, use it directly.
       this.auth = null;
     }
-    await this.setupApi();
 
     // If server config changed, clear server related state
     if (!deepEqual(oldConfig.server, this.config.server)) {
@@ -112,12 +111,22 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.completionProviderStats.resetWindowed();
       this.popIssue("slowCompletionResponseTime");
       this.popIssue("highCompletionTimeoutRate");
+    }
 
+    await this.setupApi();
+
+    if (!deepEqual(oldConfig.server, this.config.server)) {
       // If server config changed and status remain `unauthorized`, we want to emit `authRequired` again.
       // but `changeStatus` will not emit `authRequired` if status is not changed, so we emit it manually here.
       if (oldStatus === "unauthorized" && this.status === "unauthorized") {
         this.emitAuthRequired();
       }
+    }
+
+    if (oldConfig.completion.timeout !== this.config.completion.timeout) {
+      this.completionProviderStats.updateConfigByRequestTimeout(this.config.completion.timeout);
+      this.popIssue("slowCompletionResponseTime");
+      this.popIssue("highCompletionTimeoutRate");
     }
 
     const event: AgentEvent = { event: "configUpdated", config: this.config };
@@ -521,9 +530,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
               },
               {
                 signal,
-                timeout: request.manually
-                  ? this.config.completion.timeout.manually
-                  : this.config.completion.timeout.auto,
+                timeout: this.config.completion.timeout,
               },
             );
             stats.requestLatency = performance.now() - requestStartedAt;
@@ -585,7 +592,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
         if (stats.requestSent && !stats.requestCanceled) {
           const windowedStats = this.completionProviderStats.windowed();
-          const checkResult = CompletionProviderStats.check(windowedStats);
+          const checkResult = this.completionProviderStats.check(windowedStats);
           switch (checkResult) {
             case "healthy":
               this.popIssue("slowCompletionResponseTime");

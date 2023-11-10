@@ -1,4 +1,5 @@
 import { isBrowser } from "./env";
+import { getProperty, deleteProperty } from "dot-prop";
 
 export type AgentConfig = {
   server: {
@@ -17,10 +18,7 @@ export type AgentConfig = {
       mode: "adaptive" | "fixed";
       interval: number;
     };
-    timeout: {
-      auto: number;
-      manually: number;
-    };
+    timeout: number;
   };
   postprocess: {
     limitScopeByIndentation: {
@@ -65,11 +63,7 @@ export const defaultAgentConfig: AgentConfig = {
       mode: "adaptive",
       interval: 250, // ms
     },
-    // Deprecated: There is a timeout of 3s on the server side since v0.3.0.
-    timeout: {
-      auto: 4000, // 4s
-      manually: 4000, // 4s
-    },
+    timeout: 4000, // ms
   },
   postprocess: {
     limitScopeByIndentation: {
@@ -86,11 +80,12 @@ export const defaultAgentConfig: AgentConfig = {
 
 const configTomlTemplate = `## Tabby agent configuration file
 
-## You can uncomment any block to enable settings.
-## Configurations in this file has lower priority than in IDE settings.
+## Online documentation: https://tabby.tabbyml.com/docs/extensions/configuration
+## You can uncomment and edit the values below to change the default settings.
+## Configurations in this file have lower priority than the IDE settings.
 
 ## Server
-## You can set the server endpoint here, and auth token if server requires.
+## You can set the server endpoint here and an optional authentication token if required.
 # [server]
 # endpoint = "http://localhost:8080" # http or https URL
 # token = "your-token-here" # if token is set, request header Authorization = "Bearer $token" will be added automatically
@@ -98,7 +93,13 @@ const configTomlTemplate = `## Tabby agent configuration file
 ## You can add custom request headers.
 # [server.requestHeaders]
 # Header1 = "Value1" # list your custom headers here
-# Header2 = "Value2" # value can be string, number or boolean
+# Header2 = "Value2" # values can be strings, numbers or booleans
+
+## Completion
+## (Since 1.1.0) You can set the completion request timeout here.
+## Note that there is also a timeout config at the server side.
+# [completion]
+# timeout = 4000 # 4s
 
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
@@ -106,11 +107,52 @@ const configTomlTemplate = `## Tabby agent configuration file
 # level = "silent" # "silent" or "error" or "debug"
 
 ## Anonymous usage tracking
-## You can disable anonymous usage tracking here.
+## Tabby collects anonymous usage data and sends it to the Tabby team to help improve our products.
+## Your code, generated completions, or any sensitive information is never tracked or sent.
+## For more details on data collection, see https://tabby.tabbyml.com/docs/extensions/configuration#usage-collection
+## Your contribution is greatly appreciated. However, if you prefer not to participate, you can disable anonymous usage tracking here.
 # [anonymousUsageTracking]
 # disable = false # set to true to disable
 
 `;
+
+const typeCheckSchema = {
+  server: "object",
+  "server.endpoint": "string",
+  "server.token": "string",
+  "server.requestHeaders": "object",
+  "server.requestTimeout": "number",
+  completion: "object",
+  "completion.prompt": "object",
+  "completion.prompt.experimentalStripAutoClosingCharacters": "boolean",
+  "completion.prompt.maxPrefixLines": "number",
+  "completion.prompt.maxSuffixLines": "number",
+  "completion.debounce": "object",
+  "completion.debounce.mode": "string",
+  "completion.debounce.interval": "number",
+  "completion.timeout": "number",
+  postprocess: "object",
+  "postprocess.limitScopeByIndentation": "object",
+  "postprocess.limitScopeByIndentation.experimentalKeepBlockScopeWhenCompletingLine": "boolean",
+  logs: "object",
+  "logs.level": "string",
+  anonymousUsageTracking: "object",
+  "anonymousUsageTracking.disable": "boolean",
+};
+
+function checkValueType(object, key, type) {
+  if (typeof getProperty(object, key) !== type) {
+    deleteProperty(object, key);
+  }
+}
+
+function validateConfig(config: PartialAgentConfig): PartialAgentConfig {
+  const validatedConfig = { ...config };
+  for (const key in typeCheckSchema) {
+    checkValueType(validatedConfig, key, typeCheckSchema[key]);
+  }
+  return validatedConfig;
+}
 
 export const userAgentConfig = isBrowser
   ? null
@@ -145,7 +187,7 @@ export const userAgentConfig = isBrowser
               await this.createTemplate();
               return;
             }
-            this.data = data;
+            this.data = validateConfig(data);
           } catch (error) {
             if (error.code === "ENOENT") {
               await this.createTemplate();

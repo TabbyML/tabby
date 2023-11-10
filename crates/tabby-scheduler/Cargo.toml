@@ -1,23 +1,22 @@
 [package]
 name = "tabby-scheduler"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = { workspace = true }
-filenamify = "0.1.0"
 job_scheduler = "1.2.1"
 tabby-common = { path = "../tabby-common" }
 tantivy = { workspace = true }
 tracing = { workspace = true }
 tree-sitter-tags = "0.20.2"
 lazy_static = { workspace = true }
-serde = { workspace = true }
 serde-jsonlines = { workspace = true }
 file-rotate = "0.7.5"
 tree-sitter-python = "0.20.2"
+tree-sitter-java = "0.20.2"
 tree-sitter-rust = "0.20.3"
 tree-sitter-typescript = "0.20.3"
 tree-sitter-go = "0.20.0"

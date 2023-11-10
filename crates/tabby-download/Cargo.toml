@@ -1,19 +1,12 @@
 [package]
 name = "tabby-download"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 edition = "2021"
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }
-indicatif = "0.17.3"
-futures-util = "0.3.28"
-reqwest = { workspace = true, features = [ "stream", "json" ] }
 anyhow = { workspace = true }
-serde = { workspace = true }
-serdeconv = { workspace = true }
 tracing = { workspace = true }
 tokio-retry = "0.3.0"
-urlencoding = "2.1.3"
-serde_json = { workspace = true }
-cached = { version = "0.46.0", features = ["async", "proc_macro"] }
-async-trait = { workspace = true }
+sha256 = "1.4.0"
+aim = "1.8.5"

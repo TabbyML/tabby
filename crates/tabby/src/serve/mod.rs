@@ -7,6 +7,7 @@ mod search;
 mod ui;
 
 use std::{
+    fs,
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
     time::Duration,
@@ -16,7 +17,7 @@ use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{config::Config, usage};
-use tabby_download::Downloader;
+use tabby_download::download_model;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
 use tracing::{info, warn};
@@ -26,9 +27,8 @@ use utoipa_swagger_ui::SwaggerUi;
 use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
-    search::IndexServer,
 };
-use crate::fatal;
+use crate::{chat::ChatService, fatal, search::CodeSearchService};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -57,14 +57,14 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completions::Snippet,
         completions::DebugOptions,
         completions::DebugData,
-        chat::ChatCompletionRequest,
-        chat::Message,
-        chat::ChatCompletionChunk,
+        crate::chat::ChatCompletionRequest,
+        crate::chat::Message,
+        crate::chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
-        search::SearchResponse,
-        search::Hit,
-        search::HitDocument
+        crate::search::SearchResponse,
+        crate::search::Hit,
+        crate::search::HitDocument
     ))
 )]
 struct ApiDoc;
@@ -75,6 +75,7 @@ pub enum Device {
     Cpu,
 
     #[cfg(feature = "cuda")]
+    #[strum(serialize = "cuda")]
     Cuda,
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -119,19 +120,21 @@ pub struct ServeArgs {
     #[clap(long, default_value_t=Device::Cpu)]
     device: Device,
 
-    /// DEPRECATED: Do not use.
-    #[deprecated(since = "0.5.0")]
-    #[clap(long, hide(true))]
-    device_indices: Vec<i32>,
+    /// Parallelism for model serving - increasing this number will have a significant impact on the
+    /// memory requirement e.g., GPU vRAM.
+    #[clap(long, default_value_t = 1)]
+    parallelism: u8,
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
-    valid_args(args);
-
     if args.device != Device::ExperimentalHttp {
-        download_model(&args.model).await;
-        if let Some(chat_model) = &args.chat_model {
-            download_model(chat_model).await;
+        if fs::metadata(&args.model).is_ok() {
+            info!("Loading model from local path {}", &args.model);
+        } else {
+            download_model(&args.model, true).await;
+            if let Some(chat_model) = &args.chat_model {
+                download_model(chat_model, true).await;
+            }
         }
     } else {
         warn!("HTTP device is unstable and does not comply with semver expectations.")
@@ -144,7 +147,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let app = Router::new()
         .route("/", routing::get(ui::handler))
-        .merge(api_router(args, config))
+        .merge(api_router(args, config).await)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .fallback(ui::handler);
 
@@ -165,31 +168,28 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let index_server = Arc::new(IndexServer::new());
+async fn api_router(args: &ServeArgs, config: &Config) -> Router {
+    let code = Arc::new(CodeSearchService::new());
     let completion_state = {
         let (
             engine,
             EngineInfo {
                 prompt_template, ..
             },
-        ) = create_engine(&args.model, args);
+        ) = create_engine(&args.model, args).await;
         let engine = Arc::new(engine);
-        let state = completions::CompletionState::new(
-            engine.clone(),
-            index_server.clone(),
-            prompt_template,
-        );
+        let state =
+            completions::CompletionState::new(engine.clone(), code.clone(), prompt_template);
         Arc::new(state)
     };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
-        let (engine, EngineInfo { chat_template, .. }) = create_engine(chat_model, args);
+        let (engine, EngineInfo { chat_template, .. }) = create_engine(chat_model, args).await;
         let Some(chat_template) = chat_template else {
             panic!("Chat model requires specifying prompt template");
         };
         let engine = Arc::new(engine);
-        let state = chat::ChatState::new(engine, chat_template);
+        let state = ChatService::new(engine, chat_template);
         Some(Arc::new(state))
     } else {
         None
@@ -234,7 +234,7 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
     routers.push({
         Router::new().route(
             "/v1beta/search",
-            routing::get(search::search).with_state(index_server),
+            routing::get(search::search).with_state(code),
         )
     });
 
@@ -246,12 +246,6 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
         .layer(opentelemetry_tracing_layer())
 }
 
-fn valid_args(args: &ServeArgs) {
-    if !args.device_indices.is_empty() {
-        warn!("--device-indices is deprecated and will be removed in future release.");
-    }
-}
-
 fn start_heartbeat(args: &ServeArgs) {
     let state = HealthState::new(args);
     tokio::spawn(async move {
@@ -260,13 +254,6 @@ fn start_heartbeat(args: &ServeArgs) {
             sleep(Duration::from_secs(3000)).await;
         }
     });
-}
-
-async fn download_model(model: &str) {
-    let downloader = Downloader::new(model, /* prefer_local_file= */ true);
-    let handler = |err| fatal!("Failed to fetch model '{}' due to '{}'", model, err,);
-    let download_result = downloader.download_ggml_files().await;
-    download_result.unwrap_or_else(handler);
 }
 
 trait OpenApiOverride {

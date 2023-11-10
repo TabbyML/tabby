@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 edition = "2021"
 authors = ["Meng Zhang"]
 homepage = "https://github.com/TabbyML/tabby"
@@ -22,7 +22,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serdeconv = "0.4.1"
 tokio = "1.28"
-tokio-util = "0.7"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1.0.71"

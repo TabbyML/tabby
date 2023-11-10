@@ -4,11 +4,12 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use strfmt::strfmt;
 use tabby_common::languages::get_language;
+use tantivy::{query::BooleanQuery, query_grammar::Occur};
 use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
-use crate::serve::search::{IndexServer, IndexServerError};
+use crate::search::{CodeSearch, CodeSearchError, CodeSearchService};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
@@ -16,14 +17,14 @@ static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
     prompt_template: Option<String>,
-    index_server: Option<Arc<IndexServer>>,
+    code: Option<Arc<CodeSearchService>>,
 }
 
 impl PromptBuilder {
-    pub fn new(prompt_template: Option<String>, index_server: Option<Arc<IndexServer>>) -> Self {
+    pub fn new(prompt_template: Option<String>, code: Option<Arc<CodeSearchService>>) -> Self {
         PromptBuilder {
             prompt_template,
-            index_server,
+            code,
         }
     }
 
@@ -35,9 +36,9 @@ impl PromptBuilder {
         strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
     }
 
-    pub fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
-        if let Some(index_server) = &self.index_server {
-            collect_snippets(index_server, language, &segments.prefix)
+    pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
+        if let Some(code) = &self.code {
+            collect_snippets(code, language, &segments.prefix).await
         } else {
             vec![]
         }
@@ -104,26 +105,36 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> Vec<Snippet> {
+async fn collect_snippets(code: &CodeSearchService, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
-    let mut tokens = Box::new(tokenize_text(text));
+    let mut tokens = tokenize_text(text);
 
-    let sanitized_text = tokens.join(" ");
-    let sanitized_text = sanitized_text.trim();
-    if sanitized_text.is_empty() {
-        return ret;
-    }
+    let Ok(language_query) = code.language_query(language).await else {
+        return vec![];
+    };
+    let Ok(body_query) = code.body_query(&tokens).await else {
+        return vec![];
+    };
+    let query = BooleanQuery::new(vec![
+        (Occur::Must, language_query),
+        (Occur::Must, body_query),
+    ]);
 
-    let query_text = format!("language:{} AND ({})", language, sanitized_text);
-
-    let serp = match index_server.search(&query_text, MAX_SNIPPETS_TO_FETCH, 0) {
+    let serp = match code
+        .search_with_query(&query, MAX_SNIPPETS_TO_FETCH, 0)
+        .await
+    {
         Ok(serp) => serp,
-        Err(IndexServerError::NotReady) => {
+        Err(CodeSearchError::NotReady) => {
             // Ignore.
             return vec![];
         }
-        Err(IndexServerError::TantivyError(err)) => {
-            warn!("Failed to search query: {}", err);
+        Err(CodeSearchError::TantivyError(err)) => {
+            warn!("Failed to search: {}", err);
+            return ret;
+        }
+        Err(CodeSearchError::QueryParserError(err)) => {
+            warn!("Failed to parse query: {}", err);
             return ret;
         }
     };
@@ -154,7 +165,7 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
         // Prepend body tokens and update tokens, so future similarity calculation will consider
         // added snippets.
         body_tokens.append(&mut tokens);
-        *tokens = body_tokens;
+        tokens.append(&mut body_tokens);
 
         count_characters += body.len();
         ret.push(Snippet {
@@ -172,11 +183,7 @@ lazy_static! {
 }
 
 fn tokenize_text(text: &str) -> Vec<String> {
-    TOKENIZER
-        .split(text)
-        .filter(|s| *s != "AND" && *s != "OR" && *s != "NOT" && !s.is_empty())
-        .map(|x| x.to_owned())
-        .collect()
+    TOKENIZER.split(text).map(|x| x.to_owned()).collect()
 }
 
 #[cfg(test)]

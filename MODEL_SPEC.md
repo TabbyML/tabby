@@ -1,5 +1,8 @@
 # Tabby Model Specification (Unstable)
 
+> [!WARNING]
+> **Since v0.5.0** This document is intended exclusively for local models. For remote models, we rely on the `tabby-registry` repository within each organization or user. You can refer to https://github.com/TabbyML/registry-tabby/blob/main/models.json for an example.
+
 Tabby organizes the model within a directory. This document provides an explanation of the necessary contents for supporting model serving. An example model directory can be found at https://huggingface.co/TabbyML/StarCoder-1B
 
 The minimal Tabby model directory should include the following contents:

@@ -14,17 +14,6 @@ namespace llama {
 TextInferenceEngine::~TextInferenceEngine() {}
 
 namespace {
-int get_parallelism() {
-  const char* parallelism = std::getenv("LLAMA_CPP_PARALLELISM");
-  if (parallelism) {
-    return std::stoi(parallelism);
-  } else {
-    return 4;
-  }
-}
-
-static size_t N_CONCURRENT_REQUESTS = get_parallelism();
-
 constexpr size_t N_BATCH = 512;  // # per batch inference.
 constexpr size_t N_CTX = 4096;   // # max kv history.
  
@@ -79,15 +68,44 @@ std::vector<llama_token> llama_tokenize(
     return result;
 }
 
+template<typename ... Args>
+std::string string_format(const std::string& format, Args ... args)
+{
+	int size_s = std::snprintf(nullptr, 0, format.c_str(), args ...) + 1; // Extra space for '\0'
+	if (size_s <= 0) { throw std::runtime_error("Error during formatting."); }
+	auto size = static_cast<size_t>(size_s);
+	std::unique_ptr<char[]> buf(new char[size]);
+	std::snprintf(buf.get(), size, format.c_str(), args ...);
+	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+}
+
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
 class TextInferenceEngineImpl : public TextInferenceEngine {
  public:
-  TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx) :
+  TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx, uint8_t parallelism) :
     model_(std::move(model)),
-    ctx_(std::move(ctx)) {
-      batch_ = llama_batch_init(N_CTX * N_CONCURRENT_REQUESTS, 0, 1);
+    ctx_(std::move(ctx)),
+    parallelism_(parallelism) {
+      batch_ = llama_batch_init(N_CTX * parallelism, 0, 1);
+      // warm up
+      {
+        batch_.n_tokens = 16;
+        for (int i = 0; i < batch_.n_tokens; ++i) {
+          batch_.token[i] = 0;
+          batch_.pos[i] = i;
+          batch_.n_seq_id[i] = 1;
+          batch_.seq_id[i][0] = 0;
+          batch_.logits[i] = false;
+        }
+
+        if (llama_decode(ctx_.get(), batch_)) {
+          fprintf(stderr, "%s: warmup failed\n", __func__);
+        }
+
+        llama_kv_cache_clear(ctx_.get());
+      }
   }
 
   ~TextInferenceEngineImpl() {
@@ -127,7 +145,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     }
 
     // Add pending requests.
-    while (pending_requests_.size() > 0 && requests_.size() < N_CONCURRENT_REQUESTS) {
+    while (pending_requests_.size() > 0 && requests_.size() < parallelism_) {
       Request request = std::move(pending_requests_.front());
       pending_requests_.pop_front();
 
@@ -185,7 +203,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
       const int ret = llama_decode(ctx, batch_view);
       if (ret != 0) {
-        throw std::runtime_error("Failed to eval");
+        throw std::runtime_error(string_format("llama_decode failed with code: %d", ret));
       }
 
       const auto eos_id = llama_token_eos(llama_get_model(ctx));
@@ -230,9 +248,14 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         }
 
         if (request.multibyte_pending == 0) {
-          rust::String generated_text = is_eos ? "" : request.generated_text;
-          result.push_back({request.id, generated_text});
+          rust::String generated_text;
+          try {
+            generated_text = is_eos ? "" : request.generated_text;
+          } catch (const std::invalid_argument& e) {
+            fprintf(stderr, "%s:%d [%s] - ignoring non utf-8/utf-16 output\n", __FILE__, __LINE__, __func__);
+          }
 
+          result.push_back({request.id, generated_text});
           request.generated_text.clear();
         }
       }
@@ -250,6 +273,8 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   std::vector<Request> requests_;
   std::deque<Request> pending_requests_;
   std::unordered_set<uint32_t> stopped_requests_;
+
+  uint32_t parallelism_;
 };
 
 static int g_llama_cpp_log_level = 0;
@@ -277,7 +302,7 @@ struct BackendInitializer {
 
 } // namespace
 
-std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model_path) {
+std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model_path, uint8_t parallelism) {
   static BackendInitializer initializer;
 
   llama_model_params model_params = llama_model_default_params();
@@ -289,13 +314,18 @@ std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model
   }
 
   llama_context_params ctx_params = llama_context_default_params();
-  ctx_params.n_ctx = N_CTX;
+  ctx_params.n_ctx = N_CTX * parallelism;
   ctx_params.n_batch = N_BATCH;
+  if (const char* n_thread_str = std::getenv("LLAMA_CPP_N_THREADS")) {
+    int n_threads = std::stoi(n_thread_str);
+    ctx_params.n_threads = n_threads;
+    ctx_params.n_threads_batch = n_threads;
+  }
   llama_context* ctx = llama_new_context_with_model(model, ctx_params);
-
   return std::make_unique<TextInferenceEngineImpl>(
       owned<llama_model>(model, llama_free_model),
-      owned<llama_context>(ctx, llama_free)
+      owned<llama_context>(ctx, llama_free),
+      parallelism
   );
 }
 

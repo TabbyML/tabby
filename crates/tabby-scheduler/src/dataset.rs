@@ -239,6 +239,17 @@ lazy_static! {
                 ),
             ),
             (
+                "java",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_java::language(),
+                        tree_sitter_java::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
                 "javascript-typescript",
                 TagsConfigurationSync(
                     TagsConfiguration::new(
