@@ -1,4 +1,5 @@
 mod juniper_axum;
+mod schema;
 
 use std::{
     sync::Arc,
@@ -10,7 +11,6 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
-use juniper::{graphql_object, EmptyMutation, EmptySubscription, RootNode};
 use juniper_axum::{graphiql, graphql, playground};
 use tabby_common::api::code::{CodeSearch, CodeSearchError, SearchResponse};
 
@@ -64,27 +64,11 @@ fn random_index(size: usize) -> usize {
     index as usize
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Query;
-
-#[graphql_object]
-impl Query {
-    fn workers() -> i32 {
-        100
-    }
-
-    fn add(a: i32, b: i32) -> i32 {
-        a + b
-    }
-}
-
-type Schema = RootNode<'static, Query, EmptyMutation, EmptySubscription>;
-
 pub fn api_router() -> Router {
-    let schema = Schema::new(Query, EmptyMutation::new(), EmptySubscription::new());
+    let schema = schema::new();
 
     let app = Router::new()
-        .route("/graphql", post(graphql::<Arc<Schema>>))
+        .route("/graphql", post(graphql::<Arc<schema::Schema>>))
         .route("/graphql", get(playground("/graphql", None)))
         .route("/graphiql", get(graphiql("/graphql", None)))
         .layer(Extension(Arc::new(schema)));

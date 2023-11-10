@@ -2137,16 +2137,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kdam"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e352f4e1acc6a3d0919eaeb014ca63e5da9450a12ef7106fe2936a07a1648d44"
-dependencies = [
- "terminal_size",
- "windows-sys 0.48.0",
-]
-
-[[package]]
 name = "juniper"
 version = "0.15.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2200,6 +2190,16 @@ checksum = "2983b26a1e12b691c17432aee3881d8bec4a94d6c64bc933c0eaf6d9e3429f13"
 dependencies = [
  "futures",
  "juniper",
+]
+
+[[package]]
+name = "kdam"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e352f4e1acc6a3d0919eaeb014ca63e5da9450a12ef7106fe2936a07a1648d44"
+dependencies = [
+ "terminal_size",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
