@@ -1,6 +1,7 @@
 use std::fs;
 
 use anyhow::Result;
+use kdam::BarExt;
 use tabby_common::{
     config::Config,
     index::{register_tokenizers, CodeSearchSchema},
@@ -8,6 +9,8 @@ use tabby_common::{
     SourceFile,
 };
 use tantivy::{directory::MmapDirectory, doc, Index};
+
+use crate::utils::tqdm;
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -22,10 +25,14 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     let index = Index::open_or_create(directory, code.schema)?;
     register_tokenizers(&index);
 
+    // Initialize the search index writer with an initial arena size of 150 MB.
     let mut writer = index.writer(150_000_000)?;
     writer.delete_all_documents()?;
 
+    let mut pb = tqdm(SourceFile::all()?.count());
+    let mut n_docs = 0;
     for file in SourceFile::all()? {
+        pb.update(1)?;
         if file.max_line_length > MAX_LINE_LENGTH_THRESHOLD {
             continue;
         }
@@ -35,6 +42,7 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
         }
 
         for doc in from_source_file(file) {
+            n_docs += 1;
             writer.add_document(doc!(
                     code.field_git_url => doc.git_url,
                     code.field_filepath => doc.filepath,
@@ -44,9 +52,15 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
                     code.field_kind => doc.kind,
             ))?;
         }
+
+        if n_docs >= 100 {
+            writer.commit()?;
+            n_docs = 0;
+        }
     }
 
     writer.commit()?;
+    writer.wait_merging_threads()?;
 
     Ok(())
 }

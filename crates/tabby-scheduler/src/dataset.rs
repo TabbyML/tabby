@@ -8,6 +8,7 @@ use std::{
 use anyhow::Result;
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use ignore::{DirEntry, Walk};
+use kdam::BarExt;
 use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
@@ -15,8 +16,10 @@ use tabby_common::{
     path::dataset_dir,
     SourceFile,
 };
-use tracing::{error, info};
+use tracing::error;
 use tree_sitter_tags::{TagsConfiguration, TagsContext};
+
+use crate::utils::tqdm;
 
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
@@ -26,19 +29,24 @@ impl RepositoryExt for RepositoryConfig {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
         let dir = self.dir();
 
-        info!("Start indexing repository {}", self.git_url);
-        let walk_dir = Walk::new(dir.as_path())
-            .filter_map(Result::ok)
-            .filter(is_source_code);
+        let walk_dir_iter = || {
+            Walk::new(dir.as_path())
+                .filter_map(Result::ok)
+                .filter(is_source_code)
+        };
+
+        let mut pb = tqdm(walk_dir_iter().count());
+        let walk_dir = walk_dir_iter();
 
         let mut context = TagsContext::new();
         for entry in walk_dir {
+            pb.update(1)?;
+
             let relative_path = entry.path().strip_prefix(dir.as_path()).unwrap();
             let language = get_language(relative_path.extension().unwrap())
                 .unwrap()
                 .to_owned();
             if let Ok(file_content) = read_to_string(entry.path()) {
-                info!("Building {:?}", relative_path);
                 let source_file = SourceFile {
                     git_url: self.git_url.clone(),
                     filepath: relative_path.display().to_string(),
