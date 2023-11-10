@@ -7,10 +7,11 @@ use axum::{
 };
 use hyper::StatusCode;
 use serde::Deserialize;
+use tabby_common::api::code::{CodeSearch, CodeSearchError, SearchResponse};
 use tracing::{instrument, warn};
 use utoipa::IntoParams;
 
-use crate::search::{CodeSearch, CodeSearchError, CodeSearchService, SearchResponse};
+use crate::search::CodeSearchService;
 
 #[derive(Deserialize, IntoParams)]
 pub struct SearchQuery {

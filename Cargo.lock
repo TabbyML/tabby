@@ -334,9 +334,9 @@ checksum = "b4eb2cdb97421e01129ccb49169d8279ed21e829929144f4a22a6e54ac549ca1"
 
 [[package]]
 name = "async-trait"
-version = "0.1.72"
+version = "0.1.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc6dde6e4ed435a4c1ee4e73592f5ba9da2151af10076cc04858746af9352d09"
+checksum = "a66537f1bb974b254c98ed142ff995236e81b9d0fe4db0575f46612cb15eb0f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4058,6 +4058,7 @@ dependencies = [
  "anyhow",
  "assert-json-diff",
  "async-stream",
+ "async-trait",
  "axum",
  "axum-streams",
  "axum-tracing-opentelemetry",
@@ -4087,7 +4088,6 @@ dependencies = [
  "tabby-scheduler",
  "tantivy",
  "textdistance",
- "thiserror",
  "tokio",
  "tower-http 0.4.0",
  "tracing",
@@ -4104,6 +4104,7 @@ name = "tabby-common"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
+ "async-trait",
  "chrono",
  "filenamify",
  "lazy_static",
@@ -4112,7 +4113,9 @@ dependencies = [
  "serde-jsonlines",
  "serdeconv",
  "tantivy",
+ "thiserror",
  "tokio",
+ "utoipa",
  "uuid 1.4.1",
 ]
 

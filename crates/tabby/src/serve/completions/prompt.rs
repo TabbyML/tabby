@@ -3,19 +3,24 @@ use std::sync::Arc;
 use lazy_static::lazy_static;
 use regex::Regex;
 use strfmt::strfmt;
-use tabby_common::languages::get_language;
+use tabby_common::{
+    api::code::{CodeSearch, CodeSearchError},
+    index::CodeSearchSchema,
+    languages::get_language,
+};
 use tantivy::{query::BooleanQuery, query_grammar::Occur};
 use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
-use crate::search::{CodeSearch, CodeSearchError, CodeSearchService};
+use crate::search::CodeSearchService;
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
 static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
+    schema: CodeSearchSchema,
     prompt_template: Option<String>,
     code: Option<Arc<CodeSearchService>>,
 }
@@ -23,6 +28,7 @@ pub struct PromptBuilder {
 impl PromptBuilder {
     pub fn new(prompt_template: Option<String>, code: Option<Arc<CodeSearchService>>) -> Self {
         PromptBuilder {
+            schema: CodeSearchSchema::new(),
             prompt_template,
             code,
         }
@@ -38,7 +44,7 @@ impl PromptBuilder {
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         if let Some(code) = &self.code {
-            collect_snippets(code, language, &segments.prefix).await
+            collect_snippets(&self.schema, code, language, &segments.prefix).await
         } else {
             vec![]
         }
@@ -105,16 +111,17 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-async fn collect_snippets(code: &CodeSearchService, language: &str, text: &str) -> Vec<Snippet> {
+async fn collect_snippets(
+    schema: &CodeSearchSchema,
+    code: &CodeSearchService,
+    language: &str,
+    text: &str,
+) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
-    let Ok(language_query) = code.language_query(language).await else {
-        return vec![];
-    };
-    let Ok(body_query) = code.body_query(&tokens).await else {
-        return vec![];
-    };
+    let language_query = schema.language_query(language);
+    let body_query = schema.body_query(&tokens);
     let query = BooleanQuery::new(vec![
         (Occur::Must, language_query),
         (Occur::Must, body_query),

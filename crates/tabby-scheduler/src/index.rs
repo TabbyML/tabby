@@ -3,16 +3,11 @@ use std::fs;
 use anyhow::Result;
 use tabby_common::{
     config::Config,
-    index::{IndexExt, CODE_TOKENIZER, IDENTIFIER_TOKENIZER},
+    index::{register_tokenizers, CodeSearchSchema},
     path::index_dir,
     SourceFile,
 };
-use tantivy::{
-    directory::MmapDirectory,
-    doc,
-    schema::{Schema, TextFieldIndexing, TextOptions, STORED, STRING},
-    Index,
-};
+use tantivy::{directory::MmapDirectory, doc, Index};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -20,35 +15,12 @@ static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 static MAX_BODY_LINES_THRESHOLD: usize = 15;
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
-    let mut builder = Schema::builder();
-
-    let code_indexing_options = TextFieldIndexing::default()
-        .set_tokenizer(CODE_TOKENIZER)
-        .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions);
-    let code_options = TextOptions::default()
-        .set_indexing_options(code_indexing_options)
-        .set_stored();
-
-    let name_indexing_options = TextFieldIndexing::default()
-        .set_tokenizer(IDENTIFIER_TOKENIZER)
-        .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions);
-    let name_options = TextOptions::default()
-        .set_indexing_options(name_indexing_options)
-        .set_stored();
-
-    let field_git_url = builder.add_text_field("git_url", STRING | STORED);
-    let field_filepath = builder.add_text_field("filepath", STRING | STORED);
-    let field_language = builder.add_text_field("language", STRING | STORED);
-    let field_name = builder.add_text_field("name", name_options);
-    let field_kind = builder.add_text_field("kind", STRING | STORED);
-    let field_body = builder.add_text_field("body", code_options);
-
-    let schema = builder.build();
+    let code = CodeSearchSchema::new();
 
     fs::create_dir_all(index_dir())?;
     let directory = MmapDirectory::open(index_dir())?;
-    let index = Index::open_or_create(directory, schema)?;
-    index.register_tokenizer();
+    let index = Index::open_or_create(directory, code.schema)?;
+    register_tokenizers(&index);
 
     let mut writer = index.writer(10_000_000)?;
     writer.delete_all_documents()?;
@@ -64,12 +36,12 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
 
         for doc in from_source_file(file) {
             writer.add_document(doc!(
-                    field_git_url => doc.git_url,
-                    field_filepath => doc.filepath,
-                    field_language => doc.language,
-                    field_name => doc.name,
-                    field_body => doc.body,
-                    field_kind => doc.kind,
+                    code.field_git_url => doc.git_url,
+                    code.field_filepath => doc.filepath,
+                    code.field_language => doc.language,
+                    code.field_name => doc.name,
+                    code.field_body => doc.body,
+                    code.field_kind => doc.kind,
             ))?;
         }
     }
