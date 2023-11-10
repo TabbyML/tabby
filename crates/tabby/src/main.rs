@@ -2,6 +2,7 @@ mod chat;
 mod download;
 mod search;
 mod serve;
+mod completions;
 
 use clap::{Parser, Subcommand};
 use opentelemetry::{

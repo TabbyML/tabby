@@ -80,7 +80,7 @@ If you have already cloned the repository, you could run the `git submodule upda
 brew install protobuf
 
 # For Ubuntu / Debian
-apt-get install protobuf-compiler libopenblas-dev
+apt-get install protobuf-compiler libopenblas-dev cmake
 ```
 
 3. Now, you can build Tabby by running the command `cargo build`.
