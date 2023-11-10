@@ -38,15 +38,10 @@ If you have changed the default response timeout at Tabby server side, you may a
 
 ```toml
 # Completion
-# You can set the completion request timeout here. 
+# (Since 1.1.0) You can set the completion request timeout here.
 # Note that there is also a timeout config at the server side.
-[completion.timeout]
-auto = 4000 # 4s, for auto trigger
-manually = 4000 # 4s, for manual trigger
-
-# (Since 1.1.0) If you want to disable the warning message for high timeout rate or slow response time.
-[completion.statistics.checks]
-disable = false # set to true to disable
+[completion]
+timeout = 4000 # 4s
 ```
 
 ## Logs

@@ -1,4 +1,5 @@
 import { isBrowser } from "./env";
+import { getProperty, deleteProperty } from "dot-prop";
 
 export type AgentConfig = {
   server: {
@@ -17,27 +18,7 @@ export type AgentConfig = {
       mode: "adaptive" | "fixed";
       interval: number;
     };
-    timeout: {
-      auto: number;
-      manually: number;
-    };
-    statistics: {
-      windowSize: number;
-      checks: {
-        disable: boolean;
-
-        // Mark as healthy if the latency is less than the threshold for each latest windowSize requests.
-        healthy: { windowSize: number; latency: number };
-
-        // otherwise, config the threshold for slow response time warning
-        // If there is at least {count} requests, and the average response time is higher than the {latency}, show warning
-        slowResponseTime: { latency: number; count: number };
-
-        // otherwise, config the threshold for high timeout rate warning
-        // If there is at least {count} timeouts, and the timeout rate is higher than the {rate}, show warning
-        highTimeoutRate: { rate: number; count: number };
-      };
-    };
+    timeout: number;
   };
   postprocess: {
     limitScopeByIndentation: {
@@ -82,19 +63,7 @@ export const defaultAgentConfig: AgentConfig = {
       mode: "adaptive",
       interval: 250, // ms
     },
-    timeout: {
-      auto: 4000, // 4s
-      manually: 4000, // 4s
-    },
-    statistics: {
-      windowSize: 10,
-      checks: {
-        disable: false,
-        healthy: { windowSize: 3, latency: 3000 },
-        slowResponseTime: { latency: 4000, count: 3 },
-        highTimeoutRate: { rate: 0.5, count: 3 },
-      },
-    },
+    timeout: 4000, // ms
   },
   postprocess: {
     limitScopeByIndentation: {
@@ -127,15 +96,10 @@ const configTomlTemplate = `## Tabby agent configuration file
 # Header2 = "Value2" # values can be strings, numbers or booleans
 
 ## Completion
-## You can set the completion request timeout here.
+## (Since 1.1.0) You can set the completion request timeout here.
 ## Note that there is also a timeout config at the server side.
-# [completion.timeout]
-# auto = 4000 # 4s, for auto trigger
-# manually = 4000 # 4s, for manual trigger
-
-## (Since 1.1.0) If you want to disable the warning message for high timeout rate or slow response time.
-# [completion.statistics.checks]
-# disable = false # set to true to disable
+# [completion]
+# timeout = 4000 # 4s
 
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
@@ -151,6 +115,44 @@ const configTomlTemplate = `## Tabby agent configuration file
 # disable = false # set to true to disable
 
 `;
+
+const typeCheckSchema = {
+  server: "object",
+  "server.endpoint": "string",
+  "server.token": "string",
+  "server.requestHeaders": "object",
+  "server.requestTimeout": "number",
+  completion: "object",
+  "completion.prompt": "object",
+  "completion.prompt.experimentalStripAutoClosingCharacters": "boolean",
+  "completion.prompt.maxPrefixLines": "number",
+  "completion.prompt.maxSuffixLines": "number",
+  "completion.debounce": "object",
+  "completion.debounce.mode": "string",
+  "completion.debounce.interval": "number",
+  "completion.timeout": "number",
+  postprocess: "object",
+  "postprocess.limitScopeByIndentation": "object",
+  "postprocess.limitScopeByIndentation.experimentalKeepBlockScopeWhenCompletingLine": "boolean",
+  logs: "object",
+  "logs.level": "string",
+  anonymousUsageTracking: "object",
+  "anonymousUsageTracking.disable": "boolean",
+};
+
+function checkValueType(object, key, type) {
+  if (typeof getProperty(object, key) !== type) {
+    deleteProperty(object, key);
+  }
+}
+
+function validateConfig(config: PartialAgentConfig): PartialAgentConfig {
+  const validatedConfig = { ...config };
+  for (const key in typeCheckSchema) {
+    checkValueType(validatedConfig, key, typeCheckSchema[key]);
+  }
+  return validatedConfig;
+}
 
 export const userAgentConfig = isBrowser
   ? null
@@ -185,7 +187,7 @@ export const userAgentConfig = isBrowser
               await this.createTemplate();
               return;
             }
-            this.data = data;
+            this.data = validateConfig(data);
           } catch (error) {
             if (error.code === "ENOENT") {
               await this.createTemplate();

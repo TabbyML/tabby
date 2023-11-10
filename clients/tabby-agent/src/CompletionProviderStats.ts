@@ -1,6 +1,5 @@
 import { Univariate } from "stats-logscale";
 import { rootLogger } from "./logger";
-import { AgentConfig } from "./AgentConfig";
 
 export type CompletionProviderStatsEntry = {
   triggerMode: "auto" | "manual";
@@ -60,7 +59,18 @@ type WindowedStats = {
 
 export class CompletionProviderStats {
   private readonly logger = rootLogger.child({ component: "CompletionProviderStats" });
-  private config: AgentConfig["completion"]["statistics"];
+  private config = {
+    windowSize: 10,
+    checks: {
+      disable: false,
+      // Mark status as healthy if the latency is less than the threshold for each latest windowSize requests.
+      healthy: { windowSize: 3, latency: 2400 },
+      // If there is at least {count} requests, and the average response time is higher than the {latency}, show warning
+      slowResponseTime: { latency: 3200, count: 3 },
+      // If there is at least {count} timeouts, and the timeout rate is higher than the {rate}, show warning
+      highTimeoutRate: { rate: 0.5, count: 3 },
+    },
+  };
 
   private autoCompletionCount = 0;
   private manualCompletionCount = 0;
@@ -75,13 +85,10 @@ export class CompletionProviderStats {
 
   private recentCompletionRequestLatencies: Windowed;
 
-  constructor(config: AgentConfig["completion"]["statistics"]) {
-    this.updateConfig(config);
-  }
-
-  updateConfig(config: AgentConfig["completion"]["statistics"]) {
-    this.config = config;
-    this.recentCompletionRequestLatencies = new Windowed(this.config.windowSize);
+  updateConfigByRequestTimeout(timeout: number) {
+    this.config.checks.healthy.latency = timeout * 0.6;
+    this.config.checks.slowResponseTime.latency = timeout * 0.8;
+    this.resetWindowed();
   }
 
   add(value: CompletionProviderStatsEntry): void {
@@ -192,7 +199,6 @@ export class CompletionProviderStats {
       stats: { total, timeouts, responses, averageResponseTime },
     } = windowed;
 
-    // if the recent 3 requests all have latency less than 3s
     if (
       latencies
         .slice(-Math.max(this.config.windowSize, config.healthy.windowSize))
@@ -200,11 +206,9 @@ export class CompletionProviderStats {
     ) {
       return "healthy";
     }
-    // if the recent requests timeout percentage is more than 50%, at least 3 timeouts
     if (timeouts / total > config.highTimeoutRate.rate && timeouts >= config.highTimeoutRate.count) {
       return "highTimeoutRate";
     }
-    // if average response time is more than 4s, at least 3 requests
     if (averageResponseTime > config.slowResponseTime.latency && responses >= config.slowResponseTime.count) {
       return "slowResponseTime";
     }
