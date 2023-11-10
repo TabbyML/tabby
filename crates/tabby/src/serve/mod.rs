@@ -82,6 +82,7 @@ pub enum Device {
     #[strum(serialize = "metal")]
     Metal,
 
+    #[cfg(feature = "experimental-http")]
     #[strum(serialize = "experimental_http")]
     ExperimentalHttp,
 }
@@ -127,18 +128,14 @@ pub struct ServeArgs {
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
-    if args.device != Device::ExperimentalHttp {
-        if fs::metadata(&args.model).is_ok() {
-            info!("Loading model from local path {}", &args.model);
-        } else {
-            download_model(&args.model, true).await;
-            if let Some(chat_model) = &args.chat_model {
-                download_model(chat_model, true).await;
-            }
-        }
+    #[cfg(feature = "experimental-http")]
+    if args.device == super::Device::ExperimentalHttp {
+        warn!("HTTP device is unstable and does not comply with semver expectations.");
     } else {
-        warn!("HTTP device is unstable and does not comply with semver expectations.")
+        load_model(args).await;
     }
+    #[cfg(not(feature = "experimental-http"))]
+    load_model(args).await;
 
     info!("Starting server, this might takes a few minutes...");
 
@@ -166,6 +163,17 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .serve(app.into_make_service())
         .await
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
+}
+
+async fn load_model(args: &ServeArgs) {
+    if fs::metadata(&args.model).is_ok() {
+        info!("Loading model from local path {}", &args.model);
+    } else {
+        download_model(&args.model, true).await;
+        if let Some(chat_model) = &args.chat_model {
+            download_model(chat_model, true).await;
+        }
+    }
 }
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {

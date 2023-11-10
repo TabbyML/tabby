@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 cuda = ["llama-cpp-bindings/cuda"]
+experimental-http = []
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }
