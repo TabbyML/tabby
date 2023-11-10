@@ -22,7 +22,7 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     let index = Index::open_or_create(directory, code.schema)?;
     register_tokenizers(&index);
 
-    let mut writer = index.writer(10_000_000)?;
+    let mut writer = index.writer(150_000_000)?;
     writer.delete_all_documents()?;
 
     for file in SourceFile::all()? {
