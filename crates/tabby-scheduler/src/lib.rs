@@ -1,6 +1,7 @@
 mod dataset;
 mod index;
 mod repository;
+mod utils;
 
 use anyhow::Result;
 use job_scheduler::{Job, JobScheduler};
@@ -12,26 +13,28 @@ pub async fn scheduler(now: bool) -> Result<()> {
     let mut scheduler = JobScheduler::new();
 
     let job1 = || {
-        info!("Syncing repositories...");
+        println!("Syncing repositories...");
         let ret = repository::sync_repositories(&config);
         if let Err(err) = ret {
             error!("Failed to sync repositories, err: '{}'", err);
             return;
         }
 
-        info!("Building dataset...");
+        println!("Building dataset...");
         let ret = dataset::create_dataset(&config);
         if let Err(err) = ret {
             error!("Failed to build dataset, err: '{}'", err);
         }
+        println!();
     };
 
     let job2 = || {
-        info!("Indexing repositories...");
+        println!("Indexing repositories...");
         let ret = index::index_repositories(&config);
         if let Err(err) = ret {
             error!("Failed to index repositories, err: '{}'", err);
         }
+        println!()
     };
 
     if now {
