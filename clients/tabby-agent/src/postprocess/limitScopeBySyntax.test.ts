@@ -128,6 +128,38 @@ describe("postprocess", () => {
       `;
       expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
     });
+
+    it("should handle the bad case of limitScopeByIndentation", async () => {
+      const context = {
+        ...documentContext`
+        function sortWords(input) {
+          const output = input.trim()
+            .split("\n")
+            .map((line) => line.split(" "))
+            ║
+        }
+        `,
+        language: "javascript",
+      };
+      const completion = inline`
+            ├.flat()
+            .sort()
+            .join(" ");
+          console.log(output);
+          return output;
+        }
+        sortWord("world hello");┤
+      `;
+      const expected = inline`
+            ├.flat()
+            .sort()
+            .join(" ");
+          console.log(output);
+          return output;
+        };┤
+      `;
+      expect(await limitScopeBySyntax(context)(completion)).not.to.eq(expected);
+    });
   });
 
   describe("limitScopeBySyntax python", () => {
@@ -227,6 +259,32 @@ describe("postprocess", () => {
         ┴┴┴┴
       `;
       expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+    });
+
+    it("should handle the bad case of limitScopeByIndentation", async () => {
+      const context = {
+        ...documentContext`
+        def findMax(arr):
+          ║
+        `,
+        language: "python",
+      };
+      const completion = inline`
+          ├max = arr[0]
+          for i in range(1, len(arr)):
+            if arr[i] > max:
+              max = arr[i]
+          return max
+        findMax([1, 2, 3, 4, 5])┤
+      `;
+      const expected = inline`
+          ├max = arr[0]
+          for i in range(1, len(arr)):
+            if arr[i] > max:
+              max = arr[i]
+          return max┤
+      `;
+      expect(await limitScopeBySyntax(context)(completion)).not.to.eq(expected);
     });
   });
 
