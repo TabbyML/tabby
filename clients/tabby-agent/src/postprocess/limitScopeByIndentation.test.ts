@@ -318,7 +318,7 @@ describe("postprocess", () => {
         };┤
       `;
       expect(limitScopeByIndentationDefault(context)(completion)).not.to.eq(expected);
-    })
+    });
 
     it("cannot handle the case of indent that does'nt have a close line, e.g. python def function", () => {
       const context = {
