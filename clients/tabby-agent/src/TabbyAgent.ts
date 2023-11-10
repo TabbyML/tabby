@@ -123,6 +123,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     }
 
+    if (oldConfig.completion.timeout !== this.config.completion.timeout) {
+      this.completionProviderStats.updateConfigByRequestTimeout(this.config.completion.timeout);
+      this.popIssue("slowCompletionResponseTime");
+      this.popIssue("highCompletionTimeoutRate");
+    }
+
     const event: AgentEvent = { event: "configUpdated", config: this.config };
     this.logger.debug({ event }, "Config updated");
     super.emit("configUpdated", event);
@@ -524,9 +530,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
               },
               {
                 signal,
-                timeout: request.manually
-                  ? this.config.completion.timeout.manually
-                  : this.config.completion.timeout.auto,
+                timeout: this.config.completion.timeout,
               },
             );
             stats.requestLatency = performance.now() - requestStartedAt;
@@ -588,7 +592,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
         if (stats.requestSent && !stats.requestCanceled) {
           const windowedStats = this.completionProviderStats.windowed();
-          const checkResult = CompletionProviderStats.check(windowedStats);
+          const checkResult = this.completionProviderStats.check(windowedStats);
           switch (checkResult) {
             case "healthy":
               this.popIssue("slowCompletionResponseTime");
