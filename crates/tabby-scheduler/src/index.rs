@@ -30,7 +30,6 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     writer.delete_all_documents()?;
 
     let mut pb = tqdm(SourceFile::all()?.count());
-    let mut n_docs = 0;
     for file in SourceFile::all()? {
         pb.update(1)?;
         if file.max_line_length > MAX_LINE_LENGTH_THRESHOLD {
@@ -42,7 +41,6 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
         }
 
         for doc in from_source_file(file) {
-            n_docs += 1;
             writer.add_document(doc!(
                     code.field_git_url => doc.git_url,
                     code.field_filepath => doc.filepath,
@@ -51,11 +49,6 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
                     code.field_body => doc.body,
                     code.field_kind => doc.kind,
             ))?;
-        }
-
-        if n_docs >= 100 {
-            writer.commit()?;
-            n_docs = 0;
         }
     }
 
