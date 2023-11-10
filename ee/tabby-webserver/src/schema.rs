@@ -1,4 +1,6 @@
-use juniper::{GraphQLObject, graphql_object, GraphQLEnum, RootNode, EmptyMutation, EmptySubscription};
+use juniper::{
+    graphql_object, EmptyMutation, EmptySubscription, GraphQLEnum, GraphQLObject, RootNode,
+};
 
 #[derive(GraphQLEnum)]
 enum WorkerKind {
@@ -8,7 +10,7 @@ enum WorkerKind {
 #[derive(GraphQLObject)]
 struct Worker {
     kind: WorkerKind,
-    address: String 
+    address: String,
 }
 
 #[derive(Clone, Copy, Debug)]
