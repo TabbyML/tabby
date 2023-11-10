@@ -2,6 +2,9 @@
 
 ## Features
 
+## Fixes and Improvements
+* Fix the slow repository indexing due to constraint memory arena in tantivy index writer.
+
 # v0.5.5
 
 ## Fixes and Improvements
