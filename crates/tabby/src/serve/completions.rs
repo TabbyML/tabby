@@ -5,12 +5,10 @@ use std::sync::Arc;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use tabby_common::{events, languages::get_language};
+use tabby_common::{api::code::BoxCodeSearch, events, languages::get_language};
 use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
-
-use crate::search::CodeSearchService;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -211,7 +209,7 @@ pub struct CompletionState {
 impl CompletionState {
     pub fn new(
         engine: Arc<Box<dyn TextGeneration>>,
-        code: Arc<CodeSearchService>,
+        code: Arc<BoxCodeSearch>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {

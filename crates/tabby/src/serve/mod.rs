@@ -32,7 +32,7 @@ use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
 };
-use crate::{chat::ChatService, fatal, search::CodeSearchService};
+use crate::{chat::ChatService, fatal, search::create_code_search};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -173,7 +173,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let code = Arc::new(CodeSearchService::new());
+    let code = Arc::new(create_code_search());
     let completion_state = {
         let (
             engine,
