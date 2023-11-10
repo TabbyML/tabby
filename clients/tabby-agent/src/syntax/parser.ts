@@ -1,9 +1,8 @@
 import TreeSitterParser from "web-tree-sitter";
-import { LRUCache } from "lru-cache";
 import { isTest } from "../env";
 
 // https://code.visualstudio.com/docs/languages/identifiers
-const languagesConfig: Record<string, string> = {
+export const languagesConfigs: Record<string, string> = {
   javascript: "tsx",
   typescript: "tsx",
   javascriptreact: "tsx",
@@ -14,11 +13,9 @@ const languagesConfig: Record<string, string> = {
   ruby: "ruby",
 };
 
-export const supportedLanguages = Object.keys(languagesConfig);
-
 var treeSitterInitialized = false;
 
-async function createParser(language: string): Promise<TreeSitterParser> {
+async function createParser(languageConfig: string): Promise<TreeSitterParser> {
   if (!treeSitterInitialized) {
     await TreeSitterParser.init({
       locateFile(scriptName: string, scriptDirectory: string) {
@@ -30,38 +27,19 @@ async function createParser(language: string): Promise<TreeSitterParser> {
   }
   const parser = new TreeSitterParser();
   const langWasmPaths = isTest
-    ? [process.cwd(), "wasm", `tree-sitter-${language}.wasm`]
-    : [__dirname, "wasm", `tree-sitter-${language}.wasm`];
+    ? [process.cwd(), "wasm", `tree-sitter-${languageConfig}.wasm`]
+    : [__dirname, "wasm", `tree-sitter-${languageConfig}.wasm`];
   parser.setLanguage(await TreeSitterParser.Language.load(require("path").join(...langWasmPaths)));
   return parser;
 }
 
 const parsers = new Map<string, TreeSitterParser>();
 
-async function getParser(language: string): Promise<TreeSitterParser> {
-  let parser = parsers.get(language);
+export async function getParser(languageConfig: string): Promise<TreeSitterParser> {
+  let parser = parsers.get(languageConfig);
   if (!parser) {
-    parser = await createParser(language);
-    parsers.set(language, parser);
+    parser = await createParser(languageConfig);
+    parsers.set(languageConfig, parser);
   }
   return parser;
-}
-
-const treeCache = new LRUCache<string, TreeSitterParser.Tree>({
-  max: 100,
-});
-
-export async function parse(
-  text: string,
-  filepath: string,
-  language: string,
-  updateTreeCache: boolean = false,
-): Promise<TreeSitterParser.Tree> {
-  const parser = await getParser(language);
-  const cachedTree = treeCache.get(filepath);
-  const tree = parser.parse(text, cachedTree);
-  if (updateTreeCache) {
-    treeCache.set(filepath, tree);
-  }
-  return tree;
 }

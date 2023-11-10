@@ -21,11 +21,15 @@ export type AgentConfig = {
     timeout: number;
   };
   postprocess: {
-    limitScopeByIndentation: {
-      // When completion is continuing the current line, limit the scope to:
-      // false(default): the line scope, meaning use the next indent level as the limit.
-      // true: the block scope, meaning use the current indent level as the limit.
-      experimentalKeepBlockScopeWhenCompletingLine: boolean;
+    limitScope: {
+      // Prefer to use syntax parser than indentation
+      experimentalSyntax: boolean;
+      indentation: {
+        // When completion is continuing the current line, limit the scope to:
+        // false(default): the line scope, meaning use the next indent level as the limit.
+        // true: the block scope, meaning use the current indent level as the limit.
+        experimentalKeepBlockScopeWhenCompletingLine: boolean;
+      };
     };
   };
   logs: {
@@ -66,8 +70,11 @@ export const defaultAgentConfig: AgentConfig = {
     timeout: 4000, // ms
   },
   postprocess: {
-    limitScopeByIndentation: {
-      experimentalKeepBlockScopeWhenCompletingLine: false,
+    limitScope: {
+      experimentalSyntax: false,
+      indentation: {
+        experimentalKeepBlockScopeWhenCompletingLine: false,
+      },
     },
   },
   logs: {
