@@ -265,7 +265,7 @@ lazy_static! {
                 TagsConfigurationSync(
                     TagsConfiguration::new(
                         tree_sitter_go::language(),
-                        include_str!("../queries/go.scm"),
+                        tree_sitter_go::TAGGING_QUERY,
                         "",
                     )
                     .unwrap(),
