@@ -11,5 +11,5 @@ console.log(myEncode(arr));
 function myDecode(arr) {
   return arr
     .map⏩⏭(item => Buffer.from(item, "base64").toString("ascii"))
-    .map(item => item.toLocaleLowerCase());
+    .map(item => item.toLocaleUpperCase());
 }⏮}⏪

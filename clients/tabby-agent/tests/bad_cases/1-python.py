@@ -4,4 +4,4 @@ def foo(msg):
 foo("Hello, World!")
 def bar(msg):
   print⏩⏭(msg)
-  return 0⏮⏪
+  return 1⏮⏪
