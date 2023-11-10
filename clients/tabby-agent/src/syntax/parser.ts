@@ -51,10 +51,17 @@ const treeCache = new LRUCache<string, TreeSitterParser.Tree>({
   max: 100,
 });
 
-export async function parse(text: string, filepath: string, language: string): Promise<TreeSitterParser.Tree> {
+export async function parse(
+  text: string,
+  filepath: string,
+  language: string,
+  updateTreeCache: boolean = false,
+): Promise<TreeSitterParser.Tree> {
   const parser = await getParser(language);
   const cachedTree = treeCache.get(filepath);
   const tree = parser.parse(text, cachedTree);
-  treeCache.set(filepath, tree);
+  if (updateTreeCache) {
+    treeCache.set(filepath, tree);
+  }
   return tree;
 }
