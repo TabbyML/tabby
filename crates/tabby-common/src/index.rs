@@ -5,8 +5,8 @@ use tantivy::{
     Index, Term,
 };
 
-pub static CODE_TOKENIZER: &str = "code";
-pub static IDENTIFIER_TOKENIZER: &str = "identifier";
+static CODE_TOKENIZER: &str = "code";
+static IDENTIFIER_TOKENIZER: &str = "identifier";
 
 pub fn register_tokenizers(index: &Index) {
     let code_tokenizer = TextAnalyzer::builder(RegexTokenizer::new(r"(?:\w+)").unwrap())
@@ -68,6 +68,12 @@ impl CodeSearchSchema {
             field_kind,
             field_body,
         }
+    }
+}
+
+impl Default for CodeSearchSchema {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
