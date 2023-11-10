@@ -43,13 +43,7 @@ impl PromptBuilder {
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         if let Some(code) = &self.code {
-            collect_snippets(
-                &self.schema,
-                code.as_ref(),
-                language,
-                &segments.prefix,
-            )
-            .await
+            collect_snippets(&self.schema, code.as_ref(), language, &segments.prefix).await
         } else {
             vec![]
         }
