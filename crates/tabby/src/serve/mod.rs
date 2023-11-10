@@ -17,7 +17,7 @@ use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{
-    api::code::{Hit, HitDocument, SearchResponse},
+    code::{create_local, Hit, HitDocument, SearchResponse},
     config::Config,
     usage,
 };
@@ -32,7 +32,7 @@ use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
 };
-use crate::{chat::ChatService, fatal, search::CodeSearchService};
+use crate::{chat::ChatService, fatal};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -173,7 +173,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let code = Arc::new(CodeSearchService::new());
+    let code = Arc::new(create_local());
     let completion_state = {
         let (
             engine,

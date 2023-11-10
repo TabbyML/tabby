@@ -2,11 +2,6 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
-    index::{self, register_tokenizers, CodeSearchSchema},
-    path,
-};
 use tantivy::{
     collector::{Count, TopDocs},
     query::QueryParser,
@@ -15,6 +10,12 @@ use tantivy::{
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
+
+use super::api::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse};
+use crate::{
+    index::{self, register_tokenizers, CodeSearchSchema},
+    path,
+};
 
 struct CodeSearchImpl {
     reader: IndexReader,
@@ -118,12 +119,12 @@ fn get_field(doc: &Document, field: Field) -> String {
         .to_owned()
 }
 
-pub struct CodeSearchService {
+pub(crate) struct CodeSearchService {
     search: Arc<Mutex<Option<CodeSearchImpl>>>,
 }
 
 impl CodeSearchService {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let search = Arc::new(Mutex::new(None));
 
         let ret = Self {

@@ -4125,6 +4125,7 @@ dependencies = [
  "tantivy",
  "thiserror",
  "tokio",
+ "tracing",
  "utoipa",
  "uuid 1.4.1",
 ]

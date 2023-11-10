@@ -1,4 +1,4 @@
-pub mod api;
+pub mod code;
 pub mod config;
 pub mod events;
 pub mod index;

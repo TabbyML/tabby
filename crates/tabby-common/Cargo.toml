@@ -18,6 +18,7 @@ anyhow.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
 utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
+tracing.workspace = true
 
 [features]
 testutils = []
