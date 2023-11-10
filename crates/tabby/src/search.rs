@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
+    api::code::{BoxCodeSearch, CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
     index::{self, register_tokenizers, CodeSearchSchema},
     path,
 };
@@ -118,7 +118,7 @@ fn get_field(doc: &Document, field: Field) -> String {
         .to_owned()
 }
 
-pub struct CodeSearchService {
+struct CodeSearchService {
     search: Arc<Mutex<Option<CodeSearchImpl>>>,
 }
 
@@ -137,6 +137,10 @@ impl CodeSearchService {
 
         ret
     }
+}
+
+pub fn create_code_search() -> BoxCodeSearch {
+    Box::new(CodeSearchService::new())
 }
 
 #[async_trait]

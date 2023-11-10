@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use strfmt::strfmt;
 use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError},
+    api::code::{BoxCodeSearch, CodeSearchError},
     index::CodeSearchSchema,
     languages::get_language,
 };
@@ -13,7 +13,6 @@ use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
-use crate::search::CodeSearchService;
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
@@ -22,11 +21,11 @@ static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 pub struct PromptBuilder {
     schema: CodeSearchSchema,
     prompt_template: Option<String>,
-    code: Option<Arc<CodeSearchService>>,
+    code: Option<Arc<BoxCodeSearch>>,
 }
 
 impl PromptBuilder {
-    pub fn new(prompt_template: Option<String>, code: Option<Arc<CodeSearchService>>) -> Self {
+    pub fn new(prompt_template: Option<String>, code: Option<Arc<BoxCodeSearch>>) -> Self {
         PromptBuilder {
             schema: CodeSearchSchema::new(),
             prompt_template,
@@ -44,7 +43,13 @@ impl PromptBuilder {
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         if let Some(code) = &self.code {
-            collect_snippets(&self.schema, code, language, &segments.prefix).await
+            collect_snippets(
+                &self.schema,
+                code.as_ref(),
+                language,
+                &segments.prefix,
+            )
+            .await
         } else {
             vec![]
         }
@@ -113,7 +118,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
 
 async fn collect_snippets(
     schema: &CodeSearchSchema,
-    code: &CodeSearchService,
+    code: &BoxCodeSearch,
     language: &str,
     text: &str,
 ) -> Vec<Snippet> {
