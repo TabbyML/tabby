@@ -1,3 +1,2 @@
-mod search;
-
-pub use search::*;
+pub mod chat;
+pub mod code;

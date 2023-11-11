@@ -32,7 +32,7 @@ use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
 };
-use crate::{chat::ChatService, fatal};
+use crate::{fatal, services::chat::ChatService};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -61,9 +61,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completions::Snippet,
         completions::DebugOptions,
         completions::DebugData,
-        crate::chat::ChatCompletionRequest,
-        crate::chat::Message,
-        crate::chat::ChatCompletionChunk,
+        crate::services::chat::ChatCompletionRequest,
+        crate::services::chat::Message,
+        crate::services::chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
         SearchResponse,
@@ -174,7 +174,7 @@ async fn load_model(args: &ServeArgs) {
 }
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let code = Arc::new(crate::services::create_code_search());
+    let code = Arc::new(crate::services::code::create_code_search());
     let completion_state = {
         let (
             engine,
