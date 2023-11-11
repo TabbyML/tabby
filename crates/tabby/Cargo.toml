@@ -46,7 +46,6 @@ regex.workspace = true
 llama-cpp-bindings = { path = "../llama-cpp-bindings" }
 futures.workspace = true
 async-trait.workspace = true
-hyper-reverse-proxy = "0.5.1"
 
 [dependencies.uuid]
 version = "1.3.3"
