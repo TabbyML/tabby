@@ -18,7 +18,6 @@ static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
 static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
-    schema: CodeSearchSchema,
     prompt_template: Option<String>,
     code: Option<Arc<BoxCodeSearch>>,
 }
@@ -26,7 +25,6 @@ pub struct PromptBuilder {
 impl PromptBuilder {
     pub fn new(prompt_template: Option<String>, code: Option<Arc<BoxCodeSearch>>) -> Self {
         PromptBuilder {
-            schema: CodeSearchSchema::new(),
             prompt_template,
             code,
         }
@@ -42,7 +40,7 @@ impl PromptBuilder {
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         if let Some(code) = &self.code {
-            collect_snippets(&self.schema, code.as_ref(), language, &segments.prefix).await
+            collect_snippets(code.as_ref(), language, &segments.prefix).await
         } else {
             vec![]
         }
@@ -110,7 +108,6 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
 }
 
 async fn collect_snippets(
-    _schema: &CodeSearchSchema,
     code: &BoxCodeSearch,
     language: &str,
     text: &str,
