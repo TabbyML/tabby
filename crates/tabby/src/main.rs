@@ -87,6 +87,7 @@ fn init_logging(otlp_endpoint: Option<String>) {
 
     layers.push(fmt_layer);
 
+
     if let Some(otlp_endpoint) = &otlp_endpoint {
         global::set_text_map_propagator(TraceContextPropagator::new());
 
