@@ -8,6 +8,7 @@ import { limitScopeByIndentation } from "./limitScopeByIndentation";
 import { trimSpace } from "./trimSpace";
 import { dropDuplicated } from "./dropDuplicated";
 import { dropBlank } from "./dropBlank";
+import { calculateReplaceRangeByBracketStack } from "./calculateReplaceRangeByBracketStack";
 
 export async function preCacheProcess(
   context: CompletionContext,
@@ -33,4 +34,11 @@ export async function postCacheProcess(
     .then(applyFilter(dropDuplicated(context), context))
     .then(applyFilter(trimSpace(context), context))
     .then(applyFilter(dropBlank(), context));
+}
+
+export async function calculateReplaceRange(
+  response: CompletionResponse,
+  context: CompletionContext,
+): Promise<CompletionResponse> {
+  return calculateReplaceRangeByBracketStack(response, context);
 }
