@@ -38,7 +38,6 @@ class Agent : ProcessAdapter() {
     READY,
     DISCONNECTED,
     UNAUTHORIZED,
-    WAITING_FOR_COMPLETION
   }
 
   private val statusFlow = MutableStateFlow(Status.NOT_INITIALIZED)
@@ -241,10 +240,7 @@ class Agent : ProcessAdapter() {
   }
 
   suspend fun provideCompletions(request: CompletionRequest): CompletionResponse? {
-    statusFlow.value = Status.WAITING_FOR_COMPLETION
-    val ret: CompletionResponse = request("provideCompletions", listOf(request, ABORT_SIGNAL_ENABLED))
-    statusFlow.value = Status.READY
-    return ret
+    return request("provideCompletions", listOf(request, ABORT_SIGNAL_ENABLED))
   }
 
   data class LogEventRequest(
