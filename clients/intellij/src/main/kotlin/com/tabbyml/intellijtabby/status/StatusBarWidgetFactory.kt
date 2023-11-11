@@ -108,6 +108,10 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
             icon = AllIcons.General.Error
             tooltip = "Tabby: Initialization failed"
           }
+          Agent.Status.WAITING_FOR_COMPLETION -> {
+            icon = AnimatedIcon.Default()
+            tooltip = "Tabby: Waiting for completion resopnse"
+          }
           Agent.Status.READY -> {
             if (state.currentIssue != null) {
               icon = AllIcons.General.Warning
