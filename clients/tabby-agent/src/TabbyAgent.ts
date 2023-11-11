@@ -538,7 +538,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         throw options.signal.reason;
       }
       // Calculate replace range
-      completionResponse = await calculateReplaceRange(completionResponse, context);
+      completionResponse = await calculateReplaceRange(context, this.config.postprocess, completionResponse);
       if (options?.signal?.aborted) {
         throw options.signal.reason;
       }

@@ -85,6 +85,7 @@ describe("agent golden test", () => {
         experimentalSyntax: false,
         indentation: { experimentalKeepBlockScopeWhenCompletingLine: false },
       },
+      calculateReplaceRange: { experimentalSyntax: false },
     },
     logs: { level: "debug" },
     anonymousUsageTracking: { disable: true },
@@ -147,20 +148,37 @@ describe("agent golden test", () => {
   });
 
   it("updateConfig experimental", async () => {
-    requestId++;
-    const updateConfigRequest = [
-      requestId,
-      {
-        func: "updateConfig",
-        args: ["postprocess.limitScope.experimentalSyntax", true],
-      },
-    ];
-    agent.stdin.write(JSON.stringify(updateConfigRequest) + "\n");
-    await waitForResponse(requestId);
     const expectedConfig = { ...config };
-    expectedConfig.postprocess.limitScope.experimentalSyntax = true;
-    expect(output.shift()).to.deep.equal([0, { event: "configUpdated", config: expectedConfig }]);
-    expect(output.shift()).to.deep.equal([requestId, true]);
+    {
+      requestId++;
+      const updateConfigRequest = [
+        requestId,
+        {
+          func: "updateConfig",
+          args: ["postprocess.limitScope.experimentalSyntax", true],
+        },
+      ];
+      agent.stdin.write(JSON.stringify(updateConfigRequest) + "\n");
+      await waitForResponse(requestId);
+      expectedConfig.postprocess.limitScope.experimentalSyntax = true;
+      expect(output.shift()).to.deep.equal([0, { event: "configUpdated", config: expectedConfig }]);
+      expect(output.shift()).to.deep.equal([requestId, true]);
+    }
+    {
+      requestId++;
+      const updateConfigRequest = [
+        requestId,
+        {
+          func: "updateConfig",
+          args: ["postprocess.calculateReplaceRange.experimentalSyntax", true],
+        },
+      ];
+      agent.stdin.write(JSON.stringify(updateConfigRequest) + "\n");
+      await waitForResponse(requestId);
+      expectedConfig.postprocess.calculateReplaceRange.experimentalSyntax = true;
+      expect(output.shift()).to.deep.equal([0, { event: "configUpdated", config: expectedConfig }]);
+      expect(output.shift()).to.deep.equal([requestId, true]);
+    }
   });
   badCasesFiles.forEach((goldenFile) => {
     it("experimental: " + goldenFile.path, async () => {
