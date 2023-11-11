@@ -16,7 +16,11 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::{config::Config, usage};
+use tabby_common::{
+    api::code::{Hit, HitDocument, SearchResponse},
+    config::Config,
+    usage,
+};
 use tabby_download::download_model;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
@@ -28,7 +32,7 @@ use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
 };
-use crate::{chat::ChatService, fatal, search::CodeSearchService};
+use crate::{chat::ChatService, fatal, search::create_code_search};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -62,9 +66,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         crate::chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
-        crate::search::SearchResponse,
-        crate::search::Hit,
-        crate::search::HitDocument
+        SearchResponse,
+        Hit,
+        HitDocument
     ))
 )]
 struct ApiDoc;
@@ -169,7 +173,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let code = Arc::new(CodeSearchService::new());
+    let code = Arc::new(create_code_search());
     let completion_state = {
         let (
             engine,

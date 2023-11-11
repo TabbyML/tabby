@@ -7,10 +7,9 @@ use axum::{
 };
 use hyper::StatusCode;
 use serde::Deserialize;
+use tabby_common::api::code::{BoxCodeSearch, CodeSearchError, SearchResponse};
 use tracing::{instrument, warn};
 use utoipa::IntoParams;
-
-use crate::search::{CodeSearch, CodeSearchError, CodeSearchService, SearchResponse};
 
 #[derive(Deserialize, IntoParams)]
 pub struct SearchQuery {
@@ -37,7 +36,7 @@ pub struct SearchQuery {
     )]
 #[instrument(skip(state, query))]
 pub async fn search(
-    State(state): State<Arc<CodeSearchService>>,
+    State(state): State<Arc<BoxCodeSearch>>,
     query: Query<SearchQuery>,
 ) -> Result<Json<SearchResponse>, StatusCode> {
     match state
