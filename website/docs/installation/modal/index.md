@@ -13,7 +13,7 @@ from modal import Image, Stub, asgi_app, gpu
 Next, we set the base docker image version, which model to serve, taking care to specify the GPU configuration required to fit the model into VRAM.
 
 ```python
-IMAGE_NAME = "tabbyml/tabby:0.5.4"
+IMAGE_NAME = "tabbyml/tabby:0.5.5"
 MODEL_ID = "TabbyML/StarCoder-1B"
 GPU_CONFIG = gpu.T4()
 ```
@@ -133,7 +133,7 @@ Once we deploy this model with `modal serve app.py`, it will output the url of t
 To test if the server is working, you can send a post request to the web endpoint.
 
 ```shell
-curl --location 'https://<USERNAME>--tabby-server-codellama-1b-app-dev.modal.run/v1/completions' \
+curl --location 'https://<USERNAME>--tabby-server-starcoder-1b-app-dev.modal.run/v1/completions' \
 --header 'Content-Type: application/json' \
 --data '{
   "language": "python",
