@@ -9,7 +9,7 @@ use axum::{
 use axum_streams::StreamBodyAs;
 use tracing::instrument;
 
-use crate::chat::{ChatCompletionRequest, ChatService};
+use crate::services::chat::{ChatCompletionRequest, ChatService};
 
 #[utoipa::path(
     post,
