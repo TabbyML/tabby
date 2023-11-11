@@ -2,7 +2,6 @@ mod chat;
 mod download;
 mod search;
 mod serve;
-mod webserver;
 
 use clap::{Parser, Subcommand};
 use opentelemetry::{
@@ -13,7 +12,6 @@ use opentelemetry::{
 use opentelemetry_otlp::WithExportConfig;
 use tabby_common::config::Config;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
-use webserver::WebserverArgs;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -37,8 +35,6 @@ pub enum Commands {
 
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
-
-    Webserver(WebserverArgs),
 }
 
 #[derive(clap::Args)]
@@ -61,7 +57,6 @@ async fn main() {
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
-        Commands::Webserver(args) => webserver::main(args).await,
     }
 
     opentelemetry::global::shutdown_tracer_provider();
