@@ -5,10 +5,8 @@ use regex::Regex;
 use strfmt::strfmt;
 use tabby_common::{
     api::code::{BoxCodeSearch, CodeSearchError},
-    index::CodeSearchSchema,
     languages::get_language,
 };
-use tantivy::{query::BooleanQuery, query_grammar::Occur};
 use textdistance::Algorithm;
 use tracing::warn;
 
@@ -19,7 +17,6 @@ static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
 static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
-    schema: CodeSearchSchema,
     prompt_template: Option<String>,
     code: Option<Arc<BoxCodeSearch>>,
 }
@@ -27,7 +24,6 @@ pub struct PromptBuilder {
 impl PromptBuilder {
     pub fn new(prompt_template: Option<String>, code: Option<Arc<BoxCodeSearch>>) -> Self {
         PromptBuilder {
-            schema: CodeSearchSchema::new(),
             prompt_template,
             code,
         }
@@ -43,7 +39,7 @@ impl PromptBuilder {
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         if let Some(code) = &self.code {
-            collect_snippets(&self.schema, code.as_ref(), language, &segments.prefix).await
+            collect_snippets(code.as_ref(), language, &segments.prefix).await
         } else {
             vec![]
         }
@@ -110,24 +106,12 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-async fn collect_snippets(
-    schema: &CodeSearchSchema,
-    code: &BoxCodeSearch,
-    language: &str,
-    text: &str,
-) -> Vec<Snippet> {
+async fn collect_snippets(code: &BoxCodeSearch, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
-    let language_query = schema.language_query(language);
-    let body_query = schema.body_query(&tokens);
-    let query = BooleanQuery::new(vec![
-        (Occur::Must, language_query),
-        (Occur::Must, body_query),
-    ]);
-
     let serp = match code
-        .search_with_query(&query, MAX_SNIPPETS_TO_FETCH, 0)
+        .search_in_language(language, &tokens, MAX_SNIPPETS_TO_FETCH, 0)
         .await
     {
         Ok(serp) => serp,

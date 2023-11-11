@@ -1,22 +1,22 @@
 use async_trait::async_trait;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use utoipa::ToSchema;
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct SearchResponse {
     pub num_hits: usize,
     pub hits: Vec<Hit>,
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct Hit {
     pub score: f32,
     pub doc: HitDocument,
     pub id: u32,
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct HitDocument {
     pub body: String,
     pub filepath: String,
@@ -47,9 +47,10 @@ pub trait CodeSearch: Send + Sync {
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError>;
 
-    async fn search_with_query(
+    async fn search_in_language(
         &self,
-        q: &dyn tantivy::query::Query,
+        language: &str,
+        tokens: &[String],
         limit: usize,
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError>;
