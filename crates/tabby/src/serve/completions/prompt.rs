@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use strfmt::strfmt;
 use tabby_common::{
-    api::code::{BoxCodeSearch, CodeSearchError},
+    api::code::{CodeSearch, CodeSearchError},
     languages::get_language,
 };
 use textdistance::Algorithm;
@@ -18,11 +18,11 @@ static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
     prompt_template: Option<String>,
-    code: Option<Arc<BoxCodeSearch>>,
+    code: Option<Arc<dyn CodeSearch>>,
 }
 
 impl PromptBuilder {
-    pub fn new(prompt_template: Option<String>, code: Option<Arc<BoxCodeSearch>>) -> Self {
+    pub fn new(prompt_template: Option<String>, code: Option<Arc<dyn CodeSearch>>) -> Self {
         PromptBuilder {
             prompt_template,
             code,
@@ -106,7 +106,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-async fn collect_snippets(code: &BoxCodeSearch, language: &str, text: &str) -> Vec<Snippet> {
+async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 

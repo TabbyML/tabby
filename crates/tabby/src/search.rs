@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
-    api::code::{BoxCodeSearch, CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
+    api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
     index::{self, register_tokenizers, CodeSearchSchema},
     path,
 };
@@ -156,8 +156,8 @@ impl CodeSearchService {
     }
 }
 
-pub fn create_code_search() -> BoxCodeSearch {
-    Box::new(CodeSearchService::new())
+pub fn create_code_search() -> impl CodeSearch {
+    CodeSearchService::new()
 }
 
 #[async_trait]
