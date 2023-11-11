@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 cuda = ["llama-cpp-bindings/cuda"]
+opencl = ["llama-cpp-bindings/opencl"]
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }

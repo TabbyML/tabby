@@ -22,6 +22,11 @@ fn main() {
         println!("cargo:rustc-link-lib=cublas");
         println!("cargo:rustc-link-lib=cublasLt");
     }
+    if cfg!(feature = "opencl") {
+        config.define("LLAMA_CLBLAST", "ON");
+        config.define("CLBlast_DIR", "/usr/local");
+        println!("cargo:rustc-link-search=native=/opt/intel/opencl/intel64/");        
+    }
 
     let dst = config.build();
     println!("cargo:rustc-link-search=native={}/build", dst.display());
