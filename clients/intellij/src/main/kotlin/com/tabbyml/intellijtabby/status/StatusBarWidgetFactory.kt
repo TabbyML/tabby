@@ -119,8 +119,13 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
             } else {
               when (state.settings.completionTriggerMode) {
                 ApplicationSettingsState.TriggerMode.AUTOMATIC -> {
-                  icon = AllIcons.Actions.Checked
-                  tooltip = "Tabby: Automatic code completion is enabled"
+                  if (state.ongoingCompletion == null) {
+                    icon = AllIcons.Actions.Checked
+                    tooltip = "Tabby: Automatic code completion is enabled"
+                  } else {
+                    icon = AnimatedIcon.Default()
+                    tooltip = "Tabby: Generating code completions"
+                  }
                 }
 
                 ApplicationSettingsState.TriggerMode.MANUAL -> {
