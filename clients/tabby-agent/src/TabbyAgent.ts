@@ -5,14 +5,7 @@ import { deepmerge } from "deepmerge-ts";
 import { getProperty, setProperty, deleteProperty } from "dot-prop";
 import createClient from "openapi-fetch";
 import { paths as TabbyApi } from "./types/tabbyApi";
-import {
-  isBlank,
-  abortSignalFromAnyOf,
-  findUnpairedAutoClosingChars,
-  HttpError,
-  isTimeoutError,
-  isCanceledError,
-} from "./utils";
+import { isBlank, abortSignalFromAnyOf, HttpError, isTimeoutError, isCanceledError } from "./utils";
 import type {
   Agent,
   AgentStatus,
@@ -32,7 +25,7 @@ import { CompletionCache } from "./CompletionCache";
 import { CompletionDebounce } from "./CompletionDebounce";
 import { CompletionContext } from "./CompletionContext";
 import { DataStore } from "./dataStore";
-import { preCacheProcess, postCacheProcess } from "./postprocess";
+import { preCacheProcess, postCacheProcess, calculateReplaceRange } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { CompletionProviderStats, CompletionProviderStatsEntry } from "./CompletionProviderStats";
@@ -291,35 +284,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return { prefix, suffix };
   }
 
-  private calculateReplaceRange(response: CompletionResponse, context: CompletionContext): CompletionResponse {
-    const { suffixLines } = context;
-    const suffixText = suffixLines[0]?.trimEnd() || "";
-    if (isBlank(suffixText)) {
-      return response;
-    }
-    for (const choice of response.choices) {
-      const completionText = choice.text.slice(context.position - choice.replaceRange.start);
-      const unpaired = findUnpairedAutoClosingChars(completionText);
-      if (isBlank(unpaired)) {
-        continue;
-      }
-      if (suffixText.startsWith(unpaired)) {
-        choice.replaceRange.end = context.position + unpaired.length;
-        this.logger.trace(
-          { context, completion: choice.text, range: choice.replaceRange, unpaired },
-          "Adjust replace range",
-        );
-      } else if (unpaired.startsWith(suffixText)) {
-        choice.replaceRange.end = context.position + suffixText.length;
-        this.logger.trace(
-          { context, completion: choice.text, range: choice.replaceRange, unpaired },
-          "Adjust replace range",
-        );
-      }
-    }
-    return response;
-  }
-
   public async initialize(options: AgentInitOptions): Promise<boolean> {
     if (options.clientProperties) {
       const { user: userProp, session: sessionProp } = options.clientProperties;
@@ -574,7 +538,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
         throw options.signal.reason;
       }
       // Calculate replace range
-      completionResponse = this.calculateReplaceRange(completionResponse, context);
+      completionResponse = await calculateReplaceRange(completionResponse, context);
+      if (options?.signal?.aborted) {
+        throw options.signal.reason;
+      }
     } catch (error) {
       if (isCanceledError(error) || isTimeoutError(error)) {
         if (stats) {
