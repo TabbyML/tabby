@@ -8,7 +8,6 @@ use tabby_common::{
     index::CodeSearchSchema,
     languages::get_language,
 };
-use tantivy::{query::BooleanQuery, query_grammar::Occur};
 use textdistance::Algorithm;
 use tracing::warn;
 
@@ -111,7 +110,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
 }
 
 async fn collect_snippets(
-    schema: &CodeSearchSchema,
+    _schema: &CodeSearchSchema,
     code: &BoxCodeSearch,
     language: &str,
     text: &str,
@@ -119,15 +118,8 @@ async fn collect_snippets(
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
-    let language_query = schema.language_query(language);
-    let body_query = schema.body_query(&tokens);
-    let query = BooleanQuery::new(vec![
-        (Occur::Must, language_query),
-        (Occur::Must, body_query),
-    ]);
-
     let serp = match code
-        .search_with_query(&query, MAX_SNIPPETS_TO_FETCH, 0)
+        .search_in_language(language, &tokens, MAX_SNIPPETS_TO_FETCH, 0)
         .await
     {
         Ok(serp) => serp,

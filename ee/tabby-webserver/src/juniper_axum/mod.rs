@@ -1,10 +1,10 @@
 pub mod extract;
 pub mod response;
 
-use std::future;
+use std::{future, sync::Arc};
 
 use axum::{
-    extract::Extension,
+    extract::{Extension, State},
     response::{Html, IntoResponse},
 };
 use juniper_graphql_ws::Schema;
@@ -62,6 +62,7 @@ use self::{extract::JuniperRequest, response::JuniperResponse};
 /// [`Handler`]: axum::handler::Handler
 #[cfg_attr(text, axum::debug_handler)]
 pub async fn graphql<S>(
+    State(context): State<Arc<S::Context>>,
     Extension(schema): Extension<S>,
     JuniperRequest(req): JuniperRequest<S::ScalarValue>,
 ) -> impl IntoResponse
@@ -69,11 +70,7 @@ where
     S: Schema, // TODO: Refactor in the way we don't depend on `juniper_graphql_ws::Schema` here.
     S::Context: Default,
 {
-    JuniperResponse(
-        req.execute(schema.root_node(), &S::Context::default())
-            .await,
-    )
-    .into_response()
+    JuniperResponse(req.execute(schema.root_node(), context.as_ref()).await).into_response()
 }
 
 /// Creates a [`Handler`] that replies with an HTML page containing [GraphiQL].

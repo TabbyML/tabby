@@ -6,6 +6,7 @@ authors.workspace = true
 homepage.workspace = true
 
 [dependencies]
+anyhow.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 juniper = "0.15.11"
@@ -14,4 +15,6 @@ serde.workspace = true
 serde_json.workspace = true
 tabby-common = { path = "../../crates/tabby-common" }
 tantivy.workspace = true
+tarpc = { version = "0.33.0", features = ["serde-transport", "tcp", "serde-transport-json"] }
 tokio.workspace = true
+tracing.workspace = true

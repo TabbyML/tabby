@@ -9,7 +9,8 @@ use tabby_common::{
 };
 use tantivy::{
     collector::{Count, TopDocs},
-    query::QueryParser,
+    query::{BooleanQuery, QueryParser},
+    query_grammar::Occur,
     schema::Field,
     DocAddress, Document, Index, IndexReader,
 };
@@ -75,19 +76,6 @@ impl CodeSearchImpl {
             id: doc_address.doc_id,
         }
     }
-}
-
-#[async_trait]
-impl CodeSearch for CodeSearchImpl {
-    async fn search(
-        &self,
-        q: &str,
-        limit: usize,
-        offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
-        let query = self.query_parser.parse_query(q)?;
-        self.search_with_query(&query, limit, offset).await
-    }
 
     async fn search_with_query(
         &self,
@@ -108,6 +96,35 @@ impl CodeSearch for CodeSearchImpl {
                 .collect()
         };
         Ok(SearchResponse { num_hits, hits })
+    }
+}
+
+#[async_trait]
+impl CodeSearch for CodeSearchImpl {
+    async fn search(
+        &self,
+        q: &str,
+        limit: usize,
+        offset: usize,
+    ) -> Result<SearchResponse, CodeSearchError> {
+        let query = self.query_parser.parse_query(q)?;
+        self.search_with_query(&query, limit, offset).await
+    }
+
+    async fn search_in_language(
+        &self,
+        language: &str,
+        tokens: &[String],
+        limit: usize,
+        offset: usize,
+    ) -> Result<SearchResponse, CodeSearchError> {
+        let language_query = self.schema.language_query(language);
+        let body_query = self.schema.body_query(tokens);
+        let query = BooleanQuery::new(vec![
+            (Occur::Must, language_query),
+            (Occur::Must, body_query),
+        ]);
+        self.search_with_query(&query, limit, offset).await
     }
 }
 
@@ -158,14 +175,16 @@ impl CodeSearch for CodeSearchService {
         }
     }
 
-    async fn search_with_query(
+    async fn search_in_language(
         &self,
-        q: &dyn tantivy::query::Query,
+        language: &str,
+        tokens: &[String],
         limit: usize,
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError> {
         if let Some(imp) = self.search.lock().await.as_ref() {
-            imp.search_with_query(q, limit, offset).await
+            imp.search_in_language(language, tokens, limit, offset)
+                .await
         } else {
             Err(CodeSearchError::NotReady)
         }
