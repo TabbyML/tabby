@@ -45,7 +45,7 @@ impl CompletionRequest {
         self.debug_options.as_ref().and_then(|x| x.raw_prompt.clone())
     }
 
-    /// Returns true if retrieval augmented code completion is enabled.
+    /// Returns true if retrieval augmented code completion is disabled.
     fn disable_retrieval_augmented_code_completion(&self) -> bool {
         self.debug_options
             .as_ref()
