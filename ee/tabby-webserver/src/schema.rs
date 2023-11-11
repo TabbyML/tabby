@@ -1,9 +1,6 @@
 use std::{net::SocketAddr, str::FromStr};
 
-use juniper::{
-    graphql_object, EmptyMutation, EmptySubscription, FieldResult, GraphQLEnum, GraphQLObject,
-    RootNode,
-};
+use juniper::{graphql_object, EmptySubscription, GraphQLEnum, GraphQLObject, RootNode};
 use tokio::sync::Mutex;
 
 use crate::registry::CodeSearchWorkerRegistry;
