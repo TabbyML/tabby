@@ -1843,6 +1843,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyper-reverse-proxy"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc1af9b1b483fb9f33bd1cda26b35eacf902f0d116fcf0d56075ea5e5923b935"
+dependencies = [
+ "hyper",
+ "lazy_static",
+ "unicase",
+]
+
+[[package]]
 name = "hyper-timeout"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4076,6 +4087,7 @@ dependencies = [
  "futures",
  "http-api-bindings",
  "hyper",
+ "hyper-reverse-proxy",
  "lazy_static",
  "llama-cpp-bindings",
  "mime_guess",
