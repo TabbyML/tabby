@@ -152,13 +152,6 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .fallback(ui::handler);
 
-    let app = if args.chat_model.is_some() {
-        app.route("/playground", routing::get(ui::handler))
-            .route("/playground.txt", routing::get(ui::handler))
-    } else {
-        app
-    };
-
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
