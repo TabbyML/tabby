@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, sync::Arc};
 
 use serde::Deserialize;
 use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
@@ -9,7 +9,7 @@ use crate::fatal;
 pub async fn create_engine(
     model_id: &str,
     args: &crate::serve::ServeArgs,
-) -> (Box<dyn TextGeneration>, EngineInfo) {
+) -> (Arc<dyn TextGeneration>, EngineInfo) {
     #[cfg(feature = "experimental-http")]
     if args.device == crate::serve::Device::ExperimentalHttp {
         let (engine, prompt_template) = http_api_bindings::create(model_id);
@@ -31,7 +31,7 @@ pub async fn create_engine(
             args.parallelism,
         );
         let engine_info = EngineInfo::read(path.join("tabby.json"));
-        (engine, engine_info)
+        (Arc::new(engine), engine_info)
     } else {
         let (registry, name) = parse_model_id(model_id);
         let registry = ModelRegistry::new(registry).await;
@@ -39,7 +39,7 @@ pub async fn create_engine(
         let model_info = registry.get_model_info(name);
         let engine = create_ggml_engine(&args.device, &model_path, args.parallelism);
         (
-            engine,
+            Arc::new(engine),
             EngineInfo {
                 prompt_template: model_info.prompt_template.clone(),
                 chat_template: model_info.chat_template.clone(),
@@ -65,7 +65,7 @@ fn create_ggml_engine(
     device: &super::Device,
     model_path: &str,
     parallelism: u8,
-) -> Box<dyn TextGeneration> {
+) -> impl TextGeneration {
     let options = llama_cpp_bindings::LlamaTextGenerationOptionsBuilder::default()
         .model_path(model_path.to_owned())
         .use_gpu(device.ggml_use_gpu())
@@ -73,5 +73,5 @@ fn create_ggml_engine(
         .build()
         .unwrap();
 
-    Box::new(llama_cpp_bindings::LlamaTextGeneration::new(options))
+    llama_cpp_bindings::LlamaTextGeneration::new(options)
 }

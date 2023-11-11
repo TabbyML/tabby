@@ -189,7 +189,6 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
                 prompt_template, ..
             },
         ) = create_engine(&args.model, args).await;
-        let engine = Arc::new(engine);
         let state =
             completions::CompletionState::new(engine.clone(), code.clone(), prompt_template);
         Arc::new(state)
@@ -200,7 +199,6 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
         let Some(chat_template) = chat_template else {
             panic!("Chat model requires specifying prompt template");
         };
-        let engine = Arc::new(engine);
         let state = ChatService::new(engine, chat_template);
         Some(Arc::new(state))
     } else {

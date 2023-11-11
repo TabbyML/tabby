@@ -5,7 +5,7 @@ use std::sync::Arc;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use tabby_common::{api::code::BoxCodeSearch, events, languages::get_language};
+use tabby_common::{api::code::CodeSearch, events, languages::get_language};
 use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
@@ -202,14 +202,14 @@ async fn build_prompt(
 }
 
 pub struct CompletionState {
-    engine: Arc<Box<dyn TextGeneration>>,
+    engine: Arc<dyn TextGeneration>,
     prompt_builder: prompt::PromptBuilder,
 }
 
 impl CompletionState {
     pub fn new(
-        engine: Arc<Box<dyn TextGeneration>>,
-        code: Arc<BoxCodeSearch>,
+        engine: Arc<dyn TextGeneration>,
+        code: Arc<dyn CodeSearch>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {
