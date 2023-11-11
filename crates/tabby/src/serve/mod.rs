@@ -20,7 +20,7 @@ use tabby_common::{config::Config, usage};
 use tabby_download::download_model;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
-use tracing::{info, warn};
+use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -129,8 +129,8 @@ pub struct ServeArgs {
 
 pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(feature = "experimental-http")]
-    if args.device == super::Device::ExperimentalHttp {
-        warn!("HTTP device is unstable and does not comply with semver expectations.");
+    if args.device == Device::ExperimentalHttp {
+        tracing::warn!("HTTP device is unstable and does not comply with semver expectations.");
     } else {
         load_model(args).await;
     }

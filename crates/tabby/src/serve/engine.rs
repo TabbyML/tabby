@@ -11,7 +11,7 @@ pub async fn create_engine(
     args: &crate::serve::ServeArgs,
 ) -> (Box<dyn TextGeneration>, EngineInfo) {
     #[cfg(feature = "experimental-http")]
-    if args.device == super::Device::ExperimentalHttp {
+    if args.device == crate::serve::Device::ExperimentalHttp {
         let (engine, prompt_template) = http_api_bindings::create(model_id);
         return (
             engine,
