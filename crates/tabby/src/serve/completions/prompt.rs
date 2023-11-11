@@ -5,7 +5,6 @@ use regex::Regex;
 use strfmt::strfmt;
 use tabby_common::{
     api::code::{BoxCodeSearch, CodeSearchError},
-    index::CodeSearchSchema,
     languages::get_language,
 };
 use textdistance::Algorithm;
@@ -107,11 +106,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-async fn collect_snippets(
-    code: &BoxCodeSearch,
-    language: &str,
-    text: &str,
-) -> Vec<Snippet> {
+async fn collect_snippets(code: &BoxCodeSearch, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
