@@ -4,7 +4,6 @@ mod engine;
 mod events;
 mod health;
 mod search;
-mod ui;
 
 use std::{
     fs,
@@ -16,12 +15,9 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::{
-    api::code::{Hit, HitDocument, SearchResponse},
-    config::Config,
-    usage,
-};
+use tabby_common::{config::Config, usage};
 use tabby_download::download_model;
+use tabby_webserver::attach_webserver;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
 use tracing::info;
@@ -33,6 +29,7 @@ use self::{
     health::HealthState,
 };
 use crate::{
+    api::{Hit, HitDocument, SearchResponse},
     fatal,
     services::{chat::ChatService, completions::CompletionService},
 };
@@ -150,17 +147,17 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     doc.override_doc(args);
 
     let app = Router::new()
-        .route("/", routing::get(ui::handler))
         .merge(api_router(args, config).await)
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
-        .fallback(ui::handler);
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc));
+
+    let app = attach_webserver(app);
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
     start_heartbeat(args);
     Server::bind(&address)
-        .serve(app.into_make_service())
+        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }

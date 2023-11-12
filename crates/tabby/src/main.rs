@@ -1,3 +1,4 @@
+mod api;
 mod download;
 mod serve;
 
@@ -49,7 +50,7 @@ async fn main() {
     let cli = Cli::parse();
     init_logging(cli.otlp_endpoint);
 
-    let config = Config::load().unwrap_or(Config::default());
+    let config = Config::load().unwrap_or_default();
 
     match &cli.command {
         Commands::Serve(args) => serve::main(&config, args).await,

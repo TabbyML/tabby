@@ -38,12 +38,6 @@ pub enum CodeSearchError {
     TantivyError(#[from] tantivy::TantivyError),
 }
 
-#[derive(Error, Debug)]
-pub enum CodeCompletionError {
-    #[error("empty prompt from completion request")]
-    EmptyPrompt,
-}
-
 #[async_trait]
 pub trait CodeSearch: Send + Sync {
     async fn search(

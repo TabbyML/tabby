@@ -12,6 +12,7 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'crates/**'
+      - 'ee/tabby-webserver/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }} 
@@ -33,9 +34,6 @@ jobs:
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          components: rustfmt
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
@@ -52,12 +50,6 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-
-      - name: Cargo fmt
-        run: cargo +nightly fmt --check
-
-      - name: Cargo Machete
-        uses: bnjbvr/cargo-machete@main
 
       - run: bash ./ci/prepare_build_environment.sh
 

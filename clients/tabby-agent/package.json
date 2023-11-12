@@ -23,11 +23,11 @@
     "@types/node": "^18.12.0",
     "chai": "^4.3.7",
     "dedent": "^0.7.0",
+    "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "mocha": "^10.2.0",
     "openapi-typescript": "^6.6.1",
     "prettier": "^3.0.0",
-    "rimraf": "^5.0.1",
     "ts-node": "^10.9.1",
     "tsup": "^7.1.0",
     "typescript": "^5.0.3"
@@ -47,6 +47,7 @@
     "rotating-file-stream": "^3.1.0",
     "stats-logscale": "^1.0.7",
     "toml": "^3.0.0",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "web-tree-sitter": "^0.20.8"
   }
 }

@@ -3,14 +3,19 @@ mod completions_prompt;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use tabby_common::{
-    api::code::{CodeCompletionError, CodeSearch},
-    events,
-    languages::get_language,
-};
+use tabby_common::{events, languages::get_language};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
+use thiserror::Error;
 use tracing::debug;
 use utoipa::ToSchema;
+
+use crate::api::CodeSearch;
+
+#[derive(Error, Debug)]
+pub enum CompletionError {
+    #[error("empty prompt from completion request")]
+    EmptyPrompt,
+}
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -90,11 +95,11 @@ pub struct Segments {
     suffix: Option<String>,
 }
 
-impl Into<events::Segments> for Segments {
-    fn into(self) -> events::Segments {
+impl From<Segments> for events::Segments {
+    fn from(val: Segments) -> Self {
         events::Segments {
-            prefix: self.prefix,
-            suffix: self.suffix,
+            prefix: val.prefix,
+            suffix: val.suffix,
         }
     }
 }
@@ -193,7 +198,7 @@ impl CompletionService {
     pub async fn generate(
         &self,
         request: &CompletionRequest,
-    ) -> Result<CompletionResponse, CodeCompletionError> {
+    ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
         let options = Self::text_generation_options(language.as_str());
@@ -214,7 +219,7 @@ impl CompletionService {
                 .build(&language, segments.clone(), &snippets);
             (prompt, Some(segments), snippets)
         } else {
-            return Err(CodeCompletionError::EmptyPrompt);
+            return Err(CompletionError::EmptyPrompt);
         };
         debug!("PROMPT: {}", prompt);
 
