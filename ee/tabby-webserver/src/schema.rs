@@ -1,12 +1,12 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLEnum, IntoFieldError,
-    RootNode, ScalarValue, Value,
+    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLEnum, GraphQLObject,
+    IntoFieldError, RootNode, ScalarValue, Value,
 };
 use juniper_axum::FromStateAndClientAddr;
 
-use crate::{Webserver, WebserverError};
+use crate::webserver::{Webserver, WebserverError};
 
 pub struct Request {
     ws: Arc<Webserver>,
@@ -22,10 +22,22 @@ impl FromStateAndClientAddr<Request, Arc<Webserver>> for Request {
 // To make our context usable by Juniper, we have to implement a marker trait.
 impl juniper::Context for Request {}
 
-#[derive(GraphQLEnum, Debug)]
+#[derive(GraphQLEnum, Clone, Debug)]
 pub enum WorkerKind {
     Completion,
     Chat,
+}
+
+#[derive(GraphQLObject, Clone, Debug)]
+pub struct Worker {
+    kind: WorkerKind,
+    addr: String,
+}
+
+impl Worker {
+    pub fn new(kind: WorkerKind, addr: String) -> Self {
+        Self { kind, addr }
+    }
 }
 
 #[derive(Default)]
@@ -33,11 +45,8 @@ pub struct Query;
 
 #[graphql_object(context = Request)]
 impl Query {
-    async fn workers(request: &Request, kind: WorkerKind) -> Vec<String> {
-        match kind {
-            WorkerKind::Completion => request.ws.completion.list().await,
-            WorkerKind::Chat => request.ws.chat.list().await,
-        }
+    async fn workers(request: &Request) -> Vec<Worker> {
+        request.ws.list_workers().await
     }
 }
 
@@ -50,7 +59,7 @@ impl Mutation {
         token: String,
         kind: WorkerKind,
         port: i32,
-    ) -> Result<String, WebserverError> {
+    ) -> Result<Worker, WebserverError> {
         let ws = &request.ws;
         ws.register_worker(token, request.client_addr, kind, port)
             .await
@@ -58,10 +67,6 @@ impl Mutation {
 }
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Request>>;
-
-pub fn new() -> Schema {
-    Schema::new(Query, Mutation, EmptySubscription::new())
-}
 
 impl<S: ScalarValue> IntoFieldError<S> for WebserverError {
     fn into_field_error(self) -> FieldError<S> {
