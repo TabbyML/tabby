@@ -529,7 +529,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
             throw options.signal.reason;
           }
           // Build cache
-          this.completionCache.buildCache(context, completionResponse);
+          this.completionCache.buildCache(context, JSON.parse(JSON.stringify(completionResponse)));
         }
       }
       // Postprocess (post-cache)

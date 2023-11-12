@@ -1,12 +1,13 @@
 import dedent from "dedent";
+import { v4 as uuid } from "uuid";
 import { CompletionContext } from "../CompletionContext";
 
 // `║` is the cursor position
 export function documentContext(strings): CompletionContext {
   const doc = dedent(strings);
   return new CompletionContext({
-    filepath: null,
-    language: null,
+    filepath: uuid(),
+    language: "",
     text: doc.replace(/║/, ""),
     position: doc.indexOf("║"),
   });

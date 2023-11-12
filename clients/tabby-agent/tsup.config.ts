@@ -1,4 +1,5 @@
 import { defineConfig } from "tsup";
+import { copy } from "esbuild-plugin-copy";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
 import { dependencies } from "./package.json";
 
@@ -16,6 +17,7 @@ export default async () => [
     name: "node-cjs",
     entry: ["src/index.ts"],
     platform: "node",
+    target: "node18",
     format: ["cjs"],
     sourcemap: true,
     esbuildOptions(options) {
@@ -71,10 +73,21 @@ export default async () => [
     name: "cli",
     entry: ["src/cli.ts"],
     platform: "node",
+    target: "node18",
     noExternal: Object.keys(dependencies),
     treeshake: "smallest",
     minify: true,
     sourcemap: true,
+    esbuildPlugins: [
+      copy({
+        assets: [
+          {
+            from: "./wasm/*",
+            to: "./wasm",
+          },
+        ],
+      }),
+    ],
     esbuildOptions(options) {
       defineEnvs(options, { browser: false });
     },

@@ -208,6 +208,7 @@
     "@vscode/test-web": "^0.0.44",
     "@vscode/vsce": "^2.15.0",
     "assert": "^2.0.0",
+    "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint": "^8.20.0",
     "glob": "^8.0.3",

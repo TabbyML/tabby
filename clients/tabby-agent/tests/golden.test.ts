@@ -81,7 +81,10 @@ describe("agent golden test", () => {
       timeout: 4000,
     },
     postprocess: {
-      limitScopeByIndentation: { experimentalKeepBlockScopeWhenCompletingLine: false },
+      limitScope: {
+        experimentalSyntax: false,
+        indentation: { experimentalKeepBlockScopeWhenCompletingLine: false },
+      },
     },
     logs: { level: "debug" },
     anonymousUsageTracking: { disable: true },
@@ -111,7 +114,7 @@ describe("agent golden test", () => {
       absolutePath: path.join(__dirname, "golden", file),
     };
   });
-  goldenFiles.forEach((goldenFile, index) => {
+  goldenFiles.forEach((goldenFile) => {
     it(goldenFile.path, async () => {
       const test = await createGoldenTest(goldenFile.absolutePath);
       requestId++;
@@ -130,7 +133,7 @@ describe("agent golden test", () => {
       absolutePath: path.join(__dirname, "bad_cases", file),
     };
   });
-  badCasesFiles.forEach((goldenFile, index) => {
+  badCasesFiles.forEach((goldenFile) => {
     it(goldenFile.path, async () => {
       const test = await createGoldenTest(goldenFile.absolutePath);
       requestId++;
@@ -140,6 +143,35 @@ describe("agent golden test", () => {
       const response = output.shift();
       expect(response[0]).to.equal(requestId);
       expect(response[1].choices).not.to.deep.equal(test.expected.choices);
+    });
+  });
+
+  it("updateConfig experimental", async () => {
+    requestId++;
+    const updateConfigRequest = [
+      requestId,
+      {
+        func: "updateConfig",
+        args: ["postprocess.limitScope.experimentalSyntax", true],
+      },
+    ];
+    agent.stdin.write(JSON.stringify(updateConfigRequest) + "\n");
+    await waitForResponse(requestId);
+    const expectedConfig = { ...config };
+    expectedConfig.postprocess.limitScope.experimentalSyntax = true;
+    expect(output.shift()).to.deep.equal([0, { event: "configUpdated", config: expectedConfig }]);
+    expect(output.shift()).to.deep.equal([requestId, true]);
+  });
+  badCasesFiles.forEach((goldenFile) => {
+    it("experimental: " + goldenFile.path, async () => {
+      const test = await createGoldenTest(goldenFile.absolutePath);
+      requestId++;
+      const request = [requestId, { func: "provideCompletions", args: [test.request] }];
+      agent.stdin.write(JSON.stringify(request) + "\n");
+      await waitForResponse(requestId);
+      const response = output.shift();
+      expect(response[0]).to.equal(requestId);
+      expect(response[1].choices).to.deep.equal(test.expected.choices);
     });
   });
 
