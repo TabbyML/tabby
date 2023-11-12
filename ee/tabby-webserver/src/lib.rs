@@ -1,70 +1,37 @@
-mod proxy;
+mod schema;
 mod ui;
+mod webserver;
 mod worker;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     extract::State,
     http::Request,
     middleware::{from_fn_with_state, Next},
-    response::IntoResponse,
-    Router,
+    routing, Extension, Router,
 };
-use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use tracing::warn;
-
-#[derive(Default)]
-pub struct Webserver {
-    client: Client<HttpConnector>,
-    completion: worker::WorkerGroup,
-    chat: worker::WorkerGroup,
-}
-
-impl Webserver {
-    async fn dispatch_request(
-        &self,
-        request: Request<Body>,
-        next: Next<Body>,
-    ) -> axum::response::Response {
-        let path = request.uri().path();
-
-        let remote_addr = request
-            .extensions()
-            .get::<axum::extract::ConnectInfo<SocketAddr>>()
-            .map(|ci| ci.0)
-            .expect("Unable to extract remote addr");
-
-        let worker = if path.starts_with("/v1/completions") {
-            self.completion.select().await
-        } else if path.starts_with("/v1beta/chat/completions") {
-            self.chat.select().await
-        } else {
-            None
-        };
-
-        if let Some(worker) = worker {
-            match proxy::call(self.client.clone(), remote_addr.ip(), &worker, request).await {
-                Ok(res) => res.into_response(),
-                Err(err) => {
-                    warn!("Failed to proxy request {}", err);
-                    axum::response::Response::builder()
-                        .status(StatusCode::INTERNAL_SERVER_ERROR)
-                        .body(Body::empty())
-                        .unwrap()
-                        .into_response()
-                }
-            }
-        } else {
-            next.run(request).await
-        }
-    }
-}
+use hyper::Body;
+use juniper::EmptySubscription;
+use juniper_axum::{graphiql, graphql, playground};
+use schema::{Mutation, Query, Schema};
+use webserver::Webserver;
 
 pub fn attach_webserver(router: Router) -> Router {
     let ws = Arc::new(Webserver::default());
+    let schema = Arc::new(Schema::new(Query, Mutation, EmptySubscription::new()));
+
+    let app = Router::new()
+        .route("/graphql", routing::get(playground("/graphql", None)))
+        .route("/graphiql", routing::get(graphiql("/graphql", None)))
+        .route(
+            "/graphql",
+            routing::post(graphql::<Arc<Schema>, Arc<Webserver>>).with_state(ws.clone()),
+        )
+        .layer(Extension(schema));
 
     router
+        .merge(app)
         .fallback(ui::handler)
         .layer(from_fn_with_state(ws, distributed_tabby_layer))
 }

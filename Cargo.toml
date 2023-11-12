@@ -8,6 +8,7 @@ members = [
     "crates/tabby-inference",
     "crates/llama-cpp-bindings",
     "crates/http-api-bindings",
+    "crates/juniper-axum",
     "ee/tabby-webserver",
 ]
 
@@ -38,3 +39,4 @@ thiserror = "1.0.49"
 utoipa = "3.3"
 axum = "0.6"
 hyper = "0.14"
+juniper = "0.15"
