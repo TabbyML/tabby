@@ -15,11 +15,7 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::{
-    api::code::{Hit, HitDocument, SearchResponse},
-    config::Config,
-    usage,
-};
+use tabby_common::{config::Config, usage};
 use tabby_download::download_model;
 use tabby_webserver::attach_webserver;
 use tokio::time::sleep;
@@ -32,7 +28,11 @@ use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
 };
-use crate::{fatal, services::chat::ChatService};
+use crate::{
+    api::{Hit, HitDocument, SearchResponse},
+    fatal,
+    services::chat::ChatService,
+};
 
 #[derive(OpenApi)]
 #[openapi(

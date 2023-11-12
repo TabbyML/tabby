@@ -6,7 +6,9 @@ else
 endif
 
 fix:
-	cargo +nightly clippy --fix --allow-dirty --allow-staged && cargo +nightly fmt
+	cargo machete --fix
+	cargo +nightly fmt
+	cargo +nightly clippy --fix --allow-dirty --allow-staged
 
 fix-ui:
 	cd ee/tabby-ui && yarn format:write && yarn lint:fix
