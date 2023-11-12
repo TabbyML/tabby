@@ -35,12 +35,12 @@ pub struct ChatCompletionChunk {
 }
 
 pub struct ChatService {
-    engine: Arc<Box<dyn TextGeneration>>,
+    engine: Arc<dyn TextGeneration>,
     prompt_builder: ChatPromptBuilder,
 }
 
 impl ChatService {
-    pub fn new(engine: Arc<Box<dyn TextGeneration>>, chat_template: String) -> Self {
+    pub fn new(engine: Arc<dyn TextGeneration>, chat_template: String) -> Self {
         Self {
             engine,
             prompt_builder: ChatPromptBuilder::new(chat_template),

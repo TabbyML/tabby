@@ -7,7 +7,7 @@ use tabby_common::{events, languages::get_language};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::debug;
 use utoipa::ToSchema;
-use tabby_common::api::code::{BoxCodeSearch, CodeCompletionError};
+use tabby_common::api::code::{CodeCompletionError, CodeSearch};
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -154,7 +154,7 @@ pub struct CompletionService {
 impl CompletionService {
     pub fn new(
         engine: Arc<Box<dyn TextGeneration>>,
-        code: Arc<BoxCodeSearch>,
+        code: Arc<impl CodeSearch>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {

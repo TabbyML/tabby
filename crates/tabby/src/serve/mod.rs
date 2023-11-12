@@ -17,14 +17,13 @@ use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{
-    api::code::{Hit, HitDocument, SearchResponse},
     config::Config,
     usage,
 };
 use tabby_download::download_model;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
-use tracing::{info, warn};
+use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -32,8 +31,8 @@ use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
 };
-use crate::{chat::ChatService, fatal, search::create_code_search};
-use crate::completions::CompletionService;
+use crate::fatal;
+use crate::services::{chat::ChatService, completions::CompletionService};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -55,16 +54,16 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     paths(events::log_event, completions::completions, chat::completions, health::health, search::search),
     components(schemas(
         events::LogEventRequest,
-        crate::completions::CompletionRequest,
-        crate::completions::CompletionResponse,
-        crate::completions::Segments,
-        crate::completions::Choice,
-        crate::completions::Snippet,
-        crate::completions::DebugOptions,
-        crate::completions::DebugData,
-        crate::chat::ChatCompletionRequest,
-        crate::chat::Message,
-        crate::chat::ChatCompletionChunk,
+        crate::services::completions::CompletionRequest,
+        crate::services::completions::CompletionResponse,
+        crate::services::completions::Segments,
+        crate::services::completions::Choice,
+        crate::services::completions::Snippet,
+        crate::services::completions::DebugOptions,
+        crate::services::completions::DebugData,
+        crate::services::chat::ChatCompletionRequest,
+        crate::services::chat::Message,
+        crate::services::chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
         SearchResponse,
@@ -87,6 +86,7 @@ pub enum Device {
     #[strum(serialize = "metal")]
     Metal,
 
+    #[cfg(feature = "experimental-http")]
     #[strum(serialize = "experimental_http")]
     ExperimentalHttp,
 }
@@ -132,18 +132,14 @@ pub struct ServeArgs {
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
-    if args.device != Device::ExperimentalHttp {
-        if fs::metadata(&args.model).is_ok() {
-            info!("Loading model from local path {}", &args.model);
-        } else {
-            download_model(&args.model, true).await;
-            if let Some(chat_model) = &args.chat_model {
-                download_model(chat_model, true).await;
-            }
-        }
+    #[cfg(feature = "experimental-http")]
+    if args.device == Device::ExperimentalHttp {
+        tracing::warn!("HTTP device is unstable and does not comply with semver expectations.");
     } else {
-        warn!("HTTP device is unstable and does not comply with semver expectations.")
+        load_model(args).await;
     }
+    #[cfg(not(feature = "experimental-http"))]
+    load_model(args).await;
 
     info!("Starting server, this might takes a few minutes...");
 
@@ -156,13 +152,6 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .fallback(ui::handler);
 
-    let app = if args.chat_model.is_some() {
-        app.route("/playground", routing::get(ui::handler))
-            .route("/playground.txt", routing::get(ui::handler))
-    } else {
-        app
-    };
-
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
@@ -173,8 +162,19 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
+async fn load_model(args: &ServeArgs) {
+    if fs::metadata(&args.model).is_ok() {
+        info!("Loading model from local path {}", &args.model);
+    } else {
+        download_model(&args.model, true).await;
+        if let Some(chat_model) = &args.chat_model {
+            download_model(chat_model, true).await;
+        }
+    }
+}
+
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let code = Arc::new(create_code_search());
+    let code = Arc::new(crate::services::code::create_code_search());
     let completion_state = {
         let (
             engine,
@@ -182,7 +182,6 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
                 prompt_template, ..
             },
         ) = create_engine(&args.model, args).await;
-        let engine = Arc::new(engine);
         let state =
             CompletionService::new(engine.clone(), code.clone(), prompt_template);
         Arc::new(state)
@@ -193,7 +192,6 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
         let Some(chat_template) = chat_template else {
             panic!("Chat model requires specifying prompt template");
         };
-        let engine = Arc::new(engine);
         let state = ChatService::new(engine, chat_template);
         Some(Arc::new(state))
     } else {

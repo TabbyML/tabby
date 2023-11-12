@@ -61,5 +61,3 @@ pub trait CodeSearch: Send + Sync {
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError>;
 }
-
-pub type BoxCodeSearch = Box<dyn CodeSearch>;
