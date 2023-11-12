@@ -70,11 +70,11 @@ pub fn attach_webserver(router: Router) -> Router {
 
     let app = Router::new()
         .route("/graphql", routing::get(playground("/graphql", None)))
+        .route("/graphiql", routing::get(graphiql("/graphql", None)))
         .route(
             "/graphql",
             routing::post(graphql::<Arc<Schema>, Arc<Webserver>>).with_state(ws.clone()),
         )
-        .route("/graphiql", routing::get(graphiql("/graphql", None)))
         .layer(Extension(schema));
 
     router
