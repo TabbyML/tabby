@@ -3,7 +3,6 @@ use std::{sync::Arc, time::Duration};
 use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
     index::{self, register_tokenizers, CodeSearchSchema},
     path,
 };
@@ -16,6 +15,8 @@ use tantivy::{
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
+
+use crate::api::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse};
 
 struct CodeSearchImpl {
     reader: IndexReader,

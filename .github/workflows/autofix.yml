@@ -48,6 +48,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
+      - name: Cargo Machete
+        uses: bnjbvr/cargo-machete@main
+
       - run: bash ./ci/prepare_build_environment.sh
 
       - run: make fix

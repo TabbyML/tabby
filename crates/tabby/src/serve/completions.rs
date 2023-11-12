@@ -5,10 +5,12 @@ use std::sync::Arc;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use tabby_common::{api::code::CodeSearch, events, languages::get_language};
+use tabby_common::{events, languages::get_language};
 use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
+
+use crate::api::CodeSearch;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({

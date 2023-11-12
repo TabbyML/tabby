@@ -4097,6 +4097,7 @@ dependencies = [
  "tabby-webserver",
  "tantivy",
  "textdistance",
+ "thiserror",
  "tokio",
  "tower-http 0.4.0",
  "tracing",
@@ -4113,7 +4114,6 @@ name = "tabby-common"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
- "async-trait",
  "chrono",
  "filenamify",
  "lazy_static",
@@ -4122,9 +4122,7 @@ dependencies = [
  "serde-jsonlines",
  "serdeconv",
  "tantivy",
- "thiserror",
  "tokio",
- "utoipa",
  "uuid 1.4.1",
 ]
 
