@@ -147,14 +147,14 @@ pub struct DebugData {
 }
 
 pub struct CompletionService {
-    engine: Arc<Box<dyn TextGeneration>>,
+    engine: Arc<dyn TextGeneration>,
     prompt_builder: completions_prompt::PromptBuilder,
 }
 
 impl CompletionService {
     pub fn new(
-        engine: Arc<Box<dyn TextGeneration>>,
-        code: Arc<impl CodeSearch>,
+        engine: Arc<dyn TextGeneration>,
+        code: Arc<dyn CodeSearch>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {

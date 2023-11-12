@@ -3,8 +3,6 @@ use std::sync::Arc;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use tracing::{warn, instrument};
-use tabby_inference::TextGeneration;
-use utoipa::ToSchema;
 
 use crate::services::completions::{CompletionRequest, CompletionResponse, CompletionService};
 

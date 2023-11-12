@@ -17,6 +17,7 @@ use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{
+    api::code::{Hit, HitDocument, SearchResponse},
     config::Config,
     usage,
 };

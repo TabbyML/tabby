@@ -1,6 +1,5 @@
 mod download;
 mod serve;
-mod completions;
 
 mod services;
 
