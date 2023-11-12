@@ -9,16 +9,14 @@ homepage.workspace = true
 anyhow.workspace = true
 axum.workspace = true
 hyper = { workspace = true, features=["client"]}
+juniper.workspace = true
+juniper-axum = { path = "../../crates/juniper-axum" }
 lazy_static = "1.4.0"
 mime_guess = "2.0.4"
 rust-embed = "8.0.0"
 tokio.workspace = true
 tracing.workspace = true
 unicase = "2.7.0"
-juniper = "0.15.11"
-juniper_graphql_ws = "0.3.0"
-serde.workspace = true
-serde_json.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }

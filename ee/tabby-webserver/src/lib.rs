@@ -1,4 +1,5 @@
 mod proxy;
+mod schema;
 mod ui;
 mod worker;
 
@@ -12,15 +13,15 @@ use axum::{
     routing, Extension, Router,
 };
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use proxy::ProxyError;
-use tokio::sync::RwLock;
-use tracing::{warn, error};
+use juniper_axum::{graphiql, graphql, playground};
+use schema::Schema;
+use tracing::warn;
 
 #[derive(Default)]
 pub struct Webserver {
     client: Client<HttpConnector>,
-    completion: WorkerGroup,
-    chat: WorkerGroup,
+    completion: worker::WorkerGroup,
+    chat: worker::WorkerGroup,
 }
 
 impl Webserver {
@@ -65,8 +66,19 @@ impl Webserver {
 
 pub fn attach_webserver(router: Router) -> Router {
     let ws = Arc::new(Webserver::default());
+    let schema = Arc::new(schema::new());
+
+    let app = Router::new()
+        .route("/graphql", routing::get(playground("/graphql", None)))
+        .route(
+            "/graphql",
+            routing::post(graphql::<Arc<Schema>, Arc<Webserver>>).with_state(ws.clone()),
+        )
+        .route("/graphiql", routing::get(graphiql("/graphql", None)))
+        .layer(Extension(schema));
 
     router
+        .merge(app)
         .fallback(ui::handler)
         .layer(from_fn_with_state(ws, distributed_tabby_layer))
 }

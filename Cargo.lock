@@ -2159,6 +2159,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "juniper-axum"
+version = "0.6.0-dev"
+dependencies = [
+ "async-trait",
+ "axum",
+ "juniper",
+ "juniper_graphql_ws",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "juniper_codegen"
 version = "0.15.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4387,12 +4399,10 @@ dependencies = [
  "axum",
  "hyper",
  "juniper",
- "juniper_graphql_ws",
+ "juniper-axum",
  "lazy_static",
  "mime_guess",
  "rust-embed 8.0.0",
- "serde",
- "serde_json",
  "tokio",
  "tracing",
  "unicase",

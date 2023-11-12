@@ -1,12 +1,12 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLEnum,
-    RootNode, Value,
+    graphql_object, EmptySubscription, FieldError, FieldResult, GraphQLEnum, RootNode, Value,
 };
+use juniper_axum::FromStateAndClientAddr;
 use tracing::info;
 
-use crate::{juniper_axum::FromStateAndClientAddr, Webserver};
+use crate::Webserver;
 
 pub struct Request {
     ws: Arc<Webserver>,

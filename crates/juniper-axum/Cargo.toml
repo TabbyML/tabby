@@ -8,7 +8,7 @@ homepage.workspace = true
 [dependencies]
 async-trait.workspace = true
 axum.workspace = true
-juniper = "0.15.11"
+juniper.workspace = true
 juniper_graphql_ws = "0.3.0"
 serde.workspace = true
 serde_json.workspace = true
