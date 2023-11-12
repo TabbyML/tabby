@@ -1,12 +1,12 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use juniper::{
-    graphql_object, EmptySubscription, FieldError, FieldResult, GraphQLEnum, RootNode, Value,
+    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLEnum, IntoFieldError,
+    RootNode, ScalarValue, Value,
 };
 use juniper_axum::FromStateAndClientAddr;
-use tracing::info;
 
-use crate::Webserver;
+use crate::{Webserver, WebserverError};
 
 pub struct Request {
     ws: Arc<Webserver>,
@@ -23,7 +23,7 @@ impl FromStateAndClientAddr<Request, Arc<Webserver>> for Request {
 impl juniper::Context for Request {}
 
 #[derive(GraphQLEnum, Debug)]
-enum WorkerKind {
+pub enum WorkerKind {
     Completion,
     Chat,
 }
@@ -47,21 +47,13 @@ pub struct Mutation;
 impl Mutation {
     async fn register_worker(
         request: &Request,
+        token: String,
         kind: WorkerKind,
         port: i32,
-    ) -> FieldResult<String> {
-        let addr = SocketAddr::new(request.client_addr.ip(), port as u16);
-        let addr = match kind {
-            WorkerKind::Completion => request.ws.completion.register(addr).await,
-            WorkerKind::Chat => request.ws.chat.register(addr).await,
-        };
-
-        if let Some(addr) = addr {
-            info!("registering <{:?}> worker running at {}", kind, addr);
-            Ok(addr)
-        } else {
-            Err(FieldError::new("Failed to register worker", Value::Null))
-        }
+    ) -> Result<String, WebserverError> {
+        let ws = &request.ws;
+        ws.register_worker(token, request.client_addr, kind, port)
+            .await
     }
 }
 
@@ -69,4 +61,19 @@ pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Request>>
 
 pub fn new() -> Schema {
     Schema::new(Query, Mutation, EmptySubscription::new())
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for WebserverError {
+    fn into_field_error(self) -> FieldError<S> {
+        let msg = format!("{}", &self);
+        match self {
+            WebserverError::InvalidToken(token) => FieldError::new(
+                msg,
+                graphql_value!({
+                    "token": token
+                }),
+            ),
+            _ => FieldError::new(msg, Value::Null),
+        }
+    }
 }

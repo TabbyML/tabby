@@ -4402,6 +4402,7 @@ dependencies = [
  "lazy_static",
  "mime_guess",
  "rust-embed 8.0.0",
+ "thiserror",
  "tokio",
  "tracing",
  "unicase",

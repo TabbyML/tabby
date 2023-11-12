@@ -14,8 +14,18 @@ use axum::{
 };
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper_axum::{graphiql, graphql, playground};
-use schema::Schema;
-use tracing::warn;
+use schema::{Schema, WorkerKind};
+use thiserror::Error;
+use tracing::{info, warn};
+
+#[derive(Error, Debug)]
+pub enum WebserverError {
+    #[error("Invalid worker token")]
+    InvalidToken(String),
+
+    #[error("Feature requires enterprise license")]
+    RequiresEnterpriseLicense,
+}
 
 #[derive(Default)]
 pub struct Webserver {
@@ -24,7 +34,35 @@ pub struct Webserver {
     chat: worker::WorkerGroup,
 }
 
+// FIXME: generate token and support refreshing in database.
+static WORKER_TOKEN: &str = "4c749fad-2be7-45a3-849e-7714ccade382";
+
 impl Webserver {
+    async fn register_worker(
+        &self,
+        token: String,
+        client_addr: SocketAddr,
+        kind: WorkerKind,
+        port: i32,
+    ) -> Result<String, WebserverError> {
+        if token != WORKER_TOKEN {
+            return Err(WebserverError::InvalidToken(token));
+        }
+
+        let addr = SocketAddr::new(client_addr.ip(), port as u16);
+        let addr = match kind {
+            WorkerKind::Completion => self.completion.register(addr).await,
+            WorkerKind::Chat => self.chat.register(addr).await,
+        };
+
+        if let Some(addr) = addr {
+            info!("registering <{:?}> worker running at {}", kind, addr);
+            Ok(addr)
+        } else {
+            Err(WebserverError::RequiresEnterpriseLicense)
+        }
+    }
+
     async fn dispatch_request(
         &self,
         request: Request<Body>,
