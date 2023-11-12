@@ -3,8 +3,11 @@ mod completions_prompt;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use tabby_common::api::code::{CodeCompletionError, CodeSearch};
-use tabby_common::{events, languages::get_language};
+use tabby_common::{
+    api::code::{CodeCompletionError, CodeSearch},
+    events,
+    languages::get_language,
+};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::debug;
 use utoipa::ToSchema;

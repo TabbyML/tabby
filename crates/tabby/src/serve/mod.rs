@@ -32,8 +32,10 @@ use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
 };
-use crate::fatal;
-use crate::services::{chat::ChatService, completions::CompletionService};
+use crate::{
+    fatal,
+    services::{chat::ChatService, completions::CompletionService},
+};
 
 #[derive(OpenApi)]
 #[openapi(
