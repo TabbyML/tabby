@@ -2,8 +2,13 @@ name: autofix.ci
 
 on:
   pull_request:
-  push:
-    branches: [ "main" ]
+    branches: ["main" ]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
+      - 'ee/tabby-webserver/**'
+
 permissions:
   contents: read
 
