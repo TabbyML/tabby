@@ -6,7 +6,6 @@ authors.workspace = true
 homepage.workspace = true
 
 [dependencies]
-async-trait.workspace = true
 axum.workspace = true
 juniper.workspace = true
 juniper_graphql_ws = "0.3.0"

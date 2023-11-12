@@ -2162,7 +2162,6 @@ dependencies = [
 name = "juniper-axum"
 version = "0.6.0-dev"
 dependencies = [
- "async-trait",
  "axum",
  "juniper",
  "juniper_graphql_ws",
