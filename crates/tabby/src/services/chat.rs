@@ -3,8 +3,8 @@ mod chat_prompt;
 use std::sync::Arc;
 
 use async_stream::stream;
-use futures::stream::BoxStream;
 use chat_prompt::ChatPromptBuilder;
+use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use tabby_common::languages::EMPTY_LANGUAGE;
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};

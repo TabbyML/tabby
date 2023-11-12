@@ -3,11 +3,11 @@ mod completions_prompt;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+use tabby_common::api::code::{CodeCompletionError, CodeSearch};
 use tabby_common::{events, languages::get_language};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::debug;
 use utoipa::ToSchema;
-use tabby_common::api::code::{CodeCompletionError, CodeSearch};
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -34,7 +34,6 @@ pub struct CompletionRequest {
 }
 
 impl CompletionRequest {
-
     /// Returns the language info or "unknown" if not specified.
     fn language_or_unknown(&self) -> String {
         self.language.clone().unwrap_or("unknown".to_string())
@@ -42,7 +41,9 @@ impl CompletionRequest {
 
     /// Returns the raw prompt if specified.
     fn raw_prompt(&self) -> Option<String> {
-        self.debug_options.as_ref().and_then(|x| x.raw_prompt.clone())
+        self.debug_options
+            .as_ref()
+            .and_then(|x| x.raw_prompt.clone())
     }
 
     /// Returns true if retrieval augmented code completion is disabled.
@@ -198,12 +199,16 @@ impl CompletionService {
             (prompt, None, vec![])
         } else if let Some(segments) = request.segments.clone() {
             debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
-            let snippets = self.build_snippets(
-                &language,
-                &segments,
-                request.disable_retrieval_augmented_code_completion(),
-            ).await;
-            let prompt = self.prompt_builder.build(&language, segments.clone(), &snippets);
+            let snippets = self
+                .build_snippets(
+                    &language,
+                    &segments,
+                    request.disable_retrieval_augmented_code_completion(),
+                )
+                .await;
+            let prompt = self
+                .prompt_builder
+                .build(&language, segments.clone(), &snippets);
             (prompt, Some(segments), snippets)
         } else {
             return Err(CodeCompletionError::EmptyPrompt);
@@ -223,7 +228,8 @@ impl CompletionService {
                 text: &text,
             }],
             user: request.user.as_deref(),
-        }.log();
+        }
+        .log();
 
         let debug_data = request
             .debug_options
@@ -236,7 +242,7 @@ impl CompletionService {
         Ok(CompletionResponse::new(
             completion_id,
             vec![Choice::new(text)],
-            debug_data
+            debug_data,
         ))
     }
 }

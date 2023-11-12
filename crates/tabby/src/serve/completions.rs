@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::State, Json};
 use hyper::StatusCode;
-use tracing::{warn, instrument};
+use tracing::{instrument, warn};
 
 use crate::services::completions::{CompletionRequest, CompletionResponse, CompletionService};
 

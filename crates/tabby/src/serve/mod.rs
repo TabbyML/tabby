@@ -183,8 +183,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
                 prompt_template, ..
             },
         ) = create_engine(&args.model, args).await;
-        let state =
-            CompletionService::new(engine.clone(), code.clone(), prompt_template);
+        let state = CompletionService::new(engine.clone(), code.clone(), prompt_template);
         Arc::new(state)
     };
 
