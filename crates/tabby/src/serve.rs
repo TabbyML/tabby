@@ -23,7 +23,7 @@ use crate::{
         completion::{self, create_completion_service},
         event::create_logger,
         health,
-        model::{download_model_if_needed},
+        model::download_model_if_needed,
     },
     Device,
 };

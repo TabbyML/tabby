@@ -105,8 +105,10 @@ async fn main() {
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
-        Commands::WorkerCompletion(args) => worker::completion(args).await,
-        Commands::WorkerChat(args) => worker::chat(args).await,
+        Commands::WorkerCompletion(args) => {
+            worker::main(worker::WorkerKind::Completion, args).await
+        }
+        Commands::WorkerChat(args) => worker::main(worker::WorkerKind::Chat, args).await,
     }
 
     opentelemetry::global::shutdown_tracer_provider();

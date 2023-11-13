@@ -28,19 +28,8 @@ pub struct Webserver {
     chat: worker::WorkerGroup,
 }
 
-// FIXME: generate token and support refreshing in database.
-static WORKER_TOKEN: &str = "4c749fad-2be7-45a3-849e-7714ccade382";
-
 impl Webserver {
-    pub async fn register_worker(
-        &self,
-        token: String,
-        worker: Worker,
-    ) -> Result<Worker, WebserverError> {
-        if token != WORKER_TOKEN {
-            return Err(WebserverError::InvalidToken(token));
-        }
-
+    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, WebserverError> {
         let worker = match worker.kind {
             WorkerKind::Completion => self.completion.register(worker).await,
             WorkerKind::Chat => self.chat.register(worker).await,

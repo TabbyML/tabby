@@ -4,7 +4,7 @@ enum WorkerKind {
 }
 
 type Mutation {
-  registerWorker(token: String!, port: Int!, kind: WorkerKind!, name: String!, device: String!, arch: String!, cpuInfo: String!, cpuCount: Int!, cudaDevices: [String!]!): Worker!
+  registerWorker(port: Int!, kind: WorkerKind!, name: String!, device: String!, arch: String!, cpuInfo: String!, cpuCount: Int!, cudaDevices: [String!]!): Worker!
 }
 
 type Query {

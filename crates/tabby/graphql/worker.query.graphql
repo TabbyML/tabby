@@ -1,5 +1,4 @@
 mutation RegisterWorker(
-  $token: String!
   $port: Int!
   $kind: WorkerKind!
   $name: String!
@@ -10,7 +9,6 @@ mutation RegisterWorker(
   $cudaDevices: [String!]!
 ) {
   worker: registerWorker(
-    token: $token
     port: $port
     kind: $kind
     name: $name

@@ -56,7 +56,6 @@ pub struct Mutation;
 impl Mutation {
     async fn register_worker(
         request: &Request,
-        token: String,
         port: i32,
         kind: WorkerKind,
         name: String,
@@ -77,7 +76,7 @@ impl Mutation {
             cpu_count,
             cuda_devices,
         };
-        ws.register_worker(token, worker).await
+        ws.register_worker(worker).await
     }
 }
 
