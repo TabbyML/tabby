@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 use axum::{extract::State, Json};
-use sysinfo::SystemExt;
-use utoipa::ToSchema;
 
 use crate::services::health;
 

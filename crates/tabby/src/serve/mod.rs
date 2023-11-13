@@ -20,7 +20,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     api::{self},
     fatal, routes,
-    services::{chat, completions, event::create_event_logger, health, model},
+    services::{chat, completion, event::create_event_logger, health, model},
 };
 
 #[derive(OpenApi)]
@@ -43,13 +43,13 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
     components(schemas(
         api::event::LogEventRequest,
-        completions::CompletionRequest,
-        completions::CompletionResponse,
-        completions::Segments,
-        completions::Choice,
-        completions::Snippet,
-        completions::DebugOptions,
-        completions::DebugData,
+        completion::CompletionRequest,
+        completion::CompletionResponse,
+        completion::Segments,
+        completion::Choice,
+        completion::Snippet,
+        completion::DebugOptions,
+        completion::DebugData,
         chat::ChatCompletionRequest,
         chat::Message,
         chat::ChatCompletionChunk,
@@ -172,7 +172,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
                 prompt_template, ..
             },
         ) = model::load_text_generation(&args.model, &args.device, args.parallelism).await;
-        let state = completions::CompletionService::new(
+        let state = completion::CompletionService::new(
             engine.clone(),
             code.clone(),
             logger.clone(),

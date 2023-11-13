@@ -5,7 +5,6 @@ use axum::{
     Json,
 };
 use hyper::StatusCode;
-use utoipa::ToSchema;
 
 use crate::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
 
