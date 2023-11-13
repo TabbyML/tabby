@@ -4,7 +4,7 @@ use serde::Deserialize;
 use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
 use tabby_inference::TextGeneration;
 
-use crate::{fatal, serve::Device};
+use crate::{fatal, Device};
 
 pub async fn load_text_generation(
     model_id: &str,

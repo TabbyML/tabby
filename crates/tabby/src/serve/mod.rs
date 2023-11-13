@@ -20,7 +20,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     api::{self},
     fatal, routes,
-    services::{chat, completion, event::create_event_logger, health, model},
+    services::{chat, completion, event::create_logger, health, model}, Device,
 };
 
 #[derive(OpenApi)]
@@ -61,41 +61,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ))
 )]
 struct ApiDoc;
-
-#[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
-pub enum Device {
-    #[strum(serialize = "cpu")]
-    Cpu,
-
-    #[cfg(feature = "cuda")]
-    #[strum(serialize = "cuda")]
-    Cuda,
-
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    #[strum(serialize = "metal")]
-    Metal,
-
-    #[cfg(feature = "experimental-http")]
-    #[strum(serialize = "experimental_http")]
-    ExperimentalHttp,
-}
-
-impl Device {
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Metal
-    }
-
-    #[cfg(feature = "cuda")]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Cuda
-    }
-
-    #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda")))]
-    pub fn ggml_use_gpu(&self) -> bool {
-        false
-    }
-}
 
 #[derive(Args)]
 pub struct ServeArgs {
@@ -163,7 +128,7 @@ async fn load_model(args: &ServeArgs) {
 }
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let logger = Arc::new(create_event_logger());
+    let logger = Arc::new(create_logger());
     let code = Arc::new(crate::services::code::create_code_search());
     let completion_state = {
         let (

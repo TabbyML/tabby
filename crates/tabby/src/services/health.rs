@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use sysinfo::{CpuExt, System, SystemExt};
 use utoipa::ToSchema;
 
-use crate::serve::Device;
+use crate::Device;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthState {

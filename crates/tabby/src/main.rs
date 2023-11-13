@@ -1,8 +1,10 @@
 mod api;
-mod download;
 mod routes;
-mod serve;
 mod services;
+
+mod download;
+mod serve;
+mod worker;
 
 use clap::{Parser, Subcommand};
 use opentelemetry::{
@@ -36,6 +38,8 @@ pub enum Commands {
 
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
+
+    Worker(worker::WorkerArgs),
 }
 
 #[derive(clap::Args)]
@@ -43,6 +47,41 @@ pub struct SchedulerArgs {
     /// If true, runs scheduler jobs immediately.
     #[clap(long, default_value_t = false)]
     now: bool,
+}
+
+#[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
+pub enum Device {
+    #[strum(serialize = "cpu")]
+    Cpu,
+
+    #[cfg(feature = "cuda")]
+    #[strum(serialize = "cuda")]
+    Cuda,
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[strum(serialize = "metal")]
+    Metal,
+
+    #[cfg(feature = "experimental-http")]
+    #[strum(serialize = "experimental_http")]
+    ExperimentalHttp,
+}
+
+impl Device {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Metal
+    }
+
+    #[cfg(feature = "cuda")]
+    pub fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Cuda
+    }
+
+    #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda")))]
+    pub fn ggml_use_gpu(&self) -> bool {
+        false
+    }
 }
 
 #[tokio::main]
@@ -58,6 +97,7 @@ async fn main() {
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
+        Commands::Worker(args) => worker::main(args).await,
     }
 
     opentelemetry::global::shutdown_tracer_provider();
