@@ -1,10 +1,10 @@
-mod prompt;
+mod chat_prompt;
 
 use std::sync::Arc;
 
 use async_stream::stream;
+use chat_prompt::ChatPromptBuilder;
 use futures::stream::BoxStream;
-use prompt::ChatPromptBuilder;
 use serde::{Deserialize, Serialize};
 use tabby_common::languages::EMPTY_LANGUAGE;
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
@@ -47,26 +47,22 @@ impl ChatService {
         }
     }
 
-    fn parse_request(&self, request: &ChatCompletionRequest) -> (String, TextGenerationOptions) {
-        let mut builder = TextGenerationOptionsBuilder::default();
-
-        builder
+    fn text_generation_options() -> TextGenerationOptions {
+        TextGenerationOptionsBuilder::default()
             .max_input_length(2048)
             .max_decoding_length(1920)
             .language(&EMPTY_LANGUAGE)
-            .sampling_temperature(0.1);
-
-        (
-            self.prompt_builder.build(&request.messages),
-            builder.build().unwrap(),
-        )
+            .sampling_temperature(0.1)
+            .build()
+            .unwrap()
     }
 
     pub async fn generate(
         &self,
         request: &ChatCompletionRequest,
     ) -> BoxStream<ChatCompletionChunk> {
-        let (prompt, options) = self.parse_request(request);
+        let prompt = self.prompt_builder.build(&request.messages);
+        let options = Self::text_generation_options();
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {

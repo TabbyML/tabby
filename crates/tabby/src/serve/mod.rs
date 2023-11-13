@@ -31,7 +31,7 @@ use self::{
 use crate::{
     api::{Hit, HitDocument, SearchResponse},
     fatal,
-    services::chat::ChatService,
+    services::{chat::ChatService, completions::CompletionService},
 };
 
 #[derive(OpenApi)]
@@ -54,13 +54,13 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     paths(events::log_event, completions::completions, chat::completions, health::health, search::search),
     components(schemas(
         events::LogEventRequest,
-        completions::CompletionRequest,
-        completions::CompletionResponse,
-        completions::Segments,
-        completions::Choice,
-        completions::Snippet,
-        completions::DebugOptions,
-        completions::DebugData,
+        crate::services::completions::CompletionRequest,
+        crate::services::completions::CompletionResponse,
+        crate::services::completions::Segments,
+        crate::services::completions::Choice,
+        crate::services::completions::Snippet,
+        crate::services::completions::DebugOptions,
+        crate::services::completions::DebugData,
         crate::services::chat::ChatCompletionRequest,
         crate::services::chat::Message,
         crate::services::chat::ChatCompletionChunk,
@@ -182,8 +182,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
                 prompt_template, ..
             },
         ) = create_engine(&args.model, args).await;
-        let state =
-            completions::CompletionState::new(engine.clone(), code.clone(), prompt_template);
+        let state = CompletionService::new(engine.clone(), code.clone(), prompt_template);
         Arc::new(state)
     };
 
