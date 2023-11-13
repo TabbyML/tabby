@@ -1,5 +1,4 @@
 use std::{
-    fs,
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
     time::Duration,
@@ -9,7 +8,6 @@ use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{config::Config, usage};
-use tabby_download::download_model;
 use tabby_webserver::attach_webserver;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
@@ -20,7 +18,14 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     api::{self},
     fatal, routes,
-    services::{chat, completion, event::create_event_logger, health, model},
+    services::{
+        chat::{self, create_chat_service},
+        completion::{self, create_completion_service},
+        event::create_logger,
+        health,
+        model::download_model_if_needed,
+    },
+    Device,
 };
 
 #[derive(OpenApi)]
@@ -61,41 +66,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ))
 )]
 struct ApiDoc;
-
-#[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
-pub enum Device {
-    #[strum(serialize = "cpu")]
-    Cpu,
-
-    #[cfg(feature = "cuda")]
-    #[strum(serialize = "cuda")]
-    Cuda,
-
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    #[strum(serialize = "metal")]
-    Metal,
-
-    #[cfg(feature = "experimental-http")]
-    #[strum(serialize = "experimental_http")]
-    ExperimentalHttp,
-}
-
-impl Device {
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Metal
-    }
-
-    #[cfg(feature = "cuda")]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Cuda
-    }
-
-    #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda")))]
-    pub fn ggml_use_gpu(&self) -> bool {
-        false
-    }
-}
 
 #[derive(Args)]
 pub struct ServeArgs {
@@ -152,43 +122,30 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn load_model(args: &ServeArgs) {
-    if fs::metadata(&args.model).is_ok() {
-        info!("Loading model from local path {}", &args.model);
-    } else {
-        download_model(&args.model, true).await;
-        if let Some(chat_model) = &args.chat_model {
-            download_model(chat_model, true).await;
-        }
+    download_model_if_needed(&args.model).await;
+    if let Some(chat_model) = &args.chat_model {
+        download_model_if_needed(chat_model).await
     }
 }
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let logger = Arc::new(create_event_logger());
+    let logger = Arc::new(create_logger());
     let code = Arc::new(crate::services::code::create_code_search());
-    let completion_state = {
-        let (
-            engine,
-            model::PromptInfo {
-                prompt_template, ..
-            },
-        ) = model::load_text_generation(&args.model, &args.device, args.parallelism).await;
-        let state = completion::CompletionService::new(
-            engine.clone(),
+    let completion = Arc::new(
+        create_completion_service(
             code.clone(),
             logger.clone(),
-            prompt_template,
-        );
-        Arc::new(state)
-    };
+            &args.model,
+            &args.device,
+            args.parallelism,
+        )
+        .await,
+    );
 
-    let chat_state = if let Some(chat_model) = &args.chat_model {
-        let (engine, model::PromptInfo { chat_template, .. }) =
-            model::load_text_generation(chat_model, &args.device, args.parallelism).await;
-        let Some(chat_template) = chat_template else {
-            panic!("Chat model requires specifying prompt template");
-        };
-        let state = chat::ChatService::new(engine, chat_template);
-        Some(Arc::new(state))
+    let chat_state = if let Some(_chat_model) = &args.chat_model {
+        Some(Arc::new(
+            create_chat_service(&args.model, &args.device, args.parallelism).await,
+        ))
     } else {
         None
     };
@@ -220,7 +177,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
         Router::new()
             .route(
                 "/v1/completions",
-                routing::post(routes::completions).with_state(completion_state),
+                routing::post(routes::completions).with_state(completion),
             )
             .layer(TimeoutLayer::new(Duration::from_secs(
                 config.server.completion_timeout,

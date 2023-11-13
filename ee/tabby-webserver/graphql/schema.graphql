@@ -1,0 +1,28 @@
+enum WorkerKind {
+  COMPLETION
+  CHAT
+}
+
+type Mutation {
+  registerWorker(port: Int!, kind: WorkerKind!, name: String!, device: String!, arch: String!, cpuInfo: String!, cpuCount: Int!, cudaDevices: [String!]!): Worker!
+}
+
+type Query {
+  workers: [Worker!]!
+}
+
+type Worker {
+  kind: WorkerKind!
+  name: String!
+  addr: String!
+  device: String!
+  arch: String!
+  cpuInfo: String!
+  cpuCount: Int!
+  cudaDevices: [String!]!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

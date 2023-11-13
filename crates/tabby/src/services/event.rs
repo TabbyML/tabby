@@ -85,6 +85,16 @@ fn timestamp() -> u128 {
         .as_millis()
 }
 
-pub fn create_event_logger() -> impl EventLogger {
+pub fn create_logger() -> impl EventLogger {
     EventService
+}
+
+struct NullLogger;
+
+impl EventLogger for NullLogger {
+    fn log(&self, _e: &Event) {}
+}
+
+pub fn create_null_logger() -> impl EventLogger {
+    NullLogger
 }

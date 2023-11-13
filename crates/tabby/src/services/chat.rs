@@ -11,6 +11,9 @@ use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptio
 use tracing::debug;
 use utoipa::ToSchema;
 
+use super::model;
+use crate::{fatal, Device};
+
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
     "messages": [
@@ -40,7 +43,7 @@ pub struct ChatService {
 }
 
 impl ChatService {
-    pub fn new(engine: Arc<dyn TextGeneration>, chat_template: String) -> Self {
+    fn new(engine: Arc<dyn TextGeneration>, chat_template: String) -> Self {
         Self {
             engine,
             prompt_builder: ChatPromptBuilder::new(chat_template),
@@ -72,4 +75,15 @@ impl ChatService {
 
         Box::pin(s)
     }
+}
+
+pub async fn create_chat_service(model: &str, device: &Device, parallelism: u8) -> ChatService {
+    let (engine, model::PromptInfo { chat_template, .. }) =
+        model::load_text_generation(model, device, parallelism).await;
+
+    let Some(chat_template) = chat_template else {
+        fatal!("Chat model requires specifying prompt template");
+    };
+
+    ChatService::new(engine, chat_template)
 }

@@ -1,4 +1,4 @@
-mod schema;
+pub mod schema;
 mod ui;
 mod webserver;
 mod worker;

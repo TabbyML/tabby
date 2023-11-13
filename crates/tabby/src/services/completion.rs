@@ -9,10 +9,14 @@ use thiserror::Error;
 use tracing::debug;
 use utoipa::ToSchema;
 
-use crate::api::{
-    self,
-    code::CodeSearch,
-    event::{Event, EventLogger},
+use super::model;
+use crate::{
+    api::{
+        self,
+        code::CodeSearch,
+        event::{Event, EventLogger},
+    },
+    Device,
 };
 
 #[derive(Error, Debug)]
@@ -166,7 +170,7 @@ pub struct CompletionService {
 }
 
 impl CompletionService {
-    pub fn new(
+    fn new(
         engine: Arc<dyn TextGeneration>,
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
@@ -259,4 +263,21 @@ impl CompletionService {
             debug_data,
         ))
     }
+}
+
+pub async fn create_completion_service(
+    code: Arc<dyn CodeSearch>,
+    logger: Arc<dyn EventLogger>,
+    model: &str,
+    device: &Device,
+    parallelism: u8,
+) -> CompletionService {
+    let (
+        engine,
+        model::PromptInfo {
+            prompt_template, ..
+        },
+    ) = model::load_text_generation(model, device, parallelism).await;
+
+    CompletionService::new(engine.clone(), code, logger, prompt_template)
 }

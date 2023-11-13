@@ -1,42 +1,41 @@
-use std::{
-    net::SocketAddr,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use tokio::sync::RwLock;
 use tracing::error;
 
+use crate::schema::Worker;
+
 #[derive(Default)]
 pub struct WorkerGroup {
-    workers: RwLock<Vec<String>>,
+    workers: RwLock<Vec<Worker>>,
 }
 
 impl WorkerGroup {
     pub async fn select(&self) -> Option<String> {
         let workers = self.workers.read().await;
         if workers.len() > 0 {
-            Some(workers[random_index(workers.len())].clone())
+            Some(workers[random_index(workers.len())].addr.clone())
         } else {
             None
         }
     }
 
-    pub async fn list(&self) -> Vec<String> {
+    pub async fn list(&self) -> Vec<Worker> {
         self.workers.read().await.clone()
     }
 
-    pub async fn register(&self, addr: SocketAddr) -> Option<String> {
-        let addr = format!("http://{}", addr);
+    pub async fn register(&self, worker: Worker) -> Option<Worker> {
         let mut workers = self.workers.write().await;
         if workers.len() >= 1 {
             error!("You need enterprise license to utilize more than 1 workers, please contact hi@tabbyml.com for information.");
             return None;
         }
 
-        if !workers.contains(&addr) {
-            workers.push(addr.clone());
+        if workers.iter().all(|x| x.addr != worker.addr) {
+            workers.push(worker.clone());
         }
-        Some(addr)
+
+        Some(worker)
     }
 }
 
@@ -50,23 +49,38 @@ fn random_index(size: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
+    use crate::schema::WorkerKind;
 
     #[tokio::test]
     async fn test_worker_group() {
         let wg = WorkerGroup::default();
 
-        let addr1 = "127.0.0.1:8080".parse().unwrap();
-        let addr2 = "127.0.0.2:8080".parse().unwrap();
+        let worker1 = make_worker("http://127.0.0.1:8080");
+        let worker2 = make_worker("http://127.0.0.2:8080");
 
         // Register success.
-        assert!(wg.register(addr1).await.is_some());
+        assert!(wg.register(worker1.clone()).await.is_some());
 
         // Register failed, as > 1 workers requires enterprise license.
-        assert!(wg.register(addr2).await.is_none());
+        assert!(wg.register(worker2).await.is_none());
 
         let workers = wg.list().await;
         assert_eq!(workers.len(), 1);
-        assert_eq!(workers[0], format!("http://{}", addr1));
+        assert_eq!(workers[0].addr, worker1.addr);
+    }
+
+    fn make_worker(addr: &str) -> Worker {
+        Worker {
+            name: "Fake worker".to_owned(),
+            kind: WorkerKind::Chat,
+            addr: addr.to_owned(),
+            device: "cuda".to_owned(),
+            arch: "x86_64".to_owned(),
+            cpu_info: "Fake CPU".to_owned(),
+            cpu_count: 32,
+            cuda_devices: vec![],
+        }
     }
 }

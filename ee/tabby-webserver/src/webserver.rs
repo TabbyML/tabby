@@ -28,47 +28,26 @@ pub struct Webserver {
     chat: worker::WorkerGroup,
 }
 
-// FIXME: generate token and support refreshing in database.
-static WORKER_TOKEN: &str = "4c749fad-2be7-45a3-849e-7714ccade382";
-
 impl Webserver {
-    pub async fn register_worker(
-        &self,
-        token: String,
-        client_addr: SocketAddr,
-        kind: WorkerKind,
-        port: i32,
-    ) -> Result<Worker, WebserverError> {
-        if token != WORKER_TOKEN {
-            return Err(WebserverError::InvalidToken(token));
-        }
-
-        let addr = SocketAddr::new(client_addr.ip(), port as u16);
-        let addr = match kind {
-            WorkerKind::Completion => self.completion.register(addr).await,
-            WorkerKind::Chat => self.chat.register(addr).await,
+    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, WebserverError> {
+        let worker = match worker.kind {
+            WorkerKind::Completion => self.completion.register(worker).await,
+            WorkerKind::Chat => self.chat.register(worker).await,
         };
 
-        if let Some(addr) = addr {
-            info!("registering <{:?}> worker running at {}", kind, addr);
-            Ok(Worker::new(kind, addr))
+        if let Some(worker) = worker {
+            info!(
+                "registering <{:?}> worker running at {}",
+                worker.kind, worker.addr
+            );
+            Ok(worker)
         } else {
             Err(WebserverError::RequiresEnterpriseLicense)
         }
     }
 
     pub async fn list_workers(&self) -> Vec<Worker> {
-        let make_workers = |x: WorkerKind, lst: Vec<String>| -> Vec<Worker> {
-            lst.into_iter()
-                .map(|addr| Worker::new(x.clone(), addr))
-                .collect()
-        };
-
-        [
-            make_workers(WorkerKind::Completion, self.completion.list().await),
-            make_workers(WorkerKind::Chat, self.chat.list().await),
-        ]
-        .concat()
+        [self.completion.list().await, self.chat.list().await].concat()
     }
 
     pub async fn dispatch_request(
