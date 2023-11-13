@@ -5,17 +5,20 @@ use std::{
 };
 
 use axum::{routing, Router};
-use clap::Args;
+use clap::{Args, ArgGroup};
 use graphql_client::{reqwest::post_graphql, GraphQLQuery};
 use hyper::Server;
-
 use tracing::{info, warn};
 
+use self::register_worker::WorkerKind;
 use crate::{
     fatal, routes,
     services::{
         chat::create_chat_service,
-        health::{read_cpu_info, read_cuda_devices, HealthState},
+        code,
+        completion::create_completion_service,
+        event::{self},
+        health::{read_cpu_info, read_cuda_devices},
         model::download_model_if_needed,
     },
     Device,
@@ -30,7 +33,7 @@ pub struct RegisterWorker;
 
 #[derive(Args)]
 pub struct WorkerArgs {
-    /// URL to register this worker to.
+    /// URL to register this worker.
     #[clap(long)]
     url: String,
 
@@ -41,17 +44,17 @@ pub struct WorkerArgs {
     #[clap(long, default_value_t = 8080)]
     port: u16,
 
-    /// Model id for `/v1beta/chat/completions` API endpoint.
-    #[clap(long)]
+    /// Model id
+    #[clap(long, help_heading=Some("Model Options"))]
     model: String,
 
     /// Device to run model inference.
-    #[clap(long, default_value_t=Device::Cpu)]
+    #[clap(long, default_value_t=Device::Cpu, help_heading=Some("Model Options"))]
     device: Device,
 
     /// Parallelism for model serving - increasing this number will have a significant impact on the
     /// memory requirement e.g., GPU vRAM.
-    #[clap(long, default_value_t = 1)]
+    #[clap(long, default_value_t = 1, help_heading=Some("Model Options"))]
     parallelism: u8,
 }
 
@@ -70,8 +73,41 @@ pub async fn chat(args: &WorkerArgs) {
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
-    register(
-        register_worker::WorkerKind::CHAT,
+    request_register(WorkerKind::CHAT, args).await;
+    Server::bind(&address)
+        .serve(app.into_make_service())
+        .await
+        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
+}
+
+pub async fn completion(args: &WorkerArgs) {
+    download_model_if_needed(&args.model).await;
+    let code = Arc::new(code::create_code_search());
+    let logger = Arc::new(event::create_null_logger());
+    info!("Starting worker, this might takes a few minutes...");
+
+    let state = Arc::new(
+        create_completion_service(code, logger, &args.model, &args.device, args.parallelism).await,
+    );
+
+    let app = Router::new().route(
+        "/v1/completions",
+        routing::post(routes::completions).with_state(state),
+    );
+
+    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
+    info!("Listening at {}", address);
+
+    request_register(WorkerKind::COMPLETION, args).await;
+    Server::bind(&address)
+        .serve(app.into_make_service())
+        .await
+        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
+}
+
+async fn request_register(kind: WorkerKind, args: &WorkerArgs) {
+    request_register_impl(
+        kind,
         args.url.clone(),
         args.token.clone(),
         args.port as i64,
@@ -79,13 +115,9 @@ pub async fn chat(args: &WorkerArgs) {
         args.device.to_string(),
     )
     .await;
-    Server::bind(&address)
-        .serve(app.into_make_service())
-        .await
-        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-async fn register(
+async fn request_register_impl(
     kind: register_worker::WorkerKind,
     url: String,
     token: String,

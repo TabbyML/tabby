@@ -43,7 +43,7 @@ pub struct ChatService {
 }
 
 impl ChatService {
-    pub fn new(engine: Arc<dyn TextGeneration>, chat_template: String) -> Self {
+    fn new(engine: Arc<dyn TextGeneration>, chat_template: String) -> Self {
         Self {
             engine,
             prompt_builder: ChatPromptBuilder::new(chat_template),

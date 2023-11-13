@@ -20,10 +20,10 @@ use crate::{
     fatal, routes,
     services::{
         chat::{self, create_chat_service},
-        completion,
+        completion::{self, create_completion_service},
         event::create_logger,
         health,
-        model::{self, download_model_if_needed},
+        model::{download_model_if_needed},
     },
     Device,
 };
@@ -131,21 +131,16 @@ async fn load_model(args: &ServeArgs) {
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let logger = Arc::new(create_logger());
     let code = Arc::new(crate::services::code::create_code_search());
-    let completion_state = {
-        let (
-            engine,
-            model::PromptInfo {
-                prompt_template, ..
-            },
-        ) = model::load_text_generation(&args.model, &args.device, args.parallelism).await;
-        let state = completion::CompletionService::new(
-            engine.clone(),
+    let completion = Arc::new(
+        create_completion_service(
             code.clone(),
             logger.clone(),
-            prompt_template,
-        );
-        Arc::new(state)
-    };
+            &args.model,
+            &args.device,
+            args.parallelism,
+        )
+        .await,
+    );
 
     let chat_state = if let Some(_chat_model) = &args.chat_model {
         Some(Arc::new(
@@ -182,7 +177,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
         Router::new()
             .route(
                 "/v1/completions",
-                routing::post(routes::completions).with_state(completion_state),
+                routing::post(routes::completions).with_state(completion),
             )
             .layer(TimeoutLayer::new(Duration::from_secs(
                 config.server.completion_timeout,
