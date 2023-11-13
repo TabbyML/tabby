@@ -1,4 +1,5 @@
 use std::{
+    env::consts::ARCH,
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
 };
@@ -8,14 +9,14 @@ use clap::Args;
 use graphql_client::{reqwest::post_graphql, GraphQLQuery};
 use hyper::Server;
 
-
 use tracing::{info, warn};
 
 use crate::{
     fatal, routes,
     services::{
-        chat::{create_chat_service},
-        model::{download_model_if_needed},
+        chat::create_chat_service,
+        health::{read_cpu_info, read_cuda_devices, HealthState},
+        model::download_model_if_needed,
     },
     Device,
 };
@@ -25,7 +26,7 @@ use crate::{
     schema_path = "../../ee/tabby-webserver/graphql/schema.graphql",
     query_path = "./graphql/worker.query.graphql"
 )]
-pub struct RegisterChatWorker;
+pub struct RegisterWorker;
 
 #[derive(Args)]
 pub struct WorkerArgs {
@@ -69,32 +70,46 @@ pub async fn chat(args: &WorkerArgs) {
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
-    start_heartbeat(args);
+    register(
+        register_worker::WorkerKind::CHAT,
+        args.url.clone(),
+        args.token.clone(),
+        args.port as i64,
+        args.model.to_owned(),
+        args.device.to_string(),
+    )
+    .await;
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn start_heartbeat(args: &WorkerArgs) {
-    let url = args.url.clone();
-    let token = args.token.clone();
-    let port = args.port as i64;
-
-    tokio::spawn(async move {
-        register_worker(url.clone(), token.clone(), port).await;
-    });
-}
-
-async fn register_worker(url: String, token: String, port: i64) {
+async fn register(
+    kind: register_worker::WorkerKind,
+    url: String,
+    token: String,
+    port: i64,
+    name: String,
+    device: String,
+) {
     let client = reqwest::Client::new();
-    let variables = register_chat_worker::Variables {
+    let (cpu_info, cpu_count) = read_cpu_info();
+    let cuda_devices = read_cuda_devices().unwrap_or_default();
+    let variables = register_worker::Variables {
         token,
         port,
+        kind,
+        name,
+        device,
+        arch: ARCH.to_string(),
+        cpu_info,
+        cpu_count: cpu_count as i64,
+        cuda_devices,
     };
 
     let url = format!("{}/graphql", url);
-    match post_graphql::<RegisterChatWorker, _>(&client, &url, variables).await {
+    match post_graphql::<RegisterWorker, _>(&client, &url, variables).await {
         Ok(x) => {
             let addr = x.data.unwrap().worker.addr;
             info!("Worker alive at {}", addr);

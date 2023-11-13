@@ -44,7 +44,7 @@ impl HealthState {
     }
 }
 
-fn read_cpu_info() -> (String, usize) {
+pub fn read_cpu_info() -> (String, usize) {
     let mut system = System::new_all();
     system.refresh_cpu();
     let cpus = system.cpus();
@@ -59,7 +59,7 @@ fn read_cpu_info() -> (String, usize) {
     (info, count)
 }
 
-fn read_cuda_devices() -> Result<Vec<String>> {
+pub fn read_cuda_devices() -> Result<Vec<String>> {
     // In cases of MacOS or docker containers where --gpus are not specified,
     // the Nvml::init() would return an error. In these scenarios, we
     // assign cuda_devices to be empty, indicating that the current runtime

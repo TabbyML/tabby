@@ -70,7 +70,7 @@ impl Mutation {
         let worker = Worker {
             name,
             kind,
-            addr: format!("http://{}:{}", request.client_addr, port),
+            addr: format!("http://{}:{}", request.client_addr.ip(), port),
             device,
             arch,
             cpu_info,

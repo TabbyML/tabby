@@ -1,5 +1,25 @@
-mutation RegisterChatWorker($token: String!, $port: Int!) {
-  worker: registerWorker(token: $token, kind: CHAT, port: $port) {
+mutation RegisterWorker(
+  $token: String!
+  $port: Int!
+  $kind: WorkerKind!
+  $name: String!
+  $device: String!
+  $arch: String!
+  $cpuInfo: String!
+  $cpuCount: Int!
+  $cudaDevices: [String!]!
+) {
+  worker: registerWorker(
+    token: $token
+    port: $port
+    kind: $kind
+    name: $name
+    device: $device
+    arch: $arch
+    cpuInfo: $cpuInfo
+    cpuCount: $cpuCount
+    cudaDevices: $cudaDevices
+  ) {
     addr
   }
 }
