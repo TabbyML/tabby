@@ -9,7 +9,7 @@ use clap::Args;
 use hyper::Server;
 use tabby_common::usage;
 use tokio::time::sleep;
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::{
     fatal, routes,
@@ -20,6 +20,15 @@ use crate::{
     },
     Device,
 };
+
+use graphql_client::{reqwest::post_graphql, GraphQLQuery};
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "../../ee/tabby-webserver/graphql/schema.graphql",
+    query_path = "./graphql/worker.query.graphql"
+)]
+pub struct RegisterChatWorker;
 
 #[derive(Args)]
 pub struct WorkerArgs {
@@ -63,6 +72,7 @@ pub async fn chat(args: &WorkerArgs) {
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
+    start_heartbeat(&args);
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
@@ -70,4 +80,28 @@ pub async fn chat(args: &WorkerArgs) {
 }
 
 fn start_heartbeat(args: &WorkerArgs) {
+    let url = args.url.clone();
+    let token = args.token.clone();
+    let port = args.port as i64;
+
+    tokio::spawn(async move {
+        register_worker(url.clone(), token.clone(), port).await;
+    });
+}
+
+async fn register_worker(url: String, token: String, port: i64) {
+    let client = reqwest::Client::new();
+    let variables = register_chat_worker::Variables {
+        token: token,
+        port: port,
+    };
+
+    let url = format!("{}/graphql", url);
+    match post_graphql::<RegisterChatWorker, _>(&client, &url, variables).await {
+        Ok(x) => {
+            let addr = x.data.unwrap().worker.addr;
+            info!("Worker alive at {}", addr);
+        }
+        Err(err) => warn!("Failed to register worker: {}", err),
+    }
 }

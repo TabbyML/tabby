@@ -1,0 +1,5 @@
+mutation RegisterChatWorker($token: String!, $port: Int!) {
+  worker: registerWorker(token: $token, kind: CHAT, port: $port) {
+    addr
+  }
+}

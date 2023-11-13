@@ -20,7 +20,7 @@ use crate::{
     api::{self},
     fatal, routes,
     services::{
-        chat, completion,
+        chat::{self, create_chat_service}, completion,
         event::create_logger,
         health,
         model::{self, download_model_if_needed},
@@ -148,7 +148,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
-        Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await)
+        Some(Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await))
     } else {
         None
     };
