@@ -1,5 +1,6 @@
 import { CompletionContext, CompletionResponse } from "../Agent";
 import { AgentConfig } from "../AgentConfig";
+import { isBrowser } from "../env";
 import { applyFilter } from "./base";
 import { removeRepetitiveBlocks } from "./removeRepetitiveBlocks";
 import { removeRepetitiveLines } from "./removeRepetitiveLines";
@@ -9,6 +10,7 @@ import { trimSpace } from "./trimSpace";
 import { dropDuplicated } from "./dropDuplicated";
 import { dropBlank } from "./dropBlank";
 import { calculateReplaceRangeByBracketStack } from "./calculateReplaceRangeByBracketStack";
+import { calculateReplaceRangeBySyntax, supportedLanguages } from "./calculateReplaceRangeBySyntax";
 
 export async function preCacheProcess(
   context: CompletionContext,
@@ -37,8 +39,13 @@ export async function postCacheProcess(
 }
 
 export async function calculateReplaceRange(
-  response: CompletionResponse,
   context: CompletionContext,
+  config: AgentConfig["postprocess"],
+  response: CompletionResponse,
 ): Promise<CompletionResponse> {
-  return calculateReplaceRangeByBracketStack(response, context);
+  return isBrowser || // syntax parser is not supported in browser yet
+    !config["calculateReplaceRange"].experimentalSyntax ||
+    !supportedLanguages.includes(context.language)
+    ? calculateReplaceRangeByBracketStack(response, context)
+    : calculateReplaceRangeBySyntax(response, context);
 }

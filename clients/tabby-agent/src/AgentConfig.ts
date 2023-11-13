@@ -31,6 +31,10 @@ export type AgentConfig = {
         experimentalKeepBlockScopeWhenCompletingLine: boolean;
       };
     };
+    calculateReplaceRange: {
+      // Prefer to use syntax parser than bracket stack
+      experimentalSyntax: boolean;
+    };
   };
   logs: {
     level: "debug" | "error" | "silent";
@@ -75,6 +79,9 @@ export const defaultAgentConfig: AgentConfig = {
       indentation: {
         experimentalKeepBlockScopeWhenCompletingLine: false,
       },
+    },
+    calculateReplaceRange: {
+      experimentalSyntax: false,
     },
   },
   logs: {
