@@ -1,6 +1,5 @@
 mod chat;
 mod completions;
-mod engine;
 mod events;
 mod health;
 mod search;
@@ -24,14 +23,15 @@ use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::{
-    engine::{create_engine, EngineInfo},
-    health::HealthState,
-};
+use self::health::HealthState;
 use crate::{
     api::{Hit, HitDocument, SearchResponse},
     fatal,
-    services::{chat::ChatService, completions::CompletionService},
+    services::{
+        chat::ChatService,
+        completions::CompletionService,
+        model::{load_text_generation, PromptInfo},
+    },
 };
 
 #[derive(OpenApi)]
@@ -93,17 +93,17 @@ pub enum Device {
 
 impl Device {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    fn ggml_use_gpu(&self) -> bool {
+    pub fn ggml_use_gpu(&self) -> bool {
         *self == Device::Metal
     }
 
     #[cfg(feature = "cuda")]
-    fn ggml_use_gpu(&self) -> bool {
+    pub fn ggml_use_gpu(&self) -> bool {
         *self == Device::Cuda
     }
 
     #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda")))]
-    fn ggml_use_gpu(&self) -> bool {
+    pub fn ggml_use_gpu(&self) -> bool {
         false
     }
 }
@@ -178,16 +178,17 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let completion_state = {
         let (
             engine,
-            EngineInfo {
+            PromptInfo {
                 prompt_template, ..
             },
-        ) = create_engine(&args.model, args).await;
+        ) = load_text_generation(&args.model, &args.device, args.parallelism).await;
         let state = CompletionService::new(engine.clone(), code.clone(), prompt_template);
         Arc::new(state)
     };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
-        let (engine, EngineInfo { chat_template, .. }) = create_engine(chat_model, args).await;
+        let (engine, PromptInfo { chat_template, .. }) =
+            load_text_generation(chat_model, &args.device, args.parallelism).await;
         let Some(chat_template) = chat_template else {
             panic!("Chat model requires specifying prompt template");
         };
