@@ -1,12 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
-use axum::{extract::Query, Json};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use hyper::StatusCode;
-
-use tabby_common::events::{self, SelectKind};
 use utoipa::ToSchema;
 
-use crate::api::LogEventRequest;
+use crate::api::{Event, EventLogger, LogEventRequest, SelectKind};
 
 #[utoipa::path(
     post,
@@ -20,22 +21,22 @@ use crate::api::LogEventRequest;
     )
 )]
 pub async fn log_event(
+    State(logger): State<Arc<dyn EventLogger>>,
     Query(params): Query<HashMap<String, String>>,
     Json(request): Json<LogEventRequest>,
 ) -> StatusCode {
     if request.event_type == "view" {
-        events::Event::View {
+        logger.log(&Event::View {
             completion_id: &request.completion_id,
             choice_index: request.choice_index,
-        }
-        .log();
+        });
         StatusCode::OK
     } else if request.event_type == "select" {
         let is_line = params
             .get("select_kind")
             .map(|x| x == "line")
             .unwrap_or(false);
-        events::Event::Select {
+        logger.log(&Event::Select {
             completion_id: &request.completion_id,
             choice_index: request.choice_index,
             kind: if is_line {
@@ -43,8 +44,7 @@ pub async fn log_event(
             } else {
                 None
             },
-        }
-        .log();
+        });
         StatusCode::OK
     } else {
         StatusCode::BAD_REQUEST

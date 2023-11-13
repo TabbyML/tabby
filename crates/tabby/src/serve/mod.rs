@@ -18,8 +18,9 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    api, fatal, routes,
-    services::{chat, completions, health, model},
+    api::{self},
+    fatal, routes,
+    services::{chat, completions, event::create_event_logger, health, model},
 };
 
 #[derive(OpenApi)]
@@ -162,6 +163,7 @@ async fn load_model(args: &ServeArgs) {
 }
 
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
+    let logger = Arc::new(create_event_logger());
     let code = Arc::new(crate::services::code::create_code_search());
     let completion_state = {
         let (
@@ -170,8 +172,12 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
                 prompt_template, ..
             },
         ) = model::load_text_generation(&args.model, &args.device, args.parallelism).await;
-        let state =
-            completions::CompletionService::new(engine.clone(), code.clone(), prompt_template);
+        let state = completions::CompletionService::new(
+            engine.clone(),
+            code.clone(),
+            logger.clone(),
+            prompt_template,
+        );
         Arc::new(state)
     };
 
@@ -196,7 +202,10 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     ));
     routers.push({
         Router::new()
-            .route("/v1/events", routing::post(routes::log_event))
+            .route(
+                "/v1/events",
+                routing::post(routes::log_event).with_state(logger),
+            )
             .route(
                 "/v1/health",
                 routing::post(routes::health).with_state(health_state.clone()),

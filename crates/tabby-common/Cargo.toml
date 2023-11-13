@@ -4,14 +4,12 @@ version = "0.6.0-dev"
 edition = "2021"
 
 [dependencies]
-chrono = "0.4.26"
 filenamify = "0.1.0"
 lazy_static = { workspace = true }
 serde = { workspace = true }
 serdeconv = { workspace = true }
 serde-jsonlines = { workspace = true }
 reqwest = { workspace = true, features = [ "json" ] }
-tokio = { workspace = true, features = ["rt", "macros"] }
 uuid = { version = "1.4.1", features = ["v4"] }
 tantivy.workspace = true
 anyhow.workspace = true
