@@ -1,5 +1,4 @@
 use std::{
-    fs,
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
     time::Duration,
@@ -9,7 +8,7 @@ use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{config::Config, usage};
-use tabby_download::download_model;
+
 use tabby_webserver::attach_webserver;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
@@ -20,7 +19,13 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     api::{self},
     fatal, routes,
-    services::{chat, completion, event::create_logger, health, model}, Device,
+    services::{
+        chat, completion,
+        event::create_logger,
+        health,
+        model::{self, download_model_if_needed},
+    },
+    Device,
 };
 
 #[derive(OpenApi)]
@@ -117,13 +122,9 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn load_model(args: &ServeArgs) {
-    if fs::metadata(&args.model).is_ok() {
-        info!("Loading model from local path {}", &args.model);
-    } else {
-        download_model(&args.model, true).await;
-        if let Some(chat_model) = &args.chat_model {
-            download_model(chat_model, true).await;
-        }
+    download_model_if_needed(&args.model).await;
+    if let Some(chat_model) = &args.chat_model {
+        download_model_if_needed(chat_model).await
     }
 }
 
@@ -147,13 +148,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
-        let (engine, model::PromptInfo { chat_template, .. }) =
-            model::load_text_generation(chat_model, &args.device, args.parallelism).await;
-        let Some(chat_template) = chat_template else {
-            panic!("Chat model requires specifying prompt template");
-        };
-        let state = chat::ChatService::new(engine, chat_template);
-        Some(Arc::new(state))
+        Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await)
     } else {
         None
     };
@@ -161,7 +156,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let mut routers = vec![];
 
     let health_state = Arc::new(health::HealthState::new(
-        &args.model,
+        Some(&args.model),
         args.chat_model.as_deref(),
         &args.device,
     ));
@@ -217,7 +212,8 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
 }
 
 fn start_heartbeat(args: &ServeArgs) {
-    let state = health::HealthState::new(&args.model, args.chat_model.as_deref(), &args.device);
+    let state =
+        health::HealthState::new(Some(&args.model), args.chat_model.as_deref(), &args.device);
     tokio::spawn(async move {
         loop {
             usage::capture("ServeHealth", &state).await;

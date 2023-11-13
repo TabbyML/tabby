@@ -39,7 +39,8 @@ pub enum Commands {
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
 
-    Worker(worker::WorkerArgs),
+    /// Run chat worker.
+    ChatWorker(worker::WorkerArgs),
 }
 
 #[derive(clap::Args)]
@@ -97,7 +98,7 @@ async fn main() {
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
-        Commands::Worker(args) => worker::main(args).await,
+        Commands::ChatWorker(args) => worker::chat(args).await,
     }
 
     opentelemetry::global::shutdown_tracer_provider();

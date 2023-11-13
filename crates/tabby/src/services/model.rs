@@ -2,7 +2,9 @@ use std::{fs, path::PathBuf, sync::Arc};
 
 use serde::Deserialize;
 use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
+use tabby_download::download_model;
 use tabby_inference::TextGeneration;
+use tracing::info;
 
 use crate::{fatal, Device};
 
@@ -71,4 +73,12 @@ fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> imp
         .unwrap();
 
     llama_cpp_bindings::LlamaTextGeneration::new(options)
+}
+
+pub async fn download_model_if_needed(model: &str) {
+    if fs::metadata(model).is_ok() {
+        info!("Loading model from local path {}", model);
+    } else {
+        download_model(model, true).await;
+    }
 }

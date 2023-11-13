@@ -1,9 +1,28 @@
-use clap::{Args, Parser, Subcommand};
+use std::{
+    net::{Ipv4Addr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
-use crate::Device;
+use axum::{routing, Router};
+use clap::Args;
+use hyper::Server;
+use tabby_common::usage;
+use tokio::time::sleep;
+use tracing::info;
+
+use crate::{
+    fatal, routes,
+    services::{
+        chat::{self, create_chat_service},
+        health,
+        model::{self, download_model_if_needed},
+    },
+    Device,
+};
 
 #[derive(Args)]
-pub struct ModelArgs {
+pub struct WorkerArgs {
     /// Model id for `/completions` API endpoint.
     #[clap(long)]
     model: String,
@@ -21,22 +40,36 @@ pub struct ModelArgs {
     parallelism: u8,
 }
 
-type CompletionArgs = ModelArgs;
-type ChatArgs = ModelArgs;
+pub async fn chat(args: &WorkerArgs) {
+    download_model_if_needed(&args.model).await;
 
-#[derive(Parser)]
-pub struct WorkerArgs {
-    #[structopt(subcommand)]
-    pub worker_commands: WorkerCommands,
+    info!("Starting worker, this might takes a few minutes...");
+
+    let state = Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await);
+
+    let app = Router::new().route(
+        "/v1beta/chat/completions",
+        routing::post(routes::chat_completions).with_state(state),
+    );
+
+    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
+    info!("Listening at {}", address);
+
+    start_heartbeat("ChatWorkerHeartBeat", args);
+    Server::bind(&address)
+        .serve(app.into_make_service())
+        .await
+        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-#[derive(Subcommand)]
-pub enum WorkerCommands {
-    /// Start completion worker.
-    Completion(CompletionArgs),
+fn start_heartbeat(name: &str, args: &WorkerArgs) {
+    let state = health::HealthState::new(None, Some(&args.model), &args.device);
 
-    /// Start chat worker.
-    Chat(ChatArgs),
+    let name = name.to_owned();
+    tokio::spawn(async move {
+        loop {
+            usage::capture(&name, &state).await;
+            sleep(Duration::from_secs(3000)).await;
+        }
+    });
 }
-
-pub async fn main(args: &WorkerArgs) {}
