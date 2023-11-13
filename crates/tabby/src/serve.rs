@@ -8,7 +8,6 @@ use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{config::Config, usage};
-
 use tabby_webserver::attach_webserver;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
@@ -20,7 +19,8 @@ use crate::{
     api::{self},
     fatal, routes,
     services::{
-        chat::{self, create_chat_service}, completion,
+        chat::{self, create_chat_service},
+        completion,
         event::create_logger,
         health,
         model::{self, download_model_if_needed},
@@ -147,8 +147,10 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
         Arc::new(state)
     };
 
-    let chat_state = if let Some(chat_model) = &args.chat_model {
-        Some(Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await))
+    let chat_state = if let Some(_chat_model) = &args.chat_model {
+        Some(Arc::new(
+            create_chat_service(&args.model, &args.device, args.parallelism).await,
+        ))
     } else {
         None
     };

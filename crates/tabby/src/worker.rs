@@ -1,27 +1,24 @@
 use std::{
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
-    time::Duration,
 };
 
 use axum::{routing, Router};
 use clap::Args;
+use graphql_client::{reqwest::post_graphql, GraphQLQuery};
 use hyper::Server;
-use tabby_common::usage;
-use tokio::time::sleep;
+
+
 use tracing::{info, warn};
 
 use crate::{
     fatal, routes,
     services::{
-        chat::{self, create_chat_service},
-        health,
-        model::{self, download_model_if_needed},
+        chat::{create_chat_service},
+        model::{download_model_if_needed},
     },
     Device,
 };
-
-use graphql_client::{reqwest::post_graphql, GraphQLQuery};
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -72,7 +69,7 @@ pub async fn chat(args: &WorkerArgs) {
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
-    start_heartbeat(&args);
+    start_heartbeat(args);
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
@@ -92,8 +89,8 @@ fn start_heartbeat(args: &WorkerArgs) {
 async fn register_worker(url: String, token: String, port: i64) {
     let client = reqwest::Client::new();
     let variables = register_chat_worker::Variables {
-        token: token,
-        port: port,
+        token,
+        port,
     };
 
     let url = format!("{}/graphql", url);

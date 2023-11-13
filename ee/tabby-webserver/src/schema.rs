@@ -30,14 +30,14 @@ pub enum WorkerKind {
 
 #[derive(GraphQLObject, Clone, Debug)]
 pub struct Worker {
-    kind: WorkerKind,
-    addr: String,
-}
-
-impl Worker {
-    pub fn new(kind: WorkerKind, addr: String) -> Self {
-        Self { kind, addr }
-    }
+    pub kind: WorkerKind,
+    pub name: String,
+    pub addr: String,
+    pub device: String,
+    pub arch: String,
+    pub cpu_info: String,
+    pub cpu_count: i32,
+    pub cuda_devices: Vec<String>,
 }
 
 #[derive(Default)]
@@ -57,12 +57,27 @@ impl Mutation {
     async fn register_worker(
         request: &Request,
         token: String,
-        kind: WorkerKind,
         port: i32,
+        kind: WorkerKind,
+        name: String,
+        device: String,
+        arch: String,
+        cpu_info: String,
+        cpu_count: i32,
+        cuda_devices: Vec<String>,
     ) -> Result<Worker, WebserverError> {
         let ws = &request.ws;
-        ws.register_worker(token, request.client_addr, kind, port)
-            .await
+        let worker = Worker {
+            name,
+            kind,
+            addr: format!("http://{}:{}", request.client_addr, port),
+            device,
+            arch,
+            cpu_info,
+            cpu_count,
+            cuda_devices,
+        };
+        ws.register_worker(token, worker).await
     }
 }
 

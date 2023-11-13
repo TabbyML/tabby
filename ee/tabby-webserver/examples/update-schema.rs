@@ -5,5 +5,9 @@ use tabby_webserver::schema::{Mutation, Query, Schema};
 
 fn main() {
     let schema = Schema::new(Query, Mutation, EmptySubscription::new());
-    write("ee/tabby-webserver/graphql/schema.graphql", schema.as_schema_language()).unwrap();
+    write(
+        "ee/tabby-webserver/graphql/schema.graphql",
+        schema.as_schema_language(),
+    )
+    .unwrap();
 }
