@@ -8,6 +8,7 @@ use tabby_common::{
 };
 use tantivy::{
     collector::{Count, TopDocs},
+    directory::MmapDirectory,
     query::{BooleanQuery, QueryParser},
     query_grammar::Occur,
     schema::Field,
@@ -28,7 +29,8 @@ struct CodeSearchImpl {
 impl CodeSearchImpl {
     fn load() -> Result<Self> {
         let code_schema = index::CodeSearchSchema::new();
-        let index = Index::open_in_dir(path::index_dir())?;
+        let index_dir = MmapDirectory::open(path::index_dir())?;
+        let index = Index::open_or_create(index_dir, code_schema.schema.clone())?;
         register_tokenizers(&index);
 
         let query_parser = QueryParser::new(
