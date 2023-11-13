@@ -153,7 +153,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let mut routers = vec![];
 
     let health_state = Arc::new(health::HealthState::new(
-        Some(&args.model),
+        &args.model,
         args.chat_model.as_deref(),
         &args.device,
     ));
@@ -209,8 +209,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
 }
 
 fn start_heartbeat(args: &ServeArgs) {
-    let state =
-        health::HealthState::new(Some(&args.model), args.chat_model.as_deref(), &args.device);
+    let state = health::HealthState::new(&args.model, args.chat_model.as_deref(), &args.device);
     tokio::spawn(async move {
         loop {
             usage::capture("ServeHealth", &state).await;
