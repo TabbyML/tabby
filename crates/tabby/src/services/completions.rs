@@ -9,7 +9,11 @@ use thiserror::Error;
 use tracing::debug;
 use utoipa::ToSchema;
 
-use crate::api::{self, CodeSearch, Event, EventLogger};
+use crate::api::{
+    self,
+    code::CodeSearch,
+    event::{Event, EventLogger},
+};
 
 #[derive(Error, Debug)]
 pub enum CompletionError {
@@ -95,9 +99,9 @@ pub struct Segments {
     suffix: Option<String>,
 }
 
-impl From<Segments> for api::Segments {
+impl From<Segments> for api::event::Segments {
     fn from(val: Segments) -> Self {
-        api::Segments {
+        Self {
             prefix: val.prefix,
             suffix: val.suffix,
         }
@@ -234,7 +238,7 @@ impl CompletionService {
             language: &language,
             prompt: &prompt,
             segments: &segments,
-            choices: vec![api::Choice {
+            choices: vec![api::event::Choice {
                 index: 0,
                 text: &text,
             }],

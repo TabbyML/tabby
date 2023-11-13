@@ -8,7 +8,7 @@ use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
-use crate::api::{CodeSearch, CodeSearchError};
+use crate::api::code::{CodeSearch, CodeSearchError};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;

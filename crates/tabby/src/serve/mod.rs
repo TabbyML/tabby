@@ -42,7 +42,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ),
     paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
     components(schemas(
-        api::LogEventRequest,
+        api::event::LogEventRequest,
         completions::CompletionRequest,
         completions::CompletionResponse,
         completions::Segments,
@@ -55,9 +55,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
-        api::SearchResponse,
-        api::Hit,
-        api::HitDocument
+        api::code::SearchResponse,
+        api::code::Hit,
+        api::code::HitDocument
     ))
 )]
 struct ApiDoc;

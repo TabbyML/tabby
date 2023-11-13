@@ -16,7 +16,7 @@ use tantivy::{
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
 
-use crate::api::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse};
+use crate::api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse};
 
 struct CodeSearchImpl {
     reader: IndexReader,

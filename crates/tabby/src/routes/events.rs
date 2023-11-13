@@ -7,7 +7,7 @@ use axum::{
 use hyper::StatusCode;
 use utoipa::ToSchema;
 
-use crate::api::{Event, EventLogger, LogEventRequest, SelectKind};
+use crate::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
 
 #[utoipa::path(
     post,

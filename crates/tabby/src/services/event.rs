@@ -13,7 +13,7 @@ use tokio::{
     time::{self},
 };
 
-use crate::api::{Event, EventLogger};
+use crate::api::event::{Event, EventLogger};
 
 lazy_static! {
     static ref WRITER: UnboundedSender<String> = {
