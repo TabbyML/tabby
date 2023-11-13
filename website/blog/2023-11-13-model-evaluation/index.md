@@ -3,12 +3,14 @@ authors: [ gyxlucy ]
 
 tags: [tech design]
 
+image: ./twitter-eval.png
+
 ---
 # Cracking the Coding Evaluation
 
-Tabby offers an open-source alternative solution to GitHub Copilot with easy setup and self-host options. We embrace an open ecosystem to support major open source coding LLMs (e.g. StarCoder, CodeLlama, WizardCoder, etc.), and enables easy integration of proprietary models. In addition, Tabby performs [retrieval-augmented code completion](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion) to suggest code from your private codebase. We firmly believe in the continuous advancement in open source coding LLMs, yet we need quantative measurements to guide the direction of product improvement, and help developers decide their model of choice. 
+Tabby offers an open-source alternative solution to GitHub Copilot with easy setup and self-host options. We embrace an open ecosystem to support major open source coding LLMs (e.g. StarCoder, CodeLlama, WizardCoder, etc.), and enable easy integration of proprietary models. In addition, Tabby performs [retrieval-augmented code completion](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion) to suggest code from your private codebase. We firmly believe in the continuous advancement in open source coding LLMs, yet we need quantitative measurements to guide the direction of product improvement, and help developers decide their model of choice. 
 
-Evaluation coding LLMs has also been a hot topic in academics. Many different metrics targeting different coding tasks have been proposed over the past year. At Tabby, we prioritize on metrics that **best resembles real world development workflow**, and of course, the metrics should be constructed with non-biased data sources. In this blogpost, we will discuss our thoughts for desired code completion benchmarks, and also review latest academic progress in this area.
+Evaluation coding LLMs has also been a hot topic in academics. Many different metrics targeting different coding tasks have been proposed over the past year. At Tabby, we prioritize on metrics that **best resemble real-world development workflow**, and of course, the metrics should be constructed with non-biased data sources. In this blogpost, we will discuss our thoughts for desired code completion benchmarks, and also review latest academic progress in this area.
 
 
 ## Exisiting Paradigms
@@ -37,7 +39,7 @@ HumanEval was a pioneer research effort, but now suffers from some unfortunate d
 
 1. ***Data is likely contaminated.*** HumanEval dataset has been around for over two years and it has been discussed and documented widely online. The latest coding LLMs are likely to have included its test data in training data crawling, which would make the evaluation no longer valid.
 
-2. ***Trivial coding questions that aren't mimicing real engineering setup.*** HumanEval inclues mostly LeetCode's interview-style questions, where they include a single function for LLMs to fill in the body. In a more realistic corporate setup, developers often add code in multiple files in a single PR, and constantly refer to functions implemented in other files. These are indeed more interesting yet challenging tasks for LLMs to perform, but are critical scenarios for AI coding assitants to land in enterprises.
+2. ***Trivial coding questions that aren't mimicing real engineering setups.*** HumanEval includes mostly LeetCode's interview-style questions, where they include a single function for LLMs to fill in the body. In a more realistic corporate setup, developers often add code in multiple files in a single PR, and constantly refer to functions implemented in other files. These are indeed more interesting yet challenging tasks for LLMs to perform, but are critical scenarios for AI coding assitants to land in enterprises.
 
 3. ***Unit tests are too weak.*** Researchers noticed that test cases in HumanEval tasks (on average 7.7 tests per problem) aren't enough to guarantee the correctness of the generated code (e.g. a wrong implementation could still pass all existing tests), and thus augmented test cases in HumanEval benchmark by 80x in [***HumanEvalPlus***](https://github.com/evalplus/evalplus). 
 
@@ -72,9 +74,9 @@ Here are what we think a trustworthy evaluation setup should cover:
 
 1. ***Non-trivial code.*** Definitely no more Leetcode-style coding questions! The ideal evaluation should target projects with substantial engineering complexity. Evidences like lines of code, number of files, or number of contributors could serve as good indicators to estimate the code complexity.
 
-2. ***Cross-file references.*** This is a key factor to differentiate a more reliable and practical evaluation from something that only scratches the surface of the coding world. Engineers do not code in silo, but are greatly encouraged to reuse a function or API implemented in the exising codebase. 
+2. ***Cross-file references.*** This is a key factor to differentiate a more reliable and practical evaluation from something that only scratches the surface of the coding world. Engineers do not code in silo, but are greatly encouraged to reuse a function or API implemented in the existing codebase. 
 
-3. ***Code completion.*** Code completion is the most widely adopted LLM-powered feature in developer tools. Millions of developers worldwide have employed AI code completions in their daily workflow. Tabby provide a low-barrier solution in code completion, and is commited to continue improve the end-to-end product quality.
+3. ***Code completion.*** Code completion is the most widely adopted LLM-powered feature in developer tools. Millions of developers worldwide have employed AI code completions in their daily workflow. Tabby provides a low-barrier solution in code completion, and is committed to continue to improve the end-to-end product quality.
 
 
 ### ⚖️ Ease and Low-Cost to Run
