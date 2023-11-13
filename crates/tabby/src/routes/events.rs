@@ -2,21 +2,11 @@ use std::collections::HashMap;
 
 use axum::{extract::Query, Json};
 use hyper::StatusCode;
-use serde::{Deserialize, Serialize};
+
 use tabby_common::events::{self, SelectKind};
 use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct LogEventRequest {
-    /// Event type, should be `view` or `select`.
-    #[schema(example = "view")]
-    #[serde(rename = "type")]
-    event_type: String,
-
-    completion_id: String,
-
-    choice_index: u32,
-}
+use crate::api::LogEventRequest;
 
 #[utoipa::path(
     post,

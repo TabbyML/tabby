@@ -1,7 +1,6 @@
-use std::{env::consts::ARCH};
+use std::env::consts::ARCH;
 
 use anyhow::Result;
-
 use nvml_wrapper::Nvml;
 use serde::{Deserialize, Serialize};
 use sysinfo::{CpuExt, System, SystemExt};
