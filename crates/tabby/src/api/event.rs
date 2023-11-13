@@ -53,12 +53,6 @@ pub struct Segments {
     pub suffix: Option<String>,
 }
 
-#[derive(Serialize)]
-struct Log<'a> {
-    ts: u128,
-    event: &'a Event<'a>,
-}
-
 pub trait EventLogger: Send + Sync {
     fn log(&self, e: &Event);
 }

@@ -1,4 +1,4 @@
-mod completions_prompt;
+mod completion_prompt;
 
 use std::sync::Arc;
 
@@ -162,7 +162,7 @@ pub struct DebugData {
 pub struct CompletionService {
     engine: Arc<dyn TextGeneration>,
     logger: Arc<dyn EventLogger>,
-    prompt_builder: completions_prompt::PromptBuilder,
+    prompt_builder: completion_prompt::PromptBuilder,
 }
 
 impl CompletionService {
@@ -174,7 +174,7 @@ impl CompletionService {
     ) -> Self {
         Self {
             engine,
-            prompt_builder: completions_prompt::PromptBuilder::new(prompt_template, Some(code)),
+            prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
             logger,
         }
     }
