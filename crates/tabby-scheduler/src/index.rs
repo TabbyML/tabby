@@ -8,7 +8,7 @@ use tabby_common::{
     path::index_dir,
     SourceFile,
 };
-use tantivy::{directory::MmapDirectory, doc, Index};
+use tantivy::{directory::MmapDirectory, doc, schema::Schema, Index};
 
 use crate::utils::tqdm;
 
@@ -19,11 +19,7 @@ static MAX_BODY_LINES_THRESHOLD: usize = 15;
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let code = CodeSearchSchema::new();
-
-    fs::create_dir_all(index_dir())?;
-    let directory = MmapDirectory::open(index_dir())?;
-    let index = Index::open_or_create(directory, code.schema)?;
-    register_tokenizers(&index);
+    let index = open_or_create_index(code.schema.clone())?;
 
     // Initialize the search index writer with an initial arena size of 150 MB.
     let mut writer = index.writer(150_000_000)?;
@@ -56,6 +52,17 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     writer.wait_merging_threads()?;
 
     Ok(())
+}
+
+/// Open or create `Index` in the provided directory, register tokenizer for it
+pub fn open_or_create_index(schema: Schema) -> Result<Index> {
+    fs::create_dir_all(index_dir())?;
+
+    let directory = MmapDirectory::open(index_dir())?;
+    let index = Index::open_or_create(directory, schema)?;
+    register_tokenizers(&index);
+
+    Ok(index)
 }
 
 /// Atomic repository document in index.

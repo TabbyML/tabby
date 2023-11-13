@@ -2,17 +2,14 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use tabby_common::{
-    index::{self, register_tokenizers, CodeSearchSchema},
-    path,
-};
+use tabby_common::index::{self, CodeSearchSchema};
+use tabby_scheduler::open_or_create_index;
 use tantivy::{
     collector::{Count, TopDocs},
-    directory::MmapDirectory,
     query::{BooleanQuery, QueryParser},
     query_grammar::Occur,
     schema::Field,
-    DocAddress, Document, Index, IndexReader,
+    DocAddress, Document, IndexReader,
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
@@ -29,9 +26,7 @@ struct CodeSearchImpl {
 impl CodeSearchImpl {
     fn load() -> Result<Self> {
         let code_schema = index::CodeSearchSchema::new();
-        let index_dir = MmapDirectory::open(path::index_dir())?;
-        let index = Index::open_or_create(index_dir, code_schema.schema.clone())?;
-        register_tokenizers(&index);
+        let index = open_or_create_index(code_schema.schema.clone())?;
 
         let query_parser = QueryParser::new(
             code_schema.schema.clone(),

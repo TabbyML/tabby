@@ -4,6 +4,7 @@ mod repository;
 mod utils;
 
 use anyhow::Result;
+pub use index::open_or_create_index;
 use job_scheduler::{Job, JobScheduler};
 use tabby_common::config::Config;
 use tracing::{error, info};
