@@ -1,22 +1,12 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
-use axum::{extract::Query, Json};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use hyper::StatusCode;
-use serde::{Deserialize, Serialize};
-use tabby_common::events::{self, SelectKind};
-use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct LogEventRequest {
-    /// Event type, should be `view` or `select`.
-    #[schema(example = "view")]
-    #[serde(rename = "type")]
-    event_type: String,
-
-    completion_id: String,
-
-    choice_index: u32,
-}
+use crate::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
 
 #[utoipa::path(
     post,
@@ -30,22 +20,22 @@ pub struct LogEventRequest {
     )
 )]
 pub async fn log_event(
+    State(logger): State<Arc<dyn EventLogger>>,
     Query(params): Query<HashMap<String, String>>,
     Json(request): Json<LogEventRequest>,
 ) -> StatusCode {
     if request.event_type == "view" {
-        events::Event::View {
+        logger.log(&Event::View {
             completion_id: &request.completion_id,
             choice_index: request.choice_index,
-        }
-        .log();
+        });
         StatusCode::OK
     } else if request.event_type == "select" {
         let is_line = params
             .get("select_kind")
             .map(|x| x == "line")
             .unwrap_or(false);
-        events::Event::Select {
+        logger.log(&Event::Select {
             completion_id: &request.completion_id,
             choice_index: request.choice_index,
             kind: if is_line {
@@ -53,8 +43,7 @@ pub async fn log_event(
             } else {
                 None
             },
-        }
-        .log();
+        });
         StatusCode::OK
     } else {
         StatusCode::BAD_REQUEST

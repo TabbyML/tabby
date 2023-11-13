@@ -1,15 +1,19 @@
-mod completions_prompt;
+mod completion_prompt;
 
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use tabby_common::{events, languages::get_language};
+use tabby_common::languages::get_language;
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use thiserror::Error;
 use tracing::debug;
 use utoipa::ToSchema;
 
-use crate::api::CodeSearch;
+use crate::api::{
+    self,
+    code::CodeSearch,
+    event::{Event, EventLogger},
+};
 
 #[derive(Error, Debug)]
 pub enum CompletionError {
@@ -95,9 +99,9 @@ pub struct Segments {
     suffix: Option<String>,
 }
 
-impl From<Segments> for events::Segments {
+impl From<Segments> for api::event::Segments {
     fn from(val: Segments) -> Self {
-        events::Segments {
+        Self {
             prefix: val.prefix,
             suffix: val.suffix,
         }
@@ -157,18 +161,21 @@ pub struct DebugData {
 
 pub struct CompletionService {
     engine: Arc<dyn TextGeneration>,
-    prompt_builder: completions_prompt::PromptBuilder,
+    logger: Arc<dyn EventLogger>,
+    prompt_builder: completion_prompt::PromptBuilder,
 }
 
 impl CompletionService {
     pub fn new(
         engine: Arc<dyn TextGeneration>,
         code: Arc<dyn CodeSearch>,
+        logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {
             engine,
-            prompt_builder: completions_prompt::PromptBuilder::new(prompt_template, Some(code)),
+            prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
+            logger,
         }
     }
 
@@ -226,18 +233,17 @@ impl CompletionService {
         let text = self.engine.generate(&prompt, options).await;
         let segments = segments.map(|s| s.into());
 
-        events::Event::Completion {
+        self.logger.log(&Event::Completion {
             completion_id: &completion_id,
             language: &language,
             prompt: &prompt,
             segments: &segments,
-            choices: vec![events::Choice {
+            choices: vec![api::event::Choice {
                 index: 0,
                 text: &text,
             }],
             user: request.user.as_deref(),
-        }
-        .log();
+        });
 
         let debug_data = request
             .debug_options

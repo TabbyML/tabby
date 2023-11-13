@@ -1,11 +1,12 @@
-use std::{env::consts::ARCH, sync::Arc};
+use std::env::consts::ARCH;
 
 use anyhow::Result;
-use axum::{extract::State, Json};
 use nvml_wrapper::Nvml;
 use serde::{Deserialize, Serialize};
 use sysinfo::{CpuExt, System, SystemExt};
 use utoipa::ToSchema;
+
+use crate::serve::Device;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthState {
@@ -21,7 +22,7 @@ pub struct HealthState {
 }
 
 impl HealthState {
-    pub fn new(args: &super::ServeArgs) -> Self {
+    pub fn new(model: &str, chat_model: Option<&str>, device: &Device) -> Self {
         let (cpu_info, cpu_count) = read_cpu_info();
 
         let cuda_devices = match read_cuda_devices() {
@@ -30,9 +31,9 @@ impl HealthState {
         };
 
         Self {
-            model: args.model.clone(),
-            chat_model: args.chat_model.clone(),
-            device: args.device.to_string(),
+            model: model.to_owned(),
+            chat_model: chat_model.map(|x| x.to_owned()),
+            device: device.to_string(),
             arch: ARCH.to_string(),
             cpu_info,
             cpu_count,
@@ -89,16 +90,4 @@ impl Version {
             git_describe: env!("VERGEN_GIT_DESCRIBE").to_string(),
         }
     }
-}
-
-#[utoipa::path(
-    get,
-    path = "/v1/health",
-    tag = "v1",
-    responses(
-        (status = 200, description = "Success", body = HealthState, content_type = "application/json"),
-    )
-)]
-pub async fn health(State(state): State<Arc<HealthState>>) -> Json<HealthState> {
-    Json(state.as_ref().clone())
 }

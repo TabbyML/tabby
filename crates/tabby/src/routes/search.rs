@@ -10,7 +10,7 @@ use serde::Deserialize;
 use tracing::{instrument, warn};
 use utoipa::IntoParams;
 
-use crate::api::{CodeSearch, CodeSearchError, SearchResponse};
+use crate::api::code::{CodeSearch, CodeSearchError, SearchResponse};
 
 #[derive(Deserialize, IntoParams)]
 pub struct SearchQuery {

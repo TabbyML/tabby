@@ -4282,6 +4282,7 @@ dependencies = [
  "axum",
  "axum-streams",
  "axum-tracing-opentelemetry",
+ "chrono",
  "clap 4.4.7",
  "futures",
  "http-api-bindings",
@@ -4324,7 +4325,6 @@ name = "tabby-common"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
- "chrono",
  "filenamify",
  "lazy_static",
  "reqwest",
@@ -4332,7 +4332,6 @@ dependencies = [
  "serde-jsonlines",
  "serdeconv",
  "tantivy",
- "tokio",
  "uuid 1.4.1",
 ]
 

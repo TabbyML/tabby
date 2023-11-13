@@ -16,55 +16,6 @@ use juniper::{
 };
 use serde::Deserialize;
 
-/// Extractor for [`axum`] to extract a [`JuniperRequest`].
-///
-/// # Example
-///
-/// ```rust
-/// use std::sync::Arc;
-///
-/// use axum::{routing::post, Extension, Json, Router};
-/// use juniper::{
-///     RootNode, EmptySubscription, EmptyMutation, graphql_object,
-/// };
-/// use juniper_axum::{extract::JuniperRequest, response::JuniperResponse};
-///
-/// #[derive(Clone, Copy, Debug)]
-/// pub struct Context;
-///
-/// impl juniper::Context for Context {}
-///
-/// #[derive(Clone, Copy, Debug)]
-/// pub struct Query;
-///
-/// #[graphql_object(context = Context)]
-/// impl Query {
-///     fn add(a: i32, b: i32) -> i32 {
-///         a + b
-///     }
-/// }
-///
-/// type Schema = RootNode<'static, Query, EmptyMutation<Context>, EmptySubscription<Context>>;
-///
-/// let schema = Schema::new(
-///    Query,
-///    EmptyMutation::<Context>::new(),
-///    EmptySubscription::<Context>::new()
-/// );
-///
-/// let app: Router = Router::new()
-///     .route("/graphql", post(graphql))
-///     .layer(Extension(Arc::new(schema)))
-///     .layer(Extension(Context));
-///
-/// # #[axum::debug_handler]
-/// async fn graphql(
-///     Extension(schema): Extension<Arc<Schema>>,
-///     Extension(context): Extension<Context>,
-///     JuniperRequest(req): JuniperRequest, // should be the last argument as consumes `Request`
-/// ) -> JuniperResponse {
-///     JuniperResponse(req.execute(&*schema, &context).await)
-/// }
 #[derive(Debug, PartialEq)]
 pub struct JuniperRequest<S = DefaultScalarValue>(pub GraphQLBatchRequest<S>)
 where

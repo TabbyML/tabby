@@ -1,7 +1,7 @@
 mod api;
 mod download;
+mod routes;
 mod serve;
-
 mod services;
 
 use clap::{Parser, Subcommand};

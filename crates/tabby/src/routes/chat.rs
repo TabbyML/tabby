@@ -23,7 +23,7 @@ use crate::services::chat::{ChatCompletionRequest, ChatService};
     )
 )]
 #[instrument(skip(state, request))]
-pub async fn completions(
+pub async fn chat_completions(
     State(state): State<Arc<ChatService>>,
     Json(request): Json<ChatCompletionRequest>,
 ) -> Response {
