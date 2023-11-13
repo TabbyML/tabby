@@ -1,9 +1,3 @@
-mod chat;
-mod completions;
-mod events;
-mod health;
-mod search;
-
 use std::{
     fs,
     net::{Ipv4Addr, SocketAddr},
@@ -23,15 +17,9 @@ use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::health::HealthState;
 use crate::{
-    api::{Hit, HitDocument, SearchResponse},
-    fatal,
-    services::{
-        chat::ChatService,
-        completions::CompletionService,
-        model::{load_text_generation, PromptInfo},
-    },
+    api, fatal, routes,
+    services::{chat, completions, health, model},
 };
 
 #[derive(OpenApi)]
@@ -51,24 +39,24 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(events::log_event, completions::completions, chat::completions, health::health, search::search),
+    paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
     components(schemas(
-        events::LogEventRequest,
-        crate::services::completions::CompletionRequest,
-        crate::services::completions::CompletionResponse,
-        crate::services::completions::Segments,
-        crate::services::completions::Choice,
-        crate::services::completions::Snippet,
-        crate::services::completions::DebugOptions,
-        crate::services::completions::DebugData,
-        crate::services::chat::ChatCompletionRequest,
-        crate::services::chat::Message,
-        crate::services::chat::ChatCompletionChunk,
+        routes::LogEventRequest,
+        completions::CompletionRequest,
+        completions::CompletionResponse,
+        completions::Segments,
+        completions::Choice,
+        completions::Snippet,
+        completions::DebugOptions,
+        completions::DebugData,
+        chat::ChatCompletionRequest,
+        chat::Message,
+        chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
-        SearchResponse,
-        Hit,
-        HitDocument
+        api::SearchResponse,
+        api::Hit,
+        api::HitDocument
     ))
 )]
 struct ApiDoc;
@@ -178,21 +166,22 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let completion_state = {
         let (
             engine,
-            PromptInfo {
+            model::PromptInfo {
                 prompt_template, ..
             },
-        ) = load_text_generation(&args.model, &args.device, args.parallelism).await;
-        let state = CompletionService::new(engine.clone(), code.clone(), prompt_template);
+        ) = model::load_text_generation(&args.model, &args.device, args.parallelism).await;
+        let state =
+            completions::CompletionService::new(engine.clone(), code.clone(), prompt_template);
         Arc::new(state)
     };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
-        let (engine, PromptInfo { chat_template, .. }) =
-            load_text_generation(chat_model, &args.device, args.parallelism).await;
+        let (engine, model::PromptInfo { chat_template, .. }) =
+            model::load_text_generation(chat_model, &args.device, args.parallelism).await;
         let Some(chat_template) = chat_template else {
             panic!("Chat model requires specifying prompt template");
         };
-        let state = ChatService::new(engine, chat_template);
+        let state = chat::ChatService::new(engine, chat_template);
         Some(Arc::new(state))
     } else {
         None
@@ -200,17 +189,21 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
 
     let mut routers = vec![];
 
-    let health_state = Arc::new(health::HealthState::new(args));
+    let health_state = Arc::new(health::HealthState::new(
+        &args.model,
+        args.chat_model.as_deref(),
+        &args.device,
+    ));
     routers.push({
         Router::new()
-            .route("/v1/events", routing::post(events::log_event))
+            .route("/v1/events", routing::post(routes::log_event))
             .route(
                 "/v1/health",
-                routing::post(health::health).with_state(health_state.clone()),
+                routing::post(routes::health).with_state(health_state.clone()),
             )
             .route(
                 "/v1/health",
-                routing::get(health::health).with_state(health_state),
+                routing::get(routes::health).with_state(health_state),
             )
     });
 
@@ -218,7 +211,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
         Router::new()
             .route(
                 "/v1/completions",
-                routing::post(completions::completions).with_state(completion_state),
+                routing::post(routes::completions).with_state(completion_state),
             )
             .layer(TimeoutLayer::new(Duration::from_secs(
                 config.server.completion_timeout,
@@ -229,7 +222,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
         routers.push({
             Router::new().route(
                 "/v1beta/chat/completions",
-                routing::post(chat::completions).with_state(chat_state),
+                routing::post(routes::chat_completions).with_state(chat_state),
             )
         })
     }
@@ -237,7 +230,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     routers.push({
         Router::new().route(
             "/v1beta/search",
-            routing::get(search::search).with_state(code),
+            routing::get(routes::search).with_state(code),
         )
     });
 
@@ -250,7 +243,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
 }
 
 fn start_heartbeat(args: &ServeArgs) {
-    let state = HealthState::new(args);
+    let state = health::HealthState::new(&args.model, args.chat_model.as_deref(), &args.device);
     tokio::spawn(async move {
         loop {
             usage::capture("ServeHealth", &state).await;
