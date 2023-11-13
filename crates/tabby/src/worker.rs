@@ -23,12 +23,20 @@ use crate::{
 
 #[derive(Args)]
 pub struct WorkerArgs {
-    /// Model id for `/completions` API endpoint.
+    /// URL to register this worker to.
     #[clap(long)]
-    model: String,
+    url: String,
+
+    /// Token to authenticate the worker.
+    #[clap(long)]
+    token: String,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,
+
+    /// Model id for `/v1beta/chat/completions` API endpoint.
+    #[clap(long)]
+    model: String,
 
     /// Device to run model inference.
     #[clap(long, default_value_t=Device::Cpu)]
@@ -55,21 +63,11 @@ pub async fn chat(args: &WorkerArgs) {
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
-    start_heartbeat("ChatWorkerHeartBeat", args);
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn start_heartbeat(name: &str, args: &WorkerArgs) {
-    let state = health::HealthState::new(None, Some(&args.model), &args.device);
-
-    let name = name.to_owned();
-    tokio::spawn(async move {
-        loop {
-            usage::capture(&name, &state).await;
-            sleep(Duration::from_secs(3000)).await;
-        }
-    });
+fn start_heartbeat(args: &WorkerArgs) {
 }

@@ -35,3 +35,6 @@ update-openapi-doc:
 			["components", "schemas", "DebugOptions"]                                                                 \
 			])' | jq '.servers[0] |= { url: "https://playground.app.tabbyml.com", description: "Playground server" }' \
 			    > website/static/openapi.json
+
+update-graphql-schema:
+	cargo run --package tabby-webserver --example update-schema
