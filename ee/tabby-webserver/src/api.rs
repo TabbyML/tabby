@@ -24,7 +24,7 @@ pub struct Worker {
 }
 
 #[derive(Serialize, Deserialize, Error, Debug)]
-pub enum WebserverApiError {
+pub enum HubError {
     #[error("Invalid worker token")]
     InvalidToken(String),
 
@@ -33,7 +33,7 @@ pub enum WebserverApiError {
 }
 
 #[tarpc::service]
-pub trait WebserverApi {
+pub trait Hub {
     async fn register_worker(
         kind: WorkerKind,
         port: i32,
@@ -43,14 +43,15 @@ pub trait WebserverApi {
         cpu_info: String,
         cpu_count: i32,
         cuda_devices: Vec<String>,
-    ) -> Result<Worker, WebserverApiError>;
+    ) -> Result<Worker, HubError>;
 }
 
 pub fn tracing_context() -> tarpc::context::Context {
     tarpc::context::current()
 }
 
-pub async fn create_client(addr: String) -> WebserverApiClient {
+pub async fn create_client(addr: String) -> HubClient {
+    let addr = format!("ws://{}/hub", addr);
     let (socket, _) = connect_async(&addr).await.unwrap();
-    WebserverApiClient::new(Default::default(), WebSocketTransport::from(socket)).spawn()
+    HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn()
 }

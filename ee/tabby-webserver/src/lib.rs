@@ -11,7 +11,7 @@ mod worker;
 
 use std::{net::SocketAddr, sync::Arc};
 
-use api::WebserverApi;
+use api::{Hub, WorkerKind, Worker, HubError};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     http::Request,
@@ -22,7 +22,7 @@ use axum::{
 use hyper::Body;
 use juniper_axum::{graphiql, graphql, playground};
 use schema::Schema;
-use server::{ServerContext, WebserverImpl};
+use server::ServerContext;
 use tarpc::server::{BaseChannel, Channel};
 
 pub async fn attach_webserver(router: Router) -> Router {
@@ -66,4 +66,43 @@ async fn handle_socket(state: Arc<ServerContext>, socket: WebSocket, addr: Socke
     let server = BaseChannel::with_defaults(transport);
     let imp = Arc::new(WebserverImpl::new(state.clone(), addr));
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
+}
+
+pub struct WebserverImpl {
+    ws: Arc<ServerContext>,
+    conn: SocketAddr,
+}
+
+impl WebserverImpl {
+    pub fn new(ws: Arc<ServerContext>, conn: SocketAddr) -> Self {
+        Self { ws, conn }
+    }
+}
+
+#[tarpc::server]
+impl Hub for Arc<WebserverImpl> {
+    async fn register_worker(
+        self,
+        _context: tarpc::context::Context,
+        kind: WorkerKind,
+        port: i32,
+        name: String,
+        device: String,
+        arch: String,
+        cpu_info: String,
+        cpu_count: i32,
+        cuda_devices: Vec<String>,
+    ) -> Result<Worker, HubError> {
+        let worker = Worker {
+            name,
+            kind,
+            addr: format!("http://{}:{}", self.conn.ip(), port),
+            device,
+            arch,
+            cpu_info,
+            cpu_count,
+            cuda_devices,
+        };
+        self.ws.register_worker(worker).await
+    }
 }

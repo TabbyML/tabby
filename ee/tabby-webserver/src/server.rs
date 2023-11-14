@@ -4,11 +4,10 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-
 use tracing::{info, warn};
 
 use crate::{
-    api::{WebserverApi, WebserverApiError, Worker, WorkerKind},
+    api::{Hub, HubError, Worker, WorkerKind},
     worker,
 };
 #[derive(Default)]
@@ -19,7 +18,7 @@ pub struct ServerContext {
 }
 
 impl ServerContext {
-    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, WebserverApiError> {
+    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, HubError> {
         let worker = match worker.kind {
             WorkerKind::Completion => self.completion.register(worker).await,
             WorkerKind::Chat => self.chat.register(worker).await,
@@ -32,7 +31,7 @@ impl ServerContext {
             );
             Ok(worker)
         } else {
-            Err(WebserverApiError::RequiresEnterpriseLicense)
+            Err(HubError::RequiresEnterpriseLicense)
         }
     }
 
@@ -76,44 +75,5 @@ impl ServerContext {
         } else {
             next.run(request).await
         }
-    }
-}
-
-pub struct WebserverImpl {
-    ws: Arc<ServerContext>,
-    conn: SocketAddr,
-}
-
-impl WebserverImpl {
-    pub fn new(ws: Arc<ServerContext>, conn: SocketAddr) -> Self {
-        Self { ws, conn }
-    }
-}
-
-#[tarpc::server]
-impl WebserverApi for Arc<WebserverImpl> {
-    async fn register_worker(
-        self,
-        _context: tarpc::context::Context,
-        kind: WorkerKind,
-        port: i32,
-        name: String,
-        device: String,
-        arch: String,
-        cpu_info: String,
-        cpu_count: i32,
-        cuda_devices: Vec<String>,
-    ) -> Result<Worker, WebserverApiError> {
-        let worker = Worker {
-            name,
-            kind,
-            addr: format!("http://{}:{}", self.conn.ip(), port),
-            device,
-            arch,
-            cpu_info,
-            cpu_count,
-            cuda_devices,
-        };
-        self.ws.register_worker(worker).await
     }
 }
