@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useChat } from 'ai/react'
-import { cn, nanoid } from '@/lib/utils'
+import { cn, nanoid, truncateText } from '@/lib/utils'
 import { ChatList } from '@/components/chat-list'
 import { ChatPanel } from '@/components/chat-panel'
 import { EmptyScreen } from '@/components/empty-screen'
@@ -96,7 +96,7 @@ export function Chat({ id, initialMessages, loading, className }: ChatProps) {
 
   const handleSubmit = async (value: string) => {
     if (findIndex(chats, { id }) === -1) {
-      addChat(id)
+      addChat(id, truncateText(value))
     } else if (selectedMessageId) {
       let messageIdx = findIndex(messages, { id: selectedMessageId })
       setMessages(messages.slice(0, messageIdx))

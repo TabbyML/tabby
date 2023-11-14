@@ -1,9 +1,13 @@
 'use client'
 
 import React from 'react'
-import { cn } from '@/lib/utils'
+import { cn, nanoid } from '@/lib/utils'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { addChat, deleteChat, setActiveChatId } from '@/lib/stores/chat-actions'
+import {
+  clearChats,
+  deleteChat,
+  setActiveChatId
+} from '@/lib/stores/chat-actions'
 import { IconPlus, IconTrash } from '@/components/ui/icons'
 import {
   Tooltip,
@@ -14,6 +18,8 @@ import { EditChatTitleDialog } from '@/components/edit-chat-title-dialog'
 import { useStore } from '@/lib/hooks/use-store'
 import { Button } from '@/components/ui/button'
 import { ListSkeleton } from '@/components/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { ClearChatsButton } from './clear-chats-button'
 
 interface ChatSessionsProps {
   className?: string
@@ -31,21 +37,30 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
     deleteChat(chatId)
   }
 
+  const onNewChatClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    setActiveChatId(nanoid())
+  }
+
+  const handleClearChats = () => {
+    clearChats()
+  }
+
   return (
     <>
       <div className={cn(className)}>
-        <div className="fixed bottom-0 left-0 top-16 flex w-[279px] flex-col gap-2 overflow-y-auto">
-          <div className="bg-card p-2">
+        <div className="bg-card fixed inset-y-0 left-0 flex w-[279px] flex-col gap-2 overflow-hidden px-3 pt-16">
+          <div className="shrink-0 pb-0 pt-2">
             <Button
-              className="h-12 w-full"
+              className="h-12 w-full justify-start"
               variant="ghost"
-              onClick={e => addChat()}
+              onClick={onNewChatClick}
             >
               <IconPlus />
               <span className="ml-2">New Chat</span>
             </Button>
           </div>
-          <div className="flex flex-col gap-2 px-4">
+          <Separator />
+          <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
             {!_hasHydrated ? (
               <ListSkeleton />
             ) : (
@@ -57,11 +72,11 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
                       key={chat.id}
                       onClick={e => setActiveChatId(chat.id)}
                       className={cn(
-                        'flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-zinc-900 transition-all hover:bg-zinc-200 hover:text-zinc-900  dark:text-zinc-50 hover:dark:bg-zinc-900 dark:hover:text-zinc-50',
-                        isActive && '!bg-zinc-300 dark:!bg-zinc-800'
+                        'hover:bg-accent flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-zinc-900 transition-all hover:text-zinc-900  dark:text-zinc-50 hover:dark:bg-zinc-900 dark:hover:text-zinc-50',
+                        isActive && '!bg-zinc-200 dark:!bg-zinc-800'
                       )}
                     >
-                      <span className="leading-8">
+                      <span className="truncate leading-8">
                         {chat.title || '(Untitled)'}
                       </span>
                       {isActive && (
@@ -95,6 +110,13 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
                 })}
               </>
             )}
+          </div>
+          <Separator />
+          <div className="shrink-0 pb-2">
+            <ClearChatsButton
+              disabled={chats?.length === 0}
+              onClear={handleClearChats}
+            />
           </div>
         </div>
       </div>

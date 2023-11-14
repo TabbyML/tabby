@@ -13,14 +13,14 @@ export const setActiveChatId = (id: string) => {
   set(() => ({ activeChatId: id }))
 }
 
-export const addChat = (_id?: string) => {
+export const addChat = (_id?: string, title?: string) => {
   const id = _id ?? nanoid()
   set(state => ({
     activeChatId: id,
     chats: [
       {
         id,
-        title: '',
+        title: title ?? '',
         messages: [],
         createdAt: new Date(),
         userId: '',
@@ -38,6 +38,13 @@ export const deleteChat = (id: string) => {
       chats: state.chats?.filter(chat => chat.id !== id)
     }
   })
+}
+
+export const clearChats = () => {
+  set(() => ({
+    activeChatId: nanoid(),
+    chats: []
+  }))
 }
 
 export const updateMessages = (id: string, messages: Message[]) => {

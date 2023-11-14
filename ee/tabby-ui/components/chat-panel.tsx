@@ -1,17 +1,11 @@
-import { type UseChatHelpers } from 'ai/react'
-
+import React from 'react'
 import { Button } from '@/components/ui/button'
 import { PromptForm, PromptFormRef } from '@/components/prompt-form'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { IconRefresh, IconStop } from '@/components/ui/icons'
 import { FooterText } from '@/components/footer'
 import { cn } from '@/lib/utils'
-import { useStore } from '@/lib/hooks/use-store'
-import { useChatStore } from '@/lib/stores/chat-store'
-import { addChat } from '@/lib/stores/chat-actions'
-import { Message } from 'ai'
-import { findIndex } from 'lodash-es'
-import React, { useRef } from 'react'
+import type { UseChatHelpers } from 'ai/react'
 
 export interface ChatPanelProps
   extends Pick<
@@ -41,7 +35,7 @@ export function ChatPanel({
   className,
   onSubmit
 }: ChatPanelProps) {
-  const promptFormRef = useRef<PromptFormRef>(null)
+  const promptFormRef = React.useRef<PromptFormRef>(null)
   React.useEffect(() => {
     promptFormRef?.current?.focus()
   }, [id])
