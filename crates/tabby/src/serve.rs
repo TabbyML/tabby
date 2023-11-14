@@ -109,7 +109,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     let app = tabby_webserver::attach_webserver(app).await;
 
     #[cfg(not(feature = "ee"))]
-    let app = app.fallback(|| async { Redirect::permanent("/swagger-ui") });
+    let app = app.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
