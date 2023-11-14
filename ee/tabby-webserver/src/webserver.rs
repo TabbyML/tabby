@@ -2,9 +2,9 @@ mod proxy;
 
 use std::{net::SocketAddr, sync::Arc};
 
-use axum::{http::Request, middleware::Next, response::IntoResponse, async_trait};
-use futures::future::{Ready, self};
+use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
+use tarpc::context::Context;
 use thiserror::Error;
 use tracing::{info, warn};
 
@@ -91,8 +91,7 @@ impl Webserver {
     }
 }
 
-#[async_trait]
+#[tarpc::server]
 impl WebserverApi for Arc<Webserver> {
-    async fn hello(self, context: tarpc::context::Context) {
-    }
+    async fn hello(self, _: Context) {}
 }

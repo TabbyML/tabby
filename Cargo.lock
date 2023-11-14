@@ -3114,18 +3114,18 @@ dependencies = [
 
 [[package]]
 name = "pin-project"
-version = "1.1.0"
+version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c95a7476719eab1e366eaf73d0260af3021184f18177925b07f54b30089ceead"
+checksum = "fda4ed1c6c173e3fc7a83629421152e01d7b1f9b7f65fb301e490e8cfc656422"
 dependencies = [
  "pin-project-internal",
 ]
 
 [[package]]
 name = "pin-project-internal"
-version = "1.1.0"
+version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39407670928234ebc5e6e580247dd567ad73a3578460c5990f9503df207e8f07"
+checksum = "4359fd9c9171ec6e8c62926d6faaf553a8dc3f64e1507e76da7911b4f6a04405"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4511,18 +4511,20 @@ version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "axum",
+ "bincode",
  "futures",
  "hyper",
  "juniper",
  "juniper-axum",
  "lazy_static",
  "mime_guess",
+ "pin-project",
  "rust-embed 8.0.0",
  "serde",
- "serde_json",
  "tarpc",
  "thiserror",
  "tokio",
+ "tokio-tungstenite",
  "tracing",
  "unicase",
 ]

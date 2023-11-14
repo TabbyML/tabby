@@ -5,15 +5,15 @@ mod webserver;
 mod worker;
 
 use std::{
+    marker::PhantomData,
     net::SocketAddr,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
 };
 
-use api::WebserverApi;
+use api::{WebserverApi, WebserverApiClient};
 use axum::{
-    async_trait,
     extract::{
         ws::{Message, WebSocket},
         ConnectInfo, State, WebSocketUpgrade,
@@ -21,22 +21,20 @@ use axum::{
     http::Request,
     middleware::{from_fn_with_state, Next},
     response::IntoResponse,
-    routing, Error, Extension, Router,
+    routing, Extension, Router,
 };
-use futures::{stream, Sink, Stream, StreamExt, TryStreamExt};
+use futures::{Sink, Stream};
 use hyper::Body;
 use juniper::EmptySubscription;
 use juniper_axum::{graphiql, graphql, playground};
+use pin_project::pin_project;
 use schema::{Mutation, Query, Schema};
-use tarpc::{
-    server::{BaseChannel, Channel},
-    transport::{self, channel::unbounded},
-    ClientMessage,
-};
-use tokio::io::{AsyncRead, ReadBuf};
+use tarpc::server::{BaseChannel, Channel};
+use tokio::net::TcpStream;
+use tokio_tungstenite::{connect_async, MaybeTlsStream};
 use webserver::Webserver;
 
-pub fn attach_webserver(router: Router) -> Router {
+pub async fn attach_webserver(router: Router) -> Router {
     let ws = Arc::new(Webserver::default());
     let schema = Arc::new(Schema::new(Query, Mutation, EmptySubscription::new()));
 
@@ -72,15 +70,128 @@ async fn ws_handler(
     println!("{addr} connected.");
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
-    // ws.on_upgrade(move |socket| handle_socket(state, socket, addr))
+    ws.on_upgrade(move |socket| handle_socket(state, socket, addr))
 }
 
-async fn handle_socket(state: Arc<Webserver>, mut socket: WebSocket, who: SocketAddr) {
-    let x = socket.map_ok(|x| serde_json::from_slice(&x.into_data()).unwrap());
+async fn handle_socket(state: Arc<Webserver>, socket: WebSocket, _: SocketAddr) {
+    let transport = WebSocketTransport::from(socket);
+    let server = BaseChannel::with_defaults(transport);
+    tokio::spawn(server.execute(state.serve())).await.unwrap()
+}
 
-    let x: Box<dyn Stream<Item = Result<String, axum::Error>>> = Box::new(x);
+async fn create_webserver_api_client(_addr: String) {
+    let (socket, _) = connect_async("ws://localhost:8080/ws").await.unwrap();
+    let _client = WebserverApiClient::new(Default::default(), WebSocketTransport::from(socket));
+}
 
-    //let (client, server) = unbounded();
-    // let server = BaseChannel::with_defaults(WebSocketTransport(socket));
-    // tokio::spawn(server.execute(state.serve())).await;
+trait IntoData {
+    fn into_data(self) -> Vec<u8>;
+}
+
+impl IntoData for Message {
+    fn into_data(self) -> Vec<u8> {
+        self.into_data()
+    }
+}
+
+impl IntoData for tokio_tungstenite::tungstenite::Message {
+    fn into_data(self) -> Vec<u8> {
+        self.into_data()
+    }
+}
+
+#[pin_project]
+struct WebSocketTransport<Req, Resp, Message, Transport, Error>
+where
+    Message: IntoData + From<Vec<u8>>,
+    Transport: Stream<Item = Result<Message, Error>> + Sink<Message, Error = Error>,
+{
+    #[pin]
+    inner: Transport,
+    ghost: PhantomData<(Req, Resp)>,
+}
+
+impl<Req, Resp> From<WebSocket>
+    for WebSocketTransport<
+        Req,
+        Resp,
+        axum::extract::ws::Message,
+        axum::extract::ws::WebSocket,
+        axum::Error,
+    >
+{
+    fn from(inner: WebSocket) -> Self {
+        Self {
+            inner,
+            ghost: PhantomData,
+        }
+    }
+}
+
+impl<Req, Resp> From<tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>>>
+    for WebSocketTransport<
+        Req,
+        Resp,
+        tokio_tungstenite::tungstenite::Message,
+        tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>>,
+        tokio_tungstenite::tungstenite::Error,
+    >
+{
+    fn from(inner: tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>>) -> Self {
+        Self {
+            inner,
+            ghost: PhantomData,
+        }
+    }
+}
+
+impl<Req, Resp, Message, Transport, Error> Stream
+    for WebSocketTransport<Req, Resp, Message, Transport, Error>
+where
+    Req: for<'de> serde::Deserialize<'de>,
+    Message: IntoData + From<Vec<u8>>,
+    Transport: Stream<Item = Result<Message, Error>> + Sink<Message, Error = Error>,
+{
+    type Item = Result<Req, Error>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        match futures::ready!(self.as_mut().project().inner.poll_next(cx)) {
+            Some(Ok(msg)) => {
+                let bin = msg.into_data();
+                Poll::Ready(Some(Ok(bincode::deserialize_from::<&[u8], Req>(
+                    bin.as_ref(),
+                )
+                .unwrap())))
+            }
+            Some(Err(err)) => Poll::Ready(Some(Err(err))),
+            None => Poll::Ready(None),
+        }
+    }
+}
+
+impl<Req, Resp, Message, Transport, Error> Sink<Resp>
+    for WebSocketTransport<Req, Resp, Message, Transport, Error>
+where
+    Resp: serde::Serialize,
+    Message: IntoData + From<Vec<u8>>,
+    Transport: Stream<Item = Result<Message, Error>> + Sink<Message, Error = Error>,
+{
+    type Error = Error;
+
+    fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.as_mut().project().inner.poll_ready(cx)
+    }
+
+    fn start_send(mut self: Pin<&mut Self>, item: Resp) -> Result<(), Self::Error> {
+        let msg = Message::from(bincode::serialize(&item).unwrap());
+        self.as_mut().project().inner.start_send(msg)
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.as_mut().project().inner.poll_flush(cx)
+    }
+
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.as_mut().project().inner.poll_close(cx)
+    }
 }
