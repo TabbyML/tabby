@@ -1,6 +1,6 @@
 use std::fs::write;
 
-use juniper::{EmptySubscription, EmptyMutation};
+use juniper::{EmptyMutation, EmptySubscription};
 use tabby_webserver::schema::{Query, Schema};
 
 fn main() {

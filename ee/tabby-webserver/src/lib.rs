@@ -47,7 +47,7 @@ pub async fn attach_webserver(router: Router) -> Router {
         .route("/graphiql", routing::get(graphiql("/graphql", None)))
         .route(
             "/graphql",
-            routing::post(graphql::<Arc<Schema>, Arc<Webserver>>).with_state(ws.clone()),
+            routing::post(graphql::<Arc<Schema>>).with_state(ws.clone()),
         )
         .route("/ws", routing::get(ws_handler).with_state(ws.clone()))
         .layer(Extension(schema));

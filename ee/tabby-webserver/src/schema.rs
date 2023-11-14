@@ -1,27 +1,13 @@
-use std::{net::SocketAddr, sync::Arc};
-
 use juniper::{
     graphql_object, graphql_value, EmptyMutation, EmptySubscription, FieldError, GraphQLEnum,
     GraphQLObject, IntoFieldError, RootNode, ScalarValue, Value,
 };
-use juniper_axum::FromStateAndClientAddr;
 use serde::{Deserialize, Serialize};
 
 use crate::webserver::{Webserver, WebserverError};
 
-pub struct Request {
-    ws: Arc<Webserver>,
-    client_addr: SocketAddr,
-}
-
-impl FromStateAndClientAddr<Request, Arc<Webserver>> for Request {
-    fn build(ws: Arc<Webserver>, client_addr: SocketAddr) -> Request {
-        Request { ws, client_addr }
-    }
-}
-
 // To make our context usable by Juniper, we have to implement a marker trait.
-impl juniper::Context for Request {}
+impl juniper::Context for Webserver {}
 
 #[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]
 pub enum WorkerKind {
@@ -44,14 +30,14 @@ pub struct Worker {
 #[derive(Default)]
 pub struct Query;
 
-#[graphql_object(context = Request)]
+#[graphql_object(context = Webserver)]
 impl Query {
-    async fn workers(request: &Request) -> Vec<Worker> {
-        request.ws.list_workers().await
+    async fn workers(ctx: &Webserver) -> Vec<Worker> {
+        ctx.list_workers().await
     }
 }
 
-pub type Schema = RootNode<'static, Query, EmptyMutation<Request>, EmptySubscription<Request>>;
+pub type Schema = RootNode<'static, Query, EmptyMutation<Webserver>, EmptySubscription<Webserver>>;
 
 impl<S: ScalarValue> IntoFieldError<S> for WebserverError {
     fn into_field_error(self) -> FieldError<S> {
