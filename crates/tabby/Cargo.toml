@@ -47,7 +47,6 @@ async-trait.workspace = true
 tabby-webserver = { path = "../../ee/tabby-webserver" }
 thiserror.workspace = true
 chrono = "0.4.31"
-graphql_client = { version = "0.13.0", features = ["reqwest"] }
 reqwest.workspace = true
 
 [dependencies.uuid]

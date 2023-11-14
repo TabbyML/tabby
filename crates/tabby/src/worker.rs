@@ -6,8 +6,8 @@ use std::{
 
 use axum::{routing, Router};
 use clap::Args;
-use graphql_client::{reqwest::post_graphql, GraphQLQuery};
 use hyper::Server;
+use tabby_webserver::{create_webserver_api_client, schema::WorkerKind, tarpc_context};
 use tracing::{info, warn};
 
 use crate::{
@@ -22,13 +22,6 @@ use crate::{
     },
     Device,
 };
-
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "../../ee/tabby-webserver/graphql/schema.graphql",
-    query_path = "./graphql/worker.query.graphql"
-)]
-struct RegisterWorker;
 
 #[derive(Args)]
 pub struct WorkerArgs {
@@ -56,7 +49,7 @@ pub struct WorkerArgs {
 async fn make_chat_route(args: &WorkerArgs) -> Router {
     let state = Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await);
 
-    request_register(register_worker::WorkerKind::CHAT, args).await;
+    request_register(WorkerKind::Chat, args).await;
 
     Router::new().route(
         "/v1beta/chat/completions",
@@ -71,17 +64,12 @@ async fn make_completion_route(args: &WorkerArgs) -> Router {
         create_completion_service(code, logger, &args.model, &args.device, args.parallelism).await,
     );
 
-    request_register(register_worker::WorkerKind::COMPLETION, args).await;
+    request_register(WorkerKind::Completion, args).await;
 
     Router::new().route(
         "/v1/completions",
         routing::post(routes::completions).with_state(state),
     )
-}
-
-pub enum WorkerKind {
-    Chat,
-    Completion,
 }
 
 pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
@@ -103,11 +91,11 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-async fn request_register(kind: register_worker::WorkerKind, args: &WorkerArgs) {
+async fn request_register(kind: WorkerKind, args: &WorkerArgs) {
     request_register_impl(
         kind,
         args.url.clone(),
-        args.port as i64,
+        args.port,
         args.model.to_owned(),
         args.device.to_string(),
     )
@@ -115,30 +103,32 @@ async fn request_register(kind: register_worker::WorkerKind, args: &WorkerArgs) 
 }
 
 async fn request_register_impl(
-    kind: register_worker::WorkerKind,
+    kind: WorkerKind,
     url: String,
-    port: i64,
+    port: u16,
     name: String,
     device: String,
 ) {
-    let client = reqwest::Client::new();
+    let client = create_webserver_api_client(url).await;
     let (cpu_info, cpu_count) = read_cpu_info();
     let cuda_devices = read_cuda_devices().unwrap_or_default();
-    let variables = register_worker::Variables {
-        port,
-        kind,
-        name,
-        device,
-        arch: ARCH.to_string(),
-        cpu_info,
-        cpu_count: cpu_count as i64,
-        cuda_devices,
-    };
+    let ret = client
+        .register_worker_as(
+            tarpc_context(),
+            kind,
+            port as i32,
+            name,
+            device,
+            ARCH.to_string(),
+            cpu_info,
+            cpu_count as i32,
+            cuda_devices,
+        )
+        .await;
 
-    let url = format!("{}/graphql", url);
-    match post_graphql::<RegisterWorker, _>(&client, &url, variables).await {
+    match ret {
         Ok(x) => {
-            let addr = x.data.unwrap().worker.addr;
+            let addr = x.addr;
             info!("Worker alive at {}", addr);
         }
         Err(err) => warn!("Failed to register worker: {}", err),

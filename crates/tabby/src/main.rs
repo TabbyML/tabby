@@ -14,6 +14,7 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::WithExportConfig;
 use tabby_common::config::Config;
+use tabby_webserver::schema::WorkerKind;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]
@@ -105,10 +106,8 @@ async fn main() {
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
-        Commands::WorkerCompletion(args) => {
-            worker::main(worker::WorkerKind::Completion, args).await
-        }
-        Commands::WorkerChat(args) => worker::main(worker::WorkerKind::Chat, args).await,
+        Commands::WorkerCompletion(args) => worker::main(WorkerKind::Completion, args).await,
+        Commands::WorkerChat(args) => worker::main(WorkerKind::Chat, args).await,
     }
 
     opentelemetry::global::shutdown_tracer_provider();

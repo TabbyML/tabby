@@ -32,7 +32,7 @@ use schema::{Mutation, Query, Schema};
 use tarpc::server::{BaseChannel, Channel};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream};
-use webserver::Webserver;
+use webserver::{Webserver, WebserverImpl};
 
 pub async fn attach_webserver(router: Router) -> Router {
     let ws = Arc::new(Webserver::default());
@@ -67,36 +67,44 @@ async fn ws_handler(
     State(state): State<Arc<Webserver>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
-    println!("{addr} connected.");
-    // finalize the upgrade process by returning upgrade callback.
-    // we can customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| handle_socket(state, socket, addr))
 }
 
-async fn handle_socket(state: Arc<Webserver>, socket: WebSocket, _: SocketAddr) {
+async fn handle_socket(state: Arc<Webserver>, socket: WebSocket, addr: SocketAddr) {
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
-    tokio::spawn(server.execute(state.serve())).await.unwrap()
+    let imp = Arc::new(WebserverImpl::new(state.clone(), addr));
+    tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
-async fn create_webserver_api_client(_addr: String) {
-    let (socket, _) = connect_async("ws://localhost:8080/ws").await.unwrap();
-    let _client = WebserverApiClient::new(Default::default(), WebSocketTransport::from(socket));
+pub fn tarpc_context() -> tarpc::context::Context {
+    tarpc::context::current()
+}
+
+pub async fn create_webserver_api_client(addr: String) -> WebserverApiClient {
+    let (socket, _) = connect_async(&addr).await.unwrap();
+    WebserverApiClient::new(Default::default(), WebSocketTransport::from(socket)).spawn()
 }
 
 trait IntoData {
-    fn into_data(self) -> Vec<u8>;
+    fn into_data(self) -> Option<Vec<u8>>;
 }
 
 impl IntoData for Message {
-    fn into_data(self) -> Vec<u8> {
-        self.into_data()
+    fn into_data(self) -> Option<Vec<u8>> {
+        match self {
+            Message::Binary(x) => Some(x),
+            _ => None,
+        }
     }
 }
 
 impl IntoData for tokio_tungstenite::tungstenite::Message {
-    fn into_data(self) -> Vec<u8> {
-        self.into_data()
+    fn into_data(self) -> Option<Vec<u8>> {
+        match self {
+            tokio_tungstenite::tungstenite::Message::Binary(x) => Some(x),
+            _ => None,
+        }
     }
 }
 
@@ -149,7 +157,7 @@ impl<Req, Resp, Message, Transport, Error> Stream
     for WebSocketTransport<Req, Resp, Message, Transport, Error>
 where
     Req: for<'de> serde::Deserialize<'de>,
-    Message: IntoData + From<Vec<u8>>,
+    Message: IntoData + From<Vec<u8>> + std::fmt::Debug,
     Transport: Stream<Item = Result<Message, Error>> + Sink<Message, Error = Error>,
 {
     type Item = Result<Req, Error>;
@@ -158,10 +166,13 @@ where
         match futures::ready!(self.as_mut().project().inner.poll_next(cx)) {
             Some(Ok(msg)) => {
                 let bin = msg.into_data();
-                Poll::Ready(Some(Ok(bincode::deserialize_from::<&[u8], Req>(
-                    bin.as_ref(),
-                )
-                .unwrap())))
+                match bin {
+                    Some(bin) => Poll::Ready(Some(Ok(bincode::deserialize_from::<&[u8], Req>(
+                        bin.as_ref(),
+                    )
+                    .unwrap()))),
+                    None => Poll::Ready(None),
+                }
             }
             Some(Err(err)) => Poll::Ready(Some(Err(err))),
             None => Poll::Ready(None),

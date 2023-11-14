@@ -4,7 +4,6 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use tarpc::context::Context;
 use thiserror::Error;
 use tracing::{info, warn};
 
@@ -91,7 +90,41 @@ impl Webserver {
     }
 }
 
+pub struct WebserverImpl {
+    ws: Arc<Webserver>,
+    conn: SocketAddr,
+}
+
+impl WebserverImpl {
+    pub fn new(ws: Arc<Webserver>, conn: SocketAddr) -> Self {
+        Self { ws, conn }
+    }
+}
+
 #[tarpc::server]
-impl WebserverApi for Arc<Webserver> {
-    async fn hello(self, _: Context) {}
+impl WebserverApi for Arc<WebserverImpl> {
+    async fn register_worker_as(
+        self,
+        _context: tarpc::context::Context,
+        kind: WorkerKind,
+        port: i32,
+        name: String,
+        device: String,
+        arch: String,
+        cpu_info: String,
+        cpu_count: i32,
+        cuda_devices: Vec<String>,
+    ) -> Worker {
+        let worker = Worker {
+            name,
+            kind,
+            addr: format!("http://{}:{}", self.conn.ip(), port),
+            device,
+            arch,
+            cpu_info,
+            cpu_count,
+            cuda_devices,
+        };
+        self.ws.register_worker(worker).await.unwrap()
+    }
 }

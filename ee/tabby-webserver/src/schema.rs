@@ -5,6 +5,7 @@ use juniper::{
     IntoFieldError, RootNode, ScalarValue, Value,
 };
 use juniper_axum::FromStateAndClientAddr;
+use serde::{Deserialize, Serialize};
 
 use crate::webserver::{Webserver, WebserverError};
 
@@ -22,13 +23,13 @@ impl FromStateAndClientAddr<Request, Arc<Webserver>> for Request {
 // To make our context usable by Juniper, we have to implement a marker trait.
 impl juniper::Context for Request {}
 
-#[derive(GraphQLEnum, Clone, Debug)]
+#[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]
 pub enum WorkerKind {
     Completion,
     Chat,
 }
 
-#[derive(GraphQLObject, Clone, Debug)]
+#[derive(GraphQLObject, Serialize, Deserialize, Clone, Debug)]
 pub struct Worker {
     pub kind: WorkerKind,
     pub name: String,
