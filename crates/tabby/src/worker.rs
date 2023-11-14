@@ -7,7 +7,7 @@ use std::{
 use axum::{routing, Router};
 use clap::Args;
 use hyper::Server;
-use tabby_webserver::{api::WorkerKind, create_webserver_api_client, tarpc_context};
+use tabby_webserver::{create_webserver_api_client, schema::WorkerKind, tarpc_context};
 use tracing::{info, warn};
 
 use crate::{

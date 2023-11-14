@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
 use tracing::error;
 
-use crate::api::Worker;
+use crate::schema::Worker;
 
 #[derive(Default)]
 pub struct WorkerGroup {
@@ -51,7 +51,7 @@ fn random_index(size: usize) -> usize {
 mod tests {
 
     use super::*;
-    use crate::api::WorkerKind;
+    use crate::schema::WorkerKind;
 
     #[tokio::test]
     async fn test_worker_group() {

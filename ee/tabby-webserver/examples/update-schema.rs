@@ -1,7 +1,7 @@
 use std::fs::write;
 
 use juniper::EmptySubscription;
-use tabby_webserver::api::{Mutation, Query, Schema};
+use tabby_webserver::schema::{Mutation, Query, Schema};
 
 fn main() {
     let schema = Schema::new(Query, Mutation, EmptySubscription::new());
