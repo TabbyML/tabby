@@ -1,10 +1,17 @@
 import { type UseChatHelpers } from 'ai/react'
 
 import { Button } from '@/components/ui/button'
-import { PromptForm } from '@/components/prompt-form'
+import { PromptForm, PromptFormRef } from '@/components/prompt-form'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { IconRefresh, IconStop } from '@/components/ui/icons'
 import { FooterText } from '@/components/footer'
+import { cn } from '@/lib/utils'
+import { useStore } from '@/lib/hooks/use-store'
+import { useChatStore } from '@/lib/stores/chat-store'
+import { addChat } from '@/lib/stores/chat-actions'
+import { Message } from 'ai'
+import { findIndex } from 'lodash-es'
+import React, { useRef } from 'react'
 
 export interface ChatPanelProps
   extends Pick<
@@ -18,6 +25,8 @@ export interface ChatPanelProps
     | 'setInput'
   > {
   id?: string
+  className?: string
+  onSubmit: (content: string) => Promise<void>
 }
 
 export function ChatPanel({
@@ -28,10 +37,22 @@ export function ChatPanel({
   reload,
   input,
   setInput,
-  messages
+  messages,
+  className,
+  onSubmit
 }: ChatPanelProps) {
+  const promptFormRef = useRef<PromptFormRef>(null)
+  React.useEffect(() => {
+    promptFormRef?.current?.focus()
+  }, [id])
+
   return (
-    <div className="fixed inset-x-0 bottom-0 bg-gradient-to-b from-muted/10 from-10% to-muted/30 to-50%">
+    <div
+      className={cn(
+        'from-muted/10 to-muted/30 bg-gradient-to-b from-10% to-50%',
+        className
+      )}
+    >
       <ButtonScrollToBottom />
       <div className="mx-auto sm:max-w-2xl sm:px-4">
         <div className="flex h-10 items-center justify-center">
@@ -57,15 +78,10 @@ export function ChatPanel({
             )
           )}
         </div>
-        <div className="space-y-4 border-t bg-background px-4 py-2 shadow-lg sm:rounded-t-xl sm:border md:py-4">
+        <div className="bg-background space-y-4 border-t px-4 py-2 shadow-lg sm:rounded-t-xl sm:border md:py-4">
           <PromptForm
-            onSubmit={async value => {
-              await append({
-                id,
-                content: value,
-                role: 'user'
-              })
-            }}
+            ref={promptFormRef}
+            onSubmit={onSubmit}
             input={input}
             setInput={setInput}
             isLoading={isLoading}
