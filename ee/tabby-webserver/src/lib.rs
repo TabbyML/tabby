@@ -26,7 +26,7 @@ use server::ServerContext;
 use tarpc::server::{BaseChannel, Channel};
 
 pub async fn attach_webserver(router: Router) -> Router {
-    let ws = Arc::new(ServerContext::default());
+    let ctx = Arc::new(ServerContext::default());
     let schema = Arc::new(create_schema());
 
     let app = Router::new()
@@ -34,15 +34,15 @@ pub async fn attach_webserver(router: Router) -> Router {
         .route("/graphiql", routing::get(graphiql("/graphql", None)))
         .route(
             "/graphql",
-            routing::post(graphql::<Arc<Schema>>).with_state(ws.clone()),
+            routing::post(graphql::<Arc<Schema>>).with_state(ctx.clone()),
         )
         .layer(Extension(schema));
 
     router
         .merge(app)
-        .route("/hub", routing::get(ws_handler).with_state(ws.clone()))
+        .route("/hub", routing::get(ws_handler).with_state(ctx.clone()))
         .fallback(ui::handler)
-        .layer(from_fn_with_state(ws, distributed_tabby_layer))
+        .layer(from_fn_with_state(ctx, distributed_tabby_layer))
 }
 
 async fn distributed_tabby_layer(
@@ -69,13 +69,13 @@ async fn handle_socket(state: Arc<ServerContext>, socket: WebSocket, addr: Socke
 }
 
 pub struct HubImpl {
-    ws: Arc<ServerContext>,
+    ctx: Arc<ServerContext>,
     conn: SocketAddr,
 }
 
 impl HubImpl {
-    pub fn new(ws: Arc<ServerContext>, conn: SocketAddr) -> Self {
-        Self { ws, conn }
+    pub fn new(ctx: Arc<ServerContext>, conn: SocketAddr) -> Self {
+        Self { ctx, conn }
     }
 }
 
@@ -103,6 +103,6 @@ impl Hub for Arc<HubImpl> {
             cpu_count,
             cuda_devices,
         };
-        self.ws.register_worker(worker).await
+        self.ctx.register_worker(worker).await
     }
 }
