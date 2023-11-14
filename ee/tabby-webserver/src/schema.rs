@@ -1,8 +1,8 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLEnum, GraphQLObject,
-    IntoFieldError, RootNode, ScalarValue, Value,
+    graphql_object, graphql_value, EmptyMutation, EmptySubscription, FieldError, GraphQLEnum,
+    GraphQLObject, IntoFieldError, RootNode, ScalarValue, Value,
 };
 use juniper_axum::FromStateAndClientAddr;
 use serde::{Deserialize, Serialize};
@@ -51,37 +51,7 @@ impl Query {
     }
 }
 
-pub struct Mutation;
-
-#[graphql_object(context = Request)]
-impl Mutation {
-    async fn register_worker(
-        request: &Request,
-        port: i32,
-        kind: WorkerKind,
-        name: String,
-        device: String,
-        arch: String,
-        cpu_info: String,
-        cpu_count: i32,
-        cuda_devices: Vec<String>,
-    ) -> Result<Worker, WebserverError> {
-        let ws = &request.ws;
-        let worker = Worker {
-            name,
-            kind,
-            addr: format!("http://{}:{}", request.client_addr.ip(), port),
-            device,
-            arch,
-            cpu_info,
-            cpu_count,
-            cuda_devices,
-        };
-        ws.register_worker(worker).await
-    }
-}
-
-pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Request>>;
+pub type Schema = RootNode<'static, Query, EmptyMutation<Request>, EmptySubscription<Request>>;
 
 impl<S: ScalarValue> IntoFieldError<S> for WebserverError {
     fn into_field_error(self) -> FieldError<S> {

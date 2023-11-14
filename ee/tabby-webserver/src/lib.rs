@@ -25,10 +25,10 @@ use axum::{
 };
 use futures::{Sink, Stream};
 use hyper::Body;
-use juniper::EmptySubscription;
+use juniper::{EmptyMutation, EmptySubscription};
 use juniper_axum::{graphiql, graphql, playground};
 use pin_project::pin_project;
-use schema::{Mutation, Query, Schema};
+use schema::{Query, Schema};
 use tarpc::server::{BaseChannel, Channel};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream};
@@ -36,7 +36,11 @@ use webserver::{Webserver, WebserverImpl};
 
 pub async fn attach_webserver(router: Router) -> Router {
     let ws = Arc::new(Webserver::default());
-    let schema = Arc::new(Schema::new(Query, Mutation, EmptySubscription::new()));
+    let schema = Arc::new(Schema::new(
+        Query,
+        EmptyMutation::new(),
+        EmptySubscription::new(),
+    ));
 
     let app = Router::new()
         .route("/graphql", routing::get(playground("/graphql", None)))
