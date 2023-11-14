@@ -14,7 +14,7 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::WithExportConfig;
 use tabby_common::config::Config;
-use tabby_webserver::schema::WorkerKind;
+use tabby_webserver::api::WorkerKind;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]

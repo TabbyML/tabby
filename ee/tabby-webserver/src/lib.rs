@@ -1,5 +1,4 @@
-mod api;
-pub mod schema;
+pub mod api;
 mod ui;
 mod webserver;
 mod worker;
@@ -12,7 +11,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use api::{WebserverApi, WebserverApiClient};
+use api::{Mutation, Query, Schema, WebserverApi, WebserverApiClient};
 use axum::{
     extract::{
         ws::{Message, WebSocket},
@@ -28,7 +27,6 @@ use hyper::Body;
 use juniper::EmptySubscription;
 use juniper_axum::{graphiql, graphql, playground};
 use pin_project::pin_project;
-use schema::{Mutation, Query, Schema};
 use tarpc::server::{BaseChannel, Channel};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream};
