@@ -1,5 +1,8 @@
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
+use tokio_tungstenite::connect_async;
+
+use crate::websocket::WebSocketTransport;
 
 #[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]
 pub enum WorkerKind {
@@ -31,4 +34,13 @@ pub trait WebserverApi {
         cpu_count: i32,
         cuda_devices: Vec<String>,
     ) -> Worker;
+}
+
+pub fn tracing_context() -> tarpc::context::Context {
+    tarpc::context::current()
+}
+
+pub async fn create_client(addr: String) -> WebserverApiClient {
+    let (socket, _) = connect_async(&addr).await.unwrap();
+    WebserverApiClient::new(Default::default(), WebSocketTransport::from(socket)).spawn()
 }

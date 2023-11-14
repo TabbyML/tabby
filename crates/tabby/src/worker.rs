@@ -7,7 +7,7 @@ use std::{
 use axum::{routing, Router};
 use clap::Args;
 use hyper::Server;
-use tabby_webserver::{api::WorkerKind, create_webserver_api_client, tarpc_context};
+use tabby_webserver::api::WorkerKind;
 use tracing::{info, warn};
 
 use crate::{
@@ -109,12 +109,12 @@ async fn request_register_impl(
     name: String,
     device: String,
 ) {
-    let client = create_webserver_api_client(url).await;
+    let client = tabby_webserver::api::create_client(url).await;
     let (cpu_info, cpu_count) = read_cpu_info();
     let cuda_devices = read_cuda_devices().unwrap_or_default();
     let ret = client
         .register_worker_as(
-            tarpc_context(),
+            tabby_webserver::api::tracing_context(),
             kind,
             port as i32,
             name,

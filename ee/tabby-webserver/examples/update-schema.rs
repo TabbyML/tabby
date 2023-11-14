@@ -1,6 +1,5 @@
 use std::fs::write;
 
-
 use tabby_webserver::create_schema;
 
 fn main() {
