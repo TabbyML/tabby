@@ -4,6 +4,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
+
 use tracing::{info, warn};
 
 use crate::{
@@ -11,13 +12,13 @@ use crate::{
     worker,
 };
 #[derive(Default)]
-pub struct Webserver {
+pub struct ServerContext {
     client: Client<HttpConnector>,
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
 }
 
-impl Webserver {
+impl ServerContext {
     pub async fn register_worker(&self, worker: Worker) -> Result<Worker, WebserverApiError> {
         let worker = match worker.kind {
             WorkerKind::Completion => self.completion.register(worker).await,
@@ -79,12 +80,12 @@ impl Webserver {
 }
 
 pub struct WebserverImpl {
-    ws: Arc<Webserver>,
+    ws: Arc<ServerContext>,
     conn: SocketAddr,
 }
 
 impl WebserverImpl {
-    pub fn new(ws: Arc<Webserver>, conn: SocketAddr) -> Self {
+    pub fn new(ws: Arc<ServerContext>, conn: SocketAddr) -> Self {
         Self { ws, conn }
     }
 }

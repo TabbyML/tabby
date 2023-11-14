@@ -4,8 +4,8 @@ mod schema;
 pub use schema::create_schema;
 use websocket::WebSocketTransport;
 
+mod server;
 mod ui;
-mod webserver;
 mod websocket;
 mod worker;
 
@@ -22,11 +22,11 @@ use axum::{
 use hyper::Body;
 use juniper_axum::{graphiql, graphql, playground};
 use schema::Schema;
+use server::{ServerContext, WebserverImpl};
 use tarpc::server::{BaseChannel, Channel};
-use webserver::{Webserver, WebserverImpl};
 
 pub async fn attach_webserver(router: Router) -> Router {
-    let ws = Arc::new(Webserver::default());
+    let ws = Arc::new(ServerContext::default());
     let schema = Arc::new(create_schema());
 
     let app = Router::new()
@@ -46,7 +46,7 @@ pub async fn attach_webserver(router: Router) -> Router {
 }
 
 async fn distributed_tabby_layer(
-    State(ws): State<Arc<Webserver>>,
+    State(ws): State<Arc<ServerContext>>,
     request: Request<Body>,
     next: Next<Body>,
 ) -> axum::response::Response {
@@ -55,13 +55,13 @@ async fn distributed_tabby_layer(
 
 async fn ws_handler(
     ws: WebSocketUpgrade,
-    State(state): State<Arc<Webserver>>,
+    State(state): State<Arc<ServerContext>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(state, socket, addr))
 }
 
-async fn handle_socket(state: Arc<Webserver>, socket: WebSocket, addr: SocketAddr) {
+async fn handle_socket(state: Arc<ServerContext>, socket: WebSocket, addr: SocketAddr) {
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
     let imp = Arc::new(WebserverImpl::new(state.clone(), addr));

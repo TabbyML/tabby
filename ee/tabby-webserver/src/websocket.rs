@@ -11,7 +11,7 @@ use tokio::net::TcpStream;
 use tokio_tungstenite as tt;
 use tokio_tungstenite::tungstenite as ts;
 
-trait IntoData {
+pub trait IntoData {
     fn into_data(self) -> Option<Vec<u8>>;
 }
 
