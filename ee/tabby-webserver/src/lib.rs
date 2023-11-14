@@ -11,7 +11,7 @@ mod worker;
 
 use std::{net::SocketAddr, sync::Arc};
 
-use api::{Hub, WorkerKind, Worker, HubError};
+use api::{Hub, HubError, Worker, WorkerKind};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     http::Request,
@@ -40,7 +40,7 @@ pub async fn attach_webserver(router: Router) -> Router {
 
     router
         .merge(app)
-        .route("/ws", routing::get(ws_handler).with_state(ws.clone()))
+        .route("/hub", routing::get(ws_handler).with_state(ws.clone()))
         .fallback(ui::handler)
         .layer(from_fn_with_state(ws, distributed_tabby_layer))
 }
@@ -64,23 +64,23 @@ async fn ws_handler(
 async fn handle_socket(state: Arc<ServerContext>, socket: WebSocket, addr: SocketAddr) {
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
-    let imp = Arc::new(WebserverImpl::new(state.clone(), addr));
+    let imp = Arc::new(HubImpl::new(state.clone(), addr));
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
-pub struct WebserverImpl {
+pub struct HubImpl {
     ws: Arc<ServerContext>,
     conn: SocketAddr,
 }
 
-impl WebserverImpl {
+impl HubImpl {
     pub fn new(ws: Arc<ServerContext>, conn: SocketAddr) -> Self {
         Self { ws, conn }
     }
 }
 
 #[tarpc::server]
-impl Hub for Arc<WebserverImpl> {
+impl Hub for Arc<HubImpl> {
     async fn register_worker(
         self,
         _context: tarpc::context::Context,

@@ -1,13 +1,13 @@
 mod proxy;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr};
 
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tracing::{info, warn};
 
 use crate::{
-    api::{Hub, HubError, Worker, WorkerKind},
+    api::{HubError, Worker, WorkerKind},
     worker,
 };
 #[derive(Default)]
