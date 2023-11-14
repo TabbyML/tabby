@@ -1,5 +1,6 @@
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use tokio_tungstenite::connect_async;
 
 use crate::websocket::WebSocketTransport;
@@ -22,9 +23,18 @@ pub struct Worker {
     pub cuda_devices: Vec<String>,
 }
 
+#[derive(Serialize, Deserialize, Error, Debug)]
+pub enum WebserverApiError {
+    #[error("Invalid worker token")]
+    InvalidToken(String),
+
+    #[error("Feature requires enterprise license")]
+    RequiresEnterpriseLicense,
+}
+
 #[tarpc::service]
 pub trait WebserverApi {
-    async fn register_worker_as(
+    async fn register_worker(
         kind: WorkerKind,
         port: i32,
         name: String,
@@ -33,7 +43,7 @@ pub trait WebserverApi {
         cpu_info: String,
         cpu_count: i32,
         cuda_devices: Vec<String>,
-    ) -> Worker;
+    ) -> Result<Worker, WebserverApiError>;
 }
 
 pub fn tracing_context() -> tarpc::context::Context {

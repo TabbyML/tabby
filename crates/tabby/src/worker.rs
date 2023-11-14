@@ -4,6 +4,7 @@ use std::{
     sync::Arc,
 };
 
+use anyhow::Result;
 use axum::{routing, Router};
 use clap::Args;
 use hyper::Server;
@@ -92,14 +93,17 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
 }
 
 async fn request_register(kind: WorkerKind, args: &WorkerArgs) {
-    request_register_impl(
+    if let Err(err) = request_register_impl(
         kind,
         args.url.clone(),
         args.port,
         args.model.to_owned(),
         args.device.to_string(),
     )
-    .await;
+    .await
+    {
+        warn!("Failed to register worker: {}", err)
+    }
 }
 
 async fn request_register_impl(
@@ -108,12 +112,12 @@ async fn request_register_impl(
     port: u16,
     name: String,
     device: String,
-) {
+) -> Result<()> {
     let client = tabby_webserver::api::create_client(url).await;
     let (cpu_info, cpu_count) = read_cpu_info();
     let cuda_devices = read_cuda_devices().unwrap_or_default();
-    let ret = client
-        .register_worker_as(
+    let worker = client
+        .register_worker(
             tabby_webserver::api::tracing_context(),
             kind,
             port as i32,
@@ -124,13 +128,9 @@ async fn request_register_impl(
             cpu_count as i32,
             cuda_devices,
         )
-        .await;
+        .await??;
 
-    match ret {
-        Ok(x) => {
-            let addr = x.addr;
-            info!("Worker alive at {}", addr);
-        }
-        Err(err) => warn!("Failed to register worker: {}", err),
-    }
+    info!("Worker alive at {}", worker.addr);
+
+    Ok(())
 }

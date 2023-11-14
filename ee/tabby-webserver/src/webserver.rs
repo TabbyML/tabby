@@ -4,23 +4,12 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use thiserror::Error;
 use tracing::{info, warn};
 
 use crate::{
-    api::{WebserverApi, Worker, WorkerKind},
+    api::{WebserverApi, WebserverApiError, Worker, WorkerKind},
     worker,
 };
-
-#[derive(Error, Debug)]
-pub enum WebserverError {
-    #[error("Invalid worker token")]
-    InvalidToken(String),
-
-    #[error("Feature requires enterprise license")]
-    RequiresEnterpriseLicense,
-}
-
 #[derive(Default)]
 pub struct Webserver {
     client: Client<HttpConnector>,
@@ -29,7 +18,7 @@ pub struct Webserver {
 }
 
 impl Webserver {
-    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, WebserverError> {
+    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, WebserverApiError> {
         let worker = match worker.kind {
             WorkerKind::Completion => self.completion.register(worker).await,
             WorkerKind::Chat => self.chat.register(worker).await,
@@ -42,7 +31,7 @@ impl Webserver {
             );
             Ok(worker)
         } else {
-            Err(WebserverError::RequiresEnterpriseLicense)
+            Err(WebserverApiError::RequiresEnterpriseLicense)
         }
     }
 
@@ -102,7 +91,7 @@ impl WebserverImpl {
 
 #[tarpc::server]
 impl WebserverApi for Arc<WebserverImpl> {
-    async fn register_worker_as(
+    async fn register_worker(
         self,
         _context: tarpc::context::Context,
         kind: WorkerKind,
@@ -113,7 +102,7 @@ impl WebserverApi for Arc<WebserverImpl> {
         cpu_info: String,
         cpu_count: i32,
         cuda_devices: Vec<String>,
-    ) -> Worker {
+    ) -> Result<Worker, WebserverApiError> {
         let worker = Worker {
             name,
             kind,
@@ -124,6 +113,6 @@ impl WebserverApi for Arc<WebserverImpl> {
             cpu_count,
             cuda_devices,
         };
-        self.ws.register_worker(worker).await.unwrap()
+        self.ws.register_worker(worker).await
     }
 }
