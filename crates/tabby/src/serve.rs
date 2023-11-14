@@ -102,12 +102,9 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     info!("Starting server, this might takes a few minutes...");
 
-    let mut doc = ApiDoc::openapi();
-    doc.override_doc(args);
-
     let app = Router::new()
         .merge(api_router(args, config).await)
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc));
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     let app = attach_webserver(app).await;
 
@@ -216,22 +213,4 @@ fn start_heartbeat(args: &ServeArgs) {
             sleep(Duration::from_secs(3000)).await;
         }
     });
-}
-
-trait OpenApiOverride {
-    fn override_doc(&mut self, args: &ServeArgs);
-}
-
-impl OpenApiOverride for utoipa::openapi::OpenApi {
-    fn override_doc(&mut self, args: &ServeArgs) {
-        if args.chat_model.is_none() {
-            self.paths.paths.remove("/v1beta/chat/completions");
-
-            if let Some(components) = self.components.as_mut() {
-                components.schemas.remove("ChatCompletionRequest");
-                components.schemas.remove("ChatCompletionChunk");
-                components.schemas.remove("Message");
-            }
-        }
-    }
 }
