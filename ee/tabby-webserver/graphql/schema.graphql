@@ -3,10 +3,6 @@ enum WorkerKind {
   CHAT
 }
 
-type Mutation {
-  registerWorker(port: Int!, kind: WorkerKind!, name: String!, device: String!, arch: String!, cpuInfo: String!, cpuCount: Int!, cudaDevices: [String!]!): Worker!
-}
-
 type Query {
   workers: [Worker!]!
 }
@@ -24,5 +20,4 @@ type Worker {
 
 schema {
   query: Query
-  mutation: Mutation
 }

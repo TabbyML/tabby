@@ -1,34 +1,26 @@
 pub mod extract;
 pub mod response;
 
-use std::{future, net::SocketAddr};
+use std::{future, sync::Arc};
 
 use axum::{
-    extract::{ConnectInfo, Extension, State},
+    extract::{Extension, State},
     response::{Html, IntoResponse},
 };
 use juniper_graphql_ws::Schema;
 
 use self::{extract::JuniperRequest, response::JuniperResponse};
 
-pub trait FromStateAndClientAddr<C, S> {
-    fn build(state: S, client_addr: SocketAddr) -> C;
-}
-
 #[cfg_attr(text, axum::debug_handler)]
-pub async fn graphql<S, C>(
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(state): State<C>,
+pub async fn graphql<S>(
+    State(state): State<Arc<S::Context>>,
     Extension(schema): Extension<S>,
     JuniperRequest(req): JuniperRequest<S::ScalarValue>,
 ) -> impl IntoResponse
 where
     S: Schema, // TODO: Refactor in the way we don't depend on `juniper_graphql_ws::Schema` here.
-    S::Context: FromStateAndClientAddr<S::Context, C>,
-    C: Clone,
 {
-    let context = S::Context::build(state.clone(), addr);
-    JuniperResponse(req.execute(schema.root_node(), &context).await).into_response()
+    JuniperResponse(req.execute(schema.root_node(), &state).await).into_response()
 }
 
 /// Creates a [`Handler`] that replies with an HTML page containing [GraphiQL].

@@ -109,7 +109,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(api_router(args, config).await)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc));
 
-    let app = attach_webserver(app);
+    let app = attach_webserver(app).await;
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);

@@ -1,35 +1,22 @@
 mod proxy;
+mod worker;
 
 use std::net::SocketAddr;
 
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use thiserror::Error;
 use tracing::{info, warn};
 
-use crate::{
-    schema::{Worker, WorkerKind},
-    worker,
-};
-
-#[derive(Error, Debug)]
-pub enum WebserverError {
-    #[error("Invalid worker token")]
-    InvalidToken(String),
-
-    #[error("Feature requires enterprise license")]
-    RequiresEnterpriseLicense,
-}
-
+use crate::api::{HubError, Worker, WorkerKind};
 #[derive(Default)]
-pub struct Webserver {
+pub struct ServerContext {
     client: Client<HttpConnector>,
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
 }
 
-impl Webserver {
-    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, WebserverError> {
+impl ServerContext {
+    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, HubError> {
         let worker = match worker.kind {
             WorkerKind::Completion => self.completion.register(worker).await,
             WorkerKind::Chat => self.chat.register(worker).await,
@@ -42,7 +29,7 @@ impl Webserver {
             );
             Ok(worker)
         } else {
-            Err(WebserverError::RequiresEnterpriseLicense)
+            Err(HubError::RequiresEnterpriseLicense)
         }
     }
 

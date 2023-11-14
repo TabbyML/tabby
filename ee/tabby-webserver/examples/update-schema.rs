@@ -1,10 +1,9 @@
 use std::fs::write;
 
-use juniper::EmptySubscription;
-use tabby_webserver::schema::{Mutation, Query, Schema};
+use tabby_webserver::create_schema;
 
 fn main() {
-    let schema = Schema::new(Query, Mutation, EmptySubscription::new());
+    let schema = create_schema();
     write(
         "ee/tabby-webserver/graphql/schema.graphql",
         schema.as_schema_language(),
