@@ -4,6 +4,8 @@ mod services;
 
 mod download;
 mod serve;
+
+#[cfg(feature = "ee")]
 mod worker;
 
 use clap::{Parser, Subcommand};
@@ -14,7 +16,6 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::WithExportConfig;
 use tabby_common::config::Config;
-use tabby_webserver::api::WorkerKind;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]
@@ -41,11 +42,13 @@ pub enum Commands {
     Scheduler(SchedulerArgs),
 
     /// Run completion model as worker
+    #[cfg(feature = "ee")]
     #[clap(name = "worker::completion")]
     #[command(arg_required_else_help = true)]
     WorkerCompletion(worker::WorkerArgs),
 
     /// Run chat model as worker
+    #[cfg(feature = "ee")]
     #[clap(name = "worker::chat")]
     #[command(arg_required_else_help = true)]
     WorkerChat(worker::WorkerArgs),
@@ -106,8 +109,14 @@ async fn main() {
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
-        Commands::WorkerCompletion(args) => worker::main(WorkerKind::Completion, args).await,
-        Commands::WorkerChat(args) => worker::main(WorkerKind::Chat, args).await,
+        #[cfg(feature = "ee")]
+        Commands::WorkerCompletion(args) => {
+            worker::main(tabby_webserver::api::WorkerKind::Completion, args).await
+        }
+        #[cfg(feature = "ee")]
+        Commands::WorkerChat(args) => {
+            worker::main(tabby_webserver::api::WorkerKind::Chat, args).await
+        }
     }
 
     opentelemetry::global::shutdown_tracer_provider();

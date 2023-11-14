@@ -4,11 +4,10 @@ use std::{
     time::Duration,
 };
 
-use axum::{routing, Router, Server};
+use axum::{routing, Router, Server, response::Redirect};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{config::Config, usage};
-use tabby_webserver::attach_webserver;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
 use tracing::info;
@@ -106,7 +105,11 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(api_router(args, config).await)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
-    let app = attach_webserver(app).await;
+    #[cfg(feature="ee")]
+    let app = tabby_webserver::attach_webserver(app).await;
+
+    #[cfg(not(feature="ee"))]
+    let app = app.fallback(|| async { Redirect::permanent("/swagger-ui") });
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);

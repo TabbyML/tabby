@@ -4,6 +4,8 @@ version = "0.6.0-dev"
 edition = "2021"
 
 [features]
+default = ["ee"]
+ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
 experimental-http = ["dep:http-api-bindings"]
 
@@ -15,7 +17,7 @@ tabby-inference = { path = "../tabby-inference" }
 axum.workspace = true
 hyper = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
-utoipa = { workspace= true, features = ["axum_extras", "preserve_order"] }
+utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
 utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
 serde = { workspace = true }
 serdeconv = { workspace = true }
@@ -35,7 +37,7 @@ tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
-http-api-bindings = { path = "../http-api-bindings", optional = true } # included when build with `experimental-http` feature
+http-api-bindings = { path = "../http-api-bindings", optional = true }      # included when build with `experimental-http` feature
 async-stream = { workspace = true }
 axum-streams = { version = "0.9.1", features = ["json"] }
 minijinja = { version = "1.0.8", features = ["loader"] }
@@ -44,7 +46,7 @@ regex.workspace = true
 llama-cpp-bindings = { path = "../llama-cpp-bindings" }
 futures.workspace = true
 async-trait.workspace = true
-tabby-webserver = { path = "../../ee/tabby-webserver" }
+tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
 thiserror.workspace = true
 chrono = "0.4.31"
 
