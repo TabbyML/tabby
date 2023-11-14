@@ -1,13 +1,15 @@
 mod proxy;
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
-use axum::{http::Request, middleware::Next, response::IntoResponse};
+use axum::{http::Request, middleware::Next, response::IntoResponse, async_trait};
+use futures::future::{Ready, self};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use thiserror::Error;
 use tracing::{info, warn};
 
 use crate::{
+    api::WebserverApi,
     schema::{Worker, WorkerKind},
     worker,
 };
@@ -86,5 +88,11 @@ impl Webserver {
         } else {
             next.run(request).await
         }
+    }
+}
+
+#[async_trait]
+impl WebserverApi for Arc<Webserver> {
+    async fn hello(self, context: tarpc::context::Context) {
     }
 }
