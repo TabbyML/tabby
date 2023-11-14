@@ -48,7 +48,8 @@
     "react-textarea-autosize": "^8.4.1",
     "remark-gfm": "^3.0.1",
     "remark-math": "^5.1.1",
-    "swr": "^2.2.4"
+    "swr": "^2.2.4",
+    "zustand": "^4.4.6"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.9",
