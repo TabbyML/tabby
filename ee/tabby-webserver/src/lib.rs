@@ -7,7 +7,6 @@ use websocket::WebSocketTransport;
 mod server;
 mod ui;
 mod websocket;
-mod worker;
 
 use std::{net::SocketAddr, sync::Arc};
 
