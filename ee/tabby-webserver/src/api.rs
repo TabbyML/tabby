@@ -1,4 +1,23 @@
-use crate::schema::{Worker, WorkerKind};
+use juniper::{GraphQLEnum, GraphQLObject};
+use serde::{Deserialize, Serialize};
+
+#[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]
+pub enum WorkerKind {
+    Completion,
+    Chat,
+}
+
+#[derive(GraphQLObject, Serialize, Deserialize, Clone, Debug)]
+pub struct Worker {
+    pub kind: WorkerKind,
+    pub name: String,
+    pub addr: String,
+    pub device: String,
+    pub arch: String,
+    pub cpu_info: String,
+    pub cpu_count: i32,
+    pub cuda_devices: Vec<String>,
+}
 
 #[tarpc::service]
 pub trait WebserverApi {

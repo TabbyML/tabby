@@ -1,5 +1,8 @@
-mod api;
-pub mod schema;
+pub mod api;
+
+mod schema;
+pub use schema::create_schema;
+
 mod ui;
 mod webserver;
 mod worker;
@@ -25,10 +28,9 @@ use axum::{
 };
 use futures::{Sink, Stream};
 use hyper::Body;
-use juniper::{EmptyMutation, EmptySubscription};
 use juniper_axum::{graphiql, graphql, playground};
 use pin_project::pin_project;
-use schema::{Query, Schema};
+use schema::Schema;
 use tarpc::server::{BaseChannel, Channel};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream};
@@ -36,11 +38,7 @@ use webserver::{Webserver, WebserverImpl};
 
 pub async fn attach_webserver(router: Router) -> Router {
     let ws = Arc::new(Webserver::default());
-    let schema = Arc::new(Schema::new(
-        Query,
-        EmptyMutation::new(),
-        EmptySubscription::new(),
-    ));
+    let schema = Arc::new(create_schema());
 
     let app = Router::new()
         .route("/graphql", routing::get(playground("/graphql", None)))
@@ -49,11 +47,11 @@ pub async fn attach_webserver(router: Router) -> Router {
             "/graphql",
             routing::post(graphql::<Arc<Schema>>).with_state(ws.clone()),
         )
-        .route("/ws", routing::get(ws_handler).with_state(ws.clone()))
         .layer(Extension(schema));
 
     router
         .merge(app)
+        .route("/ws", routing::get(ws_handler).with_state(ws.clone()))
         .fallback(ui::handler)
         .layer(from_fn_with_state(ws, distributed_tabby_layer))
 }

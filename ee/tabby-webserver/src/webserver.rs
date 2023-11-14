@@ -8,8 +8,7 @@ use thiserror::Error;
 use tracing::{info, warn};
 
 use crate::{
-    api::WebserverApi,
-    schema::{Worker, WorkerKind},
+    api::{WebserverApi, Worker, WorkerKind},
     worker,
 };
 
