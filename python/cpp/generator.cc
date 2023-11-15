@@ -258,7 +258,7 @@ namespace ctranslate2 {
                    sampling_temperature: Sampling temperature to generate more random samples.
                    callback: Optional function that is called for each generated token when
                      :obj:`beam_size` is 1. If the callback function returns ``True``, the
-                     decoding will stop for this batch.
+                     decoding will stop for this batch index.
 
                  Returns:
                    A list of generation results.
