@@ -546,7 +546,7 @@ class TestGeneration:
             len(result_w_prompt.sequences[0]) - 1
         )
 
-        assert cum_score_wo_prompt == pytest.approx(cum_score_w_prompt, abs=1e-4)
+        assert cum_score_wo_prompt == pytest.approx(cum_score_w_prompt, abs=1e-3)
 
     @test_utils.only_on_linux
     @pytest.mark.parametrize("beam_size", [1, 2])

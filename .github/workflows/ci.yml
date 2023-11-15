@@ -47,6 +47,7 @@ jobs:
       - name: Configure with MKL
         if: startsWith(matrix.os, 'ubuntu') && matrix.backend == 'mkl'
         env:
+          CT2_USE_MKL: 1
           MKL_VERSION: 2023.0.0
         run: |
           sudo apt-get install -y intel-oneapi-mkl-devel-$MKL_VERSION
@@ -62,6 +63,8 @@ jobs:
 
       - name: Configure with MKL
         if: startsWith(matrix.os, 'macos') && matrix.backend == 'mkl'
+        env:
+          CT2_USE_MKL: 1
         run: |
           sudo /Volumes/$(basename $ONEAPI_INSTALLER_URL .dmg)/bootstrapper.app/Contents/MacOS/bootstrapper --silent --eula accept --components intel.oneapi.mac.mkl.devel
           cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DBUILD_TESTS=ON .
@@ -83,7 +86,14 @@ jobs:
           wget https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
           tar xf transliteration-aren-all.tar.gz
 
-      - name: Test
+      - name: Test MKL
+        if: matrix.backend == 'mkl'
+        env:
+          CT2_USE_MKL: 1
+        run: |
+          tests/ctranslate2_test tests/data
+      - name: Test DNNL
+        if: matrix.backend == 'dnnl'
         run: |
           tests/ctranslate2_test tests/data
 
