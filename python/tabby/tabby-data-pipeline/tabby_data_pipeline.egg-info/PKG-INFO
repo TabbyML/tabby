@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: tabby-data-pipeline
+Version: 0.0.0
+Requires-Dist: dagster
+Requires-Dist: dagster-cloud
+Provides-Extra: dev
+Requires-Dist: dagster-webserver; extra == "dev"
+Requires-Dist: pytest; extra == "dev"

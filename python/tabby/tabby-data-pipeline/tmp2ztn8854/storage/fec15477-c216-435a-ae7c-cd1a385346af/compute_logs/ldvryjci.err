@@ -1,0 +1,6 @@
+[32m2023-11-14 15:37:27 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - fec15477-c216-435a-ae7c-cd1a385346af - 80811 - LOGS_CAPTURED - Started capturing logs in process (pid: 80811).
+[32m2023-11-14 15:37:27 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - fec15477-c216-435a-ae7c-cd1a385346af - 80811 - model_predict - STEP_START - Started execution of step "model_predict".
+[32m2023-11-14 15:39:11 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - fec15477-c216-435a-ae7c-cd1a385346af - 80811 - model_predict - STEP_OUTPUT - Yielded output "result" of type "Nothing". (Type check passed).
+[32m2023-11-14 15:39:11 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - fec15477-c216-435a-ae7c-cd1a385346af - 80811 - model_predict - ASSET_MATERIALIZATION - Materialized value model_predict.
+[32m2023-11-14 15:39:11 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - fec15477-c216-435a-ae7c-cd1a385346af - 80811 - model_predict - HANDLED_OUTPUT - Handled output "result" using IO manager "io_manager"
+[32m2023-11-14 15:39:11 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - fec15477-c216-435a-ae7c-cd1a385346af - 80811 - model_predict - STEP_SUCCESS - Finished execution of step "model_predict" in 1m43s.

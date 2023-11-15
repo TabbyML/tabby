@@ -1,0 +1,20 @@
+[32m2023-11-15 11:23:35 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17087 - LOGS_CAPTURED - Started capturing logs in process (pid: 17087).
+[32m2023-11-15 11:23:35 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17087 - tabby_jupyter - STEP_START - Started execution of step "tabby_jupyter".
+[32m2023-11-15 11:23:35 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - tabby_jupyter - Loading file from: /Users/zhangyan/myenv/tabby-data-pipeline/tmpv4zow62w/storage/tabby_dataset using PickledObjectFilesystemIOManager...
+[32m2023-11-15 11:23:35 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17087 - tabby_jupyter - ASSET_OBSERVATION - ASSET_OBSERVATION for step tabby_jupyter
+[32m2023-11-15 11:23:35 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17087 - tabby_jupyter - LOADED_INPUT - Loaded input "df" using input manager "io_manager"
+[32m2023-11-15 11:23:35 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17087 - tabby_jupyter - STEP_INPUT - Got input "df" of type "Any". (Type check passed).
+Executing:   0%|          | 0/6 [00:00<?, ?cell/s]Executing:  17%|█▋        | 1/6 [00:01<00:07,  1.46s/cell]2023-11-15 11:23:38 -0800 - dagster - DEBUG - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17097 - tabby_jupyter - RESOURCE_INIT_STARTED - Starting initialization of resources [io_manager, output_notebook_io_manager].
+
+2023-11-15 11:23:38 -0800 - dagster - DEBUG - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17097 - tabby_jupyter - RESOURCE_INIT_SUCCESS - Finished initialization of resources [io_manager, output_notebook_io_manager].
+
+2023-11-15 11:23:38 -0800 - dagster - DEBUG - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - tabby_jupyter - Loading file from: /Users/zhangyan/myenv/tabby-data-pipeline/tmpv4zow62w/storage/tabby_dataset using PickledObjectFilesystemIOManager...
+
+2023-11-15 11:23:38 -0800 - dagster - DEBUG - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17097 - tabby_jupyter - ASSET_OBSERVATION - ASSET_OBSERVATION for step tabby_jupyter
+
+Executing:  33%|███▎      | 2/6 [00:02<00:04,  1.10s/cell]Executing:  83%|████████▎ | 5/6 [00:02<00:00,  2.32cell/s]Executing: 100%|██████████| 6/6 [00:03<00:00,  1.86cell/s]Executing: 7cell [00:03,  1.76cell/s]                     
+[32m2023-11-15 11:23:39 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - tabby_jupyter - Notebook execution complete for tabby_jupyter at /var/folders/t4/mr5wn_t90td6rflyr3fqwhgh0000gn/T/tmpqr25e2kq/58f7d6cc-1e26-4621-914f-aa76335e5f08-out.ipynb.
+[32m2023-11-15 11:23:39 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17087 - tabby_jupyter - STEP_OUTPUT - Yielded output "result" of type "Any". (Type check passed).
+[32m2023-11-15 11:23:39 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17087 - tabby_jupyter - ASSET_MATERIALIZATION - Materialized value tabby_jupyter.
+[32m2023-11-15 11:23:39 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17087 - tabby_jupyter - HANDLED_OUTPUT - Handled output "result" using IO manager "output_notebook_io_manager"
+[32m2023-11-15 11:23:39 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 365b1880-95e4-4bec-ac8e-8f3b9b05a030 - 17087 - tabby_jupyter - STEP_SUCCESS - Finished execution of step "tabby_jupyter" in 4.07s.

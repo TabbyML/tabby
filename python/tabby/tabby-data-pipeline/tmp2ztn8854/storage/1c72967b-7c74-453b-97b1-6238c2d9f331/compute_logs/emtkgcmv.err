@@ -1,0 +1,20 @@
+[32m2023-11-14 16:10:10 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 1c72967b-7c74-453b-97b1-6238c2d9f331 - 82954 - LOGS_CAPTURED - Started capturing logs in process (pid: 82954).
+[32m2023-11-14 16:10:10 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 1c72967b-7c74-453b-97b1-6238c2d9f331 - 82954 - tabby_eval_result - STEP_START - Started execution of step "tabby_eval_result".
+[32m2023-11-14 16:10:10 -0800[0m - dagster - [34mERROR[0m - [31m__ASSET_JOB_0 - 1c72967b-7c74-453b-97b1-6238c2d9f331 - 82954 - tabby_eval_result - STEP_FAILURE - Execution of step "tabby_eval_result" failed.
+
+dagster._core.errors.DagsterExecutionStepExecutionError: Error occurred while executing op "tabby_eval_result"::
+
+AttributeError: module 'tabby_data_pipeline.create_csv' has no attribute 'result_csv'
+
+Stack Trace:
+  File "/Users/zhangyan/myenv/lib/python3.9/site-packages/dagster/_core/execution/plan/utils.py", line 54, in op_execution_error_boundary
+    yield
+  File "/Users/zhangyan/myenv/lib/python3.9/site-packages/dagster/_utils/__init__.py", line 443, in iterate_with_context
+    next_output = next(iterator)
+  File "/Users/zhangyan/myenv/lib/python3.9/site-packages/dagster/_core/execution/plan/compute_generator.py", line 132, in _coerce_op_compute_fn_to_iterator
+    result = invoke_compute_fn(
+  File "/Users/zhangyan/myenv/lib/python3.9/site-packages/dagster/_core/execution/plan/compute_generator.py", line 126, in invoke_compute_fn
+    return fn(context, **args_to_pass) if context_arg_provided else fn(**args_to_pass)
+  File "/Users/zhangyan/myenv/tabby-data-pipeline/tabby_data_pipeline/assets.py", line 64, in tabby_eval_result
+    create_csv.result_csv()
+[0m

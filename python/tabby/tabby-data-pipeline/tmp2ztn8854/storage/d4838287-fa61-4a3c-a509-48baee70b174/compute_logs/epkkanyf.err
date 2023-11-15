@@ -1,0 +1,6 @@
+[32m2023-11-14 16:01:38 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - d4838287-fa61-4a3c-a509-48baee70b174 - 82392 - LOGS_CAPTURED - Started capturing logs in process (pid: 82392).
+[32m2023-11-14 16:01:38 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - d4838287-fa61-4a3c-a509-48baee70b174 - 82392 - matching - STEP_START - Started execution of step "matching".
+[32m2023-11-14 16:01:38 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - d4838287-fa61-4a3c-a509-48baee70b174 - 82392 - matching - STEP_OUTPUT - Yielded output "result" of type "Nothing". (Type check passed).
+[32m2023-11-14 16:01:38 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - d4838287-fa61-4a3c-a509-48baee70b174 - 82392 - matching - ASSET_MATERIALIZATION - Materialized value matching.
+[32m2023-11-14 16:01:38 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - d4838287-fa61-4a3c-a509-48baee70b174 - 82392 - matching - HANDLED_OUTPUT - Handled output "result" using IO manager "io_manager"
+[32m2023-11-14 16:01:38 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - d4838287-fa61-4a3c-a509-48baee70b174 - 82392 - matching - STEP_SUCCESS - Finished execution of step "matching" in 22ms.

@@ -1,0 +1,294 @@
+[32m2023-11-14 15:32:00 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 37fb3cf1-6738-423c-a73d-6b573d98cebd - 80447 - LOGS_CAPTURED - Started capturing logs in process (pid: 80447).
+[32m2023-11-14 15:32:00 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 37fb3cf1-6738-423c-a73d-6b573d98cebd - 80447 - model_predict - STEP_START - Started execution of step "model_predict".
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /Users/zhangyan/myenv/bin/modal:8 in <module>                                │
+│                                                                              │
+│   7 │   sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])     │
+│ ❱ 8 │   sys.exit(main())                                                     │
+│   9                                                                          │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/modal/__main__.py:9 in     │
+│ main                                                                         │
+│                                                                              │
+│    8 │   setup_rich_traceback()                                              │
+│ ❱  9 │   entrypoint_cli()                                                    │
+│   10                                                                         │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1157 in      │
+│ __call__                                                                     │
+│                                                                              │
+│   1156 │   │   """Alias for :meth:`main`."""                                 │
+│ ❱ 1157 │   │   return self.main(*args, **kwargs)                             │
+│   1158                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/typer/core.py:778 in main  │
+│                                                                              │
+│   777 │   ) -> Any:                                                          │
+│ ❱ 778 │   │   return _main(                                                  │
+│   779 │   │   │   self,                                                      │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/typer/core.py:216 in _main │
+│                                                                              │
+│   215 │   │   │   with self.make_context(prog_name, args, **extra) as ctx:   │
+│ ❱ 216 │   │   │   │   rv = self.invoke(ctx)                                  │
+│   217 │   │   │   │   if not standalone_mode:                                │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1688 in      │
+│ invoke                                                                       │
+│                                                                              │
+│   1687 │   │   │   │   with sub_ctx:                                         │
+│ ❱ 1688 │   │   │   │   │   return _process_result(sub_ctx.command.invoke(sub │
+│   1689                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1688 in      │
+│ invoke                                                                       │
+│                                                                              │
+│   1687 │   │   │   │   with sub_ctx:                                         │
+│ ❱ 1688 │   │   │   │   │   return _process_result(sub_ctx.command.invoke(sub │
+│   1689                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1434 in      │
+│ invoke                                                                       │
+│                                                                              │
+│   1433 │   │   if self.callback is not None:                                 │
+│ ❱ 1434 │   │   │   return ctx.invoke(self.callback, **ctx.params)            │
+│   1435                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:783 in       │
+│ invoke                                                                       │
+│                                                                              │
+│    782 │   │   │   with ctx:                                                 │
+│ ❱  783 │   │   │   │   return __callback(*args, **kwargs)                    │
+│    784                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/decorators.py:33 in  │
+│ new_func                                                                     │
+│                                                                              │
+│    32 │   def new_func(*args: "P.args", **kwargs: "P.kwargs") -> "R":        │
+│ ❱  33 │   │   return f(get_current_context(), *args, **kwargs)               │
+│    34                                                                        │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/modal/cli/run.py:152 in f  │
+│                                                                              │
+│   151 │   │   │   if isasync:                                                │
+│ ❱ 152 │   │   │   │   asyncio.run(func(*args, **kwargs))                     │
+│   153 │   │   │   else:                                                      │
+│                                                                              │
+│ /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Ver │
+│ sions/3.9/lib/python3.9/asyncio/runners.py:44 in run                         │
+│                                                                              │
+│   43 │   │   │   loop.set_debug(debug)                                       │
+│ ❱ 44 │   │   return loop.run_until_complete(main)                            │
+│   45 │   finally:                                                            │
+│                                                                              │
+│ /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Ver │
+│ sions/3.9/lib/python3.9/asyncio/base_events.py:642 in run_until_complete     │
+│                                                                              │
+│    641 │   │                                                                 │
+│ ❱  642 │   │   return future.result()                                        │
+│    643                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/tabby-data-pipeline/predict.py:159 in main             │
+│                                                                              │
+│   158 │   objs = []                                                          │
+│ ❱ 159 │   with open(whole_path_file) as fin:                                 │
+│   160 │   │   for line in fin:                                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+FileNotFoundError: [Errno 2] No such file or directory: 
+'./data/StarCoder-3B/python/line_completion.jsonl'
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /Users/zhangyan/myenv/bin/modal:8 in <module>                                │
+│                                                                              │
+│   7 │   sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])     │
+│ ❱ 8 │   sys.exit(main())                                                     │
+│   9                                                                          │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/modal/__main__.py:9 in     │
+│ main                                                                         │
+│                                                                              │
+│    8 │   setup_rich_traceback()                                              │
+│ ❱  9 │   entrypoint_cli()                                                    │
+│   10                                                                         │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1157 in      │
+│ __call__                                                                     │
+│                                                                              │
+│   1156 │   │   """Alias for :meth:`main`."""                                 │
+│ ❱ 1157 │   │   return self.main(*args, **kwargs)                             │
+│   1158                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/typer/core.py:778 in main  │
+│                                                                              │
+│   777 │   ) -> Any:                                                          │
+│ ❱ 778 │   │   return _main(                                                  │
+│   779 │   │   │   self,                                                      │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/typer/core.py:216 in _main │
+│                                                                              │
+│   215 │   │   │   with self.make_context(prog_name, args, **extra) as ctx:   │
+│ ❱ 216 │   │   │   │   rv = self.invoke(ctx)                                  │
+│   217 │   │   │   │   if not standalone_mode:                                │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1688 in      │
+│ invoke                                                                       │
+│                                                                              │
+│   1687 │   │   │   │   with sub_ctx:                                         │
+│ ❱ 1688 │   │   │   │   │   return _process_result(sub_ctx.command.invoke(sub │
+│   1689                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1688 in      │
+│ invoke                                                                       │
+│                                                                              │
+│   1687 │   │   │   │   with sub_ctx:                                         │
+│ ❱ 1688 │   │   │   │   │   return _process_result(sub_ctx.command.invoke(sub │
+│   1689                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1434 in      │
+│ invoke                                                                       │
+│                                                                              │
+│   1433 │   │   if self.callback is not None:                                 │
+│ ❱ 1434 │   │   │   return ctx.invoke(self.callback, **ctx.params)            │
+│   1435                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:783 in       │
+│ invoke                                                                       │
+│                                                                              │
+│    782 │   │   │   with ctx:                                                 │
+│ ❱  783 │   │   │   │   return __callback(*args, **kwargs)                    │
+│    784                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/decorators.py:33 in  │
+│ new_func                                                                     │
+│                                                                              │
+│    32 │   def new_func(*args: "P.args", **kwargs: "P.kwargs") -> "R":        │
+│ ❱  33 │   │   return f(get_current_context(), *args, **kwargs)               │
+│    34                                                                        │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/modal/cli/run.py:152 in f  │
+│                                                                              │
+│   151 │   │   │   if isasync:                                                │
+│ ❱ 152 │   │   │   │   asyncio.run(func(*args, **kwargs))                     │
+│   153 │   │   │   else:                                                      │
+│                                                                              │
+│ /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Ver │
+│ sions/3.9/lib/python3.9/asyncio/runners.py:44 in run                         │
+│                                                                              │
+│   43 │   │   │   loop.set_debug(debug)                                       │
+│ ❱ 44 │   │   return loop.run_until_complete(main)                            │
+│   45 │   finally:                                                            │
+│                                                                              │
+│ /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Ver │
+│ sions/3.9/lib/python3.9/asyncio/base_events.py:642 in run_until_complete     │
+│                                                                              │
+│    641 │   │                                                                 │
+│ ❱  642 │   │   return future.result()                                        │
+│    643                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/tabby-data-pipeline/predict.py:159 in main             │
+│                                                                              │
+│   158 │   objs = []                                                          │
+│ ❱ 159 │   with open(whole_path_file) as fin:                                 │
+│   160 │   │   for line in fin:                                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+FileNotFoundError: [Errno 2] No such file or directory: 
+'./data/StarCoder-3B/python/line_completion_rg1_bm25.jsonl'
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /Users/zhangyan/myenv/bin/modal:8 in <module>                                │
+│                                                                              │
+│   7 │   sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])     │
+│ ❱ 8 │   sys.exit(main())                                                     │
+│   9                                                                          │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/modal/__main__.py:9 in     │
+│ main                                                                         │
+│                                                                              │
+│    8 │   setup_rich_traceback()                                              │
+│ ❱  9 │   entrypoint_cli()                                                    │
+│   10                                                                         │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1157 in      │
+│ __call__                                                                     │
+│                                                                              │
+│   1156 │   │   """Alias for :meth:`main`."""                                 │
+│ ❱ 1157 │   │   return self.main(*args, **kwargs)                             │
+│   1158                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/typer/core.py:778 in main  │
+│                                                                              │
+│   777 │   ) -> Any:                                                          │
+│ ❱ 778 │   │   return _main(                                                  │
+│   779 │   │   │   self,                                                      │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/typer/core.py:216 in _main │
+│                                                                              │
+│   215 │   │   │   with self.make_context(prog_name, args, **extra) as ctx:   │
+│ ❱ 216 │   │   │   │   rv = self.invoke(ctx)                                  │
+│   217 │   │   │   │   if not standalone_mode:                                │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1688 in      │
+│ invoke                                                                       │
+│                                                                              │
+│   1687 │   │   │   │   with sub_ctx:                                         │
+│ ❱ 1688 │   │   │   │   │   return _process_result(sub_ctx.command.invoke(sub │
+│   1689                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1688 in      │
+│ invoke                                                                       │
+│                                                                              │
+│   1687 │   │   │   │   with sub_ctx:                                         │
+│ ❱ 1688 │   │   │   │   │   return _process_result(sub_ctx.command.invoke(sub │
+│   1689                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:1434 in      │
+│ invoke                                                                       │
+│                                                                              │
+│   1433 │   │   if self.callback is not None:                                 │
+│ ❱ 1434 │   │   │   return ctx.invoke(self.callback, **ctx.params)            │
+│   1435                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/core.py:783 in       │
+│ invoke                                                                       │
+│                                                                              │
+│    782 │   │   │   with ctx:                                                 │
+│ ❱  783 │   │   │   │   return __callback(*args, **kwargs)                    │
+│    784                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/click/decorators.py:33 in  │
+│ new_func                                                                     │
+│                                                                              │
+│    32 │   def new_func(*args: "P.args", **kwargs: "P.kwargs") -> "R":        │
+│ ❱  33 │   │   return f(get_current_context(), *args, **kwargs)               │
+│    34                                                                        │
+│                                                                              │
+│ /Users/zhangyan/myenv/lib/python3.9/site-packages/modal/cli/run.py:152 in f  │
+│                                                                              │
+│   151 │   │   │   if isasync:                                                │
+│ ❱ 152 │   │   │   │   asyncio.run(func(*args, **kwargs))                     │
+│   153 │   │   │   else:                                                      │
+│                                                                              │
+│ /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Ver │
+│ sions/3.9/lib/python3.9/asyncio/runners.py:44 in run                         │
+│                                                                              │
+│   43 │   │   │   loop.set_debug(debug)                                       │
+│ ❱ 44 │   │   return loop.run_until_complete(main)                            │
+│   45 │   finally:                                                            │
+│                                                                              │
+│ /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Ver │
+│ sions/3.9/lib/python3.9/asyncio/base_events.py:642 in run_until_complete     │
+│                                                                              │
+│    641 │   │                                                                 │
+│ ❱  642 │   │   return future.result()                                        │
+│    643                                                                       │
+│                                                                              │
+│ /Users/zhangyan/myenv/tabby-data-pipeline/predict.py:159 in main             │
+│                                                                              │
+│   158 │   objs = []                                                          │
+│ ❱ 159 │   with open(whole_path_file) as fin:                                 │
+│   160 │   │   for line in fin:                                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+FileNotFoundError: [Errno 2] No such file or directory: 
+'./data/StarCoder-3B/python/line_completion_oracle_bm25.jsonl'
+[32m2023-11-14 15:35:42 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 37fb3cf1-6738-423c-a73d-6b573d98cebd - 80447 - model_predict - STEP_OUTPUT - Yielded output "result" of type "Nothing". (Type check passed).
+[32m2023-11-14 15:35:42 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 37fb3cf1-6738-423c-a73d-6b573d98cebd - 80447 - model_predict - ASSET_MATERIALIZATION - Materialized value model_predict.
+[32m2023-11-14 15:35:42 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 37fb3cf1-6738-423c-a73d-6b573d98cebd - 80447 - model_predict - HANDLED_OUTPUT - Handled output "result" using IO manager "io_manager"
+[32m2023-11-14 15:35:42 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 37fb3cf1-6738-423c-a73d-6b573d98cebd - 80447 - model_predict - STEP_SUCCESS - Finished execution of step "model_predict" in 3m42s.
