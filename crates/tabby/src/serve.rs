@@ -144,7 +144,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
 
     let chat_state = if let Some(_chat_model) = &args.chat_model {
         Some(Arc::new(
-            create_chat_service(&args.model, &args.device, args.parallelism).await,
+            create_chat_service(chat_model, &args.device, args.parallelism).await,
         ))
     } else {
         None
