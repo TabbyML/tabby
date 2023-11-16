@@ -58,11 +58,20 @@ impl ModelRegistry {
         }
     }
 
-    pub fn get_model_path(&self, name: &str) -> PathBuf {
+    fn get_model_dir(&self, name: &str) -> PathBuf {
         models_dir()
             .join(&self.name)
             .join(name)
-            .join(GGML_MODEL_RELATIVE_PATH)
+    }
+
+    pub fn get_model_path(&self, name: &str) -> PathBuf {
+        self.get_model_dir(name).join(GGML_MODEL_RELATIVE_PATH)
+    }
+
+    pub fn save_model_info(&self, name: &str) {
+        let model_info = self.get_model_info(name);
+        let path = self.get_model_dir(name).join("tabby.json");
+        serdeconv::to_json_file(model_info, path).unwrap();
     }
 
     pub fn get_model_info(&self, name: &str) -> &ModelInfo {
