@@ -3,6 +3,10 @@ enum WorkerKind {
   CHAT
 }
 
+type Mutation {
+  refreshToken(old: String!, new: String!): String!
+}
+
 type Query {
   workers: [Worker!]!
 }
@@ -20,4 +24,5 @@ type Worker {
 
 schema {
   query: Query
+  mutation: Mutation
 }

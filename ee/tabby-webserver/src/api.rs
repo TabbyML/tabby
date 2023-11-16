@@ -25,7 +25,7 @@ pub struct Worker {
 
 #[derive(Serialize, Deserialize, Error, Debug)]
 pub enum HubError {
-    #[error("Invalid worker token")]
+    #[error("Invalid token")]
     InvalidToken(String),
 
     #[error("Feature requires enterprise license")]
@@ -43,6 +43,7 @@ pub trait Hub {
         cpu_info: String,
         cpu_count: i32,
         cuda_devices: Vec<String>,
+        token: String,
     ) -> Result<Worker, HubError>;
 }
 
