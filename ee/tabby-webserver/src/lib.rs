@@ -2,13 +2,13 @@ pub mod api;
 
 mod schema;
 pub use schema::create_schema;
-use websocket::WebSocketTransport;
 use tracing::{debug, error};
+use websocket::WebSocketTransport;
 
+mod db;
 mod server;
 mod ui;
 mod websocket;
-mod db;
 
 use std::{net::SocketAddr, sync::Arc};
 
@@ -103,7 +103,9 @@ impl Hub for Arc<HubImpl> {
             Ok(t) => t,
             Err(err) => {
                 error!("fetch server token: {}", err.to_string());
-                return Err(HubError::InvalidToken("Failed to fetch server token".to_string()));
+                return Err(HubError::InvalidToken(
+                    "Failed to fetch server token".to_string(),
+                ));
             }
         };
         if server_token != token {

@@ -1,15 +1,14 @@
 mod proxy;
 mod worker;
 
-use std::net::SocketAddr;
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use rusqlite::params;
-use tracing::{info, warn};
 use tokio_rusqlite::Connection;
+use tracing::{info, warn};
 
 use crate::api::{HubError, Worker, WorkerKind};
 
@@ -33,13 +32,15 @@ impl ServerContext {
     /// Query token from database.
     /// Since token is global unique for each tabby server, by right there's only one row in the table.
     pub async fn token(&self) -> Result<String> {
-        let token = self.db_conn.call(|conn| {
-            let token = conn.query_row(
-                r#"SELECT token FROM token_tab WHERE id = 1"#,
-                [],
-                |row| row.get(0));
-            token
-        }).await?;
+        let token = self
+            .db_conn
+            .call(|conn| {
+                
+                conn.query_row(r#"SELECT token FROM token_tab WHERE id = 1"#, [], |row| {
+                        row.get(0)
+                    })
+            })
+            .await?;
 
         Ok(token)
     }
@@ -53,13 +54,16 @@ impl ServerContext {
             return Err(anyhow::anyhow!("failed: new token is empty"));
         }
         let updated_at = chrono::Utc::now().timestamp() as u32;
-        let res = self.db_conn.call(move |conn| {
-            let res = conn.execute(
-                r#"UPDATE token_tab SET token = ?, updated_at = ? WHERE token = ?"#,
-                params![new, updated_at, old]
-            );
-            res
-        }).await?;
+        let res = self
+            .db_conn
+            .call(move |conn| {
+                
+                conn.execute(
+                    r#"UPDATE token_tab SET token = ?, updated_at = ? WHERE token = ?"#,
+                    params![new, updated_at, old],
+                )
+            })
+            .await?;
         if res != 1 {
             return Err(anyhow::anyhow!("failed: mismatched old token"));
         }
@@ -128,8 +132,8 @@ impl ServerContext {
 
 #[cfg(test)]
 mod tests {
-    use crate::db;
     use super::*;
+    use crate::db;
 
     #[tokio::test]
     async fn test_token() {
@@ -146,18 +150,24 @@ mod tests {
 
         // first refresh
         let new1 = "new_token_1".to_string();
-        ctx.refresh_token("".to_string(), new1.clone()).await.unwrap();
+        ctx.refresh_token("".to_string(), new1.clone())
+            .await
+            .unwrap();
         let token = ctx.token().await.unwrap();
         assert_eq!(token, new1);
 
         // second refresh
         let new2 = "new_token_2".to_string();
-        ctx.refresh_token(new1.to_string(), new2.clone()).await.unwrap();
+        ctx.refresh_token(new1.to_string(), new2.clone())
+            .await
+            .unwrap();
         let token = ctx.token().await.unwrap();
         assert_eq!(token, new2);
 
         // error case
-        let res = ctx.refresh_token("invalid_token".to_string(), "new_token".to_string()).await;
+        let res = ctx
+            .refresh_token("invalid_token".to_string(), "new_token".to_string())
+            .await;
         assert!(res.is_err());
     }
 }

@@ -28,8 +28,7 @@ impl Mutation {
     }
 }
 
-pub type Schema =
-    RootNode<'static, Query, Mutation, EmptySubscription<ServerContext>>;
+pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<ServerContext>>;
 
 pub fn create_schema() -> Schema {
     Schema::new(Query, Mutation, EmptySubscription::new())

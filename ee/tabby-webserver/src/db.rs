@@ -6,7 +6,8 @@ use tokio_rusqlite::Connection;
 
 lazy_static! {
     static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
-        M::up(r#"
+        M::up(
+            r#"
             CREATE TABLE IF NOT EXISTS token_tab (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 token VARCHAR(255) NOT NULL,
@@ -14,10 +15,13 @@ lazy_static! {
                 updated_at TIMESTAMP DEFAULT (DATETIME('now')),
                 CONSTRAINT `idx_token` UNIQUE (`token`)
             );
-        "#),
-        M::up(r#"
+        "#
+        ),
+        M::up(
+            r#"
             INSERT OR IGNORE INTO token_tab (id, token) VALUES (1, '');
-        "#),
+        "#
+        ),
     ]);
 }
 
