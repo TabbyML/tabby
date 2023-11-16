@@ -35,10 +35,9 @@ impl ServerContext {
         let token = self
             .db_conn
             .call(|conn| {
-                
                 conn.query_row(r#"SELECT token FROM token_tab WHERE id = 1"#, [], |row| {
-                        row.get(0)
-                    })
+                    row.get(0)
+                })
             })
             .await?;
 
@@ -57,7 +56,6 @@ impl ServerContext {
         let res = self
             .db_conn
             .call(move |conn| {
-                
                 conn.execute(
                     r#"UPDATE token_tab SET token = ?, updated_at = ? WHERE token = ?"#,
                     params![new, updated_at, old],
