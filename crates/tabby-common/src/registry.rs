@@ -59,9 +59,7 @@ impl ModelRegistry {
     }
 
     fn get_model_dir(&self, name: &str) -> PathBuf {
-        models_dir()
-            .join(&self.name)
-            .join(name)
+        models_dir().join(&self.name).join(name)
     }
 
     pub fn get_model_path(&self, name: &str) -> PathBuf {
