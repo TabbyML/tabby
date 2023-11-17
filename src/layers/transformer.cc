@@ -121,7 +121,8 @@ namespace ctranslate2 {
                                              const Padder* input_padder,
                                              const Padder* memory_padder,
                                              bool return_normalized_attention,
-                                             StorageView* position_bias) const {
+                                             StorageView* position_bias,
+                                             dim_t offset) const {
       PROFILE("TransformerDecoderLayer");
 
       const DataType dtype = input.dtype();
@@ -149,7 +150,8 @@ namespace ctranslate2 {
                         input_padder,
                         input_padder,
                         true,
-                        position_bias);
+                        position_bias,
+                        offset);
 
         if (_post_attention_layer_norm)
           (*_post_attention_layer_norm)(input, hidden);
@@ -172,7 +174,8 @@ namespace ctranslate2 {
                       input_padder,
                       input_padder,
                       true,
-                      position_bias);
+                      position_bias,
+                      offset);
 
       StorageView context(dtype, device);
       if (_encoder_attention) {
@@ -330,7 +333,8 @@ namespace ctranslate2 {
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _with_encoder_attention(_layers.front()->has_cross_attention())
-      , _proj(model, scope + "/projection") {
+      , _proj(model, scope + "/projection")
+      , _sliding_window(model.get_attribute_with_default<int32_t>(scope + "/sliding_window", 0)) {
 
       dim_t alignment_layer = (
         model.get_attribute_with_default<int32_t>(scope + "/alignment_layer", -1));
@@ -467,7 +471,13 @@ namespace ctranslate2 {
         (*_layernorm_embedding)(layer_in, layer_in);
 
       const dim_t batch_size = layer_in.dim(0);
-      const dim_t max_time = layer_in.dim(1);
+      dim_t max_time;
+
+      if (_sliding_window > 0 && layer_in.dim(1) > _sliding_window) {
+        max_time = _sliding_window;
+      } else
+        max_time = layer_in.dim(1);
+
       const bool allow_padding_removal = Padder::allow_padding_removal(_device, _compute_type);
 
       std::unique_ptr<const Padder> input_padder;
@@ -479,13 +489,13 @@ namespace ctranslate2 {
         lengths = input_lengths.get();
       }
 
+      bool multi_query = _layers.front()->get_self_attention().multi_query();
+
       if (lengths) {
         if (allow_padding_removal) {
           input_padder = std::make_unique<Padder>(*lengths, max_time);
           input_padder->remove_padding(layer_in);
         }
-
-        const bool multi_query = _layers.front()->get_self_attention().multi_query();
 
         StorageView lengths_mask = layers::MultiHeadAttention::prepare_length_mask(
           *lengths,
@@ -531,47 +541,85 @@ namespace ctranslate2 {
 
       StorageView position_bias(dtype, device);
 
-      for (size_t l = 0; l < _layers.size(); ++l) {
-        StorageView* cached_self_attn_keys = nullptr;
-        StorageView* cached_self_attn_values = nullptr;
-        StorageView* cached_attn_keys = nullptr;
-        StorageView* cached_attn_values = nullptr;
+      std::vector<StorageView> layer_ins;
 
-        if (step >= 0) {
-          const std::string l_str = std::to_string(l);
-          cached_self_attn_keys = &state.at("self_keys_" + l_str);
-          cached_self_attn_values = &state.at("self_values_" + l_str);
-          if (_with_encoder_attention) {
-            cached_attn_keys = &state.at("memory_keys_" + l_str);
-            cached_attn_values = &state.at("memory_values_" + l_str);
+      while (true) {
+        dim_t prompt_size = layer_in.dim(1);
+        if (_sliding_window == 0 || prompt_size <= _sliding_window) {
+          layer_ins.push_back(std::move(layer_in));
+          break;
+        }
+        if (layer_in.dim(1) > _sliding_window) {
+          StorageView tmp(dtype, device);
+          const ops::Split split_op(1, {_sliding_window, prompt_size - _sliding_window});
+          split_op(layer_in, tmp, layer_in);
+          layer_ins.push_back(std::move(tmp));
+        }
+      }
+
+      for (size_t i = 0; i < layer_ins.size(); ++i) {
+        auto layer_in_chunk = layer_ins[i];
+        for (size_t l = 0; l < _layers.size(); ++l) {
+          StorageView* cached_self_attn_keys = nullptr;
+          StorageView* cached_self_attn_values = nullptr;
+          StorageView* cached_attn_keys = nullptr;
+          StorageView* cached_attn_values = nullptr;
+
+          if (step >= 0) {
+            const std::string l_str = std::to_string(l);
+            cached_self_attn_keys = &state.at("self_keys_" + l_str);
+            cached_self_attn_values = &state.at("self_values_" + l_str);
+            if (_with_encoder_attention) {
+              cached_attn_keys = &state.at("memory_keys_" + l_str);
+              cached_attn_values = &state.at("memory_values_" + l_str);
+            }
+          }
+
+          std::unique_ptr<StorageView> heads_to_select = get_layer_alignment_heads(l, batch_size);
+          std::unique_ptr<StorageView> layer_attention;
+          if (attention && heads_to_select)
+            layer_attention = std::make_unique<StorageView>(dtype, device);
+
+          dim_t offset = _sliding_window * i + step;
+          if (i > 0) {
+            auto max_tokens = _sliding_window + layer_in_chunk.dim(1);
+            StorageView tmp_lengths = StorageView(Shape{layer_in_chunk.dim(0)}, int32_t(max_tokens), device);
+            StorageView lengths_mask = layers::MultiHeadAttention::prepare_length_mask(
+              tmp_lengths,
+              _num_heads,
+              max_tokens,
+              /*mask_future=*/true,
+              multi_query);
+
+            const ops::Slide slide_lengths_op(2, _sliding_window, layer_in_chunk.dim(1));
+            // reuse tmp_lengths
+            slide_lengths_op(lengths_mask, tmp_lengths);
+            input_lengths_mask = std::make_unique<StorageView>(std::move(tmp_lengths));
+          }
+
+          (*_layers[l])(layer_in_chunk,
+                        input_lengths_mask.get(),
+                        memory,
+                        memory_lengths_mask.get(),
+                        cached_self_attn_keys,
+                        cached_self_attn_values,
+                        cached_attn_keys,
+                        cached_attn_values,
+                        layer_out,
+                        layer_attention.get(),
+                        input_padder.get(),
+                        memory_padder.get(),
+                        return_normalized_attention(),
+                        &position_bias,
+                        offset);
+          layer_in_chunk = std::move(layer_out);
+
+          if (layer_attention) {
+            alignment_heads.emplace_back(dtype, device);
+            ops::Gather(1, 1)(*layer_attention, *heads_to_select, alignment_heads.back());
           }
         }
-
-        std::unique_ptr<StorageView> heads_to_select = get_layer_alignment_heads(l, batch_size);
-        std::unique_ptr<StorageView> layer_attention;
-        if (attention && heads_to_select)
-          layer_attention = std::make_unique<StorageView>(dtype, device);
-
-        (*_layers[l])(layer_in,
-                      input_lengths_mask.get(),
-                      memory,
-                      memory_lengths_mask.get(),
-                      cached_self_attn_keys,
-                      cached_self_attn_values,
-                      cached_attn_keys,
-                      cached_attn_values,
-                      layer_out,
-                      layer_attention.get(),
-                      input_padder.get(),
-                      memory_padder.get(),
-                      return_normalized_attention(),
-                      &position_bias);
-        layer_in = std::move(layer_out);
-
-        if (layer_attention) {
-          alignment_heads.emplace_back(dtype, device);
-          ops::Gather(1, 1)(*layer_attention, *heads_to_select, alignment_heads.back());
-        }
+        layer_in = std::move(layer_in_chunk);
       }
 
       if (step == 0) {

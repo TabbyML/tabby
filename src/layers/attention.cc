@@ -430,7 +430,8 @@ namespace ctranslate2 {
                                         const Padder* queries_padder,
                                         const Padder* values_padder,
                                         bool return_normalized_attention,
-                                        StorageView* position_bias) const {
+                                        StorageView* position_bias,
+                                        dim_t offset) const {
       PROFILE("MultiHeadAttention");
       const Device device = queries.device();
       const DataType dtype = queries.dtype();
@@ -448,6 +449,8 @@ namespace ctranslate2 {
       _linear[0](*q, fused_proj);
 
       dim_t beam_size = 1;
+
+      bool prefilling = (_sliding_window > 0 && values_lengths);
 
       if (!_self_attention) {
         queries_proj = std::move(fused_proj);
@@ -507,10 +510,6 @@ namespace ctranslate2 {
         }
 
         if (_rotary_embeddings) {
-          const dim_t offset = (cached_keys && !cached_keys->empty()
-                                ? cached_keys->dim(_cache_time_dim)
-                                : 0);
-
           if (_merge_time_and_head_dims) {
             queries_proj.reshape({queries_proj.dim(0), -1, _d_model});
             split_heads(queries_proj, _num_heads);
@@ -536,6 +535,15 @@ namespace ctranslate2 {
             concat_op({&tmp, &keys_proj}, *cached_keys);
             tmp = std::move(*cached_values);
             concat_op({&tmp, &values_proj}, *cached_values);
+
+            if (!prefilling && _sliding_window > 0 && cached_keys->shape()[2] > _sliding_window) {
+              // only for generation
+              const ops::Slide slide_op(2, 1, cached_keys->shape()[2] - 1);
+              slide_op(*cached_keys, tmp);
+              *cached_keys = std::move(tmp);
+              slide_op(*cached_values, tmp);
+              *cached_values = std::move(tmp);
+            }
           }
         }
       }
@@ -563,6 +571,16 @@ namespace ctranslate2 {
                             beam_size,
                             _alibi,
                             position_bias);
+
+      if (prefilling && cached_keys->shape()[2] > _sliding_window) {
+        // set only last sliding_window tokens to cached_keys and cached_values after computing attention
+        const ops::Slide slide_op(2, cached_keys->shape()[2] - _sliding_window, _sliding_window);
+        StorageView tmp(dtype, device);
+        slide_op(*cached_keys, tmp);
+        *cached_keys = std::move(tmp);
+        slide_op(*cached_values, tmp);
+        *cached_values = std::move(tmp);
+      }
 
       if (_merge_time_and_head_dims) {
         context.reshape(queries.shape());

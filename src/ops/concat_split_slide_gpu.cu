@@ -1,5 +1,6 @@
 #include "ctranslate2/ops/concat.h"
 #include "ctranslate2/ops/split.h"
+#include "ctranslate2/ops/slide.h"
 
 #include <thrust/gather.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -163,14 +164,60 @@ namespace ctranslate2 {
       }
     }
 
+    template <Device D, typename T>
+    void Slide::compute(const StorageView& input, StorageView& output, const dim_t& index) const {
+      const dim_t axis = _axis < 0 ? input.rank() + _axis : _axis;
+      const dim_t input_dim = input.dim(axis);
+      const dim_t inner_size = input.stride(axis) == 0 ? 1 : input.stride(axis);
+      const dim_t inner_bytes = inner_size * sizeof (T);
+      const T* input_data = input.data<T>();
+
+      T* output_data = output.data<T>();
+      const dim_t output_size = output.size();
+      const dim_t output_bytes = output_size * sizeof (T);
+      if (axis == 0) {
+        dim_t offset = index * output.stride(axis);
+        primitives<D>::copy(input_data + offset, output_data, output_size);
+      }
+      else {
+        const dim_t output_dim = output.dim(axis);
+
+        if (inner_size == 1) {
+          auto map_ids = thrust::make_transform_iterator(
+            thrust::counting_iterator<cuda::index_t>(0),
+            depth_offset_map<cuda::index_t>(index, output_dim, input_dim));
+          THRUST_CALL(thrust::gather, map_ids, map_ids + output_size, input_data, output_data);
+        } else if (inner_bytes % sizeof(uint4) == 0 && output_bytes % sizeof(uint4) == 0) {
+          auto map_ids = thrust::make_transform_iterator(
+            thrust::counting_iterator<cuda::index_t>(0),
+            inner_dim_offset_map<cuda::index_t>(index,
+                                                output_dim,
+                                                input_dim,
+                                                inner_bytes / sizeof(uint4)));
+          THRUST_CALL(thrust::gather,
+                      map_ids,
+                      map_ids + output_bytes / sizeof(uint4),
+                      reinterpret_cast<const uint4 *>(input_data),
+                      reinterpret_cast<uint4 *>(output_data));
+        } else {
+          auto map_ids = thrust::make_transform_iterator(
+            thrust::counting_iterator<cuda::index_t>(0),
+            inner_dim_offset_map<cuda::index_t>(index, output_dim, input_dim, inner_size));
+          THRUST_CALL(thrust::gather, map_ids, map_ids + output_size, input_data, output_data);
+        }
+      }
+    }
+
 #define DECLARE_IMPL(T)                                                 \
     template void                                                       \
     Concat::compute<Device::CUDA, T>(const std::vector<const StorageView*>& inputs, \
                                      StorageView& output) const;        \
     template void                                                       \
     Split::compute<Device::CUDA, T>(const StorageView& input,           \
-                                    std::vector<StorageView*>& outputs) const;
-
+                                    std::vector<StorageView*>& outputs) const;      \
+    template void                                                       \
+    Slide::compute<Device::CUDA, T>(const StorageView& input,           \
+                                    StorageView& output, const dim_t& index) const;
     DECLARE_ALL_TYPES(DECLARE_IMPL)
 
   }

@@ -134,7 +134,7 @@ set(SOURCES
   src/ops/bias_add.cc
   src/ops/bias_add_cpu.cc
   src/ops/concat.cc
-  src/ops/concat_split_cpu.cc
+  src/ops/concat_split_slide_cpu.cc
   src/ops/conv1d.cc
   src/ops/conv1d_cpu.cc
   src/ops/cos.cc
@@ -168,6 +168,7 @@ set(SOURCES
   src/ops/softmax.cc
   src/ops/softmax_cpu.cc
   src/ops/split.cc
+  src/ops/slide.cc
   src/ops/sub.cc
   src/ops/swish.cc
   src/ops/tanh.cc
@@ -506,7 +507,7 @@ if (WITH_CUDA)
     src/cuda/utils.cc
     src/ops/alibi_add_gpu.cu
     src/ops/bias_add_gpu.cu
-    src/ops/concat_split_gpu.cu
+    src/ops/concat_split_slide_gpu.cu
     src/ops/conv1d_gpu.cu
     src/ops/dequantize_gpu.cu
     src/ops/gather_gpu.cu

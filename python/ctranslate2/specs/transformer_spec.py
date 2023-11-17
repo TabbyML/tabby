@@ -171,6 +171,8 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         self.alibi = alibi
         self.alibi_use_positive_positions = alibi_use_positive_positions
         self.scale_alibi = scale_alibi
+        if sliding_window is not None:
+            self.sliding_window = np.dtype("int32").type(sliding_window)
         if (
             not relative_position
             and not relative_attention_bias
@@ -225,6 +227,7 @@ class TransformerEncoderLayerSpec(model_spec.LayerSpec):
             relative_attention_bias=relative_attention_bias,
             rms_norm=rms_norm,
             num_heads_kv=num_heads_kv,
+            sliding_window=sliding_window,
         )
         self.ffn = FeedForwardSpec(glu=ffn_glu, rms_norm=rms_norm)
 

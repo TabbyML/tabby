@@ -91,7 +91,8 @@ namespace ctranslate2 {
                       const Padder* input_padder = nullptr,
                       const Padder* memory_padder = nullptr,
                       bool return_normalized_attention = true,
-                      StorageView* position_bias = nullptr) const;
+                      StorageView* position_bias = nullptr,
+                      dim_t offset = 0) const;
 
       DataType output_type() const override {
         return _ff.output_type();
@@ -209,6 +210,7 @@ namespace ctranslate2 {
       std::vector<std::vector<dim_t>> _alignment_heads;
       bool _average_alignment_heads;
       Dense _proj;
+      const dim_t _sliding_window;
     };
 
   }
