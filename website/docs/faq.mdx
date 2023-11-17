@@ -36,3 +36,11 @@ import CodeBlock from '@theme/CodeBlock';
     <p>For details on the registry format, please refer to <a href="https://github.com/TabbyML/registry-tabby/blob/main/models.json">models.json</a></p>
   </div>
 </details>
+
+<details>
+  <summary>Why can't I see the debug logs?</summary>
+  <div>
+    <p>The default log level for tabby server is info.</p>
+    <p>To enable debug logs, add <code>--enable-debug</code> flag after tabby command, e.g. <code>... tabbyml/tabby --enable_debug serve --model TabbyML/SantaCoder-1B --device cuda</code>.</p>
+  </div>
+</details>
