@@ -1024,7 +1024,12 @@ class T5Loader(ModelLoader):
         config.bos_token = tokenizer.pad_token
         config.eos_token = tokenizer.eos_token
         config.unk_token = tokenizer.unk_token
-        config.decoder_start_token = tokenizer.pad_token
+        if hasattr(model.config, "decoder_start_token_id"):
+            config.decoder_start_token = tokenizer.convert_ids_to_tokens(
+                model.config.decoder_start_token_id
+            )
+        else:
+            config.decoder_start_token = tokenizer.pad_token
 
     def set_stack(self, spec, module, is_decoder=False):
         self.set_layer_norm(spec.layer_norm, module.final_layer_norm)
