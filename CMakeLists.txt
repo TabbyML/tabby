@@ -263,6 +263,7 @@ if(NOT OPENMP_RUNTIME STREQUAL "NONE")
       ${INTEL_ROOT}/oneAPI/compiler/latest/windows/compiler/lib/intel64_win
       ${INTEL_ROOT}/oneapi/compiler/latest/linux/compiler/lib/intel64_lin
       ${INTEL_ROOT}/oneapi/compiler/latest/mac/compiler/lib
+      ${INTEL_ROOT}/oneapi/compiler/latest/lib
       )
     if(IOMP5_LIBRARY)
       list(APPEND LIBRARIES ${IOMP5_LIBRARY})
