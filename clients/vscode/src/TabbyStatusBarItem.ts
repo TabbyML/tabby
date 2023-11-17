@@ -30,7 +30,7 @@ export class TabbyStatusBarItem {
     },
     {
       target: "automatic",
-      cond: () => this.completionProvider.getTriggerMode() === "automatic",
+      cond: () => this.completionProvider.getTriggerMode() === "automatic" && !this.completionProvider.isLoading(),
     },
     {
       target: "manual",
@@ -38,7 +38,7 @@ export class TabbyStatusBarItem {
     },
     {
       target: "loading",
-      cond: () => this.completionProvider.getTriggerMode() === "manual" && this.completionProvider.isLoading(),
+      cond: () => this.completionProvider.isLoading(),
     },
     {
       target: "disabled",
