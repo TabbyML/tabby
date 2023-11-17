@@ -6,8 +6,9 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.*
 
 @Service
 @State(
@@ -18,29 +19,41 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
   enum class TriggerMode {
     @SerializedName("manual")
     MANUAL,
+
     @SerializedName("automatic")
     AUTOMATIC,
   }
 
+  private val completionTriggerModeFlow = MutableStateFlow(TriggerMode.AUTOMATIC)
+  val completionTriggerModeState = completionTriggerModeFlow.asStateFlow()
   var completionTriggerMode: TriggerMode = TriggerMode.AUTOMATIC
     set(value) {
       field = value
-      stateFlow.value = this.data
+      completionTriggerModeFlow.value = value
     }
+
+  private val serverEndpointFlow = MutableStateFlow("")
+  val serverEndpointState = serverEndpointFlow.asStateFlow()
   var serverEndpoint: String = ""
     set(value) {
       field = value
-      stateFlow.value = this.data
+      serverEndpointFlow.value = value
     }
+
+  private val nodeBinaryFlow = MutableStateFlow("")
+  val nodeBinaryState = nodeBinaryFlow.asStateFlow()
   var nodeBinary: String = ""
     set(value) {
       field = value
-      stateFlow.value = this.data
+      nodeBinaryFlow.value = value
     }
+
+  private val isAnonymousUsageTrackingDisabledFlow = MutableStateFlow(false)
+  val isAnonymousUsageTrackingDisabledState = isAnonymousUsageTrackingDisabledFlow.asStateFlow()
   var isAnonymousUsageTrackingDisabled: Boolean = false
     set(value) {
       field = value
-      stateFlow.value = this.data
+      isAnonymousUsageTrackingDisabledFlow.value = value
     }
 
   data class State(
@@ -58,8 +71,19 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
       isAnonymousUsageTrackingDisabled = isAnonymousUsageTrackingDisabled,
     )
 
-  private val stateFlow = MutableStateFlow(data)
-  val state = stateFlow.asStateFlow()
+  val state = combine(
+    completionTriggerModeState,
+    serverEndpointState,
+    nodeBinaryState,
+    isAnonymousUsageTrackingDisabledState,
+  ) { completionTriggerMode, serverEndpoint, nodeBinary, isAnonymousUsageTrackingDisabled ->
+    State(
+      completionTriggerMode = completionTriggerMode,
+      serverEndpoint = serverEndpoint,
+      nodeBinary = nodeBinary,
+      isAnonymousUsageTrackingDisabled = isAnonymousUsageTrackingDisabled,
+    )
+  }.stateIn(CoroutineScope(Dispatchers.IO), SharingStarted.Eagerly, this.data)
 
   override fun getState(): ApplicationSettingsState {
     return this
