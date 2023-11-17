@@ -1,15 +1,17 @@
 mod proxy;
 mod worker;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
 
 use anyhow::Result;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tracing::{info, warn};
 
-use crate::api::{HubError, Worker, WorkerKind};
-use crate::db::DbConn;
+use crate::{
+    api::{HubError, Worker, WorkerKind},
+    db::DbConn,
+};
 
 pub struct ServerContext {
     client: Client<HttpConnector>,

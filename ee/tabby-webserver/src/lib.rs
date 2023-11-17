@@ -2,7 +2,7 @@ pub mod api;
 
 mod schema;
 pub use schema::create_schema;
-use tracing::{debug, error};
+use tracing::error;
 use websocket::WebSocketTransport;
 
 mod db;

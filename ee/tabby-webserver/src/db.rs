@@ -1,6 +1,5 @@
-use std::env;
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{env, path::PathBuf, sync::Arc};
+
 use anyhow::Result;
 use lazy_static::lazy_static;
 use rusqlite::params;
@@ -8,9 +7,8 @@ use rusqlite_migration::{AsyncMigrations, M};
 use tokio_rusqlite::Connection;
 
 lazy_static! {
-    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
-        M::up(
-            r#"
+    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![M::up(
+        r#"
             CREATE TABLE IF NOT EXISTS register_token (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 token VARCHAR(255) NOT NULL,
@@ -19,14 +17,12 @@ lazy_static! {
                 CONSTRAINT `idx_token` UNIQUE (`token`)
             );
         "#
-        ),
-    ]);
+    ),]);
+    static ref TABBY_ROOT: PathBuf = match env::var("TABBY_ROOT") {
+        Ok(x) => PathBuf::from(x),
+        Err(_) => PathBuf::from(env::var("HOME").unwrap()).join(".tabby"),
+    };
 }
-
-const TABBY_ROOT: PathBuf = match env::var("TABBY_ROOT") {
-    Ok(x) => PathBuf::from(x),
-    Err(_) => PathBuf::from(env::var("HOME").unwrap()).join(".tabby"),
-};
 
 fn db_file() -> PathBuf {
     TABBY_ROOT.join("db.sqlite3")
@@ -42,27 +38,18 @@ impl DbConn {
         Self::init_db(conn).await
     }
 
-    async fn new_in_memory() -> Result<Self> {
-        let conn = Connection::open_in_memory().await?;
-        Self::init_db(conn).await
-    }
-
-    /// Initialize database, create tables and insert first token.
+    /// Initialize database, create tables and insert first token if not exist
     async fn init_db(mut conn: Connection) -> Result<Self> {
         MIGRATIONS.to_latest(&mut conn).await?;
 
         let token = uuid::Uuid::new_v4().to_string();
-        let res = conn
-            .call(move |c| {
-                c.execute(
-                    r#"INSERT OR IGNORE INTO token_tab (id, token) VALUES (1, ?)"#,
-                    params![token],
-                )
-            })
-            .await?;
-        if res != 1 {
-            return Err(anyhow::anyhow!("failed to init token"));
-        }
+        conn.call(move |c| {
+            c.execute(
+                r#"INSERT OR IGNORE INTO register_token (id, token) VALUES (1, ?)"#,
+                params![token],
+            )
+        })
+        .await?;
 
         Ok(Self {
             conn: Arc::new(conn),
@@ -75,9 +62,11 @@ impl DbConn {
         let token = self
             .conn
             .call(|conn| {
-                conn.query_row(r#"SELECT token FROM token_tab WHERE id = 1"#, [], |row| {
-                    row.get(0)
-                })
+                conn.query_row(
+                    r#"SELECT token FROM register_token WHERE id = 1"#,
+                    [],
+                    |row| row.get(0),
+                )
             })
             .await?;
 
@@ -94,7 +83,7 @@ impl DbConn {
             .conn
             .call(move |conn| {
                 conn.execute(
-                    r#"UPDATE token_tab SET token = ?, updated_at = ? WHERE id = 1"#,
+                    r#"UPDATE register_token SET token = ?, updated_at = ? WHERE id = 1"#,
                     params![token, updated_at],
                 )
             })
@@ -110,6 +99,11 @@ impl DbConn {
 mod tests {
     use super::*;
 
+    async fn new_in_memory() -> Result<DbConn> {
+        let conn = Connection::open_in_memory().await?;
+        DbConn::init_db(conn).await
+    }
+
     #[tokio::test]
     async fn migrations_test() {
         assert!(MIGRATIONS.validate().await.is_ok());
@@ -117,33 +111,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_token() {
-        let conn = DbConn::new_in_memory().await.unwrap();
+        let conn = new_in_memory().await.unwrap();
         let token = conn.query_token().await.unwrap();
-        assert_eq!(token, "");
+        assert_eq!(token.len(), 36);
     }
 
     #[tokio::test]
     async fn test_update_token() {
-        let conn = DbConn::new_in_memory().await.unwrap();
+        let conn = new_in_memory().await.unwrap();
 
-        // first update
-        let new1 = "new_token_1".to_string();
-        conn.update_token(new1.clone())
-            .await
-            .unwrap();
+        let new = "new_token_1".to_string();
+        conn.update_token(new.clone()).await.unwrap();
         let token = conn.query_token().await.unwrap();
-        assert_eq!(token, new1);
-
-        // second update
-        let new2 = "new_token_2".to_string();
-        conn.update_token(new1.to_string()).await.unwrap();
-        let token = conn.query_token().await.unwrap();
-        assert_eq!(token, new2);
+        assert_eq!(token, new);
 
         // error case
-        let res = conn
-            .update_token("".to_string())
-            .await;
+        let res = conn.update_token("".to_string()).await;
         assert!(res.is_err());
     }
 }
