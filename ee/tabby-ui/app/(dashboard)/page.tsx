@@ -98,12 +98,13 @@ function MainPanel() {
       <div className="mt-4 rounded-lg bg-zinc-100 p-4 dark:bg-zinc-800">
         <span className="font-bold">Workers</span>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-          <WorkerCard
-            source="localhost"
-            name={healthInfo.model}
-            type="completion"
-            health={healthInfo}
-          />
+          {healthInfo.model &&
+            <WorkerCard
+              source="localhost"
+              name={healthInfo.model}
+              type="completion"
+              health={healthInfo}
+            />}
           {healthInfo.chat_model && (
             <WorkerCard
               source="localhost"

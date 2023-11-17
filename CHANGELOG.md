@@ -4,6 +4,7 @@
 
 ## Fixes and Improvements
 * Fix the slow repository indexing due to constraint memory arena in tantivy index writer.
+* Make `--model` optional, so users can create a chat only instance.
 
 # v0.5.5
 
