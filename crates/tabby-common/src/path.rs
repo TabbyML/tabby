@@ -18,7 +18,7 @@ pub fn set_tabby_root(path: PathBuf) {
     cell.replace(path);
 }
 
-fn tabby_root() -> PathBuf {
+pub fn tabby_root() -> PathBuf {
     let mut cell = TABBY_ROOT.lock().unwrap();
     cell.get_mut().clone()
 }

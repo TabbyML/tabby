@@ -1,4 +1,4 @@
-use juniper::{graphql_object, EmptyMutation, EmptySubscription, RootNode};
+use juniper::{graphql_object, EmptySubscription, FieldResult, RootNode};
 
 use crate::{api::Worker, server::ServerContext};
 
@@ -15,9 +15,19 @@ impl Query {
     }
 }
 
-pub type Schema =
-    RootNode<'static, Query, EmptyMutation<ServerContext>, EmptySubscription<ServerContext>>;
+#[derive(Default)]
+pub struct Mutation;
+
+#[graphql_object(context = ServerContext)]
+impl Mutation {
+    async fn reset_registration_token(ctx: &ServerContext) -> FieldResult<String> {
+        let token = ctx.reset_registration_token().await?;
+        Ok(token)
+    }
+}
+
+pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<ServerContext>>;
 
 pub fn create_schema() -> Schema {
-    Schema::new(Query, EmptyMutation::new(), EmptySubscription::new())
+    Schema::new(Query, Mutation, EmptySubscription::new())
 }

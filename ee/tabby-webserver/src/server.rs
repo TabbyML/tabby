@@ -3,19 +3,44 @@ mod worker;
 
 use std::net::SocketAddr;
 
+use anyhow::Result;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tracing::{info, warn};
 
-use crate::api::{HubError, Worker, WorkerKind};
-#[derive(Default)]
+use crate::{
+    api::{HubError, Worker, WorkerKind},
+    db::DbConn,
+};
+
 pub struct ServerContext {
     client: Client<HttpConnector>,
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
+    db_conn: DbConn,
 }
 
 impl ServerContext {
+    pub fn new(db_conn: DbConn) -> Self {
+        Self {
+            client: Client::default(),
+            completion: worker::WorkerGroup::default(),
+            chat: worker::WorkerGroup::default(),
+            db_conn,
+        }
+    }
+
+    /// Query current token from the database.
+    pub async fn read_registration_token(&self) -> Result<String> {
+        self.db_conn.read_registration_token().await
+    }
+
+    /// Generate new token, and update it in the database.
+    /// Return new token after update is done
+    pub async fn reset_registration_token(&self) -> Result<String> {
+        self.db_conn.reset_registration_token().await
+    }
+
     pub async fn register_worker(&self, worker: Worker) -> Result<Worker, HubError> {
         let worker = match worker.kind {
             WorkerKind::Completion => self.completion.register(worker).await,

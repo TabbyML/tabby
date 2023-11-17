@@ -33,6 +33,10 @@ pub struct WorkerArgs {
     #[clap(long, default_value_t = 8080)]
     port: u16,
 
+    /// Server token to register this worker to.
+    #[clap(long)]
+    token: String,
+
     /// Model id
     #[clap(long, help_heading=Some("Model Options"))]
     model: String,
@@ -99,6 +103,7 @@ async fn request_register(kind: WorkerKind, args: &WorkerArgs) {
         args.port,
         args.model.to_owned(),
         args.device.to_string(),
+        args.token.clone(),
     )
     .await
     {
@@ -112,6 +117,7 @@ async fn request_register_impl(
     port: u16,
     name: String,
     device: String,
+    token: String,
 ) -> Result<()> {
     let client = tabby_webserver::api::create_client(url).await;
     let (cpu_info, cpu_count) = read_cpu_info();
@@ -127,6 +133,7 @@ async fn request_register_impl(
             cpu_info,
             cpu_count as i32,
             cuda_devices,
+            token,
         )
         .await??;
 

@@ -2,8 +2,10 @@ pub mod api;
 
 mod schema;
 pub use schema::create_schema;
+use tracing::error;
 use websocket::WebSocketTransport;
 
+mod db;
 mod server;
 mod ui;
 mod websocket;
@@ -25,7 +27,8 @@ use server::ServerContext;
 use tarpc::server::{BaseChannel, Channel};
 
 pub async fn attach_webserver(router: Router) -> Router {
-    let ctx = Arc::new(ServerContext::default());
+    let conn = db::DbConn::new().await.unwrap();
+    let ctx = Arc::new(ServerContext::new(conn));
     let schema = Arc::new(create_schema());
 
     let app = Router::new()
@@ -91,7 +94,24 @@ impl Hub for Arc<HubImpl> {
         cpu_info: String,
         cpu_count: i32,
         cuda_devices: Vec<String>,
+        token: String,
     ) -> Result<Worker, HubError> {
+        if token.is_empty() {
+            return Err(HubError::InvalidToken("Empty worker token".to_string()));
+        }
+        let server_token = match self.ctx.read_registration_token().await {
+            Ok(t) => t,
+            Err(err) => {
+                error!("fetch server token: {}", err.to_string());
+                return Err(HubError::InvalidToken(
+                    "Failed to fetch server token".to_string(),
+                ));
+            }
+        };
+        if server_token != token {
+            return Err(HubError::InvalidToken("Token mismatch".to_string()));
+        }
+
         let worker = Worker {
             name,
             kind,
