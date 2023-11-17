@@ -4476,6 +4476,7 @@ dependencies = [
  "rusqlite_migration",
  "rust-embed 8.0.0",
  "serde",
+ "tabby-common",
  "tarpc",
  "thiserror",
  "tokio",

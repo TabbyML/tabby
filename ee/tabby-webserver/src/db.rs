@@ -1,15 +1,16 @@
-use std::{env, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use lazy_static::lazy_static;
 use rusqlite::params;
 use rusqlite_migration::{AsyncMigrations, M};
+use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 
 lazy_static! {
     static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![M::up(
         r#"
-            CREATE TABLE IF NOT EXISTS register_token (
+            CREATE TABLE IF NOT EXISTS registration_token (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 token VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT (DATETIME('now')),
@@ -18,14 +19,10 @@ lazy_static! {
             );
         "#
     ),]);
-    static ref TABBY_ROOT: PathBuf = match env::var("TABBY_ROOT") {
-        Ok(x) => PathBuf::from(x),
-        Err(_) => PathBuf::from(env::var("HOME").unwrap()).join(".tabby"),
-    };
 }
 
 fn db_file() -> PathBuf {
-    TABBY_ROOT.join("db.sqlite3")
+    tabby_root().join("db.sqlite3")
 }
 
 pub struct DbConn {
@@ -45,7 +42,7 @@ impl DbConn {
         let token = uuid::Uuid::new_v4().to_string();
         conn.call(move |c| {
             c.execute(
-                r#"INSERT OR IGNORE INTO register_token (id, token) VALUES (1, ?)"#,
+                r#"INSERT OR IGNORE INTO registration_token (id, token) VALUES (1, ?)"#,
                 params![token],
             )
         })
@@ -58,12 +55,12 @@ impl DbConn {
 
     /// Query token from database.
     /// Since token is global unique for each tabby server, by right there's only one row in the table.
-    pub async fn query_token(&self) -> Result<String> {
+    pub async fn read_registration_token(&self) -> Result<String> {
         let token = self
             .conn
             .call(|conn| {
                 conn.query_row(
-                    r#"SELECT token FROM register_token WHERE id = 1"#,
+                    r#"SELECT token FROM registration_token WHERE id = 1"#,
                     [],
                     |row| row.get(0),
                 )
@@ -74,16 +71,16 @@ impl DbConn {
     }
 
     /// Update token in database.
-    pub async fn update_token(&self, token: String) -> Result<()> {
-        if token.is_empty() {
-            return Err(anyhow::anyhow!("failed: new token is empty"));
-        }
+    pub async fn reset_registration_token(&self) -> Result<String> {
+        let token = uuid::Uuid::new_v4().to_string();
+        let result = token.clone();
         let updated_at = chrono::Utc::now().timestamp() as u32;
+
         let res = self
             .conn
             .call(move |conn| {
                 conn.execute(
-                    r#"UPDATE register_token SET token = ?, updated_at = ? WHERE id = 1"#,
+                    r#"UPDATE registration_token SET token = ?, updated_at = ? WHERE id = 1"#,
                     params![token, updated_at],
                 )
             })
@@ -91,7 +88,8 @@ impl DbConn {
         if res != 1 {
             return Err(anyhow::anyhow!("failed to update token"));
         }
-        Ok(())
+
+        Ok(result)
     }
 }
 
@@ -112,7 +110,7 @@ mod tests {
     #[tokio::test]
     async fn test_token() {
         let conn = new_in_memory().await.unwrap();
-        let token = conn.query_token().await.unwrap();
+        let token = conn.read_registration_token().await.unwrap();
         assert_eq!(token.len(), 36);
     }
 
@@ -120,13 +118,10 @@ mod tests {
     async fn test_update_token() {
         let conn = new_in_memory().await.unwrap();
 
-        let new = "new_token_1".to_string();
-        conn.update_token(new.clone()).await.unwrap();
-        let token = conn.query_token().await.unwrap();
-        assert_eq!(token, new);
-
-        // error case
-        let res = conn.update_token("".to_string()).await;
-        assert!(res.is_err());
+        let old_token = conn.read_registration_token().await.unwrap();
+        conn.reset_registration_token().await.unwrap();
+        let new_token = conn.read_registration_token().await.unwrap();
+        assert_eq!(new_token.len(), 36);
+        assert_ne!(old_token, new_token);
     }
 }

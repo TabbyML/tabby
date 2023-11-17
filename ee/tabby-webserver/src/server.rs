@@ -31,17 +31,14 @@ impl ServerContext {
     }
 
     /// Query current token from the database.
-    pub async fn token(&self) -> Result<String> {
-        self.db_conn.query_token().await
+    pub async fn read_registration_token(&self) -> Result<String> {
+        self.db_conn.read_registration_token().await
     }
 
     /// Generate new token, and update it in the database.
     /// Return new token after update is done
     pub async fn reset_registration_token(&self) -> Result<String> {
-        let new_token = uuid::Uuid::new_v4().to_string();
-        self.db_conn.update_token(new_token.clone()).await?;
-
-        Ok(new_token)
+        self.db_conn.reset_registration_token().await
     }
 
     pub async fn register_worker(&self, worker: Worker) -> Result<Worker, HubError> {

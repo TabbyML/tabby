@@ -99,7 +99,7 @@ impl Hub for Arc<HubImpl> {
         if token.is_empty() {
             return Err(HubError::InvalidToken("Empty worker token".to_string()));
         }
-        let server_token = match self.ctx.token().await {
+        let server_token = match self.ctx.read_registration_token().await {
             Ok(t) => t,
             Err(err) => {
                 error!("fetch server token: {}", err.to_string());

@@ -1,4 +1,4 @@
-use juniper::{graphql_object, EmptySubscription, RootNode};
+use juniper::{graphql_object, EmptySubscription, FieldResult, RootNode};
 
 use crate::{api::Worker, server::ServerContext};
 
@@ -20,11 +20,9 @@ pub struct Mutation;
 
 #[graphql_object(context = ServerContext)]
 impl Mutation {
-    async fn reset_registration_token(ctx: &ServerContext) -> String {
-        match ctx.reset_registration_token().await {
-            Ok(token) => token,
-            Err(err) => format!("error: {}", err),
-        }
+    async fn reset_registration_token(ctx: &ServerContext) -> FieldResult<String> {
+        let token = ctx.reset_registration_token().await?;
+        Ok(token)
     }
 }
 
