@@ -35,7 +35,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: 1.73.0
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3

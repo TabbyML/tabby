@@ -22,7 +22,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # setup rust.
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain 1.73.0 -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /root/workspace
