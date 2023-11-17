@@ -70,7 +70,7 @@ struct ApiDoc;
 pub struct ServeArgs {
     /// Model id for `/completions` API endpoint.
     #[clap(long)]
-    model: String,
+    model: Option<String>,
 
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
@@ -122,7 +122,10 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn load_model(args: &ServeArgs) {
-    download_model_if_needed(&args.model).await;
+    if let Some(model) = &args.model {
+        download_model_if_needed(model).await;
+    }
+
     if let Some(chat_model) = &args.chat_model {
         download_model_if_needed(chat_model).await
     }
@@ -131,16 +134,21 @@ async fn load_model(args: &ServeArgs) {
 async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let logger = Arc::new(create_logger());
     let code = Arc::new(crate::services::code::create_code_search());
-    let completion = Arc::new(
-        create_completion_service(
-            code.clone(),
-            logger.clone(),
-            &args.model,
-            &args.device,
-            args.parallelism,
-        )
-        .await,
-    );
+
+    let completion_state = if let Some(model) = &args.model {
+        Some(Arc::new(
+            create_completion_service(
+                code.clone(),
+                logger.clone(),
+                model,
+                &args.device,
+                args.parallelism,
+            )
+            .await,
+        ))
+    } else {
+        None
+    };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
         Some(Arc::new(
@@ -153,7 +161,7 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let mut routers = vec![];
 
     let health_state = Arc::new(health::HealthState::new(
-        &args.model,
+        args.model.as_deref(),
         args.chat_model.as_deref(),
         &args.device,
     ));
@@ -173,16 +181,18 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
             )
     });
 
-    routers.push({
-        Router::new()
-            .route(
-                "/v1/completions",
-                routing::post(routes::completions).with_state(completion),
-            )
-            .layer(TimeoutLayer::new(Duration::from_secs(
-                config.server.completion_timeout,
-            )))
-    });
+    if let Some(completion_state) = completion_state {
+        routers.push({
+            Router::new()
+                .route(
+                    "/v1/completions",
+                    routing::post(routes::completions).with_state(completion_state),
+                )
+                .layer(TimeoutLayer::new(Duration::from_secs(
+                    config.server.completion_timeout,
+                )))
+        });
+    }
 
     if let Some(chat_state) = chat_state {
         routers.push({
@@ -209,7 +219,11 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
 }
 
 fn start_heartbeat(args: &ServeArgs) {
-    let state = health::HealthState::new(&args.model, args.chat_model.as_deref(), &args.device);
+    let state = health::HealthState::new(
+        args.model.as_deref(),
+        args.chat_model.as_deref(),
+        &args.device,
+    );
     tokio::spawn(async move {
         loop {
             usage::capture("ServeHealth", &state).await;
