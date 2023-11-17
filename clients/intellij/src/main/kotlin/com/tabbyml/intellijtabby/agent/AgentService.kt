@@ -139,12 +139,14 @@ class AgentService : Disposable {
           } else {
             return@collect
           }
+
           "highCompletionTimeoutRate" -> if (!completionResponseWarningShown) {
             completionResponseWarningShown = true
             "Most completion requests timed out"
           } else {
             return@collect
           }
+
           else -> {
             invokeLater {
               issueNotification?.expire()
@@ -319,22 +321,24 @@ class AgentService : Disposable {
   companion object {
     // Language id: https://code.visualstudio.com/docs/languages/identifiers
     private fun PsiFile.getLanguageId(): String {
-      if (this.language != Language.ANY && this.language.id.toLowerCasePreservingASCIIRules() !in arrayOf(
-          "txt",
-          "text",
-          "textmate"
-        )
+      return if (this.language != Language.ANY &&
+        this.language.id.isNotBlank() &&
+        this.language.id.toLowerCasePreservingASCIIRules() !in arrayOf("txt", "text", "textmate")
       ) {
-        if (languageIdMap.containsKey(this.language.id)) {
-          return languageIdMap[this.language.id]!!
-        }
-        return this.language.id.toLowerCasePreservingASCIIRules().replace("#", "sharp").replace("++", "pp")
+        languageIdMap[this.language.id] ?: this.language.id
+          .toLowerCasePreservingASCIIRules()
+          .replace("#", "sharp")
+          .replace("++", "pp")
           .replace(" ", "")
-      }
-      return if (filetypeMap.containsKey(this.fileType.defaultExtension)) {
-        filetypeMap[this.fileType.defaultExtension]!!
       } else {
-        this.fileType.defaultExtension.toLowerCasePreservingASCIIRules()
+        val ext = this.fileType.defaultExtension.ifBlank {
+          this.virtualFile.name.substringAfterLast(".")
+        }
+        if (ext.isNotBlank()) {
+          filetypeMap[ext] ?: ext.toLowerCasePreservingASCIIRules()
+        } else {
+          "plaintext"
+        }
       }
     }
 
