@@ -15,7 +15,7 @@ export function limitScope(
         return limitScopeByIndentation(context, config["indentation"])(input);
       }
     : (input) => {
-        if (config.experimentalSyntax && supportedLanguages.indexOf(context.language) >= 0) {
+        if (config.experimentalSyntax && supportedLanguages.includes(context.language)) {
           return limitScopeBySyntax(context)(input);
         } else {
           return limitScopeByIndentation(context, config["indentation"])(input);
