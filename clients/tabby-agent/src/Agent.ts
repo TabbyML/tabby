@@ -30,7 +30,11 @@ export type HighCompletionTimeoutRateIssue = {
   name: "highCompletionTimeoutRate";
   completionResponseStats: Record<string, number>;
 };
-export type AgentIssue = SlowCompletionResponseTimeIssue | HighCompletionTimeoutRateIssue;
+export type ConnectionFailedIssue = {
+  name: "connectionFailed";
+  message: string;
+};
+export type AgentIssue = SlowCompletionResponseTimeIssue | HighCompletionTimeoutRateIssue | ConnectionFailedIssue;
 
 /**
  * Represents the status of the agent.
@@ -95,14 +99,14 @@ export interface AgentFunction {
   /**
    * @returns the current issues if any exists
    */
-  getIssues(detail?: boolean): AgentIssue["name"][];
+  getIssues(): AgentIssue["name"][];
 
   /**
    * Get the detail of an issue by index or name.
    * @param options if `index` is provided, `name` will be ignored
    * @returns the issue detail if exists, otherwise null
    */
-  getIssueDetail(options: { index?: number; name?: AgentIssue["name"] }): AgentIssue | null;
+  getIssueDetail<T extends AgentIssue>(options: { index?: number; name?: T["name"] }): T | null;
 
   /**
    * @returns server info returned from latest server health check, returns null if not available

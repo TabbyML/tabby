@@ -1,4 +1,9 @@
 import { commands, window, workspace, env, ConfigurationTarget, Uri } from "vscode";
+import type {
+  HighCompletionTimeoutRateIssue,
+  SlowCompletionResponseTimeIssue,
+  ConnectionFailedIssue,
+} from "tabby-agent";
 import { agent } from "./agent";
 
 function showInformationWhenInitializing() {
@@ -84,16 +89,37 @@ function showInformationWhenInlineSuggestDisabled() {
     });
 }
 
-function showInformationWhenDisconnected() {
-  window
-    .showInformationMessage("Cannot connect to Tabby Server. Please check settings.", "Settings")
-    .then((selection) => {
+function showInformationWhenDisconnected(modal: boolean = false) {
+  if (modal) {
+    const message = agent().getIssueDetail<ConnectionFailedIssue>({ name: "connectionFailed" })?.message;
+    window
+      .showWarningMessage(
+        `Cannot connect to Tabby Server.`,
+        {
+          modal: true,
+          detail: message,
+        },
+        "Settings",
+      )
+      .then((selection) => {
+        switch (selection) {
+          case "Settings":
+            commands.executeCommand("tabby.openSettings");
+            break;
+        }
+      });
+  } else {
+    window.showWarningMessage(`Cannot connect to Tabby Server.`, "Detail", "Settings").then((selection) => {
       switch (selection) {
+        case "Detail":
+          showInformationWhenDisconnected(true);
+          break;
         case "Settings":
           commands.executeCommand("tabby.openSettings");
           break;
       }
     });
+  }
 }
 
 function showInformationStartAuth(callbacks?: { onAuthStart?: () => void; onAuthEnd?: () => void }) {
@@ -171,7 +197,8 @@ function getHelpMessageForCompletionResponseTimeIssue() {
 
 function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
   if (modal) {
-    const stats = agent().getIssueDetail({ name: "slowCompletionResponseTime" })?.completionResponseStats;
+    const stats = agent().getIssueDetail<SlowCompletionResponseTimeIssue>({ name: "slowCompletionResponseTime" })
+      ?.completionResponseStats;
     let statsMessage = "";
     if (stats && stats["responses"] && stats["averageResponseTime"]) {
       statsMessage = `The average response time of recent ${stats["responses"]} completion requests is ${Number(
@@ -212,7 +239,8 @@ function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
 
 function showInformationWhenHighCompletionTimeoutRate(modal: boolean = false) {
   if (modal) {
-    const stats = agent().getIssueDetail({ name: "highCompletionTimeoutRate" })?.completionResponseStats;
+    const stats = agent().getIssueDetail<HighCompletionTimeoutRateIssue>({ name: "highCompletionTimeoutRate" })
+      ?.completionResponseStats;
     let statsMessage = "";
     if (stats && stats["total"] && stats["timeouts"]) {
       statsMessage = `${stats["timeouts"]} of ${stats["total"]} completion requests timed out.\n\n`;

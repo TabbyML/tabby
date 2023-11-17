@@ -1,5 +1,6 @@
 import { StatusBarAlignment, ThemeColor, window } from "vscode";
 import { createMachine, interpret } from "@xstate/fsm";
+import type { StatusChangedEvent, AuthRequiredEvent, IssuesUpdatedEvent } from "tabby-agent";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
@@ -137,12 +138,12 @@ export class TabbyStatusBarItem {
     this.completionProvider.on("loadingStatusUpdated", () => {
       this.fsmService.send(agent().getStatus());
     });
-    agent().on("statusChanged", (event) => {
+    agent().on("statusChanged", (event: StatusChangedEvent) => {
       console.debug("Tabby agent statusChanged", { event });
       this.fsmService.send(event.status);
     });
 
-    agent().on("authRequired", (event) => {
+    agent().on("authRequired", (event: AuthRequiredEvent) => {
       console.debug("Tabby agent authRequired", { event });
       notifications.showInformationStartAuth({
         onAuthStart: () => {
@@ -154,16 +155,17 @@ export class TabbyStatusBarItem {
       });
     });
 
-    agent().on("issuesUpdated", (event) => {
+    agent().on("issuesUpdated", (event: IssuesUpdatedEvent) => {
       console.debug("Tabby agent issuesUpdated", { event });
       this.fsmService.send(agent().getStatus());
-      if (event.issues.length > 0 && !this.completionResponseWarningShown) {
+      if (event.issues.includes("connectionFailed")) {
+        notifications.showInformationWhenDisconnected();
+      } else if (!this.completionResponseWarningShown && event.issues.includes("highCompletionTimeoutRate")) {
         this.completionResponseWarningShown = true;
-        if (event.issues[0] === "slowCompletionResponseTime") {
-          notifications.showInformationWhenSlowCompletionResponseTime();
-        } else if (event.issues[0] === "highCompletionTimeoutRate") {
-          notifications.showInformationWhenHighCompletionTimeoutRate();
-        }
+        notifications.showInformationWhenHighCompletionTimeoutRate();
+      } else if (!this.completionResponseWarningShown && event.issues.includes("slowCompletionResponseTime")) {
+        this.completionResponseWarningShown = true;
+        notifications.showInformationWhenSlowCompletionResponseTime();
       }
     });
   }
@@ -281,13 +283,15 @@ export class TabbyStatusBarItem {
     this.item.color = colorWarning;
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconIssueExist} ${label}`;
-    const issue = agent().getIssueDetail({ index: 0 });
+    const issue =
+      agent().getIssueDetail({ name: "highCompletionTimeoutRate" }) ??
+      agent().getIssueDetail({ name: "slowCompletionResponseTime" });
     switch (issue?.name) {
-      case "slowCompletionResponseTime":
-        this.item.tooltip = "Completion requests appear to take too much time.";
-        break;
       case "highCompletionTimeoutRate":
         this.item.tooltip = "Most completion requests timed out.";
+        break;
+      case "slowCompletionResponseTime":
+        this.item.tooltip = "Completion requests appear to take too much time.";
         break;
       default:
         this.item.tooltip = "";
@@ -299,11 +303,11 @@ export class TabbyStatusBarItem {
       arguments: [
         () => {
           switch (issue?.name) {
-            case "slowCompletionResponseTime":
-              notifications.showInformationWhenSlowCompletionResponseTime();
-              break;
             case "highCompletionTimeoutRate":
               notifications.showInformationWhenHighCompletionTimeoutRate();
+              break;
+            case "slowCompletionResponseTime":
+              notifications.showInformationWhenSlowCompletionResponseTime();
               break;
           }
         },

@@ -11,7 +11,7 @@ export async function calculateReplaceRangeBySyntax(
   context: CompletionContext,
 ): Promise<CompletionResponse> {
   const { position, prefix, suffix, prefixLines, suffixLines, language } = context;
-  if (supportedLanguages.indexOf(language) < 0) {
+  if (!supportedLanguages.includes(language)) {
     return response;
   }
   const languageConfig = languagesConfigs[language];

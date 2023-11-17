@@ -102,10 +102,18 @@ export class HttpError extends Error {
 export function isTimeoutError(error: any) {
   return (
     (error instanceof Error && error.name === "TimeoutError") ||
-    (error instanceof HttpError && [408, 499].indexOf(error.status) !== -1)
+    (error instanceof HttpError && [408, 499].includes(error.status))
   );
 }
 
 export function isCanceledError(error: any) {
   return error instanceof Error && error.name === "AbortError";
+}
+
+export function errorToString(error: any) {
+  let message = error.message || error.toString();
+  if (error.cause) {
+    message += "\nCaused by: " + errorToString(error.cause);
+  }
+  return message;
 }

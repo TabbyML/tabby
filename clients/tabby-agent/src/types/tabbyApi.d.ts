@@ -11,7 +11,10 @@ export interface paths {
     post: operations["event"];
   };
   "/v1/health": {
-    post: operations["health"];
+    get: operations["health"];
+  };
+  "/v1beta/search": {
+    get: operations["search"];
   };
 }
 
@@ -34,8 +37,6 @@ export interface components {
      * }
      */
     CompletionRequest: {
-      /** @example def fib(n): */
-      prompt?: string | null;
       /**
        * @description Language identifier, full list is maintained at
        * https://code.visualstudio.com/docs/languages/identifiers
@@ -43,21 +44,71 @@ export interface components {
        */
       language?: string | null;
       segments?: components["schemas"]["Segments"] | null;
+      /**
+       * @description A unique identifier representing your end-user, which can help Tabby to monitor & generating
+       * reports.
+       */
       user?: string | null;
+      debug_options?: components["schemas"]["DebugOptions"] | null;
     };
+    /**
+     * @example {
+     *   "choices": [
+     *     {
+     *       "index": 0,
+     *       "text": "string"
+     *     }
+     *   ],
+     *   "id": "string"
+     * }
+     */
     CompletionResponse: {
       id: string;
       choices: components["schemas"]["Choice"][];
+      debug_data?: components["schemas"]["DebugData"] | null;
+    };
+    DebugData: {
+      snippets?: components["schemas"]["Snippet"][] | null;
+      prompt?: string | null;
+    };
+    DebugOptions: {
+      /**
+       * @description When `raw_prompt` is specified, it will be passed directly to the inference engine for completion. `segments` field in `CompletionRequest` will be ignored.
+       *
+       * This is useful for certain requests that aim to test the tabby's e2e quality.
+       */
+      raw_prompt?: string | null;
+      /** @description When true, returns `snippets` in `debug_data`. */
+      return_snippets?: boolean;
+      /** @description When true, returns `prompt` in `debug_data`. */
+      return_prompt?: boolean;
+      /** @description When true, disable retrieval augmented code completion. */
+      disable_retrieval_augmented_code_completion?: boolean;
     };
     HealthState: {
       model: string;
+      chat_model?: string | null;
       device: string;
-      compute_type: string;
       arch: string;
       cpu_info: string;
       cpu_count: number;
       cuda_devices: string[];
       version: components["schemas"]["Version"];
+    };
+    Hit: {
+      /** Format: float */
+      score: number;
+      doc: components["schemas"]["HitDocument"];
+      /** Format: int32 */
+      id: number;
+    };
+    HitDocument: {
+      body: string;
+      filepath: string;
+      git_url: string;
+      kind: string;
+      language: string;
+      name: string;
     };
     LogEventRequest: {
       /**
@@ -69,11 +120,21 @@ export interface components {
       /** Format: int32 */
       choice_index: number;
     };
+    SearchResponse: {
+      num_hits: number;
+      hits: components["schemas"]["Hit"][];
+    };
     Segments: {
       /** @description Content that appears before the cursor in the editor window. */
       prefix: string;
       /** @description Content that appears after the cursor in the editor window. */
       suffix?: string | null;
+    };
+    Snippet: {
+      filepath: string;
+      body: string;
+      /** Format: float */
+      score: number;
     };
     Version: {
       build_date: string;
@@ -114,6 +175,11 @@ export interface operations {
     };
   };
   event: {
+    parameters: {
+      query: {
+        select_kind?: string | null;
+      };
+    };
     requestBody: {
       content: {
         "application/json": components["schemas"]["LogEventRequest"];
@@ -137,6 +203,27 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HealthState"];
         };
+      };
+    };
+  };
+  search: {
+    parameters: {
+      query: {
+        q: string;
+        limit?: number | null;
+        offset?: number | null;
+      };
+    };
+    responses: {
+      /** @description Success */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SearchResponse"];
+        };
+      };
+      /** @description When code search is not enabled, the endpoint will returns 501 Not Implemented */
+      501: {
+        content: never;
       };
     };
   };

@@ -12,6 +12,7 @@ export {
   IssuesUpdatedEvent,
   SlowCompletionResponseTimeIssue,
   HighCompletionTimeoutRateIssue,
+  ConnectionFailedIssue,
   ClientProperties,
   AgentInitOptions,
   ServerHealthState,

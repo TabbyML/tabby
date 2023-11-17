@@ -42,7 +42,7 @@ function findScope(node: TreeSitterParser.SyntaxNode, typeList: string[][]): Tre
   for (const types of typeList) {
     let scope = node;
     while (scope) {
-      if (types.indexOf(scope.type) >= 0) {
+      if (types.includes(scope.type)) {
         return scope;
       }
       scope = scope.parent;
@@ -54,7 +54,7 @@ function findScope(node: TreeSitterParser.SyntaxNode, typeList: string[][]): Tre
 export function limitScopeBySyntax(context: CompletionContext): PostprocessFilter {
   return async (input) => {
     const { position, text, language, prefix, suffix } = context;
-    if (supportedLanguages.indexOf(language) < 0) {
+    if (!supportedLanguages.includes(language)) {
       return input;
     }
     const languageConfig = languagesConfigs[language];
