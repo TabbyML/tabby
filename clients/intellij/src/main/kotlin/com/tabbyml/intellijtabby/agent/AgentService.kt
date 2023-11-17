@@ -21,11 +21,8 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import io.ktor.util.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 @Service
 class AgentService : Disposable {
@@ -89,14 +86,20 @@ class AgentService : Disposable {
     }
 
     scope.launch {
-      settings.state.collect {
-        if (it.serverEndpoint.isNotBlank()) {
-          updateConfig("server.endpoint", it.serverEndpoint)
-        } else {
-          clearConfig("server.endpoint")
-        }
-        updateClientProperties("user", "intellij.triggerMode", it.completionTriggerMode)
-        updateConfig("anonymousUsageTracking.disable", it.isAnonymousUsageTrackingDisabled)
+      settings.serverEndpointState.collect {
+        setEndpoint(it)
+      }
+    }
+
+    scope.launch {
+      settings.completionTriggerModeState.collect {
+        updateClientProperties("user", "intellij.triggerMode", it)
+      }
+    }
+
+    scope.launch {
+      settings.isAnonymousUsageTrackingDisabledState.collect {
+        updateConfig("anonymousUsageTracking.disable", it)
       }
     }
 
@@ -117,20 +120,43 @@ class AgentService : Disposable {
       }
     }
 
+
+    scope.launch {
+      agent.status.collect { status ->
+        if (status == Agent.Status.READY) {
+          completionResponseWarningShown = false
+        }
+      }
+    }
+
     scope.launch {
       agent.currentIssue.collect { issueName ->
-        val content = when (issueName) {
-          "slowCompletionResponseTime" -> "Completion requests appear to take too much time"
-          "highCompletionTimeoutRate" -> "Most completion requests timed out"
-          else -> return@collect
+        val message = when (issueName) {
+          "connectionFailed" -> "Cannot connect to Tabby server"
+          "slowCompletionResponseTime" -> if (!completionResponseWarningShown) {
+            completionResponseWarningShown = true
+            "Completion requests appear to take too much time"
+          } else {
+            return@collect
+          }
+
+          "highCompletionTimeoutRate" -> if (!completionResponseWarningShown) {
+            completionResponseWarningShown = true
+            "Most completion requests timed out"
+          } else {
+            return@collect
+          }
+
+          else -> {
+            invokeLater {
+              issueNotification?.expire()
+            }
+            return@collect
+          }
         }
-        if (completionResponseWarningShown) {
-          return@collect
-        }
-        completionResponseWarningShown = true
         val notification = Notification(
           "com.tabbyml.intellijtabby.notification.warning",
-          content,
+          message,
           NotificationType.WARNING,
         )
         notification.addAction(ActionManager.getInstance().getAction("Tabby.CheckIssueDetail"))
@@ -200,6 +226,14 @@ class AgentService : Disposable {
   private suspend fun clearConfig(key: String) {
     waitForInitialized()
     agent.clearConfig(key)
+  }
+
+  suspend fun setEndpoint(endpoint: String) {
+    if (endpoint.isNotBlank()) {
+      updateConfig("server.endpoint", endpoint)
+    } else {
+      clearConfig("server.endpoint")
+    }
   }
 
   suspend fun getConfig(): Agent.Config {
@@ -287,22 +321,24 @@ class AgentService : Disposable {
   companion object {
     // Language id: https://code.visualstudio.com/docs/languages/identifiers
     private fun PsiFile.getLanguageId(): String {
-      if (this.language != Language.ANY && this.language.id.toLowerCasePreservingASCIIRules() !in arrayOf(
-          "txt",
-          "text",
-          "textmate"
-        )
+      return if (this.language != Language.ANY &&
+        this.language.id.isNotBlank() &&
+        this.language.id.toLowerCasePreservingASCIIRules() !in arrayOf("txt", "text", "textmate")
       ) {
-        if (languageIdMap.containsKey(this.language.id)) {
-          return languageIdMap[this.language.id]!!
-        }
-        return this.language.id.toLowerCasePreservingASCIIRules().replace("#", "sharp").replace("++", "pp")
+        languageIdMap[this.language.id] ?: this.language.id
+          .toLowerCasePreservingASCIIRules()
+          .replace("#", "sharp")
+          .replace("++", "pp")
           .replace(" ", "")
-      }
-      return if (filetypeMap.containsKey(this.fileType.defaultExtension)) {
-        filetypeMap[this.fileType.defaultExtension]!!
       } else {
-        this.fileType.defaultExtension.toLowerCasePreservingASCIIRules()
+        val ext = this.fileType.defaultExtension.ifBlank {
+          this.virtualFile.name.substringAfterLast(".")
+        }
+        if (ext.isNotBlank()) {
+          filetypeMap[ext] ?: ext.toLowerCasePreservingASCIIRules()
+        } else {
+          "plaintext"
+        }
       }
     }
 

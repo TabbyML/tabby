@@ -1,5 +1,12 @@
 package com.tabbyml.intellijtabby.settings
 
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.components.service
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBRadioButton
@@ -7,7 +14,12 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import com.tabbyml.intellijtabby.agent.Agent
+import com.tabbyml.intellijtabby.agent.AgentService
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import javax.swing.ButtonGroup
+import javax.swing.JButton
 import javax.swing.JPanel
 
 private fun FormBuilder.addCopyableTooltip(text: String): FormBuilder {
@@ -26,6 +38,82 @@ private fun FormBuilder.addCopyableTooltip(text: String): FormBuilder {
 
 class ApplicationSettingsPanel {
   private val serverEndpointTextField = JBTextField()
+  private val serverEndpointCheckConnectionButton = JButton("Check connection").apply {
+    addActionListener {
+      val parentComponent = this@ApplicationSettingsPanel.mainPanel
+      val agentService = service<AgentService>()
+      val settings = service<ApplicationSettingsState>()
+
+      val task = object : Task.Modal(
+        null,
+        parentComponent,
+        "Check Connection",
+        true
+      ) {
+        lateinit var job: Job
+        override fun run(indicator: ProgressIndicator) {
+          job = agentService.scope.launch {
+            indicator.isIndeterminate = true
+            indicator.text = "Checking connection..."
+            settings.serverEndpoint = serverEndpointTextField.text
+            agentService.setEndpoint(serverEndpointTextField.text)
+            when (agentService.status.value) {
+              Agent.Status.READY -> {
+                invokeLater(ModalityState.stateForComponent(parentComponent)) {
+                  Messages.showInfoMessage(
+                    parentComponent,
+                    "Successfully connected to the Tabby server.",
+                    "Check Connection Completed"
+                  )
+                }
+              }
+
+              Agent.Status.UNAUTHORIZED -> {
+                agentService.requestAuth(indicator)
+                if (agentService.status.value == Agent.Status.READY) {
+                  invokeLater(ModalityState.stateForComponent(parentComponent)) {
+                    Messages.showInfoMessage(
+                      parentComponent,
+                      "Successfully connected to the Tabby server.",
+                      "Check Connection Completed"
+                    )
+                  }
+                } else {
+                  invokeLater(ModalityState.stateForComponent(parentComponent)) {
+                    Messages.showErrorDialog(
+                      parentComponent,
+                      "Failed to connect to the Tabby server.",
+                      "Check Connection Failed"
+                    )
+                  }
+                }
+              }
+
+              else -> {
+                val detail = agentService.getCurrentIssueDetail()
+                if (detail?.get("name") == "connectionFailed") {
+                  invokeLater(ModalityState.stateForComponent(parentComponent)) {
+                    val errorMessage = (detail["message"] as String?)?.replace("\n", "<br/>") ?: ""
+                    val messages = "<html>Failed to connect to the Tabby server:<br/>${errorMessage}</html>"
+                    Messages.showErrorDialog(parentComponent, messages, "Check Connection Failed")
+                  }
+                }
+              }
+            }
+          }
+          while (job.isActive) {
+            indicator.checkCanceled()
+            Thread.sleep(100)
+          }
+        }
+
+        override fun onCancel() {
+          job.cancel()
+        }
+      }
+      ProgressManager.getInstance().run(task)
+    }
+  }
   private val serverEndpointPanel = FormBuilder.createFormBuilder()
     .addComponent(serverEndpointTextField)
     .addCopyableTooltip(
@@ -37,6 +125,7 @@ class ApplicationSettingsPanel {
       </html>
       """.trimIndent()
     )
+    .addComponent(serverEndpointCheckConnectionButton)
     .panel
 
   private val nodeBinaryTextField = JBTextField()

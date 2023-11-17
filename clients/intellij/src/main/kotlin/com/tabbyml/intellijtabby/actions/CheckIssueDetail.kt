@@ -1,6 +1,5 @@
 package com.tabbyml.intellijtabby.actions
 
-import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -10,7 +9,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.ui.Messages
 import com.tabbyml.intellijtabby.agent.Agent
 import com.tabbyml.intellijtabby.agent.AgentService
-import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import kotlinx.coroutines.launch
 import java.net.URL
 
@@ -23,17 +21,25 @@ class CheckIssueDetail : AnAction() {
 
     agentService.scope.launch {
       val detail = agentService.getCurrentIssueDetail() ?: return@launch
-      val serverHealthState = agentService.getServerHealthState()
-      val agentConfig = agentService.getConfig()
-      logger.info("Show issue detail: $detail, $serverHealthState, $agentConfig")
-      val title = when (detail["name"]) {
-        "slowCompletionResponseTime" -> "Completion Requests Appear to Take Too Much Time"
-        "highCompletionTimeoutRate" -> "Most Completion Requests Timed Out"
-        else -> return@launch
-      }
-      val message = buildDetailMessage(detail, serverHealthState, agentConfig)
-      invokeLater {
-        Messages.showMessageDialog(message, title, Messages.getInformationIcon())
+      if (detail["name"] == "connectionFailed") {
+        invokeLater {
+          val messages = "<html>" + (detail["message"] as String?)?.replace("\n", "<br/>") + "</html>"
+          Messages.showErrorDialog(messages, "Cannot Connect to Tabby Server")
+        }
+        return@launch
+      } else {
+        val serverHealthState = agentService.getServerHealthState()
+        val agentConfig = agentService.getConfig()
+        logger.info("Show issue detail: $detail, $serverHealthState, $agentConfig")
+        val title = when (detail["name"]) {
+          "slowCompletionResponseTime" -> "Completion Requests Appear to Take Too Much Time"
+          "highCompletionTimeoutRate" -> "Most Completion Requests Timed Out"
+          else -> return@launch
+        }
+        val message = buildDetailMessage(detail, serverHealthState, agentConfig)
+        invokeLater {
+          Messages.showInfoMessage(message, title)
+        }
       }
     }
   }

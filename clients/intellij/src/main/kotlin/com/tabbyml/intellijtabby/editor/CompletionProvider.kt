@@ -25,10 +25,12 @@ class CompletionProvider {
     clear()
     val job = agentService.scope.launch {
       logger.info("Trigger completion at $offset")
-      agentService.provideCompletion(editor, offset, manually)?.let {
-        logger.info("Show completion at $offset: $it")
-        inlineCompletionService.show(editor, offset, it)
+      agentService.provideCompletion(editor, offset, manually).let {
         ongoingCompletionFlow.value = null
+        if (it != null) {
+          logger.info("Show completion at $offset: $it")
+          inlineCompletionService.show(editor, offset, it)
+        }
       }
     }
     ongoingCompletionFlow.value = CompletionContext(editor, offset, job)
