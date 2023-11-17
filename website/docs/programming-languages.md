@@ -43,3 +43,4 @@ For an actual example of an issue or pull request adding the above support, plea
 |   PHP    |                    🚫                    |                       🚫                        |
 |   Perl   |                    🚫                    |                       🚫                        |
 |  Scala   |                    🚫                    |                       🚫                        |
+|  Kotlin  |                    🚫                    |                       🚫                        |
