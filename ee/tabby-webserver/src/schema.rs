@@ -20,9 +20,9 @@ pub struct Mutation;
 
 #[graphql_object(context = ServerContext)]
 impl Mutation {
-    async fn refresh_token(ctx: &ServerContext, old: String, new: String) -> String {
-        match ctx.refresh_token(old, new).await {
-            Ok(_) => "success".to_string(),
+    async fn reset_registration_token(ctx: &ServerContext) -> String {
+        match ctx.reset_registration_token().await {
+            Ok(token) => token,
             Err(err) => format!("error: {}", err),
         }
     }

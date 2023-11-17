@@ -6,21 +6,20 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::Result;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use rusqlite::params;
-use tokio_rusqlite::Connection;
 use tracing::{info, warn};
 
 use crate::api::{HubError, Worker, WorkerKind};
+use crate::db::DbConn;
 
 pub struct ServerContext {
     client: Client<HttpConnector>,
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
-    db_conn: Arc<Connection>,
+    db_conn: DbConn,
 }
 
 impl ServerContext {
-    pub fn new(db_conn: Arc<Connection>) -> Self {
+    pub fn new(db_conn: DbConn) -> Self {
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -29,43 +28,18 @@ impl ServerContext {
         }
     }
 
-    /// Query token from database.
-    /// Since token is global unique for each tabby server, by right there's only one row in the table.
+    /// Query current token from the database.
     pub async fn token(&self) -> Result<String> {
-        let token = self
-            .db_conn
-            .call(|conn| {
-                conn.query_row(r#"SELECT token FROM token_tab WHERE id = 1"#, [], |row| {
-                    row.get(0)
-                })
-            })
-            .await?;
-
-        Ok(token)
+        self.db_conn.query_token().await
     }
 
-    /// Replace old token with new token.
-    /// The old token is used to verify the request,
-    /// only when old token from the request matches the one in the database,
-    /// then it's replaced with the new one.
-    pub async fn refresh_token(&self, old: String, new: String) -> Result<()> {
-        if new.is_empty() {
-            return Err(anyhow::anyhow!("failed: new token is empty"));
-        }
-        let updated_at = chrono::Utc::now().timestamp() as u32;
-        let res = self
-            .db_conn
-            .call(move |conn| {
-                conn.execute(
-                    r#"UPDATE token_tab SET token = ?, updated_at = ? WHERE token = ?"#,
-                    params![new, updated_at, old],
-                )
-            })
-            .await?;
-        if res != 1 {
-            return Err(anyhow::anyhow!("failed: mismatched old token"));
-        }
-        Ok(())
+    /// Generate new token, and update it in the database.
+    /// Return new token after update is done
+    pub async fn reset_registration_token(&self) -> Result<String> {
+        let new_token = uuid::Uuid::new_v4().to_string();
+        self.db_conn.update_token(new_token.clone()).await?;
+
+        Ok(new_token)
     }
 
     pub async fn register_worker(&self, worker: Worker) -> Result<Worker, HubError> {
@@ -125,47 +99,5 @@ impl ServerContext {
         } else {
             next.run(request).await
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::db;
-
-    #[tokio::test]
-    async fn test_token() {
-        let conn = db::init_memory_db().await;
-        let ctx = ServerContext::new(Arc::new(conn));
-        let token = ctx.token().await.unwrap();
-        assert_eq!(token, "");
-    }
-
-    #[tokio::test]
-    async fn test_refresh_token() {
-        let conn = db::init_memory_db().await;
-        let ctx = ServerContext::new(Arc::new(conn));
-
-        // first refresh
-        let new1 = "new_token_1".to_string();
-        ctx.refresh_token("".to_string(), new1.clone())
-            .await
-            .unwrap();
-        let token = ctx.token().await.unwrap();
-        assert_eq!(token, new1);
-
-        // second refresh
-        let new2 = "new_token_2".to_string();
-        ctx.refresh_token(new1.to_string(), new2.clone())
-            .await
-            .unwrap();
-        let token = ctx.token().await.unwrap();
-        assert_eq!(token, new2);
-
-        // error case
-        let res = ctx
-            .refresh_token("invalid_token".to_string(), "new_token".to_string())
-            .await;
-        assert!(res.is_err());
     }
 }

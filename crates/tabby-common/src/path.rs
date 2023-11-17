@@ -31,10 +31,6 @@ pub fn usage_id_file() -> PathBuf {
     tabby_root().join("usage_anonymous_id")
 }
 
-pub fn db_file() -> PathBuf {
-    tabby_root().join("db.sqlite3")
-}
-
 pub fn repositories_dir() -> PathBuf {
     tabby_root().join("repositories")
 }

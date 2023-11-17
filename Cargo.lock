@@ -4476,7 +4476,6 @@ dependencies = [
  "rusqlite_migration",
  "rust-embed 8.0.0",
  "serde",
- "tabby-common",
  "tarpc",
  "thiserror",
  "tokio",
@@ -4484,6 +4483,7 @@ dependencies = [
  "tokio-tungstenite",
  "tracing",
  "unicase",
+ "uuid 1.4.1",
 ]
 
 [[package]]

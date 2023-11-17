@@ -27,7 +27,7 @@ use server::ServerContext;
 use tarpc::server::{BaseChannel, Channel};
 
 pub async fn attach_webserver(router: Router) -> Router {
-    let conn = Arc::new(db::init_db().await.unwrap());
+    let conn = db::DbConn::new().await.unwrap();
     let ctx = Arc::new(ServerContext::new(conn));
     let schema = Arc::new(create_schema());
 
@@ -109,7 +109,6 @@ impl Hub for Arc<HubImpl> {
             }
         };
         if server_token != token {
-            debug!("server_token=`{}`, worker_token=`{}`", server_token, token);
             return Err(HubError::InvalidToken("Token mismatch".to_string()));
         }
 
