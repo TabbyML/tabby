@@ -28,6 +28,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Golang](https://go.dev/): Since v0.4.0
 * [Ruby](https://www.ruby-lang.org/): Since v0.4.0
 * [Java](https://www.java.com/): Since v0.6.0
+* [Kotlin](https://www.kotlinlang.org/): Since v0.6.0
 
 ## Languages Missing Certain Support
 
@@ -42,3 +43,4 @@ For an actual example of an issue or pull request adding the above support, plea
 |   PHP    |                    🚫                    |                       🚫                        |
 |   Perl   |                    🚫                    |                       🚫                        |
 |  Scala   |                    🚫                    |                       🚫                        |
+|  Kotlin  |                    🚫                    |                       🚫                        |

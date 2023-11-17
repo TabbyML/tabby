@@ -191,6 +191,7 @@ lazy_static! {
             ("haskell", vec!["hs"]),
             ("html", vec!["html"]),
             ("java", vec!["java"]),
+            ("kotlin", vec!["kt", "kts"]),
             ("julia", vec!["jl"]),
             ("lua", vec!["lua"]),
             ("makefile", vec!["Makefile"]),
@@ -252,6 +253,17 @@ lazy_static! {
                     TagsConfiguration::new(
                         tree_sitter_java::language(),
                         tree_sitter_java::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "kotlin",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_kotlin::language(),
+                        tree_sitter_kotlin::TAGGING_QUERY,
                         "",
                     )
                     .unwrap(),
