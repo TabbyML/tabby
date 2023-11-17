@@ -131,7 +131,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
                 ApplicationSettingsState.TriggerMode.MANUAL -> {
                   if (state.ongoingCompletion == null) {
                     icon = AllIcons.General.ChevronRight
-                    tooltip = "Tabby: Standing by, press `Alt + \\` to trigger code completion."
+                    tooltip = "Tabby: Standing by, press `Ctrl + \\` to trigger code completion."
                   } else {
                     icon = AnimatedIcon.Default()
                     tooltip = "Tabby: Generating code completions"
