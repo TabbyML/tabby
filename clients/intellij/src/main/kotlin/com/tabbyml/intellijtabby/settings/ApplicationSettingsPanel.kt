@@ -62,8 +62,8 @@ class ApplicationSettingsPanel {
                 invokeLater(ModalityState.stateForComponent(parentComponent)) {
                   Messages.showInfoMessage(
                     parentComponent,
-                    "Connection to Tabby server is successful.",
-                    "Check Connection"
+                    "Successfully connected to the Tabby server.",
+                    "Check Connection Completed"
                   )
                 }
               }
@@ -74,16 +74,16 @@ class ApplicationSettingsPanel {
                   invokeLater(ModalityState.stateForComponent(parentComponent)) {
                     Messages.showInfoMessage(
                       parentComponent,
-                      "Connection to Tabby server is successful.",
-                      "Check Connection"
+                      "Successfully connected to the Tabby server.",
+                      "Check Connection Completed"
                     )
                   }
                 } else {
                   invokeLater(ModalityState.stateForComponent(parentComponent)) {
                     Messages.showErrorDialog(
                       parentComponent,
-                      "Connection to Tabby server failed.",
-                      "Check Connection"
+                      "Failed to connect to the Tabby server.",
+                      "Check Connection Failed"
                     )
                   }
                 }
@@ -94,8 +94,8 @@ class ApplicationSettingsPanel {
                 if (detail?.get("name") == "connectionFailed") {
                   invokeLater(ModalityState.stateForComponent(parentComponent)) {
                     val errorMessage = (detail["message"] as String?)?.replace("\n", "<br/>") ?: ""
-                    val messages = "<html>Cannot connect to Tabby server:<br/>${errorMessage}</html>"
-                    Messages.showErrorDialog(parentComponent, messages, "Check Connection")
+                    val messages = "<html>Failed to connect to the Tabby server:<br/>${errorMessage}</html>"
+                    Messages.showErrorDialog(parentComponent, messages, "Check Connection Failed")
                   }
                 }
               }
