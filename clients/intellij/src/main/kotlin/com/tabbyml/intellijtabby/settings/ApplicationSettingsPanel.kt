@@ -151,7 +151,7 @@ class ApplicationSettingsPanel {
     .addComponent(completionTriggerModeAutomaticRadioButton)
     .addCopyableTooltip("Trigger automatically when you stop typing")
     .addComponent(completionTriggerModeManualRadioButton)
-    .addCopyableTooltip("Trigger manually by pressing `Alt + \\`")
+    .addCopyableTooltip("Trigger manually by pressing `Ctrl + \\`")
     .panel
 
   private val isAnonymousUsageTrackingDisabledCheckBox = JBCheckBox("Disable anonymous usage tracking")
