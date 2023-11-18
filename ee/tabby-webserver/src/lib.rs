@@ -2,8 +2,11 @@ pub mod api;
 
 mod schema;
 pub use schema::create_schema;
-use tabby_common::api::event::RawEventLogger;
-use tracing::error;
+use tabby_common::api::{
+    code::{CodeSearch, SearchResponse},
+    event::RawEventLogger,
+};
+use tracing::{error, warn};
 use websocket::WebSocketTransport;
 
 mod db;
@@ -27,9 +30,13 @@ use schema::Schema;
 use server::ServerContext;
 use tarpc::server::{BaseChannel, Channel};
 
-pub async fn attach_webserver(router: Router, logger: Arc<dyn RawEventLogger>) -> Router {
+pub async fn attach_webserver(
+    router: Router,
+    logger: Arc<dyn RawEventLogger>,
+    code: Arc<dyn CodeSearch>,
+) -> Router {
     let conn = db::DbConn::new().await.unwrap();
-    let ctx = Arc::new(ServerContext::new(conn, logger));
+    let ctx = Arc::new(ServerContext::new(conn, logger, code));
     let schema = Arc::new(create_schema());
 
     let app = Router::new()
@@ -128,5 +135,43 @@ impl Hub for Arc<HubImpl> {
 
     async fn log_event(self, _context: tarpc::context::Context, content: String) {
         self.ctx.logger.log(content)
+    }
+
+    async fn search(
+        self,
+        _context: tarpc::context::Context,
+        q: String,
+        limit: usize,
+        offset: usize,
+    ) -> SearchResponse {
+        match self.ctx.code.search(&q, limit, offset).await {
+            Ok(serp) => serp,
+            Err(err) => {
+                warn!("Failed to search: {}", err);
+                SearchResponse::default()
+            }
+        }
+    }
+
+    async fn search_in_language(
+        self,
+        _context: tarpc::context::Context,
+        language: String,
+        tokens: Vec<String>,
+        limit: usize,
+        offset: usize,
+    ) -> SearchResponse {
+        match self
+            .ctx
+            .code
+            .search_in_language(&language, &tokens, limit, offset)
+            .await
+        {
+            Ok(serp) => serp,
+            Err(err) => {
+                warn!("Failed to search: {}", err);
+                SearchResponse::default()
+            }
+        }
     }
 }

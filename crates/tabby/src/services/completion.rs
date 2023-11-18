@@ -5,7 +5,10 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use tabby_common::{
     api,
-    api::event::{Event, EventLogger},
+    api::{
+        code::CodeSearch,
+        event::{Event, EventLogger},
+    },
     languages::get_language,
 };
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
@@ -14,7 +17,7 @@ use tracing::debug;
 use utoipa::ToSchema;
 
 use super::model;
-use crate::{api::code::CodeSearch, Device};
+use crate::Device;
 
 #[derive(Error, Debug)]
 pub enum CompletionError {

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Default, Serialize, Deserialize, Debug, ToSchema)]
 pub struct SearchResponse {
     pub num_hits: usize,
     pub hits: Vec<Hit>,
@@ -31,10 +31,10 @@ pub enum CodeSearchError {
     #[error("index not ready")]
     NotReady,
 
-    #[error("{0}")]
+    #[error(transparent)]
     QueryParserError(#[from] tantivy::query::QueryParserError),
 
-    #[error("{0}")]
+    #[error(transparent)]
     TantivyError(#[from] tantivy::TantivyError),
 }
 

@@ -4469,6 +4469,7 @@ name = "tabby-common"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
+ "async-trait",
  "filenamify",
  "glob",
  "lazy_static",
@@ -4478,6 +4479,7 @@ dependencies = [
  "serde_json",
  "serdeconv",
  "tantivy",
+ "thiserror",
  "utoipa",
  "uuid 1.4.1",
 ]
@@ -4541,6 +4543,7 @@ name = "tabby-webserver"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
+ "async-trait",
  "axum",
  "bincode",
  "chrono",
