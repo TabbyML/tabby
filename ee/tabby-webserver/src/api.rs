@@ -95,7 +95,7 @@ impl CodeSearch for HubClient {
             .await
         {
             Ok(serp) => Ok(serp),
-            Err(_err) => Err(CodeSearchError::NotReady),
+            Err(_) => Err(CodeSearchError::NotReady),
         }
     }
 
@@ -117,7 +117,7 @@ impl CodeSearch for HubClient {
             .await
         {
             Ok(serp) => Ok(serp),
-            Err(_err) => Err(CodeSearchError::NotReady),
+            Err(_) => Err(CodeSearchError::NotReady),
         }
     }
 }

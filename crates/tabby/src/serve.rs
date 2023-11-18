@@ -23,6 +23,7 @@ use crate::{
     fatal, routes,
     services::{
         chat::{self, create_chat_service},
+        code::create_code_search,
         completion::{self, create_completion_service},
         event::create_logger,
         health,
@@ -106,7 +107,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might takes a few minutes...");
 
     let logger = Arc::new(create_logger());
-    let code = Arc::new(crate::services::code::create_code_search());
+    let code = Arc::new(create_code_search());
 
     let app = Router::new()
         .merge(api_router(args, config, logger.clone(), code.clone()).await)

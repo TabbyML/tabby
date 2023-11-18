@@ -31,10 +31,10 @@ pub enum CodeSearchError {
     #[error("index not ready")]
     NotReady,
 
-    #[error("{0}")]
+    #[error(transparent)]
     QueryParserError(#[from] tantivy::query::QueryParserError),
 
-    #[error("{0}")]
+    #[error(transparent)]
     TantivyError(#[from] tantivy::TantivyError),
 }
 
