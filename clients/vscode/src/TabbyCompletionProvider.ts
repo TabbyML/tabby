@@ -14,20 +14,12 @@ import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-ag
 import { agent } from "./agent";
 
 export class TabbyCompletionProvider extends EventEmitter implements InlineCompletionItemProvider {
-  static instance: TabbyCompletionProvider;
-  static getInstance(): TabbyCompletionProvider {
-    if (!TabbyCompletionProvider.instance) {
-      TabbyCompletionProvider.instance = new TabbyCompletionProvider();
-    }
-    return TabbyCompletionProvider.instance;
-  }
-
   private triggerMode: "automatic" | "manual" | "disabled" = "automatic";
   private onGoingRequestAbortController: AbortController | null = null;
   private loading: boolean = false;
   private latestCompletions: CompletionResponse | null = null;
 
-  private constructor() {
+  public constructor() {
     super();
     this.updateConfiguration();
     workspace.onDidChangeConfiguration((event) => {
