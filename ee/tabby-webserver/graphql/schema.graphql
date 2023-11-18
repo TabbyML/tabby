@@ -9,6 +9,7 @@ type Mutation {
 
 type Query {
   workers: [Worker!]!
+  registrationToken: String!
 }
 
 type Worker {
