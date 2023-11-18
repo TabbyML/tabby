@@ -65,8 +65,6 @@ impl RawEventLogger for HubClient {
         let context = tarpc::context::current();
         let client = self.clone();
 
-        tokio::spawn(async move {
-            client.log_event(context, content).await
-        });
+        tokio::spawn(async move { client.log_event(context, content).await });
     }
 }
