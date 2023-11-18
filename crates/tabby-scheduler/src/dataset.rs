@@ -261,12 +261,7 @@ lazy_static! {
             (
                 "kotlin",
                 TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_kotlin::language(),
-                        tree_sitter_kotlin::TAGGING_QUERY,
-                        "",
-                    )
-                    .unwrap(),
+                    TagsConfiguration::new(tree_sitter_kotlin::language(), "", "").unwrap(),
                 ),
             ),
             (
