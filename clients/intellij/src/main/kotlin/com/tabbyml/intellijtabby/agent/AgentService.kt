@@ -8,6 +8,8 @@ import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
@@ -76,7 +78,13 @@ class AgentService : Disposable {
           "${e.message}",
           NotificationType.ERROR,
         )
-        notification.addAction(ActionManager.getInstance().getAction("Tabby.OpenOnlineDocs"))
+        notification.addAction(
+          object : AnAction("Open Online Documentation") {
+            override fun actionPerformed(e: AnActionEvent) {
+              BrowserUtil.browse("https://tabby.tabbyml.com/docs/extensions/troubleshooting/#tabby-initialization-failed")
+            }
+          }
+        )
         invokeLater {
           initFailedNotification?.expire()
           initFailedNotification = notification
@@ -131,16 +139,18 @@ class AgentService : Disposable {
 
     scope.launch {
       agent.currentIssue.collect { issueName ->
+        val showCompletionResponseWarnings = !completionResponseWarningShown &&
+            !settings.notificationsMuted.contains("completionResponseTimeIssues")
         val message = when (issueName) {
           "connectionFailed" -> "Cannot connect to Tabby server"
-          "slowCompletionResponseTime" -> if (!completionResponseWarningShown) {
+          "slowCompletionResponseTime" -> if (showCompletionResponseWarnings) {
             completionResponseWarningShown = true
             "Completion requests appear to take too much time"
           } else {
             return@collect
           }
 
-          "highCompletionTimeoutRate" -> if (!completionResponseWarningShown) {
+          "highCompletionTimeoutRate" -> if (showCompletionResponseWarnings) {
             completionResponseWarningShown = true
             "Most completion requests timed out"
           } else {
@@ -160,6 +170,16 @@ class AgentService : Disposable {
           NotificationType.WARNING,
         )
         notification.addAction(ActionManager.getInstance().getAction("Tabby.CheckIssueDetail"))
+        if (issueName in listOf("slowCompletionResponseTime", "highCompletionTimeoutRate")) {
+          notification.addAction(
+            object : AnAction("Don't Show Again") {
+              override fun actionPerformed(e: AnActionEvent) {
+                issueNotification?.expire()
+                settings.notificationsMuted += listOf("completionResponseTimeIssues")
+              }
+            }
+          )
+        }
         invokeLater {
           issueNotification?.expire()
           issueNotification = notification

@@ -168,6 +168,19 @@ class ApplicationSettingsPanel {
     )
     .panel
 
+  private val resetMutedNotificationsButton = JButton("Reset \"Don't Show Again\" Notifications").apply {
+    addActionListener {
+      val settings = service<ApplicationSettingsState>()
+      settings.notificationsMuted = listOf()
+      invokeLater(ModalityState.stateForComponent(this@ApplicationSettingsPanel.mainPanel)) {
+        Messages.showInfoMessage("Reset \"Don't Show Again\" notifications successfully.", "Reset Notifications")
+      }
+    }
+  }
+  private val resetMutedNotificationsPanel: JPanel = FormBuilder.createFormBuilder()
+    .addComponent(resetMutedNotificationsButton)
+    .panel
+
   val mainPanel: JPanel = FormBuilder.createFormBuilder()
     .addLabeledComponent("Server endpoint", serverEndpointPanel, 5, false)
     .addSeparator(5)
@@ -176,6 +189,12 @@ class ApplicationSettingsPanel {
     .addLabeledComponent("<html>Node binary<br/>(Requires restart IDE)</html>", nodeBinaryPanel, 5, false)
     .addSeparator(5)
     .addLabeledComponent("Anonymous usage tracking", isAnonymousUsageTrackingPanel, 5, false)
+    .apply {
+      if (service<ApplicationSettingsState>().notificationsMuted.isNotEmpty()) {
+        addSeparator(5)
+        addLabeledComponent("Notifications", resetMutedNotificationsPanel, 5, false)
+      }
+    }
     .addComponentFillVertically(JPanel(), 0)
     .panel
 
