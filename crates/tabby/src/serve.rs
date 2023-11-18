@@ -46,7 +46,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ),
     paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
     components(schemas(
-        api::event::LogEventRequest,
+        tabby_common::api::event::LogEventRequest,
         completion::CompletionRequest,
         completion::CompletionResponse,
         completion::Segments,

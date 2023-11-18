@@ -7,13 +7,14 @@ use std::{
 use chrono::Utc;
 use lazy_static::lazy_static;
 use serde::Serialize;
-use tabby_common::path;
+use tabby_common::{
+    api::event::{Event, EventLogger},
+    path,
+};
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedSender},
     time::{self},
 };
-
-use crate::api::event::{Event, EventLogger};
 
 lazy_static! {
     static ref WRITER: UnboundedSender<String> = {

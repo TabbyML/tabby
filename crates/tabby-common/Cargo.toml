@@ -14,6 +14,14 @@ uuid = { version = "1.4.1", features = ["v4"] }
 tantivy.workspace = true
 anyhow.workspace = true
 glob = "0.3.1"
+utoipa.workspace = true
+serde_json.workspace = true
 
 [features]
 testutils = []
+
+[package.metadata.cargo-machete]
+ignored = [
+    # required in utoipa ToSchema.
+    "serde_json"
+]
