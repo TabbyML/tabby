@@ -6,7 +6,7 @@ else
 endif
 
 fix:
-	cargo machete --fix
+	cargo machete --fix || true
 	cargo +nightly fmt
 	cargo +nightly clippy --fix --allow-dirty --allow-staged
 
