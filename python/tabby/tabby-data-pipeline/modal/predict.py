@@ -1,13 +1,16 @@
-from pathlib import Path
-
-import modal
-from modal import Image, Mount, Secret, Stub, asgi_app, gpu, method
-import os
-
-
 import asyncio
+import json
+import modal
+import os
+import pandas as pd
+
 from collections import namedtuple
 from datetime import datetime
+from modal import Image, Mount, Secret, Stub, asgi_app, gpu, method
+from pathlib import Path
+from typing import Union, List, Optional, Any, Tuple
+#from modal.tabby_python_client.models.health_state import HealthState
+
 
 GPU_CONFIG = gpu.A10G()
 
@@ -56,12 +59,14 @@ stub = Stub("tabby-" + MODEL_ID.split("/")[-1], image=image)
     timeout=600,
 )
 class Model:
+
     def __enter__(self):
         import socket
         import subprocess, os
         import time
 
         from tabby_python_client import Client
+        
 
         my_env = os.environ.copy()
         my_env["TABBY_DISABLE_USAGE_COLLECTION"] = "1"
@@ -75,7 +80,7 @@ class Model:
         # Poll until webserver at 127.0.0.1:8000 accepts connections before running inputs.
         def webserver_ready():
             try:
-                socket.create_connection(("127.0.0.1", 8000), timeout=30).close()
+                socket.create_connection(("127.0.0.1", 8000), timeout=1).close()
                 return True
             except (socket.timeout, ConnectionRefusedError):
                 # Check if launcher webserving process has exited.
@@ -103,7 +108,7 @@ class Model:
         return resp.to_dict()
 
     @method()
-    async def complete(self, language: str, index: int, prompt: str, prediction: bool):
+    async def complete(self, language: str, index: int, prompt: str) -> Tuple[int, Optional[str], Optional[str]]:
         from tabby_python_client.api.v1 import completion
         from tabby_python_client.models import (
             CompletionRequest,
@@ -115,17 +120,11 @@ class Model:
         from tabby_python_client import errors
         import pandas as pd
 
-        # if prediction exists, just skip
-        if prediction:
-            return None, None, None
-        
-       
+
         request = CompletionRequest(
             language=language, debug_options=DebugOptions(raw_prompt=prompt)
         )
-        # resp: CompletionResponse = await completion.asyncio(
-        #     client=self.client, json_body=request
-        # )
+
         try:
             resp: Response = await completion.asyncio_detailed(
                 client=self.client, json_body=request
@@ -146,58 +145,58 @@ def write_log(log: str):
         f.write(f"{now} : {log}")
         f.write("\n")
 
+def chunker(seq, size) -> List:
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+
+def read_dataframe_from_file(language: str, file: str) -> pd.DataFrame:
+    whole_path_file = "./data/" + MODEL_ID.split("/")[-1] + "/" + language + "/" + file
+    objs = []
+    with open(whole_path_file) as fin:
+        for line in fin:
+            obj = json.loads(line)
+            if 'crossfile_context' in obj.keys():
+                obj['raw_prompt'] = obj['crossfile_context']['text'] + obj['prompt']
+            else:
+                obj['raw_prompt'] = obj['prompt']
+            objs.append(obj)
+
+    df = pd.DataFrame(objs)
+    return df
+
 @stub.local_entrypoint()
-async def main(language: str):
-    import json
-    import pandas as pd
-
-
-    print(MODEL_ID)
-
+async def main(language: str, files: str):
+    #Multiple files seperated by ','
+    
     model = Model()
-    print("model info:")
+
     health_resp = model.health.remote()
-    print(health_resp)
+    print(f'model info:\n{health_resp}')
     assert(health_resp['model'] == MODEL_ID)
 
-    
-    for file in ['line_completion.jsonl', 'line_completion_rg1_bm25.jsonl', 'line_completion_oracle_bm25.jsonl']:
+    files = files.split(',')
+
+    for file in files:
   
-        whole_path_file = "./data/" + MODEL_ID.split("/")[-1] + "/" + language + "/" + file
-        objs = []
-        with open(whole_path_file) as fin:
-            for line in fin:
-                obj = json.loads(line)
-                if file == 'line_completion.jsonl':
-                    obj['raw_prompt'] = obj['prompt']
-                else:
-                    obj['raw_prompt'] = obj['crossfile_context']['text']
-                objs.append(obj)
-
-        df = pd.DataFrame(objs)
+        df = read_dataframe_from_file(language, file.strip())
         
-        write_log(f"model: {MODEL_ID}; language: {language}; file: {file}: length = {len(df)}")
+        write_log(f'model: {MODEL_ID}; language: {language}; file: {file}: length = {len(df)}')
 
-        def chunker(seq, size):
-            return (seq[pos:pos + size] for pos in range(0, len(seq), size))
         
-        def get_prediction(row):
-            if 'prediction' in row and not pd.isnull(row['prediction']):
-                return True
-            else:
-                return False
+        if 'prediction' in df.columns:
+            df_no_prediction = df[df['prediction'].isna()]
+        else:
+            df_no_prediction = df
 
-        skipped = 0
+        skipped = len(df) - len(df_no_prediction)
         success = 0
         error = 0
 
-        for group in chunker(df, 30):
-            outputs = await asyncio.gather(*[model.complete.remote.aio(language, index, row['raw_prompt'], get_prediction(row)) for index, row in group.iterrows()])
+        for group in chunker(df_no_prediction, 30):
+            outputs = await asyncio.gather(*[model.complete.remote.aio(language, index, row['raw_prompt']) for index, row in group.iterrows()])
 
             for index, prediction, error_msg in outputs:
-                if index is None:
-                    skipped += 1
-                elif prediction is not None:
+                if prediction is not None:
                     df.loc[index, 'prediction'] = prediction
                     success += 1
                 else:
@@ -207,13 +206,10 @@ async def main(language: str):
         write_log(f"Skipped {skipped} rows, {success} rows with predictions, {error} rows with errors")
 
         whole_path_file = "./data/" + MODEL_ID.split("/")[-1] + "/" + language + "/" + file
-
         with open(whole_path_file, 'w') as fout:
             for index, row in df.iterrows():
                 row_dict = row.to_dict()
                 json.dump(row_dict, fout)
                 fout.write('\n')
-                    
-
 
         write_log(f"model: {MODEL_ID}; language: {language}; file: {file}: end!\n")
