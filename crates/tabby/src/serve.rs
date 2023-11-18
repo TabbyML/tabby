@@ -7,7 +7,7 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::{api::event::EventLogger, config::Config, usage};
+use tabby_common::{api, api::event::EventLogger, config::Config, usage};
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
 use tracing::info;
@@ -15,7 +15,6 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    api::{self},
     fatal, routes,
     services::{
         chat::{self, create_chat_service},
@@ -46,7 +45,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ),
     paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
     components(schemas(
-        tabby_common::api::event::LogEventRequest,
+        api::event::LogEventRequest,
         completion::CompletionRequest,
         completion::CompletionResponse,
         completion::Segments,

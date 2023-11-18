@@ -1,4 +1,3 @@
-mod api;
 mod routes;
 mod services;
 
