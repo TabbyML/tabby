@@ -1,11 +1,12 @@
 mod proxy;
 mod worker;
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
+use tabby_common::api::event::RawEventLogger;
 use tracing::{info, warn};
 
 use crate::{
@@ -18,15 +19,18 @@ pub struct ServerContext {
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
     db_conn: DbConn,
+
+    pub logger: Arc<dyn RawEventLogger>,
 }
 
 impl ServerContext {
-    pub fn new(db_conn: DbConn) -> Self {
+    pub fn new(db_conn: DbConn, logger: Arc<dyn RawEventLogger>) -> Self {
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             db_conn,
+            logger,
         }
     }
 

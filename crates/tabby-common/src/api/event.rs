@@ -56,3 +56,34 @@ pub struct Segments {
 pub trait EventLogger: Send + Sync {
     fn log(&self, e: &Event);
 }
+
+#[derive(Serialize)]
+struct Log<'a> {
+    ts: u128,
+    event: &'a Event<'a>,
+}
+
+pub trait RawEventLogger: Send + Sync {
+    fn log(&self, content: String);
+}
+
+impl<T: RawEventLogger> EventLogger for T {
+    fn log(&self, e: &Event) {
+        let content = serdeconv::to_json_string(&Log {
+            ts: timestamp(),
+            event: e,
+        })
+        .unwrap();
+
+        self.log(content);
+    }
+}
+
+fn timestamp() -> u128 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let start = SystemTime::now();
+    start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_millis()
+}

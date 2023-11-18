@@ -4475,8 +4475,10 @@ dependencies = [
  "reqwest",
  "serde",
  "serde-jsonlines",
+ "serde_json",
  "serdeconv",
  "tantivy",
+ "utoipa",
  "uuid 1.4.1",
 ]
 

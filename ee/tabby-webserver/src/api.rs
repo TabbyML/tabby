@@ -1,5 +1,6 @@
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
+use tabby_common::api::event::RawEventLogger;
 use thiserror::Error;
 use tokio_tungstenite::connect_async;
 
@@ -45,14 +46,25 @@ pub trait Hub {
         cuda_devices: Vec<String>,
         token: String,
     ) -> Result<Worker, HubError>;
+
+    async fn log_event(content: String);
 }
 
 pub fn tracing_context() -> tarpc::context::Context {
     tarpc::context::current()
 }
 
-pub async fn create_client(addr: String) -> HubClient {
+pub async fn create_client(addr: &str) -> HubClient {
     let addr = format!("ws://{}/hub", addr);
     let (socket, _) = connect_async(&addr).await.unwrap();
     HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn()
+}
+
+impl RawEventLogger for HubClient {
+    fn log(&self, content: String) {
+        let context = tarpc::context::current();
+        let client = self.clone();
+
+        tokio::spawn(async move { client.log_event(context, content).await });
+    }
 }

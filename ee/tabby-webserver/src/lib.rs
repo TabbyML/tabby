@@ -2,6 +2,7 @@ pub mod api;
 
 mod schema;
 pub use schema::create_schema;
+use tabby_common::api::event::RawEventLogger;
 use tracing::error;
 use websocket::WebSocketTransport;
 
@@ -26,9 +27,9 @@ use schema::Schema;
 use server::ServerContext;
 use tarpc::server::{BaseChannel, Channel};
 
-pub async fn attach_webserver(router: Router) -> Router {
+pub async fn attach_webserver(router: Router, logger: Arc<dyn RawEventLogger>) -> Router {
     let conn = db::DbConn::new().await.unwrap();
-    let ctx = Arc::new(ServerContext::new(conn));
+    let ctx = Arc::new(ServerContext::new(conn, logger));
     let schema = Arc::new(create_schema());
 
     let app = Router::new()
@@ -123,5 +124,9 @@ impl Hub for Arc<HubImpl> {
             cuda_devices,
         };
         self.ctx.register_worker(worker).await
+    }
+
+    async fn log_event(self, _context: tarpc::context::Context, content: String) {
+        self.ctx.logger.log(content)
     }
 }

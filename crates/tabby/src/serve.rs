@@ -7,7 +7,7 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::{config::Config, usage};
+use tabby_common::{api::event::EventLogger, config::Config, usage};
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
 use tracing::info;
@@ -46,7 +46,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ),
     paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
     components(schemas(
-        api::event::LogEventRequest,
+        tabby_common::api::event::LogEventRequest,
         completion::CompletionRequest,
         completion::CompletionResponse,
         completion::Segments,
@@ -101,12 +101,14 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     info!("Starting server, this might takes a few minutes...");
 
+    let logger = Arc::new(create_logger());
+
     let app = Router::new()
-        .merge(api_router(args, config).await)
+        .merge(api_router(args, config, logger.clone()).await)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let app = tabby_webserver::attach_webserver(app).await;
+    let app = tabby_webserver::attach_webserver(app, logger).await;
 
     #[cfg(not(feature = "ee"))]
     let app = app.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
@@ -131,8 +133,7 @@ async fn load_model(args: &ServeArgs) {
     }
 }
 
-async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let logger = Arc::new(create_logger());
+async fn api_router(args: &ServeArgs, config: &Config, logger: Arc<dyn EventLogger>) -> Router {
     let code = Arc::new(crate::services::code::create_code_search());
 
     let completion_state = if let Some(model) = &args.model {

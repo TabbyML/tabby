@@ -5,8 +5,7 @@ use axum::{
     Json,
 };
 use hyper::StatusCode;
-
-use crate::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
+use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
 
 #[utoipa::path(
     post,
