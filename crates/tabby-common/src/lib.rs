@@ -9,6 +9,7 @@ use std::{
     fs::File,
     io::{BufReader, Error},
     ops::Range,
+    path::PathBuf,
 };
 
 use path::dataset_dir;
@@ -28,9 +29,13 @@ pub struct SourceFile {
 }
 
 impl SourceFile {
+    pub fn files_jsonl() -> PathBuf {
+        dataset_dir().join("files.jsonl")
+    }
+
     pub fn all() -> Result<impl Iterator<Item = Self>, Error> {
-        let iter = dataset_dir().read_dir()?.flat_map(|path| {
-            let path = path.unwrap().path();
+        let files = glob::glob(format!("{}*", Self::files_jsonl().display()).as_str()).unwrap();
+        let iter = files.filter_map(|x| x.ok()).flat_map(|path| {
             let fp = BufReader::new(File::open(path).unwrap());
             let reader = JsonLinesReader::new(fp);
             reader.read_all::<SourceFile>().map(|x| x.unwrap())
