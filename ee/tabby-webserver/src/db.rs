@@ -21,8 +21,10 @@ lazy_static! {
     ),]);
 }
 
-fn db_file() -> PathBuf {
-    tabby_root().join("db.sqlite3")
+async fn db_path() -> Result<PathBuf> {
+    let db_dir = tabby_root().join("ee");
+    tokio::fs::create_dir_all(db_dir.clone()).await?;
+    Ok(db_dir.join("db.sqlite"))
 }
 
 pub struct DbConn {
@@ -31,7 +33,8 @@ pub struct DbConn {
 
 impl DbConn {
     pub async fn new() -> Result<Self> {
-        let conn = Connection::open(db_file()).await?;
+        let db_path = db_path().await?;
+        let conn = Connection::open(db_path).await?;
         Self::init_db(conn).await
     }
 
