@@ -5,6 +5,8 @@ ARG CUDA_VERSION=11.7.1
 ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 # Target the CUDA runtime image
 ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
+# Rust toolchain version
+ARG RUST_TOOLCHAIN stable
 
 FROM ${BASE_CUDA_DEV_CONTAINER} as build
 
@@ -22,7 +24,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # setup rust.
-RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain 1.73.0 -y
+RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /root/workspace
