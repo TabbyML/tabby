@@ -8,7 +8,6 @@ use anyhow::Result;
 use axum::{routing, Router};
 use clap::Args;
 use hyper::Server;
-use tabby_common::api::event::EventLogger;
 use tabby_webserver::api::{tracing_context, HubClient, WorkerKind};
 use tracing::{info, warn};
 
@@ -16,7 +15,6 @@ use crate::{
     fatal, routes,
     services::{
         chat::create_chat_service,
-        code,
         completion::create_completion_service,
         health::{read_cpu_info, read_cuda_devices},
         model::download_model_if_needed,
@@ -66,8 +64,8 @@ async fn make_chat_route(context: WorkerContext, args: &WorkerArgs) -> Router {
 async fn make_completion_route(context: WorkerContext, args: &WorkerArgs) -> Router {
     context.register(WorkerKind::Completion, args).await;
 
-    let code = Arc::new(code::create_code_search());
-    let logger: Arc<dyn EventLogger> = Arc::new(context.client);
+    let code = Arc::new(context.client.clone());
+    let logger = Arc::new(context.client);
     let completion_state = Arc::new(
         create_completion_service(code, logger, &args.model, &args.device, args.parallelism).await,
     );

@@ -1,6 +1,10 @@
+use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
-use tabby_common::api::event::RawEventLogger;
+use tabby_common::api::{
+    code::{CodeSearch, CodeSearchError, SearchResponse},
+    event::RawEventLogger,
+};
 use thiserror::Error;
 use tokio_tungstenite::connect_async;
 
@@ -48,6 +52,15 @@ pub trait Hub {
     ) -> Result<Worker, HubError>;
 
     async fn log_event(content: String);
+
+    async fn search(q: String, limit: usize, offset: usize) -> SearchResponse;
+
+    async fn search_in_language(
+        language: String,
+        tokens: Vec<String>,
+        limit: usize,
+        offset: usize,
+    ) -> SearchResponse;
 }
 
 pub fn tracing_context() -> tarpc::context::Context {
@@ -66,5 +79,45 @@ impl RawEventLogger for HubClient {
         let client = self.clone();
 
         tokio::spawn(async move { client.log_event(context, content).await });
+    }
+}
+
+#[async_trait]
+impl CodeSearch for HubClient {
+    async fn search(
+        &self,
+        q: &str,
+        limit: usize,
+        offset: usize,
+    ) -> Result<SearchResponse, CodeSearchError> {
+        match self
+            .search(tracing_context(), q.to_owned(), limit, offset)
+            .await
+        {
+            Ok(serp) => Ok(serp),
+            Err(_err) => Err(CodeSearchError::NotReady),
+        }
+    }
+
+    async fn search_in_language(
+        &self,
+        language: &str,
+        tokens: &[String],
+        limit: usize,
+        offset: usize,
+    ) -> Result<SearchResponse, CodeSearchError> {
+        match self
+            .search_in_language(
+                tracing_context(),
+                language.to_owned(),
+                tokens.to_owned(),
+                limit,
+                offset,
+            )
+            .await
+        {
+            Ok(serp) => Ok(serp),
+            Err(_err) => Err(CodeSearchError::NotReady),
+        }
     }
 }

@@ -6,7 +6,7 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::Result;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use tabby_common::api::event::RawEventLogger;
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::{info, warn};
 
 use crate::{
@@ -21,16 +21,22 @@ pub struct ServerContext {
     db_conn: DbConn,
 
     pub logger: Arc<dyn RawEventLogger>,
+    pub code: Arc<dyn CodeSearch>,
 }
 
 impl ServerContext {
-    pub fn new(db_conn: DbConn, logger: Arc<dyn RawEventLogger>) -> Self {
+    pub fn new(
+        db_conn: DbConn,
+        logger: Arc<dyn RawEventLogger>,
+        code: Arc<dyn CodeSearch>,
+    ) -> Self {
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             db_conn,
             logger,
+            code,
         }
     }
 

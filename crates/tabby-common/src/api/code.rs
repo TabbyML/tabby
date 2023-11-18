@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, Debug, ToSchema)]
+#[derive(Default, Serialize, Deserialize, Debug, ToSchema)]
 pub struct SearchResponse {
     pub num_hits: usize,
     pub hits: Vec<Hit>,

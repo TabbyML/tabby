@@ -4543,6 +4543,7 @@ name = "tabby-webserver"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
+ "async-trait",
  "axum",
  "bincode",
  "chrono",
