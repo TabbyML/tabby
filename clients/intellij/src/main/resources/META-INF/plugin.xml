@@ -93,11 +93,31 @@
                     text="Open Settings..."
                     description="Show settings for Tabby.">
             </action>
-            <action id="Tabby.OpenOnlineDocs"
-                    class="com.tabbyml.intellijtabby.actions.OpenOnlineDocs"
-                    text="Open Online Help..."
-                    description="Open the online docs in your web browser.">
-            </action>
+            <group id="Tabby.OpenOnlineHelp"
+                   popup="true"
+                   text="Open Online Help"
+                   description="View useful links for online help.">
+                <action id="Tabby.OpenOnlineHelp.OpenOnlineDocumentation"
+                        class="com.tabbyml.intellijtabby.actions.OpenOnlineDocumentation"
+                        text="Online Documentation..."
+                        description="Open the documentation page in your web browser.">
+                </action>
+                <action id="Tabby.OpenOnlineHelp.OpenModelRegistry"
+                        class="com.tabbyml.intellijtabby.actions.OpenModelRegistry"
+                        text="Model Registry..."
+                        description="Explore more recommend models from Tabby's model registry.">
+                </action>
+                <action id="Tabby.OpenOnlineHelp.JoinTabbySlackCommunity"
+                        class="com.tabbyml.intellijtabby.actions.JoinTabbySlackCommunity"
+                        text="Tabby Slack Community..."
+                        description="Join Tabby's Slack community to get help or feed back.">
+                </action>
+                <action id="Tabby.OpenOnlineHelp.OpenTabbyGithubRepo"
+                        class="com.tabbyml.intellijtabby.actions.OpenTabbyGithubRepo"
+                        text="Tabby GitHub Repository..."
+                        description="View the source code for Tabby, and open issues.">
+                </action>
+            </group>
         </group>
     </actions>
 </idea-plugin>
