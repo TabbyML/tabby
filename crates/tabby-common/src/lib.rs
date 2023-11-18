@@ -49,3 +49,16 @@ pub struct Tag {
     pub is_definition: bool,
     pub syntax_type_name: String,
 }
+
+#[derive(Default, Serialize, Deserialize, Clone)]
+pub struct Dependency {
+    pub language: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+pub struct DependencyFile {
+    pub deps: Vec<Dependency>,
+}

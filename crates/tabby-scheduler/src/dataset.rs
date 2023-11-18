@@ -1,3 +1,4 @@
+mod deps;
 mod tags;
 
 use std::{
@@ -15,11 +16,11 @@ use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::{Config, RepositoryConfig},
-    path::dataset_dir,
-    SourceFile,
+    path::{dataset_dir, dependency_file},
+    DependencyFile, SourceFile,
 };
 use tracing::error;
-use tree_sitter_tags::{TagsContext};
+use tree_sitter_tags::TagsContext;
 
 use crate::utils::tqdm;
 
@@ -94,9 +95,13 @@ pub fn create_dataset(config: &Config) -> Result<()> {
         None,
     );
 
+    let mut deps = DependencyFile::default();
     for repository in config.repositories.as_slice() {
+        deps::collect(repository.dir().as_path(), &mut deps);
         repository.create_dataset(&mut writer)?;
     }
+
+    serdeconv::to_json_file(&deps, dependency_file())?;
 
     writer.flush()?;
     Ok(())

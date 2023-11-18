@@ -1,17 +1,7 @@
-use std::{
-    collections::HashMap,
-};
-
-
-
-
+use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-
-use tabby_common::{
-    Tag,
-};
-
+use tabby_common::Tag;
 use tree_sitter_tags::{TagsConfiguration, TagsContext};
 
 pub fn collect(context: &mut TagsContext, language: &str, content: &str) -> Vec<Tag> {
