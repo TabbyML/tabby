@@ -35,6 +35,10 @@ pub fn repositories_dir() -> PathBuf {
     tabby_root().join("repositories")
 }
 
+pub fn dependency_file() -> PathBuf {
+    repositories_dir().join("deps.json")
+}
+
 pub fn index_dir() -> PathBuf {
     tabby_root().join("index")
 }
