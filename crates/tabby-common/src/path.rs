@@ -36,7 +36,7 @@ pub fn repositories_dir() -> PathBuf {
 }
 
 pub fn dependency_file() -> PathBuf {
-    repositories_dir().join("deps.json")
+    dataset_dir().join("deps.json")
 }
 
 pub fn index_dir() -> PathBuf {

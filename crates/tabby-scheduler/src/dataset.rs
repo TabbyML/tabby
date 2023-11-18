@@ -87,7 +87,7 @@ pub fn create_dataset(config: &Config) -> Result<()> {
     fs::remove_dir_all(dataset_dir()).ok();
     fs::create_dir_all(dataset_dir())?;
     let mut writer = FileRotate::new(
-        dataset_dir().join("data.jsonl"),
+        SourceFile::files_jsonl(),
         AppendCount::new(usize::max_value()),
         ContentLimit::Lines(1000),
         Compression::None,

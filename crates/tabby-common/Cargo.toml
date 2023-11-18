@@ -13,6 +13,7 @@ reqwest = { workspace = true, features = [ "json" ] }
 uuid = { version = "1.4.1", features = ["v4"] }
 tantivy.workspace = true
 anyhow.workspace = true
+glob = "0.3.1"
 
 [features]
 testutils = []

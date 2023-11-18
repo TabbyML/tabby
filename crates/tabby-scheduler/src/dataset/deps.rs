@@ -1,20 +1,11 @@
 use std::{collections::HashSet, path::Path};
 
 use anyhow::Result;
-use serde::Deserialize;
 use tabby_common::{Dependency, DependencyFile};
 use tracing::warn;
 
 pub fn collect(path: &Path, file: &mut DependencyFile) {
     if let Ok(mut deps) = process_requirements_txt(path) {
-        file.deps.append(&mut deps);
-    }
-
-    if let Ok(mut deps) = process_lock_file(path, "poetry.lock", "python") {
-        file.deps.append(&mut deps);
-    }
-
-    if let Ok(mut deps) = process_lock_file(path, "Cargo.lock", "rust") {
         file.deps.append(&mut deps);
     }
 
@@ -44,31 +35,6 @@ fn process_requirements_txt(path: &Path) -> Result<Vec<Dependency>> {
     }
 
     Ok(deps)
-}
-
-#[derive(Deserialize)]
-struct LockFileDependency {
-    name: String,
-    version: String,
-}
-
-#[derive(Deserialize)]
-struct LockFile {
-    package: Vec<LockFileDependency>,
-}
-
-fn process_lock_file(path: &Path, filename: &str, language: &str) -> Result<Vec<Dependency>> {
-    let poetry_lock = path.join(filename);
-    let deps: LockFile = serdeconv::from_toml_file(poetry_lock)?;
-    Ok(deps
-        .package
-        .into_iter()
-        .map(|x| Dependency {
-            language: language.to_string(),
-            name: x.name,
-            version: Some(x.version),
-        })
-        .collect())
 }
 
 fn remove_duplicates(file: &mut DependencyFile) {
