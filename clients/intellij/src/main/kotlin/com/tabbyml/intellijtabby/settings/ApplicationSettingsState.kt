@@ -56,11 +56,20 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
       isAnonymousUsageTrackingDisabledFlow.value = value
     }
 
+  private val notificationsMutedFlow = MutableStateFlow(listOf<String>())
+  val notificationsMutedState = notificationsMutedFlow.asStateFlow()
+  var notificationsMuted: List<String> = listOf()
+    set(value) {
+      field = value
+      notificationsMutedFlow.value = value
+    }
+
   data class State(
     val completionTriggerMode: TriggerMode,
     val serverEndpoint: String,
     val nodeBinary: String,
     val isAnonymousUsageTrackingDisabled: Boolean,
+    val notificationsMuted: List<String>,
   )
 
   val data: State
@@ -69,6 +78,7 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
       serverEndpoint = serverEndpoint,
       nodeBinary = nodeBinary,
       isAnonymousUsageTrackingDisabled = isAnonymousUsageTrackingDisabled,
+      notificationsMuted = notificationsMuted,
     )
 
   val state = combine(
@@ -76,12 +86,14 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
     serverEndpointState,
     nodeBinaryState,
     isAnonymousUsageTrackingDisabledState,
-  ) { completionTriggerMode, serverEndpoint, nodeBinary, isAnonymousUsageTrackingDisabled ->
+    notificationsMutedState,
+  ) { completionTriggerMode, serverEndpoint, nodeBinary, isAnonymousUsageTrackingDisabled, notificationsMuted ->
     State(
       completionTriggerMode = completionTriggerMode,
       serverEndpoint = serverEndpoint,
       nodeBinary = nodeBinary,
       isAnonymousUsageTrackingDisabled = isAnonymousUsageTrackingDisabled,
+      notificationsMuted = notificationsMuted,
     )
   }.stateIn(CoroutineScope(Dispatchers.IO), SharingStarted.Eagerly, this.data)
 

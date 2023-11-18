@@ -87,7 +87,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
                 actionManager.getAction("Tabby.CheckIssueDetail"),
                 actionManager.getAction("Tabby.ToggleInlineCompletionTriggerMode"),
                 actionManager.getAction("Tabby.OpenSettings"),
-                actionManager.getAction("Tabby.OpenOnlineDocs"),
+                actionManager.getAction("Tabby.OpenOnlineHelp"),
               )
             }
           },
@@ -109,7 +109,11 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
             tooltip = "Tabby: Initialization failed"
           }
           Agent.Status.READY -> {
-            if (state.currentIssue != null) {
+            val muted = mutableListOf<String>()
+            if (state.settings.notificationsMuted.contains("completionResponseTimeIssues")) {
+              muted += listOf("slowCompletionResponseTime", "highCompletionTimeoutRate")
+            }
+            if (state.currentIssue != null && state.currentIssue !in muted) {
               icon = AllIcons.General.Warning
               tooltip = when(state.currentIssue) {
                 "slowCompletionResponseTime" -> "Tabby: Completion requests appear to take too much time"
