@@ -1,26 +1,20 @@
-use std::{
-    collections::HashSet,
-    path::Path,
-};
+use std::{collections::HashSet, path::Path};
 
 use anyhow::Result;
 use serde::Deserialize;
 use tabby_common::{Dependency, DependencyFile};
-use tracing::{info, warn};
+use tracing::warn;
 
 pub fn collect(path: &Path, file: &mut DependencyFile) {
     if let Ok(mut deps) = process_requirements_txt(path) {
-        info!("Analyzing python requirements.txt ...");
         file.deps.append(&mut deps);
     }
 
     if let Ok(mut deps) = process_lock_file(path, "poetry.lock", "python") {
-        info!("Analyzing python poetry.lock ...");
         file.deps.append(&mut deps);
     }
 
     if let Ok(mut deps) = process_lock_file(path, "Cargo.lock", "rust") {
-        info!("Analyzing rust Cargo.lock ...");
         file.deps.append(&mut deps);
     }
 
