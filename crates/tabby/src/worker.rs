@@ -8,7 +8,8 @@ use anyhow::Result;
 use axum::{routing, Router};
 use clap::Args;
 use hyper::Server;
-use tabby_webserver::api::WorkerKind;
+use tabby_common::api::event::{EventLogger, RawEventLogger};
+use tabby_webserver::api::{tracing_context, HubClient, WorkerKind};
 use tracing::{info, warn};
 
 use crate::{
@@ -17,7 +18,6 @@ use crate::{
         chat::create_chat_service,
         code,
         completion::create_completion_service,
-        event::{self},
         health::{read_cpu_info, read_cuda_devices},
         model::download_model_if_needed,
     },
@@ -51,29 +51,30 @@ pub struct WorkerArgs {
     parallelism: u8,
 }
 
-async fn make_chat_route(args: &WorkerArgs) -> Router {
-    let state = Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await);
+async fn make_chat_route(state: Arc<WorkerState>, args: &WorkerArgs) -> Router {
+    let chat_state =
+        Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await);
 
-    request_register(WorkerKind::Chat, args).await;
+    state.register(WorkerKind::Chat, args).await;
 
     Router::new().route(
         "/v1beta/chat/completions",
-        routing::post(routes::chat_completions).with_state(state),
+        routing::post(routes::chat_completions).with_state(chat_state),
     )
 }
 
-async fn make_completion_route(args: &WorkerArgs) -> Router {
+async fn make_completion_route(state: Arc<WorkerState>, args: &WorkerArgs) -> Router {
     let code = Arc::new(code::create_code_search());
-    let logger = Arc::new(event::create_null_logger());
-    let state = Arc::new(
+    let logger: Arc<dyn EventLogger> = state.clone();
+    let completion_state = Arc::new(
         create_completion_service(code, logger, &args.model, &args.device, args.parallelism).await,
     );
 
-    request_register(WorkerKind::Completion, args).await;
+    state.register(WorkerKind::Completion, args).await;
 
     Router::new().route(
         "/v1/completions",
-        routing::post(routes::completions).with_state(state),
+        routing::post(routes::completions).with_state(completion_state),
     )
 }
 
@@ -82,9 +83,10 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
 
     info!("Starting worker, this might takes a few minutes...");
 
+    let state = Arc::new(WorkerState::new(&args.url).await);
     let app = match kind {
-        WorkerKind::Completion => make_completion_route(args).await,
-        WorkerKind::Chat => make_chat_route(args).await,
+        WorkerKind::Completion => make_completion_route(state, args).await,
+        WorkerKind::Chat => make_chat_route(state, args).await,
     };
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
@@ -96,48 +98,51 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-async fn request_register(kind: WorkerKind, args: &WorkerArgs) {
-    if let Err(err) = request_register_impl(
-        kind,
-        args.url.clone(),
-        args.port,
-        args.model.to_owned(),
-        args.device.to_string(),
-        args.token.clone(),
-    )
-    .await
-    {
-        warn!("Failed to register worker: {}", err)
+struct WorkerState {
+    client: Arc<HubClient>,
+}
+
+impl WorkerState {
+    async fn new(url: &str) -> Self {
+        Self {
+            client: Arc::new(tabby_webserver::api::create_client(url).await),
+        }
+    }
+
+    async fn register(&self, kind: WorkerKind, args: &WorkerArgs) {
+        if let Err(err) = self.register_impl(kind, args).await {
+            warn!("Failed to register worker: {}", err)
+        }
+    }
+
+    async fn register_impl(&self, kind: WorkerKind, args: &WorkerArgs) -> Result<()> {
+        let (cpu_info, cpu_count) = read_cpu_info();
+        let cuda_devices = read_cuda_devices().unwrap_or_default();
+        let worker = self
+            .client
+            .register_worker(
+                tracing_context(),
+                kind,
+                args.port as i32,
+                args.model.to_owned(),
+                args.device.to_string(),
+                ARCH.to_string(),
+                cpu_info,
+                cpu_count as i32,
+                cuda_devices,
+                args.token.clone(),
+            )
+            .await??;
+
+        info!("Worker alive at {}", worker.addr);
+
+        Ok(())
     }
 }
 
-async fn request_register_impl(
-    kind: WorkerKind,
-    url: String,
-    port: u16,
-    name: String,
-    device: String,
-    token: String,
-) -> Result<()> {
-    let client = tabby_webserver::api::create_client(url).await;
-    let (cpu_info, cpu_count) = read_cpu_info();
-    let cuda_devices = read_cuda_devices().unwrap_or_default();
-    let worker = client
-        .register_worker(
-            tabby_webserver::api::tracing_context(),
-            kind,
-            port as i32,
-            name,
-            device,
-            ARCH.to_string(),
-            cpu_info,
-            cpu_count as i32,
-            cuda_devices,
-            token,
-        )
-        .await??;
-
-    info!("Worker alive at {}", worker.addr);
-
-    Ok(())
+impl RawEventLogger for WorkerState {
+    fn log(&self, content: String) {
+        let client = self.client.clone();
+        tokio::spawn(async move { client.log_event(tracing_context(), content).await });
+    }
 }

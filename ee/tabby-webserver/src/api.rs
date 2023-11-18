@@ -45,13 +45,15 @@ pub trait Hub {
         cuda_devices: Vec<String>,
         token: String,
     ) -> Result<Worker, HubError>;
+
+    async fn log_event(content: String);
 }
 
 pub fn tracing_context() -> tarpc::context::Context {
     tarpc::context::current()
 }
 
-pub async fn create_client(addr: String) -> HubClient {
+pub async fn create_client(addr: &str) -> HubClient {
     let addr = format!("ws://{}/hub", addr);
     let (socket, _) = connect_async(&addr).await.unwrap();
     HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn()
