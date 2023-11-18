@@ -1,7 +1,6 @@
 use std::{collections::HashSet, path::Path};
 
 use anyhow::Result;
-
 use tabby_common::{Dependency, DependencyFile};
 use tracing::warn;
 
