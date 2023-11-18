@@ -5,7 +5,7 @@
   "repository": "https://github.com/TabbyML/tabby",
   "scripts": {
     "preupgrade-agent": "cd ../tabby-agent && yarn build",
-    "upgrade-agent": "rimraf ./node_scripts  &&  cpy ../tabby-agent/dist/cli.js ./node_scripts/ --flat --rename=tabby-agent.js"
+    "upgrade-agent": "rimraf ./node_scripts  &&  cpy ../tabby-agent/dist/cli.js ./node_scripts/ --flat --rename=tabby-agent.js && cpy ../tabby-agent/dist/wasm/* ./node_scripts/wasm/ --flat"
   },
   "devDependencies": {
     "cpy-cli": "^4.2.0",
