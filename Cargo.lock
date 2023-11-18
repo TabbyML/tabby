@@ -4477,7 +4477,6 @@ dependencies = [
  "serde-jsonlines",
  "serdeconv",
  "tantivy",
- "tree-sitter-kotlin",
  "uuid 1.4.1",
 ]
 

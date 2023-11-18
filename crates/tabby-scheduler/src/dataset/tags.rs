@@ -74,6 +74,12 @@ lazy_static! {
                 ),
             ),
             (
+                "kotlin",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(tree_sitter_kotlin::language(), "", "").unwrap(),
+                ),
+            ),
+            (
                 "javascript-typescript",
                 TagsConfigurationSync(
                     TagsConfiguration::new(
