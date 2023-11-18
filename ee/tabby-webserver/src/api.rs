@@ -1,5 +1,6 @@
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
+use tabby_common::api::event::RawEventLogger;
 use thiserror::Error;
 use tokio_tungstenite::connect_async;
 
@@ -57,4 +58,11 @@ pub async fn create_client(addr: &str) -> HubClient {
     let addr = format!("ws://{}/hub", addr);
     let (socket, _) = connect_async(&addr).await.unwrap();
     HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn()
+}
+
+impl RawEventLogger for HubClient {
+    fn log(&self, content: String) {
+        let client = self.clone();
+        tokio::spawn(async move { client.log_event(tracing_context(), content).await });
+    }
 }

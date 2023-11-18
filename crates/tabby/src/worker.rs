@@ -8,7 +8,7 @@ use anyhow::Result;
 use axum::{routing, Router};
 use clap::Args;
 use hyper::Server;
-use tabby_common::api::event::{EventLogger, RawEventLogger};
+use tabby_common::api::event::EventLogger;
 use tabby_webserver::api::{tracing_context, HubClient, WorkerKind};
 use tracing::{info, warn};
 
@@ -51,11 +51,11 @@ pub struct WorkerArgs {
     parallelism: u8,
 }
 
-async fn make_chat_route(state: Arc<WorkerState>, args: &WorkerArgs) -> Router {
+async fn make_chat_route(context: WorkerContext, args: &WorkerArgs) -> Router {
+    context.register(WorkerKind::Chat, args).await;
+
     let chat_state =
         Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await);
-
-    state.register(WorkerKind::Chat, args).await;
 
     Router::new().route(
         "/v1beta/chat/completions",
@@ -63,14 +63,14 @@ async fn make_chat_route(state: Arc<WorkerState>, args: &WorkerArgs) -> Router {
     )
 }
 
-async fn make_completion_route(state: Arc<WorkerState>, args: &WorkerArgs) -> Router {
+async fn make_completion_route(context: WorkerContext, args: &WorkerArgs) -> Router {
+    context.register(WorkerKind::Completion, args).await;
+
     let code = Arc::new(code::create_code_search());
-    let logger: Arc<dyn EventLogger> = state.clone();
+    let logger: Arc<dyn EventLogger> = Arc::new(context.client);
     let completion_state = Arc::new(
         create_completion_service(code, logger, &args.model, &args.device, args.parallelism).await,
     );
-
-    state.register(WorkerKind::Completion, args).await;
 
     Router::new().route(
         "/v1/completions",
@@ -83,10 +83,10 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
 
     info!("Starting worker, this might takes a few minutes...");
 
-    let state = Arc::new(WorkerState::new(&args.url).await);
+    let context = WorkerContext::new(&args.url).await;
     let app = match kind {
-        WorkerKind::Completion => make_completion_route(state, args).await,
-        WorkerKind::Chat => make_chat_route(state, args).await,
+        WorkerKind::Completion => make_completion_route(context, args).await,
+        WorkerKind::Chat => make_chat_route(context, args).await,
     };
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
@@ -98,14 +98,14 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-struct WorkerState {
-    client: Arc<HubClient>,
+struct WorkerContext {
+    client: HubClient,
 }
 
-impl WorkerState {
+impl WorkerContext {
     async fn new(url: &str) -> Self {
         Self {
-            client: Arc::new(tabby_webserver::api::create_client(url).await),
+            client: tabby_webserver::api::create_client(url).await,
         }
     }
 
@@ -137,12 +137,5 @@ impl WorkerState {
         info!("Worker alive at {}", worker.addr);
 
         Ok(())
-    }
-}
-
-impl RawEventLogger for WorkerState {
-    fn log(&self, content: String) {
-        let client = self.client.clone();
-        tokio::spawn(async move { client.log_event(tracing_context(), content).await });
     }
 }
