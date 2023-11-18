@@ -6,7 +6,7 @@ use tabby_common::api::{
     code::{CodeSearch, SearchResponse},
     event::RawEventLogger,
 };
-use tracing::error;
+use tracing::{error, warn};
 use websocket::WebSocketTransport;
 
 mod db;
@@ -146,7 +146,10 @@ impl Hub for Arc<HubImpl> {
     ) -> SearchResponse {
         match self.ctx.code.search(&q, limit, offset).await {
             Ok(serp) => serp,
-            Err(_) => SearchResponse::default(),
+            Err(err) => {
+                warn!("Failed to search: {}", err);
+                SearchResponse::default()
+            }
         }
     }
 
@@ -165,7 +168,10 @@ impl Hub for Arc<HubImpl> {
             .await
         {
             Ok(serp) => serp,
-            Err(_) => SearchResponse::default(),
+            Err(err) => {
+                warn!("Failed to search: {}", err);
+                SearchResponse::default()
+            }
         }
     }
 }
