@@ -1,4 +1,4 @@
-import { commands, window, workspace, env, ConfigurationTarget, Uri } from "vscode";
+import { commands, window, workspace, ConfigurationTarget } from "vscode";
 import type {
   HighCompletionTimeoutRateIssue,
   SlowCompletionResponseTimeIssue,
@@ -100,9 +100,13 @@ function showInformationWhenDisconnected(modal: boolean = false) {
           detail: message,
         },
         "Settings",
+        "Online Help...",
       )
       .then((selection) => {
         switch (selection) {
+          case "Online Help...":
+            commands.executeCommand("tabby.openOnlineHelp");
+            break;
           case "Settings":
             commands.executeCommand("tabby.openSettings");
             break;
@@ -165,7 +169,7 @@ function getHelpMessageForCompletionResponseTimeIssue() {
     helpMessageForRunningLargeModelOnCPU +=
       `Your Tabby server is running model ${serverHealthState?.model} on CPU. ` +
       "This model may be performing poorly due to its large parameter size, please consider trying smaller models or switch to GPU. " +
-      "You can find a list of supported models in the model directory.\n";
+      "You can find a list of recommend models in the online documentation.\n";
   }
   let commonHelpMessage = "";
   const host = new URL(agent().getConfig().server.endpoint).host;
@@ -174,7 +178,7 @@ function getHelpMessageForCompletionResponseTimeIssue() {
       serverHealthState?.model ?? ""
     } may be performing poorly due to its large parameter size. `;
     commonHelpMessage +=
-      "Please consider trying smaller models. You can find a list of supported models in the model directory.\n";
+      "Please consider trying smaller models. You can find a list of recommend models in the online documentation.\n";
   }
   if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1"))) {
     commonHelpMessage += " - A poor network connection. Please check your network and proxy settings.\n";
@@ -212,18 +216,22 @@ function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
           modal: true,
           detail: statsMessage + getHelpMessageForCompletionResponseTimeIssue(),
         },
-        "Model Directory",
+        "Online Help...",
+        "Don't Show Again",
       )
       .then((selection) => {
         switch (selection) {
-          case "Model Directory":
-            env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
+          case "Online Help...":
+            commands.executeCommand("tabby.openOnlineHelp");
+            break;
+          case "Don't Show Again":
+            commands.executeCommand("tabby.notifications.mute", "completionResponseTimeIssues");
             break;
         }
       });
   } else {
     window
-      .showWarningMessage("Completion requests appear to take too much time.", "Detail", "Settings")
+      .showWarningMessage("Completion requests appear to take too much time.", "Detail", "Settings", "Don't Show Again")
       .then((selection) => {
         switch (selection) {
           case "Detail":
@@ -231,6 +239,9 @@ function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
             break;
           case "Settings":
             commands.executeCommand("tabby.openSettings");
+            break;
+          case "Don't Show Again":
+            commands.executeCommand("tabby.notifications.mute", "completionResponseTimeIssues");
             break;
         }
       });
@@ -252,26 +263,35 @@ function showInformationWhenHighCompletionTimeoutRate(modal: boolean = false) {
           modal: true,
           detail: statsMessage + getHelpMessageForCompletionResponseTimeIssue(),
         },
-        "Model Directory",
+        "Online Help...",
+        "Don't Show Again",
       )
       .then((selection) => {
         switch (selection) {
-          case "Model Directory":
-            env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
+          case "Online Help...":
+            commands.executeCommand("tabby.openOnlineHelp");
+            break;
+          case "Don't Show Again":
+            commands.executeCommand("tabby.notifications.mute", "completionResponseTimeIssues");
             break;
         }
       });
   } else {
-    window.showWarningMessage("Most completion requests timed out.", "Detail", "Settings").then((selection) => {
-      switch (selection) {
-        case "Detail":
-          showInformationWhenHighCompletionTimeoutRate(true);
-          break;
-        case "Settings":
-          commands.executeCommand("tabby.openSettings");
-          break;
-      }
-    });
+    window
+      .showWarningMessage("Most completion requests timed out.", "Detail", "Settings", "Don't Show Again")
+      .then((selection) => {
+        switch (selection) {
+          case "Detail":
+            showInformationWhenHighCompletionTimeoutRate(true);
+            break;
+          case "Settings":
+            commands.executeCommand("tabby.openSettings");
+            break;
+          case "Don't Show Again":
+            commands.executeCommand("tabby.notifications.mute", "completionResponseTimeIssues");
+            break;
+        }
+      });
   }
 }
 
