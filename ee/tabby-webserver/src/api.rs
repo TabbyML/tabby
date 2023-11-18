@@ -62,7 +62,11 @@ pub async fn create_client(addr: &str) -> HubClient {
 
 impl RawEventLogger for HubClient {
     fn log(&self, content: String) {
+        let context = tarpc::context::current();
         let client = self.clone();
-        tokio::spawn(async move { client.log_event(tracing_context(), content).await });
+
+        tokio::spawn(async move {
+            client.log_event(context, content).await
+        });
     }
 }
