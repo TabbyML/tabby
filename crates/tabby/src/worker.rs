@@ -64,11 +64,7 @@ async fn make_chat_route(context: WorkerContext, args: &WorkerArgs) -> Router {
     )
 }
 
-async fn make_completion_route(
-    context: WorkerContext,
-    args: &WorkerArgs,
-    metrics_handle: PrometheusHandle,
-) -> Router {
+async fn make_completion_route(context: WorkerContext, args: &WorkerArgs) -> Router {
     context.register(WorkerKind::Completion, args).await;
 
     let code = Arc::new(context.client.clone());
@@ -76,17 +72,11 @@ async fn make_completion_route(
     let completion_state = Arc::new(
         create_completion_service(code, logger, &args.model, &args.device, args.parallelism).await,
     );
-    let metrics_handle = Arc::new(metrics_handle);
 
-    Router::new()
-        .route(
-            "/v1/completions",
-            routing::post(routes::completions).with_state(completion_state),
-        )
-        .route(
-            "/v1/metrics",
-            routing::get(routes::metrics).with_state(metrics_handle),
-        )
+    Router::new().route(
+        "/v1/completions",
+        routing::post(routes::completions).with_state(completion_state),
+    )
 }
 
 pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
@@ -99,11 +89,15 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
     let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
 
     let app = match kind {
-        WorkerKind::Completion => make_completion_route(context, args, prometheus_handle).await,
+        WorkerKind::Completion => make_completion_route(context, args).await,
         WorkerKind::Chat => make_chat_route(context, args).await,
     };
 
     let app = app
+        .route(
+            "/v1/metrics",
+            routing::get(routes::metrics).with_state(Arc::new(prometheus_handle)),
+        )
         .layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
         .layer(prometheus_layer);
