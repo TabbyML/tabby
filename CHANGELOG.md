@@ -5,6 +5,7 @@
 ## Fixes and Improvements
 * Fix the slow repository indexing due to constraint memory arena in tantivy index writer.
 * Make `--model` optional, so users can create a chat only instance.
+* Add `/v1/metrics` endpoint for prometheus metrics collection. 
 
 # v0.5.5
 
