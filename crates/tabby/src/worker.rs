@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::Result;
 use axum::{routing, Router};
-use axum_prometheus::{PrometheusMetricLayer};
+use axum_prometheus::PrometheusMetricLayer;
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use hyper::Server;
