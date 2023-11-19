@@ -7,7 +7,7 @@ use axum_prometheus::metrics_exporter_prometheus::PrometheusHandle;
     path = "/v1/metrics",
     tag = "v1",
     responses(
-        (status = 200, description = "Success", body = String, content_type = "application/text"),
+        (status = 200, description = "Success", body = String, content_type = "text/plain"),
     )
 )]
 pub async fn metrics(State(state): State<Arc<PrometheusHandle>>) -> String {
