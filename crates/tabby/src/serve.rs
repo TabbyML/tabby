@@ -5,7 +5,7 @@ use std::{
 };
 
 use axum::{routing, Router, Server};
-use axum_prometheus::{PrometheusMetricLayer, metrics_exporter_prometheus::PrometheusHandle};
+use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{
@@ -152,7 +152,7 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
-    metrics_handle: Arc<PrometheusHandle>
+    metrics_handle: Arc<PrometheusHandle>,
 ) -> Router {
     let completion_state = if let Some(model) = &args.model {
         Some(Arc::new(

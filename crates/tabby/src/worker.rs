@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::Result;
 use axum::{routing, Router};
-use axum_prometheus::{PrometheusMetricLayer, metrics_exporter_prometheus::PrometheusHandle};
+use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use hyper::Server;
@@ -64,7 +64,11 @@ async fn make_chat_route(context: WorkerContext, args: &WorkerArgs) -> Router {
     )
 }
 
-async fn make_completion_route(context: WorkerContext, args: &WorkerArgs, metrics_handle: PrometheusHandle) -> Router {
+async fn make_completion_route(
+    context: WorkerContext,
+    args: &WorkerArgs,
+    metrics_handle: PrometheusHandle,
+) -> Router {
     context.register(WorkerKind::Completion, args).await;
 
     let code = Arc::new(context.client.clone());

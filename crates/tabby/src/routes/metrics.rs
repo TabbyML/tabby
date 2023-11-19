@@ -1,4 +1,5 @@
 use std::sync::Arc;
+
 use axum::extract::State;
 use axum_prometheus::metrics_exporter_prometheus::PrometheusHandle;
 
