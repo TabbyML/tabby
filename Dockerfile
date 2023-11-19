@@ -5,10 +5,11 @@ ARG CUDA_VERSION=11.7.1
 ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 # Target the CUDA runtime image
 ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
-# Rust toolchain version
-ARG RUST_TOOLCHAIN stable
 
 FROM ${BASE_CUDA_DEV_CONTAINER} as build
+
+# Rust toolchain version
+ARG RUST_TOOLCHAIN stable
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
