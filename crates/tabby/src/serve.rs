@@ -5,6 +5,7 @@ use std::{
 };
 
 use axum::{routing, Router, Server};
+use axum_prometheus::PrometheusMetricLayer;
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{
@@ -49,7 +50,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
+    paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search, routes::metrics),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -175,6 +176,10 @@ async fn api_router(
         args.chat_model.as_deref(),
         &args.device,
     ));
+
+    let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
+    let metrics_state = Arc::new(metric_handle);
+
     routers.push({
         Router::new()
             .route(
@@ -189,6 +194,10 @@ async fn api_router(
                 "/v1/health",
                 routing::get(routes::health).with_state(health_state),
             )
+            .route(
+            "/v1/metrics",
+            routing::get(routes::metrics).with_state(metrics_state),
+        )
     });
 
     if let Some(completion_state) = completion_state {
@@ -226,6 +235,7 @@ async fn api_router(
     }
     root.layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
+        .layer(prometheus_layer)
 }
 
 fn start_heartbeat(args: &ServeArgs) {
