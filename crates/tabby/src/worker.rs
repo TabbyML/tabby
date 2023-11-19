@@ -6,6 +6,7 @@ use std::{
 
 use anyhow::Result;
 use axum::{routing, Router};
+use axum_prometheus::{PrometheusMetricLayer, metrics_exporter_prometheus::PrometheusHandle};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use hyper::Server;
@@ -63,7 +64,7 @@ async fn make_chat_route(context: WorkerContext, args: &WorkerArgs) -> Router {
     )
 }
 
-async fn make_completion_route(context: WorkerContext, args: &WorkerArgs) -> Router {
+async fn make_completion_route(context: WorkerContext, args: &WorkerArgs, metrics_handle: PrometheusHandle) -> Router {
     context.register(WorkerKind::Completion, args).await;
 
     let code = Arc::new(context.client.clone());
@@ -71,11 +72,17 @@ async fn make_completion_route(context: WorkerContext, args: &WorkerArgs) -> Rou
     let completion_state = Arc::new(
         create_completion_service(code, logger, &args.model, &args.device, args.parallelism).await,
     );
+    let metrics_handle = Arc::new(metrics_handle);
 
-    Router::new().route(
-        "/v1/completions",
-        routing::post(routes::completions).with_state(completion_state),
-    )
+    Router::new()
+        .route(
+            "/v1/completions",
+            routing::post(routes::completions).with_state(completion_state),
+        )
+        .route(
+            "/v1/metrics",
+            routing::get(routes::metrics).with_state(metrics_handle),
+        )
 }
 
 pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
@@ -84,14 +91,18 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
     info!("Starting worker, this might takes a few minutes...");
 
     let context = WorkerContext::new(&args.url).await;
+
+    let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
+
     let app = match kind {
-        WorkerKind::Completion => make_completion_route(context, args).await,
+        WorkerKind::Completion => make_completion_route(context, args, prometheus_handle).await,
         WorkerKind::Chat => make_chat_route(context, args).await,
     };
 
     let app = app
         .layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer());
+        .layer(opentelemetry_tracing_layer())
+        .layer(prometheus_layer);
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
