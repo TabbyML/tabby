@@ -1,3 +1,24 @@
+## 1.1.0
+
+### Features:
+
+- Changed the default keymap for triggering inline completion to `Ctrl + \`, to avoid conflicts when new UI enabled.
+- Added a `Check Connection` button in settings page to check the connection to the server.
+- Added notification with error messages when the connection to the server fails.
+- Added a loading status indicator when fetching completions in automatic trigger mode.
+- Updated the online help links, including online documentation, the Tabby Slack community, and the GitHub repository.
+- Added an option to mute warning messages for the slow completion response time.
+- Updated the config.toml file to include new configuration options: `server.auth` and `completion.timeout`.
+- Added experimental features aimed at fine-tuning completion quality. These features are disabled by default but can be enabled by setting the corresponding config flag to `true` in the `config.toml` file, include:
+    - `completion.prompt.experimentalStripAutoClosingCharacters`: Strip auto-closing brackets and quotes in prompt suffix, to generate more lines in FIM mode.
+    - `postprocess.limitScope.indentation.experimentalKeepBlockScopeWhenCompletingLine`: Use the block scope instead of line scope when using indentation to limit the completion scope and the completion is continuing the current line.
+    - `postprocess.limitScope.experimentalSyntax`: Use syntax parser to limit the completion scope.
+    - `postprocess.calculateReplaceRange.experimentalSyntax`: Use syntax parser to calculate the completion replace range, to avoid duplicated auto-closing brackets and quotes.
+
+### Fixes:
+
+- Fixes a bug causing the CJK characters to be rendered incorrectly on Windows.
+
 ## 1.0.0
 
 ### Changes:
