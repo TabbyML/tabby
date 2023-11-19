@@ -6,9 +6,11 @@ use std::{
 
 use anyhow::Result;
 use axum::{routing, Router};
+use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use hyper::Server;
 use tabby_webserver::api::{tracing_context, HubClient, WorkerKind};
+use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
 
 use crate::{
@@ -86,6 +88,10 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
         WorkerKind::Completion => make_completion_route(context, args).await,
         WorkerKind::Chat => make_chat_route(context, args).await,
     };
+
+    let app = app
+        .layer(CorsLayer::permissive())
+        .layer(opentelemetry_tracing_layer());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);

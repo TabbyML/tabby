@@ -120,6 +120,11 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(not(feature = "ee"))]
     let app = app.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
 
+    let app = app
+        .layer(CorsLayer::permissive())
+        .layer(opentelemetry_tracing_layer())
+        .layer(PrometheusMetricLayer::new());
+
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
@@ -177,7 +182,7 @@ async fn api_router(
         &args.device,
     ));
 
-    let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
+
     let metrics_state = Arc::new(metric_handle);
 
     routers.push({
@@ -233,9 +238,7 @@ async fn api_router(
     for router in routers {
         root = root.merge(router);
     }
-    root.layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer())
-        .layer(prometheus_layer)
+    root
 }
 
 fn start_heartbeat(args: &ServeArgs) {
