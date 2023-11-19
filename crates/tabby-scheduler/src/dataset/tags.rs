@@ -76,7 +76,12 @@ lazy_static! {
             (
                 "kotlin",
                 TagsConfigurationSync(
-                    TagsConfiguration::new(tree_sitter_kotlin::language(), "", "").unwrap(),
+                    TagsConfiguration::new(
+                        tree_sitter_kotlin::language(),
+                        include_str!("../../queries/kotlin.scm"),
+                        "",
+                    )
+                    .unwrap(),
                 ),
             ),
             (
