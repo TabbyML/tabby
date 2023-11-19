@@ -2,10 +2,15 @@
 
 ## Features
 
+* Add distribution support (running completion / chat model on different process / machine).
+* Add conversation history in chat playground.
+* Add `/v1/metrics` endpoint for prometheus metrics collection. 
+
 ## Fixes and Improvements
+
 * Fix the slow repository indexing due to constraint memory arena in tantivy index writer.
 * Make `--model` optional, so users can create a chat only instance.
-* Add `/v1/metrics` endpoint for prometheus metrics collection. 
+* Add `--parallelism` to control the throughput and VRAM usage: https://github.com/TabbyML/tabby/pull/727
 
 # v0.5.5
 
