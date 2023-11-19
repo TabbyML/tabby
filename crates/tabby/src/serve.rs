@@ -119,6 +119,10 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(not(feature = "ee"))]
     let app = app.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
 
+    let app = app
+        .layer(CorsLayer::permissive())
+        .layer(opentelemetry_tracing_layer());
+
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
@@ -224,8 +228,7 @@ async fn api_router(
     for router in routers {
         root = root.merge(router);
     }
-    root.layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer())
+    root
 }
 
 fn start_heartbeat(args: &ServeArgs) {
