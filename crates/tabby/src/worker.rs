@@ -6,6 +6,7 @@ use std::{
 
 use anyhow::Result;
 use axum::{routing, Router};
+use axum_prometheus::PrometheusMetricLayer;
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use hyper::Server;
@@ -84,14 +85,22 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
     info!("Starting worker, this might takes a few minutes...");
 
     let context = WorkerContext::new(&args.url).await;
+
+    let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
+
     let app = match kind {
         WorkerKind::Completion => make_completion_route(context, args).await,
         WorkerKind::Chat => make_chat_route(context, args).await,
     };
 
     let app = app
+        .route(
+            "/v1/metrics",
+            routing::get(routes::metrics).with_state(Arc::new(prometheus_handle)),
+        )
         .layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer());
+        .layer(opentelemetry_tracing_layer())
+        .layer(prometheus_layer);
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);

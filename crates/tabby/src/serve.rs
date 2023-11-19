@@ -5,6 +5,7 @@ use std::{
 };
 
 use axum::{routing, Router, Server};
+use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{
@@ -49,7 +50,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
+    paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search, routes::metrics),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -108,9 +109,11 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let logger = Arc::new(create_logger());
     let code = Arc::new(create_code_search());
+    let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
+    let metrics_handle = Arc::new(prometheus_handle);
 
     let app = Router::new()
-        .merge(api_router(args, config, logger.clone(), code.clone()).await)
+        .merge(api_router(args, config, logger.clone(), code.clone(), metrics_handle).await)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
@@ -121,7 +124,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let app = app
         .layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer());
+        .layer(opentelemetry_tracing_layer())
+        .layer(prometheus_layer);
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
@@ -148,6 +152,7 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+    metrics_handle: Arc<PrometheusHandle>,
 ) -> Router {
     let completion_state = if let Some(model) = &args.model {
         Some(Arc::new(
@@ -179,6 +184,7 @@ async fn api_router(
         args.chat_model.as_deref(),
         &args.device,
     ));
+
     routers.push({
         Router::new()
             .route(
@@ -192,6 +198,10 @@ async fn api_router(
             .route(
                 "/v1/health",
                 routing::get(routes::health).with_state(health_state),
+            )
+            .route(
+                "/v1/metrics",
+                routing::get(routes::metrics).with_state(metrics_handle),
             )
     });
 
