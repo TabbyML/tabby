@@ -19,6 +19,10 @@ function! s:commands.auth(...)
   call tabby#Auth()
 endfunction
 
+function! s:commands.version(...)
+  echo g:tabby_version
+endfunction
+
 function! s:commands.help(...)
   let args = get(a:, 1, [])
   if len(args) < 1
