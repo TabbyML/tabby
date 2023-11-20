@@ -6,7 +6,7 @@ import fetcher from '@/lib/tabby-fetcher'
 
 export interface HealthInfo {
   device: 'metal' | 'cpu' | 'cuda'
-  model: string
+  model?: string
   chat_model?: string
   cpu_info: string
   cpu_count: number

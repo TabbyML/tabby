@@ -6,14 +6,11 @@ use std::{
 
 use chrono::Utc;
 use lazy_static::lazy_static;
-use serde::Serialize;
-use tabby_common::path;
+use tabby_common::{api::event::RawEventLogger, path};
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedSender},
     time::{self},
 };
-
-use crate::api::event::{Event, EventLogger};
 
 lazy_static! {
     static ref WRITER: UnboundedSender<String> = {
@@ -58,43 +55,12 @@ lazy_static! {
 
 struct EventService;
 
-#[derive(Serialize)]
-struct Log<'a> {
-    ts: u128,
-    event: &'a Event<'a>,
-}
-
-impl EventLogger for EventService {
-    fn log(&self, e: &Event) {
-        let content = serdeconv::to_json_string(&Log {
-            ts: timestamp(),
-            event: e,
-        })
-        .unwrap();
-
+impl RawEventLogger for EventService {
+    fn log(&self, content: String) {
         WRITER.send(content).unwrap();
     }
 }
 
-fn timestamp() -> u128 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let start = SystemTime::now();
-    start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_millis()
-}
-
-pub fn create_logger() -> impl EventLogger {
+pub fn create_logger() -> impl RawEventLogger {
     EventService
-}
-
-struct NullLogger;
-
-impl EventLogger for NullLogger {
-    fn log(&self, _e: &Event) {}
-}
-
-pub fn create_null_logger() -> impl EventLogger {
-    NullLogger
 }

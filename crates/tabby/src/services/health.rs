@@ -10,7 +10,8 @@ use crate::Device;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthState {
-    model: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     chat_model: Option<String>,
     device: String,
@@ -22,7 +23,7 @@ pub struct HealthState {
 }
 
 impl HealthState {
-    pub fn new(model: &str, chat_model: Option<&str>, device: &Device) -> Self {
+    pub fn new(model: Option<&str>, chat_model: Option<&str>, device: &Device) -> Self {
         let (cpu_info, cpu_count) = read_cpu_info();
 
         let cuda_devices = match read_cuda_devices() {
@@ -31,7 +32,7 @@ impl HealthState {
         };
 
         Self {
-            model: model.to_owned(),
+            model: model.map(|x| x.to_owned()),
             chat_model: chat_model.map(|x| x.to_owned()),
             device: device.to_string(),
             arch: ARCH.to_string(),

@@ -11,12 +11,12 @@ import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 export async function activate(context: ExtensionContext) {
   console.debug("Activating Tabby extension", new Date());
   await createAgentInstance(context);
-  const completionProvider = TabbyCompletionProvider.getInstance();
-  const statusBarItem = new TabbyStatusBarItem(completionProvider);
+  const completionProvider = new TabbyCompletionProvider();
+  const statusBarItem = new TabbyStatusBarItem(context, completionProvider);
   context.subscriptions.push(
     languages.registerInlineCompletionItemProvider({ pattern: "**" }, completionProvider),
     statusBarItem.register(),
-    ...tabbyCommands(),
+    ...tabbyCommands(context, completionProvider, statusBarItem),
   );
 }
 

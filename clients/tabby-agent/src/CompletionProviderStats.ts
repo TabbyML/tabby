@@ -83,7 +83,7 @@ export class CompletionProviderStats {
   private completionRequestCanceledStats = new Average();
   private completionRequestTimeoutCount = 0;
 
-  private recentCompletionRequestLatencies: Windowed;
+  private recentCompletionRequestLatencies: Windowed = new Windowed(this.config.windowSize);
 
   updateConfigByRequestTimeout(timeout: number) {
     this.config.checks.healthy.latency = timeout * 0.6;

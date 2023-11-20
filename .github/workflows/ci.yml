@@ -35,7 +35,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: 1.73.0
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
@@ -69,8 +69,10 @@ jobs:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
+            toolchain: stable
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            toolchain: 1.73.0
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -86,7 +88,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: ${{ matrix.toolchain }}
           target: ${{ matrix.target }}
           components: clippy
 

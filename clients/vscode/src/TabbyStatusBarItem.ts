@@ -1,4 +1,4 @@
-import { StatusBarAlignment, ThemeColor, window } from "vscode";
+import { StatusBarAlignment, ThemeColor, ExtensionContext, window } from "vscode";
 import { createMachine, interpret } from "@xstate/fsm";
 import type { StatusChangedEvent, AuthRequiredEvent, IssuesUpdatedEvent } from "tabby-agent";
 import { agent } from "./agent";
@@ -20,13 +20,26 @@ const backgroundColorWarning = new ThemeColor("statusBarItem.warningBackground")
 
 export class TabbyStatusBarItem {
   private item = window.createStatusBarItem(StatusBarAlignment.Right);
+  private extensionContext: ExtensionContext;
   private completionProvider: TabbyCompletionProvider;
   private completionResponseWarningShown = false;
 
   private subStatusForReady = [
     {
       target: "issuesExist",
-      cond: () => agent().getIssues().length > 0,
+      cond: () => {
+        let issues = agent().getIssues();
+        if (
+          this.extensionContext.globalState
+            .get<string[]>("notifications.muted", [])
+            .includes("completionResponseTimeIssues")
+        ) {
+          issues = issues.filter(
+            (issue) => issue !== "highCompletionTimeoutRate" && issue !== "slowCompletionResponseTime",
+          );
+        }
+        return issues.length > 0;
+      },
     },
     {
       target: "automatic",
@@ -126,18 +139,20 @@ export class TabbyStatusBarItem {
 
   private fsmService = interpret(this.fsm);
 
-  constructor(completionProvider: TabbyCompletionProvider) {
+  constructor(context: ExtensionContext, completionProvider: TabbyCompletionProvider) {
+    this.extensionContext = context;
     this.completionProvider = completionProvider;
     this.fsmService.start();
     this.fsmService.send(agent().getStatus());
     this.item.show();
 
     this.completionProvider.on("triggerModeUpdated", () => {
-      this.fsmService.send(agent().getStatus());
+      this.refresh();
     });
     this.completionProvider.on("loadingStatusUpdated", () => {
-      this.fsmService.send(agent().getStatus());
+      this.refresh();
     });
+
     agent().on("statusChanged", (event: StatusChangedEvent) => {
       console.debug("Tabby agent statusChanged", { event });
       this.fsmService.send(event.status);
@@ -158,12 +173,17 @@ export class TabbyStatusBarItem {
     agent().on("issuesUpdated", (event: IssuesUpdatedEvent) => {
       console.debug("Tabby agent issuesUpdated", { event });
       this.fsmService.send(agent().getStatus());
+      const showCompletionResponseWarnings =
+        !this.completionResponseWarningShown &&
+        !this.extensionContext.globalState
+          .get<string[]>("notifications.muted", [])
+          .includes("completionResponseTimeIssues");
       if (event.issues.includes("connectionFailed")) {
         notifications.showInformationWhenDisconnected();
-      } else if (!this.completionResponseWarningShown && event.issues.includes("highCompletionTimeoutRate")) {
+      } else if (showCompletionResponseWarnings && event.issues.includes("highCompletionTimeoutRate")) {
         this.completionResponseWarningShown = true;
         notifications.showInformationWhenHighCompletionTimeoutRate();
-      } else if (!this.completionResponseWarningShown && event.issues.includes("slowCompletionResponseTime")) {
+      } else if (showCompletionResponseWarnings && event.issues.includes("slowCompletionResponseTime")) {
         this.completionResponseWarningShown = true;
         notifications.showInformationWhenSlowCompletionResponseTime();
       }
@@ -172,6 +192,10 @@ export class TabbyStatusBarItem {
 
   public register() {
     return this.item;
+  }
+
+  public refresh() {
+    this.fsmService.send(agent().getStatus());
   }
 
   private toInitializing() {

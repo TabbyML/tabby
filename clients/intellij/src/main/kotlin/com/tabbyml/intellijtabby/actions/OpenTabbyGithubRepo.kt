@@ -4,8 +4,8 @@ import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 
-class OpenOnlineDocs: AnAction() {
+class OpenTabbyGithubRepo : AnAction() {
   override fun actionPerformed(e: AnActionEvent) {
-    BrowserUtil.browse("https://tabby.tabbyml.com/docs/extensions/")
+    BrowserUtil.browse("https://github.com/tabbyml/tabby")
   }
 }

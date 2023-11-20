@@ -3,21 +3,21 @@ mod completion_prompt;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use tabby_common::languages::get_language;
+use tabby_common::{
+    api,
+    api::{
+        code::CodeSearch,
+        event::{Event, EventLogger},
+    },
+    languages::get_language,
+};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use thiserror::Error;
 use tracing::debug;
 use utoipa::ToSchema;
 
 use super::model;
-use crate::{
-    api::{
-        self,
-        code::CodeSearch,
-        event::{Event, EventLogger},
-    },
-    Device,
-};
+use crate::Device;
 
 #[derive(Error, Debug)]
 pub enum CompletionError {
