@@ -1,6 +1,4 @@
-use crate::languages::get_language;
-use crate::languages::Language;
-use crate::languages::EMPTY_LANGUAGE;
+use crate::languages::{get_language, Language, EMPTY_LANGUAGE};
 
 pub struct TextGenerationOptions {
     pub max_input_length: usize,
