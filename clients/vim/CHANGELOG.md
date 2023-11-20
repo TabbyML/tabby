@@ -1,6 +1,6 @@
 ## 1.1.1
 
-## Fixes:
+### Fixes:
 
 - Fix a bug cause the completion does not show up if the completion cache is missing.
 
