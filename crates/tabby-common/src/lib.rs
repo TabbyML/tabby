@@ -13,14 +13,17 @@ use std::{
     path::PathBuf,
 };
 
+pub use config::to_filename;
 use path::dataset_dir;
 use serde::{Deserialize, Serialize};
 use serde_jsonlines::JsonLinesReader;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SourceFile {
     pub git_url: String,
     pub filepath: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
     pub content: String,
     pub language: String,
     pub max_line_length: usize,
@@ -45,7 +48,7 @@ impl SourceFile {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Tag {
     pub range: Range<usize>,
     pub name_range: Range<usize>,

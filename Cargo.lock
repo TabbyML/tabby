@@ -4704,6 +4704,8 @@ dependencies = [
  "tokio",
  "tokio-rusqlite",
  "tokio-tungstenite",
+ "tower",
+ "tower-http 0.4.0",
  "tracing",
  "unicase",
  "uuid 1.4.1",
@@ -5315,10 +5317,16 @@ dependencies = [
  "http",
  "http-body",
  "http-range-header",
+ "httpdate",
+ "mime",
+ "mime_guess",
+ "percent-encoding",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
