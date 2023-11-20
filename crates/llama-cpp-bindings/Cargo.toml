@@ -15,6 +15,7 @@ cxx = "1.0"
 async-trait = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 tabby-inference = { path = "../tabby-inference" }
+tabby-common = { path = "../tabby-common" }
 derive_builder = { workspace = true }
 futures.workspace = true
 async-stream.workspace = true

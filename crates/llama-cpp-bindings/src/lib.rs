@@ -7,9 +7,8 @@ use derive_builder::Builder;
 use ffi::create_engine;
 use futures::stream::BoxStream;
 use llama::LlamaService;
-use tabby_inference::{
-    decoding::StopConditionFactory, helpers, TextGeneration, TextGenerationOptions,
-};
+use tabby_common::constants::TextGenerationOptions;
+use tabby_inference::{decoding::StopConditionFactory, helpers, TextGeneration};
 
 #[cxx::bridge(namespace = "llama")]
 mod ffi {
