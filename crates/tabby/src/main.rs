@@ -15,7 +15,6 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
-use tracing::info;
 use tabby_common::config::Config;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
@@ -29,10 +28,6 @@ struct Cli {
     /// Open Telemetry endpoint.
     #[clap(long)]
     otlp_endpoint: Option<String>,
-
-    /// enable debug logs
-    #[clap(long, default_value_t = false)]
-    enable_debug: bool,
 }
 
 #[derive(Subcommand)]
@@ -104,7 +99,7 @@ impl Device {
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
-    init_logging(cli.otlp_endpoint, cli.enable_debug);
+    init_logging(cli.otlp_endpoint);
 
     let config = Config::load().unwrap_or_default();
 
@@ -144,7 +139,7 @@ macro_rules! fatal {
     };
 }
 
-fn init_logging(otlp_endpoint: Option<String>, enable_debug: bool) {
+fn init_logging(otlp_endpoint: Option<String>) {
     let mut layers = Vec::new();
 
     let fmt_layer = tracing_subscriber::fmt::layer()
@@ -180,9 +175,7 @@ fn init_logging(otlp_endpoint: Option<String>, enable_debug: bool) {
         };
     }
 
-    let tabby_log_filter = if enable_debug { "tabby=debug" } else { "tabby=info" };
     let env_filter = EnvFilter::from_default_env()
-        .add_directive(tabby_log_filter.parse().unwrap())
         .add_directive("axum_tracing_opentelemetry=info".parse().unwrap())
         .add_directive("otel=debug".parse().unwrap());
 
@@ -190,7 +183,4 @@ fn init_logging(otlp_endpoint: Option<String>, enable_debug: bool) {
         .with(layers)
         .with(env_filter)
         .init();
-
-    info!("Logging initialized. OTLP endpoint: {}, Enable Debug: {}",
-        otlp_endpoint.clone().unwrap_or("NULL".to_owned()), enable_debug)
 }

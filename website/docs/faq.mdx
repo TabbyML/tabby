@@ -41,6 +41,6 @@ import CodeBlock from '@theme/CodeBlock';
   <summary>Why can't I see the debug logs?</summary>
   <div>
     <p>The default log level for tabby server is info.</p>
-    <p>To enable debug logs, add <code>--enable-debug</code> flag after tabby command, e.g. <code>... tabbyml/tabby --enable_debug serve --model TabbyML/SantaCoder-1B --device cuda</code>.</p>
+    <p>To enable debug logs, add <code>RUST_LOG=debug</code> environment before tabby command, e.g. <code>RUST_LOG=debug tabbyml/tabby serve --model TabbyML/SantaCoder-1B --device cuda</code>.</p>
   </div>
 </details>
