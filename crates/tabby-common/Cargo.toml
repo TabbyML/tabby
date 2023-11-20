@@ -9,7 +9,7 @@ lazy_static = { workspace = true }
 serde = { workspace = true }
 serdeconv = { workspace = true }
 serde-jsonlines = { workspace = true }
-reqwest = { workspace = true, features = ["json"] }
+reqwest = { workspace = true, features = [ "json" ] }
 uuid = { version = "1.4.1", features = ["v4"] }
 tantivy.workspace = true
 anyhow.workspace = true
@@ -25,5 +25,5 @@ testutils = []
 [package.metadata.cargo-machete]
 ignored = [
     # required in utoipa ToSchema.
-    "serde_json",
+    "serde_json"
 ]
