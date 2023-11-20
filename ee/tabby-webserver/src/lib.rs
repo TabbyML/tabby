@@ -31,28 +31,30 @@ use server::ServerContext;
 use tarpc::server::{BaseChannel, Channel};
 
 pub async fn attach_webserver(
-    router: Router,
+    api: Router,
+    ui: Router,
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
-) -> Router {
+) -> (Router, Router) {
     let conn = db::DbConn::new().await.unwrap();
     let ctx = Arc::new(ServerContext::new(conn, logger, code));
     let schema = Arc::new(create_schema());
 
-    let app = Router::new()
-        .route("/graphql", routing::get(playground("/graphql", None)))
-        .route("/graphiql", routing::get(graphiql("/graphql", None)))
+    let api = api
+        .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
         .route(
             "/graphql",
             routing::post(graphql::<Arc<Schema>>).with_state(ctx.clone()),
         )
-        .layer(Extension(schema));
+        .layer(Extension(schema))
+        .route("/hub", routing::get(ws_handler).with_state(ctx.clone()));
 
-    router
-        .merge(app)
-        .route("/hub", routing::get(ws_handler).with_state(ctx.clone()))
-        .fallback(ui::handler)
-        .layer(from_fn_with_state(ctx, distributed_tabby_layer))
+    let ui = ui
+        .route("/graphql", routing::get(playground("/graphql", None)))
+        .route("/graphiql", routing::get(graphiql("/graphql", None)))
+        .fallback(ui::handler);
+
+    (api, ui)
 }
 
 async fn distributed_tabby_layer(

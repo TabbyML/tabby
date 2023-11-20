@@ -83,7 +83,7 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
         WorkerKind::Chat => make_chat_route(context, args).await,
     };
 
-    run_app(app, args.port).await
+    run_app(app, None, args.port).await
 }
 
 struct WorkerContext {

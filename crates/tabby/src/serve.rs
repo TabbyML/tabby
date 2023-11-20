@@ -1,7 +1,4 @@
-use std::{
-    sync::Arc,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use axum::{routing, Router};
 use clap::Args;
@@ -107,18 +104,18 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     let logger = Arc::new(create_logger());
     let code = Arc::new(create_code_search());
 
-    let app = Router::new()
-        .merge(api_router(args, config, logger.clone(), code.clone()).await)
+    let api = api_router(args, config, logger.clone(), code.clone()).await;
+    let ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let app = tabby_webserver::attach_webserver(app, logger, code).await;
+    let (api, ui) = tabby_webserver::attach_webserver(api, ui, logger, code).await;
 
     #[cfg(not(feature = "ee"))]
-    let app = app.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
+    let ui = ui.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
 
     start_heartbeat(args);
-    run_app(app, args.port).await
+    run_app(api, Some(ui), args.port).await
 }
 
 async fn load_model(args: &ServeArgs) {

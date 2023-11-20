@@ -14,16 +14,22 @@ use tracing::info;
 
 use crate::fatal;
 
-pub async fn run_app(app: Router, port: u16) {
+pub async fn run_app(api: Router, ui: Option<Router>, port: u16) {
     let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
-    let app = app
+    let app = api
+        .layer(CorsLayer::permissive())
+        .layer(opentelemetry_tracing_layer())
+        .layer(prometheus_layer)
         .route(
             "/metrics",
             routing::get(metrics::metrics).with_state(Arc::new(prometheus_handle)),
-        )
-        .layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer())
-        .layer(prometheus_layer);
+        );
+
+    let app = if let Some(ui) = ui {
+        app.merge(ui)
+    } else {
+        app
+    };
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, port));
     info!("Listening at {}", address);
