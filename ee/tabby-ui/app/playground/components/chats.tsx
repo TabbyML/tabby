@@ -4,7 +4,7 @@ import React from 'react'
 import { Chat } from '@/components/chat'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
-import { ChatSessions } from '@/components/chat-sessions'
+import { ChatSessions } from './chat-sessions'
 import { useStore } from '@/lib/hooks/use-store'
 import type { Message } from 'ai'
 

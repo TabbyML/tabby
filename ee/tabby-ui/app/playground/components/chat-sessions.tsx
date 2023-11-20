@@ -14,7 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { EditChatTitleDialog } from '@/components/edit-chat-title-dialog'
+import { EditChatTitleDialog } from './edit-chat-title-dialog'
 import { useStore } from '@/lib/hooks/use-store'
 import { Button } from '@/components/ui/button'
 import { ListSkeleton } from '@/components/skeleton'

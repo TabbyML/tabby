@@ -17,7 +17,7 @@ import { IconArrowElbow, IconEdit, IconTrash } from '@/components/ui/icons'
 
 import { Input } from '@/components/ui/input'
 import { updateChat } from '@/lib/stores/chat-actions'
-import { Button } from './ui/button'
+import { Button } from '@/components/ui/button'
 
 interface EditChatTitleDialogProps {
   initialValue: string | undefined
