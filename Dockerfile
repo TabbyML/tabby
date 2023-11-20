@@ -8,6 +8,9 @@ ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_V
 
 FROM ${BASE_CUDA_DEV_CONTAINER} as build
 
+# Rust toolchain version
+ARG RUST_TOOLCHAIN stable
+
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -22,7 +25,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # setup rust.
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /root/workspace

@@ -2,7 +2,11 @@ pub mod api;
 
 mod schema;
 pub use schema::create_schema;
-use tracing::error;
+use tabby_common::api::{
+    code::{CodeSearch, SearchResponse},
+    event::RawEventLogger,
+};
+use tracing::{error, warn};
 use websocket::WebSocketTransport;
 
 mod db;
@@ -26,25 +30,31 @@ use schema::Schema;
 use server::ServerContext;
 use tarpc::server::{BaseChannel, Channel};
 
-pub async fn attach_webserver(router: Router) -> Router {
+pub async fn attach_webserver(
+    api: Router,
+    ui: Router,
+    logger: Arc<dyn RawEventLogger>,
+    code: Arc<dyn CodeSearch>,
+) -> (Router, Router) {
     let conn = db::DbConn::new().await.unwrap();
-    let ctx = Arc::new(ServerContext::new(conn));
+    let ctx = Arc::new(ServerContext::new(conn, logger, code));
     let schema = Arc::new(create_schema());
 
-    let app = Router::new()
-        .route("/graphql", routing::get(playground("/graphql", None)))
-        .route("/graphiql", routing::get(graphiql("/graphql", None)))
+    let api = api
+        .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
         .route(
             "/graphql",
             routing::post(graphql::<Arc<Schema>>).with_state(ctx.clone()),
         )
-        .layer(Extension(schema));
+        .layer(Extension(schema))
+        .route("/hub", routing::get(ws_handler).with_state(ctx.clone()));
 
-    router
-        .merge(app)
-        .route("/hub", routing::get(ws_handler).with_state(ctx.clone()))
-        .fallback(ui::handler)
-        .layer(from_fn_with_state(ctx, distributed_tabby_layer))
+    let ui = ui
+        .route("/graphql", routing::get(playground("/graphql", None)))
+        .route("/graphiql", routing::get(graphiql("/graphql", None)))
+        .fallback(ui::handler);
+
+    (api, ui)
 }
 
 async fn distributed_tabby_layer(
@@ -123,5 +133,47 @@ impl Hub for Arc<HubImpl> {
             cuda_devices,
         };
         self.ctx.register_worker(worker).await
+    }
+
+    async fn log_event(self, _context: tarpc::context::Context, content: String) {
+        self.ctx.logger.log(content)
+    }
+
+    async fn search(
+        self,
+        _context: tarpc::context::Context,
+        q: String,
+        limit: usize,
+        offset: usize,
+    ) -> SearchResponse {
+        match self.ctx.code.search(&q, limit, offset).await {
+            Ok(serp) => serp,
+            Err(err) => {
+                warn!("Failed to search: {}", err);
+                SearchResponse::default()
+            }
+        }
+    }
+
+    async fn search_in_language(
+        self,
+        _context: tarpc::context::Context,
+        language: String,
+        tokens: Vec<String>,
+        limit: usize,
+        offset: usize,
+    ) -> SearchResponse {
+        match self
+            .ctx
+            .code
+            .search_in_language(&language, &tokens, limit, offset)
+            .await
+        {
+            Ok(serp) => serp,
+            Err(err) => {
+                warn!("Failed to search: {}", err);
+                SearchResponse::default()
+            }
+        }
     }
 }

@@ -14,7 +14,7 @@ pub async fn load_text_generation(
     parallelism: u8,
 ) -> (Arc<dyn TextGeneration>, PromptInfo) {
     #[cfg(feature = "experimental-http")]
-    if args.device == crate::serve::Device::ExperimentalHttp {
+    if device == &Device::ExperimentalHttp {
         let (engine, prompt_template) = http_api_bindings::create(model_id);
         return (
             engine,

@@ -1,24 +1,24 @@
-use std::{
-    net::{Ipv4Addr, SocketAddr},
-    sync::Arc,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
-use axum::{routing, Router, Server};
-use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
+use axum::{routing, Router};
 use clap::Args;
-use tabby_common::{config::Config, usage};
+use tabby_common::{
+    api,
+    api::{code::CodeSearch, event::EventLogger},
+    config::Config,
+    usage,
+};
 use tokio::time::sleep;
-use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
+use tower_http::timeout::TimeoutLayer;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    api::{self},
-    fatal, routes,
+    routes::{self, run_app},
     services::{
         chat::{self, create_chat_service},
+        code::create_code_search,
         completion::{self, create_completion_service},
         event::create_logger,
         health,
@@ -70,7 +70,7 @@ struct ApiDoc;
 pub struct ServeArgs {
     /// Model id for `/completions` API endpoint.
     #[clap(long)]
-    model: String,
+    model: Option<String>,
 
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
@@ -101,46 +101,53 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     info!("Starting server, this might takes a few minutes...");
 
-    let app = Router::new()
-        .merge(api_router(args, config).await)
+    let logger = Arc::new(create_logger());
+    let code = Arc::new(create_code_search());
+
+    let api = api_router(args, config, logger.clone(), code.clone()).await;
+    let ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let app = tabby_webserver::attach_webserver(app).await;
+    let (api, ui) = tabby_webserver::attach_webserver(api, ui, logger, code).await;
 
     #[cfg(not(feature = "ee"))]
-    let app = app.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
-
-    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
-    info!("Listening at {}", address);
+    let ui = ui.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
 
     start_heartbeat(args);
-    Server::bind(&address)
-        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
+    run_app(api, Some(ui), args.port).await
 }
 
 async fn load_model(args: &ServeArgs) {
-    download_model_if_needed(&args.model).await;
+    if let Some(model) = &args.model {
+        download_model_if_needed(model).await;
+    }
+
     if let Some(chat_model) = &args.chat_model {
         download_model_if_needed(chat_model).await
     }
 }
 
-async fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let logger = Arc::new(create_logger());
-    let code = Arc::new(crate::services::code::create_code_search());
-    let completion = Arc::new(
-        create_completion_service(
-            code.clone(),
-            logger.clone(),
-            &args.model,
-            &args.device,
-            args.parallelism,
-        )
-        .await,
-    );
+async fn api_router(
+    args: &ServeArgs,
+    config: &Config,
+    logger: Arc<dyn EventLogger>,
+    code: Arc<dyn CodeSearch>,
+) -> Router {
+    let completion_state = if let Some(model) = &args.model {
+        Some(Arc::new(
+            create_completion_service(
+                code.clone(),
+                logger.clone(),
+                model,
+                &args.device,
+                args.parallelism,
+            )
+            .await,
+        ))
+    } else {
+        None
+    };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
         Some(Arc::new(
@@ -153,10 +160,11 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let mut routers = vec![];
 
     let health_state = Arc::new(health::HealthState::new(
-        &args.model,
+        args.model.as_deref(),
         args.chat_model.as_deref(),
         &args.device,
     ));
+
     routers.push({
         Router::new()
             .route(
@@ -173,16 +181,18 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
             )
     });
 
-    routers.push({
-        Router::new()
-            .route(
-                "/v1/completions",
-                routing::post(routes::completions).with_state(completion),
-            )
-            .layer(TimeoutLayer::new(Duration::from_secs(
-                config.server.completion_timeout,
-            )))
-    });
+    if let Some(completion_state) = completion_state {
+        routers.push({
+            Router::new()
+                .route(
+                    "/v1/completions",
+                    routing::post(routes::completions).with_state(completion_state),
+                )
+                .layer(TimeoutLayer::new(Duration::from_secs(
+                    config.server.completion_timeout,
+                )))
+        });
+    }
 
     if let Some(chat_state) = chat_state {
         routers.push({
@@ -204,12 +214,15 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     for router in routers {
         root = root.merge(router);
     }
-    root.layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer())
+    root
 }
 
 fn start_heartbeat(args: &ServeArgs) {
-    let state = health::HealthState::new(&args.model, args.chat_model.as_deref(), &args.device);
+    let state = health::HealthState::new(
+        args.model.as_deref(),
+        args.chat_model.as_deref(),
+        &args.device,
+    );
     tokio::spawn(async move {
         loop {
             usage::capture("ServeHealth", &state).await;

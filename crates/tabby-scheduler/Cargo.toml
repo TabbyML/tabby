@@ -23,6 +23,8 @@ tree-sitter-go = "0.20.0"
 tree-sitter-ruby= "0.20.0"
 ignore = "0.4.20"
 kdam = { version = "0.5.0" }
+requirements = "0.3.0"
+serdeconv.workspace = true
 
 [dev-dependencies]
 temp_testdir = "0.2"

@@ -22,6 +22,8 @@ Commands~
 					*:Tabby-status*
 :Tabby  status		Check the status of Tabby. Report error message if any 
 			issue exists.
+					*:Tabby-version*
+:Tabby  version		Print the version of Tabby plugin.
 					*:Tabby-auth*
 :Tabby  auth		Start to complete the authentication process. Only used
 			when you are using a Tabby Cloud endpoint.

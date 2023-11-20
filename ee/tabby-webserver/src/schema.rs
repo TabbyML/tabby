@@ -13,6 +13,11 @@ impl Query {
     async fn workers(ctx: &ServerContext) -> Vec<Worker> {
         ctx.list_workers().await
     }
+
+    async fn registration_token(ctx: &ServerContext) -> FieldResult<String> {
+        let token = ctx.read_registration_token().await?;
+        Ok(token)
+    }
 }
 
 #[derive(Default)]
