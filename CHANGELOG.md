@@ -4,7 +4,7 @@
 
 * Add distribution support (running completion / chat model on different process / machine).
 * Add conversation history in chat playground.
-* Add `/v1/metrics` endpoint for prometheus metrics collection. 
+* Add `/metrics` endpoint for prometheus metrics collection. 
 
 ## Fixes and Improvements
 

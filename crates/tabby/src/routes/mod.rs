@@ -1,3 +1,5 @@
+mod metrics;
+
 use std::{
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
@@ -16,7 +18,7 @@ pub async fn run_app(app: Router, port: u16) {
     let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
     let app = app
         .route(
-            "/v1/metrics",
+            "/metrics",
             routing::get(metrics::metrics).with_state(Arc::new(prometheus_handle)),
         )
         .layer(CorsLayer::permissive())
@@ -36,12 +38,10 @@ mod chat;
 mod completions;
 mod events;
 mod health;
-mod metrics;
 mod search;
 
 pub use chat::*;
 pub use completions::*;
 pub use events::*;
 pub use health::*;
-pub use metrics::*;
 pub use search::*;
