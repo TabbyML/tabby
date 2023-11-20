@@ -1,12 +1,8 @@
-use std::{
-    env::consts::ARCH,
-    sync::Arc,
-};
+use std::{env::consts::ARCH, sync::Arc};
 
 use anyhow::Result;
 use axum::{routing, Router};
 use clap::Args;
-
 use tabby_webserver::api::{tracing_context, HubClient, WorkerKind};
 use tracing::{info, warn};
 

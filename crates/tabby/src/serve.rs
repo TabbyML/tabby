@@ -1,5 +1,4 @@
 use std::{
-    net::{Ipv4Addr, SocketAddr},
     sync::Arc,
     time::Duration,
 };
@@ -117,9 +116,6 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(not(feature = "ee"))]
     let app = app.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
-
-    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
-    info!("Listening at {}", address);
 
     start_heartbeat(args);
     run_app(app, args.port).await
