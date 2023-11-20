@@ -1,21 +1,17 @@
 use std::{
     env::consts::ARCH,
-    net::{Ipv4Addr, SocketAddr},
     sync::Arc,
 };
 
 use anyhow::Result;
 use axum::{routing, Router};
-use axum_prometheus::PrometheusMetricLayer;
-use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use hyper::Server;
+
 use tabby_webserver::api::{tracing_context, HubClient, WorkerKind};
-use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
 
 use crate::{
-    fatal, routes,
+    routes::{self, run_app},
     services::{
         chat::create_chat_service,
         completion::create_completion_service,
@@ -86,29 +82,12 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
 
     let context = WorkerContext::new(&args.url).await;
 
-    let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
-
     let app = match kind {
         WorkerKind::Completion => make_completion_route(context, args).await,
         WorkerKind::Chat => make_chat_route(context, args).await,
     };
 
-    let app = app
-        .route(
-            "/v1/metrics",
-            routing::get(routes::metrics).with_state(Arc::new(prometheus_handle)),
-        )
-        .layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer())
-        .layer(prometheus_layer);
-
-    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
-    info!("Listening at {}", address);
-
-    Server::bind(&address)
-        .serve(app.into_make_service())
-        .await
-        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
+    run_app(app, args.port).await
 }
 
 struct WorkerContext {
