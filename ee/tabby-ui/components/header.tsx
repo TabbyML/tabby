@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconGitHub, IconNotice } from '@/components/ui/icons'
@@ -10,6 +9,9 @@ import Link from 'next/link'
 import { useHealth } from '@/lib/hooks/use-health'
 import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
 import { compare } from 'compare-versions'
+import { useMergedWorkers } from '@/lib/hooks/use-remote-worker'
+import { WorkerKind } from '@/lib/gql/generates/graphql'
+import { has } from 'lodash-es'
 
 const ThemeToggle = dynamic(
   () => import('@/components/theme-toggle').then(x => x.ThemeToggle),
@@ -18,7 +20,8 @@ const ThemeToggle = dynamic(
 
 export function Header() {
   const { data } = useHealth()
-  const isChatEnabled = !!data?.chat_model
+  const workers = useMergedWorkers(data)
+  const isChatEnabled = has(workers, WorkerKind.Chat)
   const version = data?.version?.git_describe
   const { data: latestRelease } = useLatestRelease()
   const newVersionAvailable = isNewVersionAvailable(version, latestRelease)

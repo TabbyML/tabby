@@ -11,7 +11,9 @@
     "preview": "next build && next start",
     "type-check": "tsc --noEmit",
     "format:write": "prettier --write \"{app,lib,components}/**/*.{ts,tsx,mdx}\" --cache",
-    "format:check": "prettier --check \"{app,lib,components}**/*.{ts,tsx,mdx}\" --cache"
+    "format:check": "prettier --check \"{app,lib,components}**/*.{ts,tsx,mdx}\" --cache",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "codegen:watch": "graphql-codegen --config codegen.ts --watch"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "1.0.4",
@@ -33,6 +35,8 @@
     "compare-versions": "^6.1.0",
     "downshift": "^8.2.2",
     "focus-trap-react": "^10.1.1",
+    "graphql": "^16.8.1",
+    "graphql-request": "^6.1.0",
     "lodash-es": "^4.17.21",
     "nanoid": "^4.0.2",
     "next": "^13.4.7",
@@ -52,6 +56,8 @@
     "zustand": "^4.4.6"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "5.0.0",
+    "@graphql-codegen/client-preset": "4.1.0",
     "@tailwindcss/typography": "^0.5.9",
     "@types/lodash-es": "^4.17.10",
     "@types/node": "^17.0.12",
