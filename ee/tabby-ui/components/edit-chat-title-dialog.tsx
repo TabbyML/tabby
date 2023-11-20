@@ -63,7 +63,7 @@ export const EditChatTitleDialog = ({
       </Tooltip>
       <DialogContent className="bg-background">
         <DialogHeader className="gap-3">
-          <DialogTitle>Edit Chat Title</DialogTitle>
+          <DialogTitle>Set Chat Title</DialogTitle>
           <DialogDescription asChild>
             <form className="relative" onSubmit={handleSubmit} ref={formRef}>
               <Input
