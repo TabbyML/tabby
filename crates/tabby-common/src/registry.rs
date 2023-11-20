@@ -69,6 +69,7 @@ impl ModelRegistry {
     pub fn save_model_info(&self, name: &str) {
         let model_info = self.get_model_info(name);
         let path = self.get_model_dir(name).join("tabby.json");
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
         serdeconv::to_json_file(model_info, path).unwrap();
     }
 
