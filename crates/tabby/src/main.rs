@@ -14,6 +14,7 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
+use tracing::metadata::LevelFilter;
 use tabby_common::config::Config;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
@@ -174,9 +175,9 @@ fn init_logging(otlp_endpoint: Option<String>) {
         };
     }
 
-    let env_filter = EnvFilter::from_default_env()
-        .add_directive("axum_tracing_opentelemetry=info".parse().unwrap())
-        .add_directive("otel=debug".parse().unwrap());
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
 
     tracing_subscriber::registry()
         .with(layers)
