@@ -984,13 +984,17 @@ class TestWav2Vec2:
         w2v2_model = transformers.Wav2Vec2ForCTC.from_pretrained(model_name)
         del w2v2_model.wav2vec2.encoder.layers
         del w2v2_model.wav2vec2.encoder.layer_norm
-        torch.save(w2v2_model, output_dir + "/wav2vec2_partial.bin")
+        w2v2_model.save_pretrained(output_dir + "/wav2vec2_partial.bin")
         w2v2_processor = transformers.Wav2Vec2Processor.from_pretrained(model_name)
         torch.save(w2v2_processor, output_dir + "/wav2vec2_processor.bin")
 
         device = "cuda" if os.environ.get("CUDA_VISIBLE_DEVICES") else "cpu"
         cpu_threads = int(os.environ.get("OMP_NUM_THREADS", 0))
-        w2v2_model = torch.load(output_dir + "/wav2vec2_partial.bin").to(device)
+        w2v2_model = transformers.Wav2Vec2ForCTC.from_pretrained(
+            output_dir + "/wav2vec2_partial.bin"
+        ).to(device)
+        del w2v2_model.wav2vec2.encoder.layers
+        del w2v2_model.wav2vec2.encoder.layer_norm
         w2v2_processor = torch.load(output_dir + "/wav2vec2_processor.bin")
         ct2_w2v2_model = ctranslate2.models.Wav2Vec2(
             output_dir,
