@@ -1,12 +1,6 @@
-use std::{
-    net::{Ipv4Addr, SocketAddr},
-    sync::Arc,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
-use axum::{routing, Router, Server};
-use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
-use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
+use axum::{routing, Router};
 use clap::Args;
 use tabby_common::{
     api,
@@ -15,13 +9,13 @@ use tabby_common::{
     usage,
 };
 use tokio::time::sleep;
-use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
+use tower_http::timeout::TimeoutLayer;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    fatal, routes,
+    routes::{self, run_app},
     services::{
         chat::{self, create_chat_service},
         code::create_code_search,
@@ -50,7 +44,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search, routes::metrics),
+    paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -109,32 +103,19 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let logger = Arc::new(create_logger());
     let code = Arc::new(create_code_search());
-    let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
-    let metrics_handle = Arc::new(prometheus_handle);
 
-    let app = Router::new()
-        .merge(api_router(args, config, logger.clone(), code.clone(), metrics_handle).await)
+    let api = api_router(args, config, logger.clone(), code.clone()).await;
+    let ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let app = tabby_webserver::attach_webserver(app, logger, code).await;
+    let (api, ui) = tabby_webserver::attach_webserver(api, ui, logger, code).await;
 
     #[cfg(not(feature = "ee"))]
-    let app = app.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
-
-    let app = app
-        .layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer())
-        .layer(prometheus_layer);
-
-    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
-    info!("Listening at {}", address);
+    let ui = ui.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
 
     start_heartbeat(args);
-    Server::bind(&address)
-        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
+    run_app(api, Some(ui), args.port).await
 }
 
 async fn load_model(args: &ServeArgs) {
@@ -152,7 +133,6 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
-    metrics_handle: Arc<PrometheusHandle>,
 ) -> Router {
     let completion_state = if let Some(model) = &args.model {
         Some(Arc::new(
@@ -198,10 +178,6 @@ async fn api_router(
             .route(
                 "/v1/health",
                 routing::get(routes::health).with_state(health_state),
-            )
-            .route(
-                "/v1/metrics",
-                routing::get(routes::metrics).with_state(metrics_handle),
             )
     });
 

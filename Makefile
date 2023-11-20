@@ -26,7 +26,6 @@ bump-release-version:
 update-openapi-doc:
 	curl http://localhost:8080/api-docs/openapi.json | jq '                                                             \
 	  delpaths([                                                                                                        \
-		  ["paths", "/v1/metrics"],                                                                                 \
 		  ["paths", "/v1beta/chat/completions"],                                                                    \
 		  ["paths", "/v1beta/search"],                                                                              \
 		  ["components", "schemas", "CompletionRequest", "properties", "prompt"],                                   \
