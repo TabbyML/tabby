@@ -1,7 +1,0 @@
-[32m2023-11-15 11:31:25 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 9e6d16f4-2ae5-48f7-abbf-792b77126777 - 17812 - LOGS_CAPTURED - Started capturing logs in process (pid: 17812).
-[32m2023-11-15 11:31:25 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 9e6d16f4-2ae5-48f7-abbf-792b77126777 - 17812 - tabby_dataset - STEP_START - Started execution of step "tabby_dataset".
-[32m2023-11-15 11:31:25 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 9e6d16f4-2ae5-48f7-abbf-792b77126777 - 17812 - tabby_dataset - STEP_OUTPUT - Yielded output "result" of type "Any". (Type check passed).
-[32m2023-11-15 11:31:25 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 9e6d16f4-2ae5-48f7-abbf-792b77126777 - tabby_dataset - Writing file at: /Users/zhangyan/myenv/tabby-data-pipeline/tmpswfez7sc/storage/tabby_dataset using PickledObjectFilesystemIOManager...
-[32m2023-11-15 11:31:25 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 9e6d16f4-2ae5-48f7-abbf-792b77126777 - 17812 - tabby_dataset - ASSET_MATERIALIZATION - Materialized value tabby_dataset.
-[32m2023-11-15 11:31:25 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 9e6d16f4-2ae5-48f7-abbf-792b77126777 - 17812 - tabby_dataset - HANDLED_OUTPUT - Handled output "result" using IO manager "io_manager"
-[32m2023-11-15 11:31:25 -0800[0m - dagster - [34mDEBUG[0m - __ASSET_JOB_0 - 9e6d16f4-2ae5-48f7-abbf-792b77126777 - 17812 - tabby_dataset - STEP_SUCCESS - Finished execution of step "tabby_dataset" in 49ms.
