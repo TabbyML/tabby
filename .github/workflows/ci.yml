@@ -92,6 +92,8 @@ jobs:
           target: ${{ matrix.target }}
           components: clippy
 
+      - run: rustup default ${{ matrix.toolchain }}
+
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
         with:
