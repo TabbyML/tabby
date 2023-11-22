@@ -10,6 +10,3 @@
   (object_literal  (delegation_specifier) @name) @definition.object
 )
 
-(
-  (type_alias (type_identifier) @name) @definition.type
-)
