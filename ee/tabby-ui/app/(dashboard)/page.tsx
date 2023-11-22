@@ -16,6 +16,9 @@ import { PropsWithChildren, useEffect, useState } from 'react'
 import WorkerCard from './components/worker-card'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
+import { useGraphQL } from '@/lib/hooks/use-graphql'
+import { getRegistrationTokenDocument } from '@/lib/gql/request-documents'
+import { CopyButton } from '@/components/copy-button'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
@@ -75,6 +78,9 @@ function toBadgeString(str: string) {
 function MainPanel() {
   const { data: healthInfo } = useHealth()
   const workers = useWorkers(healthInfo)
+  const { data: registrationTokenRes } = useGraphQL(
+    getRegistrationTokenDocument
+  )
 
   if (!healthInfo) return
 
@@ -127,6 +133,17 @@ function MainPanel() {
           />
         </div>
       </div>
+      {!!registrationTokenRes?.registrationToken && (
+        <div className="mt-4 rounded-lg bg-zinc-100 p-4 dark:bg-zinc-800">
+          <span className="font-bold">Registrantion Token</span>
+          <div className="mt-4 flex items-center gap-1">
+            <span className="text-sm">
+              {registrationTokenRes.registrationToken}
+            </span>
+            <CopyButton value={registrationTokenRes.registrationToken} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

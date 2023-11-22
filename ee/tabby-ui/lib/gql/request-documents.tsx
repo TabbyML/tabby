@@ -14,3 +14,9 @@ export const getAllWorkersDocument = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const getRegistrationTokenDocument = graphql(/* GraphQL */ `
+  query GetRegistrationToken {
+    registrationToken
+  }
+`)

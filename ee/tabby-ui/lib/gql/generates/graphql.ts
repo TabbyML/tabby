@@ -74,6 +74,13 @@ export type GetWorkersQuery = {
   }>
 }
 
+export type GetRegistrationTokenQueryVariables = Exact<{ [key: string]: never }>
+
+export type GetRegistrationTokenQuery = {
+  __typename?: 'Query'
+  registrationToken: string
+}
+
 export const GetWorkersDocument = {
   kind: 'Document',
   definitions: [
@@ -106,3 +113,22 @@ export const GetWorkersDocument = {
     }
   ]
 } as unknown as DocumentNode<GetWorkersQuery, GetWorkersQueryVariables>
+export const GetRegistrationTokenDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'query',
+      name: { kind: 'Name', value: 'GetRegistrationToken' },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'registrationToken' } }
+        ]
+      }
+    }
+  ]
+} as unknown as DocumentNode<
+  GetRegistrationTokenQuery,
+  GetRegistrationTokenQueryVariables
+>
