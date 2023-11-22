@@ -1,33 +1,26 @@
-import {
-  CardTitle,
-  CardHeader,
-  CardContent,
-  Card,
-  CardDescription
-} from '@/components/ui/card'
-import { HealthInfo } from '@/lib/hooks/use-health'
+import { CardTitle, CardHeader, CardContent, Card } from '@/components/ui/card'
+import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 
-type RunnerType = 'completion' | 'chat' | 'index'
+type RunnerType = WorkerKind | 'INDEX'
 
-interface RunnerCardProps {
-  source: string
-  name: string
-  type: RunnerType
-  health: HealthInfo
+interface RunnerCardProps extends Partial<Omit<Worker, '__typename' | 'kind'>> {
+  kind: RunnerType
 }
 
 export default function RunnerCard({
-  source,
+  addr,
   name,
-  type,
-  health
+  kind,
+  device,
+  cudaDevices,
+  cpuCount,
+  cpuInfo
 }: RunnerCardProps) {
-  const { device, cuda_devices } = health
   return (
     <Card className="rounded-xl p-2 shadow-md">
       <CardHeader className="p-0 px-4 pb-2 pt-4">
         <CardTitle className="text-md flex items-center font-normal">
-          <ModelIcon type={type} />
+          <ModelIcon type={kind} />
           <p className="ml-2">{name}</p>
         </CardTitle>
       </CardHeader>
@@ -51,7 +44,7 @@ export default function RunnerCard({
             <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" />
             <path d="M12 12V8" />
           </svg>
-          <p className="ml-2">{source}</p>
+          <p className="ml-2">{addr}</p>
         </Info>
         <Info>
           <svg
@@ -78,11 +71,12 @@ export default function RunnerCard({
             <path d="M9 20v2" />
           </svg>
           <p className="ml-2">
-            {health.cpu_info} ({health.cpu_count} cores)
+            {cpuInfo} ({cpuCount} cores)
           </p>
         </Info>
         {device == 'cuda' &&
-          cuda_devices.map((x, i) => (
+          cudaDevices?.length &&
+          cudaDevices.map((x, i) => (
             <Info key={i}>
               <svg
                 className=" h-5 w-5 text-gray-400"
@@ -128,7 +122,7 @@ function Info({ children }: InfoProps) {
 
 function ModelIcon({ type }: { type: RunnerType }) {
   const className = 'h-5 w-5'
-  if (type == 'completion') {
+  if (type == WorkerKind.Completion) {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -148,7 +142,7 @@ function ModelIcon({ type }: { type: RunnerType }) {
         <path d="m14 17 2-2-2-2" />
       </svg>
     )
-  } else if (type == 'chat') {
+  } else if (type == WorkerKind.Chat) {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -166,7 +160,7 @@ function ModelIcon({ type }: { type: RunnerType }) {
         <path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" />
       </svg>
     )
-  } else if (type == 'index') {
+  } else if (type == 'INDEX') {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"
