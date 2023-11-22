@@ -1,21 +1,15 @@
+import React from 'react'
 import { groupBy, findIndex, slice } from 'lodash-es'
-import {
-  GetWorkersDocument,
-  Worker,
-  WorkerKind
-} from '@/lib/gql/generates/graphql'
+import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
+import { getAllWorkersDocument } from '@/lib/gql/request-documents'
 import { useGraphQL } from './use-graphql'
 import type { HealthInfo } from './use-health'
-import React from 'react'
-
-function useRemoteWorkers() {
-  return useGraphQL(GetWorkersDocument)
-}
 
 const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
   [WorkerKind.Chat]: 'chat_model',
   [WorkerKind.Completion]: 'model'
 }
+
 function transformHealthInfoToWorker(
   healthInfo: HealthInfo,
   kind: WorkerKind
@@ -32,16 +26,16 @@ function transformHealthInfoToWorker(
   }
 }
 
-function useMergedWorkers(healthInfo: HealthInfo | undefined) {
-  const { data } = useRemoteWorkers()
+function useWorkers(healthInfo?: HealthInfo) {
+  const { data } = useGraphQL(getAllWorkersDocument)
   let workers = data?.workers
 
   const groupedWorkers = React.useMemo(() => {
     const _workers = slice(workers)
     const haveRemoteCompletionWorkers =
-      findIndex(workers, { kind: WorkerKind.Completion }) > -1
+      findIndex(_workers, { kind: WorkerKind.Completion }) > -1
     const haveRemoteChatWorkers =
-      findIndex(workers, { kind: WorkerKind.Chat }) > -1
+      findIndex(_workers, { kind: WorkerKind.Chat }) > -1
 
     if (!haveRemoteCompletionWorkers && healthInfo?.model) {
       _workers.push(
@@ -57,4 +51,4 @@ function useMergedWorkers(healthInfo: HealthInfo | undefined) {
   return groupedWorkers
 }
 
-export { useRemoteWorkers, useMergedWorkers }
+export { useWorkers }

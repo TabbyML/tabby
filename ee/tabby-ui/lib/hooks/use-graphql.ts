@@ -1,5 +1,5 @@
 import useSWR, { SWRResponse, SWRConfiguration } from 'swr'
-import { request } from '@/lib/tabby-gql-client'
+import { gqlClient } from '@/lib/tabby-gql-client'
 import { Variables } from 'graphql-request'
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 
@@ -10,7 +10,7 @@ function useGraphQL<TResult, TVariables extends Variables | undefined>(
 ): SWRResponse<TResult> {
   return useSWR(
     [document, variables],
-    ([document, variables]) => request({ document, variables }),
+    ([document, variables]) => gqlClient.request(document, variables),
     swrConfiguration
   )
 }

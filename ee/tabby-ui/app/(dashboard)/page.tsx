@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator'
 import { useHealth } from '@/lib/hooks/use-health'
 import { PropsWithChildren, useEffect, useState } from 'react'
 import WorkerCard from './components/worker-card'
-import { useMergedWorkers } from '@/lib/hooks/use-remote-worker'
+import { useWorkers } from '@/lib/hooks/use-worker'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
@@ -74,7 +74,7 @@ function toBadgeString(str: string) {
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()
-  const workers = useMergedWorkers(healthInfo)
+  const workers = useWorkers(healthInfo)
 
   if (!healthInfo) return
 

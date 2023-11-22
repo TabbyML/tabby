@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useHealth } from '@/lib/hooks/use-health'
 import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
 import { compare } from 'compare-versions'
-import { useMergedWorkers } from '@/lib/hooks/use-remote-worker'
+import { useWorkers } from '@/lib/hooks/use-worker'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { has } from 'lodash-es'
 
@@ -20,7 +20,7 @@ const ThemeToggle = dynamic(
 
 export function Header() {
   const { data } = useHealth()
-  const workers = useMergedWorkers(data)
+  const workers = useWorkers(data)
   const isChatEnabled = has(workers, WorkerKind.Chat)
   const version = data?.version?.git_describe
   const { data: latestRelease } = useLatestRelease()

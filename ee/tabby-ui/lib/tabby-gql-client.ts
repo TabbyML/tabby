@@ -1,15 +1,5 @@
-import { GraphQLClient, Variables, RequestOptions } from 'graphql-request'
+import { GraphQLClient } from 'graphql-request'
 
-export const graphQLClient = new GraphQLClient(
-  `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`,
-  {
-    credentials: 'include',
-    mode: 'cors'
-  }
+export const gqlClient = new GraphQLClient(
+  `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`
 )
-
-export function request<T, V extends Variables = Variables>(
-  options: RequestOptions<V, T>
-) {
-  return graphQLClient.request(options)
-}

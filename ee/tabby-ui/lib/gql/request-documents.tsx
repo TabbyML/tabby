@@ -1,6 +1,6 @@
 import { graphql } from './generates'
 
-export const GetAllWorkers = graphql(/* GraphQL */ `
+export const getAllWorkersDocument = graphql(/* GraphQL */ `
   query GetWorkers {
     workers {
       kind
