@@ -13,7 +13,3 @@
 (
   (type_alias (type_identifier) @name) @definition.type
 )
-
-(
-  (import_header (identifier) @name) @definition.import
-)
