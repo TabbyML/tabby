@@ -101,8 +101,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
-          build-args: |
-            RUST_TOOLCHAIN=1.73.0
+          build-args: RUST_TOOLCHAIN=${{ vars.RUST_TOOLCHAIN }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3
