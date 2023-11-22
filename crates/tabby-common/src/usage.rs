@@ -16,6 +16,26 @@ struct UsageTracker {
 
 impl UsageTracker {
     fn new() -> Self {
+        if std::env::var("TABBY_DISABLE_USAGE_COLLECTION").is_ok() {
+            eprintln!(
+                "
+  \x1b[34;1mTELEMETRY\x1b[0m
+
+  TABBY_DISABLE_USAGE_COLLECTION is set and telemetry has been disabled.
+
+  \x1b[1mWelcome to Tabby!\x1b[0m
+
+  If you have any questions or would like to engage with the Tabby team, please join us on Slack
+  (https://tinyurl.com/35sv9kz2).
+
+"
+            );
+            return Self {
+                id: String::from("00000000-0000-0000-000000000000"),
+                client: None,
+            };
+        };
+
         if fs::metadata(usage_id_file()).is_err() {
             // usage id file doesn't exists.
             let id = Uuid::new_v4().to_string();
@@ -42,13 +62,10 @@ impl UsageTracker {
         }
 
         let id = fs::read_to_string(usage_id_file()).expect("Failed to read usage id");
-        let client = if std::env::var("TABBY_DISABLE_USAGE_COLLECTION").is_ok() {
-            None
-        } else {
-            Some(Client::new())
+        return Self {
+            id: id,
+            client: Some(Client::new()),
         };
-
-        Self { id, client }
     }
 
     async fn capture<T>(&self, event: &str, properties: T)
