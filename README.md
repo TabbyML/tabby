@@ -55,7 +55,7 @@ The easiest way to start a Tabby server is by using the following Docker command
 docker run -it \
   --gpus all -p 8080:8080 -v $HOME/.tabby:/data \
   tabbyml/tabby \
-  serve --model TabbyML/SantaCoder-1B --device cuda
+  serve --model TabbyML/StarCoder-1B --device cuda
 ```
 For additional options (e.g inference type, parallelism), please refer to the [documentation page](https://tabbyml.github.io/tabby).
 
