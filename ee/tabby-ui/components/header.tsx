@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useHealth } from '@/lib/hooks/use-health'
 import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
 import { compare } from 'compare-versions'
-import { useWorkers } from '@/lib/hooks/use-worker'
+import { useWorkers } from '@/lib/hooks/use-workers'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { has } from 'lodash-es'
 

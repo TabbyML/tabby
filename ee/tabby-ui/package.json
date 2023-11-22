@@ -70,6 +70,7 @@
     "@types/react-syntax-highlighter": "^15.5.6",
     "@typescript-eslint/parser": "^5.59.7",
     "autoprefixer": "^10.4.13",
+    "encoding": "^0.1.13",
     "eslint": "^8.31.0",
     "eslint-config-next": "13.4.7-canary.1",
     "eslint-config-prettier": "^8.3.0",

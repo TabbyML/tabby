@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator'
 import { useHealth } from '@/lib/hooks/use-health'
 import { PropsWithChildren, useEffect, useState } from 'react'
 import WorkerCard from './components/worker-card'
-import { useWorkers } from '@/lib/hooks/use-worker'
+import { useWorkers } from '@/lib/hooks/use-workers'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
