@@ -20,6 +20,9 @@ concurrency:
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
 
+env:
+  RUST_TOOLCHAIN: 1.73.0
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -35,7 +38,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ vars.RUST_TOOLCHAIN }}
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
@@ -86,11 +89,11 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ vars.RUST_TOOLCHAIN }}
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           target: ${{ matrix.target }}
           components: clippy
 
-      - run: rustup default ${{ vars.RUST_TOOLCHAIN }}
+      - run: rustup default ${{ env.RUST_TOOLCHAIN }}
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
