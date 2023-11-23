@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use anyhow::Result;
+use cargo_lock::dependency::graph::EdgeDirection;
 use tabby_common::Package;
 
 fn extract_deps<'a, I>(packages: I) -> Vec<Package>
@@ -25,8 +26,6 @@ pub fn process_cargo(path: &Path) -> Result<Vec<Package>> {
     let cargo_lock_file = path.join("Cargo.lock");
 
     let lockfile = cargo_lock::Lockfile::load(cargo_lock_file)?;
-
-    use cargo_lock::dependency::graph::EdgeDirection;
 
     let tree = lockfile.dependency_tree()?;
     let graph = tree.graph();

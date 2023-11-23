@@ -2,6 +2,7 @@ mod python;
 mod rust;
 
 use std::{collections::HashSet, path::Path};
+
 use tabby_common::DependencyFile;
 
 pub fn collect(path: &Path, file: &mut DependencyFile) {
