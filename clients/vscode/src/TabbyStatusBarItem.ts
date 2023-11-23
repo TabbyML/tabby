@@ -172,14 +172,19 @@ export class TabbyStatusBarItem {
 
     agent().on("issuesUpdated", (event: IssuesUpdatedEvent) => {
       console.debug("Tabby agent issuesUpdated", { event });
-      this.fsmService.send(agent().getStatus());
+      const status = agent().getStatus();
+      this.fsmService.send(status);
       const showCompletionResponseWarnings =
         !this.completionResponseWarningShown &&
         !this.extensionContext.globalState
           .get<string[]>("notifications.muted", [])
           .includes("completionResponseTimeIssues");
       if (event.issues.includes("connectionFailed")) {
-        notifications.showInformationWhenDisconnected();
+        // Only show this notification when user modifies the settings, do not show it when initializing
+        // FIXME: refactor this use a flag marks the event is trigger by modifying settings or initializing
+        if (status !== "notInitialized") {
+          notifications.showInformationWhenDisconnected();
+        }
       } else if (showCompletionResponseWarnings && event.issues.includes("highCompletionTimeoutRate")) {
         this.completionResponseWarningShown = true;
         notifications.showInformationWhenHighCompletionTimeoutRate();
