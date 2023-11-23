@@ -51,7 +51,7 @@ pub async fn attach_webserver(
         .route("/graphql", routing::get(playground("/graphql", None)))
         .layer(Extension(schema))
         .route("/hub", routing::get(ws_handler).with_state(ctx))
-        .nest("/repositories", repositories::routers());
+        .nest("/repositories", repositories::routes());
 
     let ui = ui
         .route("/graphiql", routing::get(graphiql("/graphql", None)))
