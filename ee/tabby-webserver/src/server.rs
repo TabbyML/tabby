@@ -10,7 +10,7 @@ use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::{info, warn};
 
 use crate::{
-    api::{HubError, Worker, WorkerKind},
+    api::{RegisterWorkerError, Worker, WorkerKind},
     db::DbConn,
 };
 
@@ -51,7 +51,7 @@ impl ServerContext {
         self.db_conn.reset_registration_token().await
     }
 
-    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, HubError> {
+    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
         let worker = match worker.kind {
             WorkerKind::Completion => self.completion.register(worker).await,
             WorkerKind::Chat => self.chat.register(worker).await,
@@ -64,7 +64,7 @@ impl ServerContext {
             );
             Ok(worker)
         } else {
-            Err(HubError::RequiresEnterpriseLicense)
+            Err(RegisterWorkerError::RequiresEnterpriseLicense)
         }
     }
 

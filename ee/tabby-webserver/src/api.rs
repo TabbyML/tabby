@@ -29,7 +29,7 @@ pub struct Worker {
 }
 
 #[derive(Serialize, Deserialize, Error, Debug)]
-pub enum HubError {
+pub enum RegisterWorkerError {
     #[error("Invalid token")]
     InvalidToken(String),
 
@@ -52,7 +52,7 @@ pub trait Hub {
         cpu_count: i32,
         cuda_devices: Vec<String>,
         token: String,
-    ) -> Result<Worker, HubError>;
+    ) -> Result<Worker, RegisterWorkerError>;
 
     async fn log_event(content: String);
 

@@ -17,7 +17,7 @@ mod websocket;
 
 use std::{net::SocketAddr, sync::Arc};
 
-use api::{Hub, HubError, Worker, WorkerKind};
+use api::{Hub, RegisterWorkerError, Worker, WorkerKind};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     http::Request,
@@ -126,26 +126,30 @@ impl Hub for Arc<HubImpl> {
         cpu_count: i32,
         cuda_devices: Vec<String>,
         token: String,
-    ) -> Result<Worker, HubError> {
+    ) -> Result<Worker, RegisterWorkerError> {
         if token.is_empty() {
-            return Err(HubError::InvalidToken("Empty worker token".to_string()));
+            return Err(RegisterWorkerError::InvalidToken(
+                "Empty worker token".to_string(),
+            ));
         }
         let server_token = match self.ctx.read_registration_token().await {
             Ok(t) => t,
             Err(err) => {
                 error!("fetch server token: {}", err.to_string());
-                return Err(HubError::InvalidToken(
+                return Err(RegisterWorkerError::InvalidToken(
                     "Failed to fetch server token".to_string(),
                 ));
             }
         };
         if server_token != token {
-            return Err(HubError::InvalidToken("Token mismatch".to_string()));
+            return Err(RegisterWorkerError::InvalidToken(
+                "Token mismatch".to_string(),
+            ));
         }
 
         let mut worker_addr = self.worker_addr.lock().await;
         if !worker_addr.is_empty() {
-            return Err(HubError::RegisterWorkerOnce);
+            return Err(RegisterWorkerError::RegisterWorkerOnce);
         }
 
         let addr = format!("http://{}:{}", self.conn.ip(), port);
