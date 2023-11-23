@@ -32,8 +32,6 @@ use schema::Schema;
 use server::ServerContext;
 use tarpc::server::{BaseChannel, Channel};
 
-use crate::repositories::repo::load_dataset;
-
 pub async fn attach_webserver(
     api: Router,
     ui: Router,
@@ -53,23 +51,13 @@ pub async fn attach_webserver(
         .route("/graphql", routing::get(playground("/graphql", None)))
         .layer(Extension(schema))
         .route("/hub", routing::get(ws_handler).with_state(ctx))
-        .nest("/repositories", repositories_routers().await);
+        .nest("/repositories", repositories::routers());
 
     let ui = ui
         .route("/graphiql", routing::get(graphiql("/graphql", None)))
         .fallback(ui::handler);
 
     (api, ui)
-}
-
-async fn repositories_routers() -> Router {
-    load_dataset().await.unwrap();
-
-    Router::new()
-        .route("/:name/resolve/", routing::get(repositories::resolve))
-        .route("/:name/resolve/*path", routing::get(repositories::resolve))
-        .route("/:name/meta/", routing::get(repositories::meta))
-        .route("/:name/meta/*path", routing::get(repositories::meta))
 }
 
 async fn distributed_tabby_layer(

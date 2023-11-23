@@ -1,15 +1,25 @@
-pub(crate) mod repo;
+mod resolve;
 
 use anyhow::Result;
-use axum::{extract::Path, http::StatusCode, response::Response, Json};
-use tabby_common::{path::repositories_dir, SourceFile};
-use tracing::{debug, instrument, warn};
+use axum::{extract::Path, http::StatusCode, response::Response, routing, Json, Router};
+use tabby_common::path::repositories_dir;
+use tracing::{instrument, warn};
 
-use crate::repositories::repo::{resolve_dir, resolve_file, Repository, DATASET};
+use crate::{
+    repositories,
+    repositories::resolve::{resolve_dir, resolve_file, resolve_meta, Meta, Repository},
+};
+
+pub fn routers() -> Router {
+    Router::new()
+        .route("/:name/resolve/", routing::get(repositories::resolve))
+        .route("/:name/resolve/*path", routing::get(repositories::resolve))
+        .route("/:name/meta/", routing::get(repositories::meta))
+        .route("/:name/meta/*path", routing::get(repositories::meta))
+}
 
 #[instrument(skip(repo))]
-pub async fn resolve(Path(repo): Path<Repository>) -> Result<Response, StatusCode> {
-    debug!("repo: {:?}", repo);
+async fn resolve(Path(repo): Path<Repository>) -> Result<Response, StatusCode> {
     let root = repositories_dir().join(repo.name_str());
     let full_path = root.join(repo.path_str());
     let is_dir = tokio::fs::metadata(full_path.clone())
@@ -37,13 +47,10 @@ pub async fn resolve(Path(repo): Path<Repository>) -> Result<Response, StatusCod
 }
 
 #[instrument(skip(repo))]
-pub async fn meta(Path(repo): Path<Repository>) -> Result<Json<SourceFile>, StatusCode> {
-    debug!("repo: {:?}", repo);
+async fn meta(Path(repo): Path<Repository>) -> Result<Json<Meta>, StatusCode> {
     let key = repo.dataset_key();
-    if let Some(dataset) = DATASET.get() {
-        if let Some(file) = dataset.get(&key) {
-            return Ok(Json(file.clone()));
-        }
+    if let Some(resp) = resolve_meta(&key) {
+        return Ok(Json(resp));
     }
     Err(StatusCode::NOT_FOUND)
 }
