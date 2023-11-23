@@ -106,6 +106,16 @@ function MainPanel() {
 
       <div className="mt-4 rounded-lg bg-zinc-100 p-4 dark:bg-zinc-800">
         <span className="font-bold">Workers</span>
+
+        {!!registrationTokenRes?.registrationToken && (
+          <div className="flex items-center gap-1">
+            Registeration token: <span className="text-sm rounded-lg text-red-600">
+              {registrationTokenRes.registrationToken}
+            </span>
+            <CopyButton value={registrationTokenRes.registrationToken} />
+          </div>
+        )}
+
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
           {!!workers?.[WorkerKind.Completion] && (
             <>
@@ -133,17 +143,6 @@ function MainPanel() {
           />
         </div>
       </div>
-      {!!registrationTokenRes?.registrationToken && (
-        <div className="mt-4 rounded-lg bg-zinc-100 p-4 dark:bg-zinc-800">
-          <span className="font-bold">Registrantion Token</span>
-          <div className="mt-4 flex items-center gap-1">
-            <span className="text-sm">
-              {registrationTokenRes.registrationToken}
-            </span>
-            <CopyButton value={registrationTokenRes.registrationToken} />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
