@@ -1,8 +1,14 @@
+## 1.1.3
+
+### Fixes:
+
+- Fixed a bug that caused the disconnected notification to show up every time when VSCode is started. Now, the notification will only appear after the user modifies the server endpoint settings and the connection fails.
+
 ## 1.1.2
 
 ### Fixes:
 
-- Fix a bug cause the completion does not show up if the completion cache is missing.
+- Fixed a bug that caused the completion to not show up when the completion cache is missing.
 
 ## 1.1.0
 
