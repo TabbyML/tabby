@@ -2,6 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use axum::{routing, Router};
 use clap::Args;
+use hyper::StatusCode;
 use tabby_common::{
     api,
     api::{code::CodeSearch, event::EventLogger},
@@ -192,6 +193,13 @@ async fn api_router(
                     config.server.completion_timeout,
                 )))
         });
+    } else {
+        routers.push({
+            Router::new().route(
+                "/v1/completions",
+                routing::post(StatusCode::NOT_IMPLEMENTED),
+            )
+        })
     }
 
     if let Some(chat_state) = chat_state {
@@ -199,6 +207,13 @@ async fn api_router(
             Router::new().route(
                 "/v1beta/chat/completions",
                 routing::post(routes::chat_completions).with_state(chat_state),
+            )
+        })
+    } else {
+        routers.push({
+            Router::new().route(
+                "/v1beta/chat/completions",
+                routing::post(StatusCode::NOT_IMPLEMENTED),
             )
         })
     }
