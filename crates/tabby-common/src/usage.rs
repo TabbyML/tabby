@@ -10,19 +10,12 @@ use crate::path::usage_id_file;
 static USAGE_API_ENDPOINT: &str = "https://app.tabbyml.com/api/usage";
 
 struct UsageTracker {
-    id: Option<String>,
-    client: Option<Client>,
+    id: String,
+    client: Client,
 }
 
 impl UsageTracker {
     fn new() -> Self {
-        if std::env::var("TABBY_DISABLE_USAGE_COLLECTION").is_ok() {
-            return Self {
-                id: None,
-                client: None,
-            };
-        };
-
         if fs::metadata(usage_id_file()).is_err() {
             // usage id file doesn't exists.
             let id = Uuid::new_v4().to_string();
@@ -50,8 +43,8 @@ impl UsageTracker {
 
         let id = fs::read_to_string(usage_id_file()).expect("Failed to read usage id");
         return Self {
-            id: Some(id),
-            client: Some(Client::new()),
+            id,
+            client: Client::new(),
         };
     }
 
@@ -59,19 +52,17 @@ impl UsageTracker {
     where
         T: Serialize,
     {
-        if let Some(client) = &self.client {
-            let payload = Payload {
-                distinct_id: self.id.as_ref().expect("No id is set"),
-                event,
-                properties,
-            };
-            client
-                .post(USAGE_API_ENDPOINT)
-                .json(&payload)
-                .send()
-                .await
-                .ok();
-        }
+        let payload = Payload {
+            distinct_id: &self.id,
+            event,
+            properties,
+        };
+        self.client
+            .post(USAGE_API_ENDPOINT)
+            .json(&payload)
+            .send()
+            .await
+            .ok();
     }
 }
 
@@ -84,12 +75,20 @@ struct Payload<'a, T> {
 }
 
 lazy_static! {
-    static ref TRACKER: UsageTracker = UsageTracker::new();
+    static ref TRACKER: Option<UsageTracker> = {
+        if std::env::var("TABBY_DISABLE_USAGE_COLLECTION").is_ok() {
+            None
+        } else {
+            Some(UsageTracker::new())
+        }
+    };
 }
 
 pub async fn capture<T>(event: &str, properties: T)
 where
     T: Serialize,
 {
-    TRACKER.capture(event, properties).await
+    if let Some(tracker) = TRACKER.as_ref() {
+        tracker.capture(event, properties).await;
+    }
 }
