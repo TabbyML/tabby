@@ -8,16 +8,18 @@ use axum::{
     Json,
 };
 use hyper::Body;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use tabby_common::{to_filename, SourceFile};
-use tokio::sync::OnceCell;
+use tabby_common::{config::Config, SourceFile, Tag};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 use tracing::error;
 
-pub(crate) static DATASET: OnceCell<HashMap<DatasetKey, SourceFile>> = OnceCell::const_new();
+lazy_static! {
+    static ref META: HashMap<DatasetKey, Meta> = load_meta();
+}
 
-const MIME_VENDOR: &str = "application/vnd.directory+json";
+const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
 #[derive(Hash, PartialEq, Eq, Debug)]
 pub struct DatasetKey {
@@ -53,34 +55,62 @@ struct ListDir {
     entries: Vec<String>,
 }
 
-/// Load dataset
-pub async fn load_dataset() -> Result<()> {
-    // `SourceFile::all()` depends on `std::io`, so it's blocking.
-    // We need to spawn a blocking task dedicated for such scenario.
-    let dataset = tokio::task::spawn_blocking(|| {
-        let mut dataset = HashMap::new();
-        let iter = match SourceFile::all() {
-            Ok(all) => all,
-            Err(err) => {
-                error!("load dataset: {}", err);
-                return dataset;
-            }
-        };
-        for mut file in iter {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Meta {
+    git_url: String,
+    filepath: String,
+    language: String,
+    max_line_length: usize,
+    avg_line_length: f32,
+    alphanum_fraction: f32,
+    tags: Vec<Tag>,
+}
+
+impl From<SourceFile> for Meta {
+    fn from(file: SourceFile) -> Self {
+        Self {
+            git_url: file.git_url,
+            filepath: file.filepath,
+            language: file.language,
+            max_line_length: file.max_line_length,
+            avg_line_length: file.avg_line_length,
+            alphanum_fraction: file.alphanum_fraction,
+            tags: file.tags,
+        }
+    }
+}
+
+/// TODO: implement auto reloading logic in future (so changes produced by tabby-scheduler command will be loaded)
+fn load_meta() -> HashMap<DatasetKey, Meta> {
+    let mut dataset = HashMap::new();
+    let repo_conf = match Config::load() {
+        Ok(config) => config
+            .repositories
+            .into_iter()
+            .map(|repo| (repo.git_url.clone(), repo))
+            .collect::<HashMap<_, _>>(),
+        Err(err) => {
+            error!("load config: {}", err);
+            return dataset;
+        }
+    };
+    let iter = match SourceFile::all() {
+        Ok(all) => all,
+        Err(err) => {
+            error!("load dataset: {}", err);
+            return dataset;
+        }
+    };
+    for file in iter {
+        if let Some(name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
             let key = DatasetKey {
-                local_name: to_filename(file.git_url.as_str()),
+                local_name: name,
                 rel_path: file.filepath.clone(),
             };
-            // exclude content from response data
-            file.content = "".to_string();
-            dataset.insert(key, file);
+            dataset.insert(key, file.into());
         }
-        dataset
-    })
-    .await?;
-
-    DATASET.set(dataset)?;
-    Ok(())
+    }
+    dataset
 }
 
 /// Resolve a directory
@@ -100,7 +130,7 @@ pub async fn resolve_dir(root: PathBuf, full_path: PathBuf) -> Result<Response> 
 
     let body = Json(ListDir { entries }).into_response();
     let resp = Response::builder()
-        .header(header::CONTENT_TYPE, MIME_VENDOR)
+        .header(header::CONTENT_TYPE, DIRECTORY_MIME_TYPE)
         .body(body.into_body())?;
 
     Ok(resp)
@@ -119,4 +149,11 @@ pub async fn resolve_file(root: PathBuf, repo: &Repository) -> Result<Response> 
     let resp = ServeDir::new(root).oneshot(req).await?;
 
     Ok(resp.map(boxed))
+}
+
+pub fn resolve_meta(key: &DatasetKey) -> Option<Meta> {
+    if let Some(meta) = META.get(key) {
+        return Some(meta.clone());
+    }
+    None
 }

@@ -50,12 +50,16 @@ impl RepositoryConfig {
             let path = self.git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(to_filename(&self.git_url))
+            repositories_dir().join(self.name())
         }
     }
 
     pub fn is_local_dir(&self) -> bool {
         self.git_url.starts_with("file://")
+    }
+
+    pub fn name(&self) -> String {
+        filenamify(&self.git_url)
     }
 }
 
@@ -73,13 +77,9 @@ impl Default for ServerConfig {
     }
 }
 
-pub fn to_filename<S: AsRef<str>>(s: S) -> String {
-    filenamify(s)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{to_filename, Config, RepositoryConfig};
+    use super::{Config, RepositoryConfig};
 
     #[test]
     fn it_parses_empty_config() {
@@ -102,8 +102,10 @@ mod tests {
     }
 
     #[test]
-    fn test_to_filename() {
-        let url = "https://github.com/TabbyML/tabby.git".to_string();
-        assert_eq!(to_filename(url), "https_github.com_TabbyML_tabby.git");
+    fn test_repository_config_name() {
+        let repo = RepositoryConfig {
+            git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
+        };
+        assert_eq!(repo.name(), "https_github.com_TabbyML_tabby.git");
     }
 }
