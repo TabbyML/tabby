@@ -56,8 +56,8 @@ pub struct Tag {
     pub syntax_type_name: String,
 }
 
-#[derive(Default, Serialize, Deserialize, Clone)]
-pub struct Dependency {
+#[derive(Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct Package {
     pub language: String,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,5 +66,5 @@ pub struct Dependency {
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct DependencyFile {
-    pub deps: Vec<Dependency>,
+    pub direct: Vec<Package>,
 }
