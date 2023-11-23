@@ -42,6 +42,30 @@ top_level_keywords = [
 ]
 
 [[config]]
+languages = ["kotlin"]
+line_comment = "//"
+top_level_keywords = [
+    "abstract",
+    "public",
+    "private",
+    "companion",
+    "class",
+    "data",
+    "const",
+    "actual",
+    "expect",
+    "sealed",
+    "suspend",
+    "fun",
+    "import",
+    "interface",
+    "package",
+    "var",
+    "val",
+    "enum",
+]
+
+[[config]]
 languages = ["javascript", "typescript", "javascriptreact", "typescriptreact"]
 line_comment = "//"
 top_level_keywords = [

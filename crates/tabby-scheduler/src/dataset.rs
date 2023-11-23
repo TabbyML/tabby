@@ -157,6 +157,7 @@ lazy_static! {
             ("haskell", vec!["hs"]),
             ("html", vec!["html"]),
             ("java", vec!["java"]),
+            ("kotlin", vec!["kt", "kts"]),
             ("julia", vec!["jl"]),
             ("lua", vec!["lua"]),
             ("makefile", vec!["Makefile"]),
