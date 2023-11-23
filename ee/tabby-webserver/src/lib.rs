@@ -6,6 +6,7 @@ use tabby_common::api::{
     code::{CodeSearch, SearchResponse},
     event::RawEventLogger,
 };
+use tokio::sync::Mutex;
 use tracing::{error, warn};
 use websocket::WebSocketTransport;
 
@@ -83,11 +84,31 @@ async fn handle_socket(state: Arc<ServerContext>, socket: WebSocket, addr: Socke
 pub struct HubImpl {
     ctx: Arc<ServerContext>,
     conn: SocketAddr,
+
+    worker_addr: Arc<Mutex<String>>,
 }
 
 impl HubImpl {
     pub fn new(ctx: Arc<ServerContext>, conn: SocketAddr) -> Self {
-        Self { ctx, conn }
+        Self {
+            ctx,
+            conn,
+            worker_addr: Arc::new(Mutex::new("".to_owned())),
+        }
+    }
+}
+
+impl Drop for HubImpl {
+    fn drop(&mut self) {
+        let ctx = self.ctx.clone();
+        let worker_addr = self.worker_addr.clone();
+
+        tokio::spawn(async move {
+            let worker_addr = worker_addr.lock().await;
+            if !worker_addr.is_empty() {
+                ctx.unregister_worker(worker_addr.as_str()).await;
+            }
+        });
     }
 }
 
@@ -122,10 +143,18 @@ impl Hub for Arc<HubImpl> {
             return Err(HubError::InvalidToken("Token mismatch".to_string()));
         }
 
+        let mut worker_addr = self.worker_addr.lock().await;
+        if !worker_addr.is_empty() {
+            return Err(HubError::RegisterWorkerOnce);
+        }
+
+        let addr = format!("http://{}:{}", self.conn.ip(), port);
+        *worker_addr = addr.clone();
+
         let worker = Worker {
             name,
             kind,
-            addr: format!("http://{}:{}", self.conn.ip(), port),
+            addr,
             device,
             arch,
             cpu_info,

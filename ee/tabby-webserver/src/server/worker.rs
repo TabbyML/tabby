@@ -37,6 +37,16 @@ impl WorkerGroup {
 
         Some(worker)
     }
+
+    pub async fn unregister(&self, worker_addr: &str) -> bool {
+        let mut workers = self.workers.write().await;
+        if let Some(index) = workers.iter().position(|x| x.addr == worker_addr) {
+            workers.remove(index);
+            true
+        } else {
+            false
+        }
+    }
 }
 
 fn random_index(size: usize) -> usize {

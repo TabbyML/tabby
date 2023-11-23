@@ -68,6 +68,19 @@ impl ServerContext {
         }
     }
 
+    pub async fn unregister_worker(&self, worker_addr: &str) {
+        let kind = if self.chat.unregister(worker_addr).await {
+            WorkerKind::Chat
+        } else if self.completion.unregister(worker_addr).await {
+            WorkerKind::Completion
+        } else {
+            warn!("Trying to unregister a worker missing in registry");
+            return;
+        };
+
+        info!("unregistering <{:?}> worker at {}", kind, worker_addr);
+    }
+
     pub async fn list_workers(&self) -> Vec<Worker> {
         [self.completion.list().await, self.chat.list().await].concat()
     }

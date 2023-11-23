@@ -35,6 +35,9 @@ pub enum HubError {
 
     #[error("Feature requires enterprise license")]
     RequiresEnterpriseLicense,
+
+    #[error("Each hub client should only calls register_worker once")]
+    RegisterWorkerOnce,
 }
 
 #[tarpc::service]
