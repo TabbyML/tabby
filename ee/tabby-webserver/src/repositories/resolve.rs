@@ -28,12 +28,12 @@ pub struct DatasetKey {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Repository {
+pub struct ResolveParams {
     name: String,
     path: Option<String>,
 }
 
-impl Repository {
+impl ResolveParams {
     pub fn dataset_key(&self) -> DatasetKey {
         DatasetKey {
             local_name: self.name.clone(),
@@ -137,7 +137,7 @@ pub async fn resolve_dir(root: PathBuf, full_path: PathBuf) -> Result<Response> 
 }
 
 /// Resolve a file
-pub async fn resolve_file(root: PathBuf, repo: &Repository) -> Result<Response> {
+pub async fn resolve_file(root: PathBuf, repo: &ResolveParams) -> Result<Response> {
     let uri = if !repo.path_str().starts_with('/') {
         let path = format!("/{}", repo.path_str());
         Uri::from_str(path.as_str())?
