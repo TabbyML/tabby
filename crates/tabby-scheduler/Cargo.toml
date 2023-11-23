@@ -26,6 +26,7 @@ ignore = "0.4.20"
 kdam = { version = "0.5.0" }
 requirements = "0.3.0"
 serdeconv.workspace = true
+cargo-lock = { version = "9.0.0", features = ["dependency-tree"] }
 
 [dev-dependencies]
 temp_testdir = "0.2"
