@@ -10,28 +10,15 @@ use crate::path::usage_id_file;
 static USAGE_API_ENDPOINT: &str = "https://app.tabbyml.com/api/usage";
 
 struct UsageTracker {
-    id: String,
+    id: Option<String>,
     client: Option<Client>,
 }
 
 impl UsageTracker {
     fn new() -> Self {
         if std::env::var("TABBY_DISABLE_USAGE_COLLECTION").is_ok() {
-            eprintln!(
-                "
-  \x1b[34;1mTELEMETRY\x1b[0m
-
-  TABBY_DISABLE_USAGE_COLLECTION is set and telemetry has been disabled.
-
-  \x1b[1mWelcome to Tabby!\x1b[0m
-
-  If you have any questions or would like to engage with the Tabby team, please join us on Slack
-  (https://tinyurl.com/35sv9kz2).
-
-"
-            );
             return Self {
-                id: String::from("00000000-0000-0000-000000000000"),
+                id: None,
                 client: None,
             };
         };
@@ -63,7 +50,7 @@ impl UsageTracker {
 
         let id = fs::read_to_string(usage_id_file()).expect("Failed to read usage id");
         return Self {
-            id: id,
+            id: Some(id),
             client: Some(Client::new()),
         };
     }
@@ -74,7 +61,7 @@ impl UsageTracker {
     {
         if let Some(client) = &self.client {
             let payload = Payload {
-                distinct_id: self.id.as_ref(),
+                distinct_id: self.id.as_ref().expect("No id is set"),
                 event,
                 properties,
             };
