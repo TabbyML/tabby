@@ -10,7 +10,7 @@ use crate::{
     repositories::resolve::{resolve_dir, resolve_file, resolve_meta, Meta, ResolveParams},
 };
 
-pub fn routers() -> Router {
+pub fn routes() -> Router {
     Router::new()
         .route("/:name/resolve/", routing::get(repositories::resolve))
         .route("/:name/resolve/*path", routing::get(repositories::resolve))
