@@ -42,10 +42,10 @@ impl UsageTracker {
         }
 
         let id = fs::read_to_string(usage_id_file()).expect("Failed to read usage id");
-        return Self {
+        Self {
             id,
             client: Client::new(),
-        };
+        }
     }
 
     async fn capture<T>(&self, event: &str, properties: T)
