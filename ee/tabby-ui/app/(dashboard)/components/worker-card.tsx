@@ -1,5 +1,6 @@
 import { CardTitle, CardHeader, CardContent, Card } from '@/components/ui/card'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
+import { cn } from '@/lib/utils'
 
 type RunnerType = WorkerKind | 'INDEX'
 
@@ -16,12 +17,14 @@ export default function RunnerCard({
   cpuCount,
   cpuInfo
 }: RunnerCardProps) {
+  const textClass = cn("ml-2", "whitespace-nowrap", "overflow-hidden", "overflow-ellipsis")
+  const cpuMessage = `${cpuInfo} (${cpuCount} cores)`;
   return (
-    <Card className="rounded-xl p-2 shadow-md">
+    <Card className="rounded-xl p-2 shadow-md lg:w-[260px]">
       <CardHeader className="p-0 px-4 pb-2 pt-4">
         <CardTitle className="text-md flex items-center font-normal">
           <ModelIcon type={kind} />
-          <p className="ml-2">{name}</p>
+          <p title={name} className={textClass}>{name}</p>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 p-0 px-4 pb-4 pt-2">
@@ -44,7 +47,7 @@ export default function RunnerCard({
             <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" />
             <path d="M12 12V8" />
           </svg>
-          <p className="ml-2">{addr}</p>
+          <p title={addr} className={textClass}>{addr}</p>
         </Info>
         <Info>
           <svg
@@ -70,8 +73,8 @@ export default function RunnerCard({
             <path d="M9 2v2" />
             <path d="M9 20v2" />
           </svg>
-          <p className="ml-2">
-            {cpuInfo} ({cpuCount} cores)
+          <p title={cpuMessage} className={textClass}>
+            {cpuMessage}
           </p>
         </Info>
         {device == 'cuda' &&
@@ -100,7 +103,7 @@ export default function RunnerCard({
                 <path d="M2 15h20" />
                 <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.1a2 2 0 0 0 0 3.837V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5.1a2 2 0 0 0 0-3.837Z" />
               </svg>
-              <p className="ml-2">{x}</p>
+              <p title={x} className={textClass}>{x}</p>
             </Info>
           ))}
       </CardContent>
