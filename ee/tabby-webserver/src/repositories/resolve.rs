@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, SourceFile, Tag};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-use tracing::error;
 
 lazy_static! {
     static ref META: HashMap<DatasetKey, Meta> = load_meta();
@@ -89,15 +88,13 @@ fn load_meta() -> HashMap<DatasetKey, Meta> {
             .into_iter()
             .map(|repo| (repo.git_url.clone(), repo))
             .collect::<HashMap<_, _>>(),
-        Err(err) => {
-            error!("load config: {}", err);
+        Err(_) => {
             return dataset;
         }
     };
     let iter = match SourceFile::all() {
         Ok(all) => all,
-        Err(err) => {
-            error!("load dataset: {}", err);
+        Err(_) => {
             return dataset;
         }
     };
