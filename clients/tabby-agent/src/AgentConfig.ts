@@ -72,7 +72,7 @@ export const defaultAgentConfig: AgentConfig = {
       maxSuffixLines: 20,
       clipboard: {
         minChars: 3,
-        maxChars: 1000,
+        maxChars: 2000,
       },
     },
     debounce: {
