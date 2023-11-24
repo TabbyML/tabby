@@ -68,10 +68,11 @@ export class CompletionContext {
     const lineEnd = isAtLineEndExcludingAutoClosedChar(this.suffixLines[0] ?? "");
     this.mode = lineEnd ? "default" : "fill-in-line";
     this.hash = hashObject({
-      filepath: request.filepath,
-      language: request.language,
-      text: request.text,
-      position: request.position,
+      filepath: this.filepath,
+      language: this.language,
+      text: this.text,
+      position: this.position,
+      clipboard: this.clipboard,
     });
   }
 }
