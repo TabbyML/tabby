@@ -241,6 +241,7 @@ function! s:GetCompletionContext(is_manual)
     \ language: s:GetLanguage(),
     \ text: join(getbufline('%', 1, '$'), "\n"),
     \ position: s:GetCursorPosition(),
+    \ clipboard: s:GetClipboard(),
     \ manually: a:is_manual,
     \ }
 endfunction
@@ -263,6 +264,22 @@ function! s:GetLanguage()
   else
     return filetype
   endif
+endfunction
+
+function! s:GetClipboard()
+  let yanked = getreg('0')
+  if !empty(yanked)
+    return yanked
+  endif
+  let clip = getreg('*')
+  if !empty(clip)
+    return clip
+  endif
+  let clip = getreg('+')
+  if !empty(clip)
+    return clip
+  endif
+  return ''
 endfunction
 
 function! tabby#Auth()
