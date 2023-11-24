@@ -13,6 +13,10 @@ export type AgentConfig = {
       experimentalStripAutoClosingCharacters: boolean;
       maxPrefixLines: number;
       maxSuffixLines: number;
+      clipboard: {
+        minChars: number;
+        maxChars: number;
+      };
     };
     debounce: {
       mode: "adaptive" | "fixed";
@@ -66,6 +70,10 @@ export const defaultAgentConfig: AgentConfig = {
       experimentalStripAutoClosingCharacters: false,
       maxPrefixLines: 20,
       maxSuffixLines: 20,
+      clipboard: {
+        minChars: 3,
+        maxChars: 2000,
+      },
     },
     debounce: {
       mode: "adaptive",
