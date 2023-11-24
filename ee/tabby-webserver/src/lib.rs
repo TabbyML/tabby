@@ -11,6 +11,7 @@ use tracing::{error, warn};
 use websocket::WebSocketTransport;
 
 mod db;
+mod repositories;
 mod server;
 mod ui;
 mod websocket;
@@ -49,7 +50,8 @@ pub async fn attach_webserver(
         )
         .route("/graphql", routing::get(playground("/graphql", None)))
         .layer(Extension(schema))
-        .route("/hub", routing::get(ws_handler).with_state(ctx));
+        .route("/hub", routing::get(ws_handler).with_state(ctx))
+        .nest("/repositories", repositories::routes());
 
     let ui = ui
         .route("/graphiql", routing::get(graphiql("/graphql", None)))

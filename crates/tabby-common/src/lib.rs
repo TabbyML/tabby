@@ -45,7 +45,7 @@ impl SourceFile {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Tag {
     pub range: Range<usize>,
     pub name_range: Range<usize>,

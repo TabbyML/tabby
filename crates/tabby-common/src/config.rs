@@ -50,12 +50,16 @@ impl RepositoryConfig {
             let path = self.git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(filenamify(&self.git_url))
+            repositories_dir().join(self.name())
         }
     }
 
     pub fn is_local_dir(&self) -> bool {
         self.git_url.starts_with("file://")
+    }
+
+    pub fn name(&self) -> String {
+        filenamify(&self.git_url)
     }
 }
 
@@ -95,5 +99,13 @@ mod tests {
             git_url: "https://github.com/TabbyML/tabby".to_owned(),
         };
         assert!(!repo.is_local_dir());
+    }
+
+    #[test]
+    fn test_repository_config_name() {
+        let repo = RepositoryConfig {
+            git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
+        };
+        assert_eq!(repo.name(), "https_github.com_TabbyML_tabby.git");
     }
 }

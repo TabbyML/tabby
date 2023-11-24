@@ -29,6 +29,8 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["fs"] }
 tokio-rusqlite = "0.4.0"
 tokio-tungstenite = "0.20.1"
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.4.0", features = ["fs", "trace"] }
 tracing.workspace = true
 unicase = "2.7.0"
 
