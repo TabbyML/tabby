@@ -9,6 +9,29 @@ Tabby is an open-source, self-hosted AI coding assistant. With Tabby, every team
 [![Follow on Linkedin](https://shields.io/badge/Follow%20on%20Linkedin-e29351?logo=linkedin)](https://www.linkedin.com/company/tabbyml/)
 [![Star on Github](https://img.shields.io/github/stars/TabbyML/tabby?labelColor=e29351&label=Star&color=ffffff&logo=github)](https://github.com/TabbyML/tabby)
 
+### 📹 First Glance Demo
+
+
+Here is a quick product demo to bring Tabby onto your Mac in 3 steps:
+
+- Install Tabby with Homebrew
+- Bring up Tabby server locally
+- Install Tabby extention in VSCode, and start coding 💻
+
+
+<div style="position: relative; padding-bottom: 62.5%; height: 0;">
+  <iframe 
+    src="https://www.loom.com/embed/f46028aa12434ff29c36f5cde37f1d04?sid=110873b1-975d-4c4b-b548-5bbce9566c2e" 
+    frameborder="0" 
+    webkitallowfullscreen 
+    mozallowfullscreen 
+    allowfullscreen 
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+  >
+  </iframe>
+</div>
+
+
 ## 📄 About the Docs
 
 | Section                                     | Goal                                                                        |
