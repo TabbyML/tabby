@@ -1,4 +1,4 @@
-import { splitLines, autoClosingPairOpenings, autoClosingPairClosings } from "./utils";
+import { splitLines, autoClosingPairClosings } from "./utils";
 import hashObject from "object-hash";
 
 export type CompletionRequest = {
@@ -6,6 +6,7 @@ export type CompletionRequest = {
   language: string;
   text: string;
   position: number;
+  clipboard?: string;
   manually?: boolean;
 };
 
@@ -43,6 +44,8 @@ export class CompletionContext {
   prefixLines: string[];
   suffixLines: string[];
 
+  clipboard: string;
+
   // "default": the cursor is at the end of the line
   // "fill-in-line": the cursor is not at the end of the line, except auto closed characters
   //   In this case, we assume the completion should be a single line, so multiple lines completion will be dropped.
@@ -59,6 +62,8 @@ export class CompletionContext {
     this.suffix = request.text.slice(request.position);
     this.prefixLines = splitLines(this.prefix);
     this.suffixLines = splitLines(this.suffix);
+
+    this.clipboard = request.clipboard?.trim() ?? "";
 
     const lineEnd = isAtLineEndExcludingAutoClosedChar(this.suffixLines[0] ?? "");
     this.mode = lineEnd ? "default" : "fill-in-line";

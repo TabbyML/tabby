@@ -7,6 +7,7 @@ import {
   Position,
   Range,
   TextDocument,
+  env,
   workspace,
 } from "vscode";
 import { EventEmitter } from "events";
@@ -66,6 +67,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
       text: document.getText(),
       position: document.offsetAt(position),
+      clipboard: await env.clipboard.readText(),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
     };
 
