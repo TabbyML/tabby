@@ -220,6 +220,7 @@ class Agent : ProcessAdapter() {
     val language: String,
     val text: String,
     val position: Int,
+    val clipboard: String?,
     val manually: Boolean?,
   )
 

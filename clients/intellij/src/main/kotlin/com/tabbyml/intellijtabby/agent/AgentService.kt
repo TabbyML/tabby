@@ -23,8 +23,14 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import io.ktor.util.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
+
 
 @Service
 class AgentService : Disposable {
@@ -270,11 +276,12 @@ class AgentService : Disposable {
     }?.let { file ->
       agent.provideCompletions(
         Agent.CompletionRequest(
-          file.virtualFile.path,
-          file.getLanguageId(),
-          editor.document.text,
-          offset,
-          manually,
+          filepath = file.virtualFile.path,
+          language = file.getLanguageId(),
+          text = editor.document.text,
+          position = offset,
+          clipboard = getClipboardText(),
+          manually = manually,
         )
       )
     }
@@ -385,5 +392,13 @@ class AgentService : Disposable {
       "bash" to "shellscript",
       "txt" to "plaintext",
     )
+
+    fun getClipboardText(): String? {
+      val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+      if (clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+        return clipboard.getData(DataFlavor.stringFlavor) as? String
+      }
+      return null
+    }
   }
 }
