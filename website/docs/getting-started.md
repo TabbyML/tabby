@@ -12,7 +12,7 @@ Tabby is an open-source, self-hosted AI coding assistant. With Tabby, every team
 ### 📹 First Glance Demo
 
 
-Here is a quick product demo to bring Tabby onto your Mac in 3 steps:
+Here is a quick product demo to bring Tabby onto your Mac in 3 simple steps:
 
 - Install Tabby with Homebrew
 - Bring up Tabby server locally
