@@ -7,13 +7,10 @@ export const options = {
     { duration: "20s", target: 8 },
     { duration: "5s", target: 0 },
   ],
-  hosts: {
-    "api.tabbyml.com": __ENV.TABBY_API_HOST,
-  },
   // Below thresholds are tested against TabbyML/StarCoder-1B served by NVIDIA T4 GPU.
   thresholds: {
     http_req_failed: ['rate<0.01'], // http errors should be less than 1%
-    http_req_duration: ["med<2500", "avg<2200", "p(95)<2500"],
+    http_req_duration: ["med<1800", "avg<1800", "p(95)<2000"],
   },
 };
 
@@ -25,7 +22,7 @@ export default () => {
     },
   });
   const headers = { "Content-Type": "application/json" };
-  const res = http.post("http://api.tabbyml.com/v1/completions", payload, {
+  const res = http.post(`${__ENV.TABBY_API_HOST}/v1/completions`, payload, {
     headers,
   });
   check(res, { success: (r) => r.status === 200 });
