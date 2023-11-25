@@ -31,6 +31,24 @@ fn main() {
         println!("cargo:rustc-link-lib=cublas");
         println!("cargo:rustc-link-lib=cublasLt");
     }
+    if cfg!(feature = "rocm") {
+        config.define("LLAMA_HIPBLAS", "ON");
+        config.define("CMAKE_C_COMPILER", "/opt/rocm/llvm/bin/clang");
+        config.define("CMAKE_CXX_COMPILER", "/opt/rocm/llvm/bin/clang++");
+        println!("cargo:rustc-link-search=native=/opt/rocm/hipblas/lib");
+        println!("cargo:rustc-link-search=native=/opt/rocm/hipblaslt/lib");
+        println!("cargo:rustc-link-lib=hipblas");
+        println!("cargo:rustc-link-lib=hipblaslt");
+    }
+    if cfg!(feature = "oneapi") {
+        config.define("LLAMA_BLAS", "ON");
+        config.define("LLAMA_BLAS_VENDOR", "Intel10_64lp");
+        println!("cargo:rustc-link-search=native=/opt/intel/oneapi/mkl/latest/lib");
+        println!("cargo:rustc-link-lib=mkl_rt");
+        println!("cargo:rustc-link-lib=pthread");
+        println!("cargo:rustc-link-lib=m");
+        println!("cargo:rustc-link-lib=dl");
+    }
 
     let dst = config.build();
     println!("cargo:rustc-link-search=native={}/build", dst.display());

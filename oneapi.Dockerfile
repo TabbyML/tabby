@@ -1,12 +1,12 @@
 ARG UBUNTU_VERSION=22.04
 # This needs to generally match the container host's environment.
-ARG CUDA_VERSION=11.7.1
+ARG ONEAPI_VERSION=2024.0.0
 # Target the CUDA build image
-ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
+ARG BASE_ONEAPI_DEV_CONTAINER="intel/oneapi-basekit:${ONEAPI_VERSION}-devel-ubuntu${UBUNTU_VERSION}"
 # Target the CUDA runtime image
-ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
+ARG BASE_ONEAPI_RUN_CONTAINER="intel/oneapi-runtime:${ONEAPI_VERSION}-devel-ubuntu${UBUNTU_VERSION}"
 
-FROM ${BASE_CUDA_DEV_CONTAINER} as build
+FROM ${BASE_ONEAPI_DEV_CONTAINER} as build
 
 # Rust toolchain version
 ARG RUST_TOOLCHAIN=stable
@@ -38,10 +38,10 @@ COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features cuda --release --package tabby && \
+    cargo build --features oneapi --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
-FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
+FROM ${BASE_ONEAPI_RUN_CONTAINER} as runtime
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -53,11 +53,6 @@ RUN apt-get update && \
 # Disable safe directory in docker
 # Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
 RUN git config --system --add safe.directory "*"
-
-# Make link to libnvidia-ml.so (NVML) library
-# so that we could get GPU stats.
-RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
-        /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
 
 COPY --from=build /opt/tabby /opt/tabby
 

@@ -5,6 +5,8 @@ edition = "2021"
 
 [features]
 cuda = []
+rocm = []
+oneapi = []
 
 [build-dependencies]
 cxx-build = "1.0"
