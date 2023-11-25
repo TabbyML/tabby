@@ -127,7 +127,7 @@ jobs:
           path: tabby_${{ matrix.target }}
 
   pre-release:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push'
     needs: release-binary
     runs-on: ubuntu-latest
     permissions:
