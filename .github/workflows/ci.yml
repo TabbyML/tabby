@@ -125,7 +125,7 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Bulid release binary
-        if: ! matrix.cuda_version
+        if: ${{ ! matrix.cuda_version }}
         run: cargo build --release --target ${{ matrix.target }} --package tabby
 
       - name: Bulid release binary (CUDA)
