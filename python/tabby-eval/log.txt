@@ -1,6 +1,0 @@
-model: TabbyML/StarCoder-1B; language: python; file: line_completion.jsonlSkipped 0 rows, 10 rows with predictions, 0 rows with errors
-
-model: TabbyML/StarCoder-1B; language: python; file: line_completion_rg1_bm25.jsonlSkipped 0 rows, 10 rows with predictions, 0 rows with errors
-
-model: TabbyML/StarCoder-1B; language: python; file: line_completion_oracle_bm25.jsonlSkipped 0 rows, 10 rows with predictions, 0 rows with errors
-
