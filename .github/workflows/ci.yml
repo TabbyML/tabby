@@ -68,15 +68,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        target: [aarch64-apple-darwin, x86_64-unknown-linux-gnu, x86_64-unknown-linux-gnu-cuda-11.7]
+        bin: [aarch64-apple-darwin, x86_64-unknown-linux-gnu, x86_64-unknown-linux-gnu-cuda-11.7]
         include:
           - os: macos-latest
+            bin: aarch64-apple-darwin
             target: aarch64-apple-darwin
           - os: ubuntu-latest
+            bin: x86_64-unknown-linux-gnu
             target: x86_64-unknown-linux-gnu
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu-cuda-11.7
+            bin: x86_64-unknown-linux-gnu-cuda-11-7
             cuda_version: '11.7.1'
+            target: x86_64-unknown-linux-gnu
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -131,14 +134,14 @@ jobs:
         run: cargo build --features cuda --release --target ${{ matrix.target }} --package tabby
         
       - name: Rename release binary
-        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.target }}
+        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.bin }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           retention-days: 3
-          name: tabby_${{ matrix.target }}
-          path: tabby_${{ matrix.target }}
+          name: tabby_${{ matrix.bin }}
+          path: tabby_${{ matrix.bin }}
 
   pre-release:
     if: github.event_name == 'push'
