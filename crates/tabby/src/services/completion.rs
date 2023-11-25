@@ -9,9 +9,9 @@ use tabby_common::{
         code::CodeSearch,
         event::{Event, EventLogger},
     },
-    languages::get_language,
+    constants::TextGenerationOptions,
 };
-use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
+use tabby_inference::TextGeneration;
 use thiserror::Error;
 use tracing::debug;
 use utoipa::ToSchema;
@@ -196,23 +196,13 @@ impl CompletionService {
         }
     }
 
-    fn text_generation_options(language: &str) -> TextGenerationOptions {
-        TextGenerationOptionsBuilder::default()
-            .max_input_length(1024 + 512)
-            .max_decoding_length(128)
-            .sampling_temperature(0.1)
-            .language(get_language(language))
-            .build()
-            .unwrap()
-    }
-
     pub async fn generate(
         &self,
         request: &CompletionRequest,
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
-        let options = Self::text_generation_options(language.as_str());
+        let options = TextGenerationOptions::for_completion(language.as_str());
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])

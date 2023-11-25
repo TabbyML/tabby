@@ -1,24 +1,8 @@
 pub mod decoding;
 
 use async_trait::async_trait;
-use derive_builder::Builder;
 use futures::stream::BoxStream;
-use tabby_common::languages::Language;
-
-#[derive(Builder, Debug)]
-pub struct TextGenerationOptions {
-    #[builder(default = "1024")]
-    pub max_input_length: usize,
-
-    #[builder(default = "256")]
-    pub max_decoding_length: usize,
-
-    #[builder(default = "1.0")]
-    pub sampling_temperature: f32,
-
-    #[builder(default = "&tabby_common::languages::UNKNOWN_LANGUAGE")]
-    pub language: &'static Language,
-}
+use tabby_common::constants::TextGenerationOptions;
 
 #[async_trait]
 pub trait TextGeneration: Sync + Send {

@@ -1958,6 +1958,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "tabby-common",
  "tabby-inference",
  "tokio",
 ]
@@ -2419,6 +2420,7 @@ dependencies = [
  "cxx-build",
  "derive_builder 0.12.0",
  "futures",
+ "tabby-common",
  "tabby-inference",
  "tokio",
  "tracing",
@@ -4641,7 +4643,6 @@ dependencies = [
  "async-stream",
  "async-trait",
  "dashmap",
- "derive_builder 0.12.0",
  "futures",
  "regex",
  "tabby-common",

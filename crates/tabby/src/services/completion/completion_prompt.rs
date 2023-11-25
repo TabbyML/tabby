@@ -5,16 +5,13 @@ use regex::Regex;
 use strfmt::strfmt;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError},
+    constants::SnippetCollectionOptions,
     languages::get_language,
 };
 use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
-
-static MAX_SNIPPETS_TO_FETCH: usize = 20;
-static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
-static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
     prompt_template: Option<String>,
@@ -39,7 +36,13 @@ impl PromptBuilder {
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         if let Some(code) = &self.code {
-            collect_snippets(code.as_ref(), language, &segments.prefix).await
+            collect_snippets(
+                code.as_ref(),
+                language,
+                &segments.prefix,
+                SnippetCollectionOptions::default(),
+            )
+            .await
         } else {
             vec![]
         }
@@ -106,12 +109,17 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> Vec<Snippet> {
+async fn collect_snippets(
+    code: &dyn CodeSearch,
+    language: &str,
+    text: &str,
+    options: SnippetCollectionOptions,
+) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
     let serp = match code
-        .search_in_language(language, &tokens, MAX_SNIPPETS_TO_FETCH, 0)
+        .search_in_language(language, &tokens, options.max_snippets_to_fetch, 0)
         .await
     {
         Ok(serp) => serp,
@@ -134,7 +142,7 @@ async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> 
         let body = hit.doc.body;
         let mut body_tokens = tokenize_text(&body);
 
-        if count_characters + body.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
+        if count_characters + body.len() > options.max_snippets_chars_in_prompt {
             break;
         }
 
@@ -147,7 +155,7 @@ async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> 
             distance / body_tokens.len() as f32
         };
 
-        if similarity > MAX_SIMILARITY_THRESHOLD {
+        if similarity > options.max_similarity_threshold {
             // Exclude snippets presents in context window.
             continue;
         }
