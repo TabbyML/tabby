@@ -74,6 +74,9 @@ jobs:
             target: aarch64-apple-darwin
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gpu-cuda-11.7
+            cuda_version: '11.7.1'
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -81,6 +84,14 @@ jobs:
       CARGO_INCREMENTAL: 0
 
     steps:
+      - uses: Jimver/cuda-toolkit@v0.2.11
+        if: matrix.cuda_version
+        id: cuda-toolkit
+        with:
+          cuda: ${{ matrix.cuda_version }}
+          method: network
+          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev"]'
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -114,8 +125,13 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Bulid release binary
+        if: ! matrix.cuda_version
         run: cargo build --release --target ${{ matrix.target }} --package tabby
 
+      - name: Bulid release binary (CUDA)
+        if: matrix.cuda_version
+        run: cargo build --features cuda --release --target ${{ matrix.target }} --package tabby
+        
       - name: Rename release binary
         run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.target }}
 
