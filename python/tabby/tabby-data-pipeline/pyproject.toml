@@ -1,6 +1,0 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-[tool.dagster]
-module_name = "tabby_data_pipeline"
