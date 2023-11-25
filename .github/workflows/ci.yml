@@ -89,7 +89,6 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: ${{ matrix.cuda_version }}
-          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev"]'
 
       - name: Checkout
         uses: actions/checkout@v3
