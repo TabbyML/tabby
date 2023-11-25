@@ -2,9 +2,9 @@ ARG UBUNTU_VERSION=22.04
 # This needs to generally match the container host's environment.
 ARG ROCM_VERSION=5.7
 # Target the CUDA build image
-ARG BASE_ROCM_DEV_CONTAINER="rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}"
+ARG BASE_ROCM_DEV_CONTAINER="rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete"
 # Target the CUDA runtime image
-ARG BASE_ROCM_RUN_CONTAINER="rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}"
+ARG BASE_ROCM_RUN_CONTAINER="rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete"
 
 FROM ${BASE_ROCM_DEV_CONTAINER} as build
 

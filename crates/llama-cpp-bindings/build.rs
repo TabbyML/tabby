@@ -35,10 +35,9 @@ fn main() {
         config.define("LLAMA_HIPBLAS", "ON");
         config.define("CMAKE_C_COMPILER", "/opt/rocm/llvm/bin/clang");
         config.define("CMAKE_CXX_COMPILER", "/opt/rocm/llvm/bin/clang++");
+        println!("cargo:rustc-link-arg=-Wl,--copy-dt-needed-entries");
         println!("cargo:rustc-link-search=native=/opt/rocm/hipblas/lib");
-        println!("cargo:rustc-link-search=native=/opt/rocm/hipblaslt/lib");
         println!("cargo:rustc-link-lib=hipblas");
-        println!("cargo:rustc-link-lib=hipblaslt");
     }
     if cfg!(feature = "oneapi") {
         config.define("LLAMA_BLAS", "ON");
