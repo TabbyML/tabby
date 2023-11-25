@@ -37,21 +37,16 @@ from dagstermill import define_dagstermill_asset
             
         }
     ))
-def model_predict(context: AssetExecutionContext) -> None:
+def model_predict(context) -> None:
     model_id = context.partition_key.keys_by_dimension["model_id"]
     language = context.partition_key.keys_by_dimension["language"]
 
-    my_env = os.environ.copy()
-    my_env["MODEL_ID"] = model_id
-    
-    context.add_output_metadata(metadata={"model_id": MetadataValue.md(model_id)})
+    with open("/tmp/tabby_model_id", "w") as f:
+        f.write(model_id)
 
-    files = 'line_completion.jsonl, line_completion_rg1_bm25.jsonl, line_completion_oracle_bm25.jsonl'
-
-    p = subprocess.Popen(["modal", "run", "./modal/predict.py","--language", language, "--files", files], env=my_env)
-    p.wait()
-    context.add_output_metadata(metadata={'modal run': MetadataValue.md("success!")})
-
+    for file in ["line_completion.jsonl", "line_completion_rg1_bm25.jsonl", "line_completion_oracle_bm25.jsonl"]:
+        p = subprocess.Popen(["modal", "run", "predict.py","--language", language, "--file", file])
+        p.wait()
 
 @asset(
     partitions_def=MultiPartitionsDefinition(
@@ -84,4 +79,3 @@ tabby_jupyter_notebook = define_dagstermill_asset(
     notebook_path = file_relative_path(__file__, "tabby_eval.ipynb"),
     ins={"df": AssetIn("tabby_dataset")},
 )
-
