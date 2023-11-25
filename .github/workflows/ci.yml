@@ -68,7 +68,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        bin: [aarch64-apple-darwin, x86_64-unknown-linux-gnu, x86_64-unknown-linux-gnu-cuda-11.7]
+        bin: [aarch64-apple-darwin, x86_64-unknown-linux-gnu, x86_64-unknown-linux-gnu-cuda-11-7]
         include:
           - os: macos-latest
             bin: aarch64-apple-darwin
