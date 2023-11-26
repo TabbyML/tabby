@@ -1,5 +1,4 @@
-use std::env::var;
-use std::path::Path;
+use std::{env::var, path::Path};
 
 use cmake::Config;
 
@@ -41,12 +40,20 @@ fn main() {
         println!("cargo:rustc-link-lib=hipblas");
     }
     if cfg!(feature = "oneapi") {
-        let mkl_root = var("MKLROOT").expect("MKLROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
-        let compiler_root = var("CMPLR_ROOT").expect("CMPLR_ROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
+        let mkl_root = var("MKLROOT")
+            .expect("MKLROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
+        let compiler_root = var("CMPLR_ROOT")
+            .expect("CMPLR_ROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
         config.define("LLAMA_BLAS", "ON");
         config.define("LLAMA_BLAS_VENDOR", "Intel10_64lp");
-        config.define("C_FLAGS", "-fiopenmp -fopenmp-targets=spir64 -m64 -DMKL_ILP64");
-        config.define("CXX_FLAGS", "-fiopenmp -fopenmp-targets=spir64 -m64 -DMKL_ILP64");
+        config.define(
+            "C_FLAGS",
+            "-fiopenmp -fopenmp-targets=spir64 -m64 -DMKL_ILP64",
+        );
+        config.define(
+            "CXX_FLAGS",
+            "-fiopenmp -fopenmp-targets=spir64 -m64 -DMKL_ILP64",
+        );
         config.define("CMAKE_C_COMPILER", format!("{}/bin/icx", compiler_root));
         config.define("CMAKE_CXX_COMPILER", format!("{}/bin/icpx", compiler_root));
         println!("cargo:rustc-link-arg=-fiopenmp");

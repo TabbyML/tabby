@@ -107,7 +107,12 @@ impl Device {
         *self == Device::OneApi
     }
 
-    #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda", feature = "rocm", feature = "oneapi")))]
+    #[cfg(not(any(
+        all(target_os = "macos", target_arch = "aarch64"),
+        feature = "cuda",
+        feature = "rocm",
+        feature = "oneapi"
+    )))]
     pub fn ggml_use_gpu(&self) -> bool {
         false
     }
