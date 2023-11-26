@@ -1,3 +1,14 @@
+use clap::{Parser, Subcommand};
+use opentelemetry::{
+    global,
+    sdk::{propagation::TraceContextPropagator, trace, trace::Sampler, Resource},
+    KeyValue,
+};
+use opentelemetry_otlp::WithExportConfig;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
+
+use tabby_common::config::Config;
+
 mod routes;
 mod services;
 
@@ -6,16 +17,6 @@ mod serve;
 
 #[cfg(feature = "ee")]
 mod worker;
-
-use clap::{Parser, Subcommand};
-use opentelemetry::{
-    global,
-    sdk::{propagation::TraceContextPropagator, trace, trace::Sampler, Resource},
-    KeyValue,
-};
-use opentelemetry_otlp::WithExportConfig;
-use tabby_common::config::Config;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -73,10 +74,6 @@ pub enum Device {
     #[strum(serialize = "rocm")]
     Rocm,
 
-    #[cfg(feature = "oneapi")]
-    #[strum(serialize = "oneapi")]
-    OneApi,
-
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     #[strum(serialize = "metal")]
     Metal,
@@ -102,16 +99,10 @@ impl Device {
         *self == Device::Rocm
     }
 
-    #[cfg(feature = "oneapi")]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::OneApi
-    }
-
     #[cfg(not(any(
         all(target_os = "macos", target_arch = "aarch64"),
         feature = "cuda",
         feature = "rocm",
-        feature = "oneapi"
     )))]
     pub fn ggml_use_gpu(&self) -> bool {
         false

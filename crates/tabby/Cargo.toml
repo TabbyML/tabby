@@ -8,7 +8,6 @@ default = ["ee"]
 ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
 rocm = ["llama-cpp-bindings/rocm"]
-oneapi = ["llama-cpp-bindings/oneapi"]
 experimental-http = ["dep:http-api-bindings"]
 
 [dependencies]
