@@ -66,14 +66,17 @@ impl VertexAIEngine {
 #[async_trait]
 impl TextGeneration for VertexAIEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        let stop_sequences: Vec<String> = options
-            .language
+        let stop_sequences = if let Some(language) = options.language {
+            language
             .get_stop_words()
             .iter()
             .map(|x| x.to_string())
             // vertex supports at most 5 stop sequence.
             .take(5)
-            .collect();
+            .collect()
+        } else {
+            vec![]
+        };
 
         let tokens: Vec<&str> = prompt.split("<MID>").collect();
         let request = Request {

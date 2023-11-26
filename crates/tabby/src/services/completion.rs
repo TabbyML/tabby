@@ -201,7 +201,7 @@ impl CompletionService {
             .max_input_length(1024 + 512)
             .max_decoding_length(128)
             .sampling_temperature(0.1)
-            .language(get_language(language))
+            .language(Some(get_language(language)))
             .build()
             .unwrap()
     }
