@@ -20,6 +20,7 @@ RUN apt-get update && \
         protobuf-compiler \
         git \
         cmake \
+        intel-opencl-icd \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -27,6 +28,12 @@ RUN apt-get update && \
 # setup rust.
 RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN update-alternatives --install "/usr/bin/cc" "cc" "${CMPLR_ROOT}/bin/icx" 100
+RUN update-alternatives --install "/usr/bin/c++" "c++" "${CMPLR_ROOT}/bin/icpx" 100
+RUN update-alternatives --install "/usr/bin/ld" "ld" "${CMPLR_ROOT}/bin/compiler/ld.lld" 100
+ENV RUSTFLAGS="-C link-args=-fPIC -C link-args=-fsycl -C link-args=-L${CMPLR_ROOT}/lib -C link-args=-lsycl -C link-args=-lintlc"
+ENV OPENSSL_NO_VENDOR=1
 
 WORKDIR /root/workspace
 
@@ -36,9 +43,11 @@ RUN mkdir -p target
 
 COPY . .
 
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/root/workspace/target \
-    cargo build --features oneapi --release --package tabby && \
+#RUN --mount=type=cache,target=/usr/local/cargo/registry \
+#    --mount=type=cache,target=/root/workspace/target \
+#    cargo build --features oneapi --release --package tabby && \
+#    cp target/release/tabby /opt/tabby/bin/
+RUN cargo build --features oneapi --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
 FROM ${BASE_ONEAPI_RUN_CONTAINER} as runtime

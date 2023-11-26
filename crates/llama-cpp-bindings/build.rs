@@ -4,6 +4,20 @@ use cmake::Config;
 
 fn main() {
     const LLAMA_CMAKE_PATH: &str = "llama.cpp/CMakeLists.txt";
+    let intel_compile_flags: Vec<&str> = vec![
+        "-fsycl",
+        "-fsycl-targets=spir64_gen",
+        "-fiopenmp",
+        "-fopenmp-targets=spir64_gen",
+        "-m64",
+        "-DMKL_ILP64",
+        "-qopt-report=3",
+        "-O3",
+        "-Xs",
+        "-device skl",
+        //"-device *",
+    ];
+    const AMDGPU_TARGETS: &str = "gfx803;gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102";
 
     assert!(
         Path::new(LLAMA_CMAKE_PATH).exists(),
@@ -33,11 +47,13 @@ fn main() {
     }
     if cfg!(feature = "rocm") {
         let rocm_root = "/opt/rocm";
-        //config.generator("Ninja");
         config.define("LLAMA_HIPBLAS", "ON");
         config.define("CMAKE_C_COMPILER", format!("{}/llvm/bin/clang", rocm_root));
-        config.define("CMAKE_CXX_COMPILER", format!("{}/llvm/bin/clang++", rocm_root));
-        config.define("AMDGPU_TARGETS", "gfx803;gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102");
+        config.define(
+            "CMAKE_CXX_COMPILER",
+            format!("{}/llvm/bin/clang++", rocm_root),
+        );
+        config.define("AMDGPU_TARGETS", AMDGPU_TARGETS);
         println!("cargo:rustc-link-arg=-Wl,--copy-dt-needed-entries");
         println!("cargo:rustc-link-search=native={}/hip/lib", rocm_root);
         println!("cargo:rustc-link-search=native={}/rocblas/lib", rocm_root);
@@ -53,25 +69,25 @@ fn main() {
             .expect("CMPLR_ROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
         config.define("LLAMA_BLAS", "ON");
         config.define("LLAMA_BLAS_VENDOR", "Intel10_64lp");
-        config.define(
-            "C_FLAGS",
-            "-fiopenmp -fopenmp-targets=spir64 -m64 -DMKL_ILP64",
-        );
-        config.define(
-            "CXX_FLAGS",
-            "-fiopenmp -fopenmp-targets=spir64 -m64 -DMKL_ILP64",
-        );
+        config.define("C_FLAGS", intel_compile_flags.join(" "));
+        config.define("CXX_FLAGS", intel_compile_flags.join(" "));
         config.define("CMAKE_C_COMPILER", format!("{}/bin/icx", compiler_root));
         config.define("CMAKE_CXX_COMPILER", format!("{}/bin/icpx", compiler_root));
         println!("cargo:rustc-link-arg=-fiopenmp");
-        println!("cargo:rustc-link-arg=-fopenmp-targets=spir64");
+        println!("cargo:rustc-link-arg=-fopenmp-targets=spir64_gen");
         println!("cargo:rustc-link-arg=-fsycl");
         println!("cargo:rustc-link-arg=-Wl,--no-as-needed");
         println!("cargo:rustc-link-search=native={}/lib", compiler_root);
         println!("cargo:rustc-link-search=native={}/lib", mkl_root);
-        println!("cargo:rustc-link-lib=intlc");
         println!("cargo:rustc-link-lib=svml");
         println!("cargo:rustc-link-lib=mkl_sycl_blas");
+        println!("cargo:rustc-link-lib=mkl_sycl_lapack");
+        println!("cargo:rustc-link-lib=mkl_sycl_dft");
+        println!("cargo:rustc-link-lib=mkl_sycl_sparse");
+        println!("cargo:rustc-link-lib=mkl_sycl_vm");
+        println!("cargo:rustc-link-lib=mkl_sycl_rng");
+        println!("cargo:rustc-link-lib=mkl_sycl_stats");
+        println!("cargo:rustc-link-lib=mkl_sycl_data_fitting");
         println!("cargo:rustc-link-lib=mkl_intel_ilp64");
         println!("cargo:rustc-link-lib=mkl_intel_thread");
         println!("cargo:rustc-link-lib=mkl_core");
@@ -85,10 +101,20 @@ fn main() {
     let dst = config.build();
     println!("cargo:rustc-link-search=native={}/build", dst.display());
 
-    cxx_build::bridge("src/lib.rs")
+    let crate_dir = var("CARGO_MANIFEST_DIR").unwrap();
+
+    let mut build = cxx_build::bridge("src/lib.rs");
+    if cfg!(feature = "oneapi") {
+        let compiler_root = var("CMPLR_ROOT").unwrap();
+        build.compiler(format!("{}/bin/icpx", compiler_root));
+        for flag in intel_compile_flags {
+            build.flag(flag);
+        }
+    }
+    build
         .file("src/engine.cc")
-        .flag_if_supported("-Iinclude")
-        .flag_if_supported("-Illama.cpp")
-        .flag_if_supported("-std=c++14")
-        .compile("cxxbridge");
+        .include(format!("{}/include", crate_dir))
+        .include("llama.cpp")
+        .flag_if_supported("-std=c++14");
+    build.compile("cxxbridge");
 }
