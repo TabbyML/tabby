@@ -101,6 +101,9 @@ pub struct Segments {
 
     /// Content that appears after the cursor in the editor window.
     suffix: Option<String>,
+
+    /// Clipboard content when requesting code completion.
+    clipboard: Option<String>,
 }
 
 impl From<Segments> for api::event::Segments {
@@ -108,6 +111,7 @@ impl From<Segments> for api::event::Segments {
         Self {
             prefix: val.prefix,
             suffix: val.suffix,
+            clipboard: val.clipboard
         }
     }
 }
