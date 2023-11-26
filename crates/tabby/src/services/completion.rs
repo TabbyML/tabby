@@ -111,7 +111,7 @@ impl From<Segments> for api::event::Segments {
         Self {
             prefix: val.prefix,
             suffix: val.suffix,
-            clipboard: val.clipboard
+            clipboard: val.clipboard,
         }
     }
 }
