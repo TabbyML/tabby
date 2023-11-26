@@ -32,11 +32,18 @@ fn main() {
         println!("cargo:rustc-link-lib=cublasLt");
     }
     if cfg!(feature = "rocm") {
+        let rocm_root = "/opt/rocm";
+        //config.generator("Ninja");
         config.define("LLAMA_HIPBLAS", "ON");
-        config.define("CMAKE_C_COMPILER", "/opt/rocm/llvm/bin/clang");
-        config.define("CMAKE_CXX_COMPILER", "/opt/rocm/llvm/bin/clang++");
+        config.define("CMAKE_C_COMPILER", format!("{}/llvm/bin/clang", rocm_root));
+        config.define("CMAKE_CXX_COMPILER", format!("{}/llvm/bin/clang++", rocm_root));
+        config.define("AMDGPU_TARGETS", "gfx803;gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102");
         println!("cargo:rustc-link-arg=-Wl,--copy-dt-needed-entries");
-        println!("cargo:rustc-link-search=native=/opt/rocm/hipblas/lib");
+        println!("cargo:rustc-link-search=native={}/hip/lib", rocm_root);
+        println!("cargo:rustc-link-search=native={}/rocblas/lib", rocm_root);
+        println!("cargo:rustc-link-search=native={}/hipblas/lib", rocm_root);
+        println!("cargo:rustc-link-lib=amdhip64");
+        println!("cargo:rustc-link-lib=rocblas");
         println!("cargo:rustc-link-lib=hipblas");
     }
     if cfg!(feature = "oneapi") {
@@ -70,7 +77,6 @@ fn main() {
         println!("cargo:rustc-link-lib=mkl_core");
         println!("cargo:rustc-link-lib=iomp5");
         println!("cargo:rustc-link-lib=sycl");
-        println!("cargo:rustc-link-lib=stdc++");
         println!("cargo:rustc-link-lib=pthread");
         println!("cargo:rustc-link-lib=m");
         println!("cargo:rustc-link-lib=dl");
