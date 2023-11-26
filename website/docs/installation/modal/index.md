@@ -20,11 +20,11 @@ GPU_CONFIG = gpu.T4()
 
 Currently supported GPUs in Modal:
 
-- `T4`: Low-cost GPU option, providing 16GiB of GPU memory.
-- `L4`: Mid-tier GPU option, providing 24GiB of GPU memory.
-- `A100`: The most powerful GPU available in the cloud. Available in 40GiB and 80GiB GPU memory configurations.
-- `A10G`: A10G GPUs deliver up to 3.3x better ML training performance, 3x better ML inference performance, and 3x better graphics performance, in comparison to NVIDIA T4 GPUs.
-- `Any`: Selects any one of the GPU classes available within Modal, according to availability.
+- `NVIDIA T4`: Low-cost GPU option, providing 16GiB of GPU memory.
+- `NVIDIA L4`: Mid-tier GPU option, providing 24GiB of GPU memory.
+- `NVIDIA A100`: The most powerful GPU available in the cloud. Available in 40GiB and 80GiB GPU memory configurations.
+- `NVIDIA A10G`: A10G GPUs deliver up to 3.3x better ML training performance, 3x better ML inference performance, and 3x better graphics performance, in comparison to NVIDIA T4 GPUs.
+- `NVIDIA Any`: Selects any one of the GPU classes available within Modal, according to availability.
 
 For detailed usage, please check official [Modal GPU reference](https://modal.com/docs/reference/modal.gpu).
 

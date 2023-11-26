@@ -95,7 +95,7 @@ struct HealthState {
     arch: String,
     cpu_info: String,
     cpu_count: usize,
-    cuda_devices: Vec<String>,
+    gpu_devices: Vec<String>,
     version: Version,
 }
 ```
