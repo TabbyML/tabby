@@ -1,7 +1,12 @@
 use std::env::consts::ARCH;
 
 use anyhow::Result;
+#[cfg(feature = "cuda")]
 use nvml_wrapper::Nvml;
+#[cfg(feature = "rocm")]
+use rocm_smi_lib::error::RocmErr;
+#[cfg(feature = "rocm")]
+use rocm_smi_lib::RocmSmi;
 use serde::{Deserialize, Serialize};
 use sysinfo::{CpuExt, System, SystemExt};
 use utoipa::ToSchema;
@@ -18,7 +23,7 @@ pub struct HealthState {
     arch: String,
     cpu_info: String,
     cpu_count: usize,
-    cuda_devices: Vec<String>,
+    gpu_devices: Vec<String>,
     version: Version,
 }
 
@@ -26,7 +31,7 @@ impl HealthState {
     pub fn new(model: Option<&str>, chat_model: Option<&str>, device: &Device) -> Self {
         let (cpu_info, cpu_count) = read_cpu_info();
 
-        let cuda_devices = match read_cuda_devices() {
+        let cuda_devices = match read_gpu_devices() {
             Ok(s) => s,
             Err(_) => vec![],
         };
@@ -38,7 +43,7 @@ impl HealthState {
             arch: ARCH.to_string(),
             cpu_info,
             cpu_count,
-            cuda_devices,
+            gpu_devices: cuda_devices,
             version: Version::new(),
         }
     }
@@ -59,7 +64,8 @@ pub fn read_cpu_info() -> (String, usize) {
     (info, count)
 }
 
-pub fn read_cuda_devices() -> Result<Vec<String>> {
+#[cfg(feature = "cuda")]
+pub fn read_gpu_devices() -> Result<Vec<String>> {
     // In cases of MacOS or docker containers where --gpus are not specified,
     // the Nvml::init() would return an error. In these scenarios, we
     // assign cuda_devices to be empty, indicating that the current runtime
@@ -72,6 +78,23 @@ pub fn read_cuda_devices() -> Result<Vec<String>> {
         cuda_devices.push(name);
     }
     Ok(cuda_devices)
+}
+
+#[cfg(feature = "rocm")]
+pub fn read_gpu_devices() -> Result<Vec<String>, RocmErr> {
+    let rocm = RocmSmi::init()?;
+    let mut rocm_devices = vec![];
+    let device_count = rocm.get_device_count();
+    for i in 0..device_count {
+        let name = rocm.get_device_identifiers(i)?.name;
+        rocm_devices.push(name);
+    }
+    Ok(rocm_devices)
+}
+
+#[cfg(not(any(feature = "cuda", feature = "rocm",)))]
+pub fn read_gpu_devices() -> Result<Vec<String>> {
+    Ok(vec![])
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]

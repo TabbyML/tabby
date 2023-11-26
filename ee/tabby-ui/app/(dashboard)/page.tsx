@@ -1,24 +1,17 @@
 'use client'
 
-import { buttonVariants } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
-import { IconSlack } from '@/components/ui/icons'
-import { Separator } from '@/components/ui/separator'
-import { useHealth } from '@/lib/hooks/use-health'
-import { PropsWithChildren, useEffect, useState } from 'react'
+import {buttonVariants} from '@/components/ui/button'
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
+import {IconSlack} from '@/components/ui/icons'
+import {Separator} from '@/components/ui/separator'
+import {useHealth} from '@/lib/hooks/use-health'
+import {PropsWithChildren, useEffect, useState} from 'react'
 import WorkerCard from './components/worker-card'
-import { useWorkers } from '@/lib/hooks/use-workers'
-import { WorkerKind } from '@/lib/gql/generates/graphql'
-import { useGraphQL } from '@/lib/hooks/use-graphql'
-import { getRegistrationTokenDocument } from '@/lib/gql/request-documents'
-import { CopyButton } from '@/components/copy-button'
+import {useWorkers} from '@/lib/hooks/use-workers'
+import {WorkerKind} from '@/lib/gql/generates/graphql'
+import {useGraphQL} from '@/lib/hooks/use-graphql'
+import {getRegistrationTokenDocument} from '@/lib/gql/request-documents'
+import {CopyButton} from '@/components/copy-button'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
@@ -137,7 +130,7 @@ function MainPanel() {
             kind="INDEX"
             arch=""
             device={healthInfo.device}
-            cudaDevices={healthInfo.cuda_devices}
+            gpuDevices={healthInfo.gpu_devices}
             cpuCount={healthInfo.cpu_count}
             cpuInfo={healthInfo.cpu_info}
           />

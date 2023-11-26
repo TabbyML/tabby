@@ -1,24 +1,5 @@
-pub mod api;
-
-mod schema;
-pub use schema::create_schema;
-use tabby_common::api::{
-    code::{CodeSearch, SearchResponse},
-    event::RawEventLogger,
-};
-use tokio::sync::Mutex;
-use tracing::{error, warn};
-use websocket::WebSocketTransport;
-
-mod db;
-mod repositories;
-mod server;
-mod ui;
-mod websocket;
-
 use std::{net::SocketAddr, sync::Arc};
 
-use api::{Hub, RegisterWorkerError, Worker, WorkerKind};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     http::Request,
@@ -27,10 +8,29 @@ use axum::{
     routing, Extension, Router,
 };
 use hyper::Body;
+use tarpc::server::{BaseChannel, Channel};
+use tokio::sync::Mutex;
+use tracing::{error, warn};
+
+use api::{Hub, RegisterWorkerError, Worker, WorkerKind};
 use juniper_axum::{graphiql, graphql, playground};
+pub use schema::create_schema;
 use schema::Schema;
 use server::ServerContext;
-use tarpc::server::{BaseChannel, Channel};
+use tabby_common::api::{
+    code::{CodeSearch, SearchResponse},
+    event::RawEventLogger,
+};
+use websocket::WebSocketTransport;
+
+pub mod api;
+
+mod db;
+mod repositories;
+mod schema;
+mod server;
+mod ui;
+mod websocket;
 
 pub async fn attach_webserver(
     api: Router,
@@ -126,7 +126,7 @@ impl Hub for Arc<HubImpl> {
         arch: String,
         cpu_info: String,
         cpu_count: i32,
-        cuda_devices: Vec<String>,
+        gpu_devices: Vec<String>,
         token: String,
     ) -> Result<Worker, RegisterWorkerError> {
         if token.is_empty() {
@@ -165,7 +165,7 @@ impl Hub for Arc<HubImpl> {
             arch,
             cpu_info,
             cpu_count,
-            cuda_devices,
+            gpu_devices,
         };
         self.ctx.register_worker(worker).await
     }

@@ -1,4 +1,4 @@
-import { graphql } from './generates'
+import {graphql} from './generates'
 
 export const getAllWorkersDocument = graphql(/* GraphQL */ `
   query GetWorkers {
@@ -10,7 +10,7 @@ export const getAllWorkersDocument = graphql(/* GraphQL */ `
       arch
       cpuInfo
       cpuCount
-      cudaDevices
+      gpuDevices
     }
   }
 `)

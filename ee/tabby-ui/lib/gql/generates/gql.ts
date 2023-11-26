@@ -1,6 +1,6 @@
 /* eslint-disable */
 import * as types from './graphql'
-import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import {TypedDocumentNode as DocumentNode} from '@graphql-typed-document-node/core'
 
 /**
  * Map of all GraphQL operations in the project.
@@ -13,7 +13,7 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Therefore it is highly recommended to use the babel or swc plugin for production.
  */
 const documents = {
-  '\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      cudaDevices\n    }\n  }\n':
+  '\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      gpuDevices\n    }\n  }\n':
     types.GetWorkersDocument,
   '\n  query GetRegistrationToken {\n    registrationToken\n  }\n':
     types.GetRegistrationTokenDocument
@@ -37,8 +37,8 @@ export function graphql(source: string): unknown
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(
-  source: '\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      cudaDevices\n    }\n  }\n'
-): (typeof documents)['\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      cudaDevices\n    }\n  }\n']
+  source: '\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      gpuDevices\n    }\n  }\n'
+): (typeof documents)['\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      gpuDevices\n    }\n  }\n']
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

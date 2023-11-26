@@ -1,5 +1,6 @@
 /* eslint-disable */
-import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
+import {TypedDocumentNode as DocumentNode} from '@graphql-typed-document-node/core'
+
 export type Maybe<T> = T | null
 export type InputMaybe<T> = Maybe<T>
 export type Exact<T extends { [key: string]: unknown }> = {
@@ -46,8 +47,8 @@ export type Worker = {
   arch: Scalars['String']['output']
   cpuCount: Scalars['Int']['output']
   cpuInfo: Scalars['String']['output']
-  cudaDevices: Array<Scalars['String']['output']>
   device: Scalars['String']['output']
+  gpuDevices: Array<Scalars['String']['output']>
   kind: WorkerKind
   name: Scalars['String']['output']
 }
@@ -70,7 +71,7 @@ export type GetWorkersQuery = {
     arch: string
     cpuInfo: string
     cpuCount: number
-    cudaDevices: Array<string>
+    gpuDevices: Array<string>
   }>
 }
 
@@ -104,7 +105,7 @@ export const GetWorkersDocument = {
                 { kind: 'Field', name: { kind: 'Name', value: 'arch' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'cpuInfo' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'cpuCount' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'cudaDevices' } }
+                { kind: 'Field', name: { kind: 'Name', value: 'gpuDevices' } }
               ]
             }
           }

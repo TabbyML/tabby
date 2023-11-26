@@ -3744,6 +3744,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocm_smi_lib"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aab3a8127b4332d79efce5c924c79f04eb35ab4f1e540947320f86de1c9465bb"
+dependencies = [
+ "libc",
+ "rocm_smi_lib_sys",
+]
+
+[[package]]
+name = "rocm_smi_lib_sys"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fc32313f54e56d303342caae5cde35e5605ba7f946735985a11c00b2b5d6479"
+dependencies = [
+ "cmake",
+ "libc",
+]
+
+[[package]]
 name = "rusqlite"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4577,6 +4597,7 @@ dependencies = [
  "opentelemetry-otlp",
  "regex",
  "reqwest",
+ "rocm_smi_lib",
  "serde",
  "serde_json",
  "serdeconv",

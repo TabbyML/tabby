@@ -1,6 +1,6 @@
-import { CardTitle, CardHeader, CardContent, Card } from '@/components/ui/card'
-import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
-import { cn } from '@/lib/utils'
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
+import {Worker, WorkerKind} from '@/lib/gql/generates/graphql'
+import {cn} from '@/lib/utils'
 
 type RunnerType = WorkerKind | 'INDEX'
 
@@ -13,7 +13,7 @@ export default function RunnerCard({
   name,
   kind,
   device,
-  cudaDevices,
+  gpuDevices,
   cpuCount,
   cpuInfo
 }: RunnerCardProps) {
@@ -78,8 +78,37 @@ export default function RunnerCard({
           </p>
         </Info>
         {device == 'cuda' &&
-          cudaDevices?.length &&
-          cudaDevices.map((x, i) => (
+          gpuDevices?.length &&
+          gpuDevices.map((x, i) => (
+            <Info key={i}>
+              <svg
+                className=" h-5 w-5 text-gray-400"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M6 19v-3" />
+                <path d="M10 19v-3" />
+                <path d="M14 19v-3" />
+                <path d="M18 19v-3" />
+                <path d="M8 11V9" />
+                <path d="M16 11V9" />
+                <path d="M12 11V9" />
+                <path d="M2 15h20" />
+                <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.1a2 2 0 0 0 0 3.837V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5.1a2 2 0 0 0 0-3.837Z" />
+              </svg>
+              <p title={x} className={textClass}>{x}</p>
+            </Info>
+          ))}
+        {device == 'rocm' &&
+          gpuDevices?.length &&
+          gpuDevices.map((x, i) => (
             <Info key={i}>
               <svg
                 className=" h-5 w-5 text-gray-400"

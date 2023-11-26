@@ -20,7 +20,7 @@ type Worker {
   arch: String!
   cpuInfo: String!
   cpuCount: Int!
-  cudaDevices: [String!]!
+  gpuDevices: [String!]!
 }
 
 schema {

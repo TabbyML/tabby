@@ -59,9 +59,9 @@ fn random_index(size: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use crate::api::WorkerKind;
 
     use super::*;
-    use crate::api::WorkerKind;
 
     #[tokio::test]
     async fn test_worker_group() {
@@ -90,7 +90,7 @@ mod tests {
             arch: "x86_64".to_owned(),
             cpu_info: "Fake CPU".to_owned(),
             cpu_count: 32,
-            cuda_devices: vec![],
+            gpu_devices: vec![],
         }
     }
 }
