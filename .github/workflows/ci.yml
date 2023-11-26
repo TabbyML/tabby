@@ -63,14 +63,23 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: tests
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
+            binary: aarch64-apple-darwin
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014
+            container: quay.io/pypa/manylinux2014_x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014-cuda117
+            container: sameli/manylinux2014_x86_64_cuda_11.7
+            build_args: --features cuda
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -111,17 +120,17 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Bulid release binary
-        run: cargo build --release --target ${{ matrix.target }} --package tabby
+        run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
 
       - name: Rename release binary
-        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.target }}
+        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.binary }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           retention-days: 3
-          name: tabby_${{ matrix.target }}
-          path: tabby_${{ matrix.target }}
+          name: tabby_${{ matrix.binary }}
+          path: tabby_${{ matrix.binary }}
 
   pre-release:
     if: github.event_name != 'pull_request'
