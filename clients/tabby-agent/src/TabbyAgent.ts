@@ -4,15 +4,9 @@ import deepEqual from "deep-equal";
 import { deepmerge } from "deepmerge-ts";
 import { getProperty, setProperty, deleteProperty } from "dot-prop";
 import createClient from "openapi-fetch";
-import { paths as TabbyApi } from "./types/tabbyApi";
-import {
-  isBlank,
-  abortSignalFromAnyOf,
-  findUnpairedAutoClosingChars,
-  HttpError,
-  isTimeoutError,
-  isCanceledError,
-} from "./utils";
+import type { ParseAs } from "openapi-fetch";
+import type { paths as TabbyApi } from "./types/tabbyApi";
+import { isBlank, abortSignalFromAnyOf, HttpError, isTimeoutError, isCanceledError, errorToString } from "./utils";
 import type {
   Agent,
   AgentStatus,
@@ -32,7 +26,7 @@ import { CompletionCache } from "./CompletionCache";
 import { CompletionDebounce } from "./CompletionDebounce";
 import { CompletionContext } from "./CompletionContext";
 import { DataStore } from "./dataStore";
-import { preCacheProcess, postCacheProcess } from "./postprocess";
+import { preCacheProcess, postCacheProcess, calculateReplaceRange } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { CompletionProviderStats, CompletionProviderStatsEntry } from "./CompletionProviderStats";
@@ -54,6 +48,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private status: AgentStatus = "notInitialized";
   private issues: AgentIssue["name"][] = [];
   private serverHealthState: ServerHealthState | null = null;
+  private connectionErrorMessage: string | null = null;
   private api: ReturnType<typeof createClient<TabbyApi>>;
   private auth: Auth;
   private dataStore: DataStore | null = null;
@@ -95,6 +90,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     this.config = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig);
     allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
+
     if (isBlank(this.config.server.token) && this.config.server.requestHeaders["Authorization"] === undefined) {
       if (this.config.server.endpoint !== this.auth?.endpoint) {
         this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
@@ -111,6 +107,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.completionProviderStats.resetWindowed();
       this.popIssue("slowCompletionResponseTime");
       this.popIssue("highCompletionTimeoutRate");
+      this.popIssue("connectionFailed");
+      this.connectionErrorMessage = null;
     }
 
     await this.setupApi();
@@ -121,6 +119,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
       if (oldStatus === "unauthorized" && this.status === "unauthorized") {
         this.emitAuthRequired();
       }
+    }
+
+    if (oldConfig.completion.timeout !== this.config.completion.timeout) {
+      this.completionProviderStats.updateConfigByRequestTimeout(this.config.completion.timeout);
+      this.popIssue("slowCompletionResponseTime");
+      this.popIssue("highCompletionTimeoutRate");
     }
 
     const event: AgentEvent = { event: "configUpdated", config: this.config };
@@ -168,11 +172,16 @@ export class TabbyAgent extends EventEmitter implements Agent {
           name: "slowCompletionResponseTime",
           completionResponseStats: this.completionProviderStats.windowed().stats,
         };
+      case "connectionFailed":
+        return {
+          name: "connectionFailed",
+          message: this.connectionErrorMessage,
+        };
     }
   }
 
   private pushIssue(issue: AgentIssue["name"]) {
-    if (this.issues.indexOf(issue) === -1) {
+    if (!this.issues.includes(issue)) {
       this.issues.push(issue);
       this.logger.debug({ issue }, "Issues Pushed");
       this.emitIssueUpdated();
@@ -207,70 +216,66 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
   }
 
-  private async post<T extends Parameters<typeof this.api.POST>[0]>(
-    path: T,
-    requestOptions: Parameters<typeof this.api.POST<T>>[1],
-    abortOptions?: { signal?: AbortSignal; timeout?: number },
-  ): Promise<Awaited<ReturnType<typeof this.api.POST<T>>>["data"]> {
-    const requestId = uuid();
-    this.logger.debug({ requestId, path, requestOptions, abortOptions }, "API request");
-    try {
-      const timeout = Math.min(0x7fffffff, abortOptions?.timeout || this.config.server.requestTimeout);
-      const signal = abortSignalFromAnyOf([AbortSignal.timeout(timeout), abortOptions?.signal]);
-      const response = await this.api.POST(path, { ...requestOptions, signal });
-      if (response.error) {
-        throw new HttpError(response.response);
-      }
-      this.logger.debug({ requestId, path, response: response.data }, "API response");
-      this.changeStatus("ready");
-      return response.data;
-    } catch (error) {
-      if (isTimeoutError(error)) {
-        this.logger.debug({ requestId, path, error }, "API request timeout");
-      } else if (isCanceledError(error)) {
-        this.logger.debug({ requestId, path, error }, "API request canceled");
-      } else if (
-        error instanceof HttpError &&
-        [401, 403, 405].indexOf(error.status) !== -1 &&
-        new URL(this.config.server.endpoint).hostname.endsWith("app.tabbyml.com") &&
-        isBlank(this.config.server.token) &&
-        this.config.server.requestHeaders["Authorization"] === undefined
-      ) {
-        this.logger.debug({ requestId, path, error }, "API unauthorized");
-        this.changeStatus("unauthorized");
-      } else if (error instanceof HttpError) {
-        this.logger.error({ requestId, path, error }, "API error");
-        this.changeStatus("disconnected");
-      } else {
-        this.logger.error({ requestId, path, error }, "API request failed with unknown error");
-        this.changeStatus("disconnected");
-      }
-      throw error;
-    }
+  private createAbortSignal(options?: { signal?: AbortSignal; timeout?: number }): AbortSignal {
+    const timeout = Math.min(0x7fffffff, options?.timeout || this.config.server.requestTimeout);
+    return abortSignalFromAnyOf([AbortSignal.timeout(timeout), options?.signal]);
   }
 
   private async healthCheck(options?: AbortSignalOption): Promise<any> {
+    const requestId = uuid();
+    const requestPath = "/v1/health";
+    const requestUrl = this.config.server.endpoint + requestPath;
+    const requestOptions = {
+      signal: this.createAbortSignal(options),
+    };
     try {
-      const healthState = await this.post("/v1/health", {}, options);
+      this.logger.debug({ requestId, requestOptions, url: requestUrl }, "Health check request");
+      const response = await this.api.GET(requestPath, requestOptions);
+      if (response.error) {
+        throw new HttpError(response.response);
+      }
+      this.logger.debug({ requestId, response }, "Health check response");
+      this.changeStatus("ready");
+      this.popIssue("connectionFailed");
+      this.connectionErrorMessage = null;
+      const healthState = response.data;
       if (
         typeof healthState === "object" &&
         healthState["model"] !== undefined &&
         healthState["device"] !== undefined
       ) {
         this.serverHealthState = healthState;
-        if (this.status === "ready") {
-          this.anonymousUsageLogger.uniqueEvent("AgentConnected", healthState);
-        }
+        this.anonymousUsageLogger.uniqueEvent("AgentConnected", healthState);
       }
-    } catch (_) {
-      if (this.status === "ready" || this.status === "notInitialized") {
+    } catch (error) {
+      this.serverHealthState = null;
+      if (
+        error instanceof HttpError &&
+        [401, 403, 405].includes(error.status) &&
+        new URL(this.config.server.endpoint).hostname.endsWith("app.tabbyml.com") &&
+        isBlank(this.config.server.token) &&
+        this.config.server.requestHeaders["Authorization"] === undefined
+      ) {
+        this.logger.debug({ requestId, error }, "Health check error: unauthorized");
+        this.changeStatus("unauthorized");
+      } else {
+        if (isTimeoutError(error)) {
+          this.logger.debug({ requestId, error }, "Health check error: timeout");
+          this.connectionErrorMessage = `GET ${requestUrl}: Timed out.`;
+        } else if (isCanceledError(error)) {
+          this.logger.debug({ requestId, error }, "Health check error: canceled");
+          this.connectionErrorMessage = `GET ${requestUrl}: Canceled.`;
+        } else {
+          this.logger.error({ requestId, error }, "Health check error: unknown error");
+          this.connectionErrorMessage = `GET ${requestUrl}: Request failed: \n${errorToString(error)}`;
+        }
+        this.pushIssue("connectionFailed");
         this.changeStatus("disconnected");
-        this.serverHealthState = null;
       }
     }
   }
 
-  private createSegments(context: CompletionContext): { prefix: string; suffix: string } {
+  private createSegments(context: CompletionContext): { prefix: string; suffix: string; clipboard?: string } {
     // max lines in prefix and suffix configurable
     const maxPrefixLines = this.config.completion.prompt.maxPrefixLines;
     const maxSuffixLines = this.config.completion.prompt.maxSuffixLines;
@@ -282,36 +287,13 @@ export class TabbyAgent extends EventEmitter implements Agent {
     } else {
       suffix = suffixLines.slice(0, maxSuffixLines).join("");
     }
-    return { prefix, suffix };
-  }
 
-  private calculateReplaceRange(response: CompletionResponse, context: CompletionContext): CompletionResponse {
-    const { suffixLines } = context;
-    const suffixText = suffixLines[0]?.trimEnd() || "";
-    if (isBlank(suffixText)) {
-      return response;
+    let clipboard = undefined;
+    const clipboardConfig = this.config.completion.prompt.clipboard;
+    if (context.clipboard.length >= clipboardConfig.minChars && context.clipboard.length <= clipboardConfig.maxChars) {
+      clipboard = context.clipboard;
     }
-    for (const choice of response.choices) {
-      const completionText = choice.text.slice(context.position - choice.replaceRange.start);
-      const unpaired = findUnpairedAutoClosingChars(completionText);
-      if (isBlank(unpaired)) {
-        continue;
-      }
-      if (suffixText.startsWith(unpaired)) {
-        choice.replaceRange.end = context.position + unpaired.length;
-        this.logger.trace(
-          { context, completion: choice.text, range: choice.replaceRange, unpaired },
-          "Adjust replace range",
-        );
-      } else if (unpaired.startsWith(suffixText)) {
-        choice.replaceRange.end = context.position + suffixText.length;
-        this.logger.trace(
-          { context, completion: choice.text, range: choice.replaceRange, unpaired },
-          "Adjust replace range",
-        );
-      }
-    }
-    return response;
+    return { prefix, suffix, clipboard };
   }
 
   public async initialize(options: AgentInitOptions): Promise<boolean> {
@@ -410,11 +392,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return this.issues;
   }
 
-  public getIssueDetail(options: { index?: number; name?: AgentIssue["name"] }): AgentIssue | null {
-    if (options.index !== undefined) {
-      return this.issueFromName(this.issues[options.index]);
-    } else if (options.name !== undefined && this.issues.indexOf(options.name) !== -1) {
-      return this.issueFromName(options.name);
+  public getIssueDetail<T extends AgentIssue>(options: { index?: number; name?: T["name"] }): T | null {
+    if (options.index !== undefined && options.index < this.issues.length) {
+      return this.issueFromName(this.issues[options.index]) as T;
+    } else if (options.name !== undefined && this.issues.includes(options.name)) {
+      return this.issueFromName(options.name) as T;
     } else {
       return null;
     }
@@ -510,29 +492,36 @@ export class TabbyAgent extends EventEmitter implements Agent {
           );
 
           // Send http request
+          const requestId = uuid();
           stats.requestSent = true;
           requestStartedAt = performance.now();
           try {
-            const response = await this.post(
-              "/v1/completions",
-              {
-                body: {
-                  language: request.language,
-                  segments,
-                  user: this.auth?.user,
-                },
+            const requestPath = "/v1/completions";
+            const requestOptions = {
+              body: {
+                language: request.language,
+                segments,
+                user: this.auth?.user,
               },
-              {
+              signal: this.createAbortSignal({
                 signal,
-                timeout: request.manually
-                  ? this.config.completion.timeout.manually
-                  : this.config.completion.timeout.auto,
-              },
+                timeout: this.config.completion.timeout,
+              }),
+            };
+            this.logger.debug(
+              { requestId, requestOptions, url: this.config.server.endpoint + requestPath },
+              "Completion request",
             );
+            const response = await this.api.POST(requestPath, requestOptions);
+            if (response.error) {
+              throw new HttpError(response.response);
+            }
+            this.logger.debug({ requestId, response }, "Completion response");
+            const responseData = response.data;
             stats.requestLatency = performance.now() - requestStartedAt;
             completionResponse = {
-              id: response.id,
-              choices: response.choices.map((choice) => {
+              id: responseData.id,
+              choices: responseData.choices.map((choice) => {
                 return {
                   index: choice.index,
                   text: choice.text,
@@ -545,12 +534,17 @@ export class TabbyAgent extends EventEmitter implements Agent {
             };
           } catch (error) {
             if (isCanceledError(error)) {
+              this.logger.debug({ requestId, error }, "Completion request canceled");
               stats.requestCanceled = true;
               stats.requestLatency = performance.now() - requestStartedAt;
-            }
-            if (isTimeoutError(error)) {
+            } else if (isTimeoutError(error)) {
+              this.logger.debug({ requestId, error }, "Completion request timeout");
               stats.requestTimeout = true;
               stats.requestLatency = NaN;
+            } else {
+              this.logger.error({ requestId, error }, "Completion request failed with unknown error");
+              // schedule a health check
+              this.healthCheck();
             }
             // rethrow error
             throw error;
@@ -561,7 +555,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
             throw options.signal.reason;
           }
           // Build cache
-          this.completionCache.buildCache(context, completionResponse);
+          this.completionCache.buildCache(context, JSON.parse(JSON.stringify(completionResponse)));
         }
       }
       // Postprocess (post-cache)
@@ -570,7 +564,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
         throw options.signal.reason;
       }
       // Calculate replace range
-      completionResponse = this.calculateReplaceRange(completionResponse, context);
+      completionResponse = await calculateReplaceRange(context, this.config.postprocess, completionResponse);
+      if (options?.signal?.aborted) {
+        throw options.signal.reason;
+      }
     } catch (error) {
       if (isCanceledError(error) || isTimeoutError(error)) {
         if (stats) {
@@ -588,7 +585,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
         if (stats.requestSent && !stats.requestCanceled) {
           const windowedStats = this.completionProviderStats.windowed();
-          const checkResult = CompletionProviderStats.check(windowedStats);
+          const checkResult = this.completionProviderStats.check(windowedStats);
           switch (checkResult) {
             case "healthy":
               this.popIssue("slowCompletionResponseTime");
@@ -615,19 +612,35 @@ export class TabbyAgent extends EventEmitter implements Agent {
       throw new Error("Agent is not initialized");
     }
     this.completionProviderStats.addEvent(request.type);
-    await this.post(
-      "/v1/events",
-      {
+    const requestId = uuid();
+    try {
+      const requestPath = "/v1/events";
+      const requestOptions = {
         body: request,
         params: {
           query: {
             select_kind: request.select_kind,
           },
         },
-        parseAs: "text",
-      },
-      options,
-    );
-    return true;
+        signal: this.createAbortSignal(options),
+        parseAs: "text" as ParseAs,
+      };
+      this.logger.debug({ requestId, requestOptions, url: this.config.server.endpoint + requestPath }, "Event request");
+      const response = await this.api.POST(requestPath, requestOptions);
+      if (response.error) {
+        throw new HttpError(response.response);
+      }
+      this.logger.debug({ requestId, response }, "Event response");
+      return true;
+    } catch (error) {
+      if (isTimeoutError(error)) {
+        this.logger.debug({ requestId, error }, "Event request timeout");
+      } else if (isCanceledError(error)) {
+        this.logger.debug({ requestId, error }, "Event request canceled");
+      } else {
+        this.logger.error({ requestId, error }, "Event request failed with unknown error");
+      }
+      return false;
+    }
   }
 }

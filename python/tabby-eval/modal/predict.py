@@ -9,7 +9,6 @@ from datetime import datetime
 from modal import Image, Mount, Secret, Stub, asgi_app, gpu, method
 from pathlib import Path
 from typing import Union, List, Optional, Any, Tuple
-#from modal.tabby_python_client.models.health_state import HealthState
 
 
 GPU_CONFIG = gpu.A10G()
@@ -117,8 +116,6 @@ class Model:
             Segments,
         )
         from tabby_python_client.types import Response
-        from tabby_python_client import errors
-        import pandas as pd
 
 
         request = CompletionRequest(

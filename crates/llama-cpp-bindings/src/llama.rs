@@ -58,6 +58,11 @@ impl LlamaServiceImpl {
             stop_condition,
         }) = self.next_request().await
         {
+            // Drop canceled requests.
+            if tx.is_closed() {
+                continue;
+            }
+
             let request_id = self.alloc_request_id();
             self.requests
                 .insert(request_id, LlamaRunningRequest { tx, stop_condition });
@@ -128,7 +133,7 @@ pub struct LlamaService {
 
 impl LlamaService {
     pub fn new(engine: UniquePtr<ffi::TextInferenceEngine>) -> Self {
-        let (tx, rx) = channel(20);
+        let (tx, rx) = channel(1);
         start_llama_service_impl(engine, rx);
         Self { tx }
     }

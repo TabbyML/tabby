@@ -1,6 +1,6 @@
 [package]
 name = "tabby-scheduler"
-version = "0.6.0-dev"
+version = "0.7.0-dev"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -17,11 +17,16 @@ serde-jsonlines = { workspace = true }
 file-rotate = "0.7.5"
 tree-sitter-python = "0.20.2"
 tree-sitter-java = "0.20.2"
+tree-sitter-kotlin = "0.3.1"
 tree-sitter-rust = "0.20.3"
 tree-sitter-typescript = "0.20.3"
 tree-sitter-go = "0.20.0"
 tree-sitter-ruby= "0.20.0"
 ignore = "0.4.20"
+kdam = { version = "0.5.0" }
+requirements = "0.3.0"
+serdeconv.workspace = true
+cargo-lock = { version = "9.0.0", features = ["dependency-tree"] }
 
 [dev-dependencies]
 temp_testdir = "0.2"

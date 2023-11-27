@@ -12,12 +12,16 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'crates/**'
+      - 'ee/tabby-webserver/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }} 
   
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
+
+env:
+  RUST_TOOLCHAIN: 1.73.0
 
 jobs:
   tests:
@@ -34,8 +38,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
-          components: rustfmt
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
@@ -53,12 +56,6 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - name: Cargo fmt
-        run: cargo +nightly fmt --check
-
-      - name: Cargo Machete
-        uses: bnjbvr/cargo-machete@main
-
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Run unit tests
@@ -69,14 +66,23 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: tests
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
+            binary: aarch64-apple-darwin
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014
+            container: quay.io/pypa/manylinux2014_x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014-cuda117
+            container: sameli/manylinux2014_x86_64_cuda_11.7
+            build_args: --features cuda
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -92,9 +98,11 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           target: ${{ matrix.target }}
           components: clippy
+
+      - run: rustup default ${{ env.RUST_TOOLCHAIN }}
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
@@ -115,20 +123,20 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Bulid release binary
-        run: cargo build --release --target ${{ matrix.target }} --package tabby
+        run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
 
       - name: Rename release binary
-        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.target }}
+        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.binary }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           retention-days: 3
-          name: tabby_${{ matrix.target }}
-          path: tabby_${{ matrix.target }}
+          name: tabby_${{ matrix.binary }}
+          path: tabby_${{ matrix.binary }}
 
   pre-release:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push'
     needs: release-binary
     runs-on: ubuntu-latest
     permissions:

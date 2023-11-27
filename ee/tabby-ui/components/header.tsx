@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconGitHub, IconNotice } from '@/components/ui/icons'
@@ -10,6 +9,9 @@ import Link from 'next/link'
 import { useHealth } from '@/lib/hooks/use-health'
 import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
 import { compare } from 'compare-versions'
+import { useWorkers } from '@/lib/hooks/use-workers'
+import { WorkerKind } from '@/lib/gql/generates/graphql'
+import { has } from 'lodash-es'
 
 const ThemeToggle = dynamic(
   () => import('@/components/theme-toggle').then(x => x.ThemeToggle),
@@ -18,13 +20,14 @@ const ThemeToggle = dynamic(
 
 export function Header() {
   const { data } = useHealth()
-  const isChatEnabled = !!data?.chat_model
+  const workers = useWorkers(data)
+  const isChatEnabled = has(workers, WorkerKind.Chat)
   const version = data?.version?.git_describe
   const { data: latestRelease } = useLatestRelease()
   const newVersionAvailable = isNewVersionAvailable(version, latestRelease)
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b bg-gradient-to-b from-background/10 via-background/50 to-background/80 px-4 backdrop-blur-xl">
+    <header className="from-background/10 via-background/50 to-background/80 sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b bg-gradient-to-b px-4 backdrop-blur-xl">
       <div className="flex items-center">
         <ThemeToggle />
         <Link href="/" className={cn(buttonVariants({ variant: 'link' }))}>

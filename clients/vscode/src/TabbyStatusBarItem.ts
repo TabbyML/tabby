@@ -1,5 +1,6 @@
-import { StatusBarAlignment, ThemeColor, window } from "vscode";
+import { StatusBarAlignment, ThemeColor, ExtensionContext, window } from "vscode";
 import { createMachine, interpret } from "@xstate/fsm";
+import type { StatusChangedEvent, AuthRequiredEvent, IssuesUpdatedEvent } from "tabby-agent";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
@@ -19,17 +20,30 @@ const backgroundColorWarning = new ThemeColor("statusBarItem.warningBackground")
 
 export class TabbyStatusBarItem {
   private item = window.createStatusBarItem(StatusBarAlignment.Right);
+  private extensionContext: ExtensionContext;
   private completionProvider: TabbyCompletionProvider;
   private completionResponseWarningShown = false;
 
   private subStatusForReady = [
     {
       target: "issuesExist",
-      cond: () => agent().getIssues().length > 0,
+      cond: () => {
+        let issues = agent().getIssues();
+        if (
+          this.extensionContext.globalState
+            .get<string[]>("notifications.muted", [])
+            .includes("completionResponseTimeIssues")
+        ) {
+          issues = issues.filter(
+            (issue) => issue !== "highCompletionTimeoutRate" && issue !== "slowCompletionResponseTime",
+          );
+        }
+        return issues.length > 0;
+      },
     },
     {
       target: "automatic",
-      cond: () => this.completionProvider.getTriggerMode() === "automatic",
+      cond: () => this.completionProvider.getTriggerMode() === "automatic" && !this.completionProvider.isLoading(),
     },
     {
       target: "manual",
@@ -37,7 +51,7 @@ export class TabbyStatusBarItem {
     },
     {
       target: "loading",
-      cond: () => this.completionProvider.getTriggerMode() === "manual" && this.completionProvider.isLoading(),
+      cond: () => this.completionProvider.isLoading(),
     },
     {
       target: "disabled",
@@ -125,24 +139,26 @@ export class TabbyStatusBarItem {
 
   private fsmService = interpret(this.fsm);
 
-  constructor(completionProvider: TabbyCompletionProvider) {
+  constructor(context: ExtensionContext, completionProvider: TabbyCompletionProvider) {
+    this.extensionContext = context;
     this.completionProvider = completionProvider;
     this.fsmService.start();
     this.fsmService.send(agent().getStatus());
     this.item.show();
 
     this.completionProvider.on("triggerModeUpdated", () => {
-      this.fsmService.send(agent().getStatus());
+      this.refresh();
     });
     this.completionProvider.on("loadingStatusUpdated", () => {
-      this.fsmService.send(agent().getStatus());
+      this.refresh();
     });
-    agent().on("statusChanged", (event) => {
+
+    agent().on("statusChanged", (event: StatusChangedEvent) => {
       console.debug("Tabby agent statusChanged", { event });
       this.fsmService.send(event.status);
     });
 
-    agent().on("authRequired", (event) => {
+    agent().on("authRequired", (event: AuthRequiredEvent) => {
       console.debug("Tabby agent authRequired", { event });
       notifications.showInformationStartAuth({
         onAuthStart: () => {
@@ -154,22 +170,37 @@ export class TabbyStatusBarItem {
       });
     });
 
-    agent().on("issuesUpdated", (event) => {
+    agent().on("issuesUpdated", (event: IssuesUpdatedEvent) => {
       console.debug("Tabby agent issuesUpdated", { event });
-      this.fsmService.send(agent().getStatus());
-      if (event.issues.length > 0 && !this.completionResponseWarningShown) {
-        this.completionResponseWarningShown = true;
-        if (event.issues[0] === "slowCompletionResponseTime") {
-          notifications.showInformationWhenSlowCompletionResponseTime();
-        } else if (event.issues[0] === "highCompletionTimeoutRate") {
-          notifications.showInformationWhenHighCompletionTimeoutRate();
+      const status = agent().getStatus();
+      this.fsmService.send(status);
+      const showCompletionResponseWarnings =
+        !this.completionResponseWarningShown &&
+        !this.extensionContext.globalState
+          .get<string[]>("notifications.muted", [])
+          .includes("completionResponseTimeIssues");
+      if (event.issues.includes("connectionFailed")) {
+        // Only show this notification when user modifies the settings, do not show it when initializing
+        // FIXME: refactor this use a flag marks the event is trigger by modifying settings or initializing
+        if (status !== "notInitialized") {
+          notifications.showInformationWhenDisconnected();
         }
+      } else if (showCompletionResponseWarnings && event.issues.includes("highCompletionTimeoutRate")) {
+        this.completionResponseWarningShown = true;
+        notifications.showInformationWhenHighCompletionTimeoutRate();
+      } else if (showCompletionResponseWarnings && event.issues.includes("slowCompletionResponseTime")) {
+        this.completionResponseWarningShown = true;
+        notifications.showInformationWhenSlowCompletionResponseTime();
       }
     });
   }
 
   public register() {
     return this.item;
+  }
+
+  public refresh() {
+    this.fsmService.send(agent().getStatus());
   }
 
   private toInitializing() {
@@ -281,13 +312,15 @@ export class TabbyStatusBarItem {
     this.item.color = colorWarning;
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconIssueExist} ${label}`;
-    const issue = agent().getIssueDetail({ index: 0 });
+    const issue =
+      agent().getIssueDetail({ name: "highCompletionTimeoutRate" }) ??
+      agent().getIssueDetail({ name: "slowCompletionResponseTime" });
     switch (issue?.name) {
-      case "slowCompletionResponseTime":
-        this.item.tooltip = "Completion requests appear to take too much time.";
-        break;
       case "highCompletionTimeoutRate":
         this.item.tooltip = "Most completion requests timed out.";
+        break;
+      case "slowCompletionResponseTime":
+        this.item.tooltip = "Completion requests appear to take too much time.";
         break;
       default:
         this.item.tooltip = "";
@@ -299,11 +332,11 @@ export class TabbyStatusBarItem {
       arguments: [
         () => {
           switch (issue?.name) {
-            case "slowCompletionResponseTime":
-              notifications.showInformationWhenSlowCompletionResponseTime();
-              break;
             case "highCompletionTimeoutRate":
               notifications.showInformationWhenHighCompletionTimeoutRate();
+              break;
+            case "slowCompletionResponseTime":
+              notifications.showInformationWhenSlowCompletionResponseTime();
               break;
           }
         },

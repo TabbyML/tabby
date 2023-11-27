@@ -18,7 +18,7 @@ pub fn set_tabby_root(path: PathBuf) {
     cell.replace(path);
 }
 
-fn tabby_root() -> PathBuf {
+pub fn tabby_root() -> PathBuf {
     let mut cell = TABBY_ROOT.lock().unwrap();
     cell.get_mut().clone()
 }
@@ -33,6 +33,10 @@ pub fn usage_id_file() -> PathBuf {
 
 pub fn repositories_dir() -> PathBuf {
     tabby_root().join("repositories")
+}
+
+pub fn dependency_file() -> PathBuf {
+    dataset_dir().join("deps.json")
 }
 
 pub fn index_dir() -> PathBuf {

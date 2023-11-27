@@ -1,0 +1,29 @@
+enum WorkerKind {
+  COMPLETION
+  CHAT
+}
+
+type Mutation {
+  resetRegistrationToken: String!
+}
+
+type Query {
+  workers: [Worker!]!
+  registrationToken: String!
+}
+
+type Worker {
+  kind: WorkerKind!
+  name: String!
+  addr: String!
+  device: String!
+  arch: String!
+  cpuInfo: String!
+  cpuCount: Int!
+  cudaDevices: [String!]!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

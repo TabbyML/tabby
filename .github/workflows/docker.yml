@@ -14,6 +14,9 @@ concurrency:
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
 
+env:
+  RUST_TOOLCHAIN: 1.73.0
+
 jobs:
   release-docker:
     runs-on: ubuntu-latest
@@ -101,6 +104,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
+          build-args: RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3

@@ -2,4 +2,5 @@
 website/** linguist-vendored
 clients/** linguist-vendored
 ee/tabby-ui/** linguist-vendored
-crates/tabby/ui/** linguist-vendored
+ee/tabby-webserver/ui/** linguist-vendored
+experimental/** linguist-vendored

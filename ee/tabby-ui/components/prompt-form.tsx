@@ -32,12 +32,14 @@ export interface PromptProps
   isLoading: boolean
 }
 
-export function PromptForm({
-  onSubmit,
-  input,
-  setInput,
-  isLoading
-}: PromptProps) {
+export interface PromptFormRef {
+  focus: () => void
+}
+
+function PromptFormRenderer(
+  { onSubmit, input, setInput, isLoading }: PromptProps,
+  ref: React.ForwardedRef<PromptFormRef>
+) {
   const { formRef, onKeyDown } = useEnterSubmit()
   const [queryCompletionUrl, setQueryCompletionUrl] = React.useState<
     string | null
@@ -61,6 +63,24 @@ export function PromptForm({
       setOptions(data?.hits ?? [])
     }
   })
+
+  React.useImperativeHandle(ref, () => {
+    return {
+      focus: () => {
+        inputRef.current?.focus()
+      }
+    }
+  })
+
+  React.useEffect(() => {
+    if (
+      input &&
+      inputRef.current &&
+      inputRef.current !== document.activeElement
+    ) {
+      inputRef.current.focus()
+    }
+  }, [input])
 
   React.useLayoutEffect(() => {
     if (nextInputSelectionRange.current?.length) {
@@ -267,6 +287,10 @@ export function PromptForm({
     </form>
   )
 }
+
+export const PromptForm = React.forwardRef<PromptFormRef, PromptProps>(
+  PromptFormRenderer
+)
 
 /**
  * Retrieves the name of the completion query from a given string@.

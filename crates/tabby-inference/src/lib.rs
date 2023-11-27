@@ -16,8 +16,8 @@ pub struct TextGenerationOptions {
     #[builder(default = "1.0")]
     pub sampling_temperature: f32,
 
-    #[builder(default = "&tabby_common::languages::UNKNOWN_LANGUAGE")]
-    pub language: &'static Language,
+    #[builder(default = "None")]
+    pub language: Option<&'static Language>,
 }
 
 #[async_trait]

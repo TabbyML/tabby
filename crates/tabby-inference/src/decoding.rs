@@ -22,8 +22,12 @@ impl Default for StopConditionFactory {
 }
 
 impl StopConditionFactory {
-    pub fn create(&self, text: &str, language: &'static Language) -> StopCondition {
-        StopCondition::new(self.get_re(language), text)
+    pub fn create(&self, text: &str, language: Option<&'static Language>) -> StopCondition {
+        if let Some(language) = language {
+            StopCondition::new(self.get_re(language), text)
+        } else {
+            StopCondition::new(None, text)
+        }
     }
 
     fn get_re(&self, language: &'static Language) -> Option<Regex> {

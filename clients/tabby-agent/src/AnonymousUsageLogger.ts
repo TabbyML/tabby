@@ -81,7 +81,7 @@ export class AnonymousUsageLogger {
     if (this.disabled) {
       return;
     }
-    if (unique && this.emittedUniqueEvent.indexOf(event) >= 0) {
+    if (unique && this.emittedUniqueEvent.includes(event)) {
       return;
     }
     if (unique) {

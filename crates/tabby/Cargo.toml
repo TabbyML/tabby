@@ -1,20 +1,23 @@
 [package]
 name = "tabby"
-version = "0.6.0-dev"
+version = "0.7.0-dev"
 edition = "2021"
 
 [features]
+default = ["ee"]
+ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
+experimental-http = ["dep:http-api-bindings"]
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }
 tabby-scheduler = { path = "../tabby-scheduler" }
 tabby-download = { path = "../tabby-download" }
 tabby-inference = { path = "../tabby-inference" }
-axum = "0.6"
-hyper = { version = "0.14", features = ["full"] }
+axum.workspace = true
+hyper = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
-utoipa = { version = "3.3", features = ["axum_extras", "preserve_order"] }
+utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
 utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
 serde = { workspace = true }
 serdeconv = { workspace = true }
@@ -22,8 +25,6 @@ serde_json = { workspace = true }
 tower-http = { version = "0.4.0", features = ["cors", "timeout"] }
 clap = { version = "4.3.0", features = ["derive"] }
 lazy_static = { workspace = true }
-rust-embed = "8.0.0"
-mime_guess = "2.0.4"
 strum = { version = "0.24", features = ["derive"] }
 strfmt = "0.2.4"
 tracing = { workspace = true }
@@ -36,15 +37,19 @@ tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
-http-api-bindings = { path = "../http-api-bindings" }
+http-api-bindings = { path = "../http-api-bindings", optional = true }      # included when build with `experimental-http` feature
 async-stream = { workspace = true }
 axum-streams = { version = "0.9.1", features = ["json"] }
 minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
 regex.workspace = true
-thiserror.workspace = true
 llama-cpp-bindings = { path = "../llama-cpp-bindings" }
 futures.workspace = true
+async-trait.workspace = true
+tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
+thiserror.workspace = true
+chrono = "0.4.31"
+axum-prometheus = "0.4.0"
 
 [dependencies.uuid]
 version = "1.3.3"

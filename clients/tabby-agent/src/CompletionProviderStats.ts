@@ -59,6 +59,18 @@ type WindowedStats = {
 
 export class CompletionProviderStats {
   private readonly logger = rootLogger.child({ component: "CompletionProviderStats" });
+  private config = {
+    windowSize: 10,
+    checks: {
+      disable: false,
+      // Mark status as healthy if the latency is less than the threshold for each latest windowSize requests.
+      healthy: { windowSize: 3, latency: 2400 },
+      // If there is at least {count} requests, and the average response time is higher than the {latency}, show warning
+      slowResponseTime: { latency: 3200, count: 3 },
+      // If there is at least {count} timeouts, and the timeout rate is higher than the {rate}, show warning
+      highTimeoutRate: { rate: 0.5, count: 3 },
+    },
+  };
 
   private autoCompletionCount = 0;
   private manualCompletionCount = 0;
@@ -71,7 +83,13 @@ export class CompletionProviderStats {
   private completionRequestCanceledStats = new Average();
   private completionRequestTimeoutCount = 0;
 
-  private recentCompletionRequestLatencies = new Windowed(10);
+  private recentCompletionRequestLatencies: Windowed = new Windowed(this.config.windowSize);
+
+  updateConfigByRequestTimeout(timeout: number) {
+    this.config.checks.healthy.latency = timeout * 0.6;
+    this.config.checks.slowResponseTime.latency = timeout * 0.8;
+    this.resetWindowed();
+  }
 
   add(value: CompletionProviderStatsEntry): void {
     const { triggerMode, cacheHit, aborted, requestSent, requestLatency, requestCanceled, requestTimeout } = value;
@@ -120,7 +138,7 @@ export class CompletionProviderStats {
   }
 
   resetWindowed() {
-    this.recentCompletionRequestLatencies = new Windowed(10);
+    this.recentCompletionRequestLatencies = new Windowed(this.config.windowSize);
   }
 
   // stats for anonymous usage report
@@ -170,21 +188,28 @@ export class CompletionProviderStats {
     };
   }
 
-  static check(windowed: WindowedStats): "healthy" | "highTimeoutRate" | "slowResponseTime" | null {
+  check(windowed: WindowedStats): "healthy" | "highTimeoutRate" | "slowResponseTime" | null {
+    if (!!this.config.checks.disable) {
+      return null;
+    }
+    const config = this.config.checks;
+
     const {
       values: latencies,
       stats: { total, timeouts, responses, averageResponseTime },
     } = windowed;
-    // if the recent 3 requests all have latency less than 3s
-    if (latencies.slice(-3).every((latency) => latency < 3000)) {
+
+    if (
+      latencies
+        .slice(-Math.max(this.config.windowSize, config.healthy.windowSize))
+        .every((latency) => latency < config.healthy.latency)
+    ) {
       return "healthy";
     }
-    // if the recent requests timeout percentage is more than 50%, at least 3 timeouts
-    if (timeouts / total > 0.5 && timeouts >= 3) {
+    if (timeouts / total > config.highTimeoutRate.rate && timeouts >= config.highTimeoutRate.count) {
       return "highTimeoutRate";
     }
-    // if average response time is more than 4s, at least 3 requests
-    if (responses >= 3 && averageResponseTime > 4000) {
+    if (averageResponseTime > config.slowResponseTime.latency && responses >= config.slowResponseTime.count) {
       return "slowResponseTime";
     }
     return null;

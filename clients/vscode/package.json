@@ -7,7 +7,7 @@
   "repository": "https://github.com/TabbyML/tabby",
   "bugs": "https://github.com/TabbyML/tabby/issues",
   "license": "Apache-2.0",
-  "version": "1.1.0-dev",
+  "version": "1.2.0-dev",
   "keywords": [
     "ai",
     "autocomplete",
@@ -57,6 +57,14 @@
       {
         "command": "tabby.gettingStarted",
         "title": "Tabby: Getting Started"
+      },
+      {
+        "command": "tabby.openOnlineHelp",
+        "title": "Tabby: Online Help"
+      },
+      {
+        "command": "tabby.notifications.resetMuted",
+        "title": "Tabby: Reset notifications marked as \"Don't Show Again\""
       }
     ],
     "menus": {
@@ -147,7 +155,7 @@
         "tabby.usage.anonymousUsageTracking": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configuration#usage-collection)."
+          "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection)."
         }
       }
     },
@@ -208,6 +216,7 @@
     "@vscode/test-web": "^0.0.44",
     "@vscode/vsce": "^2.15.0",
     "assert": "^2.0.0",
+    "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint": "^8.20.0",
     "glob": "^8.0.3",
@@ -217,6 +226,6 @@
   },
   "dependencies": {
     "@xstate/fsm": "^2.0.1",
-    "tabby-agent": "1.1.0-dev"
+    "tabby-agent": "1.2.0-dev"
   }
 }

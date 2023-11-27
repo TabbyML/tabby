@@ -87,7 +87,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
                 actionManager.getAction("Tabby.CheckIssueDetail"),
                 actionManager.getAction("Tabby.ToggleInlineCompletionTriggerMode"),
                 actionManager.getAction("Tabby.OpenSettings"),
-                actionManager.getAction("Tabby.OpenOnlineDocs"),
+                actionManager.getAction("Tabby.OpenOnlineHelp"),
               )
             }
           },
@@ -109,7 +109,11 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
             tooltip = "Tabby: Initialization failed"
           }
           Agent.Status.READY -> {
-            if (state.currentIssue != null) {
+            val muted = mutableListOf<String>()
+            if (state.settings.notificationsMuted.contains("completionResponseTimeIssues")) {
+              muted += listOf("slowCompletionResponseTime", "highCompletionTimeoutRate")
+            }
+            if (state.currentIssue != null && state.currentIssue !in muted) {
               icon = AllIcons.General.Warning
               tooltip = when(state.currentIssue) {
                 "slowCompletionResponseTime" -> "Tabby: Completion requests appear to take too much time"
@@ -119,14 +123,19 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
             } else {
               when (state.settings.completionTriggerMode) {
                 ApplicationSettingsState.TriggerMode.AUTOMATIC -> {
-                  icon = AllIcons.Actions.Checked
-                  tooltip = "Tabby: Automatic code completion is enabled"
+                  if (state.ongoingCompletion == null) {
+                    icon = AllIcons.Actions.Checked
+                    tooltip = "Tabby: Automatic code completion is enabled"
+                  } else {
+                    icon = AnimatedIcon.Default()
+                    tooltip = "Tabby: Generating code completions"
+                  }
                 }
 
                 ApplicationSettingsState.TriggerMode.MANUAL -> {
                   if (state.ongoingCompletion == null) {
                     icon = AllIcons.General.ChevronRight
-                    tooltip = "Tabby: Standing by, press `Alt + \\` to trigger code completion."
+                    tooltip = "Tabby: Standing by, press `Ctrl + \\` to trigger code completion."
                   } else {
                     icon = AnimatedIcon.Default()
                     tooltip = "Tabby: Generating code completions"

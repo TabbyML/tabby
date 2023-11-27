@@ -14,6 +14,11 @@ import { Separator } from '@/components/ui/separator'
 import { useHealth } from '@/lib/hooks/use-health'
 import { PropsWithChildren, useEffect, useState } from 'react'
 import WorkerCard from './components/worker-card'
+import { useWorkers } from '@/lib/hooks/use-workers'
+import { WorkerKind } from '@/lib/gql/generates/graphql'
+import { useGraphQL } from '@/lib/hooks/use-graphql'
+import { getRegistrationTokenDocument } from '@/lib/gql/request-documents'
+import { CopyButton } from '@/components/copy-button'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
@@ -72,6 +77,10 @@ function toBadgeString(str: string) {
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()
+  const workers = useWorkers(healthInfo)
+  const { data: registrationTokenRes } = useGraphQL(
+    getRegistrationTokenDocument
+  )
 
   if (!healthInfo) return
 
@@ -97,26 +106,40 @@ function MainPanel() {
 
       <div className="mt-4 rounded-lg bg-zinc-100 p-4 dark:bg-zinc-800">
         <span className="font-bold">Workers</span>
+
+        {!!registrationTokenRes?.registrationToken && (
+          <div className="flex items-center gap-1">
+            Registeration token: <span className="text-sm rounded-lg text-red-600">
+              {registrationTokenRes.registrationToken}
+            </span>
+            <CopyButton value={registrationTokenRes.registrationToken} />
+          </div>
+        )}
+
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-          <WorkerCard
-            source="localhost"
-            name={healthInfo.model}
-            type="completion"
-            health={healthInfo}
-          />
-          {healthInfo.chat_model && (
-            <WorkerCard
-              source="localhost"
-              name={healthInfo.chat_model}
-              type="chat"
-              health={healthInfo}
-            />
+          {!!workers?.[WorkerKind.Completion] && (
+            <>
+              {workers[WorkerKind.Completion].map((worker, i) => {
+                return <WorkerCard key={i} {...worker} />
+              })}
+            </>
+          )}
+          {!!workers?.[WorkerKind.Chat] && (
+            <>
+              {workers[WorkerKind.Chat].map((worker, i) => {
+                return <WorkerCard key={i} {...worker} />
+              })}
+            </>
           )}
           <WorkerCard
-            source="localhost"
+            addr="localhost"
             name="Code Search Index"
-            type="index"
-            health={healthInfo}
+            kind="INDEX"
+            arch=""
+            device={healthInfo.device}
+            cudaDevices={healthInfo.cuda_devices}
+            cpuCount={healthInfo.cpu_count}
+            cpuInfo={healthInfo.cpu_info}
           />
         </div>
       </div>

@@ -2,14 +2,11 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Tabby Server",
-    "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby?style=social)](https://github.com/TabbyML/tabby)\n\nOpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-hosted AI coding assistant.",
+    "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)\n[![Join Slack](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)\n\nInstall following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).\n* [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)\n* [VIM Extension](https://github.com/TabbyML/tabby/tree/main/clients/vim)\n* [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij) – Install from the [marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)\n",
     "license": { "name": "Apache 2.0", "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE" },
-    "version": "0.1.0"
+    "version": "0.5.5"
   },
-  "servers": [
-    { "url": "https://playground.app.tabbyml.com", "description": "Playground server" },
-    { "url": "http://localhost:8080", "description": "Local server" }
-  ],
+  "servers": [{ "url": "/", "description": "Server" }],
   "paths": {
     "/v1/completions": {
       "post": {
@@ -40,7 +37,7 @@
       }
     },
     "/v1/health": {
-      "post": {
+      "get": {
         "tags": ["v1"],
         "operationId": "health",
         "responses": {
@@ -48,6 +45,34 @@
             "description": "Success",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthState" } } }
           }
+        }
+      }
+    },
+    "/v1beta/search": {
+      "get": {
+        "tags": ["v1beta"],
+        "operationId": "search",
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string", "default": "get" } },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 20, "nullable": true, "minimum": 0.0 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "nullable": true, "minimum": 0.0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SearchResponse" } } }
+          },
+          "501": { "description": "When code search is not enabled, the endpoint will returns 501 Not Implemented" }
         }
       }
     }
@@ -65,7 +90,6 @@
       "CompletionRequest": {
         "type": "object",
         "properties": {
-          "prompt": { "type": "string", "example": "def fib(n):", "nullable": true },
           "language": {
             "type": "string",
             "description": "Language identifier, full list is maintained at\nhttps://code.visualstudio.com/docs/languages/identifiers",
@@ -73,7 +97,12 @@
             "nullable": true
           },
           "segments": { "allOf": [{ "$ref": "#/components/schemas/Segments" }], "nullable": true },
-          "user": { "type": "string", "nullable": true }
+          "user": {
+            "type": "string",
+            "description": "A unique identifier representing your end-user, which can help Tabby to monitor & generating\nreports.",
+            "nullable": true
+          },
+          "debug_options": { "allOf": [{ "$ref": "#/components/schemas/DebugOptions" }], "nullable": true }
         },
         "example": {
           "language": "python",
@@ -85,21 +114,67 @@
         "required": ["id", "choices"],
         "properties": {
           "id": { "type": "string" },
-          "choices": { "type": "array", "items": { "$ref": "#/components/schemas/Choice" } }
+          "choices": { "type": "array", "items": { "$ref": "#/components/schemas/Choice" } },
+          "debug_data": { "allOf": [{ "$ref": "#/components/schemas/DebugData" }], "nullable": true }
+        },
+        "example": { "choices": [{ "index": 0, "text": "string" }], "id": "string" }
+      },
+      "DebugData": {
+        "type": "object",
+        "properties": {
+          "snippets": { "type": "array", "items": { "$ref": "#/components/schemas/Snippet" }, "nullable": true },
+          "prompt": { "type": "string", "nullable": true }
+        }
+      },
+      "DebugOptions": {
+        "type": "object",
+        "properties": {
+          "raw_prompt": {
+            "type": "string",
+            "description": "When `raw_prompt` is specified, it will be passed directly to the inference engine for completion. `segments` field in `CompletionRequest` will be ignored.\n\nThis is useful for certain requests that aim to test the tabby's e2e quality.",
+            "nullable": true
+          },
+          "return_snippets": { "type": "boolean", "description": "When true, returns `snippets` in `debug_data`." },
+          "return_prompt": { "type": "boolean", "description": "When true, returns `prompt` in `debug_data`." },
+          "disable_retrieval_augmented_code_completion": {
+            "type": "boolean",
+            "description": "When true, disable retrieval augmented code completion."
+          }
         }
       },
       "HealthState": {
         "type": "object",
-        "required": ["model", "device", "compute_type", "arch", "cpu_info", "cpu_count", "cuda_devices", "version"],
+        "required": ["model", "device", "arch", "cpu_info", "cpu_count", "cuda_devices", "version"],
         "properties": {
           "model": { "type": "string" },
+          "chat_model": { "type": "string", "nullable": true },
           "device": { "type": "string" },
-          "compute_type": { "type": "string" },
           "arch": { "type": "string" },
           "cpu_info": { "type": "string" },
           "cpu_count": { "type": "integer", "minimum": 0.0 },
           "cuda_devices": { "type": "array", "items": { "type": "string" } },
           "version": { "$ref": "#/components/schemas/Version" }
+        }
+      },
+      "Hit": {
+        "type": "object",
+        "required": ["score", "doc", "id"],
+        "properties": {
+          "score": { "type": "number", "format": "float" },
+          "doc": { "$ref": "#/components/schemas/HitDocument" },
+          "id": { "type": "integer", "format": "int32", "minimum": 0.0 }
+        }
+      },
+      "HitDocument": {
+        "type": "object",
+        "required": ["body", "filepath", "git_url", "kind", "language", "name"],
+        "properties": {
+          "body": { "type": "string" },
+          "filepath": { "type": "string" },
+          "git_url": { "type": "string" },
+          "kind": { "type": "string" },
+          "language": { "type": "string" },
+          "name": { "type": "string" }
         }
       },
       "LogEventRequest": {
@@ -109,6 +184,14 @@
           "type": { "type": "string", "description": "Event type, should be `view` or `select`.", "example": "view" },
           "completion_id": { "type": "string" },
           "choice_index": { "type": "integer", "format": "int32", "minimum": 0.0 }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "required": ["num_hits", "hits"],
+        "properties": {
+          "num_hits": { "type": "integer", "minimum": 0.0 },
+          "hits": { "type": "array", "items": { "$ref": "#/components/schemas/Hit" } }
         }
       },
       "Segments": {
@@ -121,6 +204,15 @@
             "description": "Content that appears after the cursor in the editor window.",
             "nullable": true
           }
+        }
+      },
+      "Snippet": {
+        "type": "object",
+        "required": ["filepath", "body", "score"],
+        "properties": {
+          "filepath": { "type": "string" },
+          "body": { "type": "string" },
+          "score": { "type": "number", "format": "float" }
         }
       },
       "Version": {

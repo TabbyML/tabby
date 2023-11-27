@@ -1,9 +1,11 @@
 # Connect to Tabby Server
 
-When you execute the command `Tabby: Specify API Endpoint of Tabby`, you will see a prompt asking you to enter the API endpoint of your Tabby server.
+**Note** If you are using default port `http://localhost:8080`, you can simply skip this step.
+
+Open the command palette and execute the command `Tabby: Specify API Endpoint of Tabby`, you will see a prompt asking you to enter the API endpoint of your Tabby server.
 
 ![setApiEndpoint](./setApiEndpoint.png)
 
-Once the connection is established, you will see the status bar showing the check mark.
+Once the connection is established, you will see the Tabby status bar item showing checkmark.
 
-If you are using a Tabby Cloud server endpoint, please follow the popup messages to complete authorization.
+![statusbarReady](./statusbarReady.png)

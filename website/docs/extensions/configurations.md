@@ -2,7 +2,7 @@
 sidebar_position: 98
 ---
 
-# Configurations
+# Advanced Configuration
 
 This document describes the available configurations for Tabby IDE extensions.
 
@@ -30,6 +30,18 @@ token = "your-token-here" # if token is set, request header Authorization = "Bea
 [server.requestHeaders]
 Header1 = "Value1" # list your custom headers here
 Header2 = "Value2" # values can be strings, numbers or booleans
+```
+
+## Completion
+
+If you have changed the default response timeout at Tabby server side, you may also need to change the timeout configurations here.
+
+```toml
+# Completion
+# (Since 1.1.0) You can set the completion request timeout here.
+# Note that there is also a timeout config at the server side.
+[completion]
+timeout = 4000 # 4s
 ```
 
 ## Logs

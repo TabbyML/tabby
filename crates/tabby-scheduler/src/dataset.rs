@@ -1,3 +1,6 @@
+mod deps;
+mod tags;
+
 use std::{
     collections::HashMap,
     ffi::OsStr,
@@ -8,15 +11,18 @@ use std::{
 use anyhow::Result;
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use ignore::{DirEntry, Walk};
+use kdam::BarExt;
 use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::{Config, RepositoryConfig},
-    path::dataset_dir,
-    SourceFile,
+    path::{dataset_dir, dependency_file},
+    DependencyFile, SourceFile,
 };
-use tracing::{error, info};
-use tree_sitter_tags::{TagsConfiguration, TagsContext};
+use tracing::error;
+use tree_sitter_tags::TagsContext;
+
+use crate::utils::tqdm;
 
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
@@ -26,19 +32,24 @@ impl RepositoryExt for RepositoryConfig {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
         let dir = self.dir();
 
-        info!("Start indexing repository {}", self.git_url);
-        let walk_dir = Walk::new(dir.as_path())
-            .filter_map(Result::ok)
-            .filter(is_source_code);
+        let walk_dir_iter = || {
+            Walk::new(dir.as_path())
+                .filter_map(Result::ok)
+                .filter(is_source_code)
+        };
+
+        let mut pb = tqdm(walk_dir_iter().count());
+        let walk_dir = walk_dir_iter();
 
         let mut context = TagsContext::new();
         for entry in walk_dir {
+            pb.update(1)?;
+
             let relative_path = entry.path().strip_prefix(dir.as_path()).unwrap();
             let language = get_language(relative_path.extension().unwrap())
                 .unwrap()
                 .to_owned();
             if let Ok(file_content) = read_to_string(entry.path()) {
-                info!("Building {:?}", relative_path);
                 let source_file = SourceFile {
                     git_url: self.git_url.clone(),
                     filepath: relative_path.display().to_string(),
@@ -76,7 +87,7 @@ pub fn create_dataset(config: &Config) -> Result<()> {
     fs::remove_dir_all(dataset_dir()).ok();
     fs::create_dir_all(dataset_dir())?;
     let mut writer = FileRotate::new(
-        dataset_dir().join("data.jsonl"),
+        SourceFile::files_jsonl(),
         AppendCount::new(usize::max_value()),
         ContentLimit::Lines(1000),
         Compression::None,
@@ -84,9 +95,13 @@ pub fn create_dataset(config: &Config) -> Result<()> {
         None,
     );
 
+    let mut deps = DependencyFile::default();
     for repository in config.repositories.as_slice() {
+        deps::collect(repository.dir().as_path(), &mut deps);
         repository.create_dataset(&mut writer)?;
     }
+
+    serdeconv::to_json_file(&deps, dependency_file())?;
 
     writer.flush()?;
     Ok(())
@@ -127,47 +142,6 @@ mod metrics {
     }
 }
 
-mod tags {
-    use tabby_common::Tag;
-    use tree_sitter_tags::TagsContext;
-
-    use super::LANGUAGE_TAGS;
-
-    pub fn collect(context: &mut TagsContext, language: &str, content: &str) -> Vec<Tag> {
-        let config = LANGUAGE_TAGS.get(language);
-        let empty = Vec::new();
-
-        let Some(config) = config else {
-            return empty;
-        };
-
-        let Ok((tags, has_error)) = context.generate_tags(&config.0, content.as_bytes(), None)
-        else {
-            return empty;
-        };
-
-        if has_error {
-            return empty;
-        }
-
-        tags.filter_map(|x| x.ok())
-            .map(|x| Tag {
-                range: x.range,
-                name_range: x.name_range,
-                line_range: x.line_range,
-                docs: x.docs,
-                is_definition: x.is_definition,
-                syntax_type_name: config.0.syntax_type_name(x.syntax_type_id).to_owned(),
-            })
-            .collect()
-    }
-}
-
-// Mark TagsConfiguration as thread sync / safe.
-struct TagsConfigurationSync(TagsConfiguration);
-unsafe impl Send for TagsConfigurationSync {}
-unsafe impl Sync for TagsConfigurationSync {}
-
 lazy_static! {
     static ref LANGUAGE_EXTENSION: HashMap<&'static str, Vec<&'static str>> = {
         HashMap::from([
@@ -183,6 +157,7 @@ lazy_static! {
             ("haskell", vec!["hs"]),
             ("html", vec!["html"]),
             ("java", vec!["java"]),
+            ("kotlin", vec!["kt", "kts"]),
             ("julia", vec!["jl"]),
             ("lua", vec!["lua"]),
             ("makefile", vec!["Makefile"]),
@@ -213,75 +188,5 @@ lazy_static! {
         }
 
         map
-    };
-    static ref LANGUAGE_TAGS: HashMap<&'static str, TagsConfigurationSync> = {
-        HashMap::from([
-            (
-                "python",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_python::language(),
-                        tree_sitter_python::TAGGING_QUERY,
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
-                "rust",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_rust::language(),
-                        tree_sitter_rust::TAGGING_QUERY,
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
-                "java",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_java::language(),
-                        tree_sitter_java::TAGGING_QUERY,
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
-                "javascript-typescript",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_typescript::language_tsx(),
-                        include_str!("../queries/tsx.scm"),
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
-                "go",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_go::language(),
-                        include_str!("../queries/go.scm"),
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
-                "ruby",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_ruby::language(),
-                        tree_sitter_ruby::TAGGING_QUERY,
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
-        ])
     };
 }

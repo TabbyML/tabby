@@ -1,7 +1,11 @@
-mod chat;
+mod routes;
+mod services;
+
 mod download;
-mod search;
 mod serve;
+
+#[cfg(feature = "ee")]
+mod worker;
 
 use clap::{Parser, Subcommand};
 use opentelemetry::{
@@ -35,6 +39,18 @@ pub enum Commands {
 
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
+
+    /// Run completion model as worker
+    #[cfg(feature = "ee")]
+    #[clap(name = "worker::completion")]
+    #[command(arg_required_else_help = true)]
+    WorkerCompletion(worker::WorkerArgs),
+
+    /// Run chat model as worker
+    #[cfg(feature = "ee")]
+    #[clap(name = "worker::chat")]
+    #[command(arg_required_else_help = true)]
+    WorkerChat(worker::WorkerArgs),
 }
 
 #[derive(clap::Args)]
@@ -44,12 +60,47 @@ pub struct SchedulerArgs {
     now: bool,
 }
 
+#[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
+pub enum Device {
+    #[strum(serialize = "cpu")]
+    Cpu,
+
+    #[cfg(feature = "cuda")]
+    #[strum(serialize = "cuda")]
+    Cuda,
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[strum(serialize = "metal")]
+    Metal,
+
+    #[cfg(feature = "experimental-http")]
+    #[strum(serialize = "experimental_http")]
+    ExperimentalHttp,
+}
+
+impl Device {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Metal
+    }
+
+    #[cfg(feature = "cuda")]
+    pub fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Cuda
+    }
+
+    #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda")))]
+    pub fn ggml_use_gpu(&self) -> bool {
+        false
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
     init_logging(cli.otlp_endpoint);
 
-    let config = Config::load().unwrap_or(Config::default());
+    let config = Config::load().unwrap_or_default();
 
     match &cli.command {
         Commands::Serve(args) => serve::main(&config, args).await,
@@ -57,6 +108,14 @@ async fn main() {
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
+        #[cfg(feature = "ee")]
+        Commands::WorkerCompletion(args) => {
+            worker::main(tabby_webserver::api::WorkerKind::Completion, args).await
+        }
+        #[cfg(feature = "ee")]
+        Commands::WorkerChat(args) => {
+            worker::main(tabby_webserver::api::WorkerKind::Chat, args).await
+        }
     }
 
     opentelemetry::global::shutdown_tracer_provider();

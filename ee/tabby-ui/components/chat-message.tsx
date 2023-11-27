@@ -11,12 +11,18 @@ import { MemoizedReactMarkdown } from '@/components/markdown'
 import { IconUser } from '@/components/ui/icons'
 import Image from 'next/image'
 import { ChatMessageActions } from '@/components/chat-message-actions'
+import { MessageActionType } from '@/lib/types'
 
 export interface ChatMessageProps {
   message: Message
+  handleMessageAction: (messageId: string, action: MessageActionType) => void
 }
 
-export function ChatMessage({ message, ...props }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  handleMessageAction,
+  ...props
+}: ChatMessageProps) {
   return (
     <div
       className={cn('group relative mb-4 flex items-start md:-ml-12')}
@@ -74,7 +80,10 @@ export function ChatMessage({ message, ...props }: ChatMessageProps) {
         >
           {message.content}
         </MemoizedReactMarkdown>
-        <ChatMessageActions message={message} />
+        <ChatMessageActions
+          message={message}
+          handleMessageAction={handleMessageAction}
+        />
       </div>
     </div>
   )

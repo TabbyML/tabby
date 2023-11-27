@@ -1,6 +1,15 @@
+use std::path::Path;
+
 use cmake::Config;
 
 fn main() {
+    const LLAMA_CMAKE_PATH: &str = "llama.cpp/CMakeLists.txt";
+
+    assert!(
+        Path::new(LLAMA_CMAKE_PATH).exists(),
+        "Please init submodules with `git submodule update --init --recursive` and try again"
+    );
+
     println!("cargo:rerun-if-changed=cc/*.h");
     println!("cargo:rerun-if-changed=cc/*.cc");
     println!("cargo:rustc-link-lib=llama");
@@ -16,6 +25,7 @@ fn main() {
     }
     if cfg!(feature = "cuda") {
         config.define("LLAMA_CUBLAS", "ON");
+        config.define("CMAKE_POSITION_INDEPENDENT_CODE", "ON");
         println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
         println!("cargo:rustc-link-lib=cudart");
         println!("cargo:rustc-link-lib=culibos");

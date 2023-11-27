@@ -15,6 +15,8 @@ async fn download_model_impl(
     prefer_local_file: bool,
 ) -> Result<()> {
     let model_info = registry.get_model_info(name);
+    registry.save_model_info(name);
+
     let model_path = registry.get_model_path(name);
     if model_path.exists() {
         if !prefer_local_file {

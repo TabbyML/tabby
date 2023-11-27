@@ -169,7 +169,7 @@ export class Auth extends EventEmitter {
           clearInterval(timer);
           resolve(true);
         } catch (error) {
-          if (error instanceof HttpError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
+          if (error instanceof HttpError && [400, 401, 403, 405].includes(error.status)) {
             this.logger.debug({ error }, "Expected error when polling jwt");
           } else {
             // unknown error but still keep polling
@@ -205,7 +205,7 @@ export class Auth extends EventEmitter {
         payload: decodeJwt(refreshedJwt.data.jwt),
       };
     } catch (error) {
-      if (error instanceof HttpError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
+      if (error instanceof HttpError && [400, 401, 403, 405].includes(error.status)) {
         this.logger.debug({ error }, "Error when refreshing jwt");
       } else {
         // unknown error, retry a few times

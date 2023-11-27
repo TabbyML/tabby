@@ -1,20 +1,29 @@
 [package]
 name = "tabby-common"
-version = "0.6.0-dev"
+version = "0.7.0-dev"
 edition = "2021"
 
 [dependencies]
-chrono = "0.4.26"
 filenamify = "0.1.0"
 lazy_static = { workspace = true }
 serde = { workspace = true }
 serdeconv = { workspace = true }
 serde-jsonlines = { workspace = true }
 reqwest = { workspace = true, features = [ "json" ] }
-tokio = { workspace = true, features = ["rt", "macros"] }
 uuid = { version = "1.4.1", features = ["v4"] }
 tantivy.workspace = true
 anyhow.workspace = true
+glob = "0.3.1"
+utoipa.workspace = true
+serde_json.workspace = true
+async-trait.workspace = true
+thiserror.workspace = true
 
 [features]
 testutils = []
+
+[package.metadata.cargo-machete]
+ignored = [
+    # required in utoipa ToSchema.
+    "serde_json"
+]

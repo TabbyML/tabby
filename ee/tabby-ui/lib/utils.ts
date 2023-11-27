@@ -41,3 +41,30 @@ export function formatDate(input: string | number | Date): string {
     year: 'numeric'
   })
 }
+
+export function truncateText(
+  text: string,
+  maxLength = 50,
+  delimiters = /[ ,.:;\n，。：；]/
+) {
+  if (!text) return ''
+  if (text.length <= maxLength) {
+    return text
+  }
+
+  let truncatedText = text.slice(0, maxLength)
+
+  let lastDelimiterIndex = -1
+  for (let i = maxLength - 1; i >= 0; i--) {
+    if (delimiters.test(truncatedText[i])) {
+      lastDelimiterIndex = i
+      break
+    }
+  }
+
+  if (lastDelimiterIndex !== -1) {
+    truncatedText = truncatedText.slice(0, lastDelimiterIndex)
+  }
+
+  return truncatedText + '...'
+}
