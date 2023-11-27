@@ -1,4 +1,10 @@
-# v0.6.0 [Unreleased]
+# v0.7.0 [Unreleased]
+
+## Features
+
+## Fixes and Improvements
+
+# v0.6.0
 
 ## Features
 

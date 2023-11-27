@@ -4,7 +4,7 @@ modal serve app.py
 
 from modal import Image, Stub, asgi_app, gpu
 
-IMAGE_NAME = "tabbyml/tabby:0.5.5"
+IMAGE_NAME = "tabbyml/tabby:0.6.0"
 MODEL_ID = "TabbyML/StarCoder-1B"
 GPU_CONFIG = gpu.T4()
 
@@ -58,6 +58,8 @@ def app():
             "8000",
             "--device",
             "cuda",
+            "--parallelism",
+            "4",
         ]
     )
 
