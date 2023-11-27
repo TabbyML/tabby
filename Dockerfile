@@ -61,5 +61,10 @@ RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
 COPY --from=build /opt/tabby /opt/tabby
 
 ENV TABBY_ROOT=/data
+ARG WRITE_DIRS="${TABBY_ROOT} ${TABBY_ROOT}/events"
+RUN useradd -u 1001 tabby && \
+    mkdir -p ${WRITE_DIRS} && \
+    chown tabby ${WRITE_DIRS}
+USER tabby
 
 ENTRYPOINT ["/opt/tabby/bin/tabby"]
