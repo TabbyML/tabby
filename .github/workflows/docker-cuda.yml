@@ -1,4 +1,4 @@
-name: Create and publish docker image
+name: Create and publish CUDA docker image
 
 on:
   workflow_dispatch:
@@ -94,22 +94,6 @@ jobs:
             type=schedule,pattern={{date 'YYYYMMDD'}}
             type=semver,pattern={{version}}
 
-      - name: Docker meta for ROCm
-        id: meta-rocm
-        uses: docker/metadata-action@v5.0.0
-        with:
-          # list of Docker images to use as base name for tags
-          images: |
-            ghcr.io/${{ env.IMAGE_NAME }}/rocm
-            ${{ env.IMAGE_NAME }}-rocm
-          # generate Docker tags based on the following events/attributes
-          variant: rocm
-          tags: |
-            type=raw,value={{branch}}-{{sha}},enable=${{ startsWith(github.ref, 'refs/heads') }}
-            type=schedule,pattern=nightly
-            type=schedule,pattern={{date 'YYYYMMDD'}}
-            type=semver,pattern={{version}}
-
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
@@ -122,22 +106,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.labels }}
-          cache-from: ${{ steps.cache.outputs.cache-from }}
-          cache-to: ${{ steps.cache.outputs.cache-to }}
-          build-args: RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}
-
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
-      - name: Build and push Docker image for ROCm
-        id: build-and-push-rocm
-        uses: docker/build-push-action@v5.1.0
-        with:
-          file: rocm.Dockerfile
-          push: true
-          context: .
-          tags: ${{ steps.meta-rocm.outputs.tags }}
-          labels: ${{ steps.meta-rocm.outputs.labels }}
-          annotations: ${{ steps.meta-rocm.outputs.labels }}
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
           build-args: RUST_TOOLCHAIN=${{ env.RUST_TOOLCHAIN }}

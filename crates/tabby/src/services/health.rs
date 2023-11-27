@@ -24,6 +24,8 @@ pub struct HealthState {
     cpu_info: String,
     cpu_count: usize,
     gpu_devices: Vec<String>,
+    #[deprecated(note = "Use the more generic gpu_devices instead")]
+    cuda_devices: Vec<String>,
     version: Version,
 }
 
@@ -31,11 +33,12 @@ impl HealthState {
     pub fn new(model: Option<&str>, chat_model: Option<&str>, device: &Device) -> Self {
         let (cpu_info, cpu_count) = read_cpu_info();
 
-        let cuda_devices = match read_gpu_devices() {
+        let gpu_devices = match read_gpu_devices() {
             Ok(s) => s,
             Err(_) => vec![],
         };
 
+        #[allow(deprecated)]
         Self {
             model: model.map(|x| x.to_owned()),
             chat_model: chat_model.map(|x| x.to_owned()),
@@ -43,7 +46,8 @@ impl HealthState {
             arch: ARCH.to_string(),
             cpu_info,
             cpu_count,
-            gpu_devices: cuda_devices,
+            gpu_devices: gpu_devices.clone(),
+            cuda_devices: gpu_devices,
             version: Version::new(),
         }
     }

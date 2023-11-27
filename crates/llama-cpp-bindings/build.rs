@@ -4,7 +4,6 @@ use cmake::Config;
 
 fn main() {
     const LLAMA_CMAKE_PATH: &str = "llama.cpp/CMakeLists.txt";
-    const AMDGPU_TARGETS: &str = "gfx803;gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102";
 
     assert!(
         Path::new(LLAMA_CMAKE_PATH).exists(),
@@ -33,6 +32,8 @@ fn main() {
         println!("cargo:rustc-link-lib=cublasLt");
     }
     if cfg!(feature = "rocm") {
+        const AMDGPU_TARGETS: &str = "gfx803;gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102";
+
         let rocm_root = "/opt/rocm";
         config.define("LLAMA_HIPBLAS", "ON");
         config.define("CMAKE_C_COMPILER", format!("{}/llvm/bin/clang", rocm_root));
