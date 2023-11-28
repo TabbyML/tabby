@@ -1,33 +1,29 @@
+import modal
 import json
 import os, subprocess
-import modal
-
-import requests
 import pandas as pd
-
-import base64
-from io import BytesIO
-
-import matplotlib.pyplot as plt
-
-from typing import Dict, List
 
 from dagster import (
     AssetExecutionContext,
     MetadataValue,
     asset,
-    get_dagster_logger,
-    op,
     StaticPartitionsDefinition,
     MultiPartitionsDefinition,
-    AssetIn,
-    Field,
-    Int,
-    file_relative_path
 )
-from . import analyze, create_csv
-from dagstermill import define_dagstermill_asset
+from . import analyze
 
+
+@asset
+def baseline() -> str:
+    return "line_completion.jsonl"
+
+@asset
+def bm25() -> str:
+    return "line_completion_rg1_bm25.jsonl"
+
+@asset
+def oracle() -> str:
+    return "line_completion_oracle_bm25.jsonl"
 
 @asset(
     partitions_def=MultiPartitionsDefinition(
@@ -37,7 +33,7 @@ from dagstermill import define_dagstermill_asset
             
         }
     ))
-def model_predict(context: AssetExecutionContext) -> None:
+def predict_baseline(context: AssetExecutionContext, baseline: str) -> None:
     model_id = context.partition_key.keys_by_dimension["model_id"]
     language = context.partition_key.keys_by_dimension["language"]
 
@@ -46,7 +42,30 @@ def model_predict(context: AssetExecutionContext) -> None:
     
     context.add_output_metadata(metadata={"model_id": MetadataValue.md(model_id)})
 
-    files = 'line_completion.jsonl, line_completion_rg1_bm25.jsonl, line_completion_oracle_bm25.jsonl'
+    files = baseline
+
+    p = subprocess.Popen(["modal", "run", "./modal/predict.py","--language", language, "--files", files], env=my_env)
+    p.wait()
+    context.add_output_metadata(metadata={'modal run': MetadataValue.md("success!")})
+
+@asset(
+    partitions_def=MultiPartitionsDefinition(
+        {
+            "model_id" : StaticPartitionsDefinition(['TabbyML/StarCoder-1B', 'TabbyML/StarCoder-3B', 'TabbyML/StarCoder-7B', 'TabbyML/WizardCoder-1B', 'TabbyML/WizardCoder-3B', 'TabbyML/CodeLlama-7B', 'TabbyML/CodeLlama-13B']),
+            "language" : StaticPartitionsDefinition(["python", "java", "csharp", "typescript"]),
+            
+        }
+    ))
+def predict_bm25(context: AssetExecutionContext, bm25: str) -> None:
+    model_id = context.partition_key.keys_by_dimension["model_id"]
+    language = context.partition_key.keys_by_dimension["language"]
+
+    my_env = os.environ.copy()
+    my_env["MODEL_ID"] = model_id
+    
+    context.add_output_metadata(metadata={"model_id": MetadataValue.md(model_id)})
+
+    files = bm25
 
     p = subprocess.Popen(["modal", "run", "./modal/predict.py","--language", language, "--files", files], env=my_env)
     p.wait()
@@ -57,31 +76,72 @@ def model_predict(context: AssetExecutionContext) -> None:
     partitions_def=MultiPartitionsDefinition(
         {
             "model_id" : StaticPartitionsDefinition(['TabbyML/StarCoder-1B', 'TabbyML/StarCoder-3B', 'TabbyML/StarCoder-7B', 'TabbyML/WizardCoder-1B', 'TabbyML/WizardCoder-3B', 'TabbyML/CodeLlama-7B', 'TabbyML/CodeLlama-13B']),
+            "language" : StaticPartitionsDefinition(["python", "java", "csharp", "typescript"]),
+            
+        }
+    ))
+def predict_oracle(context: AssetExecutionContext, oracle: str) -> None:
+    model_id = context.partition_key.keys_by_dimension["model_id"]
+    language = context.partition_key.keys_by_dimension["language"]
+
+    my_env = os.environ.copy()
+    my_env["MODEL_ID"] = model_id
+    
+    context.add_output_metadata(metadata={"model_id": MetadataValue.md(model_id)})
+
+    files = oracle
+
+    p = subprocess.Popen(["modal", "run", "./modal/predict.py","--language", language, "--files", files], env=my_env)
+    p.wait()
+    context.add_output_metadata(metadata={'modal run': MetadataValue.md("success!")})
+
+
+
+@asset(
+    partitions_def=MultiPartitionsDefinition(
+        {
+            "model_id" : StaticPartitionsDefinition(['TabbyML/StarCoder-1B', 'TabbyML/StarCoder-3B', 'TabbyML/StarCoder-7B', 'TabbyML/WizardCoder-1B', 'TabbyML/WizardCoder-3B', 'TabbyML/CodeLlama-7B', 'TabbyML/CodeLlama-13B']),
             "language" : StaticPartitionsDefinition(["python", "java", "csharp", "typescript"]),       
         }
-    ), deps=[model_predict])
-def matching(context) -> None:
+    ), deps=[predict_baseline])
+def matching_baseline(context) -> None:
     model_id = context.partition_key.keys_by_dimension["model_id"]
     language = context.partition_key.keys_by_dimension["language"]
     
 
     model = model_id.split("/")[-1]
-    for file in ["line_completion.jsonl", "line_completion_rg1_bm25.jsonl", "line_completion_oracle_bm25.jsonl"]:
-        analyze.analyze(model, language, file)
-
-@asset
-def tabby_eval_result():
-    create_csv.create_csv()
+    analyze.analyze(model, language, 'line_completion.jsonl')
 
 
 
-@asset(deps=[tabby_eval_result])
-def tabby_dataset():
-    return pd.read_csv(file_relative_path(__file__,'tabby.csv'))
+@asset(
+    partitions_def=MultiPartitionsDefinition(
+        {
+            "model_id" : StaticPartitionsDefinition(['TabbyML/StarCoder-1B', 'TabbyML/StarCoder-3B', 'TabbyML/StarCoder-7B', 'TabbyML/WizardCoder-1B', 'TabbyML/WizardCoder-3B', 'TabbyML/CodeLlama-7B', 'TabbyML/CodeLlama-13B']),
+            "language" : StaticPartitionsDefinition(["python", "java", "csharp", "typescript"]),       
+        }
+    ), deps=[predict_bm25])
+def matching_bm25(context) -> None:
+    model_id = context.partition_key.keys_by_dimension["model_id"]
+    language = context.partition_key.keys_by_dimension["language"]
+    
 
-tabby_jupyter_notebook = define_dagstermill_asset(
-    name = 'tabby_jupyter',
-    notebook_path = file_relative_path(__file__, "tabby_eval.ipynb"),
-    ins={"df": AssetIn("tabby_dataset")},
-)
+    model = model_id.split("/")[-1]
+    analyze.analyze(model, language, 'line_completion_rg1_bm25.jsonl')
 
+
+
+@asset(
+    partitions_def=MultiPartitionsDefinition(
+        {
+            "model_id" : StaticPartitionsDefinition(['TabbyML/StarCoder-1B', 'TabbyML/StarCoder-3B', 'TabbyML/StarCoder-7B', 'TabbyML/WizardCoder-1B', 'TabbyML/WizardCoder-3B', 'TabbyML/CodeLlama-7B', 'TabbyML/CodeLlama-13B']),
+            "language" : StaticPartitionsDefinition(["python", "java", "csharp", "typescript"]),       
+        }
+    ), deps=[predict_oracle])
+def matching_oracle(context) -> None:
+    model_id = context.partition_key.keys_by_dimension["model_id"]
+    language = context.partition_key.keys_by_dimension["language"]
+    
+
+    model = model_id.split("/")[-1]
+    analyze.analyze(model, language, 'line_completion_oracle_bm25.jsonl')

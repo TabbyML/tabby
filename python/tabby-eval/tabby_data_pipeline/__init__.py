@@ -4,9 +4,9 @@ from dagstermill import define_dagstermill_asset, ConfigurableLocalOutputNoteboo
 
 from dagster import AssetIn, Field, Int, asset, file_relative_path
 
-from . import assets
+from . import assets, create_csv
 
-all_assets = load_assets_from_modules([assets])
+all_assets = load_assets_from_modules([assets, create_csv])
 
 defs = Definitions(
     assets=all_assets,
