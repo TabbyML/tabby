@@ -8,7 +8,7 @@ on:
       - 'Cargo.lock'
       - 'crates/**'
       - 'ee/tabby-webserver/**'
-      - '.github/workflows/test.yml'
+      - '.github/workflows/test-rust.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }} 
