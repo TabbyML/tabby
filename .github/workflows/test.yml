@@ -20,7 +20,7 @@ env:
   RUST_TOOLCHAIN: 1.73.0
 
 jobs:
-  tests:
+  test-rust:
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: true
