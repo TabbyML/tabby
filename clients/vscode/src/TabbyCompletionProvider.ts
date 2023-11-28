@@ -72,6 +72,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
       text: additionalContext.prefix + document.getText() + additionalContext.suffix,
       position: additionalContext.prefix.length + document.offsetAt(position),
+      indentation: this.getEditorIndentation(),
       clipboard: await env.clipboard.readText(),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
     };
@@ -164,6 +165,21 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         console.debug("Error when posting event", { error });
       }
     }
+  }
+
+  private getEditorIndentation(): string | undefined {
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      return undefined;
+    }
+
+    const { insertSpaces, tabSize } = editor.options;
+    if (insertSpaces && typeof tabSize === "number" && tabSize > 0) {
+      return " ".repeat(tabSize);
+    } else if (!insertSpaces) {
+      return "\t";
+    }
+    return undefined;
   }
 
   private updateConfiguration() {

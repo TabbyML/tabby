@@ -6,6 +6,7 @@ export type CompletionRequest = {
   language: string;
   text: string;
   position: number;
+  indentation?: string;
   clipboard?: string;
   manually?: boolean;
 };
@@ -36,6 +37,7 @@ function isAtLineEndExcludingAutoClosedChar(suffix: string) {
 export class CompletionContext {
   filepath: string;
   language: string;
+  indentation?: string;
   text: string;
   position: number;
 
@@ -57,6 +59,7 @@ export class CompletionContext {
     this.language = request.language;
     this.text = request.text;
     this.position = request.position;
+    this.indentation = request.indentation;
 
     this.prefix = request.text.slice(0, request.position);
     this.suffix = request.text.slice(request.position);
