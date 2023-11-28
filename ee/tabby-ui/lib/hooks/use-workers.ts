@@ -1,9 +1,10 @@
 import React from 'react'
-import {findIndex, groupBy, slice} from 'lodash-es'
-import {Worker, WorkerKind} from '@/lib/gql/generates/graphql'
-import {getAllWorkersDocument} from '@/lib/gql/request-documents'
-import {useGraphQL} from './use-graphql'
-import type {HealthInfo} from './use-health'
+import { findIndex, groupBy, slice } from 'lodash-es'
+import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
+import { getAllWorkersDocument } from '@/lib/gql/request-documents'
+import { useGraphQL } from './use-graphql'
+import type { HealthInfo } from './use-health'
+import { deviceTypeMap } from "@/lib/utils";
 
 const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
   [WorkerKind.Chat]: 'chat_model',
@@ -22,7 +23,12 @@ function transformHealthInfoToWorker(
     cpuInfo: healthInfo.cpu_info,
     name: healthInfo?.[modelNameMap[kind]] ?? '',
     cpuCount: healthInfo.cpu_count,
-    gpuDevices: healthInfo.gpu_devices
+    accelerators: healthInfo.accelerators.map(x => ({
+      uuid: x.uuid,
+      chipName: x.chip_name,
+      displayName: x.display_name,
+      deviceType: deviceTypeMap[x.device_type],
+    }))
   }
 }
 

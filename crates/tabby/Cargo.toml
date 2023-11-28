@@ -6,8 +6,8 @@ edition = "2021"
 [features]
 default = ["ee"]
 ee = ["dep:tabby-webserver"]
-cuda = ["llama-cpp-bindings/cuda", "dep:nvml-wrapper"]
-rocm = ["llama-cpp-bindings/rocm", "dep:rocm_smi_lib"]
+cuda = ["llama-cpp-bindings/cuda"]
+rocm = ["llama-cpp-bindings/rocm"]
 experimental-http = ["dep:http-api-bindings"]
 
 [dependencies]
@@ -37,8 +37,7 @@ tracing-opentelemetry = "0.18.0"
 tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
-nvml-wrapper = { version = "0.9.0", optional = true }
-rocm_smi_lib = { version = "0.1.14", optional = true }
+nvml-wrapper = { version = "0.9.0" }
 http-api-bindings = { path = "../http-api-bindings", optional = true }      # included when build with `experimental-http` feature
 async-stream = { workspace = true }
 axum-streams = { version = "0.9.1", features = ["json"] }

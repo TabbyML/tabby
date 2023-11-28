@@ -50,7 +50,8 @@ fn create_stop_regex(stop_words: Vec<String>) -> Regex {
         .iter()
         .map(|x| regex::escape(&reverse(x)))
         .collect();
-    let regex_string = r"(?m)\A".to_owned() + "((" + &reversed_stop_words.join(")|(") + "))";
+    let regex_string =
+        r"(?m)\A".to_owned() + "((" + reversed_stop_words.join(")|(").as_str() + "))";
     Regex::new(&regex_string).expect("Failed to create regex")
 }
 
@@ -69,7 +70,7 @@ impl StopCondition {
 
     pub fn should_stop(&mut self, new_text: &str) -> bool {
         if !new_text.is_empty() {
-            self.reversed_text = reverse(new_text) + &self.reversed_text;
+            self.reversed_text = reverse(new_text) + self.reversed_text.as_str();
 
             if let Some(re) = &self.stop_re {
                 if re.is_match(&self.reversed_text) {

@@ -1,13 +1,13 @@
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
-use tokio_tungstenite::connect_async;
-
 use tabby_common::api::{
+    accelerator::Accelerator,
     code::{CodeSearch, CodeSearchError, SearchResponse},
     event::RawEventLogger,
 };
+use thiserror::Error;
+use tokio_tungstenite::connect_async;
 
 use crate::websocket::WebSocketTransport;
 
@@ -26,7 +26,7 @@ pub struct Worker {
     pub arch: String,
     pub cpu_info: String,
     pub cpu_count: i32,
-    pub gpu_devices: Vec<String>,
+    pub accelerators: Vec<Accelerator>,
 }
 
 #[derive(Serialize, Deserialize, Error, Debug)]
@@ -51,7 +51,7 @@ pub trait Hub {
         arch: String,
         cpu_info: String,
         cpu_count: i32,
-        gpu_devices: Vec<String>,
+        accelerators: Vec<Accelerator>,
         token: String,
     ) -> Result<Worker, RegisterWorkerError>;
 

@@ -1,5 +1,6 @@
 use std::{net::SocketAddr, sync::Arc};
 
+use api::{Hub, RegisterWorkerError, Worker, WorkerKind};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     http::Request,
@@ -8,19 +9,18 @@ use axum::{
     routing, Extension, Router,
 };
 use hyper::Body;
-use tarpc::server::{BaseChannel, Channel};
-use tokio::sync::Mutex;
-use tracing::{error, warn};
-
-use api::{Hub, RegisterWorkerError, Worker, WorkerKind};
 use juniper_axum::{graphiql, graphql, playground};
 pub use schema::create_schema;
 use schema::Schema;
 use server::ServerContext;
 use tabby_common::api::{
+    accelerator::Accelerator,
     code::{CodeSearch, SearchResponse},
     event::RawEventLogger,
 };
+use tarpc::server::{BaseChannel, Channel};
+use tokio::sync::Mutex;
+use tracing::{error, warn};
 use websocket::WebSocketTransport;
 
 pub mod api;
@@ -126,7 +126,7 @@ impl Hub for Arc<HubImpl> {
         arch: String,
         cpu_info: String,
         cpu_count: i32,
-        gpu_devices: Vec<String>,
+        accelerators: Vec<Accelerator>,
         token: String,
     ) -> Result<Worker, RegisterWorkerError> {
         if token.is_empty() {
@@ -165,7 +165,7 @@ impl Hub for Arc<HubImpl> {
             arch,
             cpu_info,
             cpu_count,
-            gpu_devices,
+            accelerators,
         };
         self.ctx.register_worker(worker).await
     }

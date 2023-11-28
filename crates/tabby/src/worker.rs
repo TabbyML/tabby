@@ -3,16 +3,15 @@ use std::{env::consts::ARCH, sync::Arc};
 use anyhow::Result;
 use axum::{routing, Router};
 use clap::Args;
-use tracing::{info, warn};
-
 use tabby_webserver::api::{tracing_context, HubClient, WorkerKind};
+use tracing::{info, warn};
 
 use crate::{
     routes::{self, run_app},
     services::{
         chat::create_chat_service,
         completion::create_completion_service,
-        health::{read_cpu_info, read_gpu_devices},
+        health::{read_accelerators, read_cpu_info},
         model::download_model_if_needed,
     },
     Device,
@@ -106,7 +105,7 @@ impl WorkerContext {
 
     async fn register_impl(&self, kind: WorkerKind, args: &WorkerArgs) -> Result<()> {
         let (cpu_info, cpu_count) = read_cpu_info();
-        let gpu_devices = read_gpu_devices().unwrap_or_default();
+        let gpu_devices = read_accelerators();
         let worker = self
             .client
             .register_worker(
