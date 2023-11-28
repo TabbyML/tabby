@@ -1,5 +1,3 @@
-
-
 use dashmap::DashMap;
 use regex::Regex;
 use tabby_common::languages::Language;
@@ -53,11 +51,7 @@ impl StopConditionFactory {
         }
     }
 
-    pub fn trim_stop_words(
-        &self,
-        language: &'static Language,
-        text: &str,
-    ) -> Option<String> {
+    pub fn trim_stop_words(&self, language: &'static Language, text: &str) -> Option<String> {
         let Some(re) = self.get_re(language) else {
             return None;
         };
