@@ -1,4 +1,4 @@
-name: test
+name: Test Rust
 
 on:
   pull_request:
@@ -20,7 +20,7 @@ env:
   RUST_TOOLCHAIN: 1.73.0
 
 jobs:
-  test-rust:
+  tests:
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: true

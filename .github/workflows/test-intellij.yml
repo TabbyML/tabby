@@ -1,4 +1,4 @@
-name: test
+name: Test IntelliJ
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-intellij:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
