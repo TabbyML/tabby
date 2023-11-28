@@ -83,7 +83,7 @@ test_a100() {
   loadtest A100 $MODEL_ID $1
 }
 
-test_model() {
+test_1b3b_model() {
   export MODEL_ID="$1"
 
   dichotomic_search 1 12 test_t4
@@ -91,4 +91,17 @@ test_model() {
   dichotomic_search 1 64 test_a100
 }
 
-test_model TabbyML/StarCoder-3B
+test_7b_model() {
+  export MODEL_ID="$1"
+
+  dichotomic_search 1 8 test_a100
+}
+
+test_13b_model() {
+  export MODEL_ID="$1"
+
+  dichotomic_search 1 8 test_a100
+}
+
+# test_7b_model TabbyML/CodeLlama-7B
+test_13b_model TabbyML/CodeLlama-13B
