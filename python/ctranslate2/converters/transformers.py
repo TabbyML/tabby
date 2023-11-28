@@ -915,7 +915,8 @@ class WhisperLoader(BartLoader):
         if gen_config is not None:
             config.suppress_ids = gen_config.suppress_tokens
             config.suppress_ids_begin = gen_config.begin_suppress_tokens
-            config.alignment_heads = gen_config.alignment_heads
+            if hasattr(gen_config, "alignment_heads"):
+                config.alignment_heads = gen_config.alignment_heads
             if hasattr(gen_config, "lang_to_id"):
                 config.lang_ids = sorted(gen_config.lang_to_id.values())
         else:
