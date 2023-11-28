@@ -105,7 +105,7 @@ impl WorkerContext {
 
     async fn register_impl(&self, kind: WorkerKind, args: &WorkerArgs) -> Result<()> {
         let (cpu_info, cpu_count) = read_cpu_info();
-        let gpu_devices = read_accelerators();
+        let accelerators = read_accelerators();
         let worker = self
             .client
             .register_worker(
@@ -117,7 +117,7 @@ impl WorkerContext {
                 ARCH.to_string(),
                 cpu_info,
                 cpu_count as i32,
-                gpu_devices,
+                accelerators,
                 args.token.clone(),
             )
             .await??;

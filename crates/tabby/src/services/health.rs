@@ -83,7 +83,7 @@ pub fn read_cuda_devices() -> Result<Vec<Accelerator>> {
         let dev = nvml.device_by_index(i)?;
         let resource = Accelerator {
             uuid: Some(dev.uuid()?),
-            chip_name: None,
+            chip_name: None, // NVML doesn't provide us with chip info, like "AD102" or so
             display_name: dev.name()?,
             device_type: DeviceType::Cuda,
         };

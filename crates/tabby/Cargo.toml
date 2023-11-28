@@ -37,7 +37,7 @@ tracing-opentelemetry = "0.18.0"
 tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
-nvml-wrapper = { version = "0.9.0" }
+nvml-wrapper = "0.9.0"
 http-api-bindings = { path = "../http-api-bindings", optional = true }      # included when build with `experimental-http` feature
 async-stream = { workspace = true }
 axum-streams = { version = "0.9.1", features = ["json"] }

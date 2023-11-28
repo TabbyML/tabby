@@ -2,12 +2,12 @@
 
 import { buttonVariants } from '@/components/ui/button'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from '@/components/ui/dialog'
 import { IconSlack } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
