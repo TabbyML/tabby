@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: ["main" ]
     paths:
+      - '.github/workflows/autofix-rust.yml'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'crates/**'
