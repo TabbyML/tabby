@@ -87,14 +87,13 @@ impl LlamaServiceImpl {
             if tx.is_closed() || text.is_empty() {
                 // Cancelled by client side or hit eos.
                 stopped = true;
-            } else if !stop_condition.should_stop(&text) {
+            } else {
+                stopped = stop_condition.should_stop(&text);
+
                 match tx.send(text).await {
                     Ok(_) => (),
                     Err(_) => stopped = true,
                 }
-            } else {
-                // Stoop words stopped
-                stopped = true;
             }
 
             if stopped {

@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use dashmap::DashMap;
 use regex::Regex;
 use tabby_common::languages::Language;
@@ -22,11 +24,11 @@ impl Default for StopConditionFactory {
 }
 
 impl StopConditionFactory {
-    pub fn create(&self, text: &str, language: Option<&'static Language>) -> StopCondition {
+    pub fn create(&self, text: &str, max_decoding_length: usize, language: Option<&'static Language>) -> StopCondition {
         if let Some(language) = language {
-            StopCondition::new(self.get_re(language), text)
+            StopCondition::new(self.get_re(language), max_decoding_length, text)
         } else {
-            StopCondition::new(None, text)
+            StopCondition::new(None, max_decoding_length, text)
         }
     }
 
@@ -60,14 +62,18 @@ fn create_stop_regex(stop_words: Vec<String>) -> Regex {
 
 pub struct StopCondition {
     stop_re: Option<Regex>,
+    max_decoding_length: usize,
     reversed_text: String,
+    num_decoded: usize
 }
 
 impl StopCondition {
-    pub fn new(stop_re: Option<Regex>, text: &str) -> Self {
+    pub fn new(stop_re: Option<Regex>, max_decoding_length: usize, text: &str) -> Self {
         Self {
             stop_re,
+            max_decoding_length,
             reversed_text: reverse(text),
+            num_decoded: 0,
         }
     }
 
@@ -82,7 +88,8 @@ impl StopCondition {
             }
         }
 
-        false
+        self.num_decoded += 1;
+        self.num_decoded >= self.max_decoding_length
     }
 }
 

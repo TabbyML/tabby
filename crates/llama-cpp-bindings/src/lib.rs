@@ -81,7 +81,7 @@ impl TextGeneration for LlamaTextGeneration {
         prompt: &str,
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
-        let stop_condition = self.stop_condition_factory.create(prompt, options.language);
+        let stop_condition = self.stop_condition_factory.create(prompt, options.max_decoding_length, options.language);
 
         let mut rx = self
             .service
@@ -89,13 +89,8 @@ impl TextGeneration for LlamaTextGeneration {
             .await;
 
         let s = stream! {
-            let mut length = 0;
             while let Some(new_text) = rx.recv().await {
                 yield new_text;
-                length += 1;
-                if length >= options.max_decoding_length {
-                    break;
-                }
             }
 
             rx.close();
