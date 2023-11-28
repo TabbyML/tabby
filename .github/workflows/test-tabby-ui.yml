@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  test-tabby-ui:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
