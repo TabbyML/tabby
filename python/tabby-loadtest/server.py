@@ -3,7 +3,7 @@ modal serve app.py
 """
 
 import os
-from modal import Image, Stub, asgi_app, gpu
+from modal import Image, Stub, asgi_app
 
 GPU_CONFIG = os.environ.get("GPU_CONFIG", "T4")
 IMAGE_NAME = "tabbyml/tabby:0.6.0"
