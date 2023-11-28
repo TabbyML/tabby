@@ -1,4 +1,4 @@
-name: autofix.ci (python)
+name: autofix.ci
 
 on:
   pull_request:
