@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+
 
 use dashmap::DashMap;
 use regex::Regex;
@@ -24,7 +24,12 @@ impl Default for StopConditionFactory {
 }
 
 impl StopConditionFactory {
-    pub fn create(&self, text: &str, max_decoding_length: usize, language: Option<&'static Language>) -> StopCondition {
+    pub fn create(
+        &self,
+        text: &str,
+        max_decoding_length: usize,
+        language: Option<&'static Language>,
+    ) -> StopCondition {
         if let Some(language) = language {
             StopCondition::new(self.get_re(language), max_decoding_length, text)
         } else {
@@ -47,6 +52,26 @@ impl StopConditionFactory {
             re.map(|x| x.value().clone())
         }
     }
+
+    pub fn trim_stop_words(
+        &self,
+        language: &'static Language,
+        text: &str,
+    ) -> Option<String> {
+        let Some(re) = self.get_re(language) else {
+            return None;
+        };
+
+        let text = reverse(text);
+
+        let text = if let Some(m) = re.find_at(&text, 0) {
+            &text[m.end()..]
+        } else {
+            &text
+        };
+
+        Some(reverse(text))
+    }
 }
 
 fn create_stop_regex(stop_words: Vec<String>) -> Regex {
@@ -64,7 +89,7 @@ pub struct StopCondition {
     stop_re: Option<Regex>,
     max_decoding_length: usize,
     reversed_text: String,
-    num_decoded: usize
+    num_decoded: usize,
 }
 
 impl StopCondition {
