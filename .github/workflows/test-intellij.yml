@@ -8,7 +8,7 @@ on:
       - 'clients/intellij/**'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }} 
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
   
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
