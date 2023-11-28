@@ -1,14 +1,11 @@
 import asyncio
 import json
-import modal
 import os
 import pandas as pd
 
-from collections import namedtuple
 from datetime import datetime
-from modal import Image, Mount, Secret, Stub, asgi_app, gpu, method
-from pathlib import Path
-from typing import Union, List, Optional, Any, Tuple
+from modal import Image, Stub, gpu, method
+from typing import List, Optional, Tuple
 
 
 GPU_CONFIG = gpu.A10G()
@@ -61,7 +58,8 @@ class Model:
 
     def __enter__(self):
         import socket
-        import subprocess, os
+        import subprocess
+        import os
         import time
 
         from tabby_python_client import Client
@@ -108,12 +106,11 @@ class Model:
 
     @method()
     async def complete(self, language: str, index: int, prompt: str) -> Tuple[int, Optional[str], Optional[str]]:
+        from tabby_python_client import errors
         from tabby_python_client.api.v1 import completion
         from tabby_python_client.models import (
             CompletionRequest,
             DebugOptions,
-            CompletionResponse,
-            Segments,
         )
         from tabby_python_client.types import Response
 
@@ -127,7 +124,7 @@ class Model:
                 client=self.client, json_body=request
             )
         
-            if resp.parsed != None:
+            if resp.parsed is not None:
                 return index, resp.parsed.choices[0].text, None
             else:
                 return index, None, f"<{resp.status_code}>"
