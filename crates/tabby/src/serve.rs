@@ -5,7 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api,
-    api::{accelerator, code::CodeSearch, event::EventLogger},
+    api::{code::CodeSearch, event::EventLogger},
     config::Config,
     usage,
 };
@@ -58,8 +58,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         chat::ChatCompletionRequest,
         chat::Message,
         chat::ChatCompletionChunk,
-        accelerator::DeviceType,
-        accelerator::Accelerator,
         health::HealthState,
         health::Version,
         api::code::SearchResponse,

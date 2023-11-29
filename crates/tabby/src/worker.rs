@@ -11,7 +11,7 @@ use crate::{
     services::{
         chat::create_chat_service,
         completion::create_completion_service,
-        health::{read_accelerators, read_cpu_info},
+        health::{read_cpu_info, read_cuda_devices},
         model::download_model_if_needed,
     },
     Device,
@@ -105,7 +105,7 @@ impl WorkerContext {
 
     async fn register_impl(&self, kind: WorkerKind, args: &WorkerArgs) -> Result<()> {
         let (cpu_info, cpu_count) = read_cpu_info();
-        let accelerators = read_accelerators();
+        let cuda_devices = read_cuda_devices().unwrap_or_default();
         let worker = self
             .client
             .register_worker(
@@ -117,7 +117,7 @@ impl WorkerContext {
                 ARCH.to_string(),
                 cpu_info,
                 cpu_count as i32,
-                accelerators,
+                cuda_devices,
                 args.token.clone(),
             )
             .await??;
