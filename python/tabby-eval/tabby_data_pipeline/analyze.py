@@ -1,14 +1,5 @@
-import pandas as pd
 import json
-import sys
 
-from dagster import (
-    AssetExecutionContext,
-    MetadataValue,
-    asset,
-    StaticPartitionsDefinition,
-    MultiPartitionsDefinition,
-)
 
 def get_bracket_lang_statement(completion):
     end_idx = None
@@ -25,7 +16,7 @@ def postprocess_code_lines(prompt, target, language):
             return get_bracket_lang_statement(target)
         elif language == "python":
             return target.split("\n")[0]
-    except Exception as e:
+    except Exception:
         return target
 
 
