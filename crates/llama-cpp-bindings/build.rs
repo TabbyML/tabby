@@ -56,8 +56,8 @@ fn main() {
 
     cxx_build::bridge("src/lib.rs")
         .file("src/engine.cc")
-        .include("include")
-        .include("llama.cpp")
+        .flag_if_supported("-Iinclude")
+        .flag_if_supported("-Illama.cpp")
         .flag_if_supported("-std=c++14")
         .compile("cxxbridge");
 }
