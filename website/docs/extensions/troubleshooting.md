@@ -110,9 +110,9 @@ Keep in mind that Tabby may not provide any suggestions based on the current cod
 If your completion requests are timing out, Tabby may display a warning message. 
 This could be due to network issues or poor server performance, especially when 
 running a large model on a CPU. To improve performance, consider running the model 
-on a GPU with CUDA or ROCm support or on Apple M1/M2 with Metal support. When running 
-the server, make sure to specify the device in the arguments using  `--device cuda`, `--device rocm` or
-`--device metal`. You can also try using a smaller model from the available [models](../models/). 
+on a GPU with CUDA support or on Apple M1/M2 with Metal support. When running 
+the server, make sure to specify the device in the arguments using  `--device cuda` 
+or `--device metal`. You can also try using a smaller model from the available [models](../models/). 
 
 By default, the timeout for automatically triggered completion requests is set to 5 seconds. 
 You can adjust this timeout value in the `~/.tabby-client/agent/config.toml` configuration file.

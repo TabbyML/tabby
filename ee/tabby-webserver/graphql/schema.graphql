@@ -7,17 +7,6 @@ type Mutation {
   resetRegistrationToken: String!
 }
 
-type Accelerator {
-  "Universally unique ID of the accelerator, if available"
-  uuid: String
-  "Technical name of the underlying hardware chip, if available"
-  chipName: String
-  "User readable name for the accelerator"
-  displayName: String!
-  "Type of the accelerator device"
-  deviceType: DeviceType!
-}
-
 type Query {
   workers: [Worker!]!
   registrationToken: String!
@@ -31,12 +20,7 @@ type Worker {
   arch: String!
   cpuInfo: String!
   cpuCount: Int!
-  accelerators: [Accelerator!]!
-}
-
-enum DeviceType {
-  CUDA
-  ROCM
+  cudaDevices: [String!]!
 }
 
 schema {

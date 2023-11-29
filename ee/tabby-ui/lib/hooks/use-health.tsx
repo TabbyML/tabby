@@ -4,20 +4,13 @@ import useSWRImmutable from 'swr/immutable'
 import { SWRResponse } from 'swr'
 import fetcher from '@/lib/tabby-fetcher'
 
-export interface Accelerator {
-  uuid?: string;
-  chip_name?: string;
-  display_name: string;
-  device_type: 'Cuda' | 'Rocm';
-}
-
 export interface HealthInfo {
-  device: 'metal' | 'cpu' | 'cuda' | 'rocm'
+  device: 'metal' | 'cpu' | 'cuda'
   model?: string
   chat_model?: string
   cpu_info: string
   cpu_count: number
-  accelerators: Accelerator[]
+  cuda_devices: string[]
   version: {
     build_date: string
     git_describe: string

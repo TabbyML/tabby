@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
 use tabby_common::api::{
-    accelerator::Accelerator,
     code::{CodeSearch, CodeSearchError, SearchResponse},
     event::RawEventLogger,
 };
@@ -26,7 +25,7 @@ pub struct Worker {
     pub arch: String,
     pub cpu_info: String,
     pub cpu_count: i32,
-    pub accelerators: Vec<Accelerator>,
+    pub cuda_devices: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Error, Debug)]
@@ -51,7 +50,7 @@ pub trait Hub {
         arch: String,
         cpu_info: String,
         cpu_count: i32,
-        accelerators: Vec<Accelerator>,
+        cuda_devices: Vec<String>,
         token: String,
     ) -> Result<Worker, RegisterWorkerError>;
 

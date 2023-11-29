@@ -1,8 +1,2 @@
-.idea
-ci
-clients
-.github
-python
 **/target
 **/node_modules
-website

@@ -10,12 +10,7 @@ export const getAllWorkersDocument = graphql(/* GraphQL */ `
       arch
       cpuInfo
       cpuCount
-      accelerators {
-        uuid
-        chipName
-        displayName
-        deviceType
-      }
+      cudaDevices
     }
   }
 `)

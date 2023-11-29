@@ -19,7 +19,6 @@ import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useGraphQL } from '@/lib/hooks/use-graphql'
 import { getRegistrationTokenDocument } from '@/lib/gql/request-documents'
 import { CopyButton } from '@/components/copy-button'
-import { deviceTypeMap } from "@/lib/utils";
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
@@ -138,12 +137,7 @@ function MainPanel() {
             kind="INDEX"
             arch=""
             device={healthInfo.device}
-            accelerators={healthInfo.accelerators.map(x => ({
-              uuid: x.uuid,
-              chipName: x.chip_name,
-              displayName: x.display_name,
-              deviceType: deviceTypeMap[x.device_type],
-            }))}
+            cudaDevices={healthInfo.cuda_devices}
             cpuCount={healthInfo.cpu_count}
             cpuInfo={healthInfo.cpu_info}
           />

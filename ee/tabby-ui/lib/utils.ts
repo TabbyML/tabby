@@ -1,12 +1,6 @@
-import { type ClassValue, clsx } from 'clsx'
+import { clsx, type ClassValue } from 'clsx'
 import { customAlphabet } from 'nanoid'
 import { twMerge } from 'tailwind-merge'
-import { DeviceType } from "@/lib/gql/generates/graphql";
-
-export const deviceTypeMap: Record<'Cuda' | 'Rocm', DeviceType> = {
-  Cuda: DeviceType.Cuda,
-  Rocm: DeviceType.Rocm,
-}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

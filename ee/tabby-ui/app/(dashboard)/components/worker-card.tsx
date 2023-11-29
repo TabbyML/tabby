@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardTitle, CardHeader, CardContent, Card } from '@/components/ui/card'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 
@@ -13,7 +13,7 @@ export default function RunnerCard({
   name,
   kind,
   device,
-  accelerators,
+  cudaDevices,
   cpuCount,
   cpuInfo
 }: RunnerCardProps) {
@@ -77,8 +77,9 @@ export default function RunnerCard({
             {cpuMessage}
           </p>
         </Info>
-        {accelerators?.length &&
-          accelerators.map((x, i) => (
+        {device == 'cuda' &&
+          cudaDevices?.length &&
+          cudaDevices.map((x, i) => (
             <Info key={i}>
               <svg
                 className=" h-5 w-5 text-gray-400"
@@ -102,9 +103,7 @@ export default function RunnerCard({
                 <path d="M2 15h20" />
                 <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.1a2 2 0 0 0 0 3.837V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5.1a2 2 0 0 0 0-3.837Z" />
               </svg>
-              <p title={x.chipName ? `${x.displayName} (${x.chipName})` : x.displayName} className={textClass}>
-                {x.displayName}
-              </p>
+              <p title={x} className={textClass}>{x}</p>
             </Info>
           ))}
       </CardContent>

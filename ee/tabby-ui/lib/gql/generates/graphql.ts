@@ -1,6 +1,5 @@
 /* eslint-disable */
 import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-
 export type Maybe<T> = T | null
 export type InputMaybe<T> = Maybe<T>
 export type Exact<T extends { [key: string]: unknown }> = {
@@ -30,23 +29,6 @@ export type Scalars = {
   Float: { input: number; output: number }
 }
 
-export type Accelerator = {
-  __typename?: 'Accelerator'
-  /** Technical name of the underlying hardware chip, if available */
-  chipName?: Maybe<Scalars['String']['output']>
-  /** Type of the accelerator device */
-  deviceType: DeviceType
-  /** User readable name for the accelerator */
-  displayName: Scalars['String']['output']
-  /** Universally unique ID of the accelerator, if available */
-  uuid?: Maybe<Scalars['String']['output']>
-}
-
-export enum DeviceType {
-  Cuda = 'CUDA',
-  Rocm = 'ROCM'
-}
-
 export type Mutation = {
   __typename?: 'Mutation'
   resetRegistrationToken: Scalars['String']['output']
@@ -60,11 +42,11 @@ export type Query = {
 
 export type Worker = {
   __typename?: 'Worker'
-  accelerators: Array<Accelerator>
   addr: Scalars['String']['output']
   arch: Scalars['String']['output']
   cpuCount: Scalars['Int']['output']
   cpuInfo: Scalars['String']['output']
+  cudaDevices: Array<Scalars['String']['output']>
   device: Scalars['String']['output']
   kind: WorkerKind
   name: Scalars['String']['output']
@@ -88,13 +70,7 @@ export type GetWorkersQuery = {
     arch: string
     cpuInfo: string
     cpuCount: number
-    accelerators: Array<{
-      __typename?: 'Accelerator'
-      uuid?: string | null
-      chipName?: string | null
-      displayName: string
-      deviceType: DeviceType
-    }>
+    cudaDevices: Array<string>
   }>
 }
 
@@ -128,28 +104,7 @@ export const GetWorkersDocument = {
                 { kind: 'Field', name: { kind: 'Name', value: 'arch' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'cpuInfo' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'cpuCount' } },
-                {
-                  kind: 'Field',
-                  name: { kind: 'Name', value: 'accelerators' },
-                  selectionSet: {
-                    kind: 'SelectionSet',
-                    selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'uuid' } },
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'chipName' }
-                      },
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'displayName' }
-                      },
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'deviceType' }
-                      }
-                    ]
-                  }
-                }
+                { kind: 'Field', name: { kind: 'Name', value: 'cudaDevices' } }
               ]
             }
           }
