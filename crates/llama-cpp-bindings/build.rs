@@ -32,7 +32,23 @@ fn main() {
         println!("cargo:rustc-link-lib=cublasLt");
     }
     if cfg!(feature = "rocm") {
-        const AMDGPU_TARGETS: &str = "gfx803;gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102";
+        let amd_gpu_targets: Vec<&str> = vec![
+            "gfx803",
+            "gfx900",
+            "gfx906:xnack-",
+            "gfx908:xnack-",
+            "gfx90a:xnack+",
+            "gfx90a:xnack-",
+            "gfx940",
+            "gfx941",
+            "gfx942",
+            "gfx1010",
+            "gfx1012",
+            "gfx1030",
+            "gfx1100",
+            "gfx1101",
+            "gfx1102",
+        ];
 
         let rocm_root = env::var("ROCM_ROOT").unwrap_or("/opt/rocm".to_string());
         config.define("LLAMA_HIPBLAS", "ON");
@@ -41,7 +57,7 @@ fn main() {
             "CMAKE_CXX_COMPILER",
             format!("{}/llvm/bin/clang++", rocm_root),
         );
-        config.define("AMDGPU_TARGETS", AMDGPU_TARGETS);
+        config.define("AMDGPU_TARGETS", amd_gpu_targets.join(";"));
         println!("cargo:rustc-link-arg=-Wl,--copy-dt-needed-entries");
         println!("cargo:rustc-link-search=native={}/hip/lib", rocm_root);
         println!("cargo:rustc-link-search=native={}/rocblas/lib", rocm_root);
