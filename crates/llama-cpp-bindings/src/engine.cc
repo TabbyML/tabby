@@ -21,7 +21,7 @@ struct Request {
   Request(size_t request_id, std::vector<llama_token> input_token_ids) :
     id(request_id),
     tokens(input_token_ids.begin(), input_token_ids.end()) {
-    }
+  }
 
   uint32_t id = -1;
   llama_seq_id seq_id = -1;
