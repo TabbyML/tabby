@@ -6,16 +6,9 @@ on:
     tags:
       - 'v*'
       - 'nightly'
-  pull_request:
-    branches: ["main" ]
-    paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'crates/**'
-      - 'ee/tabby-webserver/**'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }} 
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
   
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
@@ -24,56 +17,27 @@ env:
   RUST_TOOLCHAIN: 1.73.0
 
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    env:
-      SCCACHE_GHA_ENABLED: true
-      RUSTC_WRAPPER: sccache
-      CARGO_INCREMENTAL: 0
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-
-      - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.3
-        with:
-          version: "v0.4.0"
-
-      - name: Cargo registry cache
-        uses: actions/cache@v3
-        with:
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
-          restore-keys: |
-            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
-            cargo-${{ runner.os }}-
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-
-      - run: bash ./ci/prepare_build_environment.sh
-
-      - name: Run unit tests
-        run: cargo test --bin tabby --lib
-
-
   release-binary:
     if: github.event_name != 'pull_request'
     needs: tests
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
+            binary: aarch64-apple-darwin
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014
+            container: quay.io/pypa/manylinux2014_x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014-cuda117
+            container: sameli/manylinux2014_x86_64_cuda_11.7
+            build_args: --features cuda
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -114,17 +78,17 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Bulid release binary
-        run: cargo build --release --target ${{ matrix.target }} --package tabby
+        run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
 
       - name: Rename release binary
-        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.target }}
+        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.binary }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           retention-days: 3
-          name: tabby_${{ matrix.target }}
-          path: tabby_${{ matrix.target }}
+          name: tabby_${{ matrix.binary }}
+          path: tabby_${{ matrix.binary }}
 
   pre-release:
     if: github.event_name == 'push'

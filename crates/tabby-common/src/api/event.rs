@@ -47,10 +47,12 @@ pub enum Event<'a> {
         user: Option<&'a str>,
     },
 }
+
 #[derive(Serialize)]
 pub struct Segments {
     pub prefix: String,
     pub suffix: Option<String>,
+    pub clipboard: Option<String>,
 }
 
 pub trait EventLogger: Send + Sync {

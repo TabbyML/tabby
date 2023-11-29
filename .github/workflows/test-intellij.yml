@@ -1,19 +1,20 @@
-name: Test IntelliJ Plugin
+name: Test IntelliJ
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - '.github/workflows/intellij-test.yml'
-      - 'clients/intellij/**'
   pull_request:
     branches: [ main ]
     paths:
-      - '.github/workflows/intellij-test.yml'
+      - '.github/workflows/test-intellij.yml'
       - 'clients/intellij/**'
 
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
+  
+  # If this is enabled it will cancel current running and start latest
+  cancel-in-progress: true
+
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

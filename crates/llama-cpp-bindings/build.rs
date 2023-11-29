@@ -25,6 +25,7 @@ fn main() {
     }
     if cfg!(feature = "cuda") {
         config.define("LLAMA_CUBLAS", "ON");
+        config.define("CMAKE_POSITION_INDEPENDENT_CODE", "ON");
         println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
         println!("cargo:rustc-link-lib=cudart");
         println!("cargo:rustc-link-lib=culibos");

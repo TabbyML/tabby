@@ -22,8 +22,17 @@ impl Default for StopConditionFactory {
 }
 
 impl StopConditionFactory {
-    pub fn create(&self, text: &str, language: &'static Language) -> StopCondition {
-        StopCondition::new(self.get_re(language), text)
+    pub fn create(
+        &self,
+        text: &str,
+        max_decoding_length: usize,
+        language: Option<&'static Language>,
+    ) -> StopCondition {
+        if let Some(language) = language {
+            StopCondition::new(self.get_re(language), max_decoding_length, text)
+        } else {
+            StopCondition::new(None, max_decoding_length, text)
+        }
     }
 
     fn get_re(&self, language: &'static Language) -> Option<Regex> {
@@ -41,6 +50,22 @@ impl StopConditionFactory {
             re.map(|x| x.value().clone())
         }
     }
+
+    pub fn trim_stop_words(&self, language: &'static Language, text: &str) -> Option<String> {
+        let Some(re) = self.get_re(language) else {
+            return None;
+        };
+
+        let text = reverse(text);
+
+        let text = if let Some(m) = re.find_at(&text, 0) {
+            &text[m.end()..]
+        } else {
+            &text
+        };
+
+        Some(reverse(text))
+    }
 }
 
 fn create_stop_regex(stop_words: Vec<String>) -> Regex {
@@ -56,14 +81,18 @@ fn create_stop_regex(stop_words: Vec<String>) -> Regex {
 
 pub struct StopCondition {
     stop_re: Option<Regex>,
+    max_decoding_length: usize,
     reversed_text: String,
+    num_decoded: usize,
 }
 
 impl StopCondition {
-    pub fn new(stop_re: Option<Regex>, text: &str) -> Self {
+    pub fn new(stop_re: Option<Regex>, max_decoding_length: usize, text: &str) -> Self {
         Self {
             stop_re,
+            max_decoding_length,
             reversed_text: reverse(text),
+            num_decoded: 0,
         }
     }
 
@@ -78,7 +107,8 @@ impl StopCondition {
             }
         }
 
-        false
+        self.num_decoded += 1;
+        self.num_decoded >= self.max_decoding_length
     }
 }
 

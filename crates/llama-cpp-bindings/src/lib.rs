@@ -72,8 +72,19 @@ impl LlamaTextGeneration {
 #[async_trait]
 impl TextGeneration for LlamaTextGeneration {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
+        let language = options.language;
         let s = self.generate_stream(prompt, options).await;
-        helpers::stream_to_string(s).await
+        let text = helpers::stream_to_string(s).await;
+
+        let Some(language) = language else {
+            return text;
+        };
+
+        let Some(trimmed) = self.stop_condition_factory.trim_stop_words(language, &text) else {
+            return text;
+        };
+
+        trimmed
     }
 
     async fn generate_stream(
@@ -81,7 +92,11 @@ impl TextGeneration for LlamaTextGeneration {
         prompt: &str,
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
-        let stop_condition = self.stop_condition_factory.create(prompt, options.language);
+        let stop_condition = self.stop_condition_factory.create(
+            prompt,
+            options.max_decoding_length,
+            options.language,
+        );
 
         let mut rx = self
             .service
@@ -89,13 +104,8 @@ impl TextGeneration for LlamaTextGeneration {
             .await;
 
         let s = stream! {
-            let mut length = 0;
             while let Some(new_text) = rx.recv().await {
                 yield new_text;
-                length += 1;
-                if length >= options.max_decoding_length {
-                    break;
-                }
             }
 
             rx.close();

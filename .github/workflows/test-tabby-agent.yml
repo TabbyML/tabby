@@ -1,25 +1,22 @@
-name: Test VSCode Extension
+name: Test Tabby Agent
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - '.github/workflows/vscode-test.yml'
-      - 'package.json'
-      - 'yarn.lock'
-      - 'clients/tabby-agent/**'
-      - 'clients/vscode/**'
   pull_request:
     branches: [ main ]
     paths:
-      - '.github/workflows/vscode-test.yml'
+      - '.github/workflows/test-tabby-agent.yml'
       - 'package.json'
       - 'yarn.lock'
       - 'clients/tabby-agent/**'
-      - 'clients/vscode/**'
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
+  
+  # If this is enabled it will cancel current running and start latest
+  cancel-in-progress: true
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,12 +30,15 @@ jobs:
           cache: yarn
           cache-dependency-path: 'yarn.lock'
       - name: Install dependencies
-        working-directory: ./clients/vscode
+        working-directory: ./clients/tabby-agent
         run: yarn install
       - name: Lint
-        working-directory: ./clients/vscode
+        working-directory: ./clients/tabby-agent
         run: yarn lint:check
+      - name: Run tests
+        working-directory: ./clients/tabby-agent
+        run: yarn test
       - name: Test build
-        working-directory: ./clients/vscode
+        working-directory: ./clients/tabby-agent
         run: yarn build
       
