@@ -4,6 +4,7 @@
 #include <vector>
 #include <deque>
 #include <unordered_set>
+#include <mutex>
 
 #include <ggml.h>
 #include <llama.h>
@@ -126,6 +127,8 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   }
 
   rust::Vec<StepOutput> step() override {
+    std::lock_guard<std::mutex> guard(g_mutex_);
+
     auto* ctx = ctx_.get();
     auto n_vocab = llama_n_vocab(llama_get_model(ctx));
 
@@ -275,7 +278,14 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   std::unordered_set<uint32_t> stopped_requests_;
 
   uint32_t parallelism_;
+
+  // llama.cpp is not thread safe
+  // FIXME(meng): remove the mutex once https://github.com/ggerganov/llama.cpp/issues/3960 is fixed
+  // and integrated to tabby's fork.
+  static std::mutex g_mutex_;
 };
+
+std::mutex TextInferenceEngineImpl::g_mutex_;
 
 static int g_llama_cpp_log_level = 0;
 static void llama_log_callback(ggml_log_level level, const char * text, void * user_data) {
