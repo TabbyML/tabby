@@ -1,43 +1,37 @@
-use std::borrow::Cow;
+use std::fmt::Debug;
 
-use argon2::password_hash;
 use jsonwebtoken as jwt;
-use juniper::GraphQLObject;
+use juniper::{FieldError, GraphQLObject, IntoFieldError, Object, ScalarValue, Value};
 use serde::{Deserialize, Serialize};
 use validator::ValidationError;
 
 use crate::server::auth::JWT_DEFAULT_EXP;
 
-#[derive(Debug, GraphQLObject)]
-pub struct AuthError {
-    pub message: String,
-    pub code: String,
+#[derive(Debug)]
+pub struct ValidationErrors {
+    pub errors: Vec<ValidationError>,
 }
 
-impl From<ValidationError> for AuthError {
-    fn from(err: ValidationError) -> Self {
-        Self {
-            message: err.message.unwrap_or(Cow::from("unknown error")).into(),
-            code: err.code.to_string(),
-        }
-    }
-}
+impl<S: ScalarValue> IntoFieldError<S> for ValidationErrors {
+    fn into_field_error(self) -> FieldError<S> {
+        let errors = self
+            .errors
+            .into_iter()
+            .map(|err| {
+                let mut obj = Object::with_capacity(2);
+                obj.add_field("path", Value::scalar(err.code.to_string()));
+                obj.add_field(
+                    "message",
+                    Value::scalar(err.message.unwrap_or_default().to_string()),
+                );
+                obj.into()
+            })
+            .collect::<Vec<_>>();
+        let mut ext = Object::with_capacity(2);
+        ext.add_field("code", Value::scalar("validation-error".to_string()));
+        ext.add_field("errors", Value::list(errors));
 
-impl From<password_hash::Error> for AuthError {
-    fn from(err: password_hash::Error) -> Self {
-        Self {
-            message: err.to_string(),
-            code: "password_hash_error".to_string(),
-        }
-    }
-}
-
-impl From<jwt::errors::Error> for AuthError {
-    fn from(err: jwt::errors::Error) -> Self {
-        Self {
-            message: err.to_string(),
-            code: "jwt_error".to_string(),
-        }
+        FieldError::new("Invalid input parameters", ext.into())
     }
 }
 
@@ -45,7 +39,6 @@ impl From<jwt::errors::Error> for AuthError {
 pub struct RegisterResponse {
     access_token: String,
     refresh_token: String,
-    errors: Vec<AuthError>,
 }
 
 impl RegisterResponse {
@@ -53,23 +46,6 @@ impl RegisterResponse {
         Self {
             access_token,
             refresh_token,
-            errors: vec![],
-        }
-    }
-
-    pub fn with_error(error: AuthError) -> Self {
-        Self {
-            access_token: "".to_string(),
-            refresh_token: "".to_string(),
-            errors: vec![error],
-        }
-    }
-
-    pub fn with_errors(errors: Vec<AuthError>) -> Self {
-        Self {
-            access_token: "".to_string(),
-            refresh_token: "".to_string(),
-            errors,
         }
     }
 }
@@ -78,7 +54,6 @@ impl RegisterResponse {
 pub struct TokenAuthResponse {
     access_token: String,
     refresh_token: String,
-    errors: Vec<AuthError>,
 }
 
 impl TokenAuthResponse {
@@ -86,23 +61,6 @@ impl TokenAuthResponse {
         Self {
             access_token,
             refresh_token,
-            errors: vec![],
-        }
-    }
-
-    pub fn with_error(error: AuthError) -> Self {
-        Self {
-            access_token: "".to_string(),
-            refresh_token: "".to_string(),
-            errors: vec![error],
-        }
-    }
-
-    pub fn with_errors(errors: Vec<AuthError>) -> Self {
-        Self {
-            access_token: "".to_string(),
-            refresh_token: "".to_string(),
-            errors,
         }
     }
 }
@@ -112,35 +70,16 @@ pub struct RefreshTokenResponse {
     access_token: String,
     refresh_token: String,
     refresh_expires_in: i32,
-    errors: Vec<AuthError>,
 }
 
 #[derive(Debug, GraphQLObject)]
 pub struct VerifyTokenResponse {
-    errors: Vec<AuthError>,
     claims: Claims,
 }
 
 impl VerifyTokenResponse {
     pub fn new(claims: Claims) -> Self {
-        Self {
-            errors: vec![],
-            claims,
-        }
-    }
-
-    pub fn with_error(error: AuthError) -> Self {
-        Self {
-            errors: vec![error],
-            claims: Claims::default(),
-        }
-    }
-
-    pub fn with_errors(errors: Vec<AuthError>) -> Self {
-        Self {
-            errors,
-            claims: Claims::default(),
-        }
+        Self { claims }
     }
 }
 

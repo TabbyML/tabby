@@ -63,8 +63,7 @@ impl Mutation {
             password1,
             password2,
         };
-        let resp = ctx.auth().register(input).await?;
-        Ok(resp)
+        ctx.auth().register(input).await
     }
 
     async fn token_auth(
@@ -73,13 +72,11 @@ impl Mutation {
         password: String,
     ) -> FieldResult<TokenAuthResponse> {
         let input = TokenAuthInput { email, password };
-        let resp = ctx.auth().token_auth(input).await?;
-        Ok(resp)
+        ctx.auth().token_auth(input).await
     }
 
     async fn verify_token(ctx: &ServerContext, token: String) -> FieldResult<VerifyTokenResponse> {
-        let resp = ctx.auth().verify_token(token).await?;
-        Ok(resp)
+        ctx.auth().verify_token(token).await
     }
 }
 
