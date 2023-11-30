@@ -34,7 +34,7 @@ pub struct RegisterInput {
     #[validate(email(code = "email", message = "Email is invalid"))]
     #[validate(length(
         max = 128,
-        code = "email_too_long",
+        code = "email",
         message = "Email must be at most 128 characters"
     ))]
     pub email: String,
@@ -54,7 +54,7 @@ pub struct RegisterInput {
         message = "Passwords do not match"
     ))]
     pub password1: String,
-    #[validate(length(min = 8, max = 20))]
+    #[validate(length(min = 8, max = 20, code = "password"))]
     pub password2: String,
 }
 
