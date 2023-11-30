@@ -12,6 +12,7 @@ pub async fn load_text_generation(
     model_id: &str,
     device: &Device,
     parallelism: u8,
+    enable_prompt_lookup: bool,
 ) -> (Arc<dyn TextGeneration>, PromptInfo) {
     #[cfg(feature = "experimental-http")]
     if device == &Device::ExperimentalHttp {
@@ -28,19 +29,25 @@ pub async fn load_text_generation(
     if fs::metadata(model_id).is_ok() {
         let path = PathBuf::from(model_id);
         let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
+        let engine_info = PromptInfo::read(path.join("tabby.json"));
         let engine = create_ggml_engine(
             device,
             model_path.display().to_string().as_str(),
             parallelism,
+            enable_prompt_lookup, 
         );
-        let engine_info = PromptInfo::read(path.join("tabby.json"));
         (Arc::new(engine), engine_info)
     } else {
         let (registry, name) = parse_model_id(model_id);
         let registry = ModelRegistry::new(registry).await;
         let model_path = registry.get_model_path(name).display().to_string();
         let model_info = registry.get_model_info(name);
-        let engine = create_ggml_engine(device, &model_path, parallelism);
+        let engine = create_ggml_engine(
+            device,
+            &model_path,
+            parallelism,
+            enable_prompt_lookup, 
+        );
         (
             Arc::new(engine),
             PromptInfo {
@@ -64,11 +71,17 @@ impl PromptInfo {
     }
 }
 
-fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> impl TextGeneration {
+fn create_ggml_engine(
+    device: &Device,
+    model_path: &str,
+    parallelism: u8,
+    enable_prompt_lookup: bool,
+) -> impl TextGeneration {
     let options = llama_cpp_bindings::LlamaTextGenerationOptionsBuilder::default()
         .model_path(model_path.to_owned())
         .use_gpu(device.ggml_use_gpu())
         .parallelism(parallelism)
+        .enable_prompt_lookup(enable_prompt_lookup)
         .build()
         .unwrap();
 

@@ -15,5 +15,10 @@ class TextInferenceEngine {
   virtual rust::Vec<StepOutput> step() = 0;
 };
 
-std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model_path, uint8_t paralellism);
+std::unique_ptr<TextInferenceEngine> create_engine(
+  bool use_gpu,
+  rust::Str model_path,
+  uint8_t paralellism,
+  bool enable_prompt_lookup
+);
 }  // namespace

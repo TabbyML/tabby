@@ -17,8 +17,8 @@ namespace {
 constexpr size_t N_BATCH = 512;  // # per batch inference.
 constexpr size_t N_CTX = 4096;   // # max kv history.
 
-constexpr size_t DRAFT_N_GRAM_SIZE = 3;
-constexpr size_t DRAFT_N_PRED_TOKENS = 10;
+constexpr int DRAFT_N_GRAM_SIZE = 3;
+constexpr int DRAFT_N_PRED_TOKENS = 10;
  
 struct Request {
   Request(size_t request_id, std::vector<llama_token> input_token_ids) :
@@ -142,10 +142,11 @@ using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
 class TextInferenceEngineImpl : public TextInferenceEngine {
  public:
-  TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx, uint8_t parallelism) :
+  TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx, uint8_t parallelism, bool enable_prompt_lookup) :
     model_(std::move(model)),
     ctx_(std::move(ctx)),
-    parallelism_(parallelism) {
+    parallelism_(parallelism),
+    enable_prompt_lookup_(enable_prompt_lookup) {
       batch_ = llama_batch_init(N_CTX * parallelism, 0, 1);
       // warm up
       {
@@ -231,8 +232,10 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       const size_t n_tokens = batch_.n_tokens;
 
       // Ensure the draft logits always fall into the same batch.
-      const int n_draft_quota = N_BATCH - (n_tokens + request.tokens.size()) % N_BATCH;
-      request.draft_tokens(n_draft_quota);
+      if (enable_prompt_lookup_) {
+        const int n_draft_quota = N_BATCH - (n_tokens + request.tokens.size()) % N_BATCH;
+        request.draft_tokens(n_draft_quota);
+      }
 
       for (size_t i = 0; i < request.tokens.size(); ++i) {
         batch_.token[n_tokens + i] = request.tokens[i];
@@ -347,6 +350,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   std::unordered_set<uint32_t> stopped_requests_;
 
   uint32_t parallelism_;
+  bool enable_prompt_lookup_;
 };
 
 static int g_llama_cpp_log_level = 0;
@@ -374,7 +378,12 @@ struct BackendInitializer {
 
 } // namespace
 
-std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model_path, uint8_t parallelism) {
+std::unique_ptr<TextInferenceEngine> create_engine(
+  bool use_gpu,
+  rust::Str model_path,
+  uint8_t parallelism,
+  bool enable_prompt_lookup
+) {
   static BackendInitializer initializer;
 
   llama_model_params model_params = llama_model_default_params();
@@ -397,7 +406,8 @@ std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model
   return std::make_unique<TextInferenceEngineImpl>(
       owned<llama_model>(model, llama_free_model),
       owned<llama_context>(ctx, llama_free),
-      parallelism
+      parallelism,
+      enable_prompt_lookup
   );
 }
 
