@@ -27,6 +27,7 @@ mod ffi {
             use_gpu: bool,
             model_path: &str,
             parallelism: u8,
+            enable_prompt_lookup: bool,
         ) -> UniquePtr<TextInferenceEngine>;
 
         fn add_request(
@@ -48,6 +49,7 @@ pub struct LlamaTextGenerationOptions {
     model_path: String,
     use_gpu: bool,
     parallelism: u8,
+    enable_prompt_lookup: bool,
 }
 
 pub struct LlamaTextGeneration {
@@ -57,7 +59,7 @@ pub struct LlamaTextGeneration {
 
 impl LlamaTextGeneration {
     pub fn new(options: LlamaTextGenerationOptions) -> Self {
-        let engine = create_engine(options.use_gpu, &options.model_path, options.parallelism);
+        let engine = create_engine(options.use_gpu, &options.model_path, options.parallelism, options.enable_prompt_lookup);
         if engine.is_null() {
             fatal!("Unable to load model: {}", options.model_path);
         }

@@ -77,7 +77,7 @@ impl ChatService {
 
 pub async fn create_chat_service(model: &str, device: &Device, parallelism: u8) -> ChatService {
     let (engine, model::PromptInfo { chat_template, .. }) =
-        model::load_text_generation(model, device, parallelism).await;
+        model::load_text_generation(model, device, parallelism, true).await;
 
     let Some(chat_template) = chat_template else {
         fatal!("Chat model requires specifying prompt template");

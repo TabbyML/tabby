@@ -281,7 +281,7 @@ pub async fn create_completion_service(
         model::PromptInfo {
             prompt_template, ..
         },
-    ) = model::load_text_generation(model, device, parallelism).await;
+    ) = model::load_text_generation(model, device, parallelism, false).await;
 
     CompletionService::new(engine.clone(), code, logger, prompt_template)
 }
