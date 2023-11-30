@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use assert_json_diff::assert_json_include;
 use lazy_static::lazy_static;
 use serde::Deserialize;
-
 use serde_jsonlines::BufReadExt;
 use tokio::{
     process::Command,
