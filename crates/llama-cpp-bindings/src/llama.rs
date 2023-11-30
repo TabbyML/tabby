@@ -38,7 +38,10 @@ impl LlamaServiceImpl {
 
     fn alloc_request_id(&mut self) -> u32 {
         let ret = self.next_request_id;
-        self.next_request_id += 1;
+
+        // 1048576 (2^20) should be large enough to avoid any collision.
+        // FIXME(meng): figure out a better way.
+        self.next_request_id = (self.next_request_id + 1) % 1048576;
         ret
     }
 
