@@ -45,7 +45,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
+    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::search),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,

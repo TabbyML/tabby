@@ -4128,6 +4128,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-jsonlines"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e228faf5f94badfe42723177b62cfb9b187351994cb4e852cd4a6a4c96dbeea8"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "serde_derive"
 version = "1.0.171"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4578,6 +4588,7 @@ dependencies = [
  "regex",
  "reqwest",
  "serde",
+ "serde-jsonlines 0.5.0",
  "serde_json",
  "serdeconv",
  "strfmt",
@@ -4613,7 +4624,7 @@ dependencies = [
  "lazy_static",
  "reqwest",
  "serde",
- "serde-jsonlines",
+ "serde-jsonlines 0.4.0",
  "serde_json",
  "serdeconv",
  "tantivy",
@@ -4659,7 +4670,7 @@ dependencies = [
  "kdam",
  "lazy_static",
  "requirements",
- "serde-jsonlines",
+ "serde-jsonlines 0.4.0",
  "serde_json",
  "serdeconv",
  "tabby-common",
