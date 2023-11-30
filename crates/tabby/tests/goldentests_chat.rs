@@ -10,6 +10,7 @@ use tokio::{
     time::{sleep, Duration},
 };
 
+
 #[derive(Deserialize)]
 pub struct ChatCompletionChunk {
     content: String,
