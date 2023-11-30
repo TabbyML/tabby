@@ -3,13 +3,12 @@ use std::path::PathBuf;
 use assert_json_diff::assert_json_include;
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use serde_json::json;
+
 use serde_jsonlines::BufReadExt;
 use tokio::{
     process::Command,
     time::{sleep, Duration},
 };
-
 
 #[derive(Deserialize)]
 pub struct ChatCompletionChunk {
@@ -85,7 +84,7 @@ async fn golden_test(body: serde_json::Value, expected: serde_json::Value) {
         .bytes()
         .await
         .unwrap();
-    
+
     let lines = bytes.json_lines::<ChatCompletionChunk>();
     let mut actual = "".to_owned();
     for x in lines {
