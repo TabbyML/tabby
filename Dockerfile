@@ -9,7 +9,7 @@ ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_V
 FROM ${BASE_CUDA_DEV_CONTAINER} as build
 
 # Rust toolchain version
-ARG RUST_TOOLCHAIN stable
+ARG RUST_TOOLCHAIN=stable
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
