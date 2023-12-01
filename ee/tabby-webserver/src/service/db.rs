@@ -171,14 +171,13 @@ impl DbConn {
         let res = self
             .conn
             .call(move |c| {
-                let mut stmt = c.prepare(r#"INSERT INTO users (email, password_encrypted, is_admin) VALUES (?, ?, ?)"#)?;
+                let mut stmt = c.prepare(
+                    r#"INSERT INTO users (email, password_encrypted, is_admin) VALUES (?, ?, ?)"#,
+                )?;
                 let id = stmt.insert((email, password_encrypted, is_admin))?;
                 Ok(id)
             })
             .await?;
-        if res != 1 {
-            return Err(anyhow::anyhow!("failed to create user"));
-        }
 
         Ok(res as i32)
     }
@@ -187,12 +186,8 @@ impl DbConn {
         let user = self
             .conn
             .call(move |c| {
-                c.query_row(
-                    User::select("id = ?").as_str(),
-                    params![id],
-                    User::from_row,
-                )
-                .optional()
+                c.query_row(User::select("id = ?").as_str(), params![id], User::from_row)
+                    .optional()
             })
             .await?;
 
@@ -307,6 +302,8 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
+    use juniper::FieldResult;
+
     use super::*;
     use crate::schema::auth::AuthenticationService;
 
@@ -398,5 +395,63 @@ mod tests {
 
         let invitations = conn.list_invitations().await.unwrap();
         assert!(invitations.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_invitation_flow() {
+        let conn = new_in_memory().await.unwrap();
+
+        assert!(!conn.is_admin_initialized().await.unwrap());
+        create_admin_user(&conn).await;
+
+        let email = "user@user.com";
+        let password = "12345678";
+
+        conn.create_invitation(email.to_owned()).await.unwrap();
+        let invitation = &conn.list_invitations().await.unwrap()[0];
+
+        // Admin initialized, registeration requires a invitation code;
+        assert!(
+            conn.register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                None
+            )
+            .await.is_err()
+        );
+
+        // Invalid invitation code won't work.
+        assert!(conn
+            .register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                Some("abc".to_owned())
+            )
+            .await
+            .is_err());
+
+        // Register success.
+        assert!(conn
+            .register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                Some(invitation.code.clone())
+            )
+            .await
+            .is_ok());
+
+        // Try register again with same email failed.
+        assert!(conn
+            .register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                Some(invitation.code.clone())
+            )
+            .await
+            .is_err());
     }
 }
