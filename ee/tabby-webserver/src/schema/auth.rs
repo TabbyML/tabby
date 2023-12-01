@@ -136,6 +136,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse>;
     async fn refresh_token(&self, refresh_token: String) -> FieldResult<RefreshTokenResponse>;
     async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse>;
+    async fn is_admin_initialized(&self) -> FieldResult<bool>;
 }
 
 #[cfg(test)]

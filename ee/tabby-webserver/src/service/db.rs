@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use lazy_static::lazy_static;
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{params, OptionalExtension, Row};
 use rusqlite_migration::{AsyncMigrations, M};
 use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
@@ -45,6 +45,25 @@ pub struct User {
     pub email: String,
     pub password_encrypted: String,
     pub is_admin: bool,
+}
+
+impl User {
+    fn select(clause: &str) -> String {
+        r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at FROM users WHERE "#
+            .to_owned()
+            + clause
+    }
+
+    fn from_row(row: &Row<'_>) -> std::result::Result<User, rusqlite::Error> {
+        Ok(User {
+            id: row.get(0)?,
+            email: row.get(1)?,
+            password_encrypted: row.get(2)?,
+            is_admin: row.get(3)?,
+            created_at: row.get(4)?,
+            updated_at: row.get(5)?,
+        })
+    }
 }
 
 async fn db_path() -> Result<PathBuf> {
@@ -156,33 +175,49 @@ impl DbConn {
             .conn
             .call(move |c| {
                 c.query_row(
-                    r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at FROM users WHERE email = ?"#,
+                    User::select("email = ?").as_str(),
                     params![email],
-                    |row| {
-                        Ok(User {
-                            id: row.get(0)?,
-                            email: row.get(1)?,
-                            password_encrypted: row.get(2)?,
-                            is_admin: row.get(3)?,
-                            created_at: row.get(4)?,
-                            updated_at: row.get(5)?,
-                        })
-                    },
-                ).optional()
+                    User::from_row,
+                )
+                .optional()
             })
             .await?;
 
         Ok(user)
+    }
+
+    pub async fn list_admin_users(&self) -> Result<Vec<User>> {
+        let users = self
+            .conn
+            .call(move |c| {
+                let mut stmt = c.prepare(&User::select("is_admin"))?;
+                let user_iter = stmt.query_map([], User::from_row)?;
+                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(users)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::schema::auth::AuthenticationService;
 
     async fn new_in_memory() -> Result<DbConn> {
         let conn = Connection::open_in_memory().await?;
         DbConn::init_db(conn).await
+    }
+
+    async fn create_admin_user(conn: &DbConn) -> String {
+        let email = "test@example.com";
+        let passwd = "123456";
+        let is_admin = true;
+        conn.create_user(email.to_string(), passwd.to_string(), is_admin)
+            .await
+            .unwrap();
+        email.to_owned()
     }
 
     #[tokio::test]
@@ -212,14 +247,8 @@ mod tests {
     async fn test_create_user() {
         let conn = new_in_memory().await.unwrap();
 
-        let email = "test@example.com";
-        let passwd = "123456";
-        let is_admin = true;
-        conn.create_user(email.to_string(), passwd.to_string(), is_admin)
-            .await
-            .unwrap();
-
-        let user = conn.get_user_by_email(email).await.unwrap().unwrap();
+        let email = create_admin_user(&conn).await;
+        let user = conn.get_user_by_email(&email).await.unwrap().unwrap();
         assert_eq!(user.id, 1);
     }
 
@@ -231,5 +260,14 @@ mod tests {
         let user = conn.get_user_by_email(email).await.unwrap();
 
         assert!(user.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_is_admin_initialized() {
+        let conn = new_in_memory().await.unwrap();
+
+        assert!(!conn.is_admin_initialized().await.unwrap());
+        create_admin_user(&conn).await;
+        assert!(conn.is_admin_initialized().await.unwrap());
     }
 }

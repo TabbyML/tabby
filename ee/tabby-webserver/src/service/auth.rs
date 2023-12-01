@@ -188,6 +188,11 @@ impl AuthenticationService for DbConn {
         let resp = VerifyTokenResponse::new(claims);
         Ok(resp)
     }
+
+    async fn is_admin_initialized(&self) -> FieldResult<bool> {
+        let admin = self.list_admin_users().await?;
+        Ok(!admin.is_empty())
+    }
 }
 
 fn password_hash(raw: &str) -> password_hash::Result<String> {
