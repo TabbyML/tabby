@@ -42,6 +42,7 @@ lazy_static! {
                 code               VARCHAR(36) NOT NULL,
                 created_at         TIMESTAMP DEFAULT (DATETIME('now')),
                 CONSTRAINT `idx_email` UNIQUE (`email`)
+                CONSTRAINT `idx_code`  UNIQUE (`code`)
             );
         "#
         ),
@@ -238,13 +239,30 @@ impl DbConn {
         let invitations = self
             .conn
             .call(move |c| {
-                let mut stmt = c.prepare(r#"SELECT id, email, code, created_at FROM invitations"#)?;
+                let mut stmt =
+                    c.prepare(r#"SELECT id, email, code, created_at FROM invitations"#)?;
                 let iter = stmt.query_map([], Invitation::from_row)?;
                 Ok(iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })
             .await?;
 
         Ok(invitations)
+    }
+
+    pub async fn get_invitation_by_code(&self, code: String) -> Result<Option<Invitation>> {
+        let token = self
+            .conn
+            .call(|conn| {
+                conn.query_row(
+                    r#"SELECT id, email, code, created_at FROM invitations WHERE code = ?"#,
+                    [code],
+                    Invitation::from_row,
+                )
+                .optional()
+            })
+            .await?;
+
+        Ok(token)
     }
 
     pub async fn create_invitation(&self, email: String) -> Result<()> {
@@ -268,12 +286,7 @@ impl DbConn {
     pub async fn delete_invitation(&self, id: u32) -> Result<()> {
         let res = self
             .conn
-            .call(move |c| {
-                c.execute(
-                    r#"DELETE FROM invitations WHERE id = ?"#,
-                    params![id],
-                )
-            })
+            .call(move |c| c.execute(r#"DELETE FROM invitations WHERE id = ?"#, params![id]))
             .await?;
         if res != 1 {
             return Err(anyhow!("failed to delete invitation"));
@@ -353,7 +366,7 @@ mod tests {
         create_admin_user(&conn).await;
         assert!(conn.is_admin_initialized().await.unwrap());
     }
- 
+
     #[tokio::test]
     async fn test_invitations() {
         let conn = new_in_memory().await.unwrap();

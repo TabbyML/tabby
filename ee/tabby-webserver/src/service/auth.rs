@@ -109,6 +109,7 @@ impl AuthenticationService for DbConn {
         email: String,
         password1: String,
         password2: String,
+        invitation_code: Option<String>,
     ) -> FieldResult<RegisterResponse> {
         let input = RegisterInput {
             email,
@@ -125,6 +126,21 @@ impl AuthenticationService for DbConn {
 
             ValidationErrors { errors }.into_field_error()
         })?;
+
+        if self.is_admin_initialized().await? {
+            let err = Err("Invitation code is not valid".into());
+            let Some(invitation_code) = invitation_code else {
+                return err;
+            };
+
+            let Some(invitation) = self.get_invitation_by_code(invitation_code).await? else {
+                return err;
+            };
+
+            if invitation.email != input.email {
+                return err;
+            }
+        };
 
         // check if email exists
         if self.get_user_by_email(&input.email).await?.is_some() {

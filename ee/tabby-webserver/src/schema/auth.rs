@@ -132,6 +132,7 @@ pub trait AuthenticationService: Send + Sync {
         email: String,
         password1: String,
         password2: String,
+        invitation_code: Option<String>
     ) -> FieldResult<RegisterResponse>;
     async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse>;
     async fn refresh_token(&self, refresh_token: String) -> FieldResult<RefreshTokenResponse>;

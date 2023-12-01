@@ -82,10 +82,11 @@ impl Mutation {
         email: String,
         password1: String,
         password2: String,
+        invitation_code: Option<String>,
     ) -> FieldResult<RegisterResponse> {
         ctx.locator
             .auth()
-            .register(email, password1, password2)
+            .register(email, password1, password2, invitation_code)
             .await
     }
 
