@@ -149,7 +149,7 @@ mod tests {
 }
 
 #[async_trait]
-pub trait AuthenticationService {
+pub trait AuthenticationService: Send + Sync {
     async fn register(
         &self,
         email: String,
