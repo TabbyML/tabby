@@ -186,7 +186,7 @@ impl DbConn {
         Ok(user)
     }
 
-    pub async fn get_admin_users(&self) -> Result<Vec<User>> {
+    pub async fn list_admin_users(&self) -> Result<Vec<User>> {
         let users = self
             .conn
             .call(move |c| {
