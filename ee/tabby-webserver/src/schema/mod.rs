@@ -1,27 +1,21 @@
 pub mod auth;
+pub mod worker;
 
 use std::sync::Arc;
 
-use anyhow::Result;
-use async_trait::async_trait;
 use auth::AuthenticationService;
-use axum::middleware::Next;
-use hyper::{Body, Request};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
     Object, RootNode, ScalarValue, Value,
 };
 use juniper_axum::FromAuth;
-use tabby_common::api::{
-    code::CodeSearch,
-    event::{RawEventLogger},
-};
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use validator::ValidationError;
 
-use self::auth::validate_jwt;
-use crate::{
-    api::{RegisterWorkerError, Worker},
-    schema::auth::{RegisterResponse, TokenAuthResponse, VerifyTokenResponse},
+use self::{auth::validate_jwt, worker::WorkerService};
+use crate::schema::{
+    auth::{RegisterResponse, TokenAuthResponse, VerifyTokenResponse},
+    worker::Worker,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -29,20 +23,6 @@ pub trait ServiceLocator: Send + Sync {
     fn worker(&self) -> &dyn WorkerService;
     fn code(&self) -> &dyn CodeSearch;
     fn logger(&self) -> &dyn RawEventLogger;
-}
-
-#[async_trait]
-pub trait WorkerService: Send + Sync {
-    async fn read_registration_token(&self) -> Result<String>;
-    async fn reset_registration_token(&self) -> Result<String>;
-    async fn list_workers(&self) -> Vec<Worker>;
-    async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError>;
-    async fn unregister_worker(&self, worker_addr: &str);
-    async fn dispatch_request(
-        &self,
-        request: Request<Body>,
-        next: Next<Body>,
-    ) -> axum::response::Response;
 }
 
 pub struct Context {

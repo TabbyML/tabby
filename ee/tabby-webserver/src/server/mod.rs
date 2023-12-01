@@ -8,16 +8,16 @@ use anyhow::Result;
 use async_trait::async_trait;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use tabby_common::api::{
-    code::CodeSearch,
-    event::{RawEventLogger},
-};
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::{info, warn};
 
 use crate::{
-    api::{RegisterWorkerError, Worker, WorkerKind},
     db::DbConn,
-    schema::{auth::AuthenticationService, ServiceLocator, WorkerService},
+    schema::{
+        auth::AuthenticationService,
+        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+        ServiceLocator,
+    },
 };
 
 struct ServerContext {

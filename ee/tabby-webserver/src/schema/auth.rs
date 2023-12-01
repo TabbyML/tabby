@@ -125,6 +125,19 @@ impl Claims {
     }
 }
 
+#[async_trait]
+pub trait AuthenticationService: Send + Sync {
+    async fn register(
+        &self,
+        email: String,
+        password1: String,
+        password2: String,
+    ) -> FieldResult<RegisterResponse>;
+    async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse>;
+    async fn refresh_token(&self, refresh_token: String) -> FieldResult<RefreshTokenResponse>;
+    async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -146,17 +159,4 @@ mod tests {
             &UserInfo::new("test".to_string(), false)
         );
     }
-}
-
-#[async_trait]
-pub trait AuthenticationService: Send + Sync {
-    async fn register(
-        &self,
-        email: String,
-        password1: String,
-        password2: String,
-    ) -> FieldResult<RegisterResponse>;
-    async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse>;
-    async fn refresh_token(&self, refresh_token: String) -> FieldResult<RefreshTokenResponse>;
-    async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse>;
 }

@@ -1,6 +1,7 @@
 pub mod api;
 
 mod schema;
+use api::Hub;
 pub use schema::create_schema;
 use tabby_common::api::{
     code::{CodeSearch, SearchResponse},
@@ -18,7 +19,6 @@ mod websocket;
 
 use std::{net::SocketAddr, sync::Arc};
 
-use api::{Hub, RegisterWorkerError, Worker, WorkerKind};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     http::Request,
@@ -28,7 +28,10 @@ use axum::{
 };
 use hyper::Body;
 use juniper_axum::{graphiql, graphql, playground};
-use schema::{Schema, ServiceLocator, WorkerService};
+use schema::{
+    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+    Schema, ServiceLocator,
+};
 use server::create_service_locator;
 use tarpc::server::{BaseChannel, Channel};
 

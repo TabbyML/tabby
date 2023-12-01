@@ -129,7 +129,7 @@ impl AuthenticationService for DbConn {
         })?;
 
         // check if email exists
-        if let Some(_) = self.get_user_by_email(&input.email).await? {
+        if self.get_user_by_email(&input.email).await?.is_some() {
             return Err("Email already exists".into());
         }
 
