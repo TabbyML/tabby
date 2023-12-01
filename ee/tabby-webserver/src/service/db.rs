@@ -303,21 +303,13 @@ impl DbConn {
 #[cfg(test)]
 mod tests {
 
+    use assert_matches::assert_matches;
+
     use super::*;
     use crate::schema::auth::{AuthenticationService, RegisterError, TokenAuthError};
 
     static ADMIN_EMAIL: &str = "test@example.com";
     static ADMIN_PASSWORD: &str = "123456789";
-
-    macro_rules! is_enum_variant {
-        ($v:expr, $p:pat) => {
-            if let $p = $v {
-                true
-            } else {
-                false
-            }
-        };
-    }
 
     async fn new_in_memory() -> Result<DbConn> {
         let conn = Connection::open_in_memory().await?;
@@ -420,7 +412,7 @@ mod tests {
         let invitation = &conn.list_invitations().await.unwrap()[0];
 
         // Admin initialized, registeration requires a invitation code;
-        assert!(is_enum_variant!(
+        assert_matches!(
             conn.register(
                 email.to_owned(),
                 password.to_owned(),
@@ -430,10 +422,10 @@ mod tests {
             .await
             .unwrap_err(),
             RegisterError::InvalidInvitationCode
-        ));
+        );
 
         // Invalid invitation code won't work.
-        assert!(is_enum_variant!(
+        assert_matches!(
             conn.register(
                 email.to_owned(),
                 password.to_owned(),
@@ -443,7 +435,7 @@ mod tests {
             .await
             .unwrap_err(),
             RegisterError::InvalidInvitationCode
-        ));
+        );
 
         // Register success.
         assert!(conn
@@ -457,7 +449,7 @@ mod tests {
             .is_ok());
 
         // Try register again with same email failed.
-        assert!(is_enum_variant!(
+        assert_matches!(
             conn.register(
                 email.to_owned(),
                 password.to_owned(),
@@ -467,27 +459,27 @@ mod tests {
             .await
             .unwrap_err(),
             RegisterError::DuplicateEmail
-        ));
+        );
     }
 
     #[tokio::test]
     async fn test_auth_token() {
         let conn = new_in_memory().await.unwrap();
-        assert!(is_enum_variant!(
+        assert_matches!(
             conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
                 .await
                 .unwrap_err(),
             TokenAuthError::UserNotFound
-        ));
+        );
 
         create_admin_user(&conn).await;
 
-        assert!(is_enum_variant!(
+        assert_matches!(
             conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
                 .await
                 .unwrap_err(),
             TokenAuthError::InvalidPassword
-        ));
+        );
 
         // This won't work, due to password hash is not right. 
         /*
