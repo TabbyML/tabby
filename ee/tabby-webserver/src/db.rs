@@ -174,6 +174,28 @@ impl DbConn {
 
         Ok(user)
     }
+
+    pub async fn get_admin_users(&self) -> Result<Vec<User>> {
+        let users = self
+            .conn
+            .call(move |c| {
+                let mut stmt = c.prepare(r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at FROM users WHERE is_admin"#)?;
+                let user_iter = stmt.query_map([], |row| {
+                    Ok(User {
+                            id: row.get(0)?,
+                            email: row.get(1)?,
+                            password_encrypted: row.get(2)?,
+                            is_admin: row.get(3)?,
+                            created_at: row.get(4)?,
+                            updated_at: row.get(5)?,
+                        })
+                })?;
+                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(users)
+    }
 }
 
 #[cfg(test)]

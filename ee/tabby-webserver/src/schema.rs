@@ -21,6 +21,10 @@ pub struct Query;
 
 #[graphql_object(context = ServerContext)]
 impl Query {
+    async fn is_admin_initialized(ctx: &ServerContext) -> FieldResult<bool> {
+        ctx.auth().is_admin_initialized().await
+    }
+
     async fn workers(ctx: &ServerContext) -> Vec<Worker> {
         ctx.list_workers().await
     }
