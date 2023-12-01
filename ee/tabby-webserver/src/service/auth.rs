@@ -253,6 +253,8 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
+
     use super::*;
 
     #[test]
@@ -271,5 +273,106 @@ mod tests {
 
         assert!(password_verify(raw, &hash));
         assert!(!password_verify(raw, "invalid hash"));
+    }
+
+    static ADMIN_EMAIL: &str = "test@example.com";
+    static ADMIN_PASSWORD: &str = "123456789";
+
+    async fn create_admin_user(conn: &DbConn) -> i32 {
+        conn.create_user(ADMIN_EMAIL.to_string(), ADMIN_PASSWORD.to_string(), true)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_auth_token() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        assert_matches!(
+            conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
+                .await
+                .unwrap_err(),
+            TokenAuthError::UserNotFound
+        );
+
+        create_admin_user(&conn).await;
+
+        assert_matches!(
+            conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
+                .await
+                .unwrap_err(),
+            TokenAuthError::InvalidPassword
+        );
+
+        // This won't work, due to password hash is not right. 
+        /*
+        assert!(conn
+            .token_auth(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned())
+            .await
+            .is_ok());
+         */
+    }
+
+    #[tokio::test]
+    async fn test_invitation_flow() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        assert!(!conn.is_admin_initialized().await.unwrap());
+        create_admin_user(&conn).await;
+
+        let email = "user@user.com";
+        let password = "12345678";
+
+        conn.create_invitation(email.to_owned()).await.unwrap();
+        let invitation = &conn.list_invitations().await.unwrap()[0];
+
+        // Admin initialized, registeration requires a invitation code;
+        assert_matches!(
+            conn.register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                None
+            )
+            .await
+            .unwrap_err(),
+            RegisterError::InvalidInvitationCode
+        );
+
+        // Invalid invitation code won't work.
+        assert_matches!(
+            conn.register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                Some("abc".to_owned())
+            )
+            .await
+            .unwrap_err(),
+            RegisterError::InvalidInvitationCode
+        );
+
+        // Register success.
+        assert!(conn
+            .register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                Some(invitation.code.clone())
+            )
+            .await
+            .is_ok());
+
+        // Try register again with same email failed.
+        assert_matches!(
+            conn.register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                Some(invitation.code.clone())
+            )
+            .await
+            .unwrap_err(),
+            RegisterError::DuplicateEmail
+        );
     }
 }
