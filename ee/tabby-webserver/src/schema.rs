@@ -2,7 +2,7 @@ pub mod auth;
 
 use std::sync::Arc;
 
-use hyper::Server;
+
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, RootNode,
 };
@@ -12,7 +12,7 @@ use crate::{
     api::Worker,
     schema::auth::{RegisterResponse, TokenAuthResponse, VerifyTokenResponse},
     server::{
-        auth::{AuthenticationService, RegisterInput, TokenAuthInput, validate_jwt},
+        auth::{validate_jwt, AuthenticationService, RegisterInput, TokenAuthInput},
         ServerContext,
     },
 };
@@ -24,11 +24,8 @@ pub struct Context {
 
 impl FromAuth<Arc<ServerContext>> for Context {
     fn build(server: Arc<ServerContext>, bearer: Option<String>) -> Self {
-        let claims = bearer.map(|token| validate_jwt(&token).ok()).flatten();
-        Self {
-            claims,
-            server,
-        }
+        let claims = bearer.and_then(|token| validate_jwt(&token).ok());
+        Self { claims, server }
     }
 }
 
@@ -55,9 +52,7 @@ pub struct Mutation;
 
 #[graphql_object(context = Context)]
 impl Mutation {
-    async fn reset_registration_token(
-        ctx: &Context,
-    ) -> FieldResult<String> {
+    async fn reset_registration_token(ctx: &Context) -> FieldResult<String> {
         if let Some(claims) = &ctx.claims {
             if claims.user_info().is_admin() {
                 let reg_token = ctx.server.reset_registration_token().await?;

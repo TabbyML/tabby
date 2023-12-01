@@ -1,11 +1,10 @@
 pub mod extract;
 pub mod response;
 
-use std::{future, sync::Arc};
+use std::{future};
 
 use axum::{
     extract::{Extension, State},
-    http::{HeaderMap, HeaderValue, StatusCode},
     response::{Html, IntoResponse},
 };
 use extract::AuthBearer;
