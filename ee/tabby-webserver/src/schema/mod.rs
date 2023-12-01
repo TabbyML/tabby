@@ -27,13 +27,13 @@ pub trait ServiceLocator: Send + Sync {
 
 pub struct Context {
     claims: Option<auth::Claims>,
-    server: Arc<dyn ServiceLocator>,
+    locator: Arc<dyn ServiceLocator>,
 }
 
 impl FromAuth<Arc<dyn ServiceLocator>> for Context {
-    fn build(server: Arc<dyn ServiceLocator>, bearer: Option<String>) -> Self {
+    fn build(locator: Arc<dyn ServiceLocator>, bearer: Option<String>) -> Self {
         let claims = bearer.and_then(|token| validate_jwt(&token).ok());
-        Self { claims, server }
+        Self { claims, locator }
     }
 }
 
@@ -46,16 +46,16 @@ pub struct Query;
 #[graphql_object(context = Context)]
 impl Query {
     async fn workers(ctx: &Context) -> Vec<Worker> {
-        ctx.server.worker().list_workers().await
+        ctx.locator.worker().list_workers().await
     }
 
     async fn registration_token(ctx: &Context) -> FieldResult<String> {
-        let token = ctx.server.worker().read_registration_token().await?;
+        let token = ctx.locator.worker().read_registration_token().await?;
         Ok(token)
     }
 
     async fn is_admin_initialized(ctx: &Context) -> FieldResult<bool> {
-        ctx.server.auth().is_admin_initialized().await
+        ctx.locator.auth().is_admin_initialized().await
     }
 }
 
@@ -67,7 +67,7 @@ impl Mutation {
     async fn reset_registration_token(ctx: &Context) -> FieldResult<String> {
         if let Some(claims) = &ctx.claims {
             if claims.user_info().is_admin() {
-                let reg_token = ctx.server.worker().reset_registration_token().await?;
+                let reg_token = ctx.locator.worker().reset_registration_token().await?;
                 return Ok(reg_token);
             }
         }
@@ -83,7 +83,7 @@ impl Mutation {
         password1: String,
         password2: String,
     ) -> FieldResult<RegisterResponse> {
-        ctx.server
+        ctx.locator
             .auth()
             .register(email, password1, password2)
             .await
@@ -94,11 +94,11 @@ impl Mutation {
         email: String,
         password: String,
     ) -> FieldResult<TokenAuthResponse> {
-        ctx.server.auth().token_auth(email, password).await
+        ctx.locator.auth().token_auth(email, password).await
     }
 
     async fn verify_token(ctx: &Context, token: String) -> FieldResult<VerifyTokenResponse> {
-        ctx.server.auth().verify_token(token).await
+        ctx.locator.auth().verify_token(token).await
     }
 }
 
