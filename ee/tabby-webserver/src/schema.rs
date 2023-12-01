@@ -61,11 +61,13 @@ impl Mutation {
         email: String,
         password1: String,
         password2: String,
+        invitation_code: Option<String>,
     ) -> FieldResult<RegisterResponse> {
         let input = RegisterInput {
             email,
             password1,
             password2,
+            invitation_code,
         };
         ctx.auth().register(input).await
     }

@@ -70,6 +70,8 @@ pub struct RegisterInput {
         message = "Password must be at most 20 characters"
     ))]
     pub password2: String,
+
+    pub invitation_code: Option<String>,
 }
 
 impl std::fmt::Debug for RegisterInput {
