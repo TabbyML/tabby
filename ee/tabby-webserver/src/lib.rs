@@ -46,7 +46,7 @@ pub async fn attach_webserver(
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
         .route(
             "/graphql",
-            routing::post(graphql::<Arc<Schema>>).with_state(ctx.clone()),
+            routing::post(graphql::<Arc<Schema>, Arc<ServerContext>>).with_state(ctx.clone()),
         )
         .route("/graphql", routing::get(playground("/graphql", None)))
         .layer(Extension(schema))

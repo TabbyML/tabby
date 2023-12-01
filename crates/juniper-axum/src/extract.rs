@@ -6,7 +6,7 @@ use axum::{
     async_trait,
     body::Body,
     extract::{FromRequest, FromRequestParts, Query},
-    http::{HeaderValue, Method, Request, StatusCode},
+    http::{request::Parts, HeaderValue, Method, Request, StatusCode},
     response::{IntoResponse as _, Response},
     Json, RequestExt as _,
 };
@@ -15,6 +15,46 @@ use juniper::{
     DefaultScalarValue, ScalarValue,
 };
 use serde::Deserialize;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AuthBearer(pub Option<String>);
+
+pub type Rejection = (StatusCode, &'static str);
+
+#[async_trait]
+impl<B> FromRequestParts<B> for AuthBearer
+where
+    B: Send + Sync,
+{
+    type Rejection = Rejection;
+
+    async fn from_request_parts(req: &mut Parts, _: &B) -> Result<Self, Self::Rejection> {
+        // Get authorization header
+        let authorization = req
+            .headers
+            .get("authorization")
+            .map(HeaderValue::to_str)
+            .transpose()
+            .map_err(|_| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    "authorization contains invalid characters",
+                )
+            })?;
+
+        let Some(authorization) = authorization else {
+            return Ok(Self(None));
+        };
+
+        // Check that its a well-formed bearer and return
+        let split = authorization.split_once(' ');
+        match split {
+            // Found proper bearer
+            Some((name, contents)) if name == "Bearer" => Ok(Self(Some(contents.to_owned()))),
+            _ => Ok(Self(None)),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct JuniperRequest<S = DefaultScalarValue>(pub GraphQLBatchRequest<S>)

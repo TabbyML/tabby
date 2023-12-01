@@ -1,8 +1,12 @@
 pub mod auth;
 
+use std::sync::Arc;
+
+
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, RootNode,
 };
+use juniper_axum::FromAuth;
 
 use crate::{
     api::Worker,
@@ -13,20 +17,32 @@ use crate::{
     },
 };
 
+pub struct Context {
+    claims: Option<auth::Claims>,
+    server: Arc<ServerContext>,
+}
+
+impl FromAuth<Arc<ServerContext>> for Context {
+    fn build(server: Arc<ServerContext>, bearer: Option<String>) -> Self {
+        let claims = bearer.and_then(|token| validate_jwt(&token).ok());
+        Self { claims, server }
+    }
+}
+
 // To make our context usable by Juniper, we have to implement a marker trait.
-impl juniper::Context for ServerContext {}
+impl juniper::Context for Context {}
 
 #[derive(Default)]
 pub struct Query;
 
-#[graphql_object(context = ServerContext)]
+#[graphql_object(context = Context)]
 impl Query {
-    async fn workers(ctx: &ServerContext) -> Vec<Worker> {
-        ctx.list_workers().await
+    async fn workers(ctx: &Context) -> Vec<Worker> {
+        ctx.server.list_workers().await
     }
 
-    async fn registration_token(ctx: &ServerContext) -> FieldResult<String> {
-        let token = ctx.read_registration_token().await?;
+    async fn registration_token(ctx: &Context) -> FieldResult<String> {
+        let token = ctx.server.read_registration_token().await?;
         Ok(token)
     }
 }
@@ -34,15 +50,12 @@ impl Query {
 #[derive(Default)]
 pub struct Mutation;
 
-#[graphql_object(context = ServerContext)]
+#[graphql_object(context = Context)]
 impl Mutation {
-    async fn reset_registration_token(
-        ctx: &ServerContext,
-        token: Option<String>,
-    ) -> FieldResult<String> {
-        if let Some(Ok(claims)) = token.map(|t| validate_jwt(&t)) {
+    async fn reset_registration_token(ctx: &Context) -> FieldResult<String> {
+        if let Some(claims) = &ctx.claims {
             if claims.user_info().is_admin() {
-                let reg_token = ctx.reset_registration_token().await?;
+                let reg_token = ctx.server.reset_registration_token().await?;
                 return Ok(reg_token);
             }
         }
@@ -53,7 +66,7 @@ impl Mutation {
     }
 
     async fn register(
-        ctx: &ServerContext,
+        ctx: &Context,
         email: String,
         password1: String,
         password2: String,
@@ -63,24 +76,24 @@ impl Mutation {
             password1,
             password2,
         };
-        ctx.auth().register(input).await
+        ctx.server.auth().register(input).await
     }
 
     async fn token_auth(
-        ctx: &ServerContext,
+        ctx: &Context,
         email: String,
         password: String,
     ) -> FieldResult<TokenAuthResponse> {
         let input = TokenAuthInput { email, password };
-        ctx.auth().token_auth(input).await
+        ctx.server.auth().token_auth(input).await
     }
 
-    async fn verify_token(ctx: &ServerContext, token: String) -> FieldResult<VerifyTokenResponse> {
-        ctx.auth().verify_token(token).await
+    async fn verify_token(ctx: &Context, token: String) -> FieldResult<VerifyTokenResponse> {
+        ctx.server.auth().verify_token(token).await
     }
 }
 
-pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<ServerContext>>;
+pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Context>>;
 
 pub fn create_schema() -> Schema {
     Schema::new(Query, Mutation, EmptySubscription::new())

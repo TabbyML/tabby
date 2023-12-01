@@ -1,12 +1,6 @@
 type RegisterResponse {
   accessToken: String!
   refreshToken: String!
-  errors: [AuthError!]!
-}
-
-type AuthError {
-  message: String!
-  code: String!
 }
 
 enum WorkerKind {
@@ -15,7 +9,7 @@ enum WorkerKind {
 }
 
 type Mutation {
-  resetRegistrationToken(token: String): String!
+  resetRegistrationToken: String!
   register(email: String!, password1: String!, password2: String!): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): VerifyTokenResponse!
@@ -27,7 +21,6 @@ type UserInfo {
 }
 
 type VerifyTokenResponse {
-  errors: [AuthError!]!
   claims: Claims!
 }
 
@@ -56,7 +49,6 @@ type Worker {
 type TokenAuthResponse {
   accessToken: String!
   refreshToken: String!
-  errors: [AuthError!]!
 }
 
 schema {
