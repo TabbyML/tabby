@@ -1,44 +1,12 @@
 use async_trait::async_trait;
-use juniper::{GraphQLEnum, GraphQLObject};
-use serde::{Deserialize, Serialize};
 use tabby_common::api::{
     code::{CodeSearch, CodeSearchError, SearchResponse},
     event::RawEventLogger,
 };
-use thiserror::Error;
 use tokio_tungstenite::connect_async;
 
+pub use crate::schema::worker::{RegisterWorkerError, Worker, WorkerKind};
 use crate::websocket::WebSocketTransport;
-
-#[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]
-pub enum WorkerKind {
-    Completion,
-    Chat,
-}
-
-#[derive(GraphQLObject, Serialize, Deserialize, Clone, Debug)]
-pub struct Worker {
-    pub kind: WorkerKind,
-    pub name: String,
-    pub addr: String,
-    pub device: String,
-    pub arch: String,
-    pub cpu_info: String,
-    pub cpu_count: i32,
-    pub cuda_devices: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize, Error, Debug)]
-pub enum RegisterWorkerError {
-    #[error("Invalid token")]
-    InvalidToken(String),
-
-    #[error("Feature requires enterprise license")]
-    RequiresEnterpriseLicense,
-
-    #[error("Each hub client should only calls register_worker once")]
-    RegisterWorkerOnce,
-}
 
 #[tarpc::service]
 pub trait Hub {
