@@ -1,4 +1,5 @@
 mod auth;
+mod db;
 mod proxy;
 mod worker;
 
@@ -11,13 +12,11 @@ use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::{info, warn};
 
-use crate::{
-    db::DbConn,
-    schema::{
-        auth::AuthenticationService,
-        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-        ServiceLocator,
-    },
+use self::db::DbConn;
+use crate::schema::{
+    auth::AuthenticationService,
+    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+    ServiceLocator,
 };
 
 struct ServerContext {
@@ -31,16 +30,12 @@ struct ServerContext {
 }
 
 impl ServerContext {
-    pub fn new(
-        db_conn: DbConn,
-        logger: Arc<dyn RawEventLogger>,
-        code: Arc<dyn CodeSearch>,
-    ) -> Self {
+    pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
-            db_conn,
+            db_conn: DbConn::new().await.unwrap(),
             logger,
             code,
         }
@@ -151,10 +146,9 @@ impl ServiceLocator for ServerContext {
     }
 }
 
-pub fn create_service_locator(
-    db_conn: DbConn,
+pub async fn create_service_locator(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(ServerContext::new(db_conn, logger, code))
+    Arc::new(ServerContext::new(logger, code).await)
 }

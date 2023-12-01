@@ -7,15 +7,13 @@ use async_trait::async_trait;
 use juniper::{FieldResult, IntoFieldError};
 use validator::Validate;
 
-use crate::{
-    db::DbConn,
-    schema::{
-        auth::{
-            generate_jwt, validate_jwt, AuthenticationService, Claims, RefreshTokenResponse,
-            RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse,
-        },
-        ValidationErrors,
+use super::db::DbConn;
+use crate::schema::{
+    auth::{
+        generate_jwt, validate_jwt, AuthenticationService, Claims, RefreshTokenResponse,
+        RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse,
     },
+    ValidationErrors,
 };
 
 /// Input parameters for register mutation

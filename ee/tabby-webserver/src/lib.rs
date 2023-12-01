@@ -11,7 +11,6 @@ use tokio::sync::Mutex;
 use tracing::{error, warn};
 use websocket::WebSocketTransport;
 
-mod db;
 mod repositories;
 mod server;
 mod ui;
@@ -41,8 +40,7 @@ pub async fn attach_webserver(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
 ) -> (Router, Router) {
-    let conn = db::DbConn::new().await.unwrap();
-    let ctx = create_service_locator(conn, logger, code);
+    let ctx = create_service_locator(logger, code).await;
     let schema = Arc::new(create_schema());
 
     let api = api
