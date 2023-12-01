@@ -12,7 +12,10 @@ use juniper_axum::FromAuth;
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use validator::ValidationError;
 
-use self::{auth::validate_jwt, worker::WorkerService};
+use self::{
+    auth::{validate_jwt, Invitation},
+    worker::WorkerService,
+};
 use crate::schema::{
     auth::{RegisterResponse, TokenAuthResponse, VerifyTokenResponse},
     worker::Worker,
@@ -57,6 +60,15 @@ impl Query {
     async fn is_admin_initialized(ctx: &Context) -> FieldResult<bool> {
         ctx.locator.auth().is_admin_initialized().await
     }
+
+    async fn invitations(ctx: &Context) -> FieldResult<Vec<Invitation>> {
+        if let Some(claims) = &ctx.claims {
+            if claims.user_info().is_admin() {
+                return Ok(ctx.locator.auth().list_invitations().await?);
+            }
+        }
+        Err(unauthorized("Only admin is able to query invitations"))
+    }
 }
 
 #[derive(Default)]
@@ -71,9 +83,8 @@ impl Mutation {
                 return Ok(reg_token);
             }
         }
-        Err(FieldError::new(
+        Err(unauthorized(
             "Only admin is able to reset registration token",
-            graphql_value!("Unauthorized"),
         ))
     }
 
@@ -82,10 +93,11 @@ impl Mutation {
         email: String,
         password1: String,
         password2: String,
+        invitation_code: Option<String>,
     ) -> FieldResult<RegisterResponse> {
         ctx.locator
             .auth()
-            .register(email, password1, password2)
+            .register(email, password1, password2, invitation_code)
             .await
     }
 
@@ -99,6 +111,24 @@ impl Mutation {
 
     async fn verify_token(ctx: &Context, token: String) -> FieldResult<VerifyTokenResponse> {
         ctx.locator.auth().verify_token(token).await
+    }
+
+    async fn create_invitation(ctx: &Context, email: String) -> FieldResult<i32> {
+        if let Some(claims) = &ctx.claims {
+            if claims.user_info().is_admin() {
+                return Ok(ctx.locator.auth().create_invitation(email).await?);
+            }
+        }
+        Err(unauthorized("Only admin is able to create invitation"))
+    }
+
+    async fn delete_invitation(ctx: &Context, id: i32) -> FieldResult<i32> {
+        if let Some(claims) = &ctx.claims {
+            if claims.user_info().is_admin() {
+                return Ok(ctx.locator.auth().delete_invitation(id).await?);
+            }
+        }
+        Err(unauthorized("Only admin is able to delete invitation"))
     }
 }
 
@@ -134,4 +164,8 @@ pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Context>>
 
 pub fn create_schema() -> Schema {
     Schema::new(Query, Mutation, EmptySubscription::new())
+}
+
+fn unauthorized(msg: &str) -> FieldError {
+    FieldError::new(msg, graphql_value!("Unauthorized"))
 }

@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use anyhow::Result;
 use async_trait::async_trait;
 use jsonwebtoken as jwt;
 use juniper::{FieldResult, GraphQLObject};
@@ -125,6 +126,15 @@ impl Claims {
     }
 }
 
+#[derive(Debug, Default, Serialize, Deserialize, GraphQLObject)]
+pub struct Invitation {
+    pub id: i32,
+    pub email: String,
+    pub code: String,
+
+    pub created_at: String,
+}
+
 #[async_trait]
 pub trait AuthenticationService: Send + Sync {
     async fn register(
@@ -132,11 +142,16 @@ pub trait AuthenticationService: Send + Sync {
         email: String,
         password1: String,
         password2: String,
+        invitation_code: Option<String>,
     ) -> FieldResult<RegisterResponse>;
     async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse>;
     async fn refresh_token(&self, refresh_token: String) -> FieldResult<RefreshTokenResponse>;
     async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse>;
     async fn is_admin_initialized(&self) -> FieldResult<bool>;
+
+    async fn create_invitation(&self, email: String) -> Result<i32>;
+    async fn list_invitations(&self) -> Result<Vec<Invitation>>;
+    async fn delete_invitation(&self, id: i32) -> Result<i32>;
 }
 
 #[cfg(test)]

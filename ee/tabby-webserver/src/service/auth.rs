@@ -1,3 +1,4 @@
+use anyhow::Result;
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
@@ -10,8 +11,8 @@ use validator::Validate;
 use super::db::DbConn;
 use crate::schema::{
     auth::{
-        generate_jwt, validate_jwt, AuthenticationService, Claims, RefreshTokenResponse,
-        RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse,
+        generate_jwt, validate_jwt, AuthenticationService, Claims, Invitation,
+        RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse,
     },
     ValidationErrors,
 };
@@ -109,6 +110,7 @@ impl AuthenticationService for DbConn {
         email: String,
         password1: String,
         password2: String,
+        invitation_code: Option<String>,
     ) -> FieldResult<RegisterResponse> {
         let input = RegisterInput {
             email,
@@ -125,6 +127,21 @@ impl AuthenticationService for DbConn {
 
             ValidationErrors { errors }.into_field_error()
         })?;
+
+        if self.is_admin_initialized().await? {
+            let err = Err("Invitation code is not valid".into());
+            let Some(invitation_code) = invitation_code else {
+                return err;
+            };
+
+            let Some(invitation) = self.get_invitation_by_code(&invitation_code).await? else {
+                return err;
+            };
+
+            if invitation.email != input.email {
+                return err;
+            }
+        };
 
         // check if email exists
         if self.get_user_by_email(&input.email).await?.is_some() {
@@ -192,6 +209,18 @@ impl AuthenticationService for DbConn {
     async fn is_admin_initialized(&self) -> FieldResult<bool> {
         let admin = self.list_admin_users().await?;
         Ok(!admin.is_empty())
+    }
+
+    async fn create_invitation(&self, email: String) -> Result<i32> {
+        self.create_invitation(email).await
+    }
+
+    async fn list_invitations(&self) -> Result<Vec<Invitation>> {
+        self.list_invitations().await
+    }
+
+    async fn delete_invitation(&self, id: i32) -> Result<i32> {
+        self.delete_invitation(id).await
     }
 }
 

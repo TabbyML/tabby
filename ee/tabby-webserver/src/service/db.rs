@@ -1,17 +1,20 @@
 use std::{path::PathBuf, sync::Arc};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use rusqlite::{params, OptionalExtension, Row};
 use rusqlite_migration::{AsyncMigrations, M};
 use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
+use uuid::Uuid;
+
+use crate::schema::auth::Invitation;
 
 lazy_static! {
     static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
         M::up(
             r#"
-            CREATE TABLE IF NOT EXISTS registration_token (
+            CREATE TABLE registration_token (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 token VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT (DATETIME('now')),
@@ -22,7 +25,7 @@ lazy_static! {
         ),
         M::up(
             r#"
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE users (
                 id                 INTEGER PRIMARY KEY AUTOINCREMENT,
                 email              VARCHAR(150) NOT NULL COLLATE NOCASE,
                 password_encrypted VARCHAR(128) NOT NULL,
@@ -30,6 +33,18 @@ lazy_static! {
                 created_at         TIMESTAMP DEFAULT (DATETIME('now')),
                 updated_at         TIMESTAMP DEFAULT (DATETIME('now')),
                 CONSTRAINT `idx_email` UNIQUE (`email`)
+            );
+        "#
+        ),
+        M::up(
+            r#"
+            CREATE TABLE invitations (
+                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+                email              VARCHAR(150) NOT NULL COLLATE NOCASE,
+                code               VARCHAR(36) NOT NULL,
+                created_at         TIMESTAMP DEFAULT (DATETIME('now')),
+                CONSTRAINT `idx_email` UNIQUE (`email`)
+                CONSTRAINT `idx_code`  UNIQUE (`code`)
             );
         "#
         ),
@@ -200,6 +215,81 @@ impl DbConn {
     }
 }
 
+impl Invitation {
+    fn from_row(row: &Row<'_>) -> std::result::Result<Self, rusqlite::Error> {
+        Ok(Self {
+            id: row.get(0)?,
+            email: row.get(1)?,
+            code: row.get(2)?,
+            created_at: row.get(3)?,
+        })
+    }
+}
+
+/// db read/write operations for `invitations` table
+impl DbConn {
+    pub async fn list_invitations(&self) -> Result<Vec<Invitation>> {
+        let invitations = self
+            .conn
+            .call(move |c| {
+                let mut stmt =
+                    c.prepare(r#"SELECT id, email, code, created_at FROM invitations"#)?;
+                let iter = stmt.query_map([], Invitation::from_row)?;
+                Ok(iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(invitations)
+    }
+
+    pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<Invitation>> {
+        let code = code.to_owned();
+        let token = self
+            .conn
+            .call(|conn| {
+                conn.query_row(
+                    r#"SELECT id, email, code, created_at FROM invitations WHERE code = ?"#,
+                    [code],
+                    Invitation::from_row,
+                )
+                .optional()
+            })
+            .await?;
+
+        Ok(token)
+    }
+
+    pub async fn create_invitation(&self, email: String) -> Result<i32> {
+        let code = Uuid::new_v4().to_string();
+        let res = self
+            .conn
+            .call(move |c| {
+                let mut stmt =
+                    c.prepare(r#"INSERT INTO invitations (email, code) VALUES (?, ?)"#)?;
+                let rowid = stmt.insert((email, code))?;
+                Ok(rowid)
+            })
+            .await?;
+        if res != 1 {
+            return Err(anyhow!("failed to create invitation"));
+        }
+
+        Ok(res as i32)
+    }
+
+    pub async fn delete_invitation(&self, id: i32) -> Result<i32> {
+        let res = self
+            .conn
+            .call(move |c| c.execute(r#"DELETE FROM invitations WHERE id = ?"#, params![id]))
+            .await?;
+        if res != 1 {
+            return Err(anyhow!("failed to delete invitation"));
+        }
+
+        Ok(id)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -269,5 +359,30 @@ mod tests {
         assert!(!conn.is_admin_initialized().await.unwrap());
         create_admin_user(&conn).await;
         assert!(conn.is_admin_initialized().await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_invitations() {
+        let conn = new_in_memory().await.unwrap();
+
+        let email = "hello@example.com".to_owned();
+        conn.create_invitation(email).await.unwrap();
+
+        let invitations = conn.list_invitations().await.unwrap();
+        assert_eq!(1, invitations.len());
+
+        assert!(Uuid::parse_str(&invitations[0].code).is_ok());
+        let invitation = conn
+            .get_invitation_by_code(&invitations[0].code)
+            .await
+            .ok()
+            .flatten()
+            .unwrap();
+        assert_eq!(invitation.id, invitations[0].id);
+
+        conn.delete_invitation(invitations[0].id).await.unwrap();
+
+        let invitations = conn.list_invitations().await.unwrap();
+        assert!(invitations.is_empty());
     }
 }
