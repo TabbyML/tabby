@@ -8,6 +8,8 @@ use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 use uuid::Uuid;
 
+use crate::schema::auth::Invitation;
+
 lazy_static! {
     static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
         M::up(
@@ -213,15 +215,6 @@ impl DbConn {
     }
 }
 
-#[allow(unused)]
-pub struct Invitation {
-    pub id: u32,
-    pub email: String,
-    pub code: String,
-
-    pub created_at: String,
-}
-
 impl Invitation {
     fn from_row(row: &Row<'_>) -> std::result::Result<Self, rusqlite::Error> {
         Ok(Self {
@@ -266,25 +259,25 @@ impl DbConn {
         Ok(token)
     }
 
-    pub async fn create_invitation(&self, email: String) -> Result<()> {
+    pub async fn create_invitation(&self, email: String) -> Result<i32> {
         let code = Uuid::new_v4().to_string();
         let res = self
             .conn
             .call(move |c| {
-                c.execute(
-                    r#"INSERT INTO invitations (email, code) VALUES (?, ?)"#,
-                    params![email, code],
-                )
+                let mut stmt =
+                    c.prepare(r#"INSERT INTO invitations (email, code) VALUES (?, ?)"#)?;
+                let rowid = stmt.insert((email, code))?;
+                Ok(rowid)
             })
             .await?;
         if res != 1 {
             return Err(anyhow!("failed to create invitation"));
         }
 
-        Ok(())
+        Ok(res as i32)
     }
 
-    pub async fn delete_invitation(&self, id: u32) -> Result<()> {
+    pub async fn delete_invitation(&self, id: i32) -> Result<i32> {
         let res = self
             .conn
             .call(move |c| c.execute(r#"DELETE FROM invitations WHERE id = ?"#, params![id]))
@@ -293,7 +286,7 @@ impl DbConn {
             return Err(anyhow!("failed to delete invitation"));
         }
 
-        Ok(())
+        Ok(id)
     }
 }
 
@@ -379,7 +372,12 @@ mod tests {
         assert_eq!(1, invitations.len());
 
         assert!(Uuid::parse_str(&invitations[0].code).is_ok());
-        let invitation = conn.get_invitation_by_code(&invitations[0].code).await.ok().flatten().unwrap();
+        let invitation = conn
+            .get_invitation_by_code(&invitations[0].code)
+            .await
+            .ok()
+            .flatten()
+            .unwrap();
         assert_eq!(invitation.id, invitations[0].id);
 
         conn.delete_invitation(invitations[0].id).await.unwrap();

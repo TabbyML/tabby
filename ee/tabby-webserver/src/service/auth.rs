@@ -1,3 +1,4 @@
+use anyhow::Result;
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
@@ -10,8 +11,8 @@ use validator::Validate;
 use super::db::DbConn;
 use crate::schema::{
     auth::{
-        generate_jwt, validate_jwt, AuthenticationService, Claims, RefreshTokenResponse,
-        RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse,
+        generate_jwt, validate_jwt, AuthenticationService, Claims, Invitation,
+        RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse,
     },
     ValidationErrors,
 };
@@ -208,6 +209,18 @@ impl AuthenticationService for DbConn {
     async fn is_admin_initialized(&self) -> FieldResult<bool> {
         let admin = self.list_admin_users().await?;
         Ok(!admin.is_empty())
+    }
+
+    async fn create_invitation(&self, email: String) -> Result<i32> {
+        self.create_invitation(email).await
+    }
+
+    async fn list_invitations(&self) -> Result<Vec<Invitation>> {
+        self.list_invitations().await
+    }
+
+    async fn delete_invitation(&self, id: i32) -> Result<i32> {
+        self.delete_invitation(id).await
     }
 }
 
