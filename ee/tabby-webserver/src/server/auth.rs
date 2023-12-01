@@ -29,6 +29,11 @@ lazy_static! {
     pub static ref JWT_DEFAULT_EXP: u64 = 30 * 60; // 30 minutes
 }
 
+/// Input parameters for register mutation
+/// `validate` attribute is used to validate the input parameters
+///   - `code` argument specifies which parameter causes the failure
+///   - `message` argument provides client friendly error message
+///
 #[derive(Validate)]
 pub struct RegisterInput {
     #[validate(email(code = "email", message = "Email is invalid"))]
@@ -40,21 +45,30 @@ pub struct RegisterInput {
     pub email: String,
     #[validate(length(
         min = 8,
-        code = "password",
+        code = "password1",
         message = "Password must be at least 8 characters"
     ))]
     #[validate(length(
         max = 20,
-        code = "password",
+        code = "password1",
         message = "Password must be at most 20 characters"
     ))]
     #[validate(must_match(
-        other = "password2",
-        code = "password",
-        message = "Passwords do not match"
+        code = "password1",
+        message = "Passwords do not match",
+        other = "password2"
     ))]
     pub password1: String,
-    #[validate(length(min = 8, max = 20, code = "password"))]
+    #[validate(length(
+        min = 8,
+        code = "password2",
+        message = "Password must be at least 8 characters"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "password2",
+        message = "Password must be at most 20 characters"
+    ))]
     pub password2: String,
 }
 
@@ -68,9 +82,11 @@ impl std::fmt::Debug for RegisterInput {
     }
 }
 
+/// Input parameters for token_auth mutation
+/// See `RegisterInput` for `validate` attribute usage
 #[derive(Validate)]
 pub struct TokenAuthInput {
-    #[validate(email)]
+    #[validate(email(code = "email", message = "Email is invalid"))]
     #[validate(length(
         max = 128,
         code = "email",
