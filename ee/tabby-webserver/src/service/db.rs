@@ -167,25 +167,40 @@ impl DbConn {
         email: String,
         password_encrypted: String,
         is_admin: bool,
-    ) -> Result<()> {
+    ) -> Result<i32> {
         let res = self
             .conn
             .call(move |c| {
-                c.execute(
-                    r#"INSERT INTO users (email, password_encrypted, is_admin) VALUES (?, ?, ?)"#,
-                    params![email, password_encrypted, is_admin],
-                )
+                let mut stmt = c.prepare(r#"INSERT INTO users (email, password_encrypted, is_admin) VALUES (?, ?, ?)"#)?;
+                let id = stmt.insert((email, password_encrypted, is_admin))?;
+                Ok(id)
             })
             .await?;
         if res != 1 {
             return Err(anyhow::anyhow!("failed to create user"));
         }
 
-        Ok(())
+        Ok(res as i32)
+    }
+
+    pub async fn get_user(&self, id: i32) -> Result<Option<User>> {
+        let user = self
+            .conn
+            .call(move |c| {
+                c.query_row(
+                    User::select("id = ?").as_str(),
+                    params![id],
+                    User::from_row,
+                )
+                .optional()
+            })
+            .await?;
+
+        Ok(user)
     }
 
     pub async fn get_user_by_email(&self, email: &str) -> Result<Option<User>> {
-        let email = email.to_string();
+        let email = email.to_owned();
         let user = self
             .conn
             .call(move |c| {
@@ -300,14 +315,13 @@ mod tests {
         DbConn::init_db(conn).await
     }
 
-    async fn create_admin_user(conn: &DbConn) -> String {
+    async fn create_admin_user(conn: &DbConn) -> i32 {
         let email = "test@example.com";
         let passwd = "123456";
         let is_admin = true;
         conn.create_user(email.to_string(), passwd.to_string(), is_admin)
             .await
-            .unwrap();
-        email.to_owned()
+            .unwrap()
     }
 
     #[tokio::test]
@@ -337,8 +351,8 @@ mod tests {
     async fn test_create_user() {
         let conn = new_in_memory().await.unwrap();
 
-        let email = create_admin_user(&conn).await;
-        let user = conn.get_user_by_email(&email).await.unwrap().unwrap();
+        let id = create_admin_user(&conn).await;
+        let user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.id, 1);
     }
 

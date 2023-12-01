@@ -128,7 +128,8 @@ impl AuthenticationService for DbConn {
             ValidationErrors { errors }.into_field_error()
         })?;
 
-        if self.is_admin_initialized().await? {
+        let is_admin_initialized = self.is_admin_initialized().await?;
+        if is_admin_initialized {
             let err = Err("Invitation code is not valid".into());
             let Some(invitation_code) = invitation_code else {
                 return err;
@@ -150,9 +151,9 @@ impl AuthenticationService for DbConn {
 
         let pwd_hash = password_hash(&input.password1)?;
 
-        self.create_user(input.email.clone(), pwd_hash, false)
+        let id = self.create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
             .await?;
-        let user = self.get_user_by_email(&input.email).await?.unwrap();
+        let user = self.get_user(id).await?.unwrap();
 
         let access_token = generate_jwt(Claims::new(UserInfo::new(
             user.email.clone(),
