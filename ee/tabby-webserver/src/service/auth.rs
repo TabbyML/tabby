@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{ensure, Result};
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
@@ -12,7 +12,8 @@ use super::db::DbConn;
 use crate::schema::{
     auth::{
         generate_jwt, validate_jwt, AuthenticationService, Claims, Invitation,
-        RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse,
+        RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse,
+        UserInfo, VerifyTokenResponse,
     },
     ValidationErrors,
 };
@@ -111,7 +112,7 @@ impl AuthenticationService for DbConn {
         password1: String,
         password2: String,
         invitation_code: Option<String>,
-    ) -> FieldResult<RegisterResponse> {
+    ) -> std::result::Result<RegisterResponse, RegisterError> {
         let input = RegisterInput {
             email,
             password1,
@@ -125,12 +126,12 @@ impl AuthenticationService for DbConn {
                 .cloned()
                 .collect();
 
-            ValidationErrors { errors }.into_field_error()
+            RegisterError::InvalidInput { errors }
         })?;
 
         let is_admin_initialized = self.is_admin_initialized().await?;
         if is_admin_initialized {
-            let err = Err("Invitation code is not valid".into());
+            let err = Err(RegisterError::InvalidInvitationCode);
             let Some(invitation_code) = invitation_code else {
                 return err;
             };
@@ -146,25 +147,34 @@ impl AuthenticationService for DbConn {
 
         // check if email exists
         if self.get_user_by_email(&input.email).await?.is_some() {
-            return Err("Email already exists".into());
+            return Err(RegisterError::DuplicateEmail);
         }
 
-        let pwd_hash = password_hash(&input.password1)?;
+        let Ok(pwd_hash) = password_hash(&input.password1) else {
+            return Err(RegisterError::Unknown);
+        };
 
-        let id = self.create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
+        let id = self
+            .create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
             .await?;
         let user = self.get_user(id).await?.unwrap();
 
-        let access_token = generate_jwt(Claims::new(UserInfo::new(
+        let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
             user.email.clone(),
             user.is_admin,
-        )))?;
+        ))) else {
+            return Err(RegisterError::Unknown);
+        };
 
         let resp = RegisterResponse::new(access_token, "".to_string());
         Ok(resp)
     }
 
-    async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse> {
+    async fn token_auth(
+        &self,
+        email: String,
+        password: String,
+    ) -> std::result::Result<TokenAuthResponse, TokenAuthError> {
         let input = TokenAuthInput { email, password };
         input.validate().map_err(|err| {
             let errors = err
@@ -174,40 +184,39 @@ impl AuthenticationService for DbConn {
                 .cloned()
                 .collect();
 
-            ValidationErrors { errors }.into_field_error()
+            TokenAuthError::InvalidInput { errors }
         })?;
 
-        let user = self.get_user_by_email(&input.email).await?;
-
-        let user = match user {
-            Some(user) => user,
-            None => return Err("User not found".into()),
+        let Some(user) = self.get_user_by_email(&input.email).await? else {
+            return Err(TokenAuthError::UserNotFound);
         };
 
         if !password_verify(&input.password, &user.password_encrypted) {
-            return Err("Password incorrect".into());
+            return Err(TokenAuthError::InvalidPassword);
         }
 
-        let access_token = generate_jwt(Claims::new(UserInfo::new(
+        let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
             user.email.clone(),
             user.is_admin,
-        )))?;
+        ))) else {
+            return Err(TokenAuthError::Unknown);
+        };
 
         let resp = TokenAuthResponse::new(access_token, "".to_string());
         Ok(resp)
     }
 
-    async fn refresh_token(&self, _refresh_token: String) -> FieldResult<RefreshTokenResponse> {
+    async fn refresh_token(&self, _refresh_token: String) -> Result<RefreshTokenResponse> {
         Ok(RefreshTokenResponse::default())
     }
 
-    async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse> {
+    async fn verify_token(&self, access_token: String) -> Result<VerifyTokenResponse> {
         let claims = validate_jwt(&access_token)?;
         let resp = VerifyTokenResponse::new(claims);
         Ok(resp)
     }
 
-    async fn is_admin_initialized(&self) -> FieldResult<bool> {
+    async fn is_admin_initialized(&self) -> Result<bool> {
         let admin = self.list_admin_users().await?;
         Ok(!admin.is_empty())
     }

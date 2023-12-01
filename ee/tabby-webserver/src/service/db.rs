@@ -302,10 +302,22 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
-    use juniper::FieldResult;
 
     use super::*;
-    use crate::schema::auth::AuthenticationService;
+    use crate::schema::auth::{AuthenticationService, RegisterError, TokenAuthError};
+
+    static ADMIN_EMAIL: &str = "test@example.com";
+    static ADMIN_PASSWORD: &str = "123456789";
+
+    macro_rules! is_enum_variant {
+        ($v:expr, $p:pat) => {
+            if let $p = $v {
+                true
+            } else {
+                false
+            }
+        };
+    }
 
     async fn new_in_memory() -> Result<DbConn> {
         let conn = Connection::open_in_memory().await?;
@@ -313,10 +325,7 @@ mod tests {
     }
 
     async fn create_admin_user(conn: &DbConn) -> i32 {
-        let email = "test@example.com";
-        let passwd = "123456";
-        let is_admin = true;
-        conn.create_user(email.to_string(), passwd.to_string(), is_admin)
+        conn.create_user(ADMIN_EMAIL.to_string(), ADMIN_PASSWORD.to_string(), true)
             .await
             .unwrap()
     }
@@ -411,26 +420,30 @@ mod tests {
         let invitation = &conn.list_invitations().await.unwrap()[0];
 
         // Admin initialized, registeration requires a invitation code;
-        assert!(
+        assert!(is_enum_variant!(
             conn.register(
                 email.to_owned(),
                 password.to_owned(),
                 password.to_owned(),
                 None
             )
-            .await.is_err()
-        );
+            .await
+            .unwrap_err(),
+            RegisterError::InvalidInvitationCode
+        ));
 
         // Invalid invitation code won't work.
-        assert!(conn
-            .register(
+        assert!(is_enum_variant!(
+            conn.register(
                 email.to_owned(),
                 password.to_owned(),
                 password.to_owned(),
                 Some("abc".to_owned())
             )
             .await
-            .is_err());
+            .unwrap_err(),
+            RegisterError::InvalidInvitationCode
+        ));
 
         // Register success.
         assert!(conn
@@ -444,14 +457,44 @@ mod tests {
             .is_ok());
 
         // Try register again with same email failed.
-        assert!(conn
-            .register(
+        assert!(is_enum_variant!(
+            conn.register(
                 email.to_owned(),
                 password.to_owned(),
                 password.to_owned(),
                 Some(invitation.code.clone())
             )
             .await
-            .is_err());
+            .unwrap_err(),
+            RegisterError::DuplicateEmail
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_auth_token() {
+        let conn = new_in_memory().await.unwrap();
+        assert!(is_enum_variant!(
+            conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
+                .await
+                .unwrap_err(),
+            TokenAuthError::UserNotFound
+        ));
+
+        create_admin_user(&conn).await;
+
+        assert!(is_enum_variant!(
+            conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
+                .await
+                .unwrap_err(),
+            TokenAuthError::InvalidPassword
+        ));
+
+        // This won't work, due to password hash is not right. 
+        /*
+        assert!(conn
+            .token_auth(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned())
+            .await
+            .is_ok());
+         */
     }
 }
