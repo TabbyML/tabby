@@ -70,8 +70,6 @@ pub struct RegisterInput {
         message = "Password must be at most 20 characters"
     ))]
     pub password2: String,
-
-    pub invitation_code: Option<String>,
 }
 
 impl std::fmt::Debug for RegisterInput {
@@ -123,7 +121,6 @@ pub trait AuthenticationService {
     async fn token_auth(&self, input: TokenAuthInput) -> FieldResult<TokenAuthResponse>;
     async fn refresh_token(&self, refresh_token: String) -> FieldResult<RefreshTokenResponse>;
     async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse>;
-    async fn is_admin_initialized(&self) -> FieldResult<bool>;
 }
 
 #[async_trait]
@@ -200,11 +197,6 @@ impl AuthenticationService for DbConn {
         let claims = validate_jwt(&access_token)?;
         let resp = VerifyTokenResponse::new(claims);
         Ok(resp)
-    }
-
-    async fn is_admin_initialized(&self) -> FieldResult<bool> {
-        let admin = self.list_admin_users().await?;
-        Ok(!admin.is_empty())
     }
 }
 

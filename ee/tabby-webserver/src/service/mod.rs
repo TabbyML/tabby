@@ -1,63 +1,65 @@
-pub mod auth;
+mod auth;
+mod db;
 mod proxy;
 mod worker;
 
 use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
+use async_trait::async_trait;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::{info, warn};
 
-use crate::{
-    api::{RegisterWorkerError, Worker, WorkerKind},
-    db::DbConn,
-    server::auth::AuthenticationService,
+use self::db::DbConn;
+use crate::schema::{
+    auth::AuthenticationService,
+    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+    ServiceLocator,
 };
 
-pub struct ServerContext {
+struct ServerContext {
     client: Client<HttpConnector>,
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
     db_conn: DbConn,
 
-    pub logger: Arc<dyn RawEventLogger>,
-    pub code: Arc<dyn CodeSearch>,
+    logger: Arc<dyn RawEventLogger>,
+    code: Arc<dyn CodeSearch>,
 }
 
 impl ServerContext {
-    pub fn new(
-        db_conn: DbConn,
-        logger: Arc<dyn RawEventLogger>,
-        code: Arc<dyn CodeSearch>,
-    ) -> Self {
+    pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
-            db_conn,
+            db_conn: DbConn::new().await.unwrap(),
             logger,
             code,
         }
     }
+}
 
-    pub fn auth(&self) -> impl AuthenticationService {
-        self.db_conn.clone()
-    }
-
+#[async_trait]
+impl WorkerService for ServerContext {
     /// Query current token from the database.
-    pub async fn read_registration_token(&self) -> Result<String> {
+    async fn read_registration_token(&self) -> Result<String> {
         self.db_conn.read_registration_token().await
     }
 
     /// Generate new token, and update it in the database.
     /// Return new token after update is done
-    pub async fn reset_registration_token(&self) -> Result<String> {
+    async fn reset_registration_token(&self) -> Result<String> {
         self.db_conn.reset_registration_token().await
     }
 
-    pub async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
+    async fn list_workers(&self) -> Vec<Worker> {
+        [self.completion.list().await, self.chat.list().await].concat()
+    }
+
+    async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
         let worker = match worker.kind {
             WorkerKind::Completion => self.completion.register(worker).await,
             WorkerKind::Chat => self.chat.register(worker).await,
@@ -74,7 +76,7 @@ impl ServerContext {
         }
     }
 
-    pub async fn unregister_worker(&self, worker_addr: &str) {
+    async fn unregister_worker(&self, worker_addr: &str) {
         let kind = if self.chat.unregister(worker_addr).await {
             WorkerKind::Chat
         } else if self.completion.unregister(worker_addr).await {
@@ -87,11 +89,7 @@ impl ServerContext {
         info!("unregistering <{:?}> worker at {}", kind, worker_addr);
     }
 
-    pub async fn list_workers(&self) -> Vec<Worker> {
-        [self.completion.list().await, self.chat.list().await].concat()
-    }
-
-    pub async fn dispatch_request(
+    async fn dispatch_request(
         &self,
         request: Request<Body>,
         next: Next<Body>,
@@ -128,4 +126,29 @@ impl ServerContext {
             next.run(request).await
         }
     }
+}
+
+impl ServiceLocator for ServerContext {
+    fn auth(&self) -> &dyn AuthenticationService {
+        &self.db_conn
+    }
+
+    fn worker(&self) -> &dyn WorkerService {
+        self
+    }
+
+    fn code(&self) -> &dyn CodeSearch {
+        &*self.code
+    }
+
+    fn logger(&self) -> &dyn RawEventLogger {
+        &*self.logger
+    }
+}
+
+pub async fn create_service_locator(
+    logger: Arc<dyn RawEventLogger>,
+    code: Arc<dyn CodeSearch>,
+) -> Arc<dyn ServiceLocator> {
+    Arc::new(ServerContext::new(logger, code).await)
 }
