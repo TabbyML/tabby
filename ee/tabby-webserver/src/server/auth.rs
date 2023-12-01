@@ -268,6 +268,6 @@ mod tests {
         let claims = Claims::new(UserInfo::new("test".to_string(), false));
         let token = generate_jwt(claims).unwrap();
         let claims = validate_jwt(&token).unwrap();
-        assert_eq!(claims.user_info(), UserInfo::new("test".to_string(), false));
+        assert_eq!(claims.user_info(), &UserInfo::new("test".to_string(), false));
     }
 }
