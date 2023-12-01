@@ -133,7 +133,7 @@ impl AuthenticationService for DbConn {
                 return err;
             };
 
-            let Some(invitation) = self.get_invitation_by_code(invitation_code).await? else {
+            let Some(invitation) = self.get_invitation_by_code(&invitation_code).await? else {
                 return err;
             };
 

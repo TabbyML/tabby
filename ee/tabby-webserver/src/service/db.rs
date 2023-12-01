@@ -249,7 +249,8 @@ impl DbConn {
         Ok(invitations)
     }
 
-    pub async fn get_invitation_by_code(&self, code: String) -> Result<Option<Invitation>> {
+    pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<Invitation>> {
+        let code = code.to_owned();
         let token = self
             .conn
             .call(|conn| {
@@ -378,6 +379,8 @@ mod tests {
         assert_eq!(1, invitations.len());
 
         assert!(Uuid::parse_str(&invitations[0].code).is_ok());
+        let invitation = conn.get_invitation_by_code(&invitations[0].code).await.ok().flatten().unwrap();
+        assert_eq!(invitation.id, invitations[0].id);
 
         conn.delete_invitation(invitations[0].id).await.unwrap();
 
