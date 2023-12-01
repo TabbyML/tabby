@@ -28,7 +28,7 @@ use axum::{
 use hyper::Body;
 use juniper_axum::{graphiql, graphql, playground};
 use schema::{
-    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+    worker::{RegisterWorkerError, Worker, WorkerKind},
     Schema, ServiceLocator,
 };
 use service::create_service_locator;
