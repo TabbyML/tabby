@@ -123,7 +123,7 @@ impl Claims {
         }
     }
 
-    pub fn user_info(self) -> UserInfo {
-        self.user
+    pub fn user_info<'a>(&'a self) -> &'a UserInfo {
+        &self.user
     }
 }
