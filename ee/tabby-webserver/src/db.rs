@@ -202,11 +202,23 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
+    use crate::server::auth::AuthenticationService;
+
     use super::*;
 
     async fn new_in_memory() -> Result<DbConn> {
         let conn = Connection::open_in_memory().await?;
         DbConn::init_db(conn).await
+    }
+
+    async fn create_admin_user(conn: &DbConn) -> String {
+        let email = "test@example.com";
+        let passwd = "123456";
+        let is_admin = true;
+        conn.create_user(email.to_string(), passwd.to_string(), is_admin)
+            .await
+            .unwrap();
+        email.to_owned()
     }
 
     #[tokio::test]
@@ -236,14 +248,8 @@ mod tests {
     async fn test_create_user() {
         let conn = new_in_memory().await.unwrap();
 
-        let email = "test@example.com";
-        let passwd = "123456";
-        let is_admin = true;
-        conn.create_user(email.to_string(), passwd.to_string(), is_admin)
-            .await
-            .unwrap();
-
-        let user = conn.get_user_by_email(email).await.unwrap().unwrap();
+        let email = create_admin_user(&conn).await;
+        let user = conn.get_user_by_email(&email).await.unwrap().unwrap();
         assert_eq!(user.id, 1);
     }
 
@@ -255,5 +261,14 @@ mod tests {
         let user = conn.get_user_by_email(email).await.unwrap();
 
         assert!(user.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_is_admin_initialized() {
+        let conn = new_in_memory().await.unwrap();
+
+        assert!(!conn.is_admin_initialized().await.unwrap());
+        create_admin_user(&conn).await;
+        assert!(conn.is_admin_initialized().await.unwrap());
     }
 }
