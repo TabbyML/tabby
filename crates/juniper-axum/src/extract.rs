@@ -50,7 +50,7 @@ where
         let split = authorization.split_once(' ');
         match split {
             // Found proper bearer
-            Some((name, contents)) if name == "Bearer" => Ok(Self(Some(contents.to_owned()))),
+            Some(("Bearer", contents)) => Ok(Self(Some(contents.to_owned()))),
             _ => Ok(Self(None)),
         }
     }
