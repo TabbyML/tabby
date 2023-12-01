@@ -12,7 +12,7 @@ use tracing::{error, warn};
 use websocket::WebSocketTransport;
 
 mod repositories;
-mod server;
+mod service;
 mod ui;
 mod websocket;
 
@@ -31,7 +31,7 @@ use schema::{
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
     Schema, ServiceLocator,
 };
-use server::create_service_locator;
+use service::create_service_locator;
 use tarpc::server::{BaseChannel, Channel};
 
 pub async fn attach_webserver(
