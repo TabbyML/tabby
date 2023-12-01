@@ -2,14 +2,15 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use lazy_static::lazy_static;
-use rusqlite::params;
+use rusqlite::{params, OptionalExtension};
 use rusqlite_migration::{AsyncMigrations, M};
 use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 
 lazy_static! {
-    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![M::up(
-        r#"
+    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
+        M::up(
+            r#"
             CREATE TABLE IF NOT EXISTS registration_token (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 token VARCHAR(255) NOT NULL,
@@ -18,7 +19,32 @@ lazy_static! {
                 CONSTRAINT `idx_token` UNIQUE (`token`)
             );
         "#
-    ),]);
+        ),
+        M::up(
+            r#"
+            CREATE TABLE IF NOT EXISTS users (
+                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+                email              VARCHAR(150) NOT NULL COLLATE NOCASE,
+                password_encrypted VARCHAR(128) NOT NULL,
+                is_admin           BOOLEAN NOT NULL DEFAULT 0,
+                created_at         TIMESTAMP DEFAULT (DATETIME('now')),
+                updated_at         TIMESTAMP DEFAULT (DATETIME('now')),
+                CONSTRAINT `idx_email` UNIQUE (`email`)
+            );
+        "#
+        ),
+    ]);
+}
+
+#[allow(unused)]
+pub struct User {
+    created_at: String,
+    updated_at: String,
+
+    pub id: u32,
+    pub email: String,
+    pub password_encrypted: String,
+    pub is_admin: bool,
 }
 
 async fn db_path() -> Result<PathBuf> {
@@ -27,6 +53,7 @@ async fn db_path() -> Result<PathBuf> {
     Ok(db_dir.join("db.sqlite"))
 }
 
+#[derive(Clone)]
 pub struct DbConn {
     conn: Arc<Connection>,
 }
@@ -55,7 +82,10 @@ impl DbConn {
             conn: Arc::new(conn),
         })
     }
+}
 
+/// db read/write operations for `registration_token` table
+impl DbConn {
     /// Query token from database.
     /// Since token is global unique for each tabby server, by right there's only one row in the table.
     pub async fn read_registration_token(&self) -> Result<String> {
@@ -96,6 +126,56 @@ impl DbConn {
     }
 }
 
+/// db read/write operations for `users` table
+impl DbConn {
+    pub async fn create_user(
+        &self,
+        email: String,
+        password_encrypted: String,
+        is_admin: bool,
+    ) -> Result<()> {
+        let res = self
+            .conn
+            .call(move |c| {
+                c.execute(
+                    r#"INSERT INTO users (email, password_encrypted, is_admin) VALUES (?, ?, ?)"#,
+                    params![email, password_encrypted, is_admin],
+                )
+            })
+            .await?;
+        if res != 1 {
+            return Err(anyhow::anyhow!("failed to create user"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_user_by_email(&self, email: &str) -> Result<Option<User>> {
+        let email = email.to_string();
+        let user = self
+            .conn
+            .call(move |c| {
+                c.query_row(
+                    r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at FROM users WHERE email = ?"#,
+                    params![email],
+                    |row| {
+                        Ok(User {
+                            id: row.get(0)?,
+                            email: row.get(1)?,
+                            password_encrypted: row.get(2)?,
+                            is_admin: row.get(3)?,
+                            created_at: row.get(4)?,
+                            updated_at: row.get(5)?,
+                        })
+                    },
+                ).optional()
+            })
+            .await?;
+
+        Ok(user)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,5 +206,30 @@ mod tests {
         let new_token = conn.read_registration_token().await.unwrap();
         assert_eq!(new_token.len(), 36);
         assert_ne!(old_token, new_token);
+    }
+
+    #[tokio::test]
+    async fn test_create_user() {
+        let conn = new_in_memory().await.unwrap();
+
+        let email = "test@example.com";
+        let passwd = "123456";
+        let is_admin = true;
+        conn.create_user(email.to_string(), passwd.to_string(), is_admin)
+            .await
+            .unwrap();
+
+        let user = conn.get_user_by_email(email).await.unwrap().unwrap();
+        assert_eq!(user.id, 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_user_by_email() {
+        let conn = new_in_memory().await.unwrap();
+
+        let email = "hello@example.com";
+        let user = conn.get_user_by_email(email).await.unwrap();
+
+        assert!(user.is_none());
     }
 }

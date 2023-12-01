@@ -1,10 +1,40 @@
+type RegisterResponse {
+  accessToken: String!
+  refreshToken: String!
+  errors: [AuthError!]!
+}
+
+type AuthError {
+  message: String!
+  code: String!
+}
+
 enum WorkerKind {
   COMPLETION
   CHAT
 }
 
 type Mutation {
-  resetRegistrationToken: String!
+  resetRegistrationToken(token: String): String!
+  register(email: String!, password1: String!, password2: String!): RegisterResponse!
+  tokenAuth(email: String!, password: String!): TokenAuthResponse!
+  verifyToken(token: String!): VerifyTokenResponse!
+}
+
+type UserInfo {
+  email: String!
+  isAdmin: Boolean!
+}
+
+type VerifyTokenResponse {
+  errors: [AuthError!]!
+  claims: Claims!
+}
+
+type Claims {
+  exp: Float!
+  iat: Float!
+  user: UserInfo!
 }
 
 type Query {
@@ -21,6 +51,12 @@ type Worker {
   cpuInfo: String!
   cpuCount: Int!
   cudaDevices: [String!]!
+}
+
+type TokenAuthResponse {
+  accessToken: String!
+  refreshToken: String!
+  errors: [AuthError!]!
 }
 
 schema {

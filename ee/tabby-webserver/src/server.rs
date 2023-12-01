@@ -1,3 +1,4 @@
+pub mod auth;
 mod proxy;
 mod worker;
 
@@ -12,6 +13,7 @@ use tracing::{info, warn};
 use crate::{
     api::{RegisterWorkerError, Worker, WorkerKind},
     db::DbConn,
+    server::auth::AuthenticationService,
 };
 
 pub struct ServerContext {
@@ -38,6 +40,10 @@ impl ServerContext {
             logger,
             code,
         }
+    }
+
+    pub fn auth(&self) -> impl AuthenticationService {
+        self.db_conn.clone()
     }
 
     /// Query current token from the database.

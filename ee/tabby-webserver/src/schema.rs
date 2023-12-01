@@ -1,6 +1,17 @@
-use juniper::{graphql_object, EmptySubscription, FieldResult, RootNode};
+pub mod auth;
 
-use crate::{api::Worker, server::ServerContext};
+use juniper::{
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, RootNode,
+};
+
+use crate::{
+    api::Worker,
+    schema::auth::{RegisterResponse, TokenAuthResponse, VerifyTokenResponse},
+    server::{
+        auth::{validate_jwt, AuthenticationService, RegisterInput, TokenAuthInput},
+        ServerContext,
+    },
+};
 
 // To make our context usable by Juniper, we have to implement a marker trait.
 impl juniper::Context for ServerContext {}
@@ -25,9 +36,47 @@ pub struct Mutation;
 
 #[graphql_object(context = ServerContext)]
 impl Mutation {
-    async fn reset_registration_token(ctx: &ServerContext) -> FieldResult<String> {
-        let token = ctx.reset_registration_token().await?;
-        Ok(token)
+    async fn reset_registration_token(
+        ctx: &ServerContext,
+        token: Option<String>,
+    ) -> FieldResult<String> {
+        if let Some(Ok(claims)) = token.map(|t| validate_jwt(&t)) {
+            if claims.user_info().is_admin() {
+                let reg_token = ctx.reset_registration_token().await?;
+                return Ok(reg_token);
+            }
+        }
+        Err(FieldError::new(
+            "Only admin is able to reset registration token",
+            graphql_value!("Unauthorized"),
+        ))
+    }
+
+    async fn register(
+        ctx: &ServerContext,
+        email: String,
+        password1: String,
+        password2: String,
+    ) -> FieldResult<RegisterResponse> {
+        let input = RegisterInput {
+            email,
+            password1,
+            password2,
+        };
+        ctx.auth().register(input).await
+    }
+
+    async fn token_auth(
+        ctx: &ServerContext,
+        email: String,
+        password: String,
+    ) -> FieldResult<TokenAuthResponse> {
+        let input = TokenAuthInput { email, password };
+        ctx.auth().token_auth(input).await
+    }
+
+    async fn verify_token(ctx: &ServerContext, token: String) -> FieldResult<VerifyTokenResponse> {
+        ctx.auth().verify_token(token).await
     }
 }
 
