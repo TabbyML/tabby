@@ -202,9 +202,8 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
-    use crate::server::auth::AuthenticationService;
-
     use super::*;
+    use crate::server::auth::AuthenticationService;
 
     async fn new_in_memory() -> Result<DbConn> {
         let conn = Connection::open_in_memory().await?;

@@ -202,7 +202,7 @@ impl AuthenticationService for DbConn {
 
     async fn is_admin_initialized(&self) -> FieldResult<bool> {
         let admin = self.get_admin_users().await?;
-        Ok(admin.len() > 0)
+        Ok(!admin.is_empty())
     }
 }
 
