@@ -1,7 +1,7 @@
 pub mod extract;
 pub mod response;
 
-use std::{future};
+use std::future;
 
 use axum::{
     extract::{Extension, State},

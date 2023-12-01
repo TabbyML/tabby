@@ -1,4 +1,4 @@
-pub mod auth;
+mod auth;
 mod proxy;
 mod worker;
 
@@ -13,7 +13,7 @@ use tracing::{info, warn};
 use crate::{
     api::{RegisterWorkerError, Worker, WorkerKind},
     db::DbConn,
-    server::auth::AuthenticationService,
+    schema::auth::AuthenticationService,
 };
 
 pub struct ServerContext {

@@ -2,19 +2,19 @@ pub mod auth;
 
 use std::sync::Arc;
 
-
+use auth::AuthenticationService;
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, RootNode,
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
+    Object, RootNode, ScalarValue, Value,
 };
 use juniper_axum::FromAuth;
+use validator::ValidationError;
 
+use self::auth::validate_jwt;
 use crate::{
     api::Worker,
     schema::auth::{RegisterResponse, TokenAuthResponse, VerifyTokenResponse},
-    server::{
-        auth::{validate_jwt, AuthenticationService, RegisterInput, TokenAuthInput},
-        ServerContext,
-    },
+    server::ServerContext,
 };
 
 pub struct Context {
@@ -71,12 +71,10 @@ impl Mutation {
         password1: String,
         password2: String,
     ) -> FieldResult<RegisterResponse> {
-        let input = RegisterInput {
-            email,
-            password1,
-            password2,
-        };
-        ctx.server.auth().register(input).await
+        ctx.server
+            .auth()
+            .register(email, password1, password2)
+            .await
     }
 
     async fn token_auth(
@@ -84,12 +82,39 @@ impl Mutation {
         email: String,
         password: String,
     ) -> FieldResult<TokenAuthResponse> {
-        let input = TokenAuthInput { email, password };
-        ctx.server.auth().token_auth(input).await
+        ctx.server.auth().token_auth(email, password).await
     }
 
     async fn verify_token(ctx: &Context, token: String) -> FieldResult<VerifyTokenResponse> {
         ctx.server.auth().verify_token(token).await
+    }
+}
+
+#[derive(Debug)]
+pub struct ValidationErrors {
+    pub errors: Vec<ValidationError>,
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for ValidationErrors {
+    fn into_field_error(self) -> FieldError<S> {
+        let errors = self
+            .errors
+            .into_iter()
+            .map(|err| {
+                let mut obj = Object::with_capacity(2);
+                obj.add_field("path", Value::scalar(err.code.to_string()));
+                obj.add_field(
+                    "message",
+                    Value::scalar(err.message.unwrap_or_default().to_string()),
+                );
+                obj.into()
+            })
+            .collect::<Vec<_>>();
+        let mut ext = Object::with_capacity(2);
+        ext.add_field("code", Value::scalar("validation-error".to_string()));
+        ext.add_field("errors", Value::list(errors));
+
+        FieldError::new("Invalid input parameters", ext.into())
     }
 }
 

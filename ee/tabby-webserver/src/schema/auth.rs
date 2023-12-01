@@ -1,38 +1,35 @@
 use std::fmt::Debug;
 
+use async_trait::async_trait;
 use jsonwebtoken as jwt;
-use juniper::{FieldError, GraphQLObject, IntoFieldError, Object, ScalarValue, Value};
+use juniper::{FieldResult, GraphQLObject};
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use validator::ValidationError;
 
-use crate::server::auth::JWT_DEFAULT_EXP;
-
-#[derive(Debug)]
-pub struct ValidationErrors {
-    pub errors: Vec<ValidationError>,
+lazy_static! {
+    static ref JWT_ENCODING_KEY: jwt::EncodingKey = jwt::EncodingKey::from_secret(
+        jwt_token_secret().as_bytes()
+    );
+    static ref JWT_DECODING_KEY: jwt::DecodingKey = jwt::DecodingKey::from_secret(
+        jwt_token_secret().as_bytes()
+    );
+    static ref JWT_DEFAULT_EXP: u64 = 30 * 60; // 30 minutes
 }
 
-impl<S: ScalarValue> IntoFieldError<S> for ValidationErrors {
-    fn into_field_error(self) -> FieldError<S> {
-        let errors = self
-            .errors
-            .into_iter()
-            .map(|err| {
-                let mut obj = Object::with_capacity(2);
-                obj.add_field("path", Value::scalar(err.code.to_string()));
-                obj.add_field(
-                    "message",
-                    Value::scalar(err.message.unwrap_or_default().to_string()),
-                );
-                obj.into()
-            })
-            .collect::<Vec<_>>();
-        let mut ext = Object::with_capacity(2);
-        ext.add_field("code", Value::scalar("validation-error".to_string()));
-        ext.add_field("errors", Value::list(errors));
+pub fn generate_jwt(claims: Claims) -> jwt::errors::Result<String> {
+    let header = jwt::Header::default();
+    let token = jwt::encode(&header, &claims, &JWT_ENCODING_KEY)?;
+    Ok(token)
+}
 
-        FieldError::new("Invalid input parameters", ext.into())
-    }
+pub fn validate_jwt(token: &str) -> jwt::errors::Result<Claims> {
+    let validation = jwt::Validation::default();
+    let data = jwt::decode::<Claims>(token, &JWT_DECODING_KEY, &validation)?;
+    Ok(data.claims)
+}
+
+fn jwt_token_secret() -> String {
+    std::env::var("TABBY_WEBSERVER_JWT_TOKEN_SECRET").unwrap_or("default_secret".to_string())
 }
 
 #[derive(Debug, GraphQLObject)]
@@ -126,4 +123,40 @@ impl Claims {
     pub fn user_info(&self) -> &UserInfo {
         &self.user
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_generate_jwt() {
+        let claims = Claims::new(UserInfo::new("test".to_string(), false));
+        let token = generate_jwt(claims).unwrap();
+
+        assert!(!token.is_empty())
+    }
+
+    #[test]
+    fn test_validate_jwt() {
+        let claims = Claims::new(UserInfo::new("test".to_string(), false));
+        let token = generate_jwt(claims).unwrap();
+        let claims = validate_jwt(&token).unwrap();
+        assert_eq!(
+            claims.user_info(),
+            &UserInfo::new("test".to_string(), false)
+        );
+    }
+}
+
+#[async_trait]
+pub trait AuthenticationService {
+    async fn register(
+        &self,
+        email: String,
+        password1: String,
+        password2: String,
+    ) -> FieldResult<RegisterResponse>;
+    async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse>;
+    async fn refresh_token(&self, refresh_token: String) -> FieldResult<RefreshTokenResponse>;
+    async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse>;
 }
