@@ -1,33 +1,20 @@
-use std::env;
-
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
-use jsonwebtoken as jwt;
 use juniper::{FieldResult, IntoFieldError};
-use lazy_static::lazy_static;
 use validator::Validate;
 
-use crate::{
-    db::DbConn,
-    schema::auth::{
-        Claims, RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UserInfo,
-        ValidationErrors, VerifyTokenResponse,
+use super::db::DbConn;
+use crate::schema::{
+    auth::{
+        generate_jwt, validate_jwt, AuthenticationService, Claims, RefreshTokenResponse,
+        RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse,
     },
+    ValidationErrors,
 };
-
-lazy_static! {
-    static ref JWT_ENCODING_KEY: jwt::EncodingKey = jwt::EncodingKey::from_secret(
-        jwt_token_secret().as_bytes()
-    );
-    static ref JWT_DECODING_KEY: jwt::DecodingKey = jwt::DecodingKey::from_secret(
-        jwt_token_secret().as_bytes()
-    );
-    pub static ref JWT_DEFAULT_EXP: u64 = 30 * 60; // 30 minutes
-}
 
 /// Input parameters for register mutation
 /// `validate` attribute is used to validate the input parameters
@@ -35,14 +22,14 @@ lazy_static! {
 ///   - `message` argument provides client friendly error message
 ///
 #[derive(Validate)]
-pub struct RegisterInput {
+struct RegisterInput {
     #[validate(email(code = "email", message = "Email is invalid"))]
     #[validate(length(
         max = 128,
         code = "email",
         message = "Email must be at most 128 characters"
     ))]
-    pub email: String,
+    email: String,
     #[validate(length(
         min = 8,
         code = "password1",
@@ -58,7 +45,7 @@ pub struct RegisterInput {
         message = "Passwords do not match",
         other = "password2"
     ))]
-    pub password1: String,
+    password1: String,
     #[validate(length(
         min = 8,
         code = "password2",
@@ -69,7 +56,7 @@ pub struct RegisterInput {
         code = "password2",
         message = "Password must be at most 20 characters"
     ))]
-    pub password2: String,
+    password2: String,
 }
 
 impl std::fmt::Debug for RegisterInput {
@@ -85,14 +72,14 @@ impl std::fmt::Debug for RegisterInput {
 /// Input parameters for token_auth mutation
 /// See `RegisterInput` for `validate` attribute usage
 #[derive(Validate)]
-pub struct TokenAuthInput {
+struct TokenAuthInput {
     #[validate(email(code = "email", message = "Email is invalid"))]
     #[validate(length(
         max = 128,
         code = "email",
         message = "Email must be at most 128 characters"
     ))]
-    pub email: String,
+    email: String,
     #[validate(length(
         min = 8,
         code = "password",
@@ -103,7 +90,7 @@ pub struct TokenAuthInput {
         code = "password",
         message = "Password must be at most 20 characters"
     ))]
-    pub password: String,
+    password: String,
 }
 
 impl std::fmt::Debug for TokenAuthInput {
@@ -116,16 +103,18 @@ impl std::fmt::Debug for TokenAuthInput {
 }
 
 #[async_trait]
-pub trait AuthenticationService {
-    async fn register(&self, input: RegisterInput) -> FieldResult<RegisterResponse>;
-    async fn token_auth(&self, input: TokenAuthInput) -> FieldResult<TokenAuthResponse>;
-    async fn refresh_token(&self, refresh_token: String) -> FieldResult<RefreshTokenResponse>;
-    async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse>;
-}
-
-#[async_trait]
 impl AuthenticationService for DbConn {
-    async fn register(&self, input: RegisterInput) -> FieldResult<RegisterResponse> {
+    async fn register(
+        &self,
+        email: String,
+        password1: String,
+        password2: String,
+    ) -> FieldResult<RegisterResponse> {
+        let input = RegisterInput {
+            email,
+            password1,
+            password2,
+        };
         input.validate().map_err(|err| {
             let errors = err
                 .field_errors()
@@ -138,7 +127,7 @@ impl AuthenticationService for DbConn {
         })?;
 
         // check if email exists
-        if let Some(_) = self.get_user_by_email(&input.email).await? {
+        if self.get_user_by_email(&input.email).await?.is_some() {
             return Err("Email already exists".into());
         }
 
@@ -157,7 +146,8 @@ impl AuthenticationService for DbConn {
         Ok(resp)
     }
 
-    async fn token_auth(&self, input: TokenAuthInput) -> FieldResult<TokenAuthResponse> {
+    async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse> {
+        let input = TokenAuthInput { email, password };
         input.validate().map_err(|err| {
             let errors = err
                 .field_errors()
@@ -198,6 +188,11 @@ impl AuthenticationService for DbConn {
         let resp = VerifyTokenResponse::new(claims);
         Ok(resp)
     }
+
+    async fn is_admin_initialized(&self) -> FieldResult<bool> {
+        let admin = self.list_admin_users().await?;
+        Ok(!admin.is_empty())
+    }
 }
 
 fn password_hash(raw: &str) -> password_hash::Result<String> {
@@ -215,22 +210,6 @@ fn password_verify(raw: &str, hash: &str) -> bool {
     } else {
         false
     }
-}
-
-fn generate_jwt(claims: Claims) -> jwt::errors::Result<String> {
-    let header = jwt::Header::default();
-    let token = jwt::encode(&header, &claims, &JWT_ENCODING_KEY)?;
-    Ok(token)
-}
-
-pub fn validate_jwt(token: &str) -> jwt::errors::Result<Claims> {
-    let validation = jwt::Validation::default();
-    let data = jwt::decode::<Claims>(token, &JWT_DECODING_KEY, &validation)?;
-    Ok(data.claims)
-}
-
-fn jwt_token_secret() -> String {
-    env::var("TABBY_WEBSERVER_JWT_TOKEN_SECRET").unwrap_or("default_secret".to_string())
 }
 
 #[cfg(test)]
@@ -253,21 +232,5 @@ mod tests {
 
         assert!(password_verify(raw, &hash));
         assert!(!password_verify(raw, "invalid hash"));
-    }
-
-    #[test]
-    fn test_generate_jwt() {
-        let claims = Claims::new(UserInfo::new("test".to_string(), false));
-        let token = generate_jwt(claims).unwrap();
-
-        assert!(!token.is_empty())
-    }
-
-    #[test]
-    fn test_validate_jwt() {
-        let claims = Claims::new(UserInfo::new("test".to_string(), false));
-        let token = generate_jwt(claims).unwrap();
-        let claims = validate_jwt(&token).unwrap();
-        assert_eq!(claims.user_info(), UserInfo::new("test".to_string(), false));
     }
 }
