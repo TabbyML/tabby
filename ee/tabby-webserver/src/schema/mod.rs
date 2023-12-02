@@ -108,7 +108,7 @@ impl Mutation {
         email: String,
         password: String,
     ) -> Result<TokenAuthResponse, TokenAuthError> {
-        Ok(ctx.locator.auth().token_auth(email, password).await?)
+        ctx.locator.auth().token_auth(email, password).await
     }
 
     async fn verify_token(ctx: &Context, token: String) -> FieldResult<VerifyTokenResponse> {
@@ -159,9 +159,9 @@ impl<S: ScalarValue> IntoFieldError<S> for ValidationErrors {
     }
 }
 
-impl Into<ValidationErrors> for Vec<ValidationError> {
-    fn into(self) -> ValidationErrors {
-        ValidationErrors(self)
+impl From<Vec<ValidationError>> for ValidationErrors {
+    fn from(val: Vec<ValidationError>) -> Self {
+        ValidationErrors(val)
     }
 }
 

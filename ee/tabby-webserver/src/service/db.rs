@@ -8,7 +8,7 @@ use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 use uuid::Uuid;
 
-use crate::schema::{auth::Invitation};
+use crate::schema::auth::Invitation;
 
 lazy_static! {
     static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
@@ -22,7 +22,8 @@ lazy_static! {
                 CONSTRAINT `idx_token` UNIQUE (`token`)
             );
         "#
-        ).down("DROP TABLE registeration_token"),
+        )
+        .down("DROP TABLE registeration_token"),
         M::up(
             r#"
             CREATE TABLE users (
@@ -35,7 +36,8 @@ lazy_static! {
                 CONSTRAINT `idx_email` UNIQUE (`email`)
             );
         "#
-        ).down("DROP TABLE users"),
+        )
+        .down("DROP TABLE users"),
         M::up(
             r#"
             CREATE TABLE invitations (
@@ -47,7 +49,8 @@ lazy_static! {
                 CONSTRAINT `idx_code`  UNIQUE (`code`)
             );
         "#
-        ).down("DROP TABLE invitations"),
+        )
+        .down("DROP TABLE invitations"),
     ]);
 }
 
