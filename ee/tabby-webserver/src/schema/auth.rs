@@ -55,7 +55,7 @@ impl RegisterResponse {
 #[derive(Error, Debug)]
 pub enum RegisterError {
     #[error("Invalid input parameters")]
-    InvalidInput { errors: Vec<ValidationError> },
+    InvalidInput(Vec<ValidationError>),
 
     #[error("Invitation code is not valid")]
     InvalidInvitationCode,
@@ -73,7 +73,7 @@ pub enum RegisterError {
 impl<S: ScalarValue> IntoFieldError<S> for RegisterError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
-            Self::InvalidInput { errors } => ValidationErrors(errors).into_field_error(),
+            Self::InvalidInput(errors) => ValidationErrors(errors).into_field_error(),
             _ => self.into(),
         }
     }
@@ -97,7 +97,7 @@ impl TokenAuthResponse {
 #[derive(Error, Debug)]
 pub enum TokenAuthError {
     #[error("Invalid input parameters")]
-    InvalidInput { errors: Vec<ValidationError> },
+    InvalidInput(Vec<ValidationError>),
 
     #[error("User not found")]
     UserNotFound,
@@ -115,7 +115,7 @@ pub enum TokenAuthError {
 impl<S: ScalarValue> IntoFieldError<S> for TokenAuthError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
-            Self::InvalidInput { errors } => ValidationErrors(errors).into_field_error(),
+            Self::InvalidInput(errors)=> ValidationErrors(errors).into_field_error(),
             _ => self.into(),
         }
     }

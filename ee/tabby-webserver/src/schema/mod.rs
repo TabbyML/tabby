@@ -158,12 +158,6 @@ impl<S: ScalarValue> IntoFieldError<S> for ValidationErrors {
     }
 }
 
-impl From<Vec<ValidationError>> for ValidationErrors {
-    fn from(val: Vec<ValidationError>) -> Self {
-        ValidationErrors(val)
-    }
-}
-
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Context>>;
 
 pub fn create_schema() -> Schema {
