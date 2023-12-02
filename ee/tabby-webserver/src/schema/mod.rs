@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use auth::AuthenticationService;
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
+    graphql_object, graphql_value, EmptySubscription, FieldError, IntoFieldError,
     Object, RootNode, ScalarValue, Value,
 };
 use juniper_axum::FromAuth;
