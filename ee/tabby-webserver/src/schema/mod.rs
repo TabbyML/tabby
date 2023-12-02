@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use auth::AuthenticationService;
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, IntoFieldError,
-    Object, RootNode, ScalarValue, Value,
+    graphql_object, graphql_value, EmptySubscription, FieldError, IntoFieldError, Object, RootNode,
+    ScalarValue, Value,
 };
 use juniper_axum::FromAuth;
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
