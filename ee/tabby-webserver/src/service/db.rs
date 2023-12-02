@@ -22,7 +22,7 @@ lazy_static! {
                 CONSTRAINT `idx_token` UNIQUE (`token`)
             );
         "#
-        ),
+        ).down("DROP TABLE registeration_token"),
         M::up(
             r#"
             CREATE TABLE users (
@@ -35,7 +35,7 @@ lazy_static! {
                 CONSTRAINT `idx_email` UNIQUE (`email`)
             );
         "#
-        ),
+        ).down("DROP TABLE users"),
         M::up(
             r#"
             CREATE TABLE invitations (
@@ -47,7 +47,7 @@ lazy_static! {
                 CONSTRAINT `idx_code`  UNIQUE (`code`)
             );
         "#
-        ),
+        ).down("DROP TABLE invitations"),
     ]);
 }
 
