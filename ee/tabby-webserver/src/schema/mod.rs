@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use auth::AuthenticationService;
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, Object, RootNode,
-    ScalarValue, Value,
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
+    Object, RootNode, ScalarValue, Value,
 };
 use juniper_axum::FromAuth;
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
@@ -40,6 +40,26 @@ impl FromAuth<Arc<dyn ServiceLocator>> for Context {
     }
 }
 
+type Result<T, E = CoreError> = std::result::Result<T, E>;
+
+#[derive(thiserror::Error, Debug)]
+pub enum CoreError {
+    #[error("{0}")]
+    Unauthorized(&'static str),
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for CoreError {
+    fn into_field_error(self) -> FieldError<S> {
+        match self {
+            Self::Unauthorized(msg) => FieldError::new(msg, graphql_value!("Unauthorized")),
+            _ => self.into(),
+        }
+    }
+}
+
 // To make our context usable by Juniper, we have to implement a marker trait.
 impl juniper::Context for Context {}
 
@@ -52,22 +72,24 @@ impl Query {
         ctx.locator.worker().list_workers().await
     }
 
-    async fn registration_token(ctx: &Context) -> FieldResult<String> {
+    async fn registration_token(ctx: &Context) -> Result<String> {
         let token = ctx.locator.worker().read_registration_token().await?;
         Ok(token)
     }
 
-    async fn is_admin_initialized(ctx: &Context) -> FieldResult<bool> {
+    async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
         Ok(ctx.locator.auth().is_admin_initialized().await?)
     }
 
-    async fn invitations(ctx: &Context) -> FieldResult<Vec<Invitation>> {
+    async fn invitations(ctx: &Context) -> Result<Vec<Invitation>> {
         if let Some(claims) = &ctx.claims {
             if claims.user_info().is_admin() {
                 return Ok(ctx.locator.auth().list_invitations().await?);
             }
         }
-        Err(unauthorized("Only admin is able to query invitations"))
+        Err(CoreError::Unauthorized(
+            "Only admin is able to query invitations",
+        ))
     }
 }
 
@@ -76,14 +98,14 @@ pub struct Mutation;
 
 #[graphql_object(context = Context)]
 impl Mutation {
-    async fn reset_registration_token(ctx: &Context) -> FieldResult<String> {
+    async fn reset_registration_token(ctx: &Context) -> Result<String> {
         if let Some(claims) = &ctx.claims {
             if claims.user_info().is_admin() {
                 let reg_token = ctx.locator.worker().reset_registration_token().await?;
                 return Ok(reg_token);
             }
         }
-        Err(unauthorized(
+        Err(CoreError::Unauthorized(
             "Only admin is able to reset registration token",
         ))
     }
@@ -109,26 +131,30 @@ impl Mutation {
         ctx.locator.auth().token_auth(email, password).await
     }
 
-    async fn verify_token(ctx: &Context, token: String) -> FieldResult<VerifyTokenResponse> {
+    async fn verify_token(ctx: &Context, token: String) -> Result<VerifyTokenResponse> {
         Ok(ctx.locator.auth().verify_token(token).await?)
     }
 
-    async fn create_invitation(ctx: &Context, email: String) -> FieldResult<i32> {
+    async fn create_invitation(ctx: &Context, email: String) -> Result<i32> {
         if let Some(claims) = &ctx.claims {
             if claims.user_info().is_admin() {
                 return Ok(ctx.locator.auth().create_invitation(email).await?);
             }
         }
-        Err(unauthorized("Only admin is able to create invitation"))
+        Err(CoreError::Unauthorized(
+            "Only admin is able to create invitation",
+        ))
     }
 
-    async fn delete_invitation(ctx: &Context, id: i32) -> FieldResult<i32> {
+    async fn delete_invitation(ctx: &Context, id: i32) -> Result<i32> {
         if let Some(claims) = &ctx.claims {
             if claims.user_info().is_admin() {
                 return Ok(ctx.locator.auth().delete_invitation(id).await?);
             }
         }
-        Err(unauthorized("Only admin is able to delete invitation"))
+        Err(CoreError::Unauthorized(
+            "Only admin is able to delete invitation",
+        ))
     }
 }
 
@@ -159,8 +185,4 @@ pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Context>>
 
 pub fn create_schema() -> Schema {
     Schema::new(Query, Mutation, EmptySubscription::new())
-}
-
-fn unauthorized(msg: &str) -> FieldError {
-    FieldError::new(msg, graphql_value!("Unauthorized"))
 }
