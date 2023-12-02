@@ -5,16 +5,13 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
-use juniper::{FieldResult, IntoFieldError};
 use validator::Validate;
 
 use super::db::DbConn;
-use crate::schema::{
-    auth::{
-        generate_jwt, validate_jwt, AuthenticationService, Claims, Invitation,
-        RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse,
-    },
-    ValidationErrors,
+use crate::schema::auth::{
+    generate_jwt, validate_jwt, AuthenticationService, Claims, Invitation, RefreshTokenResponse,
+    RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, UserInfo,
+    VerifyTokenResponse,
 };
 
 /// Input parameters for register mutation
@@ -111,26 +108,17 @@ impl AuthenticationService for DbConn {
         password1: String,
         password2: String,
         invitation_code: Option<String>,
-    ) -> FieldResult<RegisterResponse> {
+    ) -> std::result::Result<RegisterResponse, RegisterError> {
         let input = RegisterInput {
             email,
             password1,
             password2,
         };
-        input.validate().map_err(|err| {
-            let errors = err
-                .field_errors()
-                .into_iter()
-                .flat_map(|(_, errs)| errs)
-                .cloned()
-                .collect();
-
-            ValidationErrors { errors }.into_field_error()
-        })?;
+        input.validate()?;
 
         let is_admin_initialized = self.is_admin_initialized().await?;
         if is_admin_initialized {
-            let err = Err("Invitation code is not valid".into());
+            let err = Err(RegisterError::InvalidInvitationCode);
             let Some(invitation_code) = invitation_code else {
                 return err;
             };
@@ -146,68 +134,67 @@ impl AuthenticationService for DbConn {
 
         // check if email exists
         if self.get_user_by_email(&input.email).await?.is_some() {
-            return Err("Email already exists".into());
+            return Err(RegisterError::DuplicateEmail);
         }
 
-        let pwd_hash = password_hash(&input.password1)?;
+        let Ok(pwd_hash) = password_hash(&input.password1) else {
+            return Err(RegisterError::Unknown);
+        };
 
-        let id = self.create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
+        let id = self
+            .create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
             .await?;
         let user = self.get_user(id).await?.unwrap();
 
-        let access_token = generate_jwt(Claims::new(UserInfo::new(
+        let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
             user.email.clone(),
             user.is_admin,
-        )))?;
+        ))) else {
+            return Err(RegisterError::Unknown);
+        };
 
         let resp = RegisterResponse::new(access_token, "".to_string());
         Ok(resp)
     }
 
-    async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse> {
+    async fn token_auth(
+        &self,
+        email: String,
+        password: String,
+    ) -> std::result::Result<TokenAuthResponse, TokenAuthError> {
         let input = TokenAuthInput { email, password };
-        input.validate().map_err(|err| {
-            let errors = err
-                .field_errors()
-                .into_iter()
-                .flat_map(|(_, errs)| errs)
-                .cloned()
-                .collect();
+        input.validate()?;
 
-            ValidationErrors { errors }.into_field_error()
-        })?;
-
-        let user = self.get_user_by_email(&input.email).await?;
-
-        let user = match user {
-            Some(user) => user,
-            None => return Err("User not found".into()),
+        let Some(user) = self.get_user_by_email(&input.email).await? else {
+            return Err(TokenAuthError::UserNotFound);
         };
 
         if !password_verify(&input.password, &user.password_encrypted) {
-            return Err("Password incorrect".into());
+            return Err(TokenAuthError::InvalidPassword);
         }
 
-        let access_token = generate_jwt(Claims::new(UserInfo::new(
+        let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
             user.email.clone(),
             user.is_admin,
-        )))?;
+        ))) else {
+            return Err(TokenAuthError::Unknown);
+        };
 
         let resp = TokenAuthResponse::new(access_token, "".to_string());
         Ok(resp)
     }
 
-    async fn refresh_token(&self, _refresh_token: String) -> FieldResult<RefreshTokenResponse> {
+    async fn refresh_token(&self, _refresh_token: String) -> Result<RefreshTokenResponse> {
         Ok(RefreshTokenResponse::default())
     }
 
-    async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse> {
+    async fn verify_token(&self, access_token: String) -> Result<VerifyTokenResponse> {
         let claims = validate_jwt(&access_token)?;
         let resp = VerifyTokenResponse::new(claims);
         Ok(resp)
     }
 
-    async fn is_admin_initialized(&self) -> FieldResult<bool> {
+    async fn is_admin_initialized(&self) -> Result<bool> {
         let admin = self.list_admin_users().await?;
         Ok(!admin.is_empty())
     }
@@ -244,6 +231,8 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
+
     use super::*;
 
     #[test]
@@ -262,5 +251,104 @@ mod tests {
 
         assert!(password_verify(raw, &hash));
         assert!(!password_verify(raw, "invalid hash"));
+    }
+
+    static ADMIN_EMAIL: &str = "test@example.com";
+    static ADMIN_PASSWORD: &str = "123456789";
+
+    async fn create_admin_user(conn: &DbConn) -> i32 {
+        conn.register(
+            ADMIN_EMAIL.to_owned(),
+            ADMIN_PASSWORD.to_owned(),
+            ADMIN_PASSWORD.to_owned(),
+            None,
+        )
+        .await
+        .unwrap();
+        1
+    }
+
+    #[tokio::test]
+    async fn test_auth_token() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        assert_matches!(
+            conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
+                .await,
+            Err(TokenAuthError::UserNotFound)
+        );
+
+        create_admin_user(&conn).await;
+
+        assert_matches!(
+            conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
+                .await,
+            Err(TokenAuthError::InvalidPassword)
+        );
+
+        assert!(conn
+            .token_auth(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned())
+            .await
+            .is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_invitation_flow() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        assert!(!conn.is_admin_initialized().await.unwrap());
+        create_admin_user(&conn).await;
+
+        let email = "user@user.com";
+        let password = "12345678";
+
+        conn.create_invitation(email.to_owned()).await.unwrap();
+        let invitation = &conn.list_invitations().await.unwrap()[0];
+
+        // Admin initialized, registeration requires a invitation code;
+        assert_matches!(
+            conn.register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                None
+            )
+            .await,
+            Err(RegisterError::InvalidInvitationCode)
+        );
+
+        // Invalid invitation code won't work.
+        assert_matches!(
+            conn.register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                Some("abc".to_owned())
+            )
+            .await,
+            Err(RegisterError::InvalidInvitationCode)
+        );
+
+        // Register success.
+        assert!(conn
+            .register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                Some(invitation.code.clone())
+            )
+            .await
+            .is_ok());
+
+        // Try register again with same email failed.
+        assert_matches!(
+            conn.register(
+                email.to_owned(),
+                password.to_owned(),
+                password.to_owned(),
+                Some(invitation.code.clone())
+            )
+            .await,
+            Err(RegisterError::DuplicateEmail)
+        );
     }
 }

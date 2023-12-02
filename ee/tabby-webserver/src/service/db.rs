@@ -22,7 +22,8 @@ lazy_static! {
                 CONSTRAINT `idx_token` UNIQUE (`token`)
             );
         "#
-        ),
+        )
+        .down("DROP TABLE registeration_token"),
         M::up(
             r#"
             CREATE TABLE users (
@@ -35,7 +36,8 @@ lazy_static! {
                 CONSTRAINT `idx_email` UNIQUE (`email`)
             );
         "#
-        ),
+        )
+        .down("DROP TABLE users"),
         M::up(
             r#"
             CREATE TABLE invitations (
@@ -47,7 +49,8 @@ lazy_static! {
                 CONSTRAINT `idx_code`  UNIQUE (`code`)
             );
         "#
-        ),
+        )
+        .down("DROP TABLE invitations"),
     ]);
 }
 
@@ -93,6 +96,12 @@ pub struct DbConn {
 }
 
 impl DbConn {
+    #[cfg(test)]
+    pub async fn new_in_memory() -> Result<Self> {
+        let conn = Connection::open_in_memory().await?;
+        DbConn::init_db(conn).await
+    }
+
     pub async fn new() -> Result<Self> {
         let db_path = db_path().await?;
         let conn = Connection::open(db_path).await?;
@@ -302,21 +311,14 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
-    use juniper::FieldResult;
 
     use super::*;
     use crate::schema::auth::AuthenticationService;
 
-    async fn new_in_memory() -> Result<DbConn> {
-        let conn = Connection::open_in_memory().await?;
-        DbConn::init_db(conn).await
-    }
-
-    async fn create_admin_user(conn: &DbConn) -> i32 {
-        let email = "test@example.com";
-        let passwd = "123456";
-        let is_admin = true;
-        conn.create_user(email.to_string(), passwd.to_string(), is_admin)
+    async fn create_user(conn: &DbConn) -> i32 {
+        let email: &str = "test@example.com";
+        let password: &str = "123456789";
+        conn.create_user(email.to_string(), password.to_string(), true)
             .await
             .unwrap()
     }
@@ -328,14 +330,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_token() {
-        let conn = new_in_memory().await.unwrap();
+        let conn = DbConn::new_in_memory().await.unwrap();
         let token = conn.read_registration_token().await.unwrap();
         assert_eq!(token.len(), 36);
     }
 
     #[tokio::test]
     async fn test_update_token() {
-        let conn = new_in_memory().await.unwrap();
+        let conn = DbConn::new_in_memory().await.unwrap();
 
         let old_token = conn.read_registration_token().await.unwrap();
         conn.reset_registration_token().await.unwrap();
@@ -346,16 +348,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_user() {
-        let conn = new_in_memory().await.unwrap();
+        let conn = DbConn::new_in_memory().await.unwrap();
 
-        let id = create_admin_user(&conn).await;
+        let id = create_user(&conn).await;
         let user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.id, 1);
     }
 
     #[tokio::test]
     async fn test_get_user_by_email() {
-        let conn = new_in_memory().await.unwrap();
+        let conn = DbConn::new_in_memory().await.unwrap();
 
         let email = "hello@example.com";
         let user = conn.get_user_by_email(email).await.unwrap();
@@ -365,16 +367,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_is_admin_initialized() {
-        let conn = new_in_memory().await.unwrap();
+        let conn = DbConn::new_in_memory().await.unwrap();
 
         assert!(!conn.is_admin_initialized().await.unwrap());
-        create_admin_user(&conn).await;
+        create_user(&conn).await;
         assert!(conn.is_admin_initialized().await.unwrap());
     }
 
     #[tokio::test]
     async fn test_invitations() {
-        let conn = new_in_memory().await.unwrap();
+        let conn = DbConn::new_in_memory().await.unwrap();
 
         let email = "hello@example.com".to_owned();
         conn.create_invitation(email).await.unwrap();
@@ -395,63 +397,5 @@ mod tests {
 
         let invitations = conn.list_invitations().await.unwrap();
         assert!(invitations.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_invitation_flow() {
-        let conn = new_in_memory().await.unwrap();
-
-        assert!(!conn.is_admin_initialized().await.unwrap());
-        create_admin_user(&conn).await;
-
-        let email = "user@user.com";
-        let password = "12345678";
-
-        conn.create_invitation(email.to_owned()).await.unwrap();
-        let invitation = &conn.list_invitations().await.unwrap()[0];
-
-        // Admin initialized, registeration requires a invitation code;
-        assert!(
-            conn.register(
-                email.to_owned(),
-                password.to_owned(),
-                password.to_owned(),
-                None
-            )
-            .await.is_err()
-        );
-
-        // Invalid invitation code won't work.
-        assert!(conn
-            .register(
-                email.to_owned(),
-                password.to_owned(),
-                password.to_owned(),
-                Some("abc".to_owned())
-            )
-            .await
-            .is_err());
-
-        // Register success.
-        assert!(conn
-            .register(
-                email.to_owned(),
-                password.to_owned(),
-                password.to_owned(),
-                Some(invitation.code.clone())
-            )
-            .await
-            .is_ok());
-
-        // Try register again with same email failed.
-        assert!(conn
-            .register(
-                email.to_owned(),
-                password.to_owned(),
-                password.to_owned(),
-                Some(invitation.code.clone())
-            )
-            .await
-            .is_err());
     }
 }

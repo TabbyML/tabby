@@ -46,4 +46,5 @@ features = [
 ]
 
 [dev-dependencies]
+assert_matches = "1.5.0"
 tokio = { workspace = true, features = ["macros"] }

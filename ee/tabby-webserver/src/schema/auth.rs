@@ -3,9 +3,13 @@ use std::fmt::Debug;
 use anyhow::Result;
 use async_trait::async_trait;
 use jsonwebtoken as jwt;
-use juniper::{FieldResult, GraphQLObject};
+use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use validator::ValidationErrors;
+
+use super::from_validation_errors;
 
 lazy_static! {
     static ref JWT_ENCODING_KEY: jwt::EncodingKey = jwt::EncodingKey::from_secret(
@@ -48,6 +52,33 @@ impl RegisterResponse {
     }
 }
 
+#[derive(Error, Debug)]
+pub enum RegisterError {
+    #[error("Invalid input parameters")]
+    InvalidInput(#[from] ValidationErrors),
+
+    #[error("Invitation code is not valid")]
+    InvalidInvitationCode,
+
+    #[error("Email is already registered")]
+    DuplicateEmail,
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+
+    #[error("Unknown error")]
+    Unknown,
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for RegisterError {
+    fn into_field_error(self) -> FieldError<S> {
+        match self {
+            Self::InvalidInput(errors) => from_validation_errors(errors),
+            _ => self.into(),
+        }
+    }
+}
+
 #[derive(Debug, GraphQLObject)]
 pub struct TokenAuthResponse {
     access_token: String,
@@ -59,6 +90,39 @@ impl TokenAuthResponse {
         Self {
             access_token,
             refresh_token,
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum CoreError {
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+#[derive(Error, Debug)]
+pub enum TokenAuthError {
+    #[error("Invalid input parameters")]
+    InvalidInput(#[from] ValidationErrors),
+
+    #[error("User not found")]
+    UserNotFound,
+
+    #[error("Password is not valid")]
+    InvalidPassword,
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+
+    #[error("Unknown error")]
+    Unknown,
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for TokenAuthError {
+    fn into_field_error(self) -> FieldError<S> {
+        match self {
+            Self::InvalidInput(errors) => from_validation_errors(errors),
+            _ => self.into(),
         }
     }
 }
@@ -143,11 +207,17 @@ pub trait AuthenticationService: Send + Sync {
         password1: String,
         password2: String,
         invitation_code: Option<String>,
-    ) -> FieldResult<RegisterResponse>;
-    async fn token_auth(&self, email: String, password: String) -> FieldResult<TokenAuthResponse>;
-    async fn refresh_token(&self, refresh_token: String) -> FieldResult<RefreshTokenResponse>;
-    async fn verify_token(&self, access_token: String) -> FieldResult<VerifyTokenResponse>;
-    async fn is_admin_initialized(&self) -> FieldResult<bool>;
+    ) -> std::result::Result<RegisterResponse, RegisterError>;
+
+    async fn token_auth(
+        &self,
+        email: String,
+        password: String,
+    ) -> std::result::Result<TokenAuthResponse, TokenAuthError>;
+
+    async fn refresh_token(&self, refresh_token: String) -> Result<RefreshTokenResponse>;
+    async fn verify_token(&self, access_token: String) -> Result<VerifyTokenResponse>;
+    async fn is_admin_initialized(&self) -> Result<bool>;
 
     async fn create_invitation(&self, email: String) -> Result<i32>;
     async fn list_invitations(&self) -> Result<Vec<Invitation>>;
