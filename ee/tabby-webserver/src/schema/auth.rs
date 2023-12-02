@@ -3,13 +3,13 @@ use std::fmt::Debug;
 use anyhow::Result;
 use async_trait::async_trait;
 use jsonwebtoken as jwt;
-use juniper::{graphql_value, FieldError, FieldResult, GraphQLObject, IntoFieldError, ScalarValue};
+use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use validator::ValidationError;
 
-use super::{make_field_error};
+use super::make_field_error;
 
 lazy_static! {
     static ref JWT_ENCODING_KEY: jwt::EncodingKey = jwt::EncodingKey::from_secret(
@@ -74,7 +74,7 @@ impl<S: ScalarValue> IntoFieldError<S> for RegisterError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
             Self::InvalidInput { errors } => make_field_error(errors),
-            _ => self.into()
+            _ => self.into(),
         }
     }
 }
@@ -116,7 +116,7 @@ impl<S: ScalarValue> IntoFieldError<S> for TokenAuthError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
             Self::InvalidInput { errors } => make_field_error(errors),
-            _ => self.into()
+            _ => self.into(),
         }
     }
 }
@@ -203,7 +203,11 @@ pub trait AuthenticationService: Send + Sync {
         invitation_code: Option<String>,
     ) -> std::result::Result<RegisterResponse, RegisterError>;
 
-    async fn token_auth(&self, email: String, password: String) -> std::result::Result<TokenAuthResponse, TokenAuthError>;
+    async fn token_auth(
+        &self,
+        email: String,
+        password: String,
+    ) -> std::result::Result<TokenAuthResponse, TokenAuthError>;
 
     async fn refresh_token(&self, refresh_token: String) -> Result<RefreshTokenResponse>;
     async fn verify_token(&self, access_token: String) -> Result<VerifyTokenResponse>;

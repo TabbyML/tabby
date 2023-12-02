@@ -1,11 +1,11 @@
-use anyhow::{ensure, Result};
+use anyhow::{Result};
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
-use juniper::{FieldResult, IntoFieldError};
+
 use validator::Validate;
 
 use super::db::DbConn;
@@ -15,7 +15,6 @@ use crate::schema::{
         RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse,
         UserInfo, VerifyTokenResponse,
     },
-    ValidationErrors,
 };
 
 /// Input parameters for register mutation
@@ -287,7 +286,7 @@ mod tests {
         )
         .await
         .unwrap();
-        return 1;
+        1
     }
 
     #[tokio::test]
@@ -295,18 +294,16 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
         assert_matches!(
             conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
-                .await
-                .unwrap_err(),
-            TokenAuthError::UserNotFound
+                .await,
+            Err(TokenAuthError::UserNotFound)
         );
 
         create_admin_user(&conn).await;
 
         assert_matches!(
             conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
-                .await
-                .unwrap_err(),
-            TokenAuthError::InvalidPassword
+                .await,
+            Err(TokenAuthError::InvalidPassword)
         );
 
         assert!(conn
@@ -336,9 +333,8 @@ mod tests {
                 password.to_owned(),
                 None
             )
-            .await
-            .unwrap_err(),
-            RegisterError::InvalidInvitationCode
+            .await,
+            Err(RegisterError::InvalidInvitationCode)
         );
 
         // Invalid invitation code won't work.
@@ -349,9 +345,8 @@ mod tests {
                 password.to_owned(),
                 Some("abc".to_owned())
             )
-            .await
-            .unwrap_err(),
-            RegisterError::InvalidInvitationCode
+            .await,
+            Err(RegisterError::InvalidInvitationCode)
         );
 
         // Register success.
@@ -373,9 +368,8 @@ mod tests {
                 password.to_owned(),
                 Some(invitation.code.clone())
             )
-            .await
-            .unwrap_err(),
-            RegisterError::DuplicateEmail
+            .await,
+            Err(RegisterError::DuplicateEmail)
         );
     }
 }

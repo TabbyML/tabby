@@ -309,10 +309,10 @@ impl DbConn {
 #[cfg(test)]
 mod tests {
 
-    use assert_matches::assert_matches;
+    
 
     use super::*;
-    use crate::schema::auth::{AuthenticationService, RegisterError, TokenAuthError};
+    use crate::schema::auth::{AuthenticationService};
 
     static ADMIN_EMAIL: &str = "test@example.com";
     static ADMIN_PASSWORD: &str = "123456789";
