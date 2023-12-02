@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use auth::AuthenticationService;
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
-    Object, RootNode, ScalarValue, Value,
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, Object, RootNode,
+    ScalarValue, Value,
 };
 use juniper_axum::FromAuth;
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-use validator::ValidationError;
+use validator::ValidationErrors;
 
 use self::{
     auth::{validate_jwt, Invitation, RegisterError, TokenAuthError},
@@ -95,8 +95,7 @@ impl Mutation {
         password2: String,
         invitation_code: Option<String>,
     ) -> Result<RegisterResponse, RegisterError> {
-        ctx
-            .locator
+        ctx.locator
             .auth()
             .register(email, password1, password2, invitation_code)
             .await
@@ -133,29 +132,27 @@ impl Mutation {
     }
 }
 
-struct ValidationErrors(Vec<ValidationError>);
+fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {
+    let errors = error
+        .field_errors()
+        .into_iter()
+        .flat_map(|(_, errs)| errs)
+        .cloned()
+        .map(|err| {
+            let mut obj = Object::with_capacity(2);
+            obj.add_field("path", Value::scalar(err.code.to_string()));
+            obj.add_field(
+                "message",
+                Value::scalar(err.message.unwrap_or_default().to_string()),
+            );
+            obj.into()
+        })
+        .collect::<Vec<_>>();
+    let mut ext = Object::with_capacity(2);
+    ext.add_field("code", Value::scalar("validation-error".to_string()));
+    ext.add_field("errors", Value::list(errors));
 
-impl<S: ScalarValue> IntoFieldError<S> for ValidationErrors {
-    fn into_field_error(self) -> FieldError<S> {
-        let errors = self
-            .0
-            .into_iter()
-            .map(|err| {
-                let mut obj = Object::with_capacity(2);
-                obj.add_field("path", Value::scalar(err.code.to_string()));
-                obj.add_field(
-                    "message",
-                    Value::scalar(err.message.unwrap_or_default().to_string()),
-                );
-                obj.into()
-            })
-            .collect::<Vec<_>>();
-        let mut ext = Object::with_capacity(2);
-        ext.add_field("code", Value::scalar("validation-error".to_string()));
-        ext.add_field("errors", Value::list(errors));
-
-        FieldError::new("Invalid input parameters", ext.into())
-    }
+    FieldError::new("Invalid input parameters", ext.into())
 }
 
 pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Context>>;

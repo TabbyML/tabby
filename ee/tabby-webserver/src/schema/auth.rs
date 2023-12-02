@@ -7,9 +7,9 @@ use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use validator::ValidationError;
+use validator::ValidationErrors;
 
-use super::ValidationErrors;
+use super::from_validation_errors;
 
 lazy_static! {
     static ref JWT_ENCODING_KEY: jwt::EncodingKey = jwt::EncodingKey::from_secret(
@@ -55,7 +55,7 @@ impl RegisterResponse {
 #[derive(Error, Debug)]
 pub enum RegisterError {
     #[error("Invalid input parameters")]
-    InvalidInput(Vec<ValidationError>),
+    InvalidInput(#[from] ValidationErrors),
 
     #[error("Invitation code is not valid")]
     InvalidInvitationCode,
@@ -73,7 +73,7 @@ pub enum RegisterError {
 impl<S: ScalarValue> IntoFieldError<S> for RegisterError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
-            Self::InvalidInput(errors) => ValidationErrors(errors).into_field_error(),
+            Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
     }
@@ -97,7 +97,7 @@ impl TokenAuthResponse {
 #[derive(Error, Debug)]
 pub enum TokenAuthError {
     #[error("Invalid input parameters")]
-    InvalidInput(Vec<ValidationError>),
+    InvalidInput(#[from] ValidationErrors),
 
     #[error("User not found")]
     UserNotFound,
@@ -115,7 +115,7 @@ pub enum TokenAuthError {
 impl<S: ScalarValue> IntoFieldError<S> for TokenAuthError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
-            Self::InvalidInput(errors)=> ValidationErrors(errors).into_field_error(),
+            Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
     }

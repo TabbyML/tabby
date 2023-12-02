@@ -114,16 +114,7 @@ impl AuthenticationService for DbConn {
             password1,
             password2,
         };
-        input.validate().map_err(|err| {
-            let errors = err
-                .field_errors()
-                .into_iter()
-                .flat_map(|(_, errs)| errs)
-                .cloned()
-                .collect();
-
-            RegisterError::InvalidInput { errors }
-        })?;
+        input.validate()?;
 
         let is_admin_initialized = self.is_admin_initialized().await?;
         if is_admin_initialized {
@@ -172,16 +163,7 @@ impl AuthenticationService for DbConn {
         password: String,
     ) -> std::result::Result<TokenAuthResponse, TokenAuthError> {
         let input = TokenAuthInput { email, password };
-        input.validate().map_err(|err| {
-            let errors = err
-                .field_errors()
-                .into_iter()
-                .flat_map(|(_, errs)| errs)
-                .cloned()
-                .collect();
-
-            TokenAuthError::InvalidInput { errors }
-        })?;
+        input.validate()?;
 
         let Some(user) = self.get_user_by_email(&input.email).await? else {
             return Err(TokenAuthError::UserNotFound);
