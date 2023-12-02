@@ -309,16 +309,13 @@ impl DbConn {
 #[cfg(test)]
 mod tests {
 
-    
-
     use super::*;
-    use crate::schema::auth::{AuthenticationService};
+    use crate::schema::auth::AuthenticationService;
 
-    static ADMIN_EMAIL: &str = "test@example.com";
-    static ADMIN_PASSWORD: &str = "123456789";
-
-    async fn create_admin_user(conn: &DbConn) -> i32 {
-        conn.create_user(ADMIN_EMAIL.to_string(), ADMIN_PASSWORD.to_string(), true)
+    async fn create_user(conn: &DbConn) -> i32 {
+        let email: &str = "test@example.com";
+        let password: &str = "123456789";
+        conn.create_user(email.to_string(), password.to_string(), true)
             .await
             .unwrap()
     }
@@ -350,7 +347,7 @@ mod tests {
     async fn test_create_user() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        let id = create_admin_user(&conn).await;
+        let id = create_user(&conn).await;
         let user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.id, 1);
     }
@@ -370,7 +367,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         assert!(!conn.is_admin_initialized().await.unwrap());
-        create_admin_user(&conn).await;
+        create_user(&conn).await;
         assert!(conn.is_admin_initialized().await.unwrap());
     }
 

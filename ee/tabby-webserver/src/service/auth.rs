@@ -1,20 +1,17 @@
-use anyhow::{Result};
+use anyhow::Result;
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
-
 use validator::Validate;
 
 use super::db::DbConn;
-use crate::schema::{
-    auth::{
-        generate_jwt, validate_jwt, AuthenticationService, Claims, Invitation,
-        RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse,
-        UserInfo, VerifyTokenResponse,
-    },
+use crate::schema::auth::{
+    generate_jwt, validate_jwt, AuthenticationService, Claims, Invitation, RefreshTokenResponse,
+    RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, UserInfo,
+    VerifyTokenResponse,
 };
 
 /// Input parameters for register mutation
