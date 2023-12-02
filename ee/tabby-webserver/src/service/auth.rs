@@ -279,9 +279,15 @@ mod tests {
     static ADMIN_PASSWORD: &str = "123456789";
 
     async fn create_admin_user(conn: &DbConn) -> i32 {
-        conn.create_user(ADMIN_EMAIL.to_string(), ADMIN_PASSWORD.to_string(), true)
-            .await
-            .unwrap()
+        conn.register(
+            ADMIN_EMAIL.to_owned(),
+            ADMIN_PASSWORD.to_owned(),
+            ADMIN_PASSWORD.to_owned(),
+            None,
+        )
+        .await
+        .unwrap();
+        return 1;
     }
 
     #[tokio::test]
@@ -303,13 +309,10 @@ mod tests {
             TokenAuthError::InvalidPassword
         );
 
-        // This won't work, due to password hash is not right. 
-        /*
         assert!(conn
             .token_auth(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned())
             .await
             .is_ok());
-         */
     }
 
     #[tokio::test]
