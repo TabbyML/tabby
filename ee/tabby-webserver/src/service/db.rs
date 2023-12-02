@@ -8,7 +8,7 @@ use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 use uuid::Uuid;
 
-use crate::schema::auth::Invitation;
+use crate::schema::{auth::Invitation};
 
 lazy_static! {
     static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![

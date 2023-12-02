@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use validator::ValidationError;
 
-use super::make_field_error;
+use super::ValidationErrors;
 
 lazy_static! {
     static ref JWT_ENCODING_KEY: jwt::EncodingKey = jwt::EncodingKey::from_secret(
@@ -73,7 +73,7 @@ pub enum RegisterError {
 impl<S: ScalarValue> IntoFieldError<S> for RegisterError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
-            Self::InvalidInput { errors } => make_field_error(errors),
+            Self::InvalidInput { errors } => ValidationErrors(errors).into_field_error(),
             _ => self.into(),
         }
     }
@@ -115,7 +115,7 @@ pub enum TokenAuthError {
 impl<S: ScalarValue> IntoFieldError<S> for TokenAuthError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
-            Self::InvalidInput { errors } => make_field_error(errors),
+            Self::InvalidInput { errors } => ValidationErrors(errors).into_field_error(),
             _ => self.into(),
         }
     }
