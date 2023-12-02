@@ -95,12 +95,11 @@ impl Mutation {
         password2: String,
         invitation_code: Option<String>,
     ) -> Result<RegisterResponse, RegisterError> {
-        let res = ctx
+        ctx
             .locator
             .auth()
             .register(email, password1, password2, invitation_code)
-            .await?;
-        Ok(res)
+            .await
     }
 
     async fn token_auth(
