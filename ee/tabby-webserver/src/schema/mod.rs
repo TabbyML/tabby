@@ -17,7 +17,7 @@ use self::{
     worker::WorkerService,
 };
 use crate::schema::{
-    auth::{RegisterResponse, TokenAuthResponse, VerifyTokenResponse},
+    auth::{RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse},
     worker::Worker,
 };
 
@@ -90,6 +90,13 @@ impl Query {
         Err(CoreError::Unauthorized(
             "Only admin is able to query invitations",
         ))
+    }
+
+    async fn me(ctx: &Context) -> Result<UserInfo> {
+        if let Some(claims) = &ctx.claims {
+            return Ok(claims.user_info().clone());
+        }
+        Err(CoreError::Unauthorized("Not logged in"))
     }
 }
 
