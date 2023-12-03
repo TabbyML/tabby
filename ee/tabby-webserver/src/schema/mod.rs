@@ -17,7 +17,10 @@ use self::{
     worker::WorkerService,
 };
 use crate::schema::{
-    auth::{RegisterResponse, TokenAuthResponse, UserInfo, VerifyTokenResponse},
+    auth::{
+        RefreshTokenError, RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UserInfo
+        VerifyTokenResponse,
+    },
     worker::Worker,
 };
 
@@ -140,6 +143,13 @@ impl Mutation {
 
     async fn verify_token(ctx: &Context, token: String) -> Result<VerifyTokenResponse> {
         Ok(ctx.locator.auth().verify_token(token).await?)
+    }
+
+    async fn refresh_token(
+        ctx: &Context,
+        refresh_token: String,
+    ) -> Result<RefreshTokenResponse, RefreshTokenError> {
+        ctx.locator.auth().refresh_token(refresh_token).await
     }
 
     async fn create_invitation(ctx: &Context, email: String) -> Result<i32> {

@@ -9,9 +9,9 @@ use validator::Validate;
 
 use super::db::DbConn;
 use crate::schema::auth::{
-    generate_jwt, validate_jwt, AuthenticationService, Claims, Invitation, RefreshTokenResponse,
-    RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, UserInfo,
-    VerifyTokenResponse,
+    generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Claims, Invitation,
+    RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError,
+    TokenAuthResponse, UserInfo, VerifyTokenResponse,
 };
 
 /// Input parameters for register mutation
@@ -146,6 +146,10 @@ impl AuthenticationService for DbConn {
             .await?;
         let user = self.get_user(id).await?.unwrap();
 
+        let (refresh_token, expires_at) = generate_refresh_token(chrono::Utc::now().timestamp());
+        self.create_refresh_token(id, &refresh_token, expires_at)
+            .await?;
+
         let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
             user.email.clone(),
             user.is_admin,
@@ -153,7 +157,7 @@ impl AuthenticationService for DbConn {
             return Err(RegisterError::Unknown);
         };
 
-        let resp = RegisterResponse::new(access_token, "".to_string());
+        let resp = RegisterResponse::new(access_token, refresh_token);
         Ok(resp)
     }
 
@@ -173,6 +177,10 @@ impl AuthenticationService for DbConn {
             return Err(TokenAuthError::InvalidPassword);
         }
 
+        let (refresh_token, expires_at) = generate_refresh_token(chrono::Utc::now().timestamp());
+        self.create_refresh_token(user.id, &refresh_token, expires_at)
+            .await?;
+
         let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
             user.email.clone(),
             user.is_admin,
@@ -180,12 +188,39 @@ impl AuthenticationService for DbConn {
             return Err(TokenAuthError::Unknown);
         };
 
-        let resp = TokenAuthResponse::new(access_token, "".to_string());
+        let resp = TokenAuthResponse::new(access_token, refresh_token);
         Ok(resp)
     }
 
-    async fn refresh_token(&self, _refresh_token: String) -> Result<RefreshTokenResponse> {
-        Ok(RefreshTokenResponse::default())
+    async fn refresh_token(
+        &self,
+        token: String,
+    ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError> {
+        let Some(refresh_token) = self.get_refresh_token(&token).await? else {
+            return Err(RefreshTokenError::InvalidRefreshToken);
+        };
+        if refresh_token.is_expired() {
+            return Err(RefreshTokenError::ExpiredRefreshToken);
+        }
+        let Some(user) = self.get_user(refresh_token.user_id).await? else {
+            return Err(RefreshTokenError::UserNotFound);
+        };
+
+        let (new_token, _) = generate_refresh_token(chrono::Utc::now().timestamp());
+        self.replace_refresh_token(&token, &new_token).await?;
+
+        // refresh token update is done, generate new access token based on user info
+        let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
+            user.email.clone(),
+            user.is_admin,
+        ))) else {
+            return Err(RefreshTokenError::Unknown);
+        };
+
+        let resp =
+            RefreshTokenResponse::new(access_token, new_token, refresh_token.expires_at as f64);
+
+        Ok(resp)
     }
 
     async fn verify_token(&self, access_token: String) -> Result<VerifyTokenResponse> {
@@ -256,7 +291,7 @@ mod tests {
     static ADMIN_EMAIL: &str = "test@example.com";
     static ADMIN_PASSWORD: &str = "123456789";
 
-    async fn create_admin_user(conn: &DbConn) -> i32 {
+    async fn register_admin_user(conn: &DbConn) -> RegisterResponse {
         conn.register(
             ADMIN_EMAIL.to_owned(),
             ADMIN_PASSWORD.to_owned(),
@@ -264,8 +299,7 @@ mod tests {
             None,
         )
         .await
-        .unwrap();
-        1
+        .unwrap()
     }
 
     #[tokio::test]
@@ -277,7 +311,7 @@ mod tests {
             Err(TokenAuthError::UserNotFound)
         );
 
-        create_admin_user(&conn).await;
+        register_admin_user(&conn).await;
 
         assert_matches!(
             conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
@@ -285,10 +319,16 @@ mod tests {
             Err(TokenAuthError::InvalidPassword)
         );
 
-        assert!(conn
+        let resp1 = conn
             .token_auth(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned())
             .await
-            .is_ok());
+            .unwrap();
+        let resp2 = conn
+            .token_auth(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned())
+            .await
+            .unwrap();
+        // each auth should generate a new refresh token
+        assert_ne!(resp1.refresh_token, resp2.refresh_token);
     }
 
     #[tokio::test]
@@ -296,7 +336,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         assert!(!conn.is_admin_initialized().await.unwrap());
-        create_admin_user(&conn).await;
+        register_admin_user(&conn).await;
 
         let email = "user@user.com";
         let password = "12345678";
@@ -350,5 +390,24 @@ mod tests {
             .await,
             Err(RegisterError::DuplicateEmail)
         );
+    }
+
+    #[tokio::test]
+    async fn test_refresh_token() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        let reg = register_admin_user(&conn).await;
+
+        let resp1 = conn.refresh_token(reg.refresh_token.clone()).await.unwrap();
+        // new access token should be valid
+        assert!(validate_jwt(&resp1.access_token).is_ok());
+        // refresh token should be renewed
+        assert_ne!(reg.refresh_token, resp1.refresh_token);
+
+        let resp2 = conn
+            .refresh_token(resp1.refresh_token.clone())
+            .await
+            .unwrap();
+        // expire time should be no change
+        assert_eq!(resp1.refresh_expires_at, resp2.refresh_expires_at);
     }
 }

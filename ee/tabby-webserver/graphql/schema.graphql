@@ -13,6 +13,7 @@ type Mutation {
   register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): VerifyTokenResponse!
+  refreshToken(refreshToken: String!): RefreshTokenResponse!
   createInvitation(email: String!): Int!
   deleteInvitation(id: Int!): Int!
 }
@@ -61,6 +62,12 @@ type Worker {
 type TokenAuthResponse {
   accessToken: String!
   refreshToken: String!
+}
+
+type RefreshTokenResponse {
+  accessToken: String!
+  refreshToken: String!
+  refreshExpiresAt: Float!
 }
 
 schema {

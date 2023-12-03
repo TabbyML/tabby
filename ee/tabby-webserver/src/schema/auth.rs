@@ -7,6 +7,7 @@ use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::from_validation_errors;
@@ -19,6 +20,7 @@ lazy_static! {
         jwt_token_secret().as_bytes()
     );
     static ref JWT_DEFAULT_EXP: u64 = 30 * 60; // 30 minutes
+    static ref JWT_REFRESH_PERIOD: i64 = 7 * 24 * 60 * 60; // 7 days
 }
 
 pub fn generate_jwt(claims: Claims) -> jwt::errors::Result<String> {
@@ -37,10 +39,15 @@ fn jwt_token_secret() -> String {
     std::env::var("TABBY_WEBSERVER_JWT_TOKEN_SECRET").unwrap_or("default_secret".to_string())
 }
 
+pub fn generate_refresh_token(utc_ts: i64) -> (String, i64) {
+    let token = Uuid::new_v4().to_string().replace('-', "");
+    (token, utc_ts + *JWT_REFRESH_PERIOD)
+}
+
 #[derive(Debug, GraphQLObject)]
 pub struct RegisterResponse {
     access_token: String,
-    refresh_token: String,
+    pub refresh_token: String,
 }
 
 impl RegisterResponse {
@@ -82,7 +89,7 @@ impl<S: ScalarValue> IntoFieldError<S> for RegisterError {
 #[derive(Debug, GraphQLObject)]
 pub struct TokenAuthResponse {
     access_token: String,
-    refresh_token: String,
+    pub refresh_token: String,
 }
 
 impl TokenAuthResponse {
@@ -127,11 +134,45 @@ impl<S: ScalarValue> IntoFieldError<S> for TokenAuthError {
     }
 }
 
-#[derive(Debug, Default, GraphQLObject)]
+#[derive(Error, Debug)]
+pub enum RefreshTokenError {
+    #[error("Invalid refresh token")]
+    InvalidRefreshToken,
+
+    #[error("Expired refresh token")]
+    ExpiredRefreshToken,
+
+    #[error("User not found")]
+    UserNotFound,
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+
+    #[error("Unknown error")]
+    Unknown,
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for RefreshTokenError {
+    fn into_field_error(self) -> FieldError<S> {
+        self.into()
+    }
+}
+
+#[derive(Debug, GraphQLObject)]
 pub struct RefreshTokenResponse {
-    access_token: String,
-    refresh_token: String,
-    refresh_expires_in: i32,
+    pub access_token: String,
+    pub refresh_token: String,
+    pub refresh_expires_at: f64,
+}
+
+impl RefreshTokenResponse {
+    pub fn new(access_token: String, refresh_token: String, refresh_expires_at: f64) -> Self {
+        Self {
+            access_token,
+            refresh_token,
+            refresh_expires_at,
+        }
+    }
 }
 
 #[derive(Debug, GraphQLObject)]
@@ -215,7 +256,10 @@ pub trait AuthenticationService: Send + Sync {
         password: String,
     ) -> std::result::Result<TokenAuthResponse, TokenAuthError>;
 
-    async fn refresh_token(&self, refresh_token: String) -> Result<RefreshTokenResponse>;
+    async fn refresh_token(
+        &self,
+        refresh_token: String,
+    ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError>;
     async fn verify_token(&self, access_token: String) -> Result<VerifyTokenResponse>;
     async fn is_admin_initialized(&self) -> Result<bool>;
 
@@ -244,5 +288,12 @@ mod tests {
             claims.user_info(),
             &UserInfo::new("test".to_string(), false)
         );
+    }
+
+    #[test]
+    fn test_generate_refresh_token() {
+        let (token, exp) = generate_refresh_token(100);
+        assert_eq!(token.len(), 32);
+        assert_eq!(exp, 100 + *JWT_REFRESH_PERIOD);
     }
 }
