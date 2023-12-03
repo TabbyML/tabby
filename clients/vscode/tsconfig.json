@@ -4,12 +4,12 @@
     "target": "ES2020",
     "lib": ["ES2020", "dom"],
     "sourceMap": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true /* enable all strict type-checking options */,
-    /* Additional Checks */
-    "noImplicitReturns": true /* Report error when not all code paths in function return a value. */,
-    "noFallthroughCasesInSwitch": true /* Report errors for fallthrough cases in switch statement. */,
-    "noUnusedParameters": true /* Report errors on unused parameters. */
+    "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedParameters": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": ["./src"]
 }

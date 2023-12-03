@@ -26,25 +26,6 @@ export default async () => [
     clean: true,
   }),
   defineConfig({
-    name: "browser-iife",
-    entry: ["src/index.ts"],
-    platform: "browser",
-    format: ["iife"],
-    globalName: "Tabby",
-    treeshake: "smallest",
-    minify: true,
-    sourcemap: true,
-    esbuildPlugins: [
-      polyfillNode({
-        polyfills: { fs: true },
-      }),
-    ],
-    esbuildOptions(options) {
-      defineEnvs(options, { browser: true });
-    },
-    clean: true,
-  }),
-  defineConfig({
     name: "browser-esm",
     entry: ["src/index.ts"],
     platform: "browser",

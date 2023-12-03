@@ -9,28 +9,37 @@
   "scripts": {
     "openapi-codegen": "openapi-typescript ./openapi/tabby.json -o ./src/types/tabbyApi.d.ts",
     "dev": "tsup --watch --no-minify --no-treeshake",
-    "build": "tsup",
+    "build": "tsc --noEmit && tsup",
     "test": "mocha",
     "test:watch": "env TEST_LOG_DEBUG=1 mocha --watch",
     "test:golden": "mocha --grep golden ./tests/golden.test.ts",
-    "lint": "prettier --write .",
-    "lint:check": "prettier --check ."
+    "lint": "eslint --fix --ext .ts ./src && prettier --write .",
+    "lint:check": "eslint --ext .ts ./src && prettier --check ."
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",
+    "@types/dedent": "^0.7.2",
+    "@types/deep-equal": "^1.0.4",
+    "@types/fast-levenshtein": "^0.0.4",
     "@types/fs-extra": "^11.0.1",
     "@types/mocha": "^10.0.1",
-    "@types/node": "^18.12.0",
+    "@types/node": "18.x",
+    "@types/object-hash": "^3.0.0",
+    "@types/uuid": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
     "chai": "^4.3.7",
     "dedent": "^0.7.0",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-polyfill-node": "^0.3.0",
+    "eslint": "^8.55.0",
+    "eslint-config-prettier": "^9.0.0",
     "mocha": "^10.2.0",
     "openapi-typescript": "^6.6.1",
     "prettier": "^3.0.0",
     "ts-node": "^10.9.1",
     "tsup": "^7.1.0",
-    "typescript": "^5.0.3"
+    "typescript": "^5.3.2"
   },
   "dependencies": {
     "chokidar": "^3.5.3",

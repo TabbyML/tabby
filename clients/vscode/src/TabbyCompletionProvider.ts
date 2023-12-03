@@ -101,7 +101,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       // Assume only one choice is provided, do not support multiple choices for now
       if (result.choices.length > 0) {
         this.latestCompletions = result;
-        const choice = result.choices[0];
+        const choice = result.choices[0]!;
 
         this.postEvent("show");
 
@@ -145,7 +145,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         type: event === "show" ? "view" : "select",
         completion_id: completion.id,
         // Assume only one choice is provided for now
-        choice_index: completion.choices[0].index,
+        choice_index: completion.choices[0]!.index,
       };
       switch (event) {
         case "accept_word":
@@ -227,7 +227,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         if (cell.document.languageId === languageId) {
           return cell.document.getText() + "\n\n";
         } else if (Object.keys(this.notebookLanguageComments).includes(languageId)) {
-          return this.notebookLanguageComments[languageId](cell.document.getText()) + "\n\n";
+          return this.notebookLanguageComments[languageId]!(cell.document.getText()) + "\n\n";
         } else {
           return "";
         }

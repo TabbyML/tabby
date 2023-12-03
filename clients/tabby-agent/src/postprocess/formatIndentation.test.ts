@@ -20,7 +20,7 @@ describe("postprocess", () => {
       const expected = inline`
           ├return Math.max(Math.min(n, max), min);┤
       `;
-      expect(formatIndentation(context)(completion)).to.eq(expected);
+      expect(formatIndentation()(completion, context)).to.eq(expected);
     });
 
     it("should format indentation if first line of completion is wrongly indented.", () => {
@@ -39,7 +39,7 @@ describe("postprocess", () => {
       const expected = inline`
         ├    return Math.max(Math.min(n, max), min);┤
       `;
-      expect(formatIndentation(context)(completion)).to.eq(expected);
+      expect(formatIndentation()(completion, context)).to.eq(expected);
     });
 
     it("should format indentation if completion lines is over indented.", () => {
@@ -68,7 +68,7 @@ describe("postprocess", () => {
           return max
         }┤
       `;
-      expect(formatIndentation(context)(completion)).to.eq(expected);
+      expect(formatIndentation()(completion, context)).to.eq(expected);
     });
 
     it("should format indentation if completion lines is wrongly indented.", () => {
@@ -97,7 +97,7 @@ describe("postprocess", () => {
             return max
         }┤
       `;
-      expect(formatIndentation(context)(completion)).to.eq(expected);
+      expect(formatIndentation()(completion, context)).to.eq(expected);
     });
 
     it("should keep it unchanged if it no indentation specified.", () => {
@@ -117,7 +117,7 @@ describe("postprocess", () => {
             return max
         }┤
       `;
-      expect(formatIndentation(context)(completion)).to.eq(completion);
+      expect(formatIndentation()(completion, context)).to.eq(completion);
     });
 
     it("should keep it unchanged if there is indentation in the context.", () => {
@@ -140,7 +140,7 @@ describe("postprocess", () => {
             return max
         }┤
       `;
-      expect(formatIndentation(context)(completion)).to.eq(completion);
+      expect(formatIndentation()(completion, context)).to.eq(completion);
     });
 
     it("should keep it unchanged if it is well indented.", () => {
@@ -160,7 +160,7 @@ describe("postprocess", () => {
             return max
         }┤
       `;
-      expect(formatIndentation(context)(completion)).to.eq(completion);
+      expect(formatIndentation()(completion, context)).to.eq(completion);
     });
   });
 });
