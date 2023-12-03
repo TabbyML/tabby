@@ -23,7 +23,7 @@ lazy_static! {
             );
         "#
         )
-        .down("DROP TABLE registeration_token"),
+        .down("DROP TABLE registration_token"),
         M::up(
             r#"
             CREATE TABLE users (

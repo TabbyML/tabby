@@ -94,7 +94,7 @@ impl Query {
 
     async fn me(ctx: &Context) -> Result<UserInfo> {
         if let Some(claims) = &ctx.claims {
-            return Ok(claims.user_info().clone());
+            return Ok(claims.user_info().to_owned());
         }
         Err(CoreError::Unauthorized("Not logged in"))
     }
