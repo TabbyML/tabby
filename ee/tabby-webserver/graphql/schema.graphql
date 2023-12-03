@@ -17,13 +17,13 @@ type Mutation {
   deleteInvitation(id: Int!): Int!
 }
 
+type VerifyTokenResponse {
+  claims: Claims!
+}
+
 type UserInfo {
   email: String!
   isAdmin: Boolean!
-}
-
-type VerifyTokenResponse {
-  claims: Claims!
 }
 
 type Claims {
@@ -37,6 +37,7 @@ type Query {
   registrationToken: String!
   isAdminInitialized: Boolean!
   invitations: [Invitation!]!
+  me: UserInfo!
 }
 
 type Invitation {
