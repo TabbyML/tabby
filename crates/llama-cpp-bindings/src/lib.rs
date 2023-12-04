@@ -114,3 +114,15 @@ impl TextGeneration for LlamaTextGeneration {
         Box::pin(s)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_engine() {
+        let engine = create_engine(false, "invalid_path", 1);
+
+        assert!(engine.is_null());
+    }
+}
