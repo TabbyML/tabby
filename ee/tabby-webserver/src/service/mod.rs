@@ -1,6 +1,6 @@
 mod auth;
+mod cron;
 mod db;
-mod db_job;
 mod proxy;
 mod worker;
 

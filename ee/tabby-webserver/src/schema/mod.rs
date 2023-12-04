@@ -18,7 +18,7 @@ use self::{
 };
 use crate::schema::{
     auth::{
-        RefreshTokenError, RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UserInfo
+        RefreshTokenError, RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UserInfo,
         VerifyTokenResponse,
     },
     worker::Worker,
