@@ -29,6 +29,7 @@ tabby-common = { path = "../../crates/tabby-common" }
 tarpc = { version = "0.33.0", features = ["serde-transport"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs"] }
+tokio-cron-scheduler = "0.9.4"
 tokio-rusqlite = "0.4.0"
 tokio-tungstenite = "0.20.1"
 tower = { version = "0.4", features = ["util"] }

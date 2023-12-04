@@ -1,4 +1,5 @@
 mod auth;
+mod cron;
 mod db;
 mod proxy;
 mod worker;

@@ -8,7 +8,7 @@ use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 use uuid::Uuid;
 
-use crate::schema::auth::Invitation;
+use crate::{schema::auth::Invitation, service::cron::run_offline_job};
 
 lazy_static! {
     static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
@@ -51,6 +51,19 @@ lazy_static! {
         "#
         )
         .down("DROP TABLE invitations"),
+        M::up(
+            r#"
+            CREATE TABLE refresh_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token VARCHAR(255) NOT NULL COLLATE NOCASE,
+                expires_at INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT (DATETIME('now')),
+                CONSTRAINT `idx_token` UNIQUE (`token`)
+            );
+        "#
+        )
+        .down("DROP TABLE refresh_tokens"),
     ]);
 }
 
@@ -59,7 +72,7 @@ pub struct User {
     created_at: String,
     updated_at: String,
 
-    pub id: u32,
+    pub id: i32,
     pub email: String,
     pub password_encrypted: String,
     pub is_admin: bool,
@@ -121,9 +134,12 @@ impl DbConn {
         })
         .await?;
 
-        Ok(Self {
+        let res = Self {
             conn: Arc::new(conn),
-        })
+        };
+        run_offline_job(res.clone());
+
+        Ok(res)
     }
 }
 
@@ -309,6 +325,114 @@ impl DbConn {
     }
 }
 
+#[allow(unused)]
+pub struct RefreshToken {
+    id: u32,
+    created_at: String,
+
+    pub user_id: i32,
+    pub token: String,
+    pub expires_at: i64,
+}
+
+impl RefreshToken {
+    fn select(clause: &str) -> String {
+        r#"SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens WHERE "#.to_owned()
+            + clause
+    }
+
+    fn from_row(row: &Row<'_>) -> std::result::Result<RefreshToken, rusqlite::Error> {
+        Ok(RefreshToken {
+            id: row.get(0)?,
+            user_id: row.get(1)?,
+            token: row.get(2)?,
+            expires_at: row.get(3)?,
+            created_at: row.get(4)?,
+        })
+    }
+
+    pub fn is_expired(&self) -> bool {
+        let now = chrono::Utc::now().timestamp();
+        self.expires_at < now
+    }
+}
+
+/// db read/write operations for `refresh_tokens` table
+impl DbConn {
+    pub async fn create_refresh_token(
+        &self,
+        user_id: i32,
+        token: &str,
+        expires_at: i64,
+    ) -> Result<()> {
+        let token = token.to_string();
+        let res = self
+            .conn
+            .call(move |c| {
+                c.execute(
+                    r#"INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)"#,
+                    params![user_id, token, expires_at],
+                )
+            })
+            .await?;
+        if res != 1 {
+            return Err(anyhow::anyhow!("failed to create refresh token"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn replace_refresh_token(&self, old: &str, new: &str) -> Result<()> {
+        let old = old.to_string();
+        let new = new.to_string();
+        let res = self
+            .conn
+            .call(move |c| {
+                c.execute(
+                    r#"UPDATE refresh_tokens SET token = ? WHERE token = ?"#,
+                    params![new, old],
+                )
+            })
+            .await?;
+        if res != 1 {
+            return Err(anyhow::anyhow!("failed to replace refresh token"));
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_expired_token(&self, utc_ts: i64) -> Result<i32> {
+        let res = self
+            .conn
+            .call(move |c| {
+                c.execute(
+                    r#"DELETE FROM refresh_tokens WHERE expires_at < ?"#,
+                    params![utc_ts],
+                )
+            })
+            .await?;
+
+        Ok(res as i32)
+    }
+
+    pub async fn get_refresh_token(&self, token: &str) -> Result<Option<RefreshToken>> {
+        let token = token.to_string();
+        let token = self
+            .conn
+            .call(move |c| {
+                c.query_row(
+                    RefreshToken::select("token = ?").as_str(),
+                    params![token],
+                    RefreshToken::from_row,
+                )
+                .optional()
+            })
+            .await?;
+
+        Ok(token)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -397,5 +521,34 @@ mod tests {
 
         let invitations = conn.list_invitations().await.unwrap();
         assert!(invitations.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_create_refresh_token() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        conn.create_refresh_token(1, "test", 100).await.unwrap();
+
+        let token = conn.get_refresh_token("test").await.unwrap().unwrap();
+
+        assert_eq!(token.user_id, 1);
+        assert_eq!(token.token, "test");
+        assert_eq!(token.expires_at, 100);
+    }
+
+    #[tokio::test]
+    async fn test_replace_refresh_token() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        conn.create_refresh_token(1, "test", 100).await.unwrap();
+        conn.replace_refresh_token("test", "test2").await.unwrap();
+
+        let token = conn.get_refresh_token("test").await.unwrap();
+        assert!(token.is_none());
+
+        let token = conn.get_refresh_token("test2").await.unwrap().unwrap();
+        assert_eq!(token.user_id, 1);
+        assert_eq!(token.token, "test2");
+        assert_eq!(token.expires_at, 100);
     }
 }
