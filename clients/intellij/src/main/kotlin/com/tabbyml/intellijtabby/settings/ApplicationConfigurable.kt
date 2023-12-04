@@ -19,6 +19,7 @@ class ApplicationConfigurable : Configurable {
   override fun isModified(): Boolean {
     val settings = service<ApplicationSettingsState>()
     return settingsPanel.completionTriggerMode != settings.completionTriggerMode
+        || settingsPanel.keymapStyle != settings.keymapStyle
         || settingsPanel.serverEndpoint != settings.serverEndpoint
         || settingsPanel.nodeBinary != settings.nodeBinary
         || settingsPanel.isAnonymousUsageTrackingDisabled != settings.isAnonymousUsageTrackingDisabled
@@ -27,6 +28,7 @@ class ApplicationConfigurable : Configurable {
   override fun apply() {
     val settings = service<ApplicationSettingsState>()
     settings.completionTriggerMode = settingsPanel.completionTriggerMode
+    settings.keymapStyle = settingsPanel.keymapStyle
     settings.serverEndpoint = settingsPanel.serverEndpoint
     settings.nodeBinary = settingsPanel.nodeBinary
     settings.isAnonymousUsageTrackingDisabled = settingsPanel.isAnonymousUsageTrackingDisabled
@@ -35,6 +37,7 @@ class ApplicationConfigurable : Configurable {
   override fun reset() {
     val settings = service<ApplicationSettingsState>()
     settingsPanel.completionTriggerMode = settings.completionTriggerMode
+    settingsPanel.keymapStyle = settings.keymapStyle
     settingsPanel.serverEndpoint = settings.serverEndpoint
     settingsPanel.nodeBinary = settings.nodeBinary
     settingsPanel.isAnonymousUsageTrackingDisabled = settings.isAnonymousUsageTrackingDisabled

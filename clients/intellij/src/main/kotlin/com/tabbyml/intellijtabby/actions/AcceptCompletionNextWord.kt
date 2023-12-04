@@ -8,10 +8,10 @@ import com.intellij.openapi.components.service
 import com.tabbyml.intellijtabby.editor.InlineCompletionService
 
 
-class AcceptCompletion : AnAction() {
+class AcceptCompletionNextWord : AnAction() {
   override fun actionPerformed(e: AnActionEvent) {
     val inlineCompletionService = service<InlineCompletionService>()
-    inlineCompletionService.accept(InlineCompletionService.AcceptType.FULL_COMPLETION)
+    inlineCompletionService.accept(InlineCompletionService.AcceptType.NEXT_WORD)
   }
   
   override fun update(e: AnActionEvent) {

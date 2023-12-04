@@ -3,6 +3,8 @@ package com.tabbyml.intellijtabby.settings
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
+import com.intellij.openapi.keymap.impl.ui.KeymapPanel
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -16,11 +18,14 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.tabbyml.intellijtabby.agent.Agent
 import com.tabbyml.intellijtabby.agent.AgentService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.swing.ButtonGroup
 import javax.swing.JButton
 import javax.swing.JPanel
+
 
 private fun FormBuilder.addCopyableTooltip(text: String): FormBuilder {
   return this.addComponentToRightColumn(
@@ -151,7 +156,35 @@ class ApplicationSettingsPanel {
     .addComponent(completionTriggerModeAutomaticRadioButton)
     .addCopyableTooltip("Trigger automatically when you stop typing")
     .addComponent(completionTriggerModeManualRadioButton)
-    .addCopyableTooltip("Trigger manually by pressing `Ctrl + \\`")
+    .addCopyableTooltip("Trigger on-demand by pressing a shortcut")
+    .panel
+
+  private val keymapStyleDefaultRadioButton = JBRadioButton("Default")
+  private val keymapStyleTabbyStyleRadioButton = JBRadioButton("Tabby style")
+  private val keymapStyleCustomRadioButton = JBRadioButton("<html><a href=''>Custom...</a><html>").apply {
+    addActionListener {
+      ShowSettingsUtil.getInstance().showSettingsDialog(null, KeymapPanel::class.java) { panel ->
+        CoroutineScope(Dispatchers.IO).launch {
+          Thread.sleep(500) // FIXME: It seems that we need to wait for the KeymapPanel to be ready?
+          invokeLater(ModalityState.stateForComponent(panel)) {
+            panel.showOption("Tabby")
+          }
+        }
+      }
+    }
+    border = JBUI.Borders.emptyLeft(1)
+  }
+  private val keymapStyleRadioGroup = ButtonGroup().apply {
+    add(keymapStyleDefaultRadioButton)
+    add(keymapStyleTabbyStyleRadioButton)
+    add(keymapStyleCustomRadioButton)
+  }
+  private val keymapStylePanel: JPanel = FormBuilder.createFormBuilder()
+    .addComponent(keymapStyleDefaultRadioButton)
+    .addCopyableTooltip("<html>Use <i>Tab</i> to accept full completion, and use <i>Ctrl+Tab</i> to accept next line.</html>")
+    .addComponent(keymapStyleTabbyStyleRadioButton)
+    .addCopyableTooltip("<html>Use <i>Ctrl+Tab</i> to accept full completion, and use <i>Tab</i> to accept next line.</html>")
+    .addComponent(keymapStyleCustomRadioButton)
     .panel
 
   private val isAnonymousUsageTrackingDisabledCheckBox = JBCheckBox("Disable anonymous usage tracking")
@@ -186,6 +219,8 @@ class ApplicationSettingsPanel {
     .addSeparator(5)
     .addLabeledComponent("Inline completion trigger", completionTriggerModePanel, 5, false)
     .addSeparator(5)
+    .addLabeledComponent("Keymap", keymapStylePanel, 5, false)
+    .addSeparator(5)
     .addLabeledComponent("<html>Node binary<br/>(Requires restart IDE)</html>", nodeBinaryPanel, 5, false)
     .addSeparator(5)
     .addLabeledComponent("Anonymous usage tracking", isAnonymousUsageTrackingPanel, 5, false)
@@ -198,6 +233,34 @@ class ApplicationSettingsPanel {
     .addComponentFillVertically(JPanel(), 0)
     .panel
 
+  var serverEndpoint: String
+    get() = serverEndpointTextField.text
+    set(value) {
+      serverEndpointTextField.text = value
+    }
+
+  var nodeBinary: String
+    get() = nodeBinaryTextField.text
+    set(value) {
+      nodeBinaryTextField.text = value
+    }
+
+  var keymapStyle: ApplicationSettingsState.KeymapStyle
+    get() = if (keymapStyleDefaultRadioButton.isSelected) {
+      ApplicationSettingsState.KeymapStyle.DEFAULT
+    } else if (keymapStyleTabbyStyleRadioButton.isSelected) {
+      ApplicationSettingsState.KeymapStyle.TABBY_STYLE
+    } else {
+      ApplicationSettingsState.KeymapStyle.CUSTOM
+    }
+    set(value) {
+      when (value) {
+        ApplicationSettingsState.KeymapStyle.DEFAULT -> keymapStyleDefaultRadioButton.isSelected = true
+        ApplicationSettingsState.KeymapStyle.TABBY_STYLE -> keymapStyleTabbyStyleRadioButton.isSelected = true
+        ApplicationSettingsState.KeymapStyle.CUSTOM -> keymapStyleCustomRadioButton.isSelected = true
+      }
+    }
+
   var completionTriggerMode: ApplicationSettingsState.TriggerMode
     get() = if (completionTriggerModeAutomaticRadioButton.isSelected) {
       ApplicationSettingsState.TriggerMode.AUTOMATIC
@@ -209,18 +272,6 @@ class ApplicationSettingsPanel {
         ApplicationSettingsState.TriggerMode.AUTOMATIC -> completionTriggerModeAutomaticRadioButton.isSelected = true
         ApplicationSettingsState.TriggerMode.MANUAL -> completionTriggerModeManualRadioButton.isSelected = true
       }
-    }
-
-  var serverEndpoint: String
-    get() = serverEndpointTextField.text
-    set(value) {
-      serverEndpointTextField.text = value
-    }
-
-  var nodeBinary: String
-    get() = nodeBinaryTextField.text
-    set(value) {
-      nodeBinaryTextField.text = value
     }
 
   var isAnonymousUsageTrackingDisabled: Boolean

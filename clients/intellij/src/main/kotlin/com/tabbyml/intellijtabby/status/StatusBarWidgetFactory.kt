@@ -83,6 +83,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
             override fun getChildren(e: AnActionEvent?): Array<AnAction> {
               val actionManager = ActionManager.getInstance()
               return arrayOf(
+                actionManager.getAction("Tabby.TriggerCompletion"),
                 actionManager.getAction("Tabby.OpenAuthPage"),
                 actionManager.getAction("Tabby.CheckIssueDetail"),
                 actionManager.getAction("Tabby.ToggleInlineCompletionTriggerMode"),
@@ -135,7 +136,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
                 ApplicationSettingsState.TriggerMode.MANUAL -> {
                   if (state.ongoingCompletion == null) {
                     icon = AllIcons.General.ChevronRight
-                    tooltip = "Tabby: Standing by, press `Ctrl + \\` to trigger code completion."
+                    tooltip = "Tabby: Standing by, please manually trigger code completion."
                   } else {
                     icon = AnimatedIcon.Default()
                     tooltip = "Tabby: Generating code completions"

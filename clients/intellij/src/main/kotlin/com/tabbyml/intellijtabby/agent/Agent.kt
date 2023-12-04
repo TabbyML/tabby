@@ -313,7 +313,7 @@ class Agent : ProcessAdapter() {
   override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
     logger.info("Output received: $outputType: ${event.text}")
     if (outputType !== ProcessOutputTypes.STDOUT) return
-    val lines = (outputBuffer + event.text).split("\n")
+    val lines = (outputBuffer + event.text).lines()
     lines.subList(0, lines.size - 1).forEach { string -> handleOutput(string) }
     outputBuffer = lines.last()
   }

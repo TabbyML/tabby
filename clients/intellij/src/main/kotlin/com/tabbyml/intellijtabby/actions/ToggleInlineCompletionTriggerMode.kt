@@ -19,7 +19,7 @@ class ToggleInlineCompletionTriggerMode : AnAction() {
     val settings = service<ApplicationSettingsState>()
     if (settings.completionTriggerMode == ApplicationSettingsState.TriggerMode.AUTOMATIC) {
       e.presentation.text = "Switch to Manual Mode"
-      e.presentation.description = "Manual trigger inline completion suggestions by pressing `Ctrl + \\`."
+      e.presentation.description = "Manual trigger inline completion suggestions on demand."
     } else {
       e.presentation.text = "Switch to Automatic Mode"
       e.presentation.description = "Show inline completion suggestions automatically."

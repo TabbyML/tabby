@@ -61,11 +61,24 @@
                 <keyboard-shortcut first-keystroke="ctrl BACK_SLASH" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="alt BACK_SLASH" keymap="$default"/>
             </action>
+            <separator/>
             <action id="Tabby.AcceptCompletion"
                     class="com.tabbyml.intellijtabby.actions.AcceptCompletion"
                     text="Accept Completion"
                     description="Accept the shown suggestions and insert the text.">
                 <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
+            </action>
+            <action id="Tabby.AcceptCompletionNextLine"
+                    class="com.tabbyml.intellijtabby.actions.AcceptCompletionNextLine"
+                    text="Accept Next Line"
+                    description="Accept the shown suggestions and insert the text.">
+                <keyboard-shortcut first-keystroke="ctrl TAB" keymap="$default"/>
+            </action>
+            <action id="Tabby.AcceptCompletionNextWord"
+                    class="com.tabbyml.intellijtabby.actions.AcceptCompletionNextWord"
+                    text="Accept Next Word"
+                    description="Accept the shown suggestions and insert the text.">
+                <keyboard-shortcut first-keystroke="ctrl RIGHT" keymap="$default"/>
             </action>
             <action id="Tabby.DismissCompletion"
                     class="com.tabbyml.intellijtabby.actions.DismissCompletion"
