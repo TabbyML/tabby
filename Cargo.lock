@@ -3641,6 +3641,7 @@ dependencies = [
  "async-trait",
  "filenamify",
  "glob",
+ "home",
  "lazy_static",
  "reqwest",
  "serde",
