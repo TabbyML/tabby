@@ -581,6 +581,7 @@ namespace ctranslate2 {
             layer_attention = std::make_unique<StorageView>(dtype, device);
 
           dim_t offset = _sliding_window * i + step;
+          offset = offset < 0 ? 0 : offset;
           if (i > 0) {
             auto max_tokens = _sliding_window + layer_in_chunk.dim(1);
             StorageView tmp_lengths = StorageView(Shape{layer_in_chunk.dim(0)}, int32_t(max_tokens), device);

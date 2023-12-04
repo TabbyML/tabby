@@ -572,7 +572,7 @@ namespace ctranslate2 {
                             _alibi,
                             position_bias);
 
-      if (prefilling && cached_keys->shape()[2] > _sliding_window) {
+      if (prefilling && cached_keys && cached_keys->shape()[2] > _sliding_window) {
         // set only last sliding_window tokens to cached_keys and cached_values after computing attention
         const ops::Slide slide_op(2, cached_keys->shape()[2] - _sliding_window, _sliding_window);
         StorageView tmp(dtype, device);
