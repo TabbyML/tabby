@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
 use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue};
 use lazy_static::lazy_static;
@@ -20,7 +21,6 @@ lazy_static! {
         jwt_token_secret().as_bytes()
     );
     static ref JWT_DEFAULT_EXP: u64 = 30 * 60; // 30 minutes
-    static ref JWT_REFRESH_PERIOD: i64 = 7 * 24 * 60 * 60; // 7 days
 }
 
 pub fn generate_jwt(claims: Claims) -> jwt::errors::Result<String> {
@@ -39,9 +39,8 @@ fn jwt_token_secret() -> String {
     std::env::var("TABBY_WEBSERVER_JWT_TOKEN_SECRET").unwrap_or("default_secret".to_string())
 }
 
-pub fn generate_refresh_token(utc_ts: i64) -> (String, i64) {
-    let token = Uuid::new_v4().to_string().replace('-', "");
-    (token, utc_ts + *JWT_REFRESH_PERIOD)
+pub fn generate_refresh_token() -> String {
+    Uuid::new_v4().to_string().replace('-', "")
 }
 
 #[derive(Debug, GraphQLObject)]
@@ -162,11 +161,11 @@ impl<S: ScalarValue> IntoFieldError<S> for RefreshTokenError {
 pub struct RefreshTokenResponse {
     pub access_token: String,
     pub refresh_token: String,
-    pub refresh_expires_at: f64,
+    pub refresh_expires_at: DateTime<Utc>,
 }
 
 impl RefreshTokenResponse {
-    pub fn new(access_token: String, refresh_token: String, refresh_expires_at: f64) -> Self {
+    pub fn new(access_token: String, refresh_token: String, refresh_expires_at: DateTime<Utc>) -> Self {
         Self {
             access_token,
             refresh_token,
@@ -292,8 +291,7 @@ mod tests {
 
     #[test]
     fn test_generate_refresh_token() {
-        let (token, exp) = generate_refresh_token(100);
+        let token = generate_refresh_token();
         assert_eq!(token.len(), 32);
-        assert_eq!(exp, 100 + *JWT_REFRESH_PERIOD);
     }
 }

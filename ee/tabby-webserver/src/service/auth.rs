@@ -146,9 +146,8 @@ impl AuthenticationService for DbConn {
             .await?;
         let user = self.get_user(id).await?.unwrap();
 
-        let (refresh_token, expires_at) = generate_refresh_token(chrono::Utc::now().timestamp());
-        self.create_refresh_token(id, &refresh_token, expires_at)
-            .await?;
+        let refresh_token = generate_refresh_token();
+        self.create_refresh_token(id, &refresh_token).await?;
 
         let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
             user.email.clone(),
@@ -177,9 +176,8 @@ impl AuthenticationService for DbConn {
             return Err(TokenAuthError::InvalidPassword);
         }
 
-        let (refresh_token, expires_at) = generate_refresh_token(chrono::Utc::now().timestamp());
-        self.create_refresh_token(user.id, &refresh_token, expires_at)
-            .await?;
+        let refresh_token = generate_refresh_token();
+        self.create_refresh_token(user.id, &refresh_token).await?;
 
         let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
             user.email.clone(),
@@ -206,7 +204,7 @@ impl AuthenticationService for DbConn {
             return Err(RefreshTokenError::UserNotFound);
         };
 
-        let (new_token, _) = generate_refresh_token(chrono::Utc::now().timestamp());
+        let new_token = generate_refresh_token();
         self.replace_refresh_token(&token, &new_token).await?;
 
         // refresh token update is done, generate new access token based on user info
@@ -217,8 +215,7 @@ impl AuthenticationService for DbConn {
             return Err(RefreshTokenError::Unknown);
         };
 
-        let resp =
-            RefreshTokenResponse::new(access_token, new_token, refresh_token.expires_at as f64);
+        let resp = RefreshTokenResponse::new(access_token, new_token, refresh_token.expires_at);
 
         Ok(resp)
     }
