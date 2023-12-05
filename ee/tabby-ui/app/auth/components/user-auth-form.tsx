@@ -43,9 +43,9 @@ export function UserAuthForm({ className, invitationCode, ...props }: UserAuthFo
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "a@a.com",
-      password1: "a@a.comacom",
-      password2: "a@a.comacom",
+      email: "",
+      password1: "",
+      password2: "",
       invitationCode,
     }
   })
