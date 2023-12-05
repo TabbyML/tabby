@@ -432,7 +432,7 @@ impl DbConn {
 #[cfg(test)]
 mod tests {
 
-    use std::{ops::Add};
+    use std::ops::Add;
 
     use super::*;
     use crate::schema::auth::AuthenticationService;
