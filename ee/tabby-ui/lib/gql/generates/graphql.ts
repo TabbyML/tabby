@@ -48,6 +48,7 @@ export type Mutation = {
   __typename?: 'Mutation'
   createInvitation: Scalars['Int']['output']
   deleteInvitation: Scalars['Int']['output']
+  refreshToken: RefreshTokenResponse
   register: RegisterResponse
   resetRegistrationToken: Scalars['String']['output']
   tokenAuth: TokenAuthResponse
@@ -60,6 +61,10 @@ export type MutationCreateInvitationArgs = {
 
 export type MutationDeleteInvitationArgs = {
   id: Scalars['Int']['input']
+}
+
+export type MutationRefreshTokenArgs = {
+  refreshToken: Scalars['String']['input']
 }
 
 export type MutationRegisterArgs = {
@@ -85,6 +90,13 @@ export type Query = {
   me: UserInfo
   registrationToken: Scalars['String']['output']
   workers: Array<Worker>
+}
+
+export type RefreshTokenResponse = {
+  __typename?: 'RefreshTokenResponse'
+  accessToken: Scalars['String']['output']
+  refreshExpiresAt: Scalars['Float']['output']
+  refreshToken: Scalars['String']['output']
 }
 
 export type RegisterResponse = {
