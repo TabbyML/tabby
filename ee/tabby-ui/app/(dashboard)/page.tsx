@@ -17,8 +17,8 @@ import WorkerCard from './components/worker-card'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useGraphQL } from '@/lib/hooks/use-graphql'
-import { getRegistrationTokenDocument } from '@/lib/gql/request-documents'
 import { CopyButton } from '@/components/copy-button'
+import { graphql } from '@/lib/gql/generates'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
@@ -74,6 +74,12 @@ function Link({ href, children }: PropsWithChildren<LinkProps>) {
 function toBadgeString(str: string) {
   return encodeURIComponent(str.replaceAll('-', '--'))
 }
+
+const getRegistrationTokenDocument = graphql(/* GraphQL */ `
+  query GetRegistrationToken {
+    registrationToken
+  }
+`)
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()

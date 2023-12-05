@@ -127,6 +127,13 @@ export enum WorkerKind {
   Completion = 'COMPLETION'
 }
 
+export type GetRegistrationTokenQueryVariables = Exact<{ [key: string]: never }>
+
+export type GetRegistrationTokenQuery = {
+  __typename?: 'Query'
+  registrationToken: string
+}
+
 export type GetIsAdminInitializedQueryVariables = Exact<{
   [key: string]: never
 }>
@@ -152,30 +159,25 @@ export type RegisterMutation = {
   }
 }
 
-export type GetWorkersQueryVariables = Exact<{ [key: string]: never }>
-
-export type GetWorkersQuery = {
-  __typename?: 'Query'
-  workers: Array<{
-    __typename?: 'Worker'
-    kind: WorkerKind
-    name: string
-    addr: string
-    device: string
-    arch: string
-    cpuInfo: string
-    cpuCount: number
-    cudaDevices: Array<string>
-  }>
-}
-
-export type GetRegistrationTokenQueryVariables = Exact<{ [key: string]: never }>
-
-export type GetRegistrationTokenQuery = {
-  __typename?: 'Query'
-  registrationToken: string
-}
-
+export const GetRegistrationTokenDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'query',
+      name: { kind: 'Name', value: 'GetRegistrationToken' },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'registrationToken' } }
+        ]
+      }
+    }
+  ]
+} as unknown as DocumentNode<
+  GetRegistrationTokenQuery,
+  GetRegistrationTokenQueryVariables
+>
 export const GetIsAdminInitializedDocument = {
   kind: 'Document',
   definitions: [
@@ -298,54 +300,3 @@ export const RegisterDocument = {
     }
   ]
 } as unknown as DocumentNode<RegisterMutation, RegisterMutationVariables>
-export const GetWorkersDocument = {
-  kind: 'Document',
-  definitions: [
-    {
-      kind: 'OperationDefinition',
-      operation: 'query',
-      name: { kind: 'Name', value: 'GetWorkers' },
-      selectionSet: {
-        kind: 'SelectionSet',
-        selections: [
-          {
-            kind: 'Field',
-            name: { kind: 'Name', value: 'workers' },
-            selectionSet: {
-              kind: 'SelectionSet',
-              selections: [
-                { kind: 'Field', name: { kind: 'Name', value: 'kind' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'addr' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'device' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'arch' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'cpuInfo' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'cpuCount' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'cudaDevices' } }
-              ]
-            }
-          }
-        ]
-      }
-    }
-  ]
-} as unknown as DocumentNode<GetWorkersQuery, GetWorkersQueryVariables>
-export const GetRegistrationTokenDocument = {
-  kind: 'Document',
-  definitions: [
-    {
-      kind: 'OperationDefinition',
-      operation: 'query',
-      name: { kind: 'Name', value: 'GetRegistrationToken' },
-      selectionSet: {
-        kind: 'SelectionSet',
-        selections: [
-          { kind: 'Field', name: { kind: 'Name', value: 'registrationToken' } }
-        ]
-      }
-    }
-  ]
-} as unknown as DocumentNode<
-  GetRegistrationTokenQuery,
-  GetRegistrationTokenQueryVariables
->
