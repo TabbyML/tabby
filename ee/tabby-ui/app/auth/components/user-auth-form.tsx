@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> { }
+interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
+  invitationCode?: string
+}
 
-export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
+export function UserAuthForm({ className, invitationCode, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
 
   async function onSubmit(event: React.SyntheticEvent) {
@@ -26,13 +28,13 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     <div className={cn("grid gap-6", className)} {...props}>
       <form onSubmit={onSubmit}>
         <div className="grid gap-2">
-          <div className="grid gap-1">
-            <Label className="sr-only" htmlFor="email">
+          <div className="space-y-2">
+            <Label htmlFor="email">
               Email
             </Label>
             <Input
               id="email"
-              placeholder="name@example.com"
+              placeholder=""
               type="email"
               autoCapitalize="none"
               autoComplete="email"
@@ -40,17 +42,29 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               disabled={isLoading}
             />
           </div>
-          <div className="grid gap-1">
-            <Label className="sr-only" htmlFor="email">
-              Email
+          <div className="space-y-2">
+            <Label htmlFor="password1">
+              Password
             </Label>
             <Input
-              id="password"
-              placeholder="password"
+              id="password1"
+              placeholder=""
               type="password"
+              disabled={isLoading}
             />
           </div>
-          <Button disabled={isLoading}>
+          <div className="space-y-2">
+            <Label htmlFor="">
+              Confirm Password
+            </Label>
+            <Input
+              id="password2"
+              placeholder=""
+              type="password"
+              disabled={isLoading}
+            />
+          </div>
+          <Button className="mt-2" disabled={isLoading}>
             {isLoading && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
