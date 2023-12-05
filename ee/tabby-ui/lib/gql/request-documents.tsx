@@ -20,3 +20,9 @@ export const getRegistrationTokenDocument = graphql(/* GraphQL */ `
     registrationToken
   }
 `)
+
+export const getIsAdminInitialized = graphql(/* GraphQL */ `
+  query GetIsAdminInitialized {
+    isAdminInitialized
+  }
+`)
