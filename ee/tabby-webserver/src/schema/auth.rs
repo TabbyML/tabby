@@ -165,7 +165,11 @@ pub struct RefreshTokenResponse {
 }
 
 impl RefreshTokenResponse {
-    pub fn new(access_token: String, refresh_token: String, refresh_expires_at: DateTime<Utc>) -> Self {
+    pub fn new(
+        access_token: String,
+        refresh_token: String,
+        refresh_expires_at: DateTime<Utc>,
+    ) -> Self {
         Self {
             access_token,
             refresh_token,

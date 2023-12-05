@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, Result};
-use chrono::{NaiveDateTime, DateTime, Utc};
+use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use rusqlite::{params, OptionalExtension, Row};
 use rusqlite_migration::{AsyncMigrations, M};
@@ -360,11 +360,7 @@ impl RefreshToken {
 
 /// db read/write operations for `refresh_tokens` table
 impl DbConn {
-    pub async fn create_refresh_token(
-        &self,
-        user_id: i32,
-        token: &str,
-    ) -> Result<()> {
+    pub async fn create_refresh_token(&self, user_id: i32, token: &str) -> Result<()> {
         let token = token.to_string();
         let res = self
             .conn
@@ -436,7 +432,7 @@ impl DbConn {
 #[cfg(test)]
 mod tests {
 
-    use std::{ops::Add, os::unix::fs::chroot};
+    use std::{ops::Add};
 
     use super::*;
     use crate::schema::auth::AuthenticationService;
