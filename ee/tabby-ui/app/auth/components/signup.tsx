@@ -1,8 +1,14 @@
 "use client"
 
+import { graphql } from "@/lib/gql/generates"
 import { UserAuthForm } from "./user-auth-form"
 import { useGraphQL } from "@/lib/hooks/use-graphql"
-import { getIsAdminInitialized } from "@/lib/gql/request-documents"
+
+export const getIsAdminInitialized = graphql(/* GraphQL */ `
+  query GetIsAdminInitialized {
+    isAdminInitialized
+  }
+`)
 
 export default function Signup() {
   const { data } = useGraphQL(getIsAdminInitialized)
