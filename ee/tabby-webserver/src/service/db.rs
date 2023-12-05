@@ -70,8 +70,8 @@ lazy_static! {
 
 #[allow(unused)]
 pub struct User {
-    created_at: String,
-    updated_at: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 
     pub id: i32,
     pub email: String,
@@ -329,7 +329,7 @@ impl DbConn {
 #[allow(unused)]
 pub struct RefreshToken {
     id: u32,
-    created_at: String,
+    created_at: DateTime<Utc>,
 
     pub user_id: i32,
     pub token: String,
