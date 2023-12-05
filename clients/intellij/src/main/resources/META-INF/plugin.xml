@@ -38,6 +38,7 @@
                 id="com.tabbyml.intellijtabby.settings.ApplicationConfigurable"
                 displayName="Tabby"
                 nonDefaultProject="true"/>
+        <actionPromoter order="last" implementation="com.tabbyml.intellijtabby.editor.EditorActionPromoter"/>
         <editorFactoryListener implementation="com.tabbyml.intellijtabby.editor.EditorListener"/>
         <statusBarWidgetFactory id="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"
                                 implementation="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"/>
@@ -60,31 +61,6 @@
                     description="Show inline completion suggestions at the caret's position.">
                 <keyboard-shortcut first-keystroke="ctrl BACK_SLASH" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="alt BACK_SLASH" keymap="$default"/>
-            </action>
-            <separator/>
-            <action id="Tabby.AcceptCompletion"
-                    class="com.tabbyml.intellijtabby.actions.AcceptCompletion"
-                    text="Accept Completion"
-                    description="Accept the shown suggestions and insert the text.">
-                <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
-            </action>
-            <action id="Tabby.AcceptCompletionNextLine"
-                    class="com.tabbyml.intellijtabby.actions.AcceptCompletionNextLine"
-                    text="Accept Next Line"
-                    description="Accept the shown suggestions and insert the text.">
-                <keyboard-shortcut first-keystroke="ctrl TAB" keymap="$default"/>
-            </action>
-            <action id="Tabby.AcceptCompletionNextWord"
-                    class="com.tabbyml.intellijtabby.actions.AcceptCompletionNextWord"
-                    text="Accept Next Word"
-                    description="Accept the shown suggestions and insert the text.">
-                <keyboard-shortcut first-keystroke="ctrl RIGHT" keymap="$default"/>
-            </action>
-            <action id="Tabby.DismissCompletion"
-                    class="com.tabbyml.intellijtabby.actions.DismissCompletion"
-                    text="Dismiss Completion"
-                    description="Hide the shown suggestions.">
-                <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
             </action>
             <separator/>
             <action id="Tabby.OpenAuthPage"
@@ -131,6 +107,44 @@
                         description="View the source code for Tabby, and open issues.">
                 </action>
             </group>
+        </group>
+
+        <group id="Tabby.InlineCompletionContextMenu">
+            <action id="Tabby.AcceptCompletion"
+                    class="com.tabbyml.intellijtabby.actions.AcceptCompletion"
+                    text="Accept Completion"
+                    description="Accept the shown suggestions and insert the text.">
+                <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
+            </action>
+            <action id="Tabby.AcceptCompletionNextLine"
+                    class="com.tabbyml.intellijtabby.actions.AcceptCompletionNextLine"
+                    text="Accept Next Line"
+                    description="Accept the next line of shown suggestions.">
+                <keyboard-shortcut first-keystroke="ctrl TAB" keymap="$default"/>
+            </action>
+            <action id="Tabby.AcceptCompletionNextWord"
+                    class="com.tabbyml.intellijtabby.actions.AcceptCompletionNextWord"
+                    text="Accept Next Word"
+                    description="Accept the next word of shown suggestions.">
+                <keyboard-shortcut first-keystroke="control RIGHT" keymap="$default"/>
+            </action>
+            <action id="Tabby.DismissCompletion"
+                    class="com.tabbyml.intellijtabby.actions.DismissCompletion"
+                    text="Dismiss Completion"
+                    description="Hide the shown suggestions.">
+                <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
+            </action>
+        </group>
+
+        <group id="Tabby.StatusBarPopupMenu">
+            <reference id="Tabby.TriggerCompletion"/>
+            <separator/>
+            <reference id="Tabby.ToggleInlineCompletionTriggerMode"/>
+            <separator/>
+            <reference id="Tabby.OpenAuthPage"/>
+            <reference id="Tabby.CheckIssueDetail"/>
+            <reference id="Tabby.OpenSettings"/>
+            <reference id="Tabby.OpenOnlineHelp"/>
         </group>
     </actions>
 </idea-plugin>

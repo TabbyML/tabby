@@ -23,10 +23,12 @@ class EditorListener : EditorFactoryListener {
 
     editor.caretModel.addCaretListener(object : CaretListener {
       override fun caretPositionChanged(event: CaretEvent) {
+        logger.debug("CaretListener: caretPositionChanged $event")
         if (editorManager.selectedTextEditor == editor) {
           completionProvider.ongoingCompletion.value.let {
             if (it != null && it.editor == editor && it.offset == editor.caretModel.primaryCaret.offset) {
               // keep ongoing completion
+              logger.debug("Keep ongoing completion.")
             } else {
               completionProvider.clear()
             }
@@ -37,10 +39,18 @@ class EditorListener : EditorFactoryListener {
 
     editor.document.addDocumentListener(object : DocumentListener {
       override fun documentChanged(event: DocumentEvent) {
+        logger.debug("DocumentListener: documentChanged $event")
         if (editorManager.selectedTextEditor == editor) {
           if (settings.completionTriggerMode == ApplicationSettingsState.TriggerMode.AUTOMATIC) {
-            invokeLater {
-              completionProvider.provideCompletion(editor, editor.caretModel.primaryCaret.offset)
+            completionProvider.ongoingCompletion.value.let {
+              if (it != null && it.editor == editor && it.offset == editor.caretModel.primaryCaret.offset) {
+                // keep ongoing completion
+                logger.debug("Keep ongoing completion.")
+              } else {
+                invokeLater {
+                  completionProvider.provideCompletion(editor, editor.caretModel.primaryCaret.offset)
+                }
+              }
             }
           }
         }
@@ -52,7 +62,7 @@ class EditorListener : EditorFactoryListener {
         FileEditorManagerListener.FILE_EDITOR_MANAGER,
         object : FileEditorManagerListener {
           override fun selectionChanged(event: FileEditorManagerEvent) {
-            logger.info("FileEditorManagerListener selectionChanged.")
+            logger.debug("FileEditorManagerListener: selectionChanged.")
             completionProvider.clear()
           }
         }

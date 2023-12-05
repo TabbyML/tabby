@@ -245,19 +245,19 @@ class ApplicationSettingsPanel {
       nodeBinaryTextField.text = value
     }
 
-  var keymapStyle: ApplicationSettingsState.KeymapStyle
+  var keymapStyle: KeymapSettings.KeymapStyle
     get() = if (keymapStyleDefaultRadioButton.isSelected) {
-      ApplicationSettingsState.KeymapStyle.DEFAULT
+      KeymapSettings.KeymapStyle.DEFAULT
     } else if (keymapStyleTabbyStyleRadioButton.isSelected) {
-      ApplicationSettingsState.KeymapStyle.TABBY_STYLE
+      KeymapSettings.KeymapStyle.TABBY_STYLE
     } else {
-      ApplicationSettingsState.KeymapStyle.CUSTOM
+      KeymapSettings.KeymapStyle.CUSTOM
     }
     set(value) {
       when (value) {
-        ApplicationSettingsState.KeymapStyle.DEFAULT -> keymapStyleDefaultRadioButton.isSelected = true
-        ApplicationSettingsState.KeymapStyle.TABBY_STYLE -> keymapStyleTabbyStyleRadioButton.isSelected = true
-        ApplicationSettingsState.KeymapStyle.CUSTOM -> keymapStyleCustomRadioButton.isSelected = true
+        KeymapSettings.KeymapStyle.DEFAULT -> keymapStyleDefaultRadioButton.isSelected = true
+        KeymapSettings.KeymapStyle.TABBY_STYLE -> keymapStyleTabbyStyleRadioButton.isSelected = true
+        KeymapSettings.KeymapStyle.CUSTOM -> keymapStyleCustomRadioButton.isSelected = true
       }
     }
 

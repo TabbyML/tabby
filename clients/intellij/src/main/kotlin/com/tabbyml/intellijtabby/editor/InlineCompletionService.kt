@@ -20,12 +20,10 @@ import com.intellij.ui.JBColor
 import com.intellij.util.ui.UIUtil
 import com.tabbyml.intellijtabby.agent.Agent
 import com.tabbyml.intellijtabby.agent.AgentService
-import com.tabbyml.intellijtabby.settings.KeymapService
 import kotlinx.coroutines.launch
 import java.awt.Font
 import java.awt.Graphics
 import java.awt.Rectangle
-
 
 @Service
 class InlineCompletionService {
@@ -88,10 +86,6 @@ class InlineCompletionService {
           }
         }
       } else if (suffixReplaceLength == 1) {
-        logger.info("suffixReplaceLength: $suffixReplaceLength")
-        logger.info("currentLineSuffix: $currentLineSuffix")
-        logger.info("textLines[0]: ${textLines[0]}")
-        logger.info("textLines.size: ${textLines.size}")
         // Replace range contains one char
         val replaceChar = currentLineSuffix[0]
         // Insert part is substring of first line that before the char
@@ -122,7 +116,6 @@ class InlineCompletionService {
               // First line doesn't contain the char
               offset
             }
-            logger.info("startOffset: $startOffset")
             markupReplaceText(editor, startOffset, currentLineEndOffset).let { markups.add(it) }
             textLines[textLines.lastIndex] += currentLineSuffix.substring(1)
           }
@@ -151,8 +144,6 @@ class InlineCompletionService {
       }
 
       shownInlineCompletion = InlineCompletion(editor, offset, completion, inlays, markups)
-      val keymapService = service<KeymapService>()
-      keymapService.onShowInlineCompletion()
     }
     val agentService = service<AgentService>()
     agentService.scope.launch {
@@ -219,8 +210,14 @@ class InlineCompletionService {
         )
       }
       shownInlineCompletion = null
-      val keymapService = service<KeymapService>()
-      keymapService.onDismissInlineCompletion()
+
+      // Update inline completion after partial completion
+      if (type == AcceptType.NEXT_LINE || type == AcceptType.NEXT_WORD) {
+        invokeLater {
+          val completionProvider = service<CompletionProvider>()
+          completionProvider.provideCompletion(it.editor, it.offset + text.length, true)
+        }
+      }
     }
   }
 
@@ -233,13 +230,15 @@ class InlineCompletionService {
         }
       }
       shownInlineCompletion = null
-      val keymapService = service<KeymapService>()
-      keymapService.onDismissInlineCompletion()
     }
   }
 
   private fun createInlayText(editor: Editor, text: String, offset: Int, lineOffset: Int): Inlay<*>? {
     val renderer = object : EditorCustomElementRenderer {
+      override fun getContextMenuGroupId(inlay: Inlay<*>): String {
+        return "Tabby.InlineCompletionContextMenu"
+      }
+
       override fun calcWidthInPixels(inlay: Inlay<*>): Int {
         return maxOf(getWidth(inlay.editor, text), 1)
       }

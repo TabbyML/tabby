@@ -51,7 +51,12 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
         val agentService = service<AgentService>()
         val completionProvider = service<CompletionProvider>()
         updateStatusScope.launch {
-          combine(settings.state, agentService.status, agentService.currentIssue, completionProvider.ongoingCompletion) { settings, agentStatus, currentIssue, ongoingCompletion ->
+          combine(
+            settings.state,
+            agentService.status,
+            agentService.currentIssue,
+            completionProvider.ongoingCompletion
+          ) { settings, agentStatus, currentIssue, ongoingCompletion ->
             CombinedState(settings, agentStatus, currentIssue, ongoingCompletion)
           }.collect {
             updateStatus(it)
@@ -79,19 +84,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
         }
         return JBPopupFactory.getInstance().createActionGroupPopup(
           tooltip,
-          object : ActionGroup() {
-            override fun getChildren(e: AnActionEvent?): Array<AnAction> {
-              val actionManager = ActionManager.getInstance()
-              return arrayOf(
-                actionManager.getAction("Tabby.TriggerCompletion"),
-                actionManager.getAction("Tabby.OpenAuthPage"),
-                actionManager.getAction("Tabby.CheckIssueDetail"),
-                actionManager.getAction("Tabby.ToggleInlineCompletionTriggerMode"),
-                actionManager.getAction("Tabby.OpenSettings"),
-                actionManager.getAction("Tabby.OpenOnlineHelp"),
-              )
-            }
-          },
+          ActionManager.getInstance().getAction("Tabby.StatusBarPopupMenu") as ActionGroup,
           context,
           false,
           null,
@@ -100,15 +93,17 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
       }
 
       private fun updateStatus(state: CombinedState) {
-        when(state.agentStatus) {
+        when (state.agentStatus) {
           AgentService.Status.INITIALIZING, Agent.Status.NOT_INITIALIZED -> {
             icon = AnimatedIcon.Default()
             tooltip = "Tabby: Initializing"
           }
+
           AgentService.Status.INITIALIZATION_FAILED -> {
             icon = AllIcons.General.Error
             tooltip = "Tabby: Initialization failed"
           }
+
           Agent.Status.READY -> {
             val muted = mutableListOf<String>()
             if (state.settings.notificationsMuted.contains("completionResponseTimeIssues")) {
@@ -116,7 +111,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
             }
             if (state.currentIssue != null && state.currentIssue !in muted) {
               icon = AllIcons.General.Warning
-              tooltip = when(state.currentIssue) {
+              tooltip = when (state.currentIssue) {
                 "slowCompletionResponseTime" -> "Tabby: Completion requests appear to take too much time"
                 "highCompletionTimeoutRate" -> "Tabby: Most completion requests timed out"
                 else -> "Tabby: Issues exist"
@@ -145,10 +140,12 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
               }
             }
           }
+
           Agent.Status.DISCONNECTED -> {
             icon = AllIcons.General.Error
             tooltip = "Tabby: Cannot connect to Server, please check settings"
           }
+
           Agent.Status.UNAUTHORIZED -> {
             icon = AllIcons.General.Warning
             tooltip = "Tabby: Authorization required, click to continue"

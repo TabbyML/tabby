@@ -32,25 +32,6 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
       completionTriggerModeFlow.value = value
     }
 
-  enum class KeymapStyle {
-    @SerializedName("default")
-    DEFAULT,
-
-    @SerializedName("tabby-style")
-    TABBY_STYLE,
-
-    @SerializedName("custom")
-    CUSTOM,
-  }
-
-  private val keymapStyleFlow = MutableStateFlow(KeymapStyle.DEFAULT)
-  val keymapStyleState = keymapStyleFlow.asStateFlow()
-  var keymapStyle: KeymapStyle = KeymapStyle.DEFAULT
-    set(value) {
-      field = value
-      keymapStyleFlow.value = value
-    }
-
   private val serverEndpointFlow = MutableStateFlow("")
   val serverEndpointState = serverEndpointFlow.asStateFlow()
   var serverEndpoint: String = ""
@@ -106,13 +87,13 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
     nodeBinaryState,
     isAnonymousUsageTrackingDisabledState,
     notificationsMutedState,
-  ) { completionTriggerMode, serverEndpoint, nodeBinary, isAnonymousUsageTrackingDisabled, notificationsMuted ->
+  ) { args ->
     State(
-      completionTriggerMode = completionTriggerMode,
-      serverEndpoint = serverEndpoint,
-      nodeBinary = nodeBinary,
-      isAnonymousUsageTrackingDisabled = isAnonymousUsageTrackingDisabled,
-      notificationsMuted = notificationsMuted,
+      completionTriggerMode = args[0] as TriggerMode,
+      serverEndpoint = args[1] as String,
+      nodeBinary = args[2] as String,
+      isAnonymousUsageTrackingDisabled = args[3] as Boolean,
+      notificationsMuted = args[4] as List<String>,
     )
   }.stateIn(CoroutineScope(Dispatchers.IO), SharingStarted.Eagerly, this.data)
 
