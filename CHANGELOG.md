@@ -4,6 +4,15 @@
 
 ### Fixes and improvements
 
+## [v3.23.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.23.0) (2023-12-05)
+
+### New features
+* Support Phi model
+
+### Fixes and improvements
+* Fix the conversion for whisper without the "alignment_heads" in the "generation_config.json"
+* Fix forward batch
+
 ## [v3.22.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.22.0) (2023-11-22)
 
 ### New features
