@@ -15,7 +15,7 @@ export default function Signup() {
           {title}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Enter your credentials below to create account
+          Fill form below to create your account
         </p>
       </div>
       <UserAuthForm />
