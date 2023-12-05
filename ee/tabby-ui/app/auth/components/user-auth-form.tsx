@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { FieldError, FieldErrors, useForm, useFormContext, useFormState } from "react-hook-form"
 import * as z from "zod"
 
 import { cn } from "@/lib/utils"
@@ -11,15 +11,28 @@ import { IconSpinner } from "@/components/ui/icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { graphql } from "@/lib/gql/generates"
+import { useGraphQLForm } from "@/lib/tabby-gql-client"
+
+export const registerUser = graphql(/* GraphQL */ `
+  mutation register($email: String!, $password1: String!, $password2: String!, $invitationCode: String) {
+    register(
+      email: $email
+      password1: $password1
+      password2: $password2
+      invitationCode: $invitationCode
+    ) {
+      accessToken
+      refreshToken
+    }
+  }
+`)
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password1: z.string(),
   password2: z.string(),
   invitationCode: z.string().optional(),
-}).refine((data) => data.password1 === data.password2, {
-  message: "Passwords don't match",
-  path: ["password2"],
 });
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -30,18 +43,17 @@ export function UserAuthForm({ className, invitationCode, ...props }: UserAuthFo
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password1: "",
-      password2: "",
+      email: "a@a.com",
+      password1: "a@a.comacom",
+      password2: "a@a.comacom",
       invitationCode,
     }
   })
 
-  const { isSubmitSuccessful, isSubmitting } = form.formState;
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    await new Promise(resolve => setTimeout(resolve, 500000))
-  }
+  const { isSubmitting } = form.formState;
+  const { onSubmit } = useGraphQLForm(registerUser, {
+    onError: (path, message) => form.setError(path as any, { message })
+  });
 
   return (
     <div className={cn("grid gap-6", className)} {...props}>
@@ -78,6 +90,7 @@ export function UserAuthForm({ className, invitationCode, ...props }: UserAuthFo
               <FormControl>
                 <Input type="password" {...field} />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )} />
           <FormField control={form.control} name="invitationCode" render={({ field }) => (
@@ -91,9 +104,10 @@ export function UserAuthForm({ className, invitationCode, ...props }: UserAuthFo
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Sign In
+            Register
           </Button>
         </form>
+        <FormMessage className="text-center" />
       </Form>
     </div>
   )
