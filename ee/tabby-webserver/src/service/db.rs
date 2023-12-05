@@ -1,6 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use rusqlite::{params, OptionalExtension, Row};
 use rusqlite_migration::{AsyncMigrations, M};
@@ -57,7 +58,7 @@ lazy_static! {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
                 token VARCHAR(255) NOT NULL COLLATE NOCASE,
-                expires_at INTEGER NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
                 created_at TIMESTAMP DEFAULT (DATETIME('now')),
                 CONSTRAINT `idx_token` UNIQUE (`token`)
             );
@@ -69,8 +70,8 @@ lazy_static! {
 
 #[allow(unused)]
 pub struct User {
-    created_at: String,
-    updated_at: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 
     pub id: i32,
     pub email: String,
@@ -328,11 +329,11 @@ impl DbConn {
 #[allow(unused)]
 pub struct RefreshToken {
     id: u32,
-    created_at: String,
+    created_at: DateTime<Utc>,
 
     pub user_id: i32,
     pub token: String,
-    pub expires_at: i64,
+    pub expires_at: DateTime<Utc>,
 }
 
 impl RefreshToken {
@@ -352,26 +353,21 @@ impl RefreshToken {
     }
 
     pub fn is_expired(&self) -> bool {
-        let now = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now();
         self.expires_at < now
     }
 }
 
 /// db read/write operations for `refresh_tokens` table
 impl DbConn {
-    pub async fn create_refresh_token(
-        &self,
-        user_id: i32,
-        token: &str,
-        expires_at: i64,
-    ) -> Result<()> {
+    pub async fn create_refresh_token(&self, user_id: i32, token: &str) -> Result<()> {
         let token = token.to_string();
         let res = self
             .conn
             .call(move |c| {
                 c.execute(
-                    r#"INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)"#,
-                    params![user_id, token, expires_at],
+                    r#"INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, datetime('now', '+7 days'))"#,
+                    params![user_id, token],
                 )
             })
             .await?;
@@ -435,6 +431,8 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
+
+    use std::ops::Add;
 
     use super::*;
     use crate::schema::auth::AuthenticationService;
@@ -527,20 +525,21 @@ mod tests {
     async fn test_create_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        conn.create_refresh_token(1, "test", 100).await.unwrap();
+        conn.create_refresh_token(1, "test").await.unwrap();
 
         let token = conn.get_refresh_token("test").await.unwrap().unwrap();
 
         assert_eq!(token.user_id, 1);
         assert_eq!(token.token, "test");
-        assert_eq!(token.expires_at, 100);
+        assert!(token.expires_at > Utc::now().add(chrono::Duration::days(6)));
+        assert!(token.expires_at < Utc::now().add(chrono::Duration::days(7)));
     }
 
     #[tokio::test]
     async fn test_replace_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        conn.create_refresh_token(1, "test", 100).await.unwrap();
+        conn.create_refresh_token(1, "test").await.unwrap();
         conn.replace_refresh_token("test", "test2").await.unwrap();
 
         let token = conn.get_refresh_token("test").await.unwrap();
@@ -549,6 +548,5 @@ mod tests {
         let token = conn.get_refresh_token("test2").await.unwrap().unwrap();
         assert_eq!(token.user_id, 1);
         assert_eq!(token.token, "test2");
-        assert_eq!(token.expires_at, 100);
     }
 }
