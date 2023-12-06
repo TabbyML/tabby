@@ -42,13 +42,6 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        git \
-        && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
 # Disable safe directory in docker
 # Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
 RUN git config --system --add safe.directory "*"
