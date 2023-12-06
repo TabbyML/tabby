@@ -13,10 +13,12 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Therefore it is highly recommended to use the babel or swc plugin for production.
  */
 const documents = {
-  '\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      cudaDevices\n    }\n  }\n':
-    types.GetWorkersDocument,
   '\n  query GetRegistrationToken {\n    registrationToken\n  }\n':
-    types.GetRegistrationTokenDocument
+    types.GetRegistrationTokenDocument,
+  '\n  query GetIsAdminInitialized {\n    isAdminInitialized\n  }\n':
+    types.GetIsAdminInitializedDocument,
+  '\n  mutation register($email: String!, $password1: String!, $password2: String!, $invitationCode: String) {\n    register(\n      email: $email\n      password1: $password1\n      password2: $password2\n      invitationCode: $invitationCode\n    ) {\n      accessToken\n      refreshToken\n    }\n  }\n':
+    types.RegisterDocument
 }
 
 /**
@@ -37,14 +39,20 @@ export function graphql(source: string): unknown
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(
-  source: '\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      cudaDevices\n    }\n  }\n'
-): (typeof documents)['\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      cudaDevices\n    }\n  }\n']
+  source: '\n  query GetRegistrationToken {\n    registrationToken\n  }\n'
+): (typeof documents)['\n  query GetRegistrationToken {\n    registrationToken\n  }\n']
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(
-  source: '\n  query GetRegistrationToken {\n    registrationToken\n  }\n'
-): (typeof documents)['\n  query GetRegistrationToken {\n    registrationToken\n  }\n']
+  source: '\n  query GetIsAdminInitialized {\n    isAdminInitialized\n  }\n'
+): (typeof documents)['\n  query GetIsAdminInitialized {\n    isAdminInitialized\n  }\n']
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(
+  source: '\n  mutation register($email: String!, $password1: String!, $password2: String!, $invitationCode: String) {\n    register(\n      email: $email\n      password1: $password1\n      password2: $password2\n      invitationCode: $invitationCode\n    ) {\n      accessToken\n      refreshToken\n    }\n  }\n'
+): (typeof documents)['\n  mutation register($email: String!, $password1: String!, $password2: String!, $invitationCode: String) {\n    register(\n      email: $email\n      password1: $password1\n      password2: $password2\n      invitationCode: $invitationCode\n    ) {\n      accessToken\n      refreshToken\n    }\n  }\n']
 
 export function graphql(source: string) {
   return (documents as any)[source] ?? {}

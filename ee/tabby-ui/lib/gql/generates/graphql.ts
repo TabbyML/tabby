@@ -29,15 +29,97 @@ export type Scalars = {
   Float: { input: number; output: number }
 }
 
+export type Claims = {
+  __typename?: 'Claims'
+  exp: Scalars['Float']['output']
+  iat: Scalars['Float']['output']
+  user: UserInfo
+}
+
+export type Invitation = {
+  __typename?: 'Invitation'
+  code: Scalars['String']['output']
+  createdAt: Scalars['String']['output']
+  email: Scalars['String']['output']
+  id: Scalars['Int']['output']
+}
+
 export type Mutation = {
   __typename?: 'Mutation'
+  createInvitation: Scalars['Int']['output']
+  deleteInvitation: Scalars['Int']['output']
+  refreshToken: RefreshTokenResponse
+  register: RegisterResponse
   resetRegistrationToken: Scalars['String']['output']
+  tokenAuth: TokenAuthResponse
+  verifyToken: VerifyTokenResponse
+}
+
+export type MutationCreateInvitationArgs = {
+  email: Scalars['String']['input']
+}
+
+export type MutationDeleteInvitationArgs = {
+  id: Scalars['Int']['input']
+}
+
+export type MutationRefreshTokenArgs = {
+  refreshToken: Scalars['String']['input']
+}
+
+export type MutationRegisterArgs = {
+  email: Scalars['String']['input']
+  invitationCode?: InputMaybe<Scalars['String']['input']>
+  password1: Scalars['String']['input']
+  password2: Scalars['String']['input']
+}
+
+export type MutationTokenAuthArgs = {
+  email: Scalars['String']['input']
+  password: Scalars['String']['input']
+}
+
+export type MutationVerifyTokenArgs = {
+  token: Scalars['String']['input']
 }
 
 export type Query = {
   __typename?: 'Query'
+  invitations: Array<Invitation>
+  isAdminInitialized: Scalars['Boolean']['output']
+  me: UserInfo
   registrationToken: Scalars['String']['output']
   workers: Array<Worker>
+}
+
+export type RefreshTokenResponse = {
+  __typename?: 'RefreshTokenResponse'
+  accessToken: Scalars['String']['output']
+  refreshExpiresAt: Scalars['Float']['output']
+  refreshToken: Scalars['String']['output']
+}
+
+export type RegisterResponse = {
+  __typename?: 'RegisterResponse'
+  accessToken: Scalars['String']['output']
+  refreshToken: Scalars['String']['output']
+}
+
+export type TokenAuthResponse = {
+  __typename?: 'TokenAuthResponse'
+  accessToken: Scalars['String']['output']
+  refreshToken: Scalars['String']['output']
+}
+
+export type UserInfo = {
+  __typename?: 'UserInfo'
+  email: Scalars['String']['output']
+  isAdmin: Scalars['Boolean']['output']
+}
+
+export type VerifyTokenResponse = {
+  __typename?: 'VerifyTokenResponse'
+  claims: Claims
 }
 
 export type Worker = {
@@ -57,23 +139,6 @@ export enum WorkerKind {
   Completion = 'COMPLETION'
 }
 
-export type GetWorkersQueryVariables = Exact<{ [key: string]: never }>
-
-export type GetWorkersQuery = {
-  __typename?: 'Query'
-  workers: Array<{
-    __typename?: 'Worker'
-    kind: WorkerKind
-    name: string
-    addr: string
-    device: string
-    arch: string
-    cpuInfo: string
-    cpuCount: number
-    cudaDevices: Array<string>
-  }>
-}
-
 export type GetRegistrationTokenQueryVariables = Exact<{ [key: string]: never }>
 
 export type GetRegistrationTokenQuery = {
@@ -81,38 +146,31 @@ export type GetRegistrationTokenQuery = {
   registrationToken: string
 }
 
-export const GetWorkersDocument = {
-  kind: 'Document',
-  definitions: [
-    {
-      kind: 'OperationDefinition',
-      operation: 'query',
-      name: { kind: 'Name', value: 'GetWorkers' },
-      selectionSet: {
-        kind: 'SelectionSet',
-        selections: [
-          {
-            kind: 'Field',
-            name: { kind: 'Name', value: 'workers' },
-            selectionSet: {
-              kind: 'SelectionSet',
-              selections: [
-                { kind: 'Field', name: { kind: 'Name', value: 'kind' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'addr' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'device' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'arch' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'cpuInfo' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'cpuCount' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'cudaDevices' } }
-              ]
-            }
-          }
-        ]
-      }
-    }
-  ]
-} as unknown as DocumentNode<GetWorkersQuery, GetWorkersQueryVariables>
+export type GetIsAdminInitializedQueryVariables = Exact<{
+  [key: string]: never
+}>
+
+export type GetIsAdminInitializedQuery = {
+  __typename?: 'Query'
+  isAdminInitialized: boolean
+}
+
+export type RegisterMutationVariables = Exact<{
+  email: Scalars['String']['input']
+  password1: Scalars['String']['input']
+  password2: Scalars['String']['input']
+  invitationCode?: InputMaybe<Scalars['String']['input']>
+}>
+
+export type RegisterMutation = {
+  __typename?: 'Mutation'
+  register: {
+    __typename?: 'RegisterResponse'
+    accessToken: string
+    refreshToken: string
+  }
+}
+
 export const GetRegistrationTokenDocument = {
   kind: 'Document',
   definitions: [
@@ -132,3 +190,125 @@ export const GetRegistrationTokenDocument = {
   GetRegistrationTokenQuery,
   GetRegistrationTokenQueryVariables
 >
+export const GetIsAdminInitializedDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'query',
+      name: { kind: 'Name', value: 'GetIsAdminInitialized' },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'isAdminInitialized' } }
+        ]
+      }
+    }
+  ]
+} as unknown as DocumentNode<
+  GetIsAdminInitializedQuery,
+  GetIsAdminInitializedQueryVariables
+>
+export const RegisterDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'mutation',
+      name: { kind: 'Name', value: 'register' },
+      variableDefinitions: [
+        {
+          kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'email' }
+          },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
+          }
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'password1' }
+          },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
+          }
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'password2' }
+          },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
+          }
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'invitationCode' }
+          },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
+        }
+      ],
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'register' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'email' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'email' }
+                }
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'password1' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'password1' }
+                }
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'password2' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'password2' }
+                }
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'invitationCode' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'invitationCode' }
+                }
+              }
+            ],
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'accessToken' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'refreshToken' } }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+} as unknown as DocumentNode<RegisterMutation, RegisterMutationVariables>
