@@ -1,5 +1,5 @@
 // https://github.com/tree-sitter/tree-sitter-typescript/blob/master/src/node-types.json
-export const typeList = {
+export const typeList: Record<string, string[][]> = {
   tsx: [
     [
       "jsx_element",

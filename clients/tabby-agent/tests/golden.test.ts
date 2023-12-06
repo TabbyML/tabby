@@ -15,7 +15,7 @@ describe("agent golden test", () => {
     output.push(JSON.parse(line));
   });
 
-  const waitForResponse = (requestId, timeout = 1000) => {
+  const waitForResponse = (requestId: number, timeout = 1000) => {
     return new Promise<void>((resolve, reject) => {
       const start = Date.now();
       const interval = setInterval(() => {
@@ -30,7 +30,7 @@ describe("agent golden test", () => {
     });
   };
 
-  const createGoldenTest = async (goldenFilepath) => {
+  const createGoldenTest = async (goldenFilepath: string) => {
     const content = await fs.readFile(goldenFilepath, "utf8");
     const language = path.basename(goldenFilepath, path.extname(goldenFilepath)).replace(/^\d+-/g, "");
     const replaceStart = content.indexOf("⏩");

@@ -1,18 +1,18 @@
-import { CompletionContext } from "../Agent";
+import { CompletionContext } from "../CompletionContext";
 import { PostprocessFilter, logger } from "./base";
 import { splitLines, isBlank, calcDistance } from "../utils";
 
-export const dropDuplicated: (context: CompletionContext) => PostprocessFilter = (context) => {
-  return (input) => {
+export function dropDuplicated(): PostprocessFilter {
+  return (input: string, context: CompletionContext) => {
     // get first n (n <= 3) lines of input and suffix, ignore blank lines
     const { suffixLines } = context;
     const inputLines = splitLines(input);
     let inputIndex = 0;
-    while (inputIndex < inputLines.length && isBlank(inputLines[inputIndex])) {
+    while (inputIndex < inputLines.length && isBlank(inputLines[inputIndex]!)) {
       inputIndex++;
     }
     let suffixIndex = 0;
-    while (suffixIndex < suffixLines.length && isBlank(suffixLines[suffixIndex])) {
+    while (suffixIndex < suffixLines.length && isBlank(suffixLines[suffixIndex]!)) {
       suffixIndex++;
     }
     const lineCount = Math.min(3, inputLines.length - inputIndex, suffixLines.length - suffixIndex);
@@ -38,4 +38,4 @@ export const dropDuplicated: (context: CompletionContext) => PostprocessFilter =
     }
     return input;
   };
-};
+}

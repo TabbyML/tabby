@@ -48,7 +48,7 @@ describe("postprocess", () => {
           console.log("myFuncB called.");
         }┤
       `;
-      expect(removeRepetitiveBlocks(context)(completion)).to.eq(expected);
+      expect(removeRepetitiveBlocks()(completion, context)).to.eq(expected);
     });
   });
 });

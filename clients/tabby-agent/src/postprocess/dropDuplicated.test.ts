@@ -17,7 +17,7 @@ describe("postprocess", () => {
       const completion = inline`
           ├return a + b;┤
       `;
-      expect(dropDuplicated(context)(completion)).to.be.null;
+      expect(dropDuplicated()(completion, context)).to.be.null;
     });
 
     it("should drop completion similar to suffix", () => {
@@ -34,7 +34,7 @@ describe("postprocess", () => {
       const completion = inline`
           ├}┤
       `;
-      expect(dropDuplicated(context)(completion)).to.be.null;
+      expect(dropDuplicated()(completion, context)).to.be.null;
     });
   });
 });

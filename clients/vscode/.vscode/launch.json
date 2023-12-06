@@ -17,7 +17,7 @@
       "name": "Run Web Extension in Browser",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "npx",
+      "runtimeExecutable": "yarn",
       "runtimeArgs": [
         "vscode-test-web",
         "--extensionDevelopmentPath=${workspaceFolder}",

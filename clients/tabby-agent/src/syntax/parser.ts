@@ -1,3 +1,4 @@
+import path from "path";
 import TreeSitterParser from "web-tree-sitter";
 import { isTest } from "../env";
 
@@ -13,14 +14,14 @@ export const languagesConfigs: Record<string, string> = {
   ruby: "ruby",
 };
 
-var treeSitterInitialized = false;
+let treeSitterInitialized = false;
 
 async function createParser(languageConfig: string): Promise<TreeSitterParser> {
   if (!treeSitterInitialized) {
     await TreeSitterParser.init({
       locateFile(scriptName: string, scriptDirectory: string) {
         const paths = isTest ? [scriptDirectory, scriptName] : [scriptDirectory, "wasm", scriptName];
-        return require("path").join(...paths);
+        return path.join(...paths);
       },
     });
     treeSitterInitialized = true;
@@ -29,7 +30,7 @@ async function createParser(languageConfig: string): Promise<TreeSitterParser> {
   const langWasmPaths = isTest
     ? [process.cwd(), "wasm", `tree-sitter-${languageConfig}.wasm`]
     : [__dirname, "wasm", `tree-sitter-${languageConfig}.wasm`];
-  parser.setLanguage(await TreeSitterParser.Language.load(require("path").join(...langWasmPaths)));
+  parser.setLanguage(await TreeSitterParser.Language.load(path.join(...langWasmPaths)));
   return parser;
 }
 

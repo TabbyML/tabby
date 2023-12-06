@@ -1,4 +1,4 @@
-export { TabbyAgent, TabbyAgentOptions } from "./TabbyAgent";
+export { TabbyAgent } from "./TabbyAgent";
 export {
   Agent,
   AgentStatus,

@@ -1,8 +1,9 @@
 import type { components as ApiComponents } from "./types/tabbyApi";
-import { AgentConfig, PartialAgentConfig } from "./AgentConfig";
-import { CompletionRequest, CompletionResponse, CompletionContext } from "./CompletionContext";
+import type { AgentConfig, PartialAgentConfig } from "./AgentConfig";
+import type { DataStore } from "./dataStore";
+import type { CompletionRequest, CompletionResponse } from "./CompletionContext";
 
-export { CompletionRequest, CompletionResponse, CompletionContext };
+export type { CompletionRequest, CompletionResponse };
 
 export type ClientProperties = Partial<{
   user: Record<string, any>;
@@ -12,6 +13,7 @@ export type ClientProperties = Partial<{
 export type AgentInitOptions = Partial<{
   config: PartialAgentConfig;
   clientProperties: ClientProperties;
+  dataStore: DataStore;
 }>;
 
 export type ServerHealthState = ApiComponents["schemas"]["HealthState"];
@@ -32,7 +34,7 @@ export type HighCompletionTimeoutRateIssue = {
 };
 export type ConnectionFailedIssue = {
   name: "connectionFailed";
-  message: string;
+  message?: string;
 };
 export type AgentIssue = SlowCompletionResponseTimeIssue | HighCompletionTimeoutRateIssue | ConnectionFailedIssue;
 

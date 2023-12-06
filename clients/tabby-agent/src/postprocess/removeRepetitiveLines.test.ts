@@ -31,7 +31,7 @@ describe("postprocess", () => {
       const expected = inline`
         ├hello();┤
       `;
-      expect(removeRepetitiveLines(context)(completion)).to.eq(expected);
+      expect(removeRepetitiveLines()(completion, context)).to.eq(expected);
     });
 
     it("should remove repetitive lines with patterns", () => {
@@ -56,7 +56,7 @@ describe("postprocess", () => {
       const expected = inline`
         ├const b = 1;┤
         `;
-      expect(removeRepetitiveLines(context)(completion)).to.eq(expected);
+      expect(removeRepetitiveLines()(completion, context)).to.eq(expected);
     });
   });
 });

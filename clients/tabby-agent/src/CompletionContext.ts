@@ -45,6 +45,8 @@ export class CompletionContext {
   suffix: string;
   prefixLines: string[];
   suffixLines: string[];
+  currentLinePrefix: string;
+  currentLineSuffix: string;
 
   clipboard: string;
 
@@ -65,6 +67,8 @@ export class CompletionContext {
     this.suffix = request.text.slice(request.position);
     this.prefixLines = splitLines(this.prefix);
     this.suffixLines = splitLines(this.suffix);
+    this.currentLinePrefix = this.prefixLines[this.prefixLines.length - 1] ?? "";
+    this.currentLineSuffix = this.suffixLines[0] ?? "";
 
     this.clipboard = request.clipboard?.trim() ?? "";
 

@@ -17,7 +17,7 @@ describe("postprocess", () => {
       const expected = inline`
                       ├Foo();┤
       `;
-      expect(trimSpace(context)(completion)).to.eq(expected);
+      expect(trimSpace()(completion, context)).to.eq(expected);
     });
 
     it("should not remove trailing space if filling in line", () => {
@@ -30,7 +30,7 @@ describe("postprocess", () => {
       const completion = inline`
                       ├bar, ┤
         `;
-      expect(trimSpace(context)(completion)).to.eq(completion);
+      expect(trimSpace()(completion, context)).to.eq(completion);
     });
 
     it("should remove trailing space if filling in line with suffix starts with space", () => {
@@ -46,7 +46,7 @@ describe("postprocess", () => {
       const expected = inline`
                       ├bar,┤
         `;
-      expect(trimSpace(context)(completion)).to.eq(expected);
+      expect(trimSpace()(completion, context)).to.eq(expected);
     });
 
     it("should not remove leading space if current line is blank", () => {
@@ -61,7 +61,7 @@ describe("postprocess", () => {
       const completion = inline`
         ├  return a + b;┤
         `;
-      expect(trimSpace(context)(completion)).to.eq(completion);
+      expect(trimSpace()(completion, context)).to.eq(completion);
     });
 
     it("should remove leading space if current line is not blank and ends with space", () => {
@@ -77,7 +77,7 @@ describe("postprocess", () => {
       const expected = inline`
                   ├sum(bar, baz);┤
         `;
-      expect(trimSpace(context)(completion)).to.eq(expected);
+      expect(trimSpace()(completion, context)).to.eq(expected);
     });
   });
 });
