@@ -49,6 +49,7 @@ fn main() {
             "gfx1100",
             "gfx1101",
             "gfx1102",
+            "gfx1103",
         ];
 
         let rocm_root = env::var("ROCM_ROOT").unwrap_or("/opt/rocm".to_string());
