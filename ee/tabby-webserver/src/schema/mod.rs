@@ -191,9 +191,11 @@ fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError
             obj.into()
         })
         .collect::<Vec<_>>();
-    let mut ext = Object::with_capacity(2);
-    ext.add_field("code", Value::scalar("validation-error".to_string()));
-    ext.add_field("errors", Value::list(errors));
+    let mut error = Object::with_capacity(1);
+    error.add_field("errors", Value::list(errors));
+
+    let mut ext = Object::with_capacity(1);
+    ext.add_field("validation-errors", error.into());
 
     FieldError::new("Invalid input parameters", ext.into())
 }

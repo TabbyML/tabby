@@ -38,16 +38,16 @@ struct RegisterInput {
         code = "password1",
         message = "Password must be at most 20 characters"
     ))]
-    #[validate(must_match(
-        code = "password1",
-        message = "Passwords do not match",
-        other = "password2"
-    ))]
     password1: String,
     #[validate(length(
         min = 8,
         code = "password2",
         message = "Password must be at least 8 characters"
+    ))]
+    #[validate(must_match(
+        code = "password2",
+        message = "Passwords do not match",
+        other = "password1"
     ))]
     #[validate(length(
         max = 20,
