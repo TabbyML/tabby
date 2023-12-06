@@ -1,5 +1,6 @@
 package com.tabbyml.intellijtabby.settings
 
+import com.google.gson.annotations.SerializedName
 import com.intellij.openapi.actionSystem.KeyboardShortcut
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
@@ -12,20 +13,27 @@ class KeymapSettings {
   private val manager = KeymapManagerEx.getInstanceEx()
 
   enum class KeymapStyle {
+    @SerializedName("default")
     DEFAULT,
+
+    @SerializedName("tabby-style")
     TABBY_STYLE,
-    CUSTOM,
+
+    @SerializedName("customize")
+    CUSTOMIZE,
   }
 
   fun getCurrentKeymapStyle(): KeymapStyle {
     val keymap = manager.activeKeymap
-    if (isSchemeMatched(keymap, DEFAULT_KEYMAP_SCHEMA)) {
-      return KeymapStyle.DEFAULT
+    val style = if (isSchemeMatched(keymap, DEFAULT_KEYMAP_SCHEMA)) {
+      KeymapStyle.DEFAULT
+    } else if (isSchemeMatched(keymap, TABBY_STYLE_KEYMAP_SCHEMA)) {
+      KeymapStyle.TABBY_STYLE
+    } else {
+      KeymapStyle.CUSTOMIZE
     }
-    if (isSchemeMatched(keymap, TABBY_STYLE_KEYMAP_SCHEMA)) {
-      return KeymapStyle.TABBY_STYLE
-    }
-    return KeymapStyle.CUSTOM
+    logger.info("Current keymap style: $style ($keymap)")
+    return style
   }
 
   private fun isSchemeMatched(keymap: Keymap, schema: Map<String, List<KeyboardShortcut>>): Boolean {
@@ -65,7 +73,7 @@ class KeymapSettings {
         }
       }
 
-      KeymapStyle.CUSTOM -> {
+      KeymapStyle.CUSTOMIZE -> {
         // Do nothing
       }
     }

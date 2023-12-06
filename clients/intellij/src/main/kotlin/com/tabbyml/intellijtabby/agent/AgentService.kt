@@ -11,6 +11,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.Service
@@ -18,10 +19,13 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.keymap.Keymap
+import com.intellij.openapi.keymap.KeymapManagerListener
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
+import com.tabbyml.intellijtabby.settings.KeymapSettings
 import io.ktor.util.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -60,6 +64,7 @@ class AgentService : Disposable {
 
   init {
     val settings = service<ApplicationSettingsState>()
+    val keymapSettings = service<KeymapSettings>()
     scope.launch {
       val config = createAgentConfig(settings.data)
       val clientProperties = createClientProperties(settings.data)
@@ -111,6 +116,25 @@ class AgentService : Disposable {
       }
     }
 
+    var keymapAttributeUpdateJob: Job? = null
+    ApplicationManager.getApplication().messageBus.connect().subscribe(
+      KeymapManagerListener.TOPIC,
+      object : KeymapManagerListener {
+        override fun shortcutChanged(keymap: Keymap, actionId: String) {
+          if (actionId.startsWith("Tabby.")) {
+            keymapAttributeUpdateJob?.cancel()
+            keymapAttributeUpdateJob = scope.launch {
+              // there will be many shortcutChanged events at once, so we debounce them
+              delay(1000)
+              val style = keymapSettings.getCurrentKeymapStyle()
+              logger.info("Updated keymap style: $style")
+              updateClientProperties("user", "intellij.keymapStyle", style)
+            }
+          }
+        }
+      }
+    )
+
     scope.launch {
       agent.authRequiredEvent.collect {
         logger.info("Will show auth required notification.")
@@ -127,7 +151,6 @@ class AgentService : Disposable {
         }
       }
     }
-
 
     scope.launch {
       agent.status.collect { status ->
@@ -219,6 +242,7 @@ class AgentService : Disposable {
       user = mapOf(
         "intellij" to mapOf(
           "triggerMode" to state.completionTriggerMode,
+          "keymapStyle" to "unknown", // FIXME: At initialization, we cannot get the correct keymap style. It will be updated later.
         ),
       ),
       session = mapOf(

@@ -21,7 +21,7 @@ class ApplicationConfigurable : Configurable {
     val keymapSettings = service<KeymapSettings>()
     return settingsPanel.completionTriggerMode != settings.completionTriggerMode ||
         (settingsPanel.keymapStyle != keymapSettings.getCurrentKeymapStyle() &&
-            settingsPanel.keymapStyle != KeymapSettings.KeymapStyle.CUSTOM) ||
+            settingsPanel.keymapStyle != KeymapSettings.KeymapStyle.CUSTOMIZE) ||
         settingsPanel.serverEndpoint != settings.serverEndpoint ||
         settingsPanel.nodeBinary != settings.nodeBinary ||
         settingsPanel.isAnonymousUsageTrackingDisabled != settings.isAnonymousUsageTrackingDisabled

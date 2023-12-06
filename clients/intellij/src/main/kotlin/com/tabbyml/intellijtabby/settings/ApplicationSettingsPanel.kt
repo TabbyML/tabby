@@ -161,7 +161,7 @@ class ApplicationSettingsPanel {
 
   private val keymapStyleDefaultRadioButton = JBRadioButton("Default")
   private val keymapStyleTabbyStyleRadioButton = JBRadioButton("Tabby style")
-  private val keymapStyleCustomRadioButton = JBRadioButton("<html><a href=''>Custom...</a><html>").apply {
+  private val keymapStyleCustomRadioButton = JBRadioButton("<html><a href=''>Customize...</a><html>").apply {
     addActionListener {
       ShowSettingsUtil.getInstance().showSettingsDialog(null, KeymapPanel::class.java) { panel ->
         CoroutineScope(Dispatchers.IO).launch {
@@ -251,13 +251,13 @@ class ApplicationSettingsPanel {
     } else if (keymapStyleTabbyStyleRadioButton.isSelected) {
       KeymapSettings.KeymapStyle.TABBY_STYLE
     } else {
-      KeymapSettings.KeymapStyle.CUSTOM
+      KeymapSettings.KeymapStyle.CUSTOMIZE
     }
     set(value) {
       when (value) {
         KeymapSettings.KeymapStyle.DEFAULT -> keymapStyleDefaultRadioButton.isSelected = true
         KeymapSettings.KeymapStyle.TABBY_STYLE -> keymapStyleTabbyStyleRadioButton.isSelected = true
-        KeymapSettings.KeymapStyle.CUSTOM -> keymapStyleCustomRadioButton.isSelected = true
+        KeymapSettings.KeymapStyle.CUSTOMIZE -> keymapStyleCustomRadioButton.isSelected = true
       }
     }
 
