@@ -109,7 +109,8 @@ function MainPanel() {
 
         {!!registrationTokenRes?.registrationToken && (
           <div className="flex items-center gap-1">
-            Registeration token: <span className="text-sm rounded-lg text-red-600">
+            Registeration token:{' '}
+            <span className="text-sm rounded-lg text-red-600">
               {registrationTokenRes.registrationToken}
             </span>
             <CopyButton value={registrationTokenRes.registrationToken} />

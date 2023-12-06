@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { nanoid } from '@/lib/utils'
 
-const excludeFromState = ['_hasHydrated', 'setHasHydrated', "activeChatId"]
+const excludeFromState = ['_hasHydrated', 'setHasHydrated', 'activeChatId']
 
 export interface ChatState {
   chats: Chat[] | undefined

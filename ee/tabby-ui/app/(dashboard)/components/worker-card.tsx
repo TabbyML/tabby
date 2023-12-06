@@ -17,14 +17,21 @@ export default function RunnerCard({
   cpuCount,
   cpuInfo
 }: RunnerCardProps) {
-  const textClass = cn("ml-2", "whitespace-nowrap", "overflow-hidden", "overflow-ellipsis")
-  const cpuMessage = `${cpuInfo} (${cpuCount} cores)`;
+  const textClass = cn(
+    'ml-2',
+    'whitespace-nowrap',
+    'overflow-hidden',
+    'overflow-ellipsis'
+  )
+  const cpuMessage = `${cpuInfo} (${cpuCount} cores)`
   return (
     <Card className="rounded-xl p-2 shadow-md lg:w-[260px]">
       <CardHeader className="p-0 px-4 pb-2 pt-4">
         <CardTitle className="text-md flex items-center font-normal">
           <ModelIcon type={kind} />
-          <p title={name} className={textClass}>{name}</p>
+          <p title={name} className={textClass}>
+            {name}
+          </p>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 p-0 px-4 pb-4 pt-2">
@@ -47,7 +54,9 @@ export default function RunnerCard({
             <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" />
             <path d="M12 12V8" />
           </svg>
-          <p title={addr} className={textClass}>{addr}</p>
+          <p title={addr} className={textClass}>
+            {addr}
+          </p>
         </Info>
         <Info>
           <svg
@@ -103,7 +112,9 @@ export default function RunnerCard({
                 <path d="M2 15h20" />
                 <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.1a2 2 0 0 0 0 3.837V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5.1a2 2 0 0 0 0-3.837Z" />
               </svg>
-              <p title={x} className={textClass}>{x}</p>
+              <p title={x} className={textClass}>
+                {x}
+              </p>
             </Info>
           ))}
       </CardContent>
