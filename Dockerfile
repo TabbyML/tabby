@@ -20,6 +20,8 @@ RUN apt-get update && \
         protobuf-compiler \
         git \
         cmake \
+        openssh-client \
+        ca-certificates \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
