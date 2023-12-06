@@ -29,15 +29,97 @@ export type Scalars = {
   Float: { input: number; output: number }
 }
 
+export type Claims = {
+  __typename?: 'Claims'
+  exp: Scalars['Float']['output']
+  iat: Scalars['Float']['output']
+  user: UserInfo
+}
+
+export type Invitation = {
+  __typename?: 'Invitation'
+  code: Scalars['String']['output']
+  createdAt: Scalars['String']['output']
+  email: Scalars['String']['output']
+  id: Scalars['Int']['output']
+}
+
 export type Mutation = {
   __typename?: 'Mutation'
+  createInvitation: Scalars['Int']['output']
+  deleteInvitation: Scalars['Int']['output']
+  refreshToken: RefreshTokenResponse
+  register: RegisterResponse
   resetRegistrationToken: Scalars['String']['output']
+  tokenAuth: TokenAuthResponse
+  verifyToken: VerifyTokenResponse
+}
+
+export type MutationCreateInvitationArgs = {
+  email: Scalars['String']['input']
+}
+
+export type MutationDeleteInvitationArgs = {
+  id: Scalars['Int']['input']
+}
+
+export type MutationRefreshTokenArgs = {
+  refreshToken: Scalars['String']['input']
+}
+
+export type MutationRegisterArgs = {
+  email: Scalars['String']['input']
+  invitationCode?: InputMaybe<Scalars['String']['input']>
+  password1: Scalars['String']['input']
+  password2: Scalars['String']['input']
+}
+
+export type MutationTokenAuthArgs = {
+  email: Scalars['String']['input']
+  password: Scalars['String']['input']
+}
+
+export type MutationVerifyTokenArgs = {
+  token: Scalars['String']['input']
 }
 
 export type Query = {
   __typename?: 'Query'
+  invitations: Array<Invitation>
+  isAdminInitialized: Scalars['Boolean']['output']
+  me: UserInfo
   registrationToken: Scalars['String']['output']
   workers: Array<Worker>
+}
+
+export type RefreshTokenResponse = {
+  __typename?: 'RefreshTokenResponse'
+  accessToken: Scalars['String']['output']
+  refreshExpiresAt: Scalars['Float']['output']
+  refreshToken: Scalars['String']['output']
+}
+
+export type RegisterResponse = {
+  __typename?: 'RegisterResponse'
+  accessToken: Scalars['String']['output']
+  refreshToken: Scalars['String']['output']
+}
+
+export type TokenAuthResponse = {
+  __typename?: 'TokenAuthResponse'
+  accessToken: Scalars['String']['output']
+  refreshToken: Scalars['String']['output']
+}
+
+export type UserInfo = {
+  __typename?: 'UserInfo'
+  email: Scalars['String']['output']
+  isAdmin: Scalars['Boolean']['output']
+}
+
+export type VerifyTokenResponse = {
+  __typename?: 'VerifyTokenResponse'
+  claims: Claims
 }
 
 export type Worker = {
@@ -57,6 +139,13 @@ export enum WorkerKind {
   Completion = 'COMPLETION'
 }
 
+export type GetRegistrationTokenQueryVariables = Exact<{ [key: string]: never }>
+
+export type GetRegistrationTokenQuery = {
+  __typename?: 'Query'
+  registrationToken: string
+}
+
 export type GetWorkersQueryVariables = Exact<{ [key: string]: never }>
 
 export type GetWorkersQuery = {
@@ -74,13 +163,25 @@ export type GetWorkersQuery = {
   }>
 }
 
-export type GetRegistrationTokenQueryVariables = Exact<{ [key: string]: never }>
-
-export type GetRegistrationTokenQuery = {
-  __typename?: 'Query'
-  registrationToken: string
-}
-
+export const GetRegistrationTokenDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'query',
+      name: { kind: 'Name', value: 'GetRegistrationToken' },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'registrationToken' } }
+        ]
+      }
+    }
+  ]
+} as unknown as DocumentNode<
+  GetRegistrationTokenQuery,
+  GetRegistrationTokenQueryVariables
+>
 export const GetWorkersDocument = {
   kind: 'Document',
   definitions: [
@@ -113,22 +214,3 @@ export const GetWorkersDocument = {
     }
   ]
 } as unknown as DocumentNode<GetWorkersQuery, GetWorkersQueryVariables>
-export const GetRegistrationTokenDocument = {
-  kind: 'Document',
-  definitions: [
-    {
-      kind: 'OperationDefinition',
-      operation: 'query',
-      name: { kind: 'Name', value: 'GetRegistrationToken' },
-      selectionSet: {
-        kind: 'SelectionSet',
-        selections: [
-          { kind: 'Field', name: { kind: 'Name', value: 'registrationToken' } }
-        ]
-      }
-    }
-  ]
-} as unknown as DocumentNode<
-  GetRegistrationTokenQuery,
-  GetRegistrationTokenQueryVariables
->

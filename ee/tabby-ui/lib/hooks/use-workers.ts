@@ -1,9 +1,9 @@
 import React from 'react'
 import { groupBy, findIndex, slice } from 'lodash-es'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
-import { getAllWorkersDocument } from '@/lib/gql/request-documents'
 import { useGraphQL } from './use-graphql'
 import type { HealthInfo } from './use-health'
+import { graphql } from '@/lib/gql/generates'
 
 const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
   [WorkerKind.Chat]: 'chat_model',
@@ -25,6 +25,21 @@ function transformHealthInfoToWorker(
     cudaDevices: healthInfo.cuda_devices
   }
 }
+
+export const getAllWorkersDocument = graphql(/* GraphQL */ `
+  query GetWorkers {
+    workers {
+      kind
+      name
+      addr
+      device
+      arch
+      cpuInfo
+      cpuCount
+      cudaDevices
+    }
+  }
+`)
 
 function useWorkers(healthInfo?: HealthInfo) {
   const { data } = useGraphQL(getAllWorkersDocument)
