@@ -20,7 +20,7 @@ RUN apt-get update && \
         protobuf-compiler \
         git \
         cmake \
-       && \
+        && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
