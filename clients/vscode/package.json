@@ -195,7 +195,7 @@
   "scripts": {
     "prebuild": "cd ../tabby-agent && yarn build",
     "build": "tsc --noEmit && tsup --minify --treeshake smallest",
-    "watch": "tsup --sourcemap --watch ./ --ignore-watch ./dist --watch ../tabby-agent/dist",
+    "watch": "tsup --sourcemap --watch ./ --ignore-watch ./dist --ignore-watch ./.vscode-test-web --watch ../tabby-agent/dist",
     "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && yarn watch",
     "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && yarn watch",
     "lint": "eslint --fix --ext .ts ./src && prettier --write .",
