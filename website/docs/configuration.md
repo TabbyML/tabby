@@ -17,8 +17,12 @@ To enable repository level context for code completion, you can add the followin
 git_url = "https://github.com/TabbyML/tabby.git"
 
 [[repositories]]
-git_url = "https://github.com/OpenNMT/CTranslate2.git"
+git_url = "git@github.com:OpenNMT/CTranslate2.git"
 ```
+:::tip
+When fetching repositories via SSH, the ssh-client will look at `/root/.ssh` for ssh keys as well as
+the `know-hosts` file. To set the files, you can mount a directory by adding `-v <path_to_ssh_certs>:/root/.ssh` to your `docker run` command.
+:::
 
 Once this is set, you can run `tabby scheduler` to index the source code repository.
 
@@ -32,7 +36,7 @@ data.jsonl
 
 ~/.tabby % ls index
 1a8729fa34d844df984b444f4def1456.fast      2ed712d4a7a44ed797dd4ff5ceaf4312.fieldnorm
-b42ca53fe6f94d0c8e96f947318278ba.idx       1a8729fa34d844df984b444f4def1456.fieldnorm 
+b42ca53fe6f94d0c8e96f947318278ba.idx       1a8729fa34d844df984b444f4def1456.fieldnorm
 2ed712d4a7a44ed797dd4ff5ceaf4312.idx       b42ca53fe6f94d0c8e96f947318278ba.pos
 ...
 ```
