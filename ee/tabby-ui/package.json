@@ -43,7 +43,6 @@
     "lodash-es": "^4.17.21",
     "nanoid": "^4.0.2",
     "next": "^13.4.7",
-    "next-auth": "0.0.0-manual.83c4ebd1",
     "next-themes": "^0.2.1",
     "openai-edge": "^0.5.1",
     "react": "^18.2.0",
