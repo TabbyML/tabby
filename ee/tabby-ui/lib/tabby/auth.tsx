@@ -11,13 +11,13 @@ interface AuthData {
 
 type AuthState =
   | {
-      status: 'authenticated'
-      data: AuthData
-    }
+    status: 'authenticated'
+    data: AuthData
+  }
   | {
-      status: 'loading' | 'unauthenticated'
-      data: null
-    }
+    status: 'loading' | 'unauthenticated'
+    data: null
+  }
 
 enum AuthActionType {
   Init,
@@ -212,20 +212,23 @@ interface User {
 
 type Session =
   | {
-      data: null
-      status: 'loading' | 'unauthenticated'
-    }
+    data: null
+    status: 'loading' | 'unauthenticated'
+  }
   | {
-      data: User
-      status: 'authenticated'
-    }
+    data: User
+    status: 'authenticated'
+  }
 
 function useSession(): Session {
   const { authState } = useAuthStore()
   if (authState?.status == 'authenticated') {
-    const { user } = jwtDecode<{ user: User }>(authState.data.accessToken)
+    const { user } = jwtDecode<{ user: { email: string, is_admin: boolean } }>(authState.data.accessToken)
     return {
-      data: user,
+      data: {
+        email: user.email,
+        isAdmin: user.is_admin
+      },
       status: authState.status
     }
   } else {
