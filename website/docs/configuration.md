@@ -19,10 +19,6 @@ git_url = "https://github.com/TabbyML/tabby.git"
 [[repositories]]
 git_url = "git@github.com:OpenNMT/CTranslate2.git"
 ```
-:::tip
-When fetching repositories via SSH, the ssh-client will look at `/root/.ssh` for ssh keys as well as
-the `know-hosts` file. To set the files, you can mount a directory by adding `-v <path_to_ssh_certs>:/root/.ssh` to your `docker run` command.
-:::
 
 Once this is set, you can run `tabby scheduler` to index the source code repository.
 
