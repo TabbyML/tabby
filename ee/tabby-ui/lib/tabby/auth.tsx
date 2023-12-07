@@ -142,7 +142,11 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
     data: null
   })
 
+  const initialized = React.useRef(false);
   React.useEffect(() => {
+    if (initialized.current) return;
+
+    initialized.current = true;
     const data = storage.initialState()
     if (data?.refreshToken) {
       doRefresh(data.refreshToken, dispatch)

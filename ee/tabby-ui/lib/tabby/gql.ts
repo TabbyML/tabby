@@ -22,12 +22,14 @@ export function useGraphQLForm<
 >(
   document: TypedDocumentNode<TResult, TVariables>,
   options?: {
+    onSuccess?: (values: TResult) => void,
     onError?: (path: string, message: string) => void
   }
 ) {
   const onSubmit = async (values: TVariables) => {
+    let res;
     try {
-      await gqlClient.request(document, values)
+      res = await gqlClient.request(document, values)
     } catch (err) {
       const { errors = [] } = (err as any).response as GraphQLResponse
       for (const error of errors) {
@@ -42,7 +44,11 @@ export function useGraphQLForm<
           options?.onError && options?.onError('root', error.message)
         }
       }
+
+      return res
     }
+
+    options?.onSuccess && options.onSuccess(res)
   }
   return { onSubmit }
 }

@@ -23,18 +23,14 @@ import { useGraphQLForm } from '@/lib/tabby/gql'
 import { useSignIn } from '@/lib/tabby/auth'
 import { useRouter } from 'next/navigation'
 
-export const registerUser = graphql(/* GraphQL */ `
-  mutation register(
+export const tokenAuth = graphql(/* GraphQL */ `
+  mutation tokenAuth(
     $email: String!
-    $password1: String!
-    $password2: String!
-    $invitationCode: String
+    $password: String!
   ) {
-    register(
+    tokenAuth(
       email: $email
-      password1: $password1
-      password2: $password2
-      invitationCode: $invitationCode
+      password: $password
     ) {
       accessToken
       refreshToken
@@ -44,33 +40,28 @@ export const registerUser = graphql(/* GraphQL */ `
 
 const formSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password1: z.string(),
-  password2: z.string(),
-  invitationCode: z.string().optional()
+  password: z.string(),
 })
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   invitationCode?: string
 }
 
-export function UserAuthForm({
+export default function UserSignInForm({
   className,
   invitationCode,
   ...props
 }: UserAuthFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      invitationCode
-    }
   })
 
   const router = useRouter();
   const signIn = useSignIn();
   const { isSubmitting } = form.formState
-  const { onSubmit } = useGraphQLForm(registerUser, {
+  const { onSubmit } = useGraphQLForm(tokenAuth, {
     onSuccess: async (values) => {
-      if (await signIn(values.register)) {
+      if (await signIn(values.tokenAuth)) {
         router.replace("/");
       }
     },
@@ -103,7 +94,7 @@ export function UserAuthForm({
           />
           <FormField
             control={form.control}
-            name="password1"
+            name="password"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Password</FormLabel>
@@ -114,35 +105,11 @@ export function UserAuthForm({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="password2"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="invitationCode"
-            render={({ field }) => (
-              <FormItem className='hidden'>
-                <FormControl>
-                  <Input type="hidden" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
           <Button type="submit" className="mt-1" disabled={isSubmitting}>
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Register
+            Login
           </Button>
         </form>
         <FormMessage className="text-center" />

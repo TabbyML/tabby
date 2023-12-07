@@ -12,8 +12,6 @@ export interface SidebarProps {
 }
 
 export default function Sidebar({ children, className }: SidebarProps) {
-  const { data: session } = useSession()
-  console.log("session", session)
   return (
     <div
       className={cn('grid overflow-hidden lg:grid-cols-[280px_1fr]', className)}
@@ -64,7 +62,6 @@ export default function Sidebar({ children, className }: SidebarProps) {
                 Swagger
               </SidebarButton>
             </nav>
-            {session?.email}
           </div>
         </div>
       </div>

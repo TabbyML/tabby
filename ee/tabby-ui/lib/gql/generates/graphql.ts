@@ -146,6 +146,20 @@ export type GetRegistrationTokenQuery = {
   registrationToken: string
 }
 
+export type TokenAuthMutationVariables = Exact<{
+  email: Scalars['String']['input']
+  password: Scalars['String']['input']
+}>
+
+export type TokenAuthMutation = {
+  __typename?: 'Mutation'
+  tokenAuth: {
+    __typename?: 'TokenAuthResponse'
+    accessToken: string
+    refreshToken: string
+  }
+}
+
 export type RegisterMutationVariables = Exact<{
   email: Scalars['String']['input']
   password1: Scalars['String']['input']
@@ -220,6 +234,74 @@ export const GetRegistrationTokenDocument = {
   GetRegistrationTokenQuery,
   GetRegistrationTokenQueryVariables
 >
+export const TokenAuthDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'mutation',
+      name: { kind: 'Name', value: 'tokenAuth' },
+      variableDefinitions: [
+        {
+          kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'email' }
+          },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
+          }
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'password' }
+          },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
+          }
+        }
+      ],
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'tokenAuth' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'email' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'email' }
+                }
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'password' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'password' }
+                }
+              }
+            ],
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'accessToken' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'refreshToken' } }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+} as unknown as DocumentNode<TokenAuthMutation, TokenAuthMutationVariables>
 export const RegisterDocument = {
   kind: 'Document',
   definitions: [
