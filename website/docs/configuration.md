@@ -17,7 +17,7 @@ To enable repository level context for code completion, you can add the followin
 git_url = "https://github.com/TabbyML/tabby.git"
 
 [[repositories]]
-git_url = "https://github.com/OpenNMT/CTranslate2.git"
+git_url = "git@github.com:OpenNMT/CTranslate2.git"
 ```
 
 Once this is set, you can run `tabby scheduler` to index the source code repository.
