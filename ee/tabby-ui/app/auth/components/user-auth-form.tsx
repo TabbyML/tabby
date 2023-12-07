@@ -19,7 +19,7 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { graphql } from '@/lib/gql/generates'
-import { useGraphQLForm } from '@/lib/tabby-gql-client'
+import { useGraphQLForm } from '@/lib/tabby/gql'
 
 export const registerUser = graphql(/* GraphQL */ `
   mutation register(

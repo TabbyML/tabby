@@ -16,9 +16,9 @@ import { PropsWithChildren, useEffect, useState } from 'react'
 import WorkerCard from './components/worker-card'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
-import { useGraphQL } from '@/lib/hooks/use-graphql'
 import { CopyButton } from '@/components/copy-button'
 import { graphql } from '@/lib/gql/generates'
+import { useGraphQLQuery } from '@/lib/tabby/gql'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
@@ -84,7 +84,7 @@ const getRegistrationTokenDocument = graphql(/* GraphQL */ `
 function MainPanel() {
   const { data: healthInfo } = useHealth()
   const workers = useWorkers(healthInfo)
-  const { data: registrationTokenRes } = useGraphQL(
+  const { data: registrationTokenRes } = useGraphQLQuery(
     getRegistrationTokenDocument
   )
 

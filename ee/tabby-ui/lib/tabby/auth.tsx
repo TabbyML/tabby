@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { graphql } from '@/lib/gql/generates'
 import useInterval from '@/lib/hooks/use-interval'
-import { gqlClient } from '@/lib/tabby-gql-client'
+import { gqlClient } from '@/lib/tabby/gql'
 import { jwtDecode } from 'jwt-decode'
 
 interface AuthData {
