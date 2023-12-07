@@ -1,3 +1,9 @@
+## 1.1.2
+
+### Fixes:
+
+- Added support for IntelliJ Platform IDEs version 2023.3.x.
+
 ## 1.1.1
 
 ### Fixes:
