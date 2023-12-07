@@ -101,7 +101,7 @@ interface AuthStore {
 
 const AuthContext = React.createContext<AuthStore | null>(null)
 
-const refreshToken = graphql(/* GraphQL */ `
+const refreshTokenMutation = graphql(/* GraphQL */ `
   mutation refreshToken($refreshToken: String!) {
     refreshToken(refreshToken: $refreshToken) {
       accessToken
@@ -110,6 +110,23 @@ const refreshToken = graphql(/* GraphQL */ `
   }
 `);
 
+async function doRefresh(token: string, dispatch: React.Dispatch<AuthActions>) {
+  let action: AuthActions;
+  try {
+    action = {
+      type: AuthActionType.Refresh,
+      data: (await gqlClient.request(refreshTokenMutation, { refreshToken: token })).refreshToken
+    }
+  } catch (err) {
+    console.error("Failed to refresh token", err)
+    action = {
+      type: AuthActionType.SignOut
+    }
+  }
+
+  dispatch(action)
+}
+
 const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({ children }) => {
   const storage = new TokenStorage();
 
@@ -117,7 +134,11 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({ children }) 
 
   React.useEffect(() => {
     const data = storage.initialState();
-    dispatch({ type: AuthActionType.Init, data });
+    if (data?.refreshToken) {
+      doRefresh(data.refreshToken, dispatch)
+    } else {
+      dispatch({ type: AuthActionType.Init, data: null });
+    }
   }, []);
 
   React.useEffect(() => {
@@ -129,21 +150,7 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({ children }) 
       return;
     }
 
-    let resp;
-    try {
-      resp = await gqlClient.request(refreshToken, { refreshToken: authState.data.refreshToken });
-    } catch (err) {
-      console.error("Failed to refresh", err)
-      dispatch({ type: AuthActionType.SignOut });
-      return;
-    }
-
-    const action: RefreshAction = {
-      type: AuthActionType.Refresh,
-      data: resp.refreshToken,
-    }
-
-    dispatch(action)
+    await doRefresh(authState.data.refreshToken, dispatch)
   }, 5)
 
   return (

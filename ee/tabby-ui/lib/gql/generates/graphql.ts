@@ -146,22 +146,6 @@ export type GetRegistrationTokenQuery = {
   registrationToken: string
 }
 
-export type RegisterMutationVariables = Exact<{
-  email: Scalars['String']['input']
-  password1: Scalars['String']['input']
-  password2: Scalars['String']['input']
-  invitationCode?: InputMaybe<Scalars['String']['input']>
-}>
-
-export type RegisterMutation = {
-  __typename?: 'Mutation'
-  register: {
-    __typename?: 'RegisterResponse'
-    accessToken: string
-    refreshToken: string
-  }
-}
-
 export type GetWorkersQueryVariables = Exact<{ [key: string]: never }>
 
 export type GetWorkersQuery = {
@@ -211,109 +195,6 @@ export const GetRegistrationTokenDocument = {
   GetRegistrationTokenQuery,
   GetRegistrationTokenQueryVariables
 >
-export const RegisterDocument = {
-  kind: 'Document',
-  definitions: [
-    {
-      kind: 'OperationDefinition',
-      operation: 'mutation',
-      name: { kind: 'Name', value: 'register' },
-      variableDefinitions: [
-        {
-          kind: 'VariableDefinition',
-          variable: {
-            kind: 'Variable',
-            name: { kind: 'Name', value: 'email' }
-          },
-          type: {
-            kind: 'NonNullType',
-            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
-          }
-        },
-        {
-          kind: 'VariableDefinition',
-          variable: {
-            kind: 'Variable',
-            name: { kind: 'Name', value: 'password1' }
-          },
-          type: {
-            kind: 'NonNullType',
-            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
-          }
-        },
-        {
-          kind: 'VariableDefinition',
-          variable: {
-            kind: 'Variable',
-            name: { kind: 'Name', value: 'password2' }
-          },
-          type: {
-            kind: 'NonNullType',
-            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
-          }
-        },
-        {
-          kind: 'VariableDefinition',
-          variable: {
-            kind: 'Variable',
-            name: { kind: 'Name', value: 'invitationCode' }
-          },
-          type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
-        }
-      ],
-      selectionSet: {
-        kind: 'SelectionSet',
-        selections: [
-          {
-            kind: 'Field',
-            name: { kind: 'Name', value: 'register' },
-            arguments: [
-              {
-                kind: 'Argument',
-                name: { kind: 'Name', value: 'email' },
-                value: {
-                  kind: 'Variable',
-                  name: { kind: 'Name', value: 'email' }
-                }
-              },
-              {
-                kind: 'Argument',
-                name: { kind: 'Name', value: 'password1' },
-                value: {
-                  kind: 'Variable',
-                  name: { kind: 'Name', value: 'password1' }
-                }
-              },
-              {
-                kind: 'Argument',
-                name: { kind: 'Name', value: 'password2' },
-                value: {
-                  kind: 'Variable',
-                  name: { kind: 'Name', value: 'password2' }
-                }
-              },
-              {
-                kind: 'Argument',
-                name: { kind: 'Name', value: 'invitationCode' },
-                value: {
-                  kind: 'Variable',
-                  name: { kind: 'Name', value: 'invitationCode' }
-                }
-              }
-            ],
-            selectionSet: {
-              kind: 'SelectionSet',
-              selections: [
-                { kind: 'Field', name: { kind: 'Name', value: 'accessToken' } },
-                { kind: 'Field', name: { kind: 'Name', value: 'refreshToken' } }
-              ]
-            }
-          }
-        ]
-      }
-    }
-  ]
-} as unknown as DocumentNode<RegisterMutation, RegisterMutationVariables>
 export const GetWorkersDocument = {
   kind: 'Document',
   definitions: [
