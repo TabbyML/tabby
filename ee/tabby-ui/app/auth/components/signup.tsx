@@ -3,6 +3,7 @@
 import { graphql } from "@/lib/gql/generates"
 import { UserAuthForm } from "./user-auth-form"
 import { useGraphQL } from "@/lib/hooks/use-graphql"
+import { useSearchParams } from "next/navigation"
 
 export const getIsAdminInitialized = graphql(/* GraphQL */ `
   query GetIsAdminInitialized {
@@ -14,6 +15,9 @@ export default function Signup() {
   const { data } = useGraphQL(getIsAdminInitialized)
   const title = data?.isAdminInitialized ? "Create an account" : "Create an admin account"
 
+  const searchParams = useSearchParams()
+  const invitationCode = searchParams.get("invitationCode") || undefined;
+
   return (
     <div className="space-y-6 w-[350px]">
       <div className="flex flex-col space-y-2 text-center">
@@ -24,7 +28,7 @@ export default function Signup() {
           Fill form below to create your account
         </p>
       </div>
-      <UserAuthForm />
+      <UserAuthForm invitationCode={invitationCode} />
     </div>
   )
 }
