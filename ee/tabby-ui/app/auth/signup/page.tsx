@@ -1,7 +1,7 @@
 'use client'
 
 import { graphql } from '@/lib/gql/generates'
-import { UserAuthForm } from './user-auth-form'
+import { UserAuthForm } from './components/user-register-form'
 import { useSearchParams } from 'next/navigation'
 import { useGraphQLQuery } from '@/lib/tabby/gql'
 
@@ -13,6 +13,7 @@ export const getIsAdminInitialized = graphql(/* GraphQL */ `
 
 export default function Signup() {
   const { data } = useGraphQLQuery(getIsAdminInitialized)
+
   const title = data?.isAdminInitialized
     ? 'Create an account'
     : 'Create an admin account'

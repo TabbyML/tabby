@@ -146,15 +146,6 @@ export type GetRegistrationTokenQuery = {
   registrationToken: string
 }
 
-export type GetIsAdminInitializedQueryVariables = Exact<{
-  [key: string]: never
-}>
-
-export type GetIsAdminInitializedQuery = {
-  __typename?: 'Query'
-  isAdminInitialized: boolean
-}
-
 export type RegisterMutationVariables = Exact<{
   email: Scalars['String']['input']
   password1: Scalars['String']['input']
@@ -169,6 +160,15 @@ export type RegisterMutation = {
     accessToken: string
     refreshToken: string
   }
+}
+
+export type GetIsAdminInitializedQueryVariables = Exact<{
+  [key: string]: never
+}>
+
+export type GetIsAdminInitializedQuery = {
+  __typename?: 'Query'
+  isAdminInitialized: boolean
 }
 
 export type GetWorkersQueryVariables = Exact<{ [key: string]: never }>
@@ -219,25 +219,6 @@ export const GetRegistrationTokenDocument = {
 } as unknown as DocumentNode<
   GetRegistrationTokenQuery,
   GetRegistrationTokenQueryVariables
->
-export const GetIsAdminInitializedDocument = {
-  kind: 'Document',
-  definitions: [
-    {
-      kind: 'OperationDefinition',
-      operation: 'query',
-      name: { kind: 'Name', value: 'GetIsAdminInitialized' },
-      selectionSet: {
-        kind: 'SelectionSet',
-        selections: [
-          { kind: 'Field', name: { kind: 'Name', value: 'isAdminInitialized' } }
-        ]
-      }
-    }
-  ]
-} as unknown as DocumentNode<
-  GetIsAdminInitializedQuery,
-  GetIsAdminInitializedQueryVariables
 >
 export const RegisterDocument = {
   kind: 'Document',
@@ -342,6 +323,25 @@ export const RegisterDocument = {
     }
   ]
 } as unknown as DocumentNode<RegisterMutation, RegisterMutationVariables>
+export const GetIsAdminInitializedDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'query',
+      name: { kind: 'Name', value: 'GetIsAdminInitialized' },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'isAdminInitialized' } }
+        ]
+      }
+    }
+  ]
+} as unknown as DocumentNode<
+  GetIsAdminInitializedQuery,
+  GetIsAdminInitializedQueryVariables
+>
 export const GetWorkersDocument = {
   kind: 'Document',
   definitions: [

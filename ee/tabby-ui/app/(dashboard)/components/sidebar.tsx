@@ -1,5 +1,6 @@
 'use client'
 
+import { useSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
 import { cva } from 'class-variance-authority'
 import Link from 'next/link'
@@ -11,6 +12,8 @@ export interface SidebarProps {
 }
 
 export default function Sidebar({ children, className }: SidebarProps) {
+  const { data: session } = useSession()
+  console.log("session", session)
   return (
     <div
       className={cn('grid overflow-hidden lg:grid-cols-[280px_1fr]', className)}
@@ -61,6 +64,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
                 Swagger
               </SidebarButton>
             </nav>
+            {session?.email}
           </div>
         </div>
       </div>
