@@ -36,6 +36,9 @@ For IntelliJ Platform IDEs (Tabby plugin version 0.6.0 or higher):
   node binary installed by the version manager, e.g. `~/.nvm/versions/node/v18.18.0/bin/node`.
 * Restart the IDE
 
+If you installed Node.js via snap, please use `/snap/node/current/bin/node` rather than 
+`/snap/bin/node` as the node binary path.
+
 ## Cannot Connect to Tabby Server?
 
 If you have setup the endpoint for the Tabby server but the status bar item of 
@@ -55,13 +58,11 @@ is empty.
 
 Once the Tabby server is running, it should display a log message such as 
 `Listening at 0.0.0.0:8080`.  
-Open your browser and navigate to the endpoint URL, typically `http://localhost:8080`. 
-Replace this url with the correct IP/domain and port if you have setup your 
-Tabby server on a remote machine.  
-The browser should redirect to `http://localhost:8080/swagger-ui/`, displaying 
-a web page with Swagger UI.  
-To test the server, select your local server from the `Server` dropdown list 
-on the Swagger UI page. Expand the `v1/completions` section, click on `Try it out`, 
+Open your browser and navigate to `http://localhost:8080/swagger`
+(Replace `localhost:8080` with the correct IP/domain and port if you have setup your 
+Tabby server on a remote machine). The browser should display a web page with Swagger UI.  
+
+To test the server, expand the `/v1/completions` section, click on `Try it out`, 
 and then click `Execute`. 
 If you receive a response, it indicates that the Tabby server is running properly.
 
@@ -100,10 +101,11 @@ receive any completions, you can follow the steps below to troubleshoot the issu
 Tabby is set to automatic trigger mode by default. In this mode, you should receive 
 completions after a short delay when you stop typing. The delay may vary depending 
 on your server's performance and settings.  
-If you are using manual trigger mode, you need to press `Alt + \` to trigger a
-completion request. The status bar item of Tabby IDE extension should show a loading 
+If you are using manual trigger mode, you need to press `Alt + \` (`Ctrl + \` for IntelliJ and Vim plugins) 
+to trigger a completion request. The status bar item of Tabby IDE extension should show a loading 
 indicator for a brief period before displaying the completions.  
-Keep in mind that Tabby may not provide any suggestions based on the current code context.
+Keep in mind that Tabby may not provide any suggestions if there is no necessary
+for the current code context.
 
 ### Check Request Timeouts
 
@@ -112,9 +114,9 @@ This could be due to network issues or poor server performance, especially when
 running a large model on a CPU. To improve performance, consider running the model 
 on a GPU with CUDA support or on Apple M1/M2 with Metal support. When running 
 the server, make sure to specify the device in the arguments using  `--device cuda` 
-or `--device metal`. You can also try using a smaller model from the available [models](../models/). 
+or `--device metal`. You can also try using a smaller model from the available [models](https://tabby.tabbyml.com/docs/models/). 
 
-By default, the timeout for automatically triggered completion requests is set to 5 seconds. 
+By default, the timeout for automatically triggered completion requests is set to 4 seconds. 
 You can adjust this timeout value in the `~/.tabby-client/agent/config.toml` configuration file.
 
 ## Want to Deep Dive via Logs?
@@ -138,10 +140,12 @@ tail -f ~/.tabby-client/agent/logs/tabby-agent.log | npx pino-pretty
 
 ### IntelliJ Platform IDEs Logs
 
-For IntelliJ Platform IDEs, you can check the logs for the IDE using `Help -> Open Log in Editor`, 
-or follow [this document](https://intellij-support.jetbrains.com/hc/en-us/articles/206544519-Directories-used-by-the-IDE-to-store-settings-caches-plugins-and-logs) to locate the log file.
+For IntelliJ Platform IDEs, you can check the logs for the IDE using `Help -> Show Log in Explorer|Finder|Files...`, 
+or follow [this document](https://intellij-support.jetbrains.com/hc/en-us/articles/207241085-Locating-IDE-log-files) to locate the log file.
 This log file contains all the logs for the IDE, and you can filter them by searching for the 
 keyword `com.tabbyml.intellijtabby`.
+You can also enable all level logs by editing `Help -> Diagnostic Tools -> Debug Log Settings...` and
+add `com.tabbyml.intellijtabby:all` to the list.
 
 ## Still Have Issues?
 
