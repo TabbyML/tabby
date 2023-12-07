@@ -40,6 +40,7 @@
     "focus-trap-react": "^10.1.1",
     "graphql": "^16.8.1",
     "graphql-request": "^6.1.0",
+    "jwt-decode": "^4.0.0",
     "lodash-es": "^4.17.21",
     "nanoid": "^4.0.2",
     "next": "^13.4.7",

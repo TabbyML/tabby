@@ -163,6 +163,19 @@ export type GetWorkersQuery = {
   }>
 }
 
+export type RefreshTokenMutationVariables = Exact<{
+  refreshToken: Scalars['String']['input']
+}>
+
+export type RefreshTokenMutation = {
+  __typename?: 'Mutation'
+  refreshToken: {
+    __typename?: 'RefreshTokenResponse'
+    accessToken: string
+    refreshToken: string
+  }
+}
+
 export const GetRegistrationTokenDocument = {
   kind: 'Document',
   definitions: [
@@ -214,3 +227,55 @@ export const GetWorkersDocument = {
     }
   ]
 } as unknown as DocumentNode<GetWorkersQuery, GetWorkersQueryVariables>
+export const RefreshTokenDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'mutation',
+      name: { kind: 'Name', value: 'refreshToken' },
+      variableDefinitions: [
+        {
+          kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'refreshToken' }
+          },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
+          }
+        }
+      ],
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'refreshToken' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'refreshToken' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'refreshToken' }
+                }
+              }
+            ],
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'accessToken' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'refreshToken' } }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+} as unknown as DocumentNode<
+  RefreshTokenMutation,
+  RefreshTokenMutationVariables
+>

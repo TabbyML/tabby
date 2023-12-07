@@ -16,7 +16,9 @@ const documents = {
   '\n  query GetRegistrationToken {\n    registrationToken\n  }\n':
     types.GetRegistrationTokenDocument,
   '\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      cudaDevices\n    }\n  }\n':
-    types.GetWorkersDocument
+    types.GetWorkersDocument,
+  '\n  mutation refreshToken($refreshToken: String!) {\n    refreshToken(refreshToken: $refreshToken) {\n      accessToken\n      refreshToken\n    }\n  }\n':
+    types.RefreshTokenDocument
 }
 
 /**
@@ -45,6 +47,12 @@ export function graphql(
 export function graphql(
   source: '\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      cudaDevices\n    }\n  }\n'
 ): (typeof documents)['\n  query GetWorkers {\n    workers {\n      kind\n      name\n      addr\n      device\n      arch\n      cpuInfo\n      cpuCount\n      cudaDevices\n    }\n  }\n']
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(
+  source: '\n  mutation refreshToken($refreshToken: String!) {\n    refreshToken(refreshToken: $refreshToken) {\n      accessToken\n      refreshToken\n    }\n  }\n'
+): (typeof documents)['\n  mutation refreshToken($refreshToken: String!) {\n    refreshToken(refreshToken: $refreshToken) {\n      accessToken\n      refreshToken\n    }\n  }\n']
 
 export function graphql(source: string) {
   return (documents as any)[source] ?? {}
