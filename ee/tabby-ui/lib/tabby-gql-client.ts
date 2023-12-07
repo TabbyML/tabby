@@ -1,3 +1,4 @@
+import useSWR, { SWRResponse, SWRConfiguration } from 'swr'
 import { GraphQLClient, Variables } from 'graphql-request'
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { GraphQLResponse } from 'graphql-request/build/esm/types'
@@ -44,4 +45,17 @@ export function useGraphQLForm<
     }
   }
   return { onSubmit }
+}
+
+
+export function useGraphQLQuery<TResult, TVariables extends Variables | undefined>(
+  document: TypedDocumentNode<TResult, TVariables>,
+  variables?: TVariables,
+  swrConfiguration?: SWRConfiguration<TResult>
+): SWRResponse<TResult> {
+  return useSWR(
+    [document, variables],
+    ([document, variables]) => gqlClient.request(document, variables),
+    swrConfiguration
+  )
 }
