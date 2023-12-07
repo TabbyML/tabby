@@ -58,7 +58,7 @@ is empty.
 
 Once the Tabby server is running, it should display a log message such as 
 `Listening at 0.0.0.0:8080`.  
-Open your browser and navigate to the endpoint URL, typically `http://localhost:8080/swagger`
+Open your browser and navigate to `http://localhost:8080/swagger`
 (Replace `localhost:8080` with the correct IP/domain and port if you have setup your 
 Tabby server on a remote machine). The browser should display a web page with Swagger UI.  
 
