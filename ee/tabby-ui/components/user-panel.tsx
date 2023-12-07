@@ -4,9 +4,9 @@ import { IconLogout } from './ui/icons'
 
 export default function UserPanel() {
   const { data: session, status } = useSession()
-  if (status !== 'authenticated') return
   const signOut = useSignOut()
 
+  if (status !== 'authenticated') return
   return (
     <div className="py-4 flex justify-center text-sm font-medium">
       <span className={cn('flex items-center gap-2')}>
