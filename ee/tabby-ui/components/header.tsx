@@ -12,8 +12,14 @@ import { useWorkers } from '@/lib/hooks/use-workers'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { has } from 'lodash-es'
 import { ThemeToggle } from './theme-toggle'
+import { useSession } from '@/lib/tabby/auth'
+import { useRouter } from 'next/navigation'
+import { graphql } from '@/lib/gql/generates'
+import { useGraphQLQuery } from '@/lib/tabby/gql'
 
 export function Header() {
+  useRequireAuth();
+
   const { data } = useHealth()
   const workers = useWorkers(data)
   const isChatEnabled = has(workers, WorkerKind.Chat)
@@ -73,4 +79,29 @@ function isNewVersionAvailable(version?: string, latestRelease?: ReleaseInfo) {
     console.warn(err)
     return true
   }
+}
+
+export const getIsAdminInitialized = graphql(/* GraphQL */ `
+  query GetIsAdminInitialized {
+    isAdminInitialized
+  }
+`)
+
+function useRequireAuth() {
+  const { data, isLoading } = useGraphQLQuery(getIsAdminInitialized, undefined, {
+
+  })
+  const router = useRouter();
+  const { status } = useSession();
+
+  React.useEffect(() => {
+    if (isLoading) return;
+    if (status !== "unauthenticated") return;
+
+    if (data!.isAdminInitialized) {
+      router.replace("/auth/signin");
+    } else {
+      router.replace("/auth/signup?isAdmin=true")
+    }
+  }, [data, isLoading, status])
 }

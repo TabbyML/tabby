@@ -1,25 +1,16 @@
 'use client'
 
-import { graphql } from '@/lib/gql/generates'
 import { UserAuthForm } from './components/user-register-form'
 import { useSearchParams } from 'next/navigation'
-import { useGraphQLQuery } from '@/lib/tabby/gql'
-
-export const getIsAdminInitialized = graphql(/* GraphQL */ `
-  query GetIsAdminInitialized {
-    isAdminInitialized
-  }
-`)
 
 export default function Signup() {
-  const { data } = useGraphQLQuery(getIsAdminInitialized)
-
-  const title = data?.isAdminInitialized
-    ? 'Create an account'
-    : 'Create an admin account'
-
   const searchParams = useSearchParams()
   const invitationCode = searchParams.get('invitationCode') || undefined
+  const isAdmin = searchParams.get("isAdmin") || false;
+
+  const title = isAdmin
+    ? 'Create an admin account'
+    : 'Create an account';
 
   return (
     <div className="space-y-6 w-[350px]">
