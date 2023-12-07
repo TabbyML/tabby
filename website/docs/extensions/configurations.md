@@ -41,7 +41,7 @@ If you have changed the default response timeout at Tabby server side, you may a
 # (Since 1.1.0) You can set the completion request timeout here.
 # Note that there is also a timeout config at the server side.
 [completion]
-timeout = 4000 # 4s
+timeout = 4000 # By default the timeout is 4 seconds.
 ```
 
 ## Logs
