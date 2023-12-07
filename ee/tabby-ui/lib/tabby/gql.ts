@@ -47,8 +47,10 @@ export function useGraphQLForm<
   return { onSubmit }
 }
 
-
-export function useGraphQLQuery<TResult, TVariables extends Variables | undefined>(
+export function useGraphQLQuery<
+  TResult,
+  TVariables extends Variables | undefined
+>(
   document: TypedDocumentNode<TResult, TVariables>,
   variables?: TVariables,
   swrConfiguration?: SWRConfiguration<TResult>
