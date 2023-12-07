@@ -34,14 +34,11 @@ Header2 = "Value2" # values can be strings, numbers or booleans
 
 ## Completion
 
-If you have changed the default response timeout at Tabby server side, you may also need to change the timeout configurations here.
+If you want to allocate more time to Tabby for completion requests, you can adjust the timeout configurations here.
 
 ```toml
-# Completion
-# (Since 1.1.0) You can set the completion request timeout here.
-# Note that there is also a timeout config at the server side.
 [completion]
-timeout = 4000 # 4s
+timeout = 4000 # By default the timeout is 4 seconds.
 ```
 
 ## Logs
