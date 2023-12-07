@@ -19,17 +19,21 @@ import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { CopyButton } from '@/components/copy-button'
 import { graphql } from '@/lib/gql/generates'
 import { useGraphQLQuery } from '@/lib/tabby/gql'
+import { useSession } from '@/lib/tabby/auth'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
 export default function Home() {
+  const { status } = useSession();
   const [open, setOpen] = useState(false)
   useEffect(() => {
+    if (status !== 'authenticated') return;
+
     if (!localStorage.getItem(COMMUNITY_DIALOG_SHOWN_KEY)) {
       setOpen(true)
       localStorage.setItem(COMMUNITY_DIALOG_SHOWN_KEY, 'true')
     }
-  }, [])
+  }, [status])
 
   return (
     <div className="p-4 lg:p-16">
