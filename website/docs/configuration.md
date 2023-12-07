@@ -32,7 +32,7 @@ data.jsonl
 
 ~/.tabby % ls index
 1a8729fa34d844df984b444f4def1456.fast      2ed712d4a7a44ed797dd4ff5ceaf4312.fieldnorm
-b42ca53fe6f94d0c8e96f947318278ba.idx       1a8729fa34d844df984b444f4def1456.fieldnorm
+b42ca53fe6f94d0c8e96f947318278ba.idx       1a8729fa34d844df984b444f4def1456.fieldnorm 
 2ed712d4a7a44ed797dd4ff5ceaf4312.idx       b42ca53fe6f94d0c8e96f947318278ba.pos
 ...
 ```
