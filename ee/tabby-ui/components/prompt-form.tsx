@@ -22,7 +22,7 @@ import {
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
 import { cn } from '@/lib/utils'
-import fetcher from '@/lib/tabby-fetcher'
+import fetcher from '@/lib/tabby/fetcher'
 import { debounce, has } from 'lodash-es'
 import type { ISearchHit, SearchReponse } from '@/lib/types'
 
