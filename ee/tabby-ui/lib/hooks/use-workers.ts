@@ -3,7 +3,7 @@ import { groupBy, findIndex, slice } from 'lodash-es'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 import type { HealthInfo } from './use-health'
 import { graphql } from '@/lib/gql/generates'
-import { useGraphQLQuery } from '../tabby-gql-client'
+import { useGraphQLQuery } from '../tabby/gql'
 
 const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
   [WorkerKind.Chat]: 'chat_model',

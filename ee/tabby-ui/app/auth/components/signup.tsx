@@ -3,7 +3,7 @@
 import { graphql } from '@/lib/gql/generates'
 import { UserAuthForm } from './user-auth-form'
 import { useSearchParams } from 'next/navigation'
-import { useGraphQLQuery } from '@/lib/tabby-gql-client'
+import { useGraphQLQuery } from '@/lib/tabby/gql'
 
 export const getIsAdminInitialized = graphql(/* GraphQL */ `
   query GetIsAdminInitialized {

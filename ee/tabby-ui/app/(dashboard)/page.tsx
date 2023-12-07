@@ -18,7 +18,7 @@ import { useWorkers } from '@/lib/hooks/use-workers'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { CopyButton } from '@/components/copy-button'
 import { graphql } from '@/lib/gql/generates'
-import { useGraphQLQuery } from '@/lib/tabby-gql-client'
+import { useGraphQLQuery } from '@/lib/tabby/gql'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
