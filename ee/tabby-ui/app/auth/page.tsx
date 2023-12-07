@@ -1,10 +1,10 @@
-import { Metadata } from "next"
+import { Metadata } from 'next'
 
-import Signup from "./components/signup"
+import Signup from './components/signup'
 
 export const metadata: Metadata = {
-  title: "Authentication",
-  description: "Authentication forms built using the components.",
+  title: 'Authentication',
+  description: 'Authentication forms built using the components.'
 }
 
 export default function AuthenticationPage() {
