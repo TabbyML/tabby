@@ -1,5 +1,6 @@
 'use client'
 
+import UserPanel from '@/components/user-panel'
 import { cn } from '@/lib/utils'
 import { cva } from 'class-variance-authority'
 import Link from 'next/link'
@@ -16,7 +17,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
       className={cn('grid overflow-hidden lg:grid-cols-[280px_1fr]', className)}
     >
       <div className="hidden border-r bg-zinc-100/40 dark:bg-zinc-800/40 lg:block">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 h-full">
           <div className="h-[12px]"></div>
           <div className="flex-1">
             <nav className="grid items-start gap-4 px-4 text-sm font-medium">
@@ -61,6 +62,10 @@ export default function Sidebar({ children, className }: SidebarProps) {
                 Swagger
               </SidebarButton>
             </nav>
+          </div>
+
+          <div className="mt-auto">
+            <UserPanel />
           </div>
         </div>
       </div>

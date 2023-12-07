@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { ListSkeleton } from '@/components/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { ClearChatsButton } from './clear-chats-button'
+import UserPanel from '@/components/user-panel'
 
 interface ChatSessionsProps {
   className?: string

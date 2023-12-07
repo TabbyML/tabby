@@ -142,7 +142,11 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
     data: null
   })
 
+  const initialized = React.useRef(false)
   React.useEffect(() => {
+    if (initialized.current) return
+
+    initialized.current = true
     const data = storage.initialState()
     if (data?.refreshToken) {
       doRefresh(data.refreshToken, dispatch)
@@ -219,9 +223,14 @@ type Session =
 function useSession(): Session {
   const { authState } = useAuthStore()
   if (authState?.status == 'authenticated') {
-    const { user } = jwtDecode<{ user: User }>(authState.data.accessToken)
+    const { user } = jwtDecode<{ user: { email: string; is_admin: boolean } }>(
+      authState.data.accessToken
+    )
     return {
-      data: user,
+      data: {
+        email: user.email,
+        isAdmin: user.is_admin
+      },
       status: authState.status
     }
   } else {

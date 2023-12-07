@@ -146,13 +146,18 @@ export type GetRegistrationTokenQuery = {
   registrationToken: string
 }
 
-export type GetIsAdminInitializedQueryVariables = Exact<{
-  [key: string]: never
+export type TokenAuthMutationVariables = Exact<{
+  email: Scalars['String']['input']
+  password: Scalars['String']['input']
 }>
 
-export type GetIsAdminInitializedQuery = {
-  __typename?: 'Query'
-  isAdminInitialized: boolean
+export type TokenAuthMutation = {
+  __typename?: 'Mutation'
+  tokenAuth: {
+    __typename?: 'TokenAuthResponse'
+    accessToken: string
+    refreshToken: string
+  }
 }
 
 export type RegisterMutationVariables = Exact<{
@@ -169,6 +174,15 @@ export type RegisterMutation = {
     accessToken: string
     refreshToken: string
   }
+}
+
+export type GetIsAdminInitializedQueryVariables = Exact<{
+  [key: string]: never
+}>
+
+export type GetIsAdminInitializedQuery = {
+  __typename?: 'Query'
+  isAdminInitialized: boolean
 }
 
 export type GetWorkersQueryVariables = Exact<{ [key: string]: never }>
@@ -220,25 +234,74 @@ export const GetRegistrationTokenDocument = {
   GetRegistrationTokenQuery,
   GetRegistrationTokenQueryVariables
 >
-export const GetIsAdminInitializedDocument = {
+export const TokenAuthDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
-      operation: 'query',
-      name: { kind: 'Name', value: 'GetIsAdminInitialized' },
+      operation: 'mutation',
+      name: { kind: 'Name', value: 'tokenAuth' },
+      variableDefinitions: [
+        {
+          kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'email' }
+          },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
+          }
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'password' }
+          },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } }
+          }
+        }
+      ],
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
-          { kind: 'Field', name: { kind: 'Name', value: 'isAdminInitialized' } }
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'tokenAuth' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'email' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'email' }
+                }
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'password' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'password' }
+                }
+              }
+            ],
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'accessToken' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'refreshToken' } }
+              ]
+            }
+          }
         ]
       }
     }
   ]
-} as unknown as DocumentNode<
-  GetIsAdminInitializedQuery,
-  GetIsAdminInitializedQueryVariables
->
+} as unknown as DocumentNode<TokenAuthMutation, TokenAuthMutationVariables>
 export const RegisterDocument = {
   kind: 'Document',
   definitions: [
@@ -342,6 +405,25 @@ export const RegisterDocument = {
     }
   ]
 } as unknown as DocumentNode<RegisterMutation, RegisterMutationVariables>
+export const GetIsAdminInitializedDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'query',
+      name: { kind: 'Name', value: 'GetIsAdminInitialized' },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'isAdminInitialized' } }
+        ]
+      }
+    }
+  ]
+} as unknown as DocumentNode<
+  GetIsAdminInitializedQuery,
+  GetIsAdminInitializedQueryVariables
+>
 export const GetWorkersDocument = {
   kind: 'Document',
   definitions: [

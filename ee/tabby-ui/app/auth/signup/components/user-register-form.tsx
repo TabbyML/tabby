@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/form'
 import { graphql } from '@/lib/gql/generates'
 import { useGraphQLForm } from '@/lib/tabby/gql'
+import { useSignIn } from '@/lib/tabby/auth'
+import { useRouter } from 'next/navigation'
 
 export const registerUser = graphql(/* GraphQL */ `
   mutation register(
@@ -59,15 +61,19 @@ export function UserAuthForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
-      password1: '',
-      password2: '',
       invitationCode
     }
   })
 
+  const router = useRouter()
+  const signIn = useSignIn()
   const { isSubmitting } = form.formState
   const { onSubmit } = useGraphQLForm(registerUser, {
+    onSuccess: async values => {
+      if (await signIn(values.register)) {
+        router.replace('/')
+      }
+    },
     onError: (path, message) => form.setError(path as any, { message })
   })
 
@@ -125,14 +131,14 @@ export function UserAuthForm({
             control={form.control}
             name="invitationCode"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="hidden">
                 <FormControl>
                   <Input type="hidden" {...field} />
                 </FormControl>
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" className="mt-1" disabled={isSubmitting}>
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
