@@ -4422,6 +4422,11 @@ jsonify@^0.0.1:
     object.assign "^4.1.4"
     object.values "^1.1.6"
 
+jwt-decode@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/jwt-decode/-/jwt-decode-4.0.0.tgz#2270352425fd413785b2faf11f6e755c5151bd4b"
+  integrity sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==
+
 katex@^0.16.0:
   version "0.16.8"
   resolved "https://registry.yarnpkg.com/katex/-/katex-0.16.8.tgz#89b453f40e8557f423f31a1009e9298dd99d5ceb"
