@@ -12,14 +12,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Form,
-  FormControl,@/lib/tabby/tabby-gql-client
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
 import { graphql } from '@/lib/gql/generates'
-import { useGraphQLForm } from '@/lib/tabby-gql-client'
+import { useGraphQLForm } from '@/lib/tabby/gql'
 
 export const registerUser = graphql(/* GraphQL */ `
   mutation register(
