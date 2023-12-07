@@ -24,14 +24,8 @@ import { useSignIn } from '@/lib/tabby/auth'
 import { useRouter } from 'next/navigation'
 
 export const tokenAuth = graphql(/* GraphQL */ `
-  mutation tokenAuth(
-    $email: String!
-    $password: String!
-  ) {
-    tokenAuth(
-      email: $email
-      password: $password
-    ) {
+  mutation tokenAuth($email: String!, $password: String!) {
+    tokenAuth(email: $email, password: $password) {
       accessToken
       refreshToken
     }
@@ -40,7 +34,7 @@ export const tokenAuth = graphql(/* GraphQL */ `
 
 const formSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string(),
+  password: z.string()
 })
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -53,16 +47,16 @@ export default function UserSignInForm({
   ...props
 }: UserAuthFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema)
   })
 
-  const router = useRouter();
-  const signIn = useSignIn();
+  const router = useRouter()
+  const signIn = useSignIn()
   const { isSubmitting } = form.formState
   const { onSubmit } = useGraphQLForm(tokenAuth, {
-    onSuccess: async (values) => {
+    onSuccess: async values => {
       if (await signIn(values.tokenAuth)) {
-        router.replace("/");
+        router.replace('/')
       }
     },
     onError: (path, message) => form.setError(path as any, { message })

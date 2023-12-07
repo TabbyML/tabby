@@ -64,7 +64,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
             </nav>
           </div>
 
-          <div className='mt-auto'>
+          <div className="mt-auto">
             <UserPanel />
           </div>
         </div>

@@ -65,13 +65,13 @@ export function UserAuthForm({
     }
   })
 
-  const router = useRouter();
-  const signIn = useSignIn();
+  const router = useRouter()
+  const signIn = useSignIn()
   const { isSubmitting } = form.formState
   const { onSubmit } = useGraphQLForm(registerUser, {
-    onSuccess: async (values) => {
+    onSuccess: async values => {
       if (await signIn(values.register)) {
-        router.replace("/");
+        router.replace('/')
       }
     },
     onError: (path, message) => form.setError(path as any, { message })
@@ -131,7 +131,7 @@ export function UserAuthForm({
             control={form.control}
             name="invitationCode"
             render={({ field }) => (
-              <FormItem className='hidden'>
+              <FormItem className="hidden">
                 <FormControl>
                   <Input type="hidden" {...field} />
                 </FormControl>

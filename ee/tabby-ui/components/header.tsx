@@ -18,7 +18,7 @@ import { graphql } from '@/lib/gql/generates'
 import { useGraphQLQuery } from '@/lib/tabby/gql'
 
 export function Header() {
-  useRequireAuth();
+  useRequireAuth()
 
   const { data } = useHealth()
   const workers = useWorkers(data)
@@ -88,20 +88,22 @@ export const getIsAdminInitialized = graphql(/* GraphQL */ `
 `)
 
 function useRequireAuth() {
-  const { data, isLoading } = useGraphQLQuery(getIsAdminInitialized, undefined, {
-
-  })
-  const router = useRouter();
-  const { status } = useSession();
+  const { data, isLoading } = useGraphQLQuery(
+    getIsAdminInitialized,
+    undefined,
+    {}
+  )
+  const router = useRouter()
+  const { status } = useSession()
 
   React.useEffect(() => {
-    if (isLoading) return;
-    if (status !== "unauthenticated") return;
+    if (isLoading) return
+    if (status !== 'unauthenticated') return
 
     if (data!.isAdminInitialized) {
-      router.replace("/auth/signin");
+      router.replace('/auth/signin')
     } else {
-      router.replace("/auth/signup?isAdmin=true")
+      router.replace('/auth/signup?isAdmin=true')
     }
   }, [data, isLoading, status])
 }

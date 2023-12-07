@@ -11,13 +11,13 @@ interface AuthData {
 
 type AuthState =
   | {
-    status: 'authenticated'
-    data: AuthData
-  }
+      status: 'authenticated'
+      data: AuthData
+    }
   | {
-    status: 'loading' | 'unauthenticated'
-    data: null
-  }
+      status: 'loading' | 'unauthenticated'
+      data: null
+    }
 
 enum AuthActionType {
   Init,
@@ -142,11 +142,11 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
     data: null
   })
 
-  const initialized = React.useRef(false);
+  const initialized = React.useRef(false)
   React.useEffect(() => {
-    if (initialized.current) return;
+    if (initialized.current) return
 
-    initialized.current = true;
+    initialized.current = true
     const data = storage.initialState()
     if (data?.refreshToken) {
       doRefresh(data.refreshToken, dispatch)
@@ -212,18 +212,20 @@ interface User {
 
 type Session =
   | {
-    data: null
-    status: 'loading' | 'unauthenticated'
-  }
+      data: null
+      status: 'loading' | 'unauthenticated'
+    }
   | {
-    data: User
-    status: 'authenticated'
-  }
+      data: User
+      status: 'authenticated'
+    }
 
 function useSession(): Session {
   const { authState } = useAuthStore()
   if (authState?.status == 'authenticated') {
-    const { user } = jwtDecode<{ user: { email: string, is_admin: boolean } }>(authState.data.accessToken)
+    const { user } = jwtDecode<{ user: { email: string; is_admin: boolean } }>(
+      authState.data.accessToken
+    )
     return {
       data: {
         email: user.email,

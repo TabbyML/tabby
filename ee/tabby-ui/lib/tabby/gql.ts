@@ -22,12 +22,12 @@ export function useGraphQLForm<
 >(
   document: TypedDocumentNode<TResult, TVariables>,
   options?: {
-    onSuccess?: (values: TResult) => void,
+    onSuccess?: (values: TResult) => void
     onError?: (path: string, message: string) => void
   }
 ) {
   const onSubmit = async (values: TVariables) => {
-    let res;
+    let res
     try {
       res = await gqlClient.request(document, values)
     } catch (err) {

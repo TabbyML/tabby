@@ -24,10 +24,10 @@ import { useSession } from '@/lib/tabby/auth'
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
 export default function Home() {
-  const { status } = useSession();
+  const { status } = useSession()
   const [open, setOpen] = useState(false)
   useEffect(() => {
-    if (status !== 'authenticated') return;
+    if (status !== 'authenticated') return
 
     if (!localStorage.getItem(COMMUNITY_DIALOG_SHOWN_KEY)) {
       setOpen(true)
