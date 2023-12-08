@@ -1,5 +1,13 @@
 'use client'
 
+import { PropsWithChildren, useEffect, useState } from 'react'
+
+import { graphql } from '@/lib/gql/generates'
+import { WorkerKind } from '@/lib/gql/generates/graphql'
+import { useHealth } from '@/lib/hooks/use-health'
+import { useWorkers } from '@/lib/hooks/use-workers'
+import { useSession } from '@/lib/tabby/auth'
+import { useGraphQLQuery } from '@/lib/tabby/gql'
 import { buttonVariants } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,15 +19,9 @@ import {
 } from '@/components/ui/dialog'
 import { IconSlack } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
-import { useHealth } from '@/lib/hooks/use-health'
-import { PropsWithChildren, useEffect, useState } from 'react'
-import WorkerCard from './components/worker-card'
-import { useWorkers } from '@/lib/hooks/use-workers'
-import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { CopyButton } from '@/components/copy-button'
-import { graphql } from '@/lib/gql/generates'
-import { useGraphQLQuery } from '@/lib/tabby/gql'
-import { useSession } from '@/lib/tabby/auth'
+
+import WorkerCard from './components/worker-card'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 

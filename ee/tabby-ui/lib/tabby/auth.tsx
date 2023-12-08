@@ -1,9 +1,10 @@
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
+import { jwtDecode } from 'jwt-decode'
+
 import { graphql } from '@/lib/gql/generates'
 import useInterval from '@/lib/hooks/use-interval'
 import { gqlClient, useGraphQLQuery } from '@/lib/tabby/gql'
-import { jwtDecode } from 'jwt-decode'
-import { useRouter } from 'next/navigation'
 
 interface AuthData {
   accessToken: string

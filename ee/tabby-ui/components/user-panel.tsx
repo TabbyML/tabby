@@ -1,3 +1,6 @@
+import React from 'react'
+import Link from 'next/link'
+
 import {
   useAuthenticatedSession,
   useIsAdminInitialized,
@@ -5,9 +8,8 @@ import {
   useSignOut
 } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
+
 import { IconLogout, IconUnlock } from './ui/icons'
-import Link from 'next/link'
-import React from 'react'
 
 export default function UserPanel() {
   const isAdminInitialized = useIsAdminInitialized()

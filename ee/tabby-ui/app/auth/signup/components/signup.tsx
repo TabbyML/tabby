@@ -1,7 +1,8 @@
 'use client'
 
-import { UserAuthForm } from './user-register-form'
 import { useSearchParams } from 'next/navigation'
+
+import { UserAuthForm } from './user-register-form'
 
 export default function Signup() {
   const searchParams = useSearchParams()

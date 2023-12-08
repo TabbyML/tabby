@@ -1,9 +1,11 @@
 import React from 'react'
-import { groupBy, findIndex, slice } from 'lodash-es'
-import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
-import type { HealthInfo } from './use-health'
+import { findIndex, groupBy, slice } from 'lodash-es'
+
 import { graphql } from '@/lib/gql/generates'
+import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 import { useGraphQLQuery } from '@/lib/tabby/gql'
+
+import type { HealthInfo } from './use-health'
 
 const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
   [WorkerKind.Chat]: 'chat_model',

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 
 import { ServerActionResult } from '@/lib/types'
-import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import { IconSpinner } from '@/components/ui/icons'
 
 interface ClearHistoryProps {

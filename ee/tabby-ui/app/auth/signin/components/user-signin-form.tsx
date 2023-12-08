@@ -1,15 +1,16 @@
 'use client'
 
 import * as React from 'react'
-
+import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
+import { graphql } from '@/lib/gql/generates'
+import { useSignIn } from '@/lib/tabby/auth'
+import { useGraphQLForm } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
-import { IconSpinner } from '@/components/ui/icons'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Form,
   FormControl,
@@ -18,10 +19,8 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import { graphql } from '@/lib/gql/generates'
-import { useGraphQLForm } from '@/lib/tabby/gql'
-import { useSignIn } from '@/lib/tabby/auth'
-import { useRouter } from 'next/navigation'
+import { IconSpinner } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
 
 export const tokenAuth = graphql(/* GraphQL */ `
   mutation tokenAuth($email: String!, $password: String!) {

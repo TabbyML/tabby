@@ -1,16 +1,18 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
+import { compare } from 'compare-versions'
+import { has } from 'lodash-es'
+
+import { WorkerKind } from '@/lib/gql/generates/graphql'
+import { useHealth } from '@/lib/hooks/use-health'
+import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
+import { useWorkers } from '@/lib/hooks/use-workers'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconGitHub, IconNotice } from '@/components/ui/icons'
-import Link from 'next/link'
-import { useHealth } from '@/lib/hooks/use-health'
-import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
-import { compare } from 'compare-versions'
-import { useWorkers } from '@/lib/hooks/use-workers'
-import { WorkerKind } from '@/lib/gql/generates/graphql'
-import { has } from 'lodash-es'
+
 import { ThemeToggle } from './theme-toggle'
 
 export function Header() {

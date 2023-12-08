@@ -1,7 +1,7 @@
 'use client'
 
-import useSWRImmutable from 'swr/immutable'
 import { SWRResponse } from 'swr'
+import useSWRImmutable from 'swr/immutable'
 
 export interface ReleaseInfo {
   name: string

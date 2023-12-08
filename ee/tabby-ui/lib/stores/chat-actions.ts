@@ -1,6 +1,8 @@
 import { Message } from 'ai'
-import { nanoid } from '@/lib/utils'
+
 import type { Chat } from '@/lib/types'
+import { nanoid } from '@/lib/utils'
+
 import { useChatStore } from './chat-store'
 
 const get = useChatStore.getState

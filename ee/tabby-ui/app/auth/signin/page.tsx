@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+
 import Signin from './components/signin'
 
 export const metadata: Metadata = {

@@ -1,7 +1,7 @@
-import useSWR, { SWRResponse, SWRConfiguration } from 'swr'
-import { GraphQLClient, Variables } from 'graphql-request'
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
+import { GraphQLClient, Variables } from 'graphql-request'
 import { GraphQLResponse } from 'graphql-request/build/esm/types'
+import useSWR, { SWRConfiguration, SWRResponse } from 'swr'
 
 export const gqlClient = new GraphQLClient(
   `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`

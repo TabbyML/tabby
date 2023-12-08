@@ -1,6 +1,8 @@
 import { Metadata } from 'next'
-import Sidebar from './components/sidebar'
+
 import { Header } from '@/components/header'
+
+import Sidebar from './components/sidebar'
 
 export const metadata: Metadata = {
   title: 'Dashboard'
