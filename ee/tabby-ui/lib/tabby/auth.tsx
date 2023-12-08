@@ -251,25 +251,25 @@ export const getIsAdminInitialized = graphql(/* GraphQL */ `
   }
 `)
 
-function useIsAdminInitialized() {
-  const { data } = useGraphQLQuery(getIsAdminInitialized)
-  return data?.isAdminInitialized
-}
-
 function useAuthenticatedSession() {
   const { data } = useGraphQLQuery(getIsAdminInitialized)
   const router = useRouter()
   const { data: session, status } = useSession()
 
   React.useEffect(() => {
-    if (!data?.isAdminInitialized) return
-
-    if (status === 'unauthenticated') {
+    if (data?.isAdminInitialized === false) {
+      router.replace('/auth/signup?isAdmin=true')
+    } else if (status === 'unauthenticated') {
       router.replace('/auth/signin')
     }
   }, [data, status])
 
   return session
+}
+
+function useAuthenticatedApi(path: string | null): [string, string] | null {
+  const { data, status } = useSession()
+  return path && status === 'authenticated' ? [path, data.accessToken] : null
 }
 
 export type { AuthStore, User, Session }
@@ -279,6 +279,6 @@ export {
   useSignIn,
   useSignOut,
   useSession,
-  useIsAdminInitialized,
-  useAuthenticatedSession
+  useAuthenticatedSession,
+  useAuthenticatedApi
 }

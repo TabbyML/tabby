@@ -3,7 +3,7 @@ import { findIndex, groupBy, slice } from 'lodash-es'
 
 import { graphql } from '@/lib/gql/generates'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
-import { useGraphQLQuery } from '@/lib/tabby/gql'
+import { useAuthenticatedGraphQLQuery, useGraphQLQuery } from '@/lib/tabby/gql'
 
 import type { HealthInfo } from './use-health'
 
@@ -44,7 +44,7 @@ export const getAllWorkersDocument = graphql(/* GraphQL */ `
 `)
 
 function useWorkers(healthInfo?: HealthInfo) {
-  const { data } = useGraphQLQuery(getAllWorkersDocument)
+  const { data } = useAuthenticatedGraphQLQuery(getAllWorkersDocument)
   let workers = data?.workers
 
   const groupedWorkers = React.useMemo(() => {

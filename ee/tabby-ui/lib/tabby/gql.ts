@@ -73,18 +73,37 @@ export function useGraphQLQuery<
   variables?: TVariables,
   swrConfiguration?: SWRConfiguration<TResult>
 ): SWRResponse<TResult> {
-  const { data } = useSession()
   return useSWR(
-    [document, variables, data?.accessToken],
+    [document, variables],
+    ([document, variables]) =>
+      gqlClient.request({
+        document,
+        variables
+      }),
+    swrConfiguration
+  )
+}
+
+export function useAuthenticatedGraphQLQuery<
+  TResult,
+  TVariables extends Variables | undefined
+>(
+  document: TypedDocumentNode<TResult, TVariables>,
+  variables?: TVariables,
+  swrConfiguration?: SWRConfiguration<TResult>
+): SWRResponse<TResult> {
+  const { data, status } = useSession()
+  return useSWR(
+    status === 'authenticated'
+      ? [document, variables, data?.accessToken]
+      : null,
     ([document, variables, accessToken]) =>
       gqlClient.request({
         document,
         variables,
-        requestHeaders: accessToken
-          ? {
-              authorization: `Bearer ${accessToken}`
-            }
-          : undefined
+        requestHeaders: {
+          authorization: `Bearer ${accessToken}`
+        }
       }),
     swrConfiguration
   )

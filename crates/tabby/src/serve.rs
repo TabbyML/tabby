@@ -92,6 +92,10 @@ pub struct ServeArgs {
     /// memory requirement e.g., GPU vRAM.
     #[clap(long, default_value_t = 1)]
     parallelism: u8,
+
+    #[cfg(feature = "ee")]
+    #[clap(hide = true, long, default_value_t = false)]
+    webserver: bool,
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
@@ -114,7 +118,12 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let (api, ui) = tabby_webserver::attach_webserver(api, ui, logger, code).await;
+    let (api, ui) = if args.webserver {
+        tabby_webserver::attach_webserver(api, ui, logger, code).await
+    } else {
+        let ui = ui.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
+        (api, ui)
+    };
 
     #[cfg(not(feature = "ee"))]
     let ui = ui.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });

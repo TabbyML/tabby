@@ -48,10 +48,7 @@ impl ServerContext {
 
     async fn authorize_request(&self, request: &Request<Body>) -> bool {
         let path = request.uri().path();
-        if (path.starts_with("/v1/") || path.starts_with("/v1beta/"))
-           // Authorization is enabled
-           && self.db_conn.is_admin_initialized().await.unwrap_or(false)
-        {
+        if path.starts_with("/v1/") || path.starts_with("/v1beta/") {
             let token = {
                 let authorization = request
                     .headers()
