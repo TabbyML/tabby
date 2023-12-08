@@ -10,6 +10,9 @@ use crate::services::health;
     tag = "v1",
     responses(
         (status = 200, description = "Success", body = HealthState, content_type = "application/json"),
+    ),
+    security(
+        ("token" = [])
     )
 )]
 pub async fn health(State(state): State<Arc<health::HealthState>>) -> Json<health::HealthState> {
