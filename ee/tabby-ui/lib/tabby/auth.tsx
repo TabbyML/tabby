@@ -12,13 +12,13 @@ interface AuthData {
 
 type AuthState =
   | {
-    status: 'authenticated'
-    data: AuthData
-  }
+      status: 'authenticated'
+      data: AuthData
+    }
   | {
-    status: 'loading' | 'unauthenticated'
-    data: null
-  }
+      status: 'loading' | 'unauthenticated'
+      data: null
+    }
 
 enum AuthActionType {
   Init,
@@ -213,13 +213,13 @@ interface User {
 
 type Session =
   | {
-    data: null
-    status: 'loading' | 'unauthenticated'
-  }
+      data: null
+      status: 'loading' | 'unauthenticated'
+    }
   | {
-    data: User
-    status: 'authenticated'
-  }
+      data: User
+      status: 'authenticated'
+    }
 
 function useSession(): Session {
   const { authState } = useAuthStore()
@@ -256,10 +256,10 @@ function useIsAdminInitialized() {
 function useAuthenticatedSession() {
   const { data } = useGraphQLQuery(getIsAdminInitialized)
   const router = useRouter()
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSession()
 
   React.useEffect(() => {
-    if (!data?.isAdminInitialized) return;
+    if (!data?.isAdminInitialized) return
 
     if (status === 'unauthenticated') {
       router.replace('/auth/signin')
@@ -271,4 +271,11 @@ function useAuthenticatedSession() {
 
 export type { AuthStore, User, Session }
 
-export { AuthProvider, useSignIn, useSignOut, useSession, useIsAdminInitialized, useAuthenticatedSession }
+export {
+  AuthProvider,
+  useSignIn,
+  useSignOut,
+  useSession,
+  useIsAdminInitialized,
+  useAuthenticatedSession
+}
