@@ -57,13 +57,19 @@ function PromptFormRenderer(
   >({})
 
   const { data } = useSession()
-  useSWR<SearchReponse>([queryCompletionUrl, data?.accessToken], fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 0,
-    onSuccess: data => {
-      setOptions(data?.hits ?? [])
+  const { data: completionData } = useSWR<SearchReponse>(
+    [queryCompletionUrl, data?.accessToken],
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 0,
+      errorRetryCount: 0
     }
-  })
+  )
+
+  React.useEffect(() => {
+    setOptions(completionData?.hits ?? [])
+  }, [completionData?.hits])
 
   React.useImperativeHandle(ref, () => {
     return {
