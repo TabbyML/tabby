@@ -12,10 +12,6 @@ import { useWorkers } from '@/lib/hooks/use-workers'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { has } from 'lodash-es'
 import { ThemeToggle } from './theme-toggle'
-import { useSession } from '@/lib/tabby/auth'
-import { useRouter } from 'next/navigation'
-import { graphql } from '@/lib/gql/generates'
-import { useGraphQLQuery } from '@/lib/tabby/gql'
 
 export function Header() {
   const { data } = useHealth()
