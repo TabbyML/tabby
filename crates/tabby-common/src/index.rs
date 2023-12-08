@@ -79,6 +79,15 @@ impl Default for CodeSearchSchema {
 
 impl CodeSearchSchema {
     pub fn language_query(&self, language: &str) -> Box<TermQuery> {
+        let language = if language == "javascript"
+            || language == "typescript"
+            || language == "javascriptreact"
+            || language == "typescriptreact"
+        {
+            "javascript-typescript"
+        } else {
+            language
+        };
         Box::new(TermQuery::new(
             Term::from_field_text(self.field_language, language),
             IndexRecordOption::WithFreqsAndPositions,
@@ -91,5 +100,20 @@ impl CodeSearchSchema {
                 .iter()
                 .map(|x| Term::from_field_text(self.field_body, x)),
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CodeSearchSchema;
+
+    #[test]
+    fn test_language_query() {
+        let schema = CodeSearchSchema::new();
+        let lhs = schema.language_query("javascript-typescript");
+        assert_eq!(lhs.term(), schema.language_query("javascript").term());
+        assert_eq!(lhs.term(), schema.language_query("typescript").term());
+        assert_eq!(lhs.term(), schema.language_query("typescriptreact").term());
+        assert_eq!(lhs.term(), schema.language_query("javascriptreact").term());
     }
 }
