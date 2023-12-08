@@ -27,6 +27,7 @@ lazy_static! {
         "#
         )
         .down("DROP TABLE registration_token"),
+        // ==== Above migrations released in 0.6.0 ====
         M::up(
             r#"
             CREATE TABLE users (
@@ -36,7 +37,10 @@ lazy_static! {
                 is_admin           BOOLEAN NOT NULL DEFAULT 0,
                 created_at         TIMESTAMP DEFAULT (DATETIME('now')),
                 updated_at         TIMESTAMP DEFAULT (DATETIME('now')),
-                CONSTRAINT `idx_email` UNIQUE (`email`)
+                auth_token         VARCHAR(128) NOT NULL,
+
+                CONSTRAINT `idx_email`      UNIQUE (`email`)
+                CONSTRAINT `idx_auth_token` UNIQUE (`auth_token`)
             );
         "#
         )

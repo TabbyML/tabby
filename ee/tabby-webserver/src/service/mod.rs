@@ -8,7 +8,11 @@ use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use axum::{http::Request, middleware::Next, response::IntoResponse};
+use axum::{
+    http::{HeaderValue, Request},
+    middleware::Next,
+    response::IntoResponse,
+};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::{info, warn};
@@ -40,6 +44,46 @@ impl ServerContext {
             logger,
             code,
         }
+    }
+
+    async fn authorize_request(&self, request: &Request<Body>) -> bool {
+        let path = request.uri().path();
+        if (path.starts_with("/v1/") || path.starts_with("/v1beta/"))
+           // Authorization is enabled
+           && self.db_conn.is_admin_initialized().await.unwrap_or(false)
+        {
+            let token = {
+                let authorization = request
+                    .headers()
+                    .get("authorization")
+                    .map(HeaderValue::to_str)
+                    .and_then(Result::ok);
+
+                if let Some(authorization) = authorization {
+                    let split = authorization.split_once(' ');
+                    match split {
+                        // Found proper bearer
+                        Some(("Bearer", contents)) => Some(contents),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            };
+
+            if let Some(token) = token {
+                if self.db_conn.verify_access_token(token).await.is_err()
+                    && !self.db_conn.verify_auth_token(token).await
+                {
+                    return false;
+                }
+            } else {
+                // Admin system is initialized, but there's no valid token.
+                return false;
+            }
+        }
+
+        true
     }
 }
 
@@ -95,7 +139,13 @@ impl WorkerService for ServerContext {
         request: Request<Body>,
         next: Next<Body>,
     ) -> axum::response::Response {
-        let path = request.uri().path();
+        if !self.authorize_request(&request).await {
+            return axum::response::Response::builder()
+                .status(StatusCode::UNAUTHORIZED)
+                .body(Body::empty())
+                .unwrap()
+                .into_response();
+        }
 
         let remote_addr = request
             .extensions()
@@ -103,6 +153,7 @@ impl WorkerService for ServerContext {
             .map(|ci| ci.0)
             .expect("Unable to extract remote addr");
 
+        let path = request.uri().path();
         let worker = if path.starts_with("/v1/completions") {
             self.completion.select().await
         } else if path.starts_with("/v1beta/chat/completions") {

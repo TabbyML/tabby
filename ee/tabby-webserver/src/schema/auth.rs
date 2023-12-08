@@ -285,7 +285,7 @@ pub trait AuthenticationService: Send + Sync {
         &self,
         refresh_token: String,
     ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError>;
-    async fn verify_token(&self, access_token: String) -> Result<VerifyTokenResponse>;
+    async fn verify_access_token(&self, access_token: &str) -> Result<VerifyTokenResponse>;
     async fn is_admin_initialized(&self) -> Result<bool>;
 
     async fn create_invitation(&self, email: String) -> Result<i32>;
