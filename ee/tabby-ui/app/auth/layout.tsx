@@ -4,7 +4,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center flex-1">
+    <div className="flex flex-1 flex-col items-center justify-center">
       {children}
     </div>
   )

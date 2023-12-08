@@ -131,7 +131,7 @@ export const ComboboxOption = React.forwardRef<
       <div
         className={cn(
           'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
-          highlighted && 'text-accent-foreground bg-accent',
+          highlighted && 'bg-accent text-accent-foreground',
           selected && 'font-bold',
           disabled && 'pointer-events-none opacity-50',
           className

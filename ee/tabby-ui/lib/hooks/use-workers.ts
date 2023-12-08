@@ -3,7 +3,7 @@ import { findIndex, groupBy, slice } from 'lodash-es'
 
 import { graphql } from '@/lib/gql/generates'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
-import { useAuthenticatedGraphQLQuery, useGraphQLQuery } from '@/lib/tabby/gql'
+import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
 
 import type { HealthInfo } from './use-health'
 
