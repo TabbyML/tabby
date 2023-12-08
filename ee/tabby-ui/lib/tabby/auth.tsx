@@ -1,8 +1,9 @@
 import * as React from 'react'
 import { graphql } from '@/lib/gql/generates'
 import useInterval from '@/lib/hooks/use-interval'
-import { gqlClient } from '@/lib/tabby/gql'
+import { gqlClient, useGraphQLQuery } from '@/lib/tabby/gql'
 import { jwtDecode } from 'jwt-decode'
+import { useRouter } from 'next/navigation'
 
 interface AuthData {
   accessToken: string
@@ -241,6 +242,40 @@ function useSession(): Session {
   }
 }
 
+export const getIsAdminInitialized = graphql(/* GraphQL */ `
+  query GetIsAdminInitialized {
+    isAdminInitialized
+  }
+`)
+
+function useIsAdminInitialized() {
+  const { data } = useGraphQLQuery(getIsAdminInitialized)
+  return data?.isAdminInitialized
+}
+
+function useAuthenticatedSession() {
+  const { data } = useGraphQLQuery(getIsAdminInitialized)
+  const router = useRouter()
+  const { data: session, status } = useSession()
+
+  React.useEffect(() => {
+    if (!data?.isAdminInitialized) return
+
+    if (status === 'unauthenticated') {
+      router.replace('/auth/signin')
+    }
+  }, [data, status])
+
+  return session
+}
+
 export type { AuthStore, User, Session }
 
-export { AuthProvider, useSignIn, useSignOut, useSession }
+export {
+  AuthProvider,
+  useSignIn,
+  useSignOut,
+  useSession,
+  useIsAdminInitialized,
+  useAuthenticatedSession
+}
