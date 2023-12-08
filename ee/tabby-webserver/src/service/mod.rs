@@ -72,7 +72,7 @@ impl ServerContext {
             };
 
             if let Some(token) = token {
-                if !self.db_conn.verify_access_token(token).await.is_ok()
+                if self.db_conn.verify_access_token(token).await.is_err()
                     && !self.db_conn.verify_auth_token(token).await
                 {
                     return false;

@@ -133,7 +133,7 @@ impl DbConn {
 }
 
 fn generate_auth_token() -> String {
-    let uuid = Uuid::new_v4().to_string().replace("-", "");
+    let uuid = Uuid::new_v4().to_string().replace('-', "");
     format!("auth_{}", uuid)
 }
 
