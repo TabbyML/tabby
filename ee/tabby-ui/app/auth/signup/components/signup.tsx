@@ -8,7 +8,7 @@ export default function Signup() {
   const invitationCode = searchParams.get('invitationCode') || undefined
   const isAdmin = searchParams.get('isAdmin') || false
 
-  const title = isAdmin ? 'Create admin account' : 'Create an account'
+  const title = isAdmin ? 'Create an admin account' : 'Create an account'
 
   const description = isAdmin
     ? "After creating an admin account, your instance is secured, and only registered users can access it."
