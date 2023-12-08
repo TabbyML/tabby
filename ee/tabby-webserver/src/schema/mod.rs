@@ -72,36 +72,27 @@ pub struct Query;
 #[graphql_object(context = Context)]
 impl Query {
     async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
-        if ctx.locator.auth().is_admin_initialized().await? {
-            if let Some(claims) = &ctx.claims {
-                if claims.user_info().is_admin() {
-                    let workers = ctx.locator.worker().list_workers().await;
-                    return Ok(workers);
-                }
+        if let Some(claims) = &ctx.claims {
+            if claims.user_info().is_admin() {
+                let workers = ctx.locator.worker().list_workers().await;
+                return Ok(workers);
             }
-            Err(CoreError::Unauthorized(
-                "Only admin is able to read workers",
-            ))
-        } else {
-            Ok(ctx.locator.worker().list_workers().await)
         }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to read workers",
+        ))
     }
 
     async fn registration_token(ctx: &Context) -> Result<String> {
-        if ctx.locator.auth().is_admin_initialized().await? {
-            if let Some(claims) = &ctx.claims {
-                if claims.user_info().is_admin() {
-                    let token = ctx.locator.worker().read_registration_token().await?;
-                    return Ok(token);
-                }
+        if let Some(claims) = &ctx.claims {
+            if claims.user_info().is_admin() {
+                let token = ctx.locator.worker().read_registration_token().await?;
+                return Ok(token);
             }
-            Err(CoreError::Unauthorized(
-                "Only admin is able to read registeration_token",
-            ))
-        } else {
-            let token = ctx.locator.worker().read_registration_token().await?;
-            Ok(token)
         }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to read registeration_token",
+        ))
     }
 
     async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
