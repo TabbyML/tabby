@@ -16,6 +16,9 @@ use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
     responses(
         (status = 200, description = "Success"),
         (status = 400, description = "Bad Request")
+    ),
+    security(
+        ("token" = [])
     )
 )]
 pub async fn log_event(

@@ -15,6 +15,9 @@ use crate::services::completion::{CompletionRequest, CompletionResponse, Complet
     responses(
         (status = 200, description = "Success", body = CompletionResponse, content_type = "application/json"),
         (status = 400, description = "Bad Request")
+    ),
+    security(
+        ("token" = [])
     )
 )]
 #[instrument(skip(state, request))]

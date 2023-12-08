@@ -32,8 +32,11 @@ pub struct SearchQuery {
     responses(
         (status = 200, description = "Success" , body = SearchResponse, content_type = "application/json"),
         (status = 501, description = "When code search is not enabled, the endpoint will returns 501 Not Implemented"),
-        )
-    )]
+    ),
+    security(
+        ("token" = [])
+    )
+)]
 #[instrument(skip(state, query))]
 pub async fn search(
     State(state): State<Arc<dyn CodeSearch>>,

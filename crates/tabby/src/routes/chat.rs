@@ -20,6 +20,9 @@ use crate::services::chat::{ChatCompletionRequest, ChatService};
     responses(
         (status = 200, description = "Success", body = ChatCompletionChunk, content_type = "application/jsonstream"),
         (status = 405, description = "When chat model is not specified, the endpoint will returns 405 Method Not Allowed"),
+    ),
+    security(
+        ("token" = [])
     )
 )]
 #[instrument(skip(state, request))]

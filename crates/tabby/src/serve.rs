@@ -12,7 +12,10 @@ use tabby_common::{
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
 use tracing::info;
-use utoipa::OpenApi;
+use utoipa::{
+    openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
+    Modify, OpenApi,
+};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
@@ -63,7 +66,8 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         api::code::SearchResponse,
         api::code::Hit,
         api::code::HitDocument
-    ))
+    )),
+    modifiers(&SecurityAddon),
 )]
 struct ApiDoc;
 
@@ -244,4 +248,22 @@ fn start_heartbeat(args: &ServeArgs) {
             sleep(Duration::from_secs(3000)).await;
         }
     });
+}
+
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = &mut openapi.components {
+            components.add_security_scheme(
+                "token",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("token")
+                        .build(),
+                ),
+            )
+        }
+    }
 }
