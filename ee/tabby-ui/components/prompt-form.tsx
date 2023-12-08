@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { UseChatHelpers } from 'ai/react'
-import { debounce, has } from 'lodash-es'
+import { debounce, has, isEqual } from 'lodash-es'
 import useSWR from 'swr'
 
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
@@ -26,6 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { useSession } from '@/lib/tabby/auth'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -45,7 +46,6 @@ function PromptFormRenderer(
   const [queryCompletionUrl, setQueryCompletionUrl] = React.useState<
     string | null
   >(null)
-  const latestFetchKey = React.useRef('')
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   // store the input selection for replacing inputValue
   const prevInputSelectionEnd = React.useRef<number>()
@@ -56,11 +56,11 @@ function PromptFormRenderer(
     Record<string, ISearchHit>
   >({})
 
-  useSWR<SearchReponse>(queryCompletionUrl, fetcher, {
+  const { data } = useSession();
+  useSWR<SearchReponse>([queryCompletionUrl, data?.accessToken], fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 0,
-    onSuccess: (data, key) => {
-      if (key !== latestFetchKey.current) return
+    onSuccess: (data) => {
       setOptions(data?.hits ?? [])
     }
   })
@@ -102,7 +102,6 @@ function PromptFormRenderer(
       if (queryName) {
         const query = encodeURIComponent(`name:${queryName} AND kind:function`)
         const url = `/v1beta/search?q=${query}`
-        latestFetchKey.current = url
         setQueryCompletionUrl(url)
       } else {
         setOptions([])
