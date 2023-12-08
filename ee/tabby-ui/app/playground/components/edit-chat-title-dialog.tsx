@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { IconArrowElbow, IconEdit, IconTrash } from '@/components/ui/icons'
+import { IconArrowElbow, IconEdit } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import {
   Tooltip,

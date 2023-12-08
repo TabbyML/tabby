@@ -4,7 +4,7 @@ import useSWR, { SWRResponse } from 'swr'
 
 import fetcher from '@/lib/tabby/fetcher'
 
-import { useAuthenticatedApi, useSession } from '../tabby/auth'
+import { useAuthenticatedApi } from '../tabby/auth'
 
 export interface HealthInfo {
   device: 'metal' | 'cpu' | 'cuda'

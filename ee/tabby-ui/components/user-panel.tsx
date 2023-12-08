@@ -10,7 +10,7 @@ export default function UserPanel() {
 
   return (
     session && (
-      <div className="py-4 flex justify-center text-sm font-medium">
+      <div className="flex justify-center py-4 text-sm font-medium">
         <span className="flex items-center gap-2">
           <span title="Sign out">
             <IconLogout className="cursor-pointer" onClick={signOut} />

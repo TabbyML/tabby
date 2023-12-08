@@ -21,7 +21,7 @@ export default function RunnerCard({
     'ml-2',
     'whitespace-nowrap',
     'overflow-hidden',
-    'overflow-ellipsis'
+    'text-ellipsis'
   )
   const cpuMessage = `${cpuInfo} (${cpuCount} cores)`
   return (

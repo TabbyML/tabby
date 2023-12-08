@@ -7,7 +7,7 @@ import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useSession } from '@/lib/tabby/auth'
-import { useAuthenticatedGraphQLQuery, useGraphQLQuery } from '@/lib/tabby/gql'
+import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
 import { buttonVariants } from '@/components/ui/button'
 import {
   Dialog,
@@ -122,7 +122,7 @@ function MainPanel() {
         {!!registrationTokenRes?.registrationToken && (
           <div className="flex items-center gap-1">
             Registeration token:{' '}
-            <span className="text-sm rounded-lg text-red-600">
+            <span className="rounded-lg text-sm text-red-600">
               {registrationTokenRes.registrationToken}
             </span>
             <CopyButton value={registrationTokenRes.registrationToken} />

@@ -1,10 +1,10 @@
 import * as React from 'react'
 import { UseChatHelpers } from 'ai/react'
-import { debounce, has, isEqual } from 'lodash-es'
+import { debounce, has } from 'lodash-es'
 import useSWR from 'swr'
 
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
-import { useAuthenticatedApi, useSession } from '@/lib/tabby/auth'
+import { useAuthenticatedApi } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ISearchHit, SearchReponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -184,11 +184,11 @@ function PromptFormRenderer(
           return (
             <>
               <ComboboxAnchor>
-                <div className="bg-background relative flex max-h-60 w-full grow flex-col overflow-hidden px-8 sm:rounded-md sm:border sm:px-12">
+                <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
                   <span
                     className={cn(
                       buttonVariants({ size: 'sm', variant: 'ghost' }),
-                      'bg-background hover:bg-background absolute left-0 top-4 h-8 w-8 rounded-full p-0 sm:left-4'
+                      'absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 hover:bg-background sm:left-4'
                     )}
                   >
                     <IconEdit />
@@ -253,7 +253,7 @@ function PromptFormRenderer(
                                   {item?.doc?.name}(...)
                                 </div>
                               </div>
-                              <div className="text-muted-foreground flex-1 truncate text-right text-sm">
+                              <div className="flex-1 truncate text-right text-sm text-muted-foreground">
                                 {item?.doc?.body}
                               </div>
                             </div>
@@ -278,7 +278,7 @@ function PromptFormRenderer(
                           : ''}
                         {highlightedOption?.doc?.name}
                       </div>
-                      <div className="text-muted-foreground flex-1 whitespace-pre-wrap break-all">
+                      <div className="flex-1 whitespace-pre-wrap break-all text-muted-foreground">
                         {highlightedOption?.doc?.body}
                       </div>
                     </div>

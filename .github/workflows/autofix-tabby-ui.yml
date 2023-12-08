@@ -35,6 +35,10 @@ jobs:
         working-directory: ./ee/tabby-ui
         run: yarn install
 
+      - name: Lint
+        working-directory: ./ee/tabby-ui
+        run: yarn lint:fix
+
       - name: Format
         working-directory: ./ee/tabby-ui
         run: yarn format:write
