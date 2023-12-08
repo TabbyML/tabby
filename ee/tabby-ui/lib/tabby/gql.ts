@@ -29,7 +29,7 @@ export function useGraphQLForm<
   }
 ) {
   const { data } = useSession()
-  const accessToken = data?.accessToken;
+  const accessToken = data?.accessToken
   const onSubmit = async (variables: TVariables) => {
     let res
     try {
@@ -38,8 +38,8 @@ export function useGraphQLForm<
         variables,
         requestHeaders: accessToken
           ? {
-            authorization: `Bearer ${accessToken}`
-          }
+              authorization: `Bearer ${accessToken}`
+            }
           : undefined
       })
     } catch (err) {
@@ -78,7 +78,7 @@ export function useGraphQLQuery<
     ([document, variables]) =>
       gqlClient.request({
         document,
-        variables,
+        variables
       }),
     swrConfiguration
   )
@@ -94,7 +94,9 @@ export function useAuthenticatedGraphQLQuery<
 ): SWRResponse<TResult> {
   const { data, status } = useSession()
   return useSWR(
-    status === "authenticated" ? [document, variables, data?.accessToken] : null,
+    status === 'authenticated'
+      ? [document, variables, data?.accessToken]
+      : null,
     ([document, variables, accessToken]) =>
       gqlClient.request({
         document,

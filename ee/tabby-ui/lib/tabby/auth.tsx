@@ -13,13 +13,13 @@ interface AuthData {
 
 type AuthState =
   | {
-    status: 'authenticated'
-    data: AuthData
-  }
+      status: 'authenticated'
+      data: AuthData
+    }
   | {
-    status: 'loading' | 'unauthenticated'
-    data: null
-  }
+      status: 'loading' | 'unauthenticated'
+      data: null
+    }
 
 enum AuthActionType {
   Init,
@@ -215,13 +215,13 @@ interface User {
 
 type Session =
   | {
-    data: null
-    status: 'loading' | 'unauthenticated'
-  }
+      data: null
+      status: 'loading' | 'unauthenticated'
+    }
   | {
-    data: User
-    status: 'authenticated'
-  }
+      data: User
+      status: 'authenticated'
+    }
 
 function useSession(): Session {
   const { authState } = useAuthStore()
@@ -269,7 +269,7 @@ function useAuthenticatedSession() {
 
 function useAuthenticatedApi(path: string | null): [string, string] | null {
   const { data, status } = useSession()
-  return path && status === "authenticated" ? [path, data.accessToken] : null
+  return path && status === 'authenticated' ? [path, data.accessToken] : null
 }
 
 export type { AuthStore, User, Session }

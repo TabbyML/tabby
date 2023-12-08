@@ -20,5 +20,5 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-  return useSWR(useAuthenticatedApi("/v1/health"), fetcher)
+  return useSWR(useAuthenticatedApi('/v1/health'), fetcher)
 }

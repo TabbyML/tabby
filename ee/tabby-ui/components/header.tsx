@@ -9,16 +9,16 @@ import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
 import { useWorkers } from '@/lib/hooks/use-workers'
+import { useAuthenticatedSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconGitHub, IconNotice } from '@/components/ui/icons'
 
 import { ThemeToggle } from './theme-toggle'
-import { useAuthenticatedSession } from '@/lib/tabby/auth'
 
 export function Header() {
   // Ensure login status.
-  useAuthenticatedSession();
+  useAuthenticatedSession()
 
   const { data } = useHealth()
   const workers = useWorkers(data)

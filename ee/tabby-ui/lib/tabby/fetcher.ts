@@ -1,4 +1,7 @@
-export default function tokenFetcher([url, token]: [string, string]): Promise<any> {
+export default function tokenFetcher([url, token]: [
+  string,
+  string
+]): Promise<any> {
   const headers = new Headers()
   headers.append('authorization', `Bearer ${token}`)
 
