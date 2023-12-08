@@ -110,7 +110,8 @@ mod tests {
     #[test]
     fn test_language_query() {
         let schema = CodeSearchSchema::new();
-        let lhs = schema.language_query("javascript");
+        let lhs = schema.language_query("javascript-typescript");
+        assert_eq!(lhs.term(), schema.language_query("javascript").term());
         assert_eq!(lhs.term(), schema.language_query("typescript").term());
         assert_eq!(lhs.term(), schema.language_query("typescriptreact").term());
         assert_eq!(lhs.term(), schema.language_query("javascriptreact").term());
