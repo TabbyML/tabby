@@ -1,10 +1,11 @@
 'use client'
 
-import UserPanel from '@/components/user-panel'
-import { cn } from '@/lib/utils'
-import { cva } from 'class-variance-authority'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { cva } from 'class-variance-authority'
+
+import { cn } from '@/lib/utils'
+import UserPanel from '@/components/user-panel'
 
 export interface SidebarProps {
   children: React.ReactNode

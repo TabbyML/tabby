@@ -1,6 +1,6 @@
-import { CardTitle, CardHeader, CardContent, Card } from '@/components/ui/card'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 type RunnerType = WorkerKind | 'INDEX'
 

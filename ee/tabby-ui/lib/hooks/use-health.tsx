@@ -1,7 +1,8 @@
 'use client'
 
-import useSWRImmutable from 'swr/immutable'
 import { SWRResponse } from 'swr'
+import useSWRImmutable from 'swr/immutable'
+
 import fetcher from '@/lib/tabby/fetcher'
 
 export interface HealthInfo {

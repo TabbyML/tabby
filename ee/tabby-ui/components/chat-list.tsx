@@ -1,8 +1,8 @@
 import { type Message } from 'ai'
 
+import { MessageActionType } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
 import { ChatMessage } from '@/components/chat-message'
-import { MessageActionType } from '@/lib/types'
 
 export interface ChatList {
   messages: Message[]

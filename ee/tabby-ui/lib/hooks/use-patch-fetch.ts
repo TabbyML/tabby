@@ -1,10 +1,10 @@
-import {
-  type AIStreamCallbacksAndOptions,
-  createCallbacksTransformer,
-  createStreamDataTransformer
-} from 'ai'
-import { StreamingTextResponse } from 'ai'
 import { useEffect } from 'react'
+import {
+  createCallbacksTransformer,
+  createStreamDataTransformer,
+  StreamingTextResponse,
+  type AIStreamCallbacksAndOptions
+} from 'ai'
 
 const serverUrl = process.env.NEXT_PUBLIC_TABBY_SERVER_URL || ''
 

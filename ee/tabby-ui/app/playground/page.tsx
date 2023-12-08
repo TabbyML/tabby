@@ -1,6 +1,8 @@
 import { Metadata } from 'next'
-import Chats from './components/chats'
+
 import { Header } from '@/components/header'
+
+import Chats from './components/chats'
 
 export const metadata: Metadata = {
   title: 'Playground'

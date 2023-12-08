@@ -1,12 +1,14 @@
 'use client'
 
 import React from 'react'
-import { Chat } from '@/components/chat'
+import type { Message } from 'ai'
+
+import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
+import { Chat } from '@/components/chat'
+
 import { ChatSessions } from './chat-sessions'
-import { useStore } from '@/lib/hooks/use-store'
-import type { Message } from 'ai'
 
 const emptyMessages: Message[] = []
 

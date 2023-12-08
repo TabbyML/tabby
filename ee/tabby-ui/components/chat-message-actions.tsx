@@ -2,10 +2,10 @@
 
 import { type Message } from 'ai'
 
+import { MessageActionType } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconEdit, IconRefresh, IconTrash } from '@/components/ui/icons'
-import { cn } from '@/lib/utils'
-import { MessageActionType } from '@/lib/types'
 import { CopyButton } from '@/components/copy-button'
 
 interface ChatMessageActionsProps extends React.ComponentProps<'div'> {
