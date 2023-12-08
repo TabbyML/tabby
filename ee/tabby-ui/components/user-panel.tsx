@@ -1,15 +1,11 @@
 import React from 'react'
-import Link from 'next/link'
 
 import {
   useAuthenticatedSession,
-  useIsAdminInitialized,
-  useSession,
   useSignOut
 } from '@/lib/tabby/auth'
-import { cn } from '@/lib/utils'
 
-import { IconLogout, IconUnlock } from './ui/icons'
+import { IconLogout } from './ui/icons'
 
 export default function UserPanel() {
   const session = useAuthenticatedSession()

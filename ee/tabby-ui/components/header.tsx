@@ -14,8 +14,12 @@ import { buttonVariants } from '@/components/ui/button'
 import { IconGitHub, IconNotice } from '@/components/ui/icons'
 
 import { ThemeToggle } from './theme-toggle'
+import { useAuthenticatedSession } from '@/lib/tabby/auth'
 
 export function Header() {
+  // Ensure login status.
+  useAuthenticatedSession();
+
   const { data } = useHealth()
   const workers = useWorkers(data)
   const isChatEnabled = has(workers, WorkerKind.Chat)

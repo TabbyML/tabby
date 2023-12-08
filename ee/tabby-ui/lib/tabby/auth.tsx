@@ -251,11 +251,6 @@ export const getIsAdminInitialized = graphql(/* GraphQL */ `
   }
 `)
 
-function useIsAdminInitialized() {
-  const { data } = useGraphQLQuery(getIsAdminInitialized)
-  return data?.isAdminInitialized
-}
-
 function useAuthenticatedSession() {
   const { data } = useGraphQLQuery(getIsAdminInitialized)
   const router = useRouter()
@@ -284,7 +279,6 @@ export {
   useSignIn,
   useSignOut,
   useSession,
-  useIsAdminInitialized,
   useAuthenticatedSession,
   useAuthenticatedApi
 }

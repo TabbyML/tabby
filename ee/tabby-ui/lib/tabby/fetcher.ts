@@ -6,5 +6,5 @@ export default function tokenFetcher([url, token]: [string, string]): Promise<an
     url = `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}${url}`
   }
 
-  return fetch(url!, { headers }).then(x => x.json())
+  return fetch(url, { headers }).then(x => x.json())
 }

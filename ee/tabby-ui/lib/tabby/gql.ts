@@ -28,11 +28,9 @@ export function useGraphQLForm<
     onError?: (path: string, message: string) => void
   }
 ) {
-  const { data, status } = useSession()
+  const { data } = useSession()
+  const accessToken = data?.accessToken;
   const onSubmit = async (variables: TVariables) => {
-    if (status !== "authenticated") return;
-    const accessToken = data.accessToken;
-
     let res
     try {
       res = await gqlClient.request({
