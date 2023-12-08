@@ -36,7 +36,10 @@ lazy_static! {
                 is_admin           BOOLEAN NOT NULL DEFAULT 0,
                 created_at         TIMESTAMP DEFAULT (DATETIME('now')),
                 updated_at         TIMESTAMP DEFAULT (DATETIME('now')),
-                CONSTRAINT `idx_email` UNIQUE (`email`)
+                auth_token         VARCHAR(128) NOT NULL,
+
+                CONSTRAINT `idx_email`      UNIQUE (`email`)
+                CONSTRAINT `idx_auth_token` UNIQUE (`auth_token`)
             );
         "#
         )

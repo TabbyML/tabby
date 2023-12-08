@@ -71,13 +71,37 @@ pub struct Query;
 
 #[graphql_object(context = Context)]
 impl Query {
-    async fn workers(ctx: &Context) -> Vec<Worker> {
-        ctx.locator.worker().list_workers().await
+    async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
+        if ctx.locator.auth().is_admin_initialized().await? {
+            if let Some(claims) = &ctx.claims {
+                if claims.user_info().is_admin() {
+                    let workers = ctx.locator.worker().list_workers().await;
+                    return Ok(workers);
+                }
+            }
+            Err(CoreError::Unauthorized(
+                "Only admin is able to read workers",
+            ))
+        } else {
+            Ok(ctx.locator.worker().list_workers().await)
+        }
     }
 
     async fn registration_token(ctx: &Context) -> Result<String> {
-        let token = ctx.locator.worker().read_registration_token().await?;
-        Ok(token)
+        if ctx.locator.auth().is_admin_initialized().await? {
+            if let Some(claims) = &ctx.claims {
+                if claims.user_info().is_admin() {
+                    let token = ctx.locator.worker().read_registration_token().await?;
+                    return Ok(token);
+                }
+            }
+            Err(CoreError::Unauthorized(
+                "Only admin is able to read registeration_token",
+            ))
+        } else {
+            let token = ctx.locator.worker().read_registration_token().await?;
+            Ok(token)
+        }
     }
 
     async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
@@ -142,7 +166,7 @@ impl Mutation {
     }
 
     async fn verify_token(ctx: &Context, token: String) -> Result<VerifyTokenResponse> {
-        Ok(ctx.locator.auth().verify_token(token).await?)
+        Ok(ctx.locator.auth().verify_access_token(&token).await?)
     }
 
     async fn refresh_token(
