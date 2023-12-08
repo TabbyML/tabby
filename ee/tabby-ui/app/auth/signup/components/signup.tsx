@@ -8,10 +8,10 @@ export default function Signup() {
   const invitationCode = searchParams.get('invitationCode') || undefined
   const isAdmin = searchParams.get('isAdmin') || false
 
-  const title = isAdmin ? 'Create an admin account' : 'Create an account'
+  const title = isAdmin ? 'Create admin account' : 'Create an account'
 
   const description = isAdmin
-    ? 'The admin account has access to invite collaborators and manage Tabby configuration'
+    ? "After creating an admin account, your instance is secured, and only registered users can access it."
     : 'Fill form below to create your account'
 
   if (isAdmin || invitationCode) {
