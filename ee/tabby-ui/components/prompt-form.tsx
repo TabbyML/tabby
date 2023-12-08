@@ -4,7 +4,7 @@ import { debounce, has, isEqual } from 'lodash-es'
 import useSWR from 'swr'
 
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
-import { useSession } from '@/lib/tabby/auth'
+import { useAuthenticatedApi, useSession } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ISearchHit, SearchReponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -56,9 +56,8 @@ function PromptFormRenderer(
     Record<string, ISearchHit>
   >({})
 
-  const { data } = useSession()
   const { data: completionData } = useSWR<SearchReponse>(
-    [queryCompletionUrl, data?.accessToken],
+    useAuthenticatedApi(queryCompletionUrl),
     fetcher,
     {
       revalidateOnFocus: false,

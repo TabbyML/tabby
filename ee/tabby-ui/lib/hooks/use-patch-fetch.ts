@@ -15,7 +15,7 @@ export function usePatchFetch() {
 
   useEffect(() => {
     if (!(window as any)._originFetch) {
-      ;(window as any)._originFetch = window.fetch
+      (window as any)._originFetch = window.fetch
     }
 
     const fetch = (window as any)._originFetch as typeof window.fetch

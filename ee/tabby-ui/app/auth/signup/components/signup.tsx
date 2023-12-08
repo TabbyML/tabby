@@ -12,7 +12,7 @@ export default function Signup() {
   const title = isAdmin ? 'Create an admin account' : 'Create an account'
 
   const description = isAdmin
-    ? 'After creating an admin account, your instance is secured, and only registered users can access it.'
+    ? 'Your instance will be secured, only registered users can access it.'
     : 'Fill form below to create your account'
 
   if (isAdmin || invitationCode) {

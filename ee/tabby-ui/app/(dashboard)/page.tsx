@@ -7,7 +7,7 @@ import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useSession } from '@/lib/tabby/auth'
-import { useGraphQLQuery } from '@/lib/tabby/gql'
+import { useAuthenticatedGraphQLQuery, useGraphQLQuery } from '@/lib/tabby/gql'
 import { buttonVariants } from '@/components/ui/button'
 import {
   Dialog,
@@ -90,7 +90,7 @@ const getRegistrationTokenDocument = graphql(/* GraphQL */ `
 function MainPanel() {
   const { data: healthInfo } = useHealth()
   const workers = useWorkers(healthInfo)
-  const { data: registrationTokenRes } = useGraphQLQuery(
+  const { data: registrationTokenRes } = useAuthenticatedGraphQLQuery(
     getRegistrationTokenDocument
   )
 
