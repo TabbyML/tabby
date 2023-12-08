@@ -27,6 +27,7 @@ lazy_static! {
         "#
         )
         .down("DROP TABLE registration_token"),
+        // ==== Above migrations released in 0.6.0 ====
         M::up(
             r#"
             CREATE TABLE users (
