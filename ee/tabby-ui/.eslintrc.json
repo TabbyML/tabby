@@ -6,8 +6,9 @@
     "prettier",
     "plugin:tailwindcss/recommended"
   ],
-  "plugins": ["tailwindcss"],
+  "plugins": ["tailwindcss", "unused-imports"],
   "rules": {
+    "unused-imports/no-unused-imports": "error",
     "tailwindcss/no-custom-classname": "off"
   },
   "settings": {
