@@ -5,6 +5,7 @@ import {
   StreamingTextResponse,
   type AIStreamCallbacksAndOptions
 } from 'ai'
+
 import { useSession } from '../tabby/auth'
 
 const serverUrl = process.env.NEXT_PUBLIC_TABBY_SERVER_URL || ''
@@ -14,10 +15,10 @@ export function usePatchFetch() {
 
   useEffect(() => {
     if (!(window as any)._originFetch) {
-      (window as any)._originFetch = window.fetch;
+      ;(window as any)._originFetch = window.fetch
     }
 
-    const fetch = (window as any)._originFetch as (typeof window.fetch);
+    const fetch = (window as any)._originFetch as typeof window.fetch
 
     window.fetch = async function (url, options) {
       if (url !== '/api/chat') {
@@ -25,17 +26,17 @@ export function usePatchFetch() {
       }
 
       const headers: HeadersInit = {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       }
 
       if (data?.accessToken) {
-        headers["Authorization"] = `Bearer ${data?.accessToken}`;
+        headers['Authorization'] = `Bearer ${data?.accessToken}`
       }
 
       const res = await fetch(`${serverUrl}/v1beta/chat/completions`, {
         ...options,
         method: 'POST',
-        headers,
+        headers
       })
 
       const stream = StreamAdapter(res, undefined)

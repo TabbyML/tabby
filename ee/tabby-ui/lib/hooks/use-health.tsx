@@ -3,6 +3,7 @@
 import useSWR, { SWRResponse } from 'swr'
 
 import fetcher from '@/lib/tabby/fetcher'
+
 import { useSession } from '../tabby/auth'
 
 export interface HealthInfo {

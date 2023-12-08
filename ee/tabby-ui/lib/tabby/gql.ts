@@ -2,6 +2,7 @@ import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { GraphQLClient, Variables } from 'graphql-request'
 import { GraphQLResponse } from 'graphql-request/build/esm/types'
 import useSWR, { SWRConfiguration, SWRResponse } from 'swr'
+
 import { useSession } from './auth'
 
 export const gqlClient = new GraphQLClient(
@@ -27,17 +28,19 @@ export function useGraphQLForm<
     onError?: (path: string, message: string) => void
   }
 ) {
-  const { data } = useSession();
-  const accessToken = data?.accessToken;
+  const { data } = useSession()
+  const accessToken = data?.accessToken
   const onSubmit = async (variables: TVariables) => {
     let res
     try {
       res = await gqlClient.request({
         document,
         variables,
-        requestHeaders: accessToken ? {
-          "authorization": `Bearer ${accessToken}`
-        } : undefined
+        requestHeaders: accessToken
+          ? {
+              authorization: `Bearer ${accessToken}`
+            }
+          : undefined
       })
     } catch (err) {
       const { errors = [] } = (err as any).response as GraphQLResponse
@@ -70,16 +73,19 @@ export function useGraphQLQuery<
   variables?: TVariables,
   swrConfiguration?: SWRConfiguration<TResult>
 ): SWRResponse<TResult> {
-  const { data } = useSession();
+  const { data } = useSession()
   return useSWR(
     [document, variables, data?.accessToken],
-    ([document, variables, accessToken]) => gqlClient.request({
-      document,
-      variables,
-      requestHeaders: accessToken ? {
-        "authorization": `Bearer ${accessToken}`
-      } : undefined
-    }),
+    ([document, variables, accessToken]) =>
+      gqlClient.request({
+        document,
+        variables,
+        requestHeaders: accessToken
+          ? {
+              authorization: `Bearer ${accessToken}`
+            }
+          : undefined
+      }),
     swrConfiguration
   )
 }

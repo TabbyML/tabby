@@ -4,6 +4,7 @@ import { debounce, has, isEqual } from 'lodash-es'
 import useSWR from 'swr'
 
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
+import { useSession } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ISearchHit, SearchReponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -26,7 +27,6 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { useSession } from '@/lib/tabby/auth'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -56,11 +56,11 @@ function PromptFormRenderer(
     Record<string, ISearchHit>
   >({})
 
-  const { data } = useSession();
+  const { data } = useSession()
   useSWR<SearchReponse>([queryCompletionUrl, data?.accessToken], fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 0,
-    onSuccess: (data) => {
+    onSuccess: data => {
       setOptions(data?.hits ?? [])
     }
   })
