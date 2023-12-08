@@ -3,6 +3,8 @@ import { GraphQLClient, Variables } from 'graphql-request'
 import { GraphQLResponse } from 'graphql-request/build/esm/types'
 import useSWR, { SWRConfiguration, SWRResponse } from 'swr'
 
+import { useSession } from './auth'
+
 export const gqlClient = new GraphQLClient(
   `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`
 )
@@ -26,10 +28,20 @@ export function useGraphQLForm<
     onError?: (path: string, message: string) => void
   }
 ) {
-  const onSubmit = async (values: TVariables) => {
+  const { data } = useSession()
+  const accessToken = data?.accessToken
+  const onSubmit = async (variables: TVariables) => {
     let res
     try {
-      res = await gqlClient.request(document, values)
+      res = await gqlClient.request({
+        document,
+        variables,
+        requestHeaders: accessToken
+          ? {
+              authorization: `Bearer ${accessToken}`
+            }
+          : undefined
+      })
     } catch (err) {
       const { errors = [] } = (err as any).response as GraphQLResponse
       for (const error of errors) {
@@ -61,9 +73,19 @@ export function useGraphQLQuery<
   variables?: TVariables,
   swrConfiguration?: SWRConfiguration<TResult>
 ): SWRResponse<TResult> {
+  const { data } = useSession()
   return useSWR(
-    [document, variables],
-    ([document, variables]) => gqlClient.request(document, variables),
+    [document, variables, data?.accessToken],
+    ([document, variables, accessToken]) =>
+      gqlClient.request({
+        document,
+        variables,
+        requestHeaders: accessToken
+          ? {
+              authorization: `Bearer ${accessToken}`
+            }
+          : undefined
+      }),
     swrConfiguration
   )
 }

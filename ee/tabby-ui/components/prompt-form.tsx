@@ -1,9 +1,10 @@
 import * as React from 'react'
 import { UseChatHelpers } from 'ai/react'
-import { debounce, has } from 'lodash-es'
+import { debounce, has, isEqual } from 'lodash-es'
 import useSWR from 'swr'
 
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
+import { useSession } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ISearchHit, SearchReponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -45,7 +46,6 @@ function PromptFormRenderer(
   const [queryCompletionUrl, setQueryCompletionUrl] = React.useState<
     string | null
   >(null)
-  const latestFetchKey = React.useRef('')
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   // store the input selection for replacing inputValue
   const prevInputSelectionEnd = React.useRef<number>()
@@ -56,14 +56,20 @@ function PromptFormRenderer(
     Record<string, ISearchHit>
   >({})
 
-  useSWR<SearchReponse>(queryCompletionUrl, fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 0,
-    onSuccess: (data, key) => {
-      if (key !== latestFetchKey.current) return
-      setOptions(data?.hits ?? [])
+  const { data } = useSession()
+  const { data: completionData } = useSWR<SearchReponse>(
+    [queryCompletionUrl, data?.accessToken],
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 0,
+      errorRetryCount: 0
     }
-  })
+  )
+
+  React.useEffect(() => {
+    setOptions(completionData?.hits ?? [])
+  }, [completionData?.hits])
 
   React.useImperativeHandle(ref, () => {
     return {
@@ -102,7 +108,6 @@ function PromptFormRenderer(
       if (queryName) {
         const query = encodeURIComponent(`name:${queryName} AND kind:function`)
         const url = `/v1beta/search?q=${query}`
-        latestFetchKey.current = url
         setQueryCompletionUrl(url)
       } else {
         setOptions([])

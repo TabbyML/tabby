@@ -210,6 +210,7 @@ function useSignOut(): () => Promise<void> {
 interface User {
   email: string
   isAdmin: boolean
+  accessToken: string
 }
 
 type Session =
@@ -231,7 +232,8 @@ function useSession(): Session {
     return {
       data: {
         email: user.email,
-        isAdmin: user.is_admin
+        isAdmin: user.is_admin,
+        accessToken: authState.data.accessToken
       },
       status: authState.status
     }

@@ -1,9 +1,10 @@
 'use client'
 
-import { SWRResponse } from 'swr'
-import useSWRImmutable from 'swr/immutable'
+import useSWR, { SWRResponse } from 'swr'
 
 import fetcher from '@/lib/tabby/fetcher'
+
+import { useSession } from '../tabby/auth'
 
 export interface HealthInfo {
   device: 'metal' | 'cpu' | 'cuda'
@@ -19,5 +20,6 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-  return useSWRImmutable('/v1/health', fetcher)
+  const { data } = useSession()
+  return useSWR(['/v1/health', data?.accessToken], fetcher)
 }
