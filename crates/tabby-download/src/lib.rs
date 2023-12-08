@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use aim::bar::WrappedBar;
+use aim_downloader::{bar::WrappedBar, https};
 use anyhow::{anyhow, Result};
 use tabby_common::registry::{parse_model_id, ModelRegistry};
 use tokio_retry::{
@@ -60,7 +60,7 @@ async fn download_file(url: &str, path: &Path) -> Result<()> {
 
     let mut bar = WrappedBar::new(0, url, false);
 
-    aim::https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, "").await?;
+    https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, "").await?;
 
     fs::rename(intermediate_filename, filename)?;
     Ok(())

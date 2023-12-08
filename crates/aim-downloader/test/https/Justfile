@@ -1,0 +1,127 @@
+# Use $0 as recipe name in tests
+
+set positional-arguments := true
+
+default:
+    @just --list
+
+tool := "nginx_webdav"
+docker_container_registry := "docker.pkg.github.com"
+docker_user_repo := "mihaigalos/docker"
+docker_image_version := "latest"
+docker_image := docker_container_registry + "/" + docker_user_repo + "/" + tool + ":" + docker_image_version
+server_port := "8081"
+
+build:
+    docker build --network=host -t {{ docker_image }} .
+
+push:
+    docker push {{ docker_image }}
+
+test: _start && _stop
+    #!/bin/bash
+
+    source ../common.sh
+    highlight "\nRunning tests in $PWD\n\n"
+    for test in $(grep ^_test_ Justfile | cut -d':' -f1);
+    do
+        highlight "$test "
+        just $test && true || err "Stopping."
+    done
+
+_start dirname="." +args="-d":
+    #!/bin/bash
+    source ../common.sh
+    echo "machine 127.0.0.1 login user password pass port {{ server_port }}" > {{ dirname }}/.netrc.test_https
+    docker run {{ args }} \
+        -it \
+        --rm \
+        --name aim_tests_https \
+        -v $(pwd):/src \
+        -p {{ server_port }}:80 \
+        {{ docker_image }} > /dev/null \
+    && wait_docker "aim_tests_https" \
+    || true
+
+_stop dirname=".":
+    @rm {{ dirname }}/.netrc.test_https || true
+    @docker stop aim_tests_https > /dev/null 2>&1
+    @docker rm --force aim_tests_https > /dev/null 2>&1
+
+_test_sanity:
+    #!/bin/bash
+    source ../common.sh
+    [[ $(which aim) =~ "target/debug" ]] && ok || err "Please ensure aim not in PATH for testing"
+
+_test_curl_put_text_file:
+    #!/bin/bash
+    test=$(basename $0) && source ../common.sh
+    curl -s -X PUT --netrc-file .netrc.test_https -d `cat test.file` http://127.0.0.1:{{ server_port }}/$test
+    remote_contents=$(curl -s --netrc-file .netrc.test_https http://127.0.0.1:{{ server_port }}/$test)
+    [ "$remote_contents" = "$(cat test.file)" ] && ok || err "ERROR: remote contents doesn't equal sent content."
+
+_test_curl_put_binary_file:
+    #!/bin/bash
+    test=$(basename $0) && source ../common.sh
+    sha_input=$(sha256sum binary_file.tar.gz | cut -d' ' -f1)
+    curl -s --netrc-file .netrc.test_https -X PUT --data-binary @binary_file.tar.gz  http://127.0.0.1:{{ server_port }}/$test
+    curl -s --netrc-file .netrc.test_https 127.0.0.1:{{ server_port }}/$test -o $test
+    sha_output=$(sha256sum $test | cut -d' ' -f1)
+    [ "$sha_input" = "$sha_output" ] && ok || err "ERROR: input and output SHA256s don't match."
+    rm $test
+
+_test_aim_get_with_netrc:
+    #!/bin/bash
+    test=$(basename $0) && source ../common.sh
+    sha_input=$(sha256sum binary_file.tar.gz | cut -d' ' -f1)
+    aim -s binary_file.tar.gz http://127.0.0.1:{{ server_port }}/$test
+    aim -s http://127.0.0.1:{{ server_port }}/$test $test
+    sha_output=$(sha256sum $test | cut -d' ' -f1)
+    [ "$sha_input" = "$sha_output" ] && ok || err "ERROR: input and output SHA256s don't match."
+    rm $test
+
+_test_aim_get_binary_file:
+    #!/bin/bash
+    test=$(basename $0) && source ../common.sh
+    sha_input=$(sha256sum binary_file.tar.gz | cut -d' ' -f1)
+    aim -s http://127.0.0.1:8081/_test_curl_put_binary_file $test
+    sha_output=$(sha256sum $test | cut -d' ' -f1)
+    [ "$sha_input" = "$sha_output" ] && ok || err "ERROR: input and output SHA256s don't match."
+    rm $test
+
+_test_aim_put_binary_file:
+    #!/bin/bash
+    test=$(basename $0) && source ../common.sh
+    sha_input=$(sha256sum binary_file.tar.gz | cut -d' ' -f1)
+    aim -s binary_file.tar.gz http://127.0.0.1:8081/$test
+    aim -s http://127.0.0.1:8081/$test $test
+    sha_output=$(sha256sum $test | cut -d' ' -f1)
+    [ "$sha_input" = "$sha_output" ] && ok || err "ERROR: input and output SHA256s don't match."
+    rm $test
+
+_test_aim_put_resume_binary_file:
+    #!/bin/bash
+    test=$(basename $0) && source ../common.sh
+    sha_input=$(sha256sum binary_file.tar.gz | cut -d' ' -f1)
+    curl -s -X PUT --netrc-file .netrc.test_https --data-binary @binary_file.tar.gz.part1  http://127.0.0.1:{{ server_port }}/$test.tar.gz
+    aim -s binary_file.tar.gz.part2 http://127.0.0.1:8081/$test.tar.gz
+    aim -s http://127.0.0.1:8081/$test.tar.gz $test
+    sha_output=$(sha256sum $test | cut -d' ' -f1)
+    [ "$sha_input" = "$sha_output" ] && ok || ok "ERROR: input and output SHA256s don't match."
+    rm $test
+
+_test_aim_checksum_works:
+    #!/bin/bash
+    test=$(basename $0) && source ../common.sh
+    sha_expected="0e0f0d7139c8c7e3ff20cb243e94bc5993517d88e8be8d59129730607d5c631b"
+    aim -s https://github.com/XAMPPRocky/tokei/releases/download/v12.0.4/tokei-x86_64-unknown-linux-gnu.tar.gz $test $sha_expected
+    [ $? -eq 0 ] && ok || err "ERROR: expected and actual SHA256s don't match."
+    rm $test
+
+_test_aim_checksum_fails_when_checksum_mismatch:
+    #!/bin/bash
+    test=$(basename $0) && source ../common.sh
+    sha_expected="AAAA0d7139c8c7e3ff20cb243e94bc5993517d88e8be8d59129730607d5c631b"
+    aim -s https://github.com/XAMPPRocky/tokei/releases/download/v12.0.4/tokei-x86_64-unknown-linux-gnu.tar.gz $test $sha_expected
+    [ $? -ne 0 ] && ok || err "ERROR: expected checksum mismatch, got equal."
+    rm $test
