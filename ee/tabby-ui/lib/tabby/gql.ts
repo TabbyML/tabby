@@ -1,7 +1,7 @@
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { GraphQLClient, Variables } from 'graphql-request'
 import { GraphQLResponse } from 'graphql-request/build/esm/types'
-import useSWR, { SWRConfiguration, SWRResponse, mutate } from 'swr'
+import useSWR, { SWRConfiguration, SWRResponse } from 'swr'
 
 import { useSession } from './auth'
 
