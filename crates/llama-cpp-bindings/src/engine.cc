@@ -1,3 +1,5 @@
+#include "engine.h"
+
 #include <functional>
 #include <vector>
 #include <deque>
@@ -7,7 +9,6 @@
 #include <ggml.h>
 #include <llama.h>
 
-#include "llama-cpp-bindings/include/engine.h"
 #include "llama-cpp-bindings/src/lib.rs.h"
 
 namespace llama {

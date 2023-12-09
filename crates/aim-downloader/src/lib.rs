@@ -1,5 +1,5 @@
-pub mod https;
 pub mod bar;
+pub mod https;
 
 mod address;
 mod consts;

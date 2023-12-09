@@ -6,7 +6,7 @@ lazy_static! {
     static ref TABBY_ROOT: Mutex<Cell<PathBuf>> = {
         Mutex::new(Cell::new(match env::var("TABBY_ROOT") {
             Ok(x) => PathBuf::from(x),
-            Err(_) => home::home_dir().unwrap().join(".tabby"),
+            Err(_) => PathBuf::from(env::var("HOME").unwrap()).join(".tabby"),
         }))
     };
 }

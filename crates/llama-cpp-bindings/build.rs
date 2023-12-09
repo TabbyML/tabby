@@ -10,14 +10,11 @@ fn main() {
         "Please init submodules with `git submodule update --init --recursive` and try again"
     );
 
-    println!("cargo:rerun-if-changed=include/engine.h");
-    println!("cargo:rerun-if-changed=src/engine.cc");
+    println!("cargo:rerun-if-changed=cc/*.h");
+    println!("cargo:rerun-if-changed=cc/*.cc");
+    println!("cargo:rustc-link-lib=llama");
+    println!("cargo:rustc-link-lib=ggml_static");
 
-    build_llama_cpp();
-    build_cxx_binding();
-}
-
-fn build_llama_cpp() {
     let mut config = Config::new("llama.cpp");
     if cfg!(target_os = "macos") {
         config.define("LLAMA_METAL", "ON");
@@ -72,27 +69,8 @@ fn build_llama_cpp() {
         println!("cargo:rustc-link-lib=hipblas");
     }
 
-    // By default, this value is automatically inferred from Rust’s compilation profile.
-    // For Windows platform, we always build llama.cpp in release mode.
-    // See https://github.com/TabbyML/tabby/pull/948 for more details.
-    #[cfg(target_os = "windows")]
-    config.profile("Release");
-
     let dst = config.build();
-    if cfg!(target_os = "windows") {
-        println!(
-            "cargo:rustc-link-search=native={}\\build\\{}",
-            dst.display(),
-            config.get_profile()
-        );
-    } else {
-        println!("cargo:rustc-link-search=native={}/build", dst.display());
-    }
-}
-
-fn build_cxx_binding() {
-    println!("cargo:rustc-link-lib=llama");
-    println!("cargo:rustc-link-lib=ggml_static");
+    println!("cargo:rustc-link-search=native={}/build", dst.display());
 
     cxx_build::bridge("src/lib.rs")
         .file("src/engine.cc")
