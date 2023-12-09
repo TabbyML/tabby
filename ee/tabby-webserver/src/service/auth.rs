@@ -92,7 +92,9 @@ fn validate_password(value: &str) -> Result<(), ValidationError> {
 
     let contains_special_char = value.chars().any(|x| x.is_ascii_punctuation());
     if !contains_special_char {
-        return make_validation_error("Password should contains at least one special character, e.g @#$%^&{}");
+        return make_validation_error(
+            "Password should contains at least one special character, e.g @#$%^&{}",
+        );
     }
 
     Ok(())
