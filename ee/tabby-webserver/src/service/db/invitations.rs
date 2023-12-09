@@ -51,7 +51,7 @@ impl DbConn {
 
     pub async fn create_invitation(&self, email: String) -> Result<i32> {
         if self.get_user_by_email(&email).await?.is_some() {
-            return Err(anyhow!("User already registered"))
+            return Err(anyhow!("User already registered"));
         }
 
         let code = Uuid::new_v4().to_string();
