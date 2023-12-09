@@ -11,6 +11,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow
@@ -50,7 +51,6 @@ export default function InvitationTable() {
 
   return (
     invitations && (
-      <div>
         <Table>
           <TableHeader>
             <TableRow>
@@ -64,8 +64,8 @@ export default function InvitationTable() {
               const link = `${url.origin}/auth/signup?invitationCode=${x.code}`
               return (
                 <TableRow key={i}>
-                  <TableCell className="font-medium">{x.email}</TableCell>
-                  <TableCell>{moment(x.createdAt).fromNow()}</TableCell>
+                  <TableCell className="w-[300px] font-medium">{x.email}</TableCell>
+                  <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
                   <TableCell className="flex items-center">
                     <CopyButton value={link} />
                     <Button
@@ -79,10 +79,13 @@ export default function InvitationTable() {
                 </TableRow>
               )
             })}
+            <TableRow>
+                <TableCell className='p-2'>
+                  <CreateInvitationForm onCreated={() => mutate()} />
+                </TableCell>
+            </TableRow>
           </TableBody>
         </Table>
-        <CreateInvitationForm onCreated={() => mutate()} />
-      </div>
     )
   )
 }
