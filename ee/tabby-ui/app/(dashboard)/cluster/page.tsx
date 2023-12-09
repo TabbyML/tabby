@@ -1,11 +1,11 @@
 import { Metadata } from 'next'
 
-import Workers from './components/workers'
+import ClusterInfo from './components/cluster'
 
 export const metadata: Metadata = {
   title: 'Workers'
 }
 
 export default function IndexPage() {
-  return <Workers />
+  return <ClusterInfo />
 }

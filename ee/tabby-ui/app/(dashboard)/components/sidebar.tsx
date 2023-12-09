@@ -31,7 +31,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
               </SidebarButton>
               {isAdmin && (
                 <>
-                  <SidebarButton href="/workers">
+                  <SidebarButton href="/cluster">
                     <IconNetwork /> Cluster Information
                   </SidebarButton>
                   <SidebarButton href="/team">
