@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import moment from 'moment'
 
 import { graphql } from '@/lib/gql/generates'
@@ -40,8 +40,8 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
 export default function InvitationTable() {
   const { data, mutate } = useAuthenticatedGraphQLQuery(listInvitations)
   const invitations = data?.invitations
+  const url = useMemo(() => new URL(window.location.href), []);
 
-  const url = new URL(window.location.href)
   const { onSubmit: deleteInvitation } = useGraphQLForm(
     deleteInvitationMutation,
     {
