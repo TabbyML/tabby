@@ -21,71 +21,24 @@ import { ListInvitationsQuery } from "@/lib/gql/generates/graphql"
 import { CopyButton } from "@/components/copy-button"
 import { Button } from "@/components/ui/button"
 import { IconTrash } from "@/components/ui/icons"
+import { Separator } from "@/components/ui/separator"
+import InvitationTable from "./invitation-table"
+import { useRef } from "react"
 
-const listInvitations = graphql(/* GraphQL */ `
-  query ListInvitations {
-    invitations {
-      id
-      email
-      code
-      createdAt
-    }
-  }
-`)
+
+type InvitationTableHandle = React.ElementRef<typeof InvitationTable>;
 
 export default function Team() {
-  const { data, mutate } = useAuthenticatedGraphQLQuery(listInvitations);
-  const invitations = data?.invitations;
-
+  const invitationTable = useRef<InvitationTableHandle>(null)
   return <div>
     <CardHeader>
       <CardTitle>Pending Invites</CardTitle>
     </CardHeader>
     <CardContent className="p-4">
-      {invitations && <UserTable invitations={invitations} onRemoved={() => mutate()} />}</CardContent>
+      <InvitationTable ref={invitationTable} />
+    </CardContent>
     <CardFooter className="flex justify-end">
-      <CreateInvitationForm onCreated={() => mutate()} />
+      <CreateInvitationForm onCreated={() => invitationTable.current?.changed()} />
     </CardFooter>
   </div>
-}
-
-
-const deleteInvitationMutation = graphql(/* GraphQL */ `
-  mutation DeleteInvitation($id: Int!) {
-    deleteInvitation(id: $id)
-  }
-`)
-
-function UserTable({ invitations, onRemoved }: ListInvitationsQuery & { onRemoved: () => void }) {
-  const url = new URL(window.location.href);
-  const { onSubmit: deleteInvitation } = useGraphQLForm(deleteInvitationMutation, {
-    onSuccess: onRemoved,
-  });
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Invitee</TableHead>
-          <TableHead>Created</TableHead>
-          <TableHead></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {invitations.map((x, i) => {
-          const link = `${url.origin}/auth/signup?invitationCode=${x.code}`
-          return <TableRow key={i}>
-            <TableCell className="font-medium">{x.email}</TableCell>
-            <TableCell>{moment(x.createdAt).fromNow()}</TableCell>
-            <TableCell className="flex items-center">
-              <CopyButton value={link} />
-              <Button
-                size="icon"
-                variant="hover-destructive"
-                onClick={() => deleteInvitation({ id: x.id })}><IconTrash /></Button>
-            </TableCell>
-          </TableRow>
-        })}
-      </TableBody>
-    </Table>
-  )
 }
