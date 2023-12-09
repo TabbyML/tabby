@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 import Team from './components/team'
 
 export const metadata: Metadata = {
-  title: 'User Management'
+  title: 'Team Management'
 }
 
 export default function IndexPage() {
