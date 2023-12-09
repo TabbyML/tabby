@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { jwtDecode } from 'jwt-decode'
+import { JwtPayload, jwtDecode } from 'jwt-decode'
 
 import { graphql } from '@/lib/gql/generates'
 import useInterval from '@/lib/hooks/use-interval'
@@ -226,13 +226,13 @@ type Session =
 function useSession(): Session {
   const { authState } = useAuthStore()
   if (authState?.status == 'authenticated') {
-    const { user } = jwtDecode<{ user: { email: string; is_admin: boolean } }>(
+    const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
       authState.data.accessToken
     )
     return {
       data: {
-        email: user.email,
-        isAdmin: user.is_admin,
+        email: sub!,
+        isAdmin: is_admin,
         accessToken: authState.data.accessToken
       },
       status: authState.status

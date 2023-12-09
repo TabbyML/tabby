@@ -28,13 +28,8 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean }
   Int: { input: number; output: number }
   Float: { input: number; output: number }
-}
-
-export type Claims = {
-  __typename?: 'Claims'
-  exp: Scalars['Float']['output']
-  iat: Scalars['Float']['output']
-  user: UserInfo
+  /** DateTime */
+  DateTimeUtc: { input: any; output: any }
 }
 
 export type Invitation = {
@@ -43,6 +38,18 @@ export type Invitation = {
   createdAt: Scalars['String']['output']
   email: Scalars['String']['output']
   id: Scalars['Int']['output']
+}
+
+export type JwtPayload = {
+  __typename?: 'JWTPayload'
+  /** Expiration time (as UTC timestamp) */
+  exp: Scalars['Float']['output']
+  /** Issued at (as UTC timestamp) */
+  iat: Scalars['Float']['output']
+  /** Whether the user is admin. */
+  isAdmin: Scalars['Boolean']['output']
+  /** User email address */
+  sub: Scalars['String']['output']
 }
 
 export type Mutation = {
@@ -88,7 +95,7 @@ export type Query = {
   __typename?: 'Query'
   invitations: Array<Invitation>
   isAdminInitialized: Scalars['Boolean']['output']
-  me: UserInfo
+  me: User
   registrationToken: Scalars['String']['output']
   workers: Array<Worker>
 }
@@ -96,7 +103,7 @@ export type Query = {
 export type RefreshTokenResponse = {
   __typename?: 'RefreshTokenResponse'
   accessToken: Scalars['String']['output']
-  refreshExpiresAt: Scalars['Float']['output']
+  refreshExpiresAt: Scalars['DateTimeUtc']['output']
   refreshToken: Scalars['String']['output']
 }
 
@@ -112,15 +119,16 @@ export type TokenAuthResponse = {
   refreshToken: Scalars['String']['output']
 }
 
-export type UserInfo = {
-  __typename?: 'UserInfo'
+export type User = {
+  __typename?: 'User'
+  authToken: Scalars['String']['output']
   email: Scalars['String']['output']
   isAdmin: Scalars['Boolean']['output']
 }
 
 export type VerifyTokenResponse = {
   __typename?: 'VerifyTokenResponse'
-  claims: Claims
+  claims: JwtPayload
 }
 
 export type Worker = {

@@ -18,19 +18,22 @@ type Mutation {
   deleteInvitation(id: Int!): Int!
 }
 
+"DateTime"
+scalar DateTimeUtc
+
 type VerifyTokenResponse {
-  claims: Claims!
+  claims: JWTPayload!
 }
 
-type UserInfo {
-  email: String!
-  isAdmin: Boolean!
-}
-
-type Claims {
+type JWTPayload {
+  "Expiration time (as UTC timestamp)"
   exp: Float!
+  "Issued at (as UTC timestamp)"
   iat: Float!
-  user: UserInfo!
+  "User email address"
+  sub: String!
+  "Whether the user is admin."
+  isAdmin: Boolean!
 }
 
 type Query {
@@ -38,7 +41,7 @@ type Query {
   registrationToken: String!
   isAdminInitialized: Boolean!
   invitations: [Invitation!]!
-  me: UserInfo!
+  me: User!
 }
 
 type Invitation {
@@ -46,6 +49,12 @@ type Invitation {
   email: String!
   code: String!
   createdAt: String!
+}
+
+type User {
+  email: String!
+  isAdmin: Boolean!
+  authToken: String!
 }
 
 type Worker {
@@ -67,7 +76,7 @@ type TokenAuthResponse {
 type RefreshTokenResponse {
   accessToken: String!
   refreshToken: String!
-  refreshExpiresAt: Float!
+  refreshExpiresAt: DateTimeUtc!
 }
 
 schema {
