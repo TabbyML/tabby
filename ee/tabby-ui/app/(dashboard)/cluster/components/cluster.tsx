@@ -7,6 +7,7 @@ import { useWorkers } from '@/lib/hooks/use-workers'
 import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconRefresh } from '@/components/ui/icons'
+import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 
 import WorkerCard from './worker-card'
@@ -22,6 +23,10 @@ const resetRegistrationTokenDocument = graphql(/* GraphQL */ `
     resetRegistrationToken
   }
 `)
+
+function toBadgeString(str: string) {
+  return encodeURIComponent(str.replaceAll('-', '--'))
+}
 
 export default function Workers() {
   const { data: healthInfo } = useHealth()
@@ -41,6 +46,23 @@ export default function Workers() {
 
   return (
     <div className="flex w-full flex-col gap-3 p-4 lg:p-16">
+      <h1>
+        <span className="font-bold">Congratulations</span>, your tabby instance
+        is up!
+      </h1>
+      <span className="flex flex-wrap gap-1">
+        <a
+          target="_blank"
+          href={`https://github.com/TabbyML/tabby/releases/tag/${healthInfo.version.git_describe}`}
+        >
+          <img
+            src={`https://img.shields.io/badge/version-${toBadgeString(
+              healthInfo.version.git_describe
+            )}-green`}
+          />
+        </a>
+      </span>
+      <Separator />
       {!!registrationTokenRes?.registrationToken && (
         <div className="flex items-center gap-1">
           Registeration token:
