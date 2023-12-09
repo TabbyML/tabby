@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cva } from 'class-variance-authority'
 
-import { cn } from '@/lib/utils'
-import UserPanel from '@/components/user-panel'
-import { IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
 import { useSession } from '@/lib/tabby/auth'
+import { cn } from '@/lib/utils'
+import { IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
+import UserPanel from '@/components/user-panel'
 
 export interface SidebarProps {
   children: React.ReactNode
@@ -15,8 +15,8 @@ export interface SidebarProps {
 }
 
 export default function Sidebar({ children, className }: SidebarProps) {
-  const { data: session } = useSession();
-  const isAdmin = session?.isAdmin || false;
+  const { data: session } = useSession()
+  const isAdmin = session?.isAdmin || false
   return (
     <div
       className={cn('grid overflow-hidden lg:grid-cols-[280px_1fr]', className)}
@@ -29,14 +29,16 @@ export default function Sidebar({ children, className }: SidebarProps) {
               <SidebarButton href="/">
                 <IconHome /> Home
               </SidebarButton>
-              {isAdmin && <>
-                <SidebarButton href="/workers">
-                  <IconNetwork /> Cluster Information
-                </SidebarButton>
-                <SidebarButton href="/team">
-                  <IconUsers /> Team Management
-                </SidebarButton>
-              </>}
+              {isAdmin && (
+                <>
+                  <SidebarButton href="/workers">
+                    <IconNetwork /> Cluster Information
+                  </SidebarButton>
+                  <SidebarButton href="/team">
+                    <IconUsers /> Team Management
+                  </SidebarButton>
+                </>
+              )}
             </nav>
           </div>
 

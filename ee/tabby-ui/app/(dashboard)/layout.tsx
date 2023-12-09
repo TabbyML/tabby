@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: {
     default: 'Dashboard',
     template: `Tabby - %s`
-  },
+  }
 }
 
 interface DashboardLayoutProps {

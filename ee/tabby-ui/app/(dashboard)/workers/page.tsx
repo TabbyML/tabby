@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+
 import Workers from './components/workers'
 
 export const metadata: Metadata = {

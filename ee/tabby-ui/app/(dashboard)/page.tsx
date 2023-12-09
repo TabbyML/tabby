@@ -2,10 +2,10 @@
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
-import { Separator } from '@/components/ui/separator'
-import SlackDialog from '@/components/slack-dialog'
 import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
+import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
+import SlackDialog from '@/components/slack-dialog'
 
 export default function Home() {
   return (
@@ -30,7 +30,7 @@ const meQuery = graphql(/* GraphQL */ `
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()
-  const { data } = useAuthenticatedGraphQLQuery(meQuery);
+  const { data } = useAuthenticatedGraphQLQuery(meQuery)
 
   if (!healthInfo || !data) return
 
@@ -53,14 +53,24 @@ function MainPanel() {
         </a>
       </span>
       <Separator />
-      <div className='flex items-center'>
-        <span className='mr-2'>Token:</span>
+      <div className="flex items-center">
+        <span className="mr-2">Token:</span>
         <code className="rounded-lg text-sm text-red-600">
           {data.me.authToken}
         </code>
         <CopyButton value={data.me.authToken} />
       </div>
-      <p>Use credentials above for IDE extensions / plugins authentication, see <a className='underline' target="_blank" href="https://tabby.tabbyml.com/docs/extensions/configurations#server">configurations</a> for details</p>
+      <p>
+        Use credentials above for IDE extensions / plugins authentication, see{' '}
+        <a
+          className="underline"
+          target="_blank"
+          href="https://tabby.tabbyml.com/docs/extensions/configurations#server"
+        >
+          configurations
+        </a>{' '}
+        for details
+      </p>
     </div>
   )
 }

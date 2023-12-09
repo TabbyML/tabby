@@ -5,11 +5,11 @@ import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
+import { Button } from '@/components/ui/button'
+import { IconRefresh } from '@/components/ui/icons'
 import { CopyButton } from '@/components/copy-button'
 
 import WorkerCard from './worker-card'
-import { Button } from '@/components/ui/button'
-import { IconRefresh } from '@/components/ui/icons'
 
 const getRegistrationTokenDocument = graphql(/* GraphQL */ `
   query GetRegistrationToken {
@@ -30,14 +30,17 @@ export default function Workers() {
     getRegistrationTokenDocument
   )
 
-  const { onSubmit: resetRegistrationToken } = useGraphQLForm(resetRegistrationTokenDocument, {
-    onSuccess: () => mutate(),
-  })
+  const { onSubmit: resetRegistrationToken } = useGraphQLForm(
+    resetRegistrationTokenDocument,
+    {
+      onSuccess: () => mutate()
+    }
+  )
 
   if (!healthInfo) return
 
   return (
-    <div className="p-4 lg:p-16 flex w-full flex-col gap-3">
+    <div className="flex w-full flex-col gap-3 p-4 lg:p-16">
       {!!registrationTokenRes?.registrationToken && (
         <div className="flex items-center gap-1">
           Registeration token:
@@ -48,7 +51,10 @@ export default function Workers() {
             title="Reset"
             size="icon"
             variant="hover-destructive"
-            onClick={() => resetRegistrationToken()}><IconRefresh /></Button>
+            onClick={() => resetRegistrationToken()}
+          >
+            <IconRefresh />
+          </Button>
           <CopyButton value={registrationTokenRes.registrationToken} />
         </div>
       )}

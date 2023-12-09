@@ -38,12 +38,12 @@ export function useGraphQLForm<
         variables,
         requestHeaders: accessToken
           ? {
-            authorization: `Bearer ${accessToken}`
-          }
+              authorization: `Bearer ${accessToken}`
+            }
           : undefined
       })
     } catch (err) {
-      console.error("err", err)
+      console.error('err', err)
       const { errors = [] } = (err as any).response as GraphQLResponse
       for (const error of errors) {
         if (error.extensions && error.extensions['validation-errors']) {
