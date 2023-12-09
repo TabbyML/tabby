@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useImperativeHandle } from 'react'
+import React from 'react'
 import moment from 'moment'
 
 import { graphql } from '@/lib/gql/generates'
@@ -16,6 +16,8 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { CopyButton } from '@/components/copy-button'
+
+import CreateInvitationForm from './create-invitation-form'
 
 const listInvitations = graphql(/* GraphQL */ `
   query ListInvitations {
@@ -34,14 +36,7 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
   }
 `)
 
-type InvitationTableHandle = {
-  changed: () => void
-}
-
-const InvitationTable: React.ForwardRefRenderFunction<
-  InvitationTableHandle,
-  {}
-> = (_, forwardedRef) => {
+export default function InvitationTable() {
   const { data, mutate } = useAuthenticatedGraphQLQuery(listInvitations)
   const invitations = data?.invitations
 
@@ -53,52 +48,41 @@ const InvitationTable: React.ForwardRefRenderFunction<
     }
   )
 
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      return {
-        changed() {
-          mutate()
-        }
-      }
-    },
-    [mutate]
-  )
-
   return (
     invitations && (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Invitee</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {invitations.map((x, i) => {
-            const link = `${url.origin}/auth/signup?invitationCode=${x.code}`
-            return (
-              <TableRow key={i}>
-                <TableCell className="font-medium">{x.email}</TableCell>
-                <TableCell>{moment(x.createdAt).fromNow()}</TableCell>
-                <TableCell className="flex items-center">
-                  <CopyButton value={link} />
-                  <Button
-                    size="icon"
-                    variant="hover-destructive"
-                    onClick={() => deleteInvitation({ id: x.id })}
-                  >
-                    <IconTrash />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Invitee</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {invitations.map((x, i) => {
+              const link = `${url.origin}/auth/signup?invitationCode=${x.code}`
+              return (
+                <TableRow key={i}>
+                  <TableCell className="font-medium">{x.email}</TableCell>
+                  <TableCell>{moment(x.createdAt).fromNow()}</TableCell>
+                  <TableCell className="flex items-center">
+                    <CopyButton value={link} />
+                    <Button
+                      size="icon"
+                      variant="hover-destructive"
+                      onClick={() => deleteInvitation({ id: x.id })}
+                    >
+                      <IconTrash />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+        <CreateInvitationForm onCreated={() => mutate()} />
+      </div>
     )
   )
 }
-
-export default React.forwardRef(InvitationTable)
