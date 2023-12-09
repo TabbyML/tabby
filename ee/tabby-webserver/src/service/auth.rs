@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use anyhow::{anyhow, Result};
 use argon2::{
     password_hash,
@@ -5,13 +7,13 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
-use validator::Validate;
+use validator::{Validate, ValidationError};
 
 use super::db::DbConn;
 use crate::schema::{
     auth::{
-        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, JWTPayload,
-        Invitation, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
+        JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
         TokenAuthError, TokenAuthResponse, VerifyTokenResponse,
     },
     User,
@@ -41,12 +43,8 @@ struct RegisterInput {
         code = "password1",
         message = "Password must be at most 20 characters"
     ))]
+    #[validate(custom = "validate_password")]
     password1: String,
-    #[validate(length(
-        min = 8,
-        code = "password2",
-        message = "Password must be at least 8 characters"
-    ))]
     #[validate(must_match(
         code = "password2",
         message = "Passwords do not match",
@@ -68,6 +66,36 @@ impl std::fmt::Debug for RegisterInput {
             .field("password2", &"********")
             .finish()
     }
+}
+
+fn validate_password(value: &str) -> Result<(), ValidationError> {
+    let make_validation_error = |message: &'static str| {
+        let mut err = ValidationError::new("password1");
+        err.message = Some(Cow::Borrowed(message));
+        Err(err)
+    };
+
+    let contains_lowercase = value.chars().any(|x| x.is_ascii_lowercase());
+    if !contains_lowercase {
+        return make_validation_error("Password should contains at least one lowercase character");
+    }
+
+    let contains_uppercase = value.chars().any(|x| x.is_ascii_uppercase());
+    if !contains_uppercase {
+        return make_validation_error("Password should contains at least one uppercase character");
+    }
+
+    let contains_digit = value.chars().any(|x| x.is_ascii_digit());
+    if !contains_digit {
+        return make_validation_error("Password should contains at least one numeric character");
+    }
+
+    let contains_special_char = value.chars().any(|x| x.is_ascii_punctuation());
+    if !contains_special_char {
+        return make_validation_error("Password should contains at least one special character, e.g @#$%^&{}");
+    }
+
+    Ok(())
 }
 
 /// Input parameters for token_auth mutation
@@ -152,7 +180,8 @@ impl AuthenticationService for DbConn {
         let refresh_token = generate_refresh_token();
         self.create_refresh_token(id, &refresh_token).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin)) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        else {
             return Err(RegisterError::Unknown);
         };
 
@@ -179,7 +208,8 @@ impl AuthenticationService for DbConn {
         let refresh_token = generate_refresh_token();
         self.create_refresh_token(user.id, &refresh_token).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin)) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        else {
             return Err(TokenAuthError::Unknown);
         };
 
@@ -205,7 +235,8 @@ impl AuthenticationService for DbConn {
         self.replace_refresh_token(&token, &new_token).await?;
 
         // refresh token update is done, generate new access token based on user info
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin)) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        else {
             return Err(RefreshTokenError::Unknown);
         };
 

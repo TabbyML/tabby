@@ -5,6 +5,7 @@ import { JwtPayload, jwtDecode } from 'jwt-decode'
 import { graphql } from '@/lib/gql/generates'
 import useInterval from '@/lib/hooks/use-interval'
 import { gqlClient, useGraphQLQuery } from '@/lib/tabby/gql'
+import { mutate } from 'swr'
 
 interface AuthData {
   accessToken: string
@@ -257,6 +258,9 @@ function useAuthenticatedSession() {
   const { data: session, status } = useSession()
 
   React.useEffect(() => {
+    if (status === "loading") return;
+    if (status === "authenticated") return;
+
     if (data?.isAdminInitialized === false) {
       router.replace('/auth/signup?isAdmin=true')
     } else if (status === 'unauthenticated') {
