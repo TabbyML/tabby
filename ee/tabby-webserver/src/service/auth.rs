@@ -10,8 +10,8 @@ use validator::Validate;
 use super::db::DbConn;
 use crate::schema::{
     auth::{
-        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, JWTPayload,
-        Invitation, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
+        JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
         TokenAuthError, TokenAuthResponse, VerifyTokenResponse,
     },
     User,
@@ -152,7 +152,8 @@ impl AuthenticationService for DbConn {
         let refresh_token = generate_refresh_token();
         self.create_refresh_token(id, &refresh_token).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin)) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        else {
             return Err(RegisterError::Unknown);
         };
 
@@ -179,7 +180,8 @@ impl AuthenticationService for DbConn {
         let refresh_token = generate_refresh_token();
         self.create_refresh_token(user.id, &refresh_token).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin)) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        else {
             return Err(TokenAuthError::Unknown);
         };
 
@@ -205,7 +207,8 @@ impl AuthenticationService for DbConn {
         self.replace_refresh_token(&token, &new_token).await?;
 
         // refresh token update is done, generate new access token based on user info
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin)) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        else {
             return Err(RefreshTokenError::Unknown);
         };
 

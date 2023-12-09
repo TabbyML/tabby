@@ -4,7 +4,6 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::AuthenticationService;
-
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value,
