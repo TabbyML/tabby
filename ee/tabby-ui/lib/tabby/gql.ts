@@ -1,7 +1,7 @@
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { GraphQLClient, Variables } from 'graphql-request'
 import { GraphQLResponse } from 'graphql-request/build/esm/types'
-import useSWR, { SWRConfiguration, SWRResponse } from 'swr'
+import useSWR, { SWRConfiguration, SWRResponse, mutate } from 'swr'
 
 import { useSession } from './auth'
 
@@ -30,7 +30,7 @@ export function useGraphQLForm<
 ) {
   const { data } = useSession()
   const accessToken = data?.accessToken
-  const onSubmit = async (variables: TVariables) => {
+  const onSubmit = async (variables?: TVariables) => {
     let res
     try {
       res = await gqlClient.request({
@@ -38,11 +38,12 @@ export function useGraphQLForm<
         variables,
         requestHeaders: accessToken
           ? {
-              authorization: `Bearer ${accessToken}`
-            }
+            authorization: `Bearer ${accessToken}`
+          }
           : undefined
       })
     } catch (err) {
+      console.error("err", err)
       const { errors = [] } = (err as any).response as GraphQLResponse
       for (const error of errors) {
         if (error.extensions && error.extensions['validation-errors']) {

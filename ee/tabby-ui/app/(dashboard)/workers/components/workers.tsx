@@ -4,10 +4,12 @@ import { graphql } from '@/lib/gql/generates'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
-import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
+import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
 import { CopyButton } from '@/components/copy-button'
 
 import WorkerCard from './worker-card'
+import { Button } from '@/components/ui/button'
+import { IconRefresh } from '@/components/ui/icons'
 
 const getRegistrationTokenDocument = graphql(/* GraphQL */ `
   query GetRegistrationToken {
@@ -15,12 +17,22 @@ const getRegistrationTokenDocument = graphql(/* GraphQL */ `
   }
 `)
 
+const resetRegistrationTokenDocument = graphql(/* GraphQL */ `
+  mutation ResetRegistrationToken {
+    resetRegistrationToken
+  }
+`)
+
 export default function Workers() {
   const { data: healthInfo } = useHealth()
   const workers = useWorkers()
-  const { data: registrationTokenRes } = useAuthenticatedGraphQLQuery(
+  const { data: registrationTokenRes, mutate } = useAuthenticatedGraphQLQuery(
     getRegistrationTokenDocument
   )
+
+  const { onSubmit: resetRegistrationToken } = useGraphQLForm(resetRegistrationTokenDocument, {
+    onSuccess: () => mutate(),
+  })
 
   if (!healthInfo) return
 
@@ -28,10 +40,16 @@ export default function Workers() {
     <div className="p-4 lg:p-16 flex w-full flex-col gap-3">
       {!!registrationTokenRes?.registrationToken && (
         <div className="flex items-center gap-1">
-          Registeration token:{' '}
-          <span className="rounded-lg text-sm text-red-600">
+          Registeration token:
+          <code className="rounded-lg text-sm text-red-600 bg-zinc-100 p-1">
             {registrationTokenRes.registrationToken}
-          </span>
+          </code>
+          <Button
+            title="Reset"
+            size="icon"
+            variant="ghost"
+            className='hover:bg-destructive/90 hover:text-destructive-foreground'
+            onClick={() => resetRegistrationToken()}><IconRefresh /></Button>
           <CopyButton value={registrationTokenRes.registrationToken} />
         </div>
       )}
