@@ -12,7 +12,7 @@ use tracing::{error, warn};
 use uuid::Uuid;
 use validator::ValidationErrors;
 
-use super::from_validation_errors;
+use super::{from_validation_errors, User};
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -287,6 +287,7 @@ pub trait AuthenticationService: Send + Sync {
     ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError>;
     async fn verify_access_token(&self, access_token: &str) -> Result<VerifyTokenResponse>;
     async fn is_admin_initialized(&self) -> Result<bool>;
+    async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
     async fn create_invitation(&self, email: String) -> Result<i32>;
     async fn list_invitations(&self) -> Result<Vec<Invitation>>;

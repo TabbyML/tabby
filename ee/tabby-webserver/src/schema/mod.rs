@@ -4,9 +4,10 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::AuthenticationService;
+use chrono::{DateTime, Utc};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, IntoFieldError, Object, RootNode,
-    ScalarValue, Value,
+    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
+    Object, RootNode, ScalarValue, Value,
 };
 use juniper_axum::FromAuth;
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
@@ -110,12 +111,25 @@ impl Query {
         ))
     }
 
-    async fn me(ctx: &Context) -> Result<UserInfo> {
+    async fn me(ctx: &Context) -> Result<User> {
         if let Some(claims) = &ctx.claims {
-            return Ok(claims.user_info().to_owned());
+            let user = ctx
+                .locator
+                .auth()
+                .get_user_by_email(claims.user_info().email())
+                .await?;
+            Ok(user)
+        } else {
+            Err(CoreError::Unauthorized("Not logged in"))
         }
-        Err(CoreError::Unauthorized("Not logged in"))
     }
+}
+
+#[derive(Debug, GraphQLObject)]
+pub struct User {
+    pub email: String,
+    pub is_admin: bool,
+    pub auth_token: String,
 }
 
 #[derive(Default)]

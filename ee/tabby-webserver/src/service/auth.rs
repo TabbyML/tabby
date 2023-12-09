@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
@@ -8,11 +8,11 @@ use async_trait::async_trait;
 use validator::Validate;
 
 use super::db::DbConn;
-use crate::schema::auth::{
+use crate::schema::{auth::{
     generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Claims, Invitation,
     RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError,
     TokenAuthResponse, UserInfo, VerifyTokenResponse,
-};
+}, User};
 
 /// Input parameters for register mutation
 /// `validate` attribute is used to validate the input parameters
@@ -230,6 +230,16 @@ impl AuthenticationService for DbConn {
         let admin = self.list_admin_users().await?;
         Ok(!admin.is_empty())
     }
+
+    async fn get_user_by_email(&self, email: &str) -> Result<User> {
+        let user = self.get_user_by_email(email).await?;
+        if let Some(user) = user {
+            Ok(user.into())
+        } else {
+            Err(anyhow!("User not found {}", email))
+        }
+    }
+
 
     async fn create_invitation(&self, email: String) -> Result<i32> {
         self.create_invitation(email).await

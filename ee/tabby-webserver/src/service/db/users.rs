@@ -5,6 +5,8 @@ use chrono::{DateTime, Utc};
 use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
+use crate::schema;
+
 use super::DbConn;
 
 #[allow(unused)]
@@ -38,6 +40,16 @@ impl User {
             updated_at: row.get(5)?,
             auth_token: row.get(6)?,
         })
+    }
+}
+
+impl Into<schema::User> for User {
+    fn into(self) -> schema::User {
+        schema::User {
+            email: self.email,
+            is_admin: self.is_admin,
+            auth_token: self.auth_token,
+        }
     }
 }
 
