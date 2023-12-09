@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
@@ -8,10 +8,13 @@ use async_trait::async_trait;
 use validator::Validate;
 
 use super::db::DbConn;
-use crate::schema::auth::{
-    generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Claims, Invitation,
-    RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError,
-    TokenAuthResponse, UserInfo, VerifyTokenResponse,
+use crate::schema::{
+    auth::{
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
+        JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
+        TokenAuthError, TokenAuthResponse, VerifyTokenResponse,
+    },
+    User,
 };
 
 /// Input parameters for register mutation
@@ -149,10 +152,8 @@ impl AuthenticationService for DbConn {
         let refresh_token = generate_refresh_token();
         self.create_refresh_token(id, &refresh_token).await?;
 
-        let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
-            user.email.clone(),
-            user.is_admin,
-        ))) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        else {
             return Err(RegisterError::Unknown);
         };
 
@@ -179,10 +180,8 @@ impl AuthenticationService for DbConn {
         let refresh_token = generate_refresh_token();
         self.create_refresh_token(user.id, &refresh_token).await?;
 
-        let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
-            user.email.clone(),
-            user.is_admin,
-        ))) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        else {
             return Err(TokenAuthError::Unknown);
         };
 
@@ -208,10 +207,8 @@ impl AuthenticationService for DbConn {
         self.replace_refresh_token(&token, &new_token).await?;
 
         // refresh token update is done, generate new access token based on user info
-        let Ok(access_token) = generate_jwt(Claims::new(UserInfo::new(
-            user.email.clone(),
-            user.is_admin,
-        ))) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        else {
             return Err(RefreshTokenError::Unknown);
         };
 
@@ -229,6 +226,15 @@ impl AuthenticationService for DbConn {
     async fn is_admin_initialized(&self) -> Result<bool> {
         let admin = self.list_admin_users().await?;
         Ok(!admin.is_empty())
+    }
+
+    async fn get_user_by_email(&self, email: &str) -> Result<User> {
+        let user = self.get_user_by_email(email).await?;
+        if let Some(user) = user {
+            Ok(user.into())
+        } else {
+            Err(anyhow!("User not found {}", email))
+        }
     }
 
     async fn create_invitation(&self, email: String) -> Result<i32> {

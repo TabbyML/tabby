@@ -6,6 +6,7 @@ use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
 use super::DbConn;
+use crate::schema;
 
 #[allow(unused)]
 pub struct User {
@@ -38,6 +39,16 @@ impl User {
             updated_at: row.get(5)?,
             auth_token: row.get(6)?,
         })
+    }
+}
+
+impl From<User> for schema::User {
+    fn from(val: User) -> Self {
+        schema::User {
+            email: val.email,
+            is_admin: val.is_admin,
+            auth_token: val.auth_token,
+        }
     }
 }
 
