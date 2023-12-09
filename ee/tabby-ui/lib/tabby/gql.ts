@@ -30,7 +30,7 @@ export function useGraphQLForm<
 ) {
   const { data } = useSession()
   const accessToken = data?.accessToken
-  const onSubmit = async (variables: TVariables) => {
+  const onSubmit = async (variables?: TVariables) => {
     let res
     try {
       res = await gqlClient.request({
@@ -43,6 +43,7 @@ export function useGraphQLForm<
           : undefined
       })
     } catch (err) {
+      console.error('err', err)
       const { errors = [] } = (err as any).response as GraphQLResponse
       for (const error of errors) {
         if (error.extensions && error.extensions['validation-errors']) {

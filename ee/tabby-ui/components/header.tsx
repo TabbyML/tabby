@@ -21,7 +21,7 @@ export function Header() {
   useAuthenticatedSession()
 
   const { data } = useHealth()
-  const workers = useWorkers(data)
+  const workers = useWorkers()
   const isChatEnabled = has(workers, WorkerKind.Chat)
   const version = data?.version?.git_describe
   const { data: latestRelease } = useLatestRelease()
@@ -33,6 +33,9 @@ export function Header() {
         <ThemeToggle />
         <Link href="/" className={cn(buttonVariants({ variant: 'link' }))}>
           Dashboard
+        </Link>
+        <Link href="/api" className={cn(buttonVariants({ variant: 'link' }))}>
+          API
         </Link>
         {isChatEnabled && (
           <Link

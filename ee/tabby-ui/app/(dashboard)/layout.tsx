@@ -5,7 +5,10 @@ import { Header } from '@/components/header'
 import Sidebar from './components/sidebar'
 
 export const metadata: Metadata = {
-  title: 'Dashboard'
+  title: {
+    default: 'Home',
+    template: `Tabby - %s`
+  }
 }
 
 interface DashboardLayoutProps {
