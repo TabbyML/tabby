@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use anyhow::{anyhow, Result};
 use argon2::{
     password_hash,
@@ -5,7 +7,7 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
-use validator::Validate;
+use validator::{Validate, ValidationError};
 
 use super::db::DbConn;
 use crate::schema::{
@@ -41,12 +43,8 @@ struct RegisterInput {
         code = "password1",
         message = "Password must be at most 20 characters"
     ))]
+    #[validate(custom = "validate_password")]
     password1: String,
-    #[validate(length(
-        min = 8,
-        code = "password2",
-        message = "Password must be at least 8 characters"
-    ))]
     #[validate(must_match(
         code = "password2",
         message = "Passwords do not match",
@@ -68,6 +66,38 @@ impl std::fmt::Debug for RegisterInput {
             .field("password2", &"********")
             .finish()
     }
+}
+
+fn validate_password(value: &str) -> Result<(), ValidationError> {
+    let make_validation_error = |message: &'static str| {
+        let mut err = ValidationError::new("password1");
+        err.message = Some(Cow::Borrowed(message));
+        Err(err)
+    };
+
+    let contains_lowercase = value.chars().any(|x| x.is_ascii_lowercase());
+    if !contains_lowercase {
+        return make_validation_error("Password should contains at least one lowercase character");
+    }
+
+    let contains_uppercase = value.chars().any(|x| x.is_ascii_uppercase());
+    if !contains_uppercase {
+        return make_validation_error("Password should contains at least one uppercase character");
+    }
+
+    let contains_digit = value.chars().any(|x| x.is_ascii_digit());
+    if !contains_digit {
+        return make_validation_error("Password should contains at least one numeric character");
+    }
+
+    let contains_special_char = value.chars().any(|x| x.is_ascii_punctuation());
+    if !contains_special_char {
+        return make_validation_error(
+            "Password should contains at least one special character, e.g @#$%^&{}",
+        );
+    }
+
+    Ok(())
 }
 
 /// Input parameters for token_auth mutation
@@ -292,7 +322,7 @@ mod tests {
     }
 
     static ADMIN_EMAIL: &str = "test@example.com";
-    static ADMIN_PASSWORD: &str = "123456789";
+    static ADMIN_PASSWORD: &str = "123456789$acR";
 
     async fn register_admin_user(conn: &DbConn) -> RegisterResponse {
         conn.register(
@@ -342,7 +372,7 @@ mod tests {
         register_admin_user(&conn).await;
 
         let email = "user@user.com";
-        let password = "12345678";
+        let password = "12345678dD^";
 
         conn.create_invitation(email.to_owned()).await.unwrap();
         let invitation = &conn.list_invitations().await.unwrap()[0];

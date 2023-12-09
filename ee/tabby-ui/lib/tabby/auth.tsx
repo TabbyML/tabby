@@ -257,6 +257,9 @@ function useAuthenticatedSession() {
   const { data: session, status } = useSession()
 
   React.useEffect(() => {
+    if (status === 'loading') return
+    if (status === 'authenticated') return
+
     if (data?.isAdminInitialized === false) {
       router.replace('/auth/signup?isAdmin=true')
     } else if (status === 'unauthenticated') {
