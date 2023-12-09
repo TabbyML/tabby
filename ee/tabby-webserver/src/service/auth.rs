@@ -322,7 +322,7 @@ mod tests {
     }
 
     static ADMIN_EMAIL: &str = "test@example.com";
-    static ADMIN_PASSWORD: &str = "123456789";
+    static ADMIN_PASSWORD: &str = "123456789$acR";
 
     async fn register_admin_user(conn: &DbConn) -> RegisterResponse {
         conn.register(
@@ -372,7 +372,7 @@ mod tests {
         register_admin_user(&conn).await;
 
         let email = "user@user.com";
-        let password = "12345678";
+        let password = "12345678dD^";
 
         conn.create_invitation(email.to_owned()).await.unwrap();
         let invitation = &conn.list_invitations().await.unwrap()[0];
