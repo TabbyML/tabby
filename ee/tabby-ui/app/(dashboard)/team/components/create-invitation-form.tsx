@@ -49,7 +49,7 @@ export default function CreateInvitationForm({
     <Form {...form}>
       <div className="flex flex-col items-end gap-2">
         <form
-          className="w-full flex items-center gap-2"
+          className="flex w-full items-center gap-2"
           onSubmit={form.handleSubmit(onSubmit)}
         >
           <FormField
