@@ -4,7 +4,7 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::AuthenticationService;
-use chrono::{DateTime, Utc};
+
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value,
@@ -19,7 +19,7 @@ use self::{
 };
 use crate::schema::{
     auth::{
-        RefreshTokenError, RefreshTokenResponse, RegisterResponse, TokenAuthResponse, UserInfo,
+        RefreshTokenError, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
         VerifyTokenResponse,
     },
     worker::Worker,
@@ -33,7 +33,7 @@ pub trait ServiceLocator: Send + Sync {
 }
 
 pub struct Context {
-    claims: Option<auth::Claims>,
+    claims: Option<auth::JWTPayload>,
     locator: Arc<dyn ServiceLocator>,
 }
 
@@ -74,7 +74,7 @@ pub struct Query;
 impl Query {
     async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
         if let Some(claims) = &ctx.claims {
-            if claims.user_info().is_admin() {
+            if claims.is_admin {
                 let workers = ctx.locator.worker().list_workers().await;
                 return Ok(workers);
             }
@@ -86,7 +86,7 @@ impl Query {
 
     async fn registration_token(ctx: &Context) -> Result<String> {
         if let Some(claims) = &ctx.claims {
-            if claims.user_info().is_admin() {
+            if claims.is_admin {
                 let token = ctx.locator.worker().read_registration_token().await?;
                 return Ok(token);
             }
@@ -102,7 +102,7 @@ impl Query {
 
     async fn invitations(ctx: &Context) -> Result<Vec<Invitation>> {
         if let Some(claims) = &ctx.claims {
-            if claims.user_info().is_admin() {
+            if claims.is_admin {
                 return Ok(ctx.locator.auth().list_invitations().await?);
             }
         }
@@ -113,11 +113,7 @@ impl Query {
 
     async fn me(ctx: &Context) -> Result<User> {
         if let Some(claims) = &ctx.claims {
-            let user = ctx
-                .locator
-                .auth()
-                .get_user_by_email(claims.user_info().email())
-                .await?;
+            let user = ctx.locator.auth().get_user_by_email(&claims.sub).await?;
             Ok(user)
         } else {
             Err(CoreError::Unauthorized("Not logged in"))
@@ -139,7 +135,7 @@ pub struct Mutation;
 impl Mutation {
     async fn reset_registration_token(ctx: &Context) -> Result<String> {
         if let Some(claims) = &ctx.claims {
-            if claims.user_info().is_admin() {
+            if claims.is_admin {
                 let reg_token = ctx.locator.worker().reset_registration_token().await?;
                 return Ok(reg_token);
             }
@@ -183,7 +179,7 @@ impl Mutation {
 
     async fn create_invitation(ctx: &Context, email: String) -> Result<i32> {
         if let Some(claims) = &ctx.claims {
-            if claims.user_info().is_admin() {
+            if claims.is_admin {
                 return Ok(ctx.locator.auth().create_invitation(email).await?);
             }
         }
@@ -194,7 +190,7 @@ impl Mutation {
 
     async fn delete_invitation(ctx: &Context, id: i32) -> Result<i32> {
         if let Some(claims) = &ctx.claims {
-            if claims.user_info().is_admin() {
+            if claims.is_admin {
                 return Ok(ctx.locator.auth().delete_invitation(id).await?);
             }
         }

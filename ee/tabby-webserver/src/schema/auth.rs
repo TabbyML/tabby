@@ -26,15 +26,15 @@ lazy_static! {
     static ref JWT_DEFAULT_EXP: u64 = 30 * 60; // 30 minutes
 }
 
-pub fn generate_jwt(claims: Claims) -> jwt::errors::Result<String> {
+pub fn generate_jwt(claims: JWTPayload) -> jwt::errors::Result<String> {
     let header = jwt::Header::default();
     let token = jwt::encode(&header, &claims, &JWT_ENCODING_KEY)?;
     Ok(token)
 }
 
-pub fn validate_jwt(token: &str) -> jwt::errors::Result<Claims> {
+pub fn validate_jwt(token: &str) -> jwt::errors::Result<JWTPayload> {
     let validation = jwt::Validation::default();
-    let data = jwt::decode::<Claims>(token, &JWT_DECODING_KEY, &validation)?;
+    let data = jwt::decode::<JWTPayload>(token, &JWT_DECODING_KEY, &validation)?;
     Ok(data.claims)
 }
 
@@ -202,57 +202,39 @@ impl RefreshTokenResponse {
 
 #[derive(Debug, GraphQLObject)]
 pub struct VerifyTokenResponse {
-    claims: Claims,
+    claims: JWTPayload,
 }
 
 impl VerifyTokenResponse {
-    pub fn new(claims: Claims) -> Self {
+    pub fn new(claims: JWTPayload) -> Self {
         Self { claims }
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, GraphQLObject)]
-pub struct UserInfo {
-    email: String,
-    is_admin: bool,
-}
-
-impl UserInfo {
-    pub fn new(email: String, is_admin: bool) -> Self {
-        Self { email, is_admin }
-    }
-
-    pub fn is_admin(&self) -> bool {
-        self.is_admin
-    }
-
-    pub fn email(&self) -> &str {
-        &self.email
-    }
-}
-
 #[derive(Debug, Default, Serialize, Deserialize, GraphQLObject)]
-pub struct Claims {
-    // Required. Expiration time (as UTC timestamp)
+pub struct JWTPayload {
+    /// Expiration time (as UTC timestamp)
     exp: f64,
-    // Optional. Issued at (as UTC timestamp)
+
+    /// Issued at (as UTC timestamp)
     iat: f64,
-    // Customized. user info
-    user: UserInfo,
+
+    /// User email address
+    pub sub: String,
+
+    /// Whether the user is admin.
+    pub is_admin: bool,
 }
 
-impl Claims {
-    pub fn new(user: UserInfo) -> Self {
+impl JWTPayload {
+    pub fn new(email: String, is_admin: bool) -> Self {
         let now = jwt::get_current_timestamp();
         Self {
             iat: now as f64,
             exp: (now + *JWT_DEFAULT_EXP) as f64,
-            user,
+            sub: email,
+            is_admin,
         }
-    }
-
-    pub fn user_info(&self) -> &UserInfo {
-        &self.user
     }
 }
 
@@ -299,7 +281,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_generate_jwt() {
-        let claims = Claims::new(UserInfo::new("test".to_string(), false));
+        let claims = JWTPayload::new("test".to_string(), false);
         let token = generate_jwt(claims).unwrap();
 
         assert!(!token.is_empty())
@@ -307,13 +289,11 @@ mod tests {
 
     #[test]
     fn test_validate_jwt() {
-        let claims = Claims::new(UserInfo::new("test".to_string(), false));
+        let claims = JWTPayload::new("test".to_string(), false);
         let token = generate_jwt(claims).unwrap();
         let claims = validate_jwt(&token).unwrap();
-        assert_eq!(
-            claims.user_info(),
-            &UserInfo::new("test".to_string(), false)
-        );
+        assert_eq!(claims.sub, "test");
+        assert!(!claims.is_admin);
     }
 
     #[test]

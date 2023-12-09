@@ -5,9 +5,8 @@ use chrono::{DateTime, Utc};
 use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
-use crate::schema;
-
 use super::DbConn;
+use crate::schema;
 
 #[allow(unused)]
 pub struct User {
@@ -43,12 +42,12 @@ impl User {
     }
 }
 
-impl Into<schema::User> for User {
-    fn into(self) -> schema::User {
+impl From<User> for schema::User {
+    fn from(val: User) -> Self {
         schema::User {
-            email: self.email,
-            is_admin: self.is_admin,
-            auth_token: self.auth_token,
+            email: val.email,
+            is_admin: val.is_admin,
+            auth_token: val.auth_token,
         }
     }
 }
