@@ -6,7 +6,7 @@ import Sidebar from './components/sidebar'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Dashboard',
+    default: 'Home',
     template: `Tabby - %s`
   }
 }
