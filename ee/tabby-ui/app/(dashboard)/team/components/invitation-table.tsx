@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useEffect, useState } from 'react'
 import moment from 'moment'
 
 import { graphql } from '@/lib/gql/generates'
@@ -39,7 +39,10 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
 export default function InvitationTable() {
   const { data, mutate } = useAuthenticatedGraphQLQuery(listInvitations)
   const invitations = data?.invitations
-  const url = useMemo(() => new URL(window.location.href), []);
+  const [origin, setOrigin] = useState("")
+  useEffect(() => {
+    setOrigin(new URL(window.location.href).origin);
+  }, [])
 
   const { onSubmit: deleteInvitation } = useGraphQLForm(
     deleteInvitationMutation,
@@ -60,7 +63,7 @@ export default function InvitationTable() {
           </TableHeader>
           <TableBody>
             {invitations.map((x, i) => {
-              const link = `${url.origin}/auth/signup?invitationCode=${x.code}`
+              const link = `${origin}/auth/signup?invitationCode=${x.code}`
               return (
                 <TableRow key={i}>
                   <TableCell className="w-[300px] font-medium">{x.email}</TableCell>
