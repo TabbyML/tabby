@@ -1,3 +1,4 @@
+import { Header } from '@/components/header'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -7,5 +8,8 @@ export const metadata: Metadata = {
 const serverUrl = process.env.NEXT_PUBLIC_TABBY_SERVER_URL || ''
 
 export default function IndexPage() {
-  return <iframe className="grow" src={`${serverUrl}/swagger-ui`} />
+  return <>
+    <Header />
+    <iframe className="grow" src={`${serverUrl}/swagger-ui`} />
+  </>
 }

@@ -34,6 +34,12 @@ export function Header() {
         <Link href="/" className={cn(buttonVariants({ variant: 'link' }))}>
           Dashboard
         </Link>
+        <Link
+          href="/api"
+          className={cn(buttonVariants({ variant: 'link' }))}
+        >
+          API
+        </Link>
         {isChatEnabled && (
           <Link
             href="/playground"
