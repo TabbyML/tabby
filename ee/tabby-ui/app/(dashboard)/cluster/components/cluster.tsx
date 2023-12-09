@@ -65,7 +65,7 @@ export default function Workers() {
       <Separator />
       {!!registrationTokenRes?.registrationToken && (
         <div className="flex items-center gap-1">
-          Registeration token:
+          Registration token:
           <code className="rounded-lg text-sm text-red-600">
             {registrationTokenRes.registrationToken}
           </code>
