@@ -5,7 +5,7 @@ import { graphql } from '@/lib/gql/generates'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
 
-import type { HealthInfo } from './use-health'
+import { useHealth, type HealthInfo } from './use-health'
 
 const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
   [WorkerKind.Chat]: 'chat_model',
@@ -43,7 +43,8 @@ export const getAllWorkersDocument = graphql(/* GraphQL */ `
   }
 `)
 
-function useWorkers(healthInfo?: HealthInfo) {
+function useWorkers() {
+  const { data: healthInfo } = useHealth()
   const { data } = useAuthenticatedGraphQLQuery(getAllWorkersDocument)
   let workers = data?.workers
 

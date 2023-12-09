@@ -6,6 +6,8 @@ import { cva } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 import UserPanel from '@/components/user-panel'
+import { IconHome, IconNetwork } from '@/components/ui/icons'
+import { useSession } from '@/lib/tabby/auth'
 
 export interface SidebarProps {
   children: React.ReactNode
@@ -13,6 +15,8 @@ export interface SidebarProps {
 }
 
 export default function Sidebar({ children, className }: SidebarProps) {
+  const { data: session } = useSession();
+  const isAdmin = session?.isAdmin || false;
   return (
     <div
       className={cn('grid overflow-hidden lg:grid-cols-[280px_1fr]', className)}
@@ -23,23 +27,13 @@ export default function Sidebar({ children, className }: SidebarProps) {
           <div className="flex-1">
             <nav className="grid items-start gap-4 px-4 text-sm font-medium">
               <SidebarButton href="/">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className=" h-4 w-4"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-                Home
+                <IconHome /> Home
               </SidebarButton>
+              {isAdmin && <>
+                <SidebarButton href="/workers">
+                  <IconNetwork /> Workers
+                </SidebarButton>
+              </>}
             </nav>
           </div>
 
