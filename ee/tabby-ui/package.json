@@ -43,6 +43,7 @@
     "graphql-request": "^6.1.0",
     "jwt-decode": "^4.0.0",
     "lodash-es": "^4.17.21",
+    "moment": "^2.29.4",
     "nanoid": "^4.0.2",
     "next": "^13.4.7",
     "next-themes": "^0.2.1",

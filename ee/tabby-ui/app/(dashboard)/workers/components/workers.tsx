@@ -47,8 +47,7 @@ export default function Workers() {
           <Button
             title="Reset"
             size="icon"
-            variant="ghost"
-            className='hover:bg-destructive/90 hover:text-destructive-foreground'
+            variant="hover-destructive"
             onClick={() => resetRegistrationToken()}><IconRefresh /></Button>
           <CopyButton value={registrationTokenRes.registrationToken} />
         </div>

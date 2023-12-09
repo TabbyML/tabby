@@ -6,7 +6,7 @@ import { cva } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 import UserPanel from '@/components/user-panel'
-import { IconHome, IconNetwork } from '@/components/ui/icons'
+import { IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
 import { useSession } from '@/lib/tabby/auth'
 
 export interface SidebarProps {
@@ -31,7 +31,10 @@ export default function Sidebar({ children, className }: SidebarProps) {
               </SidebarButton>
               {isAdmin && <>
                 <SidebarButton href="/workers">
-                  <IconNetwork /> Workers
+                  <IconNetwork /> Cluster Information
+                </SidebarButton>
+                <SidebarButton href="/team">
+                  <IconUsers /> Team Management
                 </SidebarButton>
               </>}
             </nav>
