@@ -39,9 +39,9 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
 export default function InvitationTable() {
   const { data, mutate } = useAuthenticatedGraphQLQuery(listInvitations)
   const invitations = data?.invitations
-  const [origin, setOrigin] = useState("")
+  const [origin, setOrigin] = useState('')
   useEffect(() => {
-    setOrigin(new URL(window.location.href).origin);
+    setOrigin(new URL(window.location.href).origin)
   }, [])
 
   const { onSubmit: deleteInvitation } = useGraphQLForm(
@@ -53,41 +53,43 @@ export default function InvitationTable() {
 
   return (
     invitations && (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Invitee</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invitations.map((x, i) => {
-              const link = `${origin}/auth/signup?invitationCode=${x.code}`
-              return (
-                <TableRow key={i}>
-                  <TableCell className="w-[300px] font-medium">{x.email}</TableCell>
-                  <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
-                  <TableCell className="flex items-center">
-                    <CopyButton value={link} />
-                    <Button
-                      size="icon"
-                      variant="hover-destructive"
-                      onClick={() => deleteInvitation({ id: x.id })}
-                    >
-                      <IconTrash />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-            <TableRow>
-                <TableCell className='p-2'>
-                  <CreateInvitationForm onCreated={() => mutate()} />
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Invitee</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {invitations.map((x, i) => {
+            const link = `${origin}/auth/signup?invitationCode=${x.code}`
+            return (
+              <TableRow key={i}>
+                <TableCell className="w-[300px] font-medium">
+                  {x.email}
                 </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+                <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
+                <TableCell className="flex items-center">
+                  <CopyButton value={link} />
+                  <Button
+                    size="icon"
+                    variant="hover-destructive"
+                    onClick={() => deleteInvitation({ id: x.id })}
+                  >
+                    <IconTrash />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            )
+          })}
+          <TableRow>
+            <TableCell className="p-2">
+              <CreateInvitationForm onCreated={() => mutate()} />
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     )
   )
 }

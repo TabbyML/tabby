@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  CardContent,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card'
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 import InvitationTable from './invitation-table'
 
@@ -23,8 +19,7 @@ export default function Team() {
         <CardHeader>
           <CardTitle>Users</CardTitle>
         </CardHeader>
-        <CardContent className="p-4">
-        </CardContent>
+        <CardContent className="p-4"></CardContent>
       </div>
     </div>
   )
