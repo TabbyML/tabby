@@ -10,6 +10,7 @@ enum WorkerKind {
 
 type Mutation {
   resetRegistrationToken: String!
+  resetUserAuthToken: Boolean!
   register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): VerifyTokenResponse!

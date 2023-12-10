@@ -292,6 +292,10 @@ impl AuthenticationService for DbConn {
     async fn delete_invitation(&self, id: i32) -> Result<i32> {
         self.delete_invitation(id).await
     }
+
+    async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
+        self.reset_user_auth_token_by_email(email).await
+    }
 }
 
 fn password_hash(raw: &str) -> password_hash::Result<String> {
@@ -459,5 +463,17 @@ mod tests {
             .unwrap();
         // expire time should be no change
         assert_eq!(resp1.refresh_expires_at, resp2.refresh_expires_at);
+    }
+
+    #[tokio::test]
+    async fn test_reset_user_auth_token() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        register_admin_user(&conn).await;
+
+        let user = conn.get_user_by_email(ADMIN_EMAIL).await.unwrap().unwrap();
+        conn.reset_user_auth_token(&user.email).await.unwrap();
+
+        let user2 = conn.get_user_by_email(ADMIN_EMAIL).await.unwrap().unwrap();
+        assert_ne!(user.auth_token, user2.auth_token);
     }
 }
