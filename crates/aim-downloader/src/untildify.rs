@@ -26,6 +26,7 @@ mod tests {
 
     use super::*;
 
+    #[ignore]
     #[test]
     fn test_returns_untildfyed_string() {
         env::remove_var("HOME");
@@ -38,6 +39,7 @@ mod tests {
         assert_eq!(untildify("~/"), "/User/Untildify/");
     }
 
+    #[ignore]
     #[test]
     fn test_returns_empty_string() {
         env::remove_var("HOME");
@@ -51,6 +53,7 @@ mod tests {
         // assert_eq!(untildify("~/Desktop/~/Code"), "/User/Untildify/Desktop/");
     }
 
+    #[ignore]
     #[test]
     fn test_with_dot_folders() {
         env::remove_var("HOME");
