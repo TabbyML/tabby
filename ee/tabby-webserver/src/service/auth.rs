@@ -150,7 +150,7 @@ impl AuthenticationService for DbConn {
         input.validate()?;
 
         let is_admin_initialized = self.is_admin_initialized().await?;
-        if is_admin_initialized {
+        let invitation = if is_admin_initialized {
             let err = Err(RegisterError::InvalidInvitationCode);
             let Some(invitation_code) = invitation_code else {
                 return err;
@@ -163,6 +163,10 @@ impl AuthenticationService for DbConn {
             if invitation.email != input.email {
                 return err;
             }
+
+            Some(invitation)
+        } else {
+            None
         };
 
         // check if email exists
@@ -174,9 +178,19 @@ impl AuthenticationService for DbConn {
             return Err(RegisterError::Unknown);
         };
 
-        let id = self
-            .create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
-            .await?;
+        let id = if let Some(invitation) = invitation {
+            self.create_user_with_invitation(
+                input.email.clone(),
+                pwd_hash,
+                !is_admin_initialized,
+                invitation.id,
+            )
+            .await?
+        } else {
+            self.create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
+                .await?
+        };
+
         let user = self.get_user(id).await?.unwrap();
 
         let refresh_token = generate_refresh_token();
@@ -421,8 +435,11 @@ mod tests {
                 Some(invitation.code.clone())
             )
             .await,
-            Err(RegisterError::DuplicateEmail)
+            Err(RegisterError::InvalidInvitationCode)
         );
+
+        // Used invitation should have been deleted,  following delete attempt should fail.
+        assert!(conn.delete_invitation(invitation.id).await.is_err());
     }
 
     #[tokio::test]

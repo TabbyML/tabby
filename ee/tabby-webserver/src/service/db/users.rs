@@ -59,13 +59,45 @@ impl DbConn {
         password_encrypted: String,
         is_admin: bool,
     ) -> Result<i32> {
+        self.create_user_impl(email, password_encrypted, is_admin, None)
+            .await
+    }
+
+    pub async fn create_user_with_invitation(
+        &self,
+        email: String,
+        password_encrypted: String,
+        is_admin: bool,
+        invitation_id: i32,
+    ) -> Result<i32> {
+        self.create_user_impl(email, password_encrypted, is_admin, Some(invitation_id))
+            .await
+    }
+
+    async fn create_user_impl(
+        &self,
+        email: String,
+        password_encrypted: String,
+        is_admin: bool,
+        invitation_id: Option<i32>,
+    ) -> Result<i32> {
         let res = self
             .conn
             .call(move |c| {
-                let mut stmt = c.prepare(
-                    r#"INSERT INTO users (email, password_encrypted, is_admin, auth_token) VALUES (?, ?, ?, ?)"#,
-                )?;
-                let id = stmt.insert((email, password_encrypted, is_admin, generate_auth_token()))?;
+                let tx = c.transaction()?;
+
+                if let Some(invitation_id) = invitation_id {
+                    tx.execute("DELETE FROM invitations WHERE id = ?", params![invitation_id])?;
+                }
+
+                let id = {
+                    let mut stmt = tx.prepare(
+                        r#"INSERT INTO users (email, password_encrypted, is_admin, auth_token) VALUES (?, ?, ?, ?)"#,
+                    )?;
+                    stmt.insert((email, password_encrypted, is_admin, generate_auth_token()))?
+                };
+
+                tx.commit()?;
                 Ok(id)
             })
             .await?;
