@@ -73,7 +73,7 @@ jobs:
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
         with:
-          version: "v0.4.0"
+          version: "v0.7.4"
 
       - name: Cargo registry cache
         uses: actions/cache@v3
