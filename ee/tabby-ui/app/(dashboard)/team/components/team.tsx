@@ -10,7 +10,7 @@ export default function Team() {
     <div>
       <div>
         <CardHeader>
-          <CardTitle>Invites</CardTitle>
+          <CardTitle>Pending Invites</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
           <InvitationTable />
@@ -19,7 +19,7 @@ export default function Team() {
       <div className="h-16" />
       <div>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
+          <CardTitle>Members</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
           <UsersTable />
