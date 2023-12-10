@@ -1,12 +1,12 @@
 ARG UBUNTU_VERSION=22.04
 # This needs to generally match the container host's environment.
-ARG CUDA_VERSION=11.7.1
+ARG ROCM_VERSION=5.7
 # Target the CUDA build image
-ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
+ARG BASE_ROCM_DEV_CONTAINER="rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete"
 # Target the CUDA runtime image
-ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
+ARG BASE_ROCM_RUN_CONTAINER="rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete"
 
-FROM ${BASE_CUDA_DEV_CONTAINER} as build
+FROM ${BASE_ROCM_DEV_CONTAINER} as build
 
 # Rust toolchain version
 ARG RUST_TOOLCHAIN=stable
@@ -29,24 +29,23 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLC
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /root/workspace
-COPY . .
 
 RUN mkdir -p /opt/tabby/bin
 RUN mkdir -p /opt/tabby/lib
 RUN mkdir -p target
 
+COPY . .
+
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features cuda --release --package tabby && \
+    cargo build --features rocm --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
-FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
+FROM ${BASE_ROCM_RUN_CONTAINER} as runtime
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git \
-        openssh-client \
-        ca-certificates \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -54,11 +53,6 @@ RUN apt-get update && \
 # Disable safe directory in docker
 # Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
 RUN git config --system --add safe.directory "*"
-
-# Make link to libnvidia-ml.so (NVML) library
-# so that we could get GPU stats.
-RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
-        /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
 
 COPY --from=build /opt/tabby /opt/tabby
 

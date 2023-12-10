@@ -1,10 +1,11 @@
-import CodeBlock from '@theme/CodeBlock';
-
 # ⁉️ Frequently Asked Questions
 
 <details>
   <summary>How much VRAM a LLM model consumes?</summary>
-  <div>By default, Tabby operates in int8 mode with CUDA, requiring approximately 8GB of VRAM for CodeLlama-7B.</div>
+    <div>
+        <p>By default, Tabby operates in int8 mode with CUDA, requiring approximately 8GB of VRAM for CodeLlama-7B.</p>
+        <p>For ROCm the actual limits are currently largely untested, but the same CodeLlama-7B seems to use 8GB of VRAM as well on a AMD Radeon™ RX 7900 XTX according to the ROCm monitoring tools.</p>
+    </div>
 </details>
 
 <details>
@@ -18,13 +19,26 @@ import CodeBlock from '@theme/CodeBlock';
     <p>
       To determine the mapping between the GPU card type and its compute capability, please visit <a href="https://developer.nvidia.com/cuda-gpus">this page</a>
     </p>
+    <p>
+      This also seems to be available on AMD Radeon™ GPUs, but it's unclear which cards besides RDNA3 support this.
+    </p>
   </div>
 </details>
 
 <details>
   <summary>How to utilize multiple NVIDIA GPUs?</summary>
   <div>
-    <p>Tabby only supports the use of a single GPU. To utilize multiple GPUs, you can initiate multiple Tabby instances and set CUDA_VISIBLE_DEVICES accordingly.</p>
+    <p>Tabby only supports the use of a single GPU. To utilize multiple GPUs, you can initiate multiple Tabby instances and set CUDA_VISIBLE_DEVICES or HIP_VISIBLE_DEVICES accordingly.</p>
+  </div>
+</details>
+
+<details>
+  <summary>My AMD ROCm device isn't supported by ROCm</summary>
+  <div>
+    <p>
+      You can use the HSA_OVERRIDE_GFX_VERSION variable if there is a similar GPU that is supported by ROCm you can set it to that.
+      For example for RDNA2 you can set it to 10.3.0 and to 11.0.0 for RDNA3.
+    </p>
   </div>
 </details>
 

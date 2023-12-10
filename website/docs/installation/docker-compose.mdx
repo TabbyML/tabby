@@ -5,6 +5,8 @@ sidebar_position: 1
 # Docker Compose
 This guide explains how to launch Tabby using docker-compose.
 
+
+
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
@@ -16,8 +18,8 @@ version: '3.5'
 
 services:
   tabby:
-    restart: always
-    image: tabbyml/tabby
+    restart: unless-stopped
+    image: tabbyml/tabby-cuda
     command: serve --model TabbyML/StarCoder-1B --device cuda
     volumes:
       - "$HOME/.tabby:/data"
@@ -33,6 +35,25 @@ services:
 ```
 
   </TabItem>
+  <TabItem value="rocm" label="ROCm">
+
+```yaml title="docker-compose.yml"
+version: '3.5'
+services:
+  tabby:
+    restart: unless-stopped
+    image: tabbyml/tabby-rocm
+    command: serve --model TabbyML/StarCoder-1B --device rocm
+    volumes:
+      - "$HOME/.tabby:/data"
+    ports:
+      - 8080:8080
+    devices:
+      - /dev/dri
+      - /dev/kfd
+```
+
+    </TabItem>
   <TabItem value="cpu" label="CPU">
 
 ```yaml title="docker-compose.yml"
@@ -40,7 +61,7 @@ version: '3.5'
 
 services:
   tabby:
-    restart: always
+    restart: unless-stopped
     image: tabbyml/tabby
     command: serve --model TabbyML/StarCoder-1B
     volumes:
