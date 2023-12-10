@@ -2428,6 +2428,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "package-lock-json-parser"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8707d34f4a67f9c733970b8afc7b82d8623bc0746ff17b460aa6f2ea5ef487d3"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3689,6 +3701,7 @@ dependencies = [
  "job_scheduler",
  "kdam",
  "lazy_static",
+ "package-lock-json-parser",
  "requirements",
  "serde",
  "serde-jsonlines 0.4.0",
@@ -3697,6 +3710,7 @@ dependencies = [
  "tabby-common",
  "tantivy",
  "temp_testdir",
+ "thiserror",
  "tokio",
  "tracing",
  "tracing-test",
