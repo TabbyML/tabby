@@ -26,7 +26,7 @@ jobs:
     container: ${{ matrix.container }}
     strategy:
       matrix:
-        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117, x86_64-manylinux2014-rocm5.7]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
@@ -40,6 +40,11 @@ jobs:
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
             build_args: --features cuda
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014-rocm5.7
+            container: rocm/dev-ubuntu-22.04:rocm5.7
+            build_args: --features rocm
 
     env:
       SCCACHE_GHA_ENABLED: true
