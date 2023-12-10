@@ -43,13 +43,13 @@ impl DbConn {
         let res = self
             .conn
             .call(move |c| {
-                c.execute(
+                Ok(c.execute(
                     r#"INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, datetime('now', '+7 days'))"#,
                     params![user_id, token],
-                )
+                ))
             })
             .await?;
-        if res != 1 {
+        if res != Ok(1) {
             return Err(anyhow::anyhow!("failed to create refresh token"));
         }
 
@@ -62,13 +62,13 @@ impl DbConn {
         let res = self
             .conn
             .call(move |c| {
-                c.execute(
+                Ok(c.execute(
                     r#"UPDATE refresh_tokens SET token = ? WHERE token = ?"#,
                     params![new, old],
-                )
+                ))
             })
             .await?;
-        if res != 1 {
+        if res != Ok(1) {
             return Err(anyhow::anyhow!("failed to replace refresh token"));
         }
 
@@ -79,14 +79,14 @@ impl DbConn {
         let res = self
             .conn
             .call(move |c| {
-                c.execute(
+                Ok(c.execute(
                     r#"DELETE FROM refresh_tokens WHERE expires_at < ?"#,
                     params![Utc::now()],
-                )
+                ))
             })
             .await?;
 
-        Ok(res as i32)
+        Ok(res? as i32)
     }
 
     pub async fn get_refresh_token(&self, token: &str) -> Result<Option<RefreshToken>> {
@@ -94,16 +94,16 @@ impl DbConn {
         let token = self
             .conn
             .call(move |c| {
-                c.query_row(
+                Ok(c.query_row(
                     RefreshToken::select("token = ?").as_str(),
                     params![token],
                     RefreshToken::from_row,
                 )
-                .optional()
+                .optional())
             })
             .await?;
 
-        Ok(token)
+        Ok(token?)
     }
 }
 
