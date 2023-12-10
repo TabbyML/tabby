@@ -8,6 +8,7 @@ members = [
     "crates/tabby-inference",
     "crates/llama-cpp-bindings",
     "crates/http-api-bindings",
+    "crates/aim-downloader",
     "crates/juniper-axum",
     "ee/tabby-webserver",
 ]
