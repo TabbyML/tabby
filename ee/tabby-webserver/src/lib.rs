@@ -1,15 +1,6 @@
 pub mod api;
 
 mod schema;
-use api::Hub;
-pub use schema::create_schema;
-use tabby_common::api::{
-    code::{CodeSearch, SearchResponse},
-    event::RawEventLogger,
-};
-use tokio::sync::Mutex;
-use tracing::{error, warn};
-use websocket::WebSocketTransport;
 
 mod repositories;
 mod service;
@@ -18,6 +9,7 @@ mod websocket;
 
 use std::{net::SocketAddr, sync::Arc};
 
+use api::Hub;
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     http::Request,
@@ -32,7 +24,6 @@ use schema::{
     worker::{RegisterWorkerError, Worker, WorkerKind},
     Schema, ServiceLocator,
 };
-use server::ServerContext;
 use service::create_service_locator;
 use tabby_common::api::{
     accelerator::Accelerator,
@@ -43,15 +34,6 @@ use tarpc::server::{BaseChannel, Channel};
 use tokio::sync::Mutex;
 use tracing::{error, warn};
 use websocket::WebSocketTransport;
-
-pub mod api;
-
-mod db;
-mod repositories;
-mod schema;
-mod server;
-mod ui;
-mod websocket;
 
 pub async fn attach_webserver(
     api: Router,

@@ -116,7 +116,7 @@ struct HealthState {
 }
 ```
 
-For an up-to-date list of the fields we have collected, please refer to [health.rs](https://github.com/TabbyML/tabby/blob/main/crates/tabby/src/services/health.rs#L11).
+For an up-to-date list of the fields we have collected, please refer to [health.rs](https://github.com/TabbyML/tabby/blob/main/crates/tabby/src/serve/health.rs#L11).
 
 ### How to disable it
 To disable usage collection, set the `TABBY_DISABLE_USAGE_COLLECTION` environment variable by `export TABBY_DISABLE_USAGE_COLLECTION=1`.

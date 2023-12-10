@@ -6,38 +6,10 @@ use tabby_common::api::{
 };
 use tokio_tungstenite::connect_async;
 
-pub use crate::schema::worker::{RegisterWorkerError, Worker, WorkerKind};
-use crate::websocket::WebSocketTransport;
-
-#[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]
-pub enum WorkerKind {
-    Completion,
-    Chat,
-}
-
-#[derive(GraphQLObject, Serialize, Deserialize, Clone, Debug)]
-pub struct Worker {
-    pub kind: WorkerKind,
-    pub name: String,
-    pub addr: String,
-    pub device: String,
-    pub arch: String,
-    pub cpu_info: String,
-    pub cpu_count: i32,
-    pub accelerators: Vec<Accelerator>,
-}
-
-#[derive(Serialize, Deserialize, Error, Debug)]
-pub enum RegisterWorkerError {
-    #[error("Invalid token")]
-    InvalidToken(String),
-
-    #[error("Feature requires enterprise license")]
-    RequiresEnterpriseLicense,
-
-    #[error("Each hub client should only calls register_worker once")]
-    RegisterWorkerOnce,
-}
+use crate::{
+    schema::worker::{RegisterWorkerError, Worker, WorkerKind},
+    websocket::WebSocketTransport,
+};
 
 #[tarpc::service]
 pub trait Hub {
