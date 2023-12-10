@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use rusqlite::{params, Error, ErrorCode, OptionalExtension, Row};
+use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
 use super::DbConn;
@@ -72,7 +72,7 @@ impl DbConn {
                 } else {
                     Err(rusqlite::Error::SqliteFailure(err, msg).into())
                 }
-            },
+            }
             Err(err) => Err(err.into()),
             Ok(rowid) => Ok(rowid as i32),
         }
