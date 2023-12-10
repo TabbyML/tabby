@@ -18,10 +18,9 @@ async fn new_job_scheduler(jobs: Vec<Job>) -> Result<JobScheduler> {
 async fn new_refresh_token_job(db_conn: DbConn) -> Result<Job> {
     // job is run every 2 hours
     let job = Job::new_async("0 0 1/2 * * * *", move |_, _| {
-        let utc_ts = chrono::Utc::now().timestamp();
         let db_conn = db_conn.clone();
         Box::pin(async move {
-            let res = db_conn.delete_expired_token(utc_ts).await;
+            let res = db_conn.delete_expired_token().await;
             if let Err(e) = res {
                 error!("failed to delete expired token: {}", e);
             }
