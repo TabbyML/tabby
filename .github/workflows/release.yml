@@ -53,8 +53,8 @@ jobs:
       CARGO_INCREMENTAL: 0
 
     steps:
-      - name: Update Git
-        if: matrix.install_git == 'true'
+      - name: Install Git
+        if: ${{ matrix.install_git }}
         run: |
           apt-get update
           apt-get install -y git
