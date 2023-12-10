@@ -147,6 +147,19 @@ impl DbConn {
         Ok(users)
     }
 
+    pub async fn list_users(&self) -> Result<Vec<User>> {
+        let users = self
+            .conn
+            .call(move |c| {
+                let mut stmt = c.prepare(&User::select("true"))?;
+                let user_iter = stmt.query_map([], User::from_row)?;
+                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(users)
+    }
+
     pub async fn verify_auth_token(&self, token: &str) -> bool {
         let token = token.to_owned();
         let id: Result<i32, _> = self

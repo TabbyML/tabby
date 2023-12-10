@@ -43,6 +43,7 @@ type Query {
   isAdminInitialized: Boolean!
   invitations: [Invitation!]!
   me: User!
+  userQuery: [User!]!
 }
 
 type Invitation {

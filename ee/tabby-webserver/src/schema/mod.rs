@@ -118,6 +118,17 @@ impl Query {
             Err(CoreError::Unauthorized("Not logged in"))
         }
     }
+
+    async fn user_query(ctx: &Context) -> Result<Vec<User>> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return Ok(ctx.locator.auth().list_users().await?);
+            }
+        }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to query users",
+        ))
+    }
 }
 
 #[derive(Debug, GraphQLObject)]
