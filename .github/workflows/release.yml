@@ -22,7 +22,6 @@ env:
 
 jobs:
   release-binary:
-    if: github.event_name != 'pull_request'
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     strategy:
