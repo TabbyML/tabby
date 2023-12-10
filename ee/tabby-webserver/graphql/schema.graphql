@@ -43,7 +43,7 @@ type Query {
   isAdminInitialized: Boolean!
   invitations: [Invitation!]!
   me: User!
-  userQuery: [User!]!
+  users: [User!]!
 }
 
 type Invitation {
@@ -57,6 +57,7 @@ type User {
   email: String!
   isAdmin: Boolean!
   authToken: String!
+  createdAt: DateTimeUtc!
 }
 
 type Worker {

@@ -48,6 +48,7 @@ impl From<User> for schema::User {
             email: val.email,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
+            created_at: val.created_at,
         }
     }
 }
