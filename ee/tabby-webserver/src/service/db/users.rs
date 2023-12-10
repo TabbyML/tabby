@@ -167,7 +167,7 @@ impl DbConn {
         self.conn
             .call(move |c| {
                 let mut stmt = c.prepare(r#"UPDATE users SET auth_token = ? WHERE email = ?"#)?;
-                stmt.execute((Uuid::new_v4().to_string(), email))?;
+                stmt.execute((generate_auth_token(), email))?;
                 Ok(())
             })
             .await?;
