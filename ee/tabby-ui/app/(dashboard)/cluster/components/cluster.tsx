@@ -6,7 +6,8 @@ import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
-import { IconRefresh } from '@/components/ui/icons'
+import { IconRotate } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 
@@ -66,16 +67,17 @@ export default function Workers() {
       {!!registrationTokenRes?.registrationToken && (
         <div className="flex items-center gap-1">
           Registration token:
-          <code className="rounded-lg text-sm text-red-600">
-            {registrationTokenRes.registrationToken}
-          </code>
+          <Input
+            className="max-w-[320px] font-mono text-red-600"
+            value={registrationTokenRes.registrationToken}
+          />
           <Button
-            title="Reset"
+            title="Rotate"
             size="icon"
             variant="hover-destructive"
             onClick={() => resetRegistrationToken()}
           >
-            <IconRefresh />
+            <IconRotate />
           </Button>
           <CopyButton value={registrationTokenRes.registrationToken} />
         </div>
