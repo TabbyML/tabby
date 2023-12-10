@@ -14,7 +14,6 @@ import {
   TableRow
 } from '@/components/ui/table'
 
-
 const listUsers = graphql(/* GraphQL */ `
   query ListUsers {
     users {
