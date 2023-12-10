@@ -26,7 +26,7 @@ use schema::{
 };
 use service::create_service_locator;
 use tabby_common::api::{
-    accelerator::Accelerator,
+    accelerator::{Accelerator, DeviceType},
     code::{CodeSearch, SearchResponse},
     event::RawEventLogger,
 };
@@ -159,6 +159,15 @@ impl Hub for Arc<HubImpl> {
         let addr = format!("http://{}:{}", self.conn.ip(), port);
         *worker_addr = addr.clone();
 
+        let mut cuda_devices = vec![];
+
+        for accelerator in &accelerators {
+            if accelerator.device_type == DeviceType::Cuda {
+                cuda_devices.push(accelerator.display_name.clone())
+            }
+        }
+
+        #[allow(deprecated)]
         let worker = Worker {
             name,
             kind,
@@ -168,6 +177,7 @@ impl Hub for Arc<HubImpl> {
             cpu_info,
             cpu_count,
             accelerators,
+            cuda_devices,
         };
         self.ctx.worker().register_worker(worker).await
     }

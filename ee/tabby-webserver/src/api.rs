@@ -6,7 +6,7 @@ use tabby_common::api::{
 };
 use tokio_tungstenite::connect_async;
 
-use crate::{
+pub use crate::{
     schema::worker::{RegisterWorkerError, Worker, WorkerKind},
     websocket::WebSocketTransport,
 };

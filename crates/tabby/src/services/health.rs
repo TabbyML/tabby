@@ -22,7 +22,7 @@ pub struct HealthState {
     cpu_info: String,
     cpu_count: usize,
     accelerators: Vec<Accelerator>,
-    #[deprecated(note = "Use the more generic gpu_devices instead")]
+    #[deprecated(note = "Please use the more generic accelerators instead")]
     cuda_devices: Vec<String>,
     version: Version,
 }
@@ -103,7 +103,7 @@ pub fn read_rocm_devices() -> Result<Vec<Accelerator>> {
             Regex::new(r"(?m)^  Device Type: +([a-zA-Z0-9-]+) *$").unwrap();
     }
 
-    let cmd_res = Command::new("rocminfon").output()?;
+    let cmd_res = Command::new("rocminfo").output()?;
     let output = from_utf8(cmd_res.stdout.as_slice())?;
     let agent_outputs = output.split("Agent ").skip(1);
     let mut rocm_devices = vec![];

@@ -23,6 +23,8 @@ pub struct Worker {
     pub cpu_info: String,
     pub cpu_count: i32,
     pub accelerators: Vec<Accelerator>,
+    #[deprecated(note = "Please use the more generic accelerators instead")]
+    pub cuda_devices: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Error, Debug)]

@@ -82,6 +82,7 @@ mod tests {
     }
 
     fn make_worker(addr: &str) -> Worker {
+        #[allow(deprecated)]
         Worker {
             name: "Fake worker".to_owned(),
             kind: WorkerKind::Chat,
@@ -91,6 +92,7 @@ mod tests {
             cpu_info: "Fake CPU".to_owned(),
             cpu_count: 32,
             accelerators: vec![],
+            cuda_devices: vec![],
         }
     }
 }
