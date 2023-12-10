@@ -4,7 +4,7 @@ import { graphql } from '@/lib/gql/generates'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
-import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
+import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -36,12 +36,11 @@ export default function Workers() {
     getRegistrationTokenDocument
   )
 
-  const { onSubmit: resetRegistrationToken } = useGraphQLForm(
-    resetRegistrationTokenDocument,
-    {
-      onSuccess: () => mutate()
+  const resetRegistrationToken = useMutation(resetRegistrationTokenDocument, {
+    onCompleted() {
+      mutate()
     }
-  )
+  })
 
   if (!healthInfo) return
 

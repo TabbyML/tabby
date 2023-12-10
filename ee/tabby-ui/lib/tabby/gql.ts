@@ -1,11 +1,12 @@
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { GraphQLClient, Variables } from 'graphql-request'
 import { GraphQLResponse } from 'graphql-request/build/esm/types'
+import { FieldValues, UseFormReturn } from 'react-hook-form'
 import useSWR, { SWRConfiguration, SWRResponse } from 'swr'
 
 import { useSession } from './auth'
 
-export const gqlClient = new GraphQLClient(
+const gqlClient = new GraphQLClient(
   `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`
 )
 
@@ -18,52 +19,59 @@ export interface ValidationErrors {
   errors: Array<ValidationError>
 }
 
-export function useGraphQLForm<
-  TResult,
-  TVariables extends Variables | undefined
->(
+export function useMutation<TResult, TVariables extends Variables | undefined>(
   document: TypedDocumentNode<TResult, TVariables>,
   options?: {
-    onSuccess?: (values: TResult) => void
-    onError?: (path: string, message: string) => void
+    onCompleted?: (data: TResult) => void
+    onError?: (err: any) => any
+    form?: any
   }
 ) {
-  const { data } = useSession()
-  const accessToken = data?.accessToken
-  const onSubmit = async (variables?: TVariables) => {
-    let res
+  const { data: session } = useSession()
+  const onFormError = options?.form
+    ? makeFormErrorHandler(options.form)
+    : undefined
+
+  const fn = async (variables?: TVariables) => {
+    let res: TResult | undefined
     try {
       res = await gqlClient.request({
         document,
-        variables,
-        requestHeaders: accessToken
+        variables: variables,
+        requestHeaders: session
           ? {
-              authorization: `Bearer ${accessToken}`
+              authorization: `Bearer ${session.accessToken}`
             }
           : undefined
       })
     } catch (err) {
-      console.error('err', err)
-      const { errors = [] } = (err as any).response as GraphQLResponse
-      for (const error of errors) {
-        if (error.extensions && error.extensions['validation-errors']) {
-          const validationErrors = error.extensions[
-            'validation-errors'
-          ] as ValidationErrors
-          for (const error of validationErrors.errors) {
-            options?.onError && options?.onError(error.path, error.message)
-          }
-        } else {
-          options?.onError && options?.onError('root', error.message)
-        }
-      }
-
-      return res
+      onFormError && onFormError(err)
+      options?.onError && options.onError(err)
+      return
     }
 
-    options?.onSuccess && options.onSuccess(res)
+    options?.onCompleted && options.onCompleted(res)
   }
-  return { onSubmit }
+
+  return fn
+}
+
+function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
+  return (err: any) => {
+    const { errors = [] } = err.response as GraphQLResponse
+    for (const error of errors) {
+      if (error.extensions && error.extensions['validation-errors']) {
+        const validationErrors = error.extensions[
+          'validation-errors'
+        ] as ValidationErrors
+        for (const error of validationErrors.errors) {
+          form.setError(error.path as any, error)
+        }
+      } else {
+        form.setError('root', error)
+      }
+    }
+  }
 }
 
 export function useGraphQLQuery<

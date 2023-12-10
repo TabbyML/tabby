@@ -8,7 +8,7 @@ import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
 import { useSignIn } from '@/lib/tabby/auth'
-import { useGraphQLForm } from '@/lib/tabby/gql'
+import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,13 +52,13 @@ export default function UserSignInForm({
   const router = useRouter()
   const signIn = useSignIn()
   const { isSubmitting } = form.formState
-  const { onSubmit } = useGraphQLForm(tokenAuth, {
-    onSuccess: async values => {
+  const onSubmit = useMutation(tokenAuth, {
+    async onCompleted(values) {
       if (await signIn(values.tokenAuth)) {
         router.replace('/')
       }
     },
-    onError: (path, message) => form.setError(path as any, { message })
+    form
   })
 
   return (
