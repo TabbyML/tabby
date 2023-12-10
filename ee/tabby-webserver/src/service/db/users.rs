@@ -216,7 +216,9 @@ mod tests {
 
         assert!(conn.verify_auth_token(&user.auth_token).await);
 
-        conn.reset_user_auth_token_by_email(&user.email).await.unwrap();
+        conn.reset_user_auth_token_by_email(&user.email)
+            .await
+            .unwrap();
         let new_user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.email, new_user.email);
         assert_ne!(user.auth_token, new_user.auth_token);
