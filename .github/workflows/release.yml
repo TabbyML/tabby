@@ -6,6 +6,10 @@ on:
     tags:
       - 'v*'
       - 'nightly'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '.github/workflows/release.yml'
 
 concurrency:
   group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
@@ -19,7 +23,6 @@ env:
 jobs:
   release-binary:
     if: github.event_name != 'pull_request'
-    needs: tests
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     strategy:
