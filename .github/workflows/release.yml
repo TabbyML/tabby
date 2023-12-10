@@ -44,7 +44,7 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-rocm5.7
             container: rocm/dev-ubuntu-22.04:5.7-complete
-            install_git: true
+            apt_dependencies: git pkg-config libssl-dev cmake protobuf-compiler
             build_args: --features rocm
 
     env:
@@ -53,11 +53,11 @@ jobs:
       CARGO_INCREMENTAL: 0
 
     steps:
-      - name: Install Git
-        if: ${{ matrix.install_git }}
+      - name: Install dependencies
+        if: ${{ matrix.apt_dependencies }}
         run: |
           apt-get update
-          apt-get install -y git
+          apt-get install -y ${{ matrix.apt_dependencies }}
 
       - name: Checkout
         uses: actions/checkout@v3
