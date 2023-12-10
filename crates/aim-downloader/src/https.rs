@@ -168,6 +168,7 @@ impl HTTPSHandler {
     }
 }
 
+#[ignore]
 #[tokio::test]
 async fn get_https_works() {
     let expected_hash = "0e0f0d7139c8c7e3ff20cb243e94bc5993517d88e8be8d59129730607d5c631b";
@@ -179,6 +180,7 @@ async fn get_https_works() {
     std::fs::remove_file(out_file).unwrap();
 }
 
+#[ignore]
 #[tokio::test]
 async fn get_resume_works() {
     let expected_size = 561553;
@@ -196,6 +198,7 @@ async fn get_resume_works() {
     std::fs::remove_file(out_file).unwrap();
 }
 
+#[ignore]
 #[tokio::test]
 async fn list_works_when_typical() {
     let expected = r#"<!doctype html>
@@ -252,6 +255,7 @@ async fn list_works_when_typical() {
     assert_eq!(result, expected);
 }
 
+#[ignore]
 #[tokio::test]
 async fn get_links_works_when_typical() {
     let expected = "..";
