@@ -48,6 +48,7 @@ impl From<User> for schema::User {
             email: val.email,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
+            created_at: val.created_at,
         }
     }
 }
@@ -139,6 +140,19 @@ impl DbConn {
             .conn
             .call(move |c| {
                 let mut stmt = c.prepare(&User::select("is_admin"))?;
+                let user_iter = stmt.query_map([], User::from_row)?;
+                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(users)
+    }
+
+    pub async fn list_users(&self) -> Result<Vec<User>> {
+        let users = self
+            .conn
+            .call(move |c| {
+                let mut stmt = c.prepare(&User::select("true"))?;
                 let user_iter = stmt.query_map([], User::from_row)?;
                 Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })

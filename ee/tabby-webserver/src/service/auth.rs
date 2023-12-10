@@ -296,6 +296,11 @@ impl AuthenticationService for DbConn {
     async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
         self.reset_user_auth_token_by_email(email).await
     }
+
+    async fn list_users(&self) -> Result<Vec<User>> {
+        let users = self.list_users().await?;
+        Ok(users.into_iter().map(|x| x.into()).collect())
+    }
 }
 
 fn password_hash(raw: &str) -> password_hash::Result<String> {
