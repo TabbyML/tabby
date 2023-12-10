@@ -29,7 +29,7 @@ export function CopyButton({ className, value, ...props }: CopyButtonProps) {
       onClick={onCopy}
       {...props}
     >
-      {isCopied ? <IconCheck /> : <IconCopy />}
+      {isCopied ? <IconCheck className='text-green-600'/> : <IconCopy />}
       <span className="sr-only">Copy</span>
     </Button>
   )
