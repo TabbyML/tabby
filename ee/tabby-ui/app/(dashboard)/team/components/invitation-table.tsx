@@ -69,7 +69,7 @@ export default function InvitationTable() {
               <TableRow key={i}>
                 <TableCell>{x.email}</TableCell>
                 <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
-                <TableCell className='text-center'>
+                <TableCell className="text-center">
                   <CopyButton value={link} />
                   <Button
                     size="icon"

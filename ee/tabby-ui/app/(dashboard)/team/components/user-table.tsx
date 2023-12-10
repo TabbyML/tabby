@@ -36,7 +36,7 @@ export default function UsersTable() {
           <TableRow>
             <TableHead className="w-[25%]">Email</TableHead>
             <TableHead className="w-[45%]">Joined</TableHead>
-            <TableHead className='text-center'>Level</TableHead>
+            <TableHead className="text-center">Level</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -44,7 +44,7 @@ export default function UsersTable() {
             <TableRow key={i}>
               <TableCell>{x.email}</TableCell>
               <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
-              <TableCell className='text-center'>
+              <TableCell className="text-center">
                 {x.isAdmin ? (
                   <Badge>ADMIN</Badge>
                 ) : (
