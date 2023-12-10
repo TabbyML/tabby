@@ -57,8 +57,8 @@ export default function InvitationTable() {
         {invitations.length > 0 && (
           <TableHeader>
             <TableRow>
-              <TableHead className='w-[25%]'>Invitee</TableHead>
-              <TableHead className='w-[45%]'>Created</TableHead>
+              <TableHead className="w-[25%]">Invitee</TableHead>
+              <TableHead className="w-[45%]">Created</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -68,9 +68,7 @@ export default function InvitationTable() {
             const link = `${origin}/auth/signup?invitationCode=${x.code}`
             return (
               <TableRow key={i}>
-                <TableCell>
-                  {x.email}
-                </TableCell>
+                <TableCell>{x.email}</TableCell>
                 <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
                 <TableCell>
                   <CopyButton value={link} />
