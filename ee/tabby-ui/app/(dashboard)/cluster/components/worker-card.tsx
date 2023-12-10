@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 type RunnerType = WorkerKind | 'INDEX'
 
@@ -111,7 +111,14 @@ export default function RunnerCard({
                 <path d="M2 15h20" />
                 <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.1a2 2 0 0 0 0 3.837V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5.1a2 2 0 0 0 0-3.837Z" />
               </svg>
-              <p title={x.chipName ? `${x.displayName} (${x.chipName})` : x.displayName} className={textClass}>
+              <p
+                title={
+                  x.chipName
+                    ? `${x.displayName} (${x.chipName})`
+                    : x.displayName
+                }
+                className={textClass}
+              >
                 {x.displayName}
               </p>
             </Info>

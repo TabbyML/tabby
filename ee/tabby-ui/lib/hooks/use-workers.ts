@@ -4,9 +4,9 @@ import { findIndex, groupBy, slice } from 'lodash-es'
 import { graphql } from '@/lib/gql/generates'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
+import { deviceTypeMap } from '@/lib/utils'
 
 import { useHealth, type HealthInfo } from './use-health'
-import { deviceTypeMap } from "@/lib/utils";
 
 const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
   [WorkerKind.Chat]: 'chat_model',
@@ -29,7 +29,7 @@ function transformHealthInfoToWorker(
       uuid: x.uuid,
       chipName: x.chip_name,
       displayName: x.display_name,
-      deviceType: deviceTypeMap[x.device_type],
+      deviceType: deviceTypeMap[x.device_type]
     }))
   }
 }
@@ -45,10 +45,10 @@ export const getAllWorkersDocument = graphql(/* GraphQL */ `
       cpuInfo
       cpuCount
       accelerators {
-          uuid
-          chipName
-          displayName
-          deviceType
+        uuid
+        chipName
+        displayName
+        deviceType
       }
     }
   }

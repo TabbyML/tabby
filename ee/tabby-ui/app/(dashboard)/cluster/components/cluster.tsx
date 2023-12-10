@@ -5,6 +5,7 @@ import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
+import { deviceTypeMap } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -12,7 +13,6 @@ import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 
 import WorkerCard from './worker-card'
-import { deviceTypeMap } from "@/lib/utils";
 
 const getRegistrationTokenDocument = graphql(/* GraphQL */ `
   query GetRegistrationToken {
@@ -31,13 +31,13 @@ function toBadgeString(str: string) {
 }
 
 export default function Workers() {
-  const {data: healthInfo} = useHealth()
+  const { data: healthInfo } = useHealth()
   const workers = useWorkers()
-  const {data: registrationTokenRes, mutate} = useAuthenticatedGraphQLQuery(
+  const { data: registrationTokenRes, mutate } = useAuthenticatedGraphQLQuery(
     getRegistrationTokenDocument
   )
 
-  const {onSubmit: resetRegistrationToken} = useGraphQLForm(
+  const { onSubmit: resetRegistrationToken } = useGraphQLForm(
     resetRegistrationTokenDocument,
     {
       onSuccess: () => mutate()
@@ -64,7 +64,7 @@ export default function Workers() {
           />
         </a>
       </span>
-      <Separator/>
+      <Separator />
       {!!registrationTokenRes?.registrationToken && (
         <div className="flex items-center gap-1">
           Registration token:
@@ -78,9 +78,9 @@ export default function Workers() {
             variant="hover-destructive"
             onClick={() => resetRegistrationToken()}
           >
-            <IconRotate/>
+            <IconRotate />
           </Button>
-          <CopyButton value={registrationTokenRes.registrationToken}/>
+          <CopyButton value={registrationTokenRes.registrationToken} />
         </div>
       )}
 
@@ -109,7 +109,7 @@ export default function Workers() {
             uuid: a.uuid,
             chipName: a.chip_name,
             deviceType: deviceTypeMap[a.device_type],
-            displayName: a.display_name,
+            displayName: a.display_name
           }))}
           cpuCount={healthInfo.cpu_count}
           cpuInfo={healthInfo.cpu_info}

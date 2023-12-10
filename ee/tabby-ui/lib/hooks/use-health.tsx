@@ -7,10 +7,10 @@ import fetcher from '@/lib/tabby/fetcher'
 import { useAuthenticatedApi } from '../tabby/auth'
 
 export interface Accelerator {
-  uuid?: string;
-  chip_name?: string;
-  display_name: string;
-  device_type: 'Cuda' | 'Rocm';
+  uuid?: string
+  chip_name?: string
+  display_name: string
+  device_type: 'Cuda' | 'Rocm'
 }
 
 export interface HealthInfo {
