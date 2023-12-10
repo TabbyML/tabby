@@ -4,7 +4,7 @@ import { jwtDecode, JwtPayload } from 'jwt-decode'
 
 import { graphql } from '@/lib/gql/generates'
 import useInterval from '@/lib/hooks/use-interval'
-import { gqlClient, useGraphQLQuery } from '@/lib/tabby/gql'
+import { useGraphQLQuery, useMutation } from '@/lib/tabby/gql'
 
 interface AuthData {
   accessToken: string
@@ -115,33 +115,34 @@ const refreshTokenMutation = graphql(/* GraphQL */ `
   }
 `)
 
-async function doRefresh(token: string, dispatch: React.Dispatch<AuthActions>) {
-  let action: AuthActions
-  try {
-    action = {
-      type: AuthActionType.Refresh,
-      data: (
-        await gqlClient.request(refreshTokenMutation, { refreshToken: token })
-      ).refreshToken
-    }
-  } catch (err) {
-    console.error('Failed to refresh token', err)
-    action = {
-      type: AuthActionType.SignOut
-    }
-  }
-
-  dispatch(action)
-}
-
 const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   children
 }) => {
-  const storage = new TokenStorage()
-
   const [authState, dispatch] = React.useReducer(authReducer, {
     status: 'loading',
     data: null
+  })
+
+  return (
+    <AuthContext.Provider value={{ authState, dispatch }}>
+      <RefreshAuth />
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+function RefreshAuth() {
+  const { authState, dispatch } = useAuthStore()
+  const storage = new TokenStorage()
+  const refreshToken = useMutation(refreshTokenMutation, {
+    onCompleted({ refreshToken: data }) {
+      dispatch({ type: AuthActionType.Refresh, data })
+    },
+    onError() {
+      dispatch({
+        type: AuthActionType.SignOut
+      })
+    }
   })
 
   const initialized = React.useRef(false)
@@ -151,38 +152,38 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
     initialized.current = true
     const data = storage.initialState()
     if (data?.refreshToken) {
-      doRefresh(data.refreshToken, dispatch)
+      refreshToken(data)
     } else {
       dispatch({ type: AuthActionType.Init, data: null })
     }
   }, [])
 
   React.useEffect(() => {
-    authState.data && storage.persist(authState.data)
+    authState?.data && storage.persist(authState.data)
   }, [authState])
 
   useInterval(async () => {
-    if (authState.status !== 'authenticated') {
+    if (authState?.status !== 'authenticated') {
       return
     }
 
-    await doRefresh(authState.data.refreshToken, dispatch)
+    await refreshToken(authState.data)
   }, 5)
 
-  return (
-    <AuthContext.Provider value={{ authState, dispatch }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <></>
+}
+
+class AuthProviderIsMissing extends Error {
+  constructor() {
+    super('AuthProvider is missing. Please add the AuthProvider at root level')
+  }
 }
 
 function useAuthStore(): AuthStore {
   const context = React.useContext(AuthContext)
 
   if (!context) {
-    throw new Error(
-      'AuthProvider is missing. Please add the AuthProvider at root level'
-    )
+    throw new AuthProviderIsMissing()
   }
 
   return context

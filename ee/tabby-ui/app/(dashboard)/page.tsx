@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
-import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
+import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
   CardContent,
@@ -51,12 +51,9 @@ function MainPanel() {
     setOrigin(new URL(window.location.href).origin)
   }, [])
 
-  const { onSubmit: resetUserAuthToken } = useGraphQLForm(
-    resetUserAuthTokenDocument,
-    {
-      onSuccess: () => mutate()
-    }
-  )
+  const resetUserAuthToken = useMutation(resetUserAuthTokenDocument, {
+    onCompleted: () => mutate()
+  })
 
   if (!healthInfo || !data) return
 
