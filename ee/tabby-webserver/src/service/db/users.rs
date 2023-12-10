@@ -162,16 +162,17 @@ impl DbConn {
         id.is_ok()
     }
 
-    pub async fn reset_auth_token(&self, id: i32) -> Result<i32> {
+    pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
+        let email = email.to_owned();
         self.conn
             .call(move |c| {
-                let mut stmt = c.prepare(r#"UPDATE users SET auth_token = ? WHERE id = ?"#)?;
-                stmt.execute((Uuid::new_v4().to_string(), id))?;
+                let mut stmt = c.prepare(r#"UPDATE users SET auth_token = ? WHERE email = ?"#)?;
+                stmt.execute((Uuid::new_v4().to_string(), email))?;
                 Ok(())
             })
             .await?;
 
-        Ok(id)
+        Ok(())
     }
 }
 
@@ -215,7 +216,7 @@ mod tests {
 
         assert!(conn.verify_auth_token(&user.auth_token).await);
 
-        conn.reset_auth_token(id).await.unwrap();
+        conn.reset_user_auth_token_by_email(&user.email).await.unwrap();
         let new_user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.email, new_user.email);
         assert_ne!(user.auth_token, new_user.auth_token);

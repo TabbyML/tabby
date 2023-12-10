@@ -144,6 +144,18 @@ impl Mutation {
         ))
     }
 
+    async fn reset_user_auth_token(ctx: &Context) -> Result<bool> {
+        if let Some(claims) = &ctx.claims {
+            ctx.locator
+                .auth()
+                .reset_user_auth_token(&claims.sub)
+                .await?;
+            Ok(true)
+        } else {
+            Err(CoreError::Unauthorized("You're not logged in"))
+        }
+    }
+
     async fn register(
         ctx: &Context,
         email: String,
