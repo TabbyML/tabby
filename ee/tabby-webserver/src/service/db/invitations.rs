@@ -75,7 +75,7 @@ impl DbConn {
             },
             Err(err) => Err(err.into()),
             Ok(rowid) => Ok(rowid as i32),
-        };
+        }
     }
 
     pub async fn delete_invitation(&self, id: i32) -> Result<i32> {
