@@ -75,8 +75,9 @@ fn build_llama_cpp() {
     // By default, this value is automatically inferred from Rust’s compilation profile.
     // For Windows platform, we always build llama.cpp in release mode.
     // See https://github.com/TabbyML/tabby/pull/948 for more details.
-    #[cfg(target_os = "windows")]
-    config.profile("Release");
+    if cfg!(target_os = "windows") {
+        config.profile("Release");
+    }
 
     let dst = config.build();
     if cfg!(target_os = "windows") {
