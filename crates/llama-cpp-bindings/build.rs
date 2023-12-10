@@ -33,7 +33,7 @@ fn main() {
         println!("cargo:rustc-link-lib=cublasLt");
     }
     if cfg!(feature = "rocm") {
-        let amd_gpu_targets: Vec<&str> = vec![
+        let amd_gpu_default_targets: Vec<&str> = vec![
             "gfx803",
             "gfx900",
             "gfx906:xnack-",
@@ -51,6 +51,8 @@ fn main() {
             "gfx1102",
             "gfx1103",
         ];
+        let amd_gpu_targets =
+            env::var("AMDGPU_TARGETS").unwrap_or(amd_gpu_default_targets.join(";"));
 
         let rocm_root = env::var("ROCM_ROOT").unwrap_or("/opt/rocm".to_string());
         config.define("LLAMA_HIPBLAS", "ON");
@@ -59,7 +61,7 @@ fn main() {
             "CMAKE_CXX_COMPILER",
             format!("{}/llvm/bin/clang++", rocm_root),
         );
-        config.define("AMDGPU_TARGETS", amd_gpu_targets.join(";"));
+        config.define("AMDGPU_TARGETS", amd_gpu_targets);
         println!("cargo:rustc-link-arg=-Wl,--copy-dt-needed-entries");
         println!("cargo:rustc-link-search=native={}/hip/lib", rocm_root);
         println!("cargo:rustc-link-search=native={}/rocblas/lib", rocm_root);
@@ -74,8 +76,8 @@ fn main() {
 
     cxx_build::bridge("src/lib.rs")
         .file("src/engine.cc")
-        .flag_if_supported("-Iinclude")
-        .flag_if_supported("-Illama.cpp")
+        .include("include")
+        .include("llama.cpp")
         .flag_if_supported("-std=c++14")
         .compile("cxxbridge");
 }
