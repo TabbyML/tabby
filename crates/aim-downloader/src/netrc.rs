@@ -43,21 +43,22 @@ fn test_netrc_with_file_works_when_typical() {
     file.write_all(b"machine mydomain.com login myuser password mypass port 1234")
         .unwrap();
 
-    let netrc = netrc(true);
+    assert!(netrc(true).is_some());
+    assert!(netrc(false).is_some());
 
-    assert!(netrc.is_some());
     std::fs::remove_file(".netrc.test_unit").unwrap();
 }
 
+#[ignore]
 #[test]
 fn test_netrc_with_file_works_when_typical_and_not_silent() {
     use std::io::Write;
-    let mut file = std::fs::File::create(".netrc.test_unit1").unwrap();
+    let mut file = std::fs::File::create(".netrc.test_unit").unwrap();
     file.write_all(b"machine mydomain.com login myuser password mypass port 1234")
         .unwrap();
 
     let netrc = netrc(false);
 
     assert!(netrc.is_some());
-    std::fs::remove_file(".netrc.test_unit1").unwrap();
+    std::fs::remove_file(".netrc.test_unit").unwrap();
 }
