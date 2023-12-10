@@ -26,19 +26,27 @@ jobs:
     container: ${{ matrix.container }}
     strategy:
       matrix:
-        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117, x86_64-pc-windows-msvc]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
+            raw: tabby
             binary: aarch64-apple-darwin
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            raw: tabby
             binary: x86_64-manylinux2014
             container: quay.io/pypa/manylinux2014_x86_64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            raw: tabby
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
+            build_args: --features cuda
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            raw: tabby.exe
+            binary: x86_64-pc-windows-msvc.exe
             build_args: --features cuda
 
     env:
@@ -77,13 +85,27 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - run: bash ./ci/prepare_build_environment.sh
+      - name: Prepare build environment for macOS & Linux
+        run: bash ./ci/prepare_build_environment.sh
+        if: runner.os != 'Windows'
+
+      - name: Prepare build environment for Windows
+        run: ./ci/prepare_build_environment.ps1
+        if: runner.os == 'Windows'
+
+      - name: Install CUDA toolkit for Windows
+        uses: Jimver/cuda-toolkit@v0.2.11
+        with:
+          cuda: '11.7.1'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
+        if: runner.os == 'Windows'
 
       - name: Bulid release binary
         run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
 
       - name: Rename release binary
-        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.binary }}
+        run: mv target/${{ matrix.target }}/release/${{ matrix.raw }} tabby_${{ matrix.binary }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

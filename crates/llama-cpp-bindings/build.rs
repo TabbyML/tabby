@@ -12,6 +12,8 @@ fn main() {
 
     println!("cargo:rerun-if-changed=include/engine.h");
     println!("cargo:rerun-if-changed=src/engine.cc");
+    println!("cargo:rustc-link-lib=llama");
+    println!("cargo:rustc-link-lib=ggml_static");
 
     build_llama_cpp();
     build_cxx_binding();
@@ -29,9 +31,16 @@ fn build_llama_cpp() {
     if cfg!(feature = "cuda") {
         config.define("LLAMA_CUBLAS", "ON");
         config.define("CMAKE_POSITION_INDEPENDENT_CODE", "ON");
-        println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+        if cfg!(target_os = "windows") {
+            let Ok(cuda_path) = env::var("CUDA_PATH") else {
+                panic!("CUDA_PATH is not set");
+            };
+            println!(r"cargo:rustc-link-search=native={}\lib\x64", cuda_path);
+        } else {
+            println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+            println!("cargo:rustc-link-lib=culibos");
+        }
         println!("cargo:rustc-link-lib=cudart");
-        println!("cargo:rustc-link-lib=culibos");
         println!("cargo:rustc-link-lib=cublas");
         println!("cargo:rustc-link-lib=cublasLt");
     }
@@ -82,7 +91,7 @@ fn build_llama_cpp() {
     let dst = config.build();
     if cfg!(target_os = "windows") {
         println!(
-            "cargo:rustc-link-search=native={}\\build\\{}",
+            r"cargo:rustc-link-search=native={}\build\{}",
             dst.display(),
             config.get_profile()
         );
@@ -92,9 +101,6 @@ fn build_llama_cpp() {
 }
 
 fn build_cxx_binding() {
-    println!("cargo:rustc-link-lib=llama");
-    println!("cargo:rustc-link-lib=ggml_static");
-
     cxx_build::bridge("src/lib.rs")
         .file("src/engine.cc")
         .flag_if_supported("-Iinclude")
