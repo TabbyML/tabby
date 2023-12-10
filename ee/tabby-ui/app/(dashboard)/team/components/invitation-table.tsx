@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import moment from 'moment'
 
 import { graphql } from '@/lib/gql/generates'
-import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
+import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
 import {
@@ -44,12 +44,11 @@ export default function InvitationTable() {
     setOrigin(new URL(window.location.href).origin)
   }, [])
 
-  const { onSubmit: deleteInvitation } = useGraphQLForm(
-    deleteInvitationMutation,
-    {
-      onSuccess: () => mutate()
+  const deleteInvitation = useMutation(deleteInvitationMutation, {
+    onCompleted() {
+      mutate()
     }
-  )
+  })
 
   return (
     invitations && (
@@ -75,7 +74,7 @@ export default function InvitationTable() {
                   <Button
                     size="icon"
                     variant="hover-destructive"
-                    onClick={() => deleteInvitation({ id: x.id })}
+                    onClick={() => deleteInvitation(x)}
                   >
                     <IconTrash />
                   </Button>
