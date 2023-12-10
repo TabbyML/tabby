@@ -64,6 +64,9 @@ jobs:
           target: ${{ matrix.target }}
           components: clippy
 
+      - name: Set default rust version
+        run: rustup default ${{ env.RUST_TOOLCHAIN }}
+
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
         with:
