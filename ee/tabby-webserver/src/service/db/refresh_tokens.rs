@@ -75,13 +75,13 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn delete_expired_token(&self, utc_ts: i64) -> Result<i32> {
+    pub async fn delete_expired_token(&self) -> Result<i32> {
         let res = self
             .conn
             .call(move |c| {
                 c.execute(
                     r#"DELETE FROM refresh_tokens WHERE expires_at < ?"#,
-                    params![utc_ts],
+                    params![Utc::now()],
                 )
             })
             .await?;
