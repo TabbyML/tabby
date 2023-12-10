@@ -54,12 +54,10 @@ jobs:
 
     steps:
       - name: Update Git
-        uses: actions/shell@v3
         if: matrix.install_git == 'true'
-        with:
-          run: |
-            apt-get update
-            apt-get install -y git
+        run: |
+          apt-get update
+          apt-get install -y git
 
       - name: Checkout
         uses: actions/checkout@v3
