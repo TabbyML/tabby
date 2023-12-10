@@ -143,7 +143,7 @@ impl DbConn {
     pub async fn reset_registration_token(&self) -> Result<String> {
         let token = uuid::Uuid::new_v4().to_string();
         let result = token.clone();
-        let updated_at = chrono::Utc::now().timestamp() as u32;
+        let updated_at = chrono::Utc::now();
 
         let res = self
             .conn

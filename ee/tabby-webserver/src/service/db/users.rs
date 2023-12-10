@@ -178,10 +178,13 @@ impl DbConn {
 
     pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
         let email = email.to_owned();
+        let updated_at = chrono::Utc::now();
         self.conn
             .call(move |c| {
-                let mut stmt = c.prepare(r#"UPDATE users SET auth_token = ? WHERE email = ?"#)?;
-                stmt.execute((generate_auth_token(), email))?;
+                let mut stmt = c.prepare(
+                    r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE email = ?"#,
+                )?;
+                stmt.execute((generate_auth_token(), updated_at, email))?;
                 Ok(())
             })
             .await?;
