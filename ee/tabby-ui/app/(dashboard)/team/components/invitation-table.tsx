@@ -54,13 +54,15 @@ export default function InvitationTable() {
   return (
     invitations && (
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Invitee</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
+        {invitations.length > 0 && (
+          <TableHeader>
+            <TableRow>
+              <TableHead>Invitee</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+        )}
         <TableBody>
           {invitations.map((x, i) => {
             const link = `${origin}/auth/signup?invitationCode=${x.code}`

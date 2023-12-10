@@ -7,7 +7,7 @@ import UsersTable from './user-table'
 
 export default function Team() {
   return (
-    <div className="xl:max-w-[750px]">
+    <div>
       <div>
         <CardHeader>
           <CardTitle>Invites</CardTitle>
@@ -16,6 +16,7 @@ export default function Team() {
           <InvitationTable />
         </CardContent>
       </div>
+      <div className="h-16" />
       <div>
         <CardHeader>
           <CardTitle>Users</CardTitle>
