@@ -7,6 +7,7 @@ import { useHealth } from '@/lib/hooks/use-health'
 import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
+  Card,
   CardContent,
   CardFooter,
   CardHeader,
@@ -59,7 +60,7 @@ function MainPanel() {
   if (!healthInfo || !data) return
 
   return (
-    <div>
+    <div className='xl:max-w-[750px]'>
       <CardHeader>
         <CardTitle>Getting Started</CardTitle>
       </CardHeader>
