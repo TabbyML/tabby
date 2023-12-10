@@ -438,7 +438,7 @@ mod tests {
             Err(RegisterError::InvalidInvitationCode)
         );
 
-        // Used invitation should be deleted (thus delete should fail)
+        // Used invitation should have been deleted,  following delete attempt should fail.
         assert!(conn.delete_invitation(invitation.id).await.is_err());
     }
 
