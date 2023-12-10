@@ -7,11 +7,11 @@ import { useWorkers } from '@/lib/hooks/use-workers'
 import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconRotate } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 
 import WorkerCard from './worker-card'
-import { Input } from '@/components/ui/input'
 
 const getRegistrationTokenDocument = graphql(/* GraphQL */ `
   query GetRegistrationToken {
@@ -67,7 +67,10 @@ export default function Workers() {
       {!!registrationTokenRes?.registrationToken && (
         <div className="flex items-center gap-1">
           Registration token:
-          <Input className="text-red-600 max-w-[320px] font-mono" value={registrationTokenRes.registrationToken} />
+          <Input
+            className="max-w-[320px] font-mono text-red-600"
+            value={registrationTokenRes.registrationToken}
+          />
           <Button
             title="Rotate"
             size="icon"
