@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUST_TOOLCHAIN: 1.73.0
+  RUST_TOOLCHAIN: 1.80.0
 
 jobs:
   release-binary:
@@ -44,7 +44,7 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-rocm5.7
             container: rocm/dev-ubuntu-22.04:5.7-complete
-            apt_dependencies: git pkg-config libssl-dev cmake protobuf-compiler
+            apt_dependencies: git pkg-config libssl-dev cmake
             build_args: --features rocm
 
     env:
@@ -65,13 +65,10 @@ jobs:
           submodules: recursive
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@${{ env.RUST_TOOLCHAIN }}
         with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
           components: clippy
-
-      - run: rustup default ${{ env.RUST_TOOLCHAIN }}
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
