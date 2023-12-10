@@ -63,9 +63,19 @@ impl DbConn {
                 let rowid = stmt.insert((email, code))?;
                 Ok(rowid)
             })
-            .await?;
+            .await;
 
-        Ok(res as i32)
+        match res {
+            Err(tokio_rusqlite::Error::Rusqlite(rusqlite::Error::SqliteFailure(err, msg))) => {
+                if err.code == rusqlite::ErrorCode::ConstraintViolation {
+                    Err(anyhow!("Failed to create invitation, email already exists"))
+                } else {
+                    Err(rusqlite::Error::SqliteFailure(err, msg).into())
+                }
+            }
+            Err(err) => Err(err.into()),
+            Ok(rowid) => Ok(rowid as i32),
+        }
     }
 
     pub async fn delete_invitation(&self, id: i32) -> Result<i32> {
