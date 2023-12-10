@@ -1,5 +1,4 @@
 import { Univariate } from "stats-logscale";
-import { rootLogger } from "./logger";
 
 export type CompletionProviderStatsEntry = {
   triggerMode: "auto" | "manual";
@@ -58,7 +57,6 @@ type WindowedStats = {
 };
 
 export class CompletionProviderStats {
-  private readonly logger = rootLogger.child({ component: "CompletionProviderStats" });
   private config = {
     windowSize: 10,
     checks: {
@@ -189,7 +187,7 @@ export class CompletionProviderStats {
   }
 
   check(windowed: WindowedStats): "healthy" | "highTimeoutRate" | "slowResponseTime" | null {
-    if (!!this.config.checks.disable) {
+    if (this.config.checks.disable) {
       return null;
     }
     const config = this.config.checks;

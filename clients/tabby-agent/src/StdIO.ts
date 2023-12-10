@@ -1,6 +1,7 @@
-import { AgentFunction, AgentEvent, Agent, agentEventNames } from "./Agent";
+import readline from "readline";
+import { Agent, AgentEvent, agentEventNames, AgentFunction } from "./Agent";
 import { rootLogger } from "./logger";
-import { splitLines, isCanceledError } from "./utils";
+import { isCanceledError } from "./utils";
 
 type AgentFunctionRequest<T extends keyof AgentFunction> = [
   id: number,
@@ -18,11 +19,11 @@ type CancellationRequest = [
   },
 ];
 
-type StdIORequest = AgentFunctionRequest<any> | CancellationRequest;
+type StdIORequest = AgentFunctionRequest<keyof AgentFunction> | CancellationRequest;
 
 type AgentFunctionResponse<T extends keyof AgentFunction> = [
   id: number, // Matched request id
-  data: ReturnType<AgentFunction[T]>,
+  data: ReturnType<AgentFunction[T]> | null,
 ];
 
 type AgentEventNotification = [
@@ -32,10 +33,10 @@ type AgentEventNotification = [
 
 type CancellationResponse = [
   id: number, // Matched request id
-  data: boolean,
+  data: boolean | null,
 ];
 
-type StdIOResponse = AgentFunctionResponse<any> | AgentEventNotification | CancellationResponse;
+type StdIOResponse = AgentFunctionResponse<keyof AgentFunction> | AgentEventNotification | CancellationResponse;
 
 /**
  * Every request and response should be single line JSON string and end with a newline.
@@ -46,38 +47,24 @@ export class StdIO {
   private readonly outStream: NodeJS.WriteStream = process.stdout;
   private readonly logger = rootLogger.child({ component: "StdIO" });
 
-  private buffer: string = "";
   private abortControllers: { [id: string]: AbortController } = {};
 
-  private agent: Agent | null = null;
+  private agent?: Agent;
 
   constructor() {}
 
-  private async handleInput(data: Buffer) {
-    const input = data.toString();
-    this.buffer += input;
-    const lines = splitLines(this.buffer);
-    if (lines.length < 1) {
+  private async handleLine(line: string) {
+    let request: StdIORequest;
+    try {
+      request = JSON.parse(line) as StdIORequest;
+    } catch (error) {
+      this.logger.error({ error }, `Failed to parse request: ${line}`);
       return;
     }
-    if (lines[lines.length - 1].endsWith("\n")) {
-      this.buffer = "";
-    } else {
-      this.buffer = lines.pop()!;
-    }
-    for (const line of lines) {
-      let request: StdIORequest | null = null;
-      try {
-        request = JSON.parse(line) as StdIORequest;
-      } catch (error) {
-        this.logger.error({ error }, `Failed to parse request: ${line}`);
-        continue;
-      }
-      this.logger.debug({ request }, "Received request");
-      const response = await this.handleRequest(request);
-      this.sendResponse(response);
-      this.logger.debug({ response }, "Sent response");
-    }
+    this.logger.debug({ request }, "Received request");
+    const response = await this.handleRequest(request);
+    this.sendResponse(response);
+    this.logger.debug({ response }, "Sent response");
   }
 
   private async handleRequest(request: StdIORequest): Promise<StdIOResponse> {
@@ -105,6 +92,7 @@ export class StdIO {
           this.abortControllers[requestId] = abortController;
           args[args.length - 1]["signal"] = abortController.signal;
         }
+        // @ts-expect-error TS2684: FIXME
         response[1] = await func.apply(this.agent, args);
       }
     } catch (error) {
@@ -117,8 +105,8 @@ export class StdIO {
       if (this.abortControllers[requestId]) {
         delete this.abortControllers[requestId];
       }
-      return response;
     }
+    return response;
   }
 
   private cancelRequest(request: CancellationRequest): boolean {
@@ -145,7 +133,9 @@ export class StdIO {
   }
 
   listen() {
-    this.inStream.on("data", this.handleInput.bind(this));
+    readline.createInterface({ input: this.inStream }).on("line", (line) => {
+      this.handleLine(line);
+    });
 
     ["SIGTERM", "SIGINT"].forEach((sig) => {
       this.process.on(sig, async () => {

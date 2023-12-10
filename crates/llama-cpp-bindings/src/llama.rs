@@ -38,7 +38,10 @@ impl LlamaServiceImpl {
 
     fn alloc_request_id(&mut self) -> u32 {
         let ret = self.next_request_id;
-        self.next_request_id += 1;
+
+        // 1048576 (2^20) should be large enough to avoid any collision.
+        // FIXME(meng): figure out a better way.
+        self.next_request_id = (self.next_request_id + 1) % 1048576;
         ret
     }
 
@@ -87,14 +90,13 @@ impl LlamaServiceImpl {
             if tx.is_closed() || text.is_empty() {
                 // Cancelled by client side or hit eos.
                 stopped = true;
-            } else if !stop_condition.should_stop(&text) {
+            } else {
+                stopped = stop_condition.should_stop(&text);
+
                 match tx.send(text).await {
                     Ok(_) => (),
                     Err(_) => stopped = true,
                 }
-            } else {
-                // Stoop words stopped
-                stopped = true;
             }
 
             if stopped {

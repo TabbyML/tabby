@@ -1,10 +1,3 @@
-loadtest:
-ifdef TABBY_API_HOST
-	k6 run tests/*.loadtest.js
-else 
-	$(error TABBY_API_HOST is undefined)
-endif
-
 fix:
 	cargo machete --fix || true
 	cargo +nightly fmt

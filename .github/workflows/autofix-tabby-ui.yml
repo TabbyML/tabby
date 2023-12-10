@@ -1,0 +1,46 @@
+name: autofix.ci
+
+on:
+  pull_request:
+    branches: ["main" ]
+    paths:
+      - '.github/workflows/autofix-tabby-ui.yml'
+      - 'ee/tabby-ui/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }}
+
+  # If this is enabled it will cancel current running and start latest
+  cancel-in-progress: true
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: yarn
+          cache-dependency-path: 'yarn.lock'
+
+      - name: Install dependencies
+        working-directory: ./ee/tabby-ui
+        run: yarn install
+
+      - name: Lint
+        working-directory: ./ee/tabby-ui
+        run: yarn lint:fix
+
+      - name: Format
+        working-directory: ./ee/tabby-ui
+        run: yarn format:write
+
+      - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc

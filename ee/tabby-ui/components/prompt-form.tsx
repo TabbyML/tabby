@@ -1,30 +1,18 @@
-import { UseChatHelpers } from 'ai/react'
 import * as React from 'react'
-import useSWR from 'swr'
-import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  IconArrowElbow,
-  IconEdit,
-  IconSymbolFunction
-} from '@/components/ui/icons'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
-import {
-  Combobox,
-  ComboboxAnchor,
-  ComboboxContent,
-  ComboboxOption,
-  ComboboxTextarea
-} from '@/components/ui/combobox'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
-import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
-import { cn } from '@/lib/utils'
-import fetcher from '@/lib/tabby-fetcher'
+import { UseChatHelpers } from 'ai/react'
 import { debounce, has } from 'lodash-es'
+import useSWR from 'swr'
+
+import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
+import { useAuthenticatedApi } from '@/lib/tabby/auth'
+import fetcher from '@/lib/tabby/fetcher'
 import type { ISearchHit, SearchReponse } from '@/lib/types'
+import { cn } from '@/lib/utils'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Combobox, ComboboxAnchor, ComboboxContent, ComboboxOption, ComboboxTextarea } from '@/components/ui/combobox'
+import { IconArrowElbow, IconEdit, IconSymbolFunction } from '@/components/ui/icons'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -44,7 +32,6 @@ function PromptFormRenderer(
   const [queryCompletionUrl, setQueryCompletionUrl] = React.useState<
     string | null
   >(null)
-  const latestFetchKey = React.useRef('')
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   // store the input selection for replacing inputValue
   const prevInputSelectionEnd = React.useRef<number>()
@@ -55,14 +42,19 @@ function PromptFormRenderer(
     Record<string, ISearchHit>
   >({})
 
-  useSWR<SearchReponse>(queryCompletionUrl, fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 0,
-    onSuccess: (data, key) => {
-      if (key !== latestFetchKey.current) return
-      setOptions(data?.hits ?? [])
+  const { data: completionData } = useSWR<SearchReponse>(
+    useAuthenticatedApi(queryCompletionUrl),
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 0,
+      errorRetryCount: 0
     }
-  })
+  )
+
+  React.useEffect(() => {
+    setOptions(completionData?.hits ?? [])
+  }, [completionData?.hits])
 
   React.useImperativeHandle(ref, () => {
     return {
@@ -99,9 +91,8 @@ function PromptFormRenderer(
       const queryNameMatches = getSearchCompletionQueryName(value, end)
       const queryName = queryNameMatches?.[1]
       if (queryName) {
-        const query = encodeURIComponent(`name:${queryName} kind:function`)
+        const query = encodeURIComponent(`name:${queryName} AND kind:function`)
         const url = `/v1beta/search?q=${query}`
-        latestFetchKey.current = url
         setQueryCompletionUrl(url)
       } else {
         setOptions([])
@@ -179,11 +170,11 @@ function PromptFormRenderer(
           return (
             <>
               <ComboboxAnchor>
-                <div className="bg-background relative flex max-h-60 w-full grow flex-col overflow-hidden px-8 sm:rounded-md sm:border sm:px-12">
+                <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
                   <span
                     className={cn(
                       buttonVariants({ size: 'sm', variant: 'ghost' }),
-                      'bg-background hover:bg-background absolute left-0 top-4 h-8 w-8 rounded-full p-0 sm:left-4'
+                      'absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 hover:bg-background sm:left-4'
                     )}
                   >
                     <IconEdit />
@@ -248,7 +239,7 @@ function PromptFormRenderer(
                                   {item?.doc?.name}(...)
                                 </div>
                               </div>
-                              <div className="text-muted-foreground flex-1 truncate text-right text-sm">
+                              <div className="flex-1 truncate text-right text-sm text-muted-foreground">
                                 {item?.doc?.body}
                               </div>
                             </div>
@@ -273,7 +264,7 @@ function PromptFormRenderer(
                           : ''}
                         {highlightedOption?.doc?.name}
                       </div>
-                      <div className="text-muted-foreground flex-1 whitespace-pre-wrap break-all">
+                      <div className="flex-1 whitespace-pre-wrap break-all text-muted-foreground">
                         {highlightedOption?.doc?.body}
                       </div>
                     </div>

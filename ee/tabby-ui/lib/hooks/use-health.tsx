@@ -1,8 +1,10 @@
 'use client'
 
-import useSWRImmutable from 'swr/immutable'
-import { SWRResponse } from 'swr'
-import fetcher from '@/lib/tabby-fetcher'
+import useSWR, { SWRResponse } from 'swr'
+
+import fetcher from '@/lib/tabby/fetcher'
+
+import { useAuthenticatedApi } from '../tabby/auth'
 
 export interface HealthInfo {
   device: 'metal' | 'cpu' | 'cuda'
@@ -18,5 +20,5 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-  return useSWRImmutable('/v1/health', fetcher)
+  return useSWR(useAuthenticatedApi('/v1/health'), fetcher)
 }

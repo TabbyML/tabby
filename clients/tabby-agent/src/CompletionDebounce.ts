@@ -1,6 +1,5 @@
-import type { CompletionRequest, AbortSignalOption } from "./Agent";
+import type { AbortSignalOption, CompletionRequest } from "./Agent";
 import type { AgentConfig } from "./AgentConfig";
-import { rootLogger } from "./logger";
 import { splitLines } from "./utils";
 
 function clamp(min: number, max: number, value: number): number {
@@ -8,7 +7,6 @@ function clamp(min: number, max: number, value: number): number {
 }
 
 export class CompletionDebounce {
-  private readonly logger = rootLogger.child({ component: "CompletionDebounce" });
   private lastCalledTimeStamp = 0;
 
   private baseInterval = 200; // ms

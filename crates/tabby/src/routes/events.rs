@@ -1,12 +1,3 @@
-use std::{collections::HashMap, sync::Arc};
-
-use axum::{
-    extract::{Query, State},
-    Json,
-};
-use hyper::StatusCode;
-use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
-
 #[utoipa::path(
     post,
     path = "/v1/events",
@@ -16,6 +7,9 @@ use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
     responses(
         (status = 200, description = "Success"),
         (status = 400, description = "Bad Request")
+    ),
+    security(
+        ("token" = [])
     )
 )]
 pub async fn log_event(

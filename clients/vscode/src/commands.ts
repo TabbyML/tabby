@@ -1,15 +1,16 @@
 import {
+  commands,
   ConfigurationTarget,
+  env,
+  ExtensionContext,
   InputBoxValidationSeverity,
   ProgressLocation,
-  Uri,
   ThemeIcon,
-  ExtensionContext,
-  workspace,
+  Uri,
   window,
-  env,
-  commands,
+  workspace,
 } from "vscode";
+import os from "os";
 import { strict as assert } from "assert";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
@@ -51,7 +52,7 @@ const setApiEndpoint: Command = {
         value: configuration.get("api.endpoint", ""),
         validateInput: (input: string) => {
           try {
-            let url = new URL(input);
+            const url = new URL(input);
             assert(url.protocol == "http:" || url.protocol == "https:");
           } catch (_) {
             return {
@@ -85,7 +86,7 @@ const openTabbyAgentSettings: Command = {
       window.showWarningMessage("Tabby Agent config file is not supported on web.", { modal: true });
       return;
     }
-    const agentUserConfig = Uri.joinPath(Uri.file(require("os").homedir()), ".tabby-client", "agent", "config.toml");
+    const agentUserConfig = Uri.joinPath(Uri.file(os.homedir()), ".tabby-client", "agent", "config.toml");
     workspace.fs.stat(agentUserConfig).then(
       () => {
         workspace.openTextDocument(agentUserConfig).then((document) => {
@@ -131,7 +132,7 @@ const openAuthPage: Command = {
         try {
           callbacks?.onAuthStart?.();
           progress.report({ message: "Generating authorization url..." });
-          let authUrl = await agent().requestAuthUrl({ signal });
+          const authUrl = await agent().requestAuthUrl({ signal });
           if (authUrl) {
             env.openExternal(Uri.parse(authUrl.authUrl));
             progress.report({ message: "Waiting for authorization from browser..." });

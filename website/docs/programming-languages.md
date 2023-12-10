@@ -25,10 +25,10 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Python](https://www.python.org/)
 * [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 * [TypeScript](https://www.typescriptlang.org/)
-* [Golang](https://go.dev/): Since v0.4.0
-* [Ruby](https://www.ruby-lang.org/): Since v0.4.0
-* [Java](https://www.java.com/): Since v0.6.0
-* [Kotlin](https://www.kotlinlang.org/): Since v0.6.0
+* [Golang](https://go.dev/)
+* [Ruby](https://www.ruby-lang.org/)
+* [Java](https://www.java.com/)
+* [Kotlin](https://www.kotlinlang.org/)
 
 ## Languages Missing Certain Support
 

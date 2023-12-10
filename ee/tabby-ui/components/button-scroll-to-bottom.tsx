@@ -2,8 +2,8 @@
 
 import * as React from 'react'
 
-import { cn } from '@/lib/utils'
 import { useAtBottom } from '@/lib/hooks/use-at-bottom'
+import { cn } from '@/lib/utils'
 import { Button, type ButtonProps } from '@/components/ui/button'
 import { IconArrowDown } from '@/components/ui/icons'
 

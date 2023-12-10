@@ -3,7 +3,7 @@ import decodeJwt from "jwt-decode";
 import createClient from "openapi-fetch";
 import type { paths as CloudApi } from "./types/cloudApi";
 import type { AbortSignalOption } from "./Agent";
-import { HttpError, abortSignalFromAnyOf } from "./utils";
+import { abortSignalFromAnyOf, HttpError } from "./utils";
 import { dataStore, DataStore } from "./dataStore";
 import { rootLogger } from "./logger";
 
@@ -12,6 +12,13 @@ export type StorageData = {
 };
 
 type JWT = { token: string; payload: { email: string; exp: number } };
+
+class RetryLimitReachedError extends Error {
+  readonly name = "RetryLimitReachedError";
+  constructor(readonly cause: unknown) {
+    super();
+  }
+}
 
 export class Auth extends EventEmitter {
   static readonly authPageUrl = "https://app.tabbyml.com/account/device-token";
@@ -39,48 +46,46 @@ export class Auth extends EventEmitter {
   };
 
   private readonly logger = rootLogger.child({ component: "Auth" });
-  readonly endpoint: string;
-  readonly dataStore: DataStore | null = null;
-  private refreshTokenTimer: ReturnType<typeof setInterval> | null = null;
-  private authApi: ReturnType<typeof createClient<CloudApi>>;
-  private jwt: JWT | null = null;
+  private dataStore?: DataStore;
+  private authApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
+  private jwt?: JWT;
 
-  static async create(options: { endpoint: string; dataStore?: DataStore }): Promise<Auth> {
-    const auth = new Auth(options);
-    await auth.load();
-    return auth;
+  constructor(readonly endpoint: string) {
+    super();
   }
 
-  constructor(options: { endpoint: string; dataStore?: DataStore }) {
-    super();
-    this.endpoint = options.endpoint;
-    if (options.dataStore) {
+  async init(options?: { dataStore?: DataStore }) {
+    if (options?.dataStore) {
       this.dataStore = options.dataStore;
     } else {
       this.dataStore = dataStore;
-      dataStore.on("updated", async () => {
-        await this.load();
-        super.emit("updated", this.jwt);
-      });
-      dataStore.watch();
+      if (dataStore) {
+        dataStore.on("updated", async () => {
+          await this.load();
+          super.emit("updated", this.jwt);
+        });
+        dataStore.watch();
+      }
     }
-    this.authApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
     this.scheduleRefreshToken();
+    await this.load();
   }
 
-  get token(): string | null {
+  get token(): string | undefined {
     return this.jwt?.token;
   }
 
-  get user(): string | null {
+  get user(): string | undefined {
     return this.jwt?.payload.email;
   }
 
   private async load(): Promise<void> {
-    if (!this.dataStore) return;
+    if (!this.dataStore) {
+      return;
+    }
     try {
       await this.dataStore.load();
-      const storedJwt = this.dataStore.data["auth"]?.[this.endpoint]?.jwt;
+      const storedJwt = this.dataStore.data.auth?.[this.endpoint]?.jwt;
       if (typeof storedJwt === "string" && this.jwt?.token !== storedJwt) {
         this.logger.debug({ storedJwt }, "Load jwt from data store.");
         const jwt: JWT = {
@@ -95,31 +100,37 @@ export class Auth extends EventEmitter {
           this.jwt = jwt;
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       this.logger.debug({ error }, "Error when loading auth");
     }
   }
 
   private async save(): Promise<void> {
-    if (!this.dataStore) return;
+    if (!this.dataStore) {
+      return;
+    }
     try {
       if (this.jwt) {
-        if (this.dataStore.data["auth"]?.[this.endpoint]?.jwt === this.jwt.token) return;
-        this.dataStore.data["auth"] = { ...this.dataStore.data["auth"], [this.endpoint]: { jwt: this.jwt.token } };
+        if (this.dataStore.data.auth?.[this.endpoint]?.jwt === this.jwt.token) {
+          return;
+        }
+        this.dataStore.data.auth = { ...this.dataStore.data.auth, [this.endpoint]: { jwt: this.jwt.token } };
       } else {
-        if (typeof this.dataStore.data["auth"]?.[this.endpoint] === "undefined") return;
-        delete this.dataStore.data["auth"][this.endpoint];
+        if (typeof this.dataStore.data.auth?.[this.endpoint] === "undefined") {
+          return;
+        }
+        delete this.dataStore.data.auth[this.endpoint];
       }
       await this.dataStore.save();
       this.logger.debug("Save changes to data store.");
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error({ error }, "Error when saving auth");
     }
   }
 
   async reset(): Promise<void> {
     if (this.jwt) {
-      this.jwt = null;
+      this.jwt = undefined;
       await this.save();
     }
   }
@@ -135,7 +146,7 @@ export class Auth extends EventEmitter {
         body: { auth_url: this.endpoint },
         signal: options?.signal,
       });
-      if (response.error) {
+      if (response.error || !response.response.ok) {
         throw new HttpError(response.response);
       }
       const deviceToken = response.data;
@@ -155,7 +166,7 @@ export class Auth extends EventEmitter {
       const timer = setInterval(async () => {
         try {
           const response = await this.authApi.POST("/device-token/accept", { params: { query: { code } }, signal });
-          if (response.error) {
+          if (response.error || !response.response.ok) {
             throw new HttpError(response.response);
           }
           const result = response.data;
@@ -195,7 +206,7 @@ export class Auth extends EventEmitter {
       const response = await this.authApi.POST("/device-token/refresh", {
         headers: { Authorization: `Bearer ${jwt.token}` },
       });
-      if (response.error) {
+      if (response.error || !response.response.ok) {
         throw new HttpError(response.response);
       }
       const refreshedJwt = response.data;
@@ -216,14 +227,14 @@ export class Auth extends EventEmitter {
           return this.refreshToken(jwt, options, retry + 1);
         }
       }
-      throw { ...error, retry };
+      throw new RetryLimitReachedError(error);
     }
   }
 
   private scheduleRefreshToken() {
-    this.refreshTokenTimer = setInterval(async () => {
+    setInterval(async () => {
       if (!this.jwt) {
-        return null;
+        return;
       }
       if (this.jwt.payload.exp * 1000 - Date.now() < Auth.tokenStrategy.refresh.beforeExpire) {
         try {

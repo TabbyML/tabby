@@ -1,4 +1,4 @@
-import { splitLines, autoClosingPairClosings } from "./utils";
+import { autoClosingPairClosings, splitLines } from "./utils";
 import hashObject from "object-hash";
 
 export type CompletionRequest = {
@@ -6,6 +6,7 @@ export type CompletionRequest = {
   language: string;
   text: string;
   position: number;
+  indentation?: string;
   clipboard?: string;
   manually?: boolean;
 };
@@ -36,6 +37,7 @@ function isAtLineEndExcludingAutoClosedChar(suffix: string) {
 export class CompletionContext {
   filepath: string;
   language: string;
+  indentation?: string;
   text: string;
   position: number;
 
@@ -43,6 +45,8 @@ export class CompletionContext {
   suffix: string;
   prefixLines: string[];
   suffixLines: string[];
+  currentLinePrefix: string;
+  currentLineSuffix: string;
 
   clipboard: string;
 
@@ -57,11 +61,14 @@ export class CompletionContext {
     this.language = request.language;
     this.text = request.text;
     this.position = request.position;
+    this.indentation = request.indentation;
 
     this.prefix = request.text.slice(0, request.position);
     this.suffix = request.text.slice(request.position);
     this.prefixLines = splitLines(this.prefix);
     this.suffixLines = splitLines(this.suffix);
+    this.currentLinePrefix = this.prefixLines[this.prefixLines.length - 1] ?? "";
+    this.currentLineSuffix = this.suffixLines[0] ?? "";
 
     this.clipboard = request.clipboard?.trim() ?? "";
 

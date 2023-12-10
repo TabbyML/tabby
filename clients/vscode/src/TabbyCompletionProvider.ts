@@ -1,13 +1,16 @@
 import {
   CancellationToken,
+  env,
   InlineCompletionContext,
   InlineCompletionItem,
   InlineCompletionItemProvider,
   InlineCompletionTriggerKind,
+  NotebookDocument,
+  NotebookRange,
   Position,
   Range,
   TextDocument,
-  env,
+  window,
   workspace,
 } from "vscode";
 import { EventEmitter } from "events";
@@ -62,11 +65,14 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       return null;
     }
 
+    const additionalContext = this.buildAdditionalContext(document);
+
     const request: CompletionRequest = {
       filepath: document.uri.fsPath,
       language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
-      text: document.getText(),
-      position: document.offsetAt(position),
+      text: additionalContext.prefix + document.getText() + additionalContext.suffix,
+      position: additionalContext.prefix.length + document.offsetAt(position),
+      indentation: this.getEditorIndentation(),
       clipboard: await env.clipboard.readText(),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
     };
@@ -95,14 +101,17 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       // Assume only one choice is provided, do not support multiple choices for now
       if (result.choices.length > 0) {
         this.latestCompletions = result;
-        const choice = result.choices[0];
+        const choice = result.choices[0]!;
 
         this.postEvent("show");
 
         return [
           new InlineCompletionItem(
             choice.text,
-            new Range(document.positionAt(choice.replaceRange.start), document.positionAt(choice.replaceRange.end)),
+            new Range(
+              document.positionAt(choice.replaceRange.start - additionalContext.prefix.length),
+              document.positionAt(choice.replaceRange.end - additionalContext.prefix.length),
+            ),
             {
               title: "",
               command: "tabby.applyCallback",
@@ -136,7 +145,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         type: event === "show" ? "view" : "select",
         completion_id: completion.id,
         // Assume only one choice is provided for now
-        choice_index: completion.choices[0].index,
+        choice_index: completion.choices[0]!.index,
       };
       switch (event) {
         case "accept_word":
@@ -158,6 +167,21 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     }
   }
 
+  private getEditorIndentation(): string | undefined {
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      return undefined;
+    }
+
+    const { insertSpaces, tabSize } = editor.options;
+    if (insertSpaces && typeof tabSize === "number" && tabSize > 0) {
+      return " ".repeat(tabSize);
+    } else if (!insertSpaces) {
+      return "\t";
+    }
+    return undefined;
+  }
+
   private updateConfiguration() {
     if (!workspace.getConfiguration("editor").get("inlineSuggest.enabled", true)) {
       this.triggerMode = "disabled";
@@ -166,5 +190,48 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       this.triggerMode = workspace.getConfiguration("tabby").get("inlineCompletion.triggerMode", "automatic");
       this.emit("triggerModeUpdated");
     }
+  }
+
+  private buildAdditionalContext(document: TextDocument): { prefix: string; suffix: string } {
+    if (
+      document.uri.scheme === "vscode-notebook-cell" &&
+      window.activeNotebookEditor?.notebook.uri.path === document.uri.path
+    ) {
+      // Add all the cells in the notebook as context
+      const notebook = window.activeNotebookEditor.notebook;
+      const current = window.activeNotebookEditor.selection.start;
+      const prefix = this.buildNotebookContext(notebook, new NotebookRange(0, current), document.languageId);
+      const suffix = this.buildNotebookContext(
+        notebook,
+        new NotebookRange(current + 1, notebook.cellCount),
+        document.languageId,
+      );
+      return { prefix, suffix };
+    }
+    return { prefix: "", suffix: "" };
+  }
+
+  private notebookLanguageComments: { [languageId: string]: (code: string) => string } = {
+    markdown: (code) => "```\n" + code + "\n```",
+    python: (code) =>
+      code
+        .split("\n")
+        .map((l) => "# " + l)
+        .join("\n"),
+  };
+
+  private buildNotebookContext(notebook: NotebookDocument, range: NotebookRange, languageId: string): string {
+    return notebook
+      .getCells(range)
+      .map((cell) => {
+        if (cell.document.languageId === languageId) {
+          return cell.document.getText() + "\n\n";
+        } else if (Object.keys(this.notebookLanguageComments).includes(languageId)) {
+          return this.notebookLanguageComments[languageId]!(cell.document.getText()) + "\n\n";
+        } else {
+          return "";
+        }
+      })
+      .join("");
   }
 }

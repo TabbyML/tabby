@@ -1,13 +1,13 @@
-import { CompletionContext, CompletionResponse } from "../Agent";
-import { isBlank, findUnpairedAutoClosingChars } from "../utils";
+import { CompletionContext, CompletionResponse } from "../CompletionContext";
+import { findUnpairedAutoClosingChars, isBlank } from "../utils";
 import { logger } from "./base";
 
 export function calculateReplaceRangeByBracketStack(
   response: CompletionResponse,
   context: CompletionContext,
 ): CompletionResponse {
-  const { suffixLines } = context;
-  const suffixText = suffixLines[0]?.trimEnd() || "";
+  const { currentLineSuffix } = context;
+  const suffixText = currentLineSuffix.trimEnd();
   if (isBlank(suffixText)) {
     return response;
   }

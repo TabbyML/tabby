@@ -2,9 +2,10 @@
 
 import * as React from 'react'
 
-import { Button, type ButtonProps } from '@/components/ui/button'
-import { IconCheck, IconCopy } from './ui/icons'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
+import { Button, type ButtonProps } from '@/components/ui/button'
+
+import { IconCheck, IconCopy } from './ui/icons'
 
 interface CopyButtonProps extends ButtonProps {
   value: string
@@ -28,7 +29,7 @@ export function CopyButton({ className, value, ...props }: CopyButtonProps) {
       onClick={onCopy}
       {...props}
     >
-      {isCopied ? <IconCheck /> : <IconCopy />}
+      {isCopied ? <IconCheck className="text-green-600" /> : <IconCopy />}
       <span className="sr-only">Copy</span>
     </Button>
   )

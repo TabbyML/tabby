@@ -1,14 +1,13 @@
 import { LRUCache } from "lru-cache";
-import { CompletionContext, CompletionResponse } from "./Agent";
+import { CompletionContext, CompletionResponse } from "./CompletionContext";
 import { rootLogger } from "./logger";
-import { splitLines, autoClosingPairOpenings, autoClosingPairClosings, findUnpairedAutoClosingChars } from "./utils";
+import { autoClosingPairClosings, autoClosingPairOpenings, findUnpairedAutoClosingChars, splitLines } from "./utils";
 
 type CompletionCacheKey = CompletionContext;
 type CompletionCacheValue = CompletionResponse;
 
 export class CompletionCache {
   private readonly logger = rootLogger.child({ component: "CompletionCache" });
-  private cache: LRUCache<string, { value: CompletionCacheValue; rebuildFlag: boolean }>;
   private options = {
     maxCount: 10000,
     prebuildCache: {
@@ -25,12 +24,9 @@ export class CompletionCache {
       },
     },
   };
-
-  constructor() {
-    this.cache = new LRUCache<string, { value: CompletionCacheValue; rebuildFlag: boolean }>({
-      max: this.options.maxCount,
-    });
-  }
+  private cache = new LRUCache<string, { value: CompletionCacheValue; rebuildFlag: boolean }>({
+    max: this.options.maxCount,
+  });
 
   has(key: CompletionCacheKey): boolean {
     return this.cache.has(key.hash);
@@ -129,7 +125,7 @@ export class CompletionCache {
         }
       }
     }
-    const result = list.reduce((prev, curr) => {
+    const result = list.reduce<typeof list>((prev, curr) => {
       const found = prev.find((entry) => entry.key.hash === curr.key.hash);
       if (found) {
         found.value.choices.push(...curr.value.choices);
@@ -151,11 +147,11 @@ export class CompletionCache {
     let offset = 0;
     // `index < lines.length - 1` to exclude the last line
     while (index < lines.length - 1 && index < option.perLine.max) {
-      offset += lines[index].length;
+      offset += lines[index]?.length ?? 0;
       result.push(offset - 1); // cache at the end of the line (before newline character)
       result.push(offset); // cache at the beginning of the next line (after newline character)
       let offsetNextLineBegin = offset;
-      while (offsetNextLineBegin < completion.length && completion[offsetNextLineBegin].match(/\s/)) {
+      while (offsetNextLineBegin < completion.length && completion[offsetNextLineBegin]!.match(/\s/)) {
         offsetNextLineBegin++;
       }
       result.push(offsetNextLineBegin); // cache at the beginning of the next line (after indent)

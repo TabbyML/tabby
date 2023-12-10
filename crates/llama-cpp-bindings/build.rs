@@ -1,4 +1,4 @@
-use std::{env::var, path::Path};
+use std::{env, path::Path};
 
 use cmake::Config;
 
@@ -17,7 +17,6 @@ fn main() {
         "-device skl",
         //"-device *",
     ];
-    const AMDGPU_TARGETS: &str = "gfx803;gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102";
 
     assert!(
         Path::new(LLAMA_CMAKE_PATH).exists(),
@@ -39,6 +38,7 @@ fn main() {
     }
     if cfg!(feature = "cuda") {
         config.define("LLAMA_CUBLAS", "ON");
+        config.define("CMAKE_POSITION_INDEPENDENT_CODE", "ON");
         println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
         println!("cargo:rustc-link-lib=cudart");
         println!("cargo:rustc-link-lib=culibos");
@@ -46,14 +46,33 @@ fn main() {
         println!("cargo:rustc-link-lib=cublasLt");
     }
     if cfg!(feature = "rocm") {
-        let rocm_root = "/opt/rocm";
+        let amd_gpu_targets: Vec<&str> = vec![
+            "gfx803",
+            "gfx900",
+            "gfx906:xnack-",
+            "gfx908:xnack-",
+            "gfx90a:xnack+",
+            "gfx90a:xnack-",
+            "gfx940",
+            "gfx941",
+            "gfx942",
+            "gfx1010",
+            "gfx1012",
+            "gfx1030",
+            "gfx1100",
+            "gfx1101",
+            "gfx1102",
+            "gfx1103",
+        ];
+
+        let rocm_root = env::var("ROCM_ROOT").unwrap_or("/opt/rocm".to_string());
         config.define("LLAMA_HIPBLAS", "ON");
         config.define("CMAKE_C_COMPILER", format!("{}/llvm/bin/clang", rocm_root));
         config.define(
             "CMAKE_CXX_COMPILER",
             format!("{}/llvm/bin/clang++", rocm_root),
         );
-        config.define("AMDGPU_TARGETS", AMDGPU_TARGETS);
+        config.define("AMDGPU_TARGETS", amd_gpu_targets.join(";"));
         println!("cargo:rustc-link-arg=-Wl,--copy-dt-needed-entries");
         println!("cargo:rustc-link-search=native={}/hip/lib", rocm_root);
         println!("cargo:rustc-link-search=native={}/rocblas/lib", rocm_root);
@@ -63,9 +82,9 @@ fn main() {
         println!("cargo:rustc-link-lib=hipblas");
     }
     if cfg!(feature = "oneapi") {
-        let mkl_root = var("MKLROOT")
+        let mkl_root = env::var("MKLROOT")
             .expect("MKLROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
-        let compiler_root = var("CMPLR_ROOT")
+        let compiler_root = env::var("CMPLR_ROOT")
             .expect("CMPLR_ROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
         config.define("LLAMA_BLAS", "ON");
         config.define("LLAMA_BLAS_VENDOR", "Intel10_64lp");
@@ -101,20 +120,10 @@ fn main() {
     let dst = config.build();
     println!("cargo:rustc-link-search=native={}/build", dst.display());
 
-    let crate_dir = var("CARGO_MANIFEST_DIR").unwrap();
-
-    let mut build = cxx_build::bridge("src/lib.rs");
-    if cfg!(feature = "oneapi") {
-        let compiler_root = var("CMPLR_ROOT").unwrap();
-        build.compiler(format!("{}/bin/icpx", compiler_root));
-        for flag in intel_compile_flags {
-            build.flag(flag);
-        }
-    }
-    build
+    cxx_build::bridge("src/lib.rs")
         .file("src/engine.cc")
-        .include(format!("{}/include", crate_dir))
-        .include("llama.cpp")
-        .flag_if_supported("-std=c++14");
-    build.compile("cxxbridge");
+        .flag_if_supported("-Iinclude")
+        .flag_if_supported("-Illama.cpp")
+        .flag_if_supported("-std=c++14")
+        .compile("cxxbridge");
 }

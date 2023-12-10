@@ -1,5 +1,5 @@
-import { ExtensionContext, workspace, env, version } from "vscode";
-import { TabbyAgent, AgentInitOptions, PartialAgentConfig, ClientProperties, DataStore } from "tabby-agent";
+import { env, ExtensionContext, version, workspace } from "vscode";
+import { AgentInitOptions, ClientProperties, DataStore, PartialAgentConfig, TabbyAgent } from "tabby-agent";
 
 function buildInitOptions(context: ExtensionContext): AgentInitOptions {
   const configuration = workspace.getConfiguration("tabby");
@@ -33,11 +33,20 @@ function buildInitOptions(context: ExtensionContext): AgentInitOptions {
       },
     },
   };
-
-  return { config, clientProperties };
+  const extensionDataStore: DataStore = {
+    data: {},
+    load: async function () {
+      this.data = context.globalState.get("data", {});
+    },
+    save: async function () {
+      context.globalState.update("data", this.data);
+    },
+  };
+  const dataStore = env.appHost === "desktop" ? undefined : extensionDataStore;
+  return { config, clientProperties, dataStore };
 }
 
-var instance: TabbyAgent | undefined = undefined;
+let instance: TabbyAgent | undefined = undefined;
 
 export function agent(): TabbyAgent {
   if (!instance) {
@@ -48,16 +57,7 @@ export function agent(): TabbyAgent {
 
 export async function createAgentInstance(context: ExtensionContext): Promise<TabbyAgent> {
   if (!instance) {
-    const extensionDataStore: DataStore = {
-      data: {},
-      load: async function () {
-        this.data = context.globalState.get("data", {});
-      },
-      save: async function () {
-        context.globalState.update("data", this.data);
-      },
-    };
-    const agent = await TabbyAgent.create({ dataStore: env.appHost === "desktop" ? undefined : extensionDataStore });
+    const agent = new TabbyAgent();
     const initPromise = agent.initialize(buildInitOptions(context));
     workspace.onDidChangeConfiguration(async (event) => {
       await initPromise;

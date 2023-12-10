@@ -35,7 +35,7 @@ export interface components {
         jwt: string;
       };
     };
-    UsageRequest: {};
+    UsageRequest: object;
   };
   responses: never;
   parameters: never;

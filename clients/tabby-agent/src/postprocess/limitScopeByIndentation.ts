@@ -1,59 +1,58 @@
-import { CompletionContext } from "../Agent";
+import { CompletionContext } from "../CompletionContext";
 import { AgentConfig } from "../AgentConfig";
-import { PostprocessFilter, logger } from "./base";
+import { logger, PostprocessFilter } from "./base";
 import { isBlank, splitLines } from "../utils";
 
 function calcIndentLevel(line: string): number {
   return line.match(/^[ \t]*/)?.[0]?.length ?? 0;
 }
 
-function isOpeningIndentBlock(lines, index) {
-  if (index >= lines.length - 1) {
+function isOpeningIndentBlock(lines: string[], index: number): boolean {
+  if (index < 0 || index >= lines.length - 1) {
     return false;
   }
-  return calcIndentLevel(lines[index]) < calcIndentLevel(lines[index + 1]);
+  return calcIndentLevel(lines[index]!) < calcIndentLevel(lines[index + 1]!);
 }
 
 function processContext(
   lines: string[],
-  prefixLines: string[],
-  suffixLines: string[],
+  context: CompletionContext,
   config: AgentConfig["postprocess"]["limitScope"]["indentation"],
 ): { indentLevelLimit: number; allowClosingLine: (closingLine: string) => boolean } {
   let allowClosingLine = false;
-  let result = { indentLevelLimit: 0, allowClosingLine: (closingLine: string) => allowClosingLine };
+  const result = { indentLevelLimit: 0, allowClosingLine: (_: string) => allowClosingLine };
+  const { prefixLines, suffixLines, currentLinePrefix } = context;
   if (lines.length == 0 || prefixLines.length == 0) {
     return result; // guard for empty input, technically unreachable
   }
-  const currentLineInPrefix = prefixLines[prefixLines.length - 1];
-  const isCurrentLineInPrefixBlank = isBlank(currentLineInPrefix);
+  const isCurrentLineInPrefixBlank = isBlank(currentLinePrefix);
   // if current line is blank, use the previous line as reference
   let referenceLineInPrefixIndex = prefixLines.length - 1;
-  while (referenceLineInPrefixIndex >= 0 && isBlank(prefixLines[referenceLineInPrefixIndex])) {
+  while (referenceLineInPrefixIndex >= 0 && isBlank(prefixLines[referenceLineInPrefixIndex]!)) {
     referenceLineInPrefixIndex--;
   }
   if (referenceLineInPrefixIndex < 0) {
     return result; // blank prefix, should be unreachable
   }
-  const referenceLineInPrefix = prefixLines[referenceLineInPrefixIndex];
+  const referenceLineInPrefix = prefixLines[referenceLineInPrefixIndex]!;
   const referenceLineInPrefixIndent = calcIndentLevel(referenceLineInPrefix);
 
-  const currentLineInCompletion = lines[0];
+  const currentLineInCompletion = lines[0]!;
   const isCurrentLineInCompletionBlank = isBlank(currentLineInCompletion);
   // if current line is blank, use the next line as reference
   let referenceLineInCompletionIndex = 0;
-  while (referenceLineInCompletionIndex < lines.length && isBlank(lines[referenceLineInCompletionIndex])) {
+  while (referenceLineInCompletionIndex < lines.length && isBlank(lines[referenceLineInCompletionIndex]!)) {
     referenceLineInCompletionIndex++;
   }
   if (referenceLineInCompletionIndex >= lines.length) {
     return result; // blank completion, should be unreachable
   }
-  const referenceLineInCompletion = lines[referenceLineInCompletionIndex];
+  const referenceLineInCompletion = lines[referenceLineInCompletionIndex]!;
   let referenceLineInCompletionIndent;
   if (isCurrentLineInCompletionBlank) {
     referenceLineInCompletionIndent = calcIndentLevel(referenceLineInCompletion);
   } else {
-    referenceLineInCompletionIndent = calcIndentLevel(currentLineInPrefix + referenceLineInCompletion);
+    referenceLineInCompletionIndent = calcIndentLevel(currentLinePrefix + referenceLineInCompletion);
   }
 
   if (!isCurrentLineInCompletionBlank && !isCurrentLineInPrefixBlank) {
@@ -86,15 +85,15 @@ function processContext(
   // check if suffix context allows closing line
   // skip 0 that is current line in suffix
   let firstNonBlankLineInSuffix = 1;
-  while (firstNonBlankLineInSuffix < suffixLines.length && isBlank(suffixLines[firstNonBlankLineInSuffix])) {
+  while (firstNonBlankLineInSuffix < suffixLines.length && isBlank(suffixLines[firstNonBlankLineInSuffix]!)) {
     firstNonBlankLineInSuffix++;
   }
   if (firstNonBlankLineInSuffix < suffixLines.length) {
-    allowClosingLine &&= calcIndentLevel(suffixLines[firstNonBlankLineInSuffix]) < result.indentLevelLimit;
+    const firstNonBlankLineInSuffixText = suffixLines[firstNonBlankLineInSuffix]!;
+    allowClosingLine &&= calcIndentLevel(firstNonBlankLineInSuffixText) < result.indentLevelLimit;
     result.allowClosingLine = (closingLine: string) => {
       const duplicatedClosingLine =
-        closingLine.startsWith(suffixLines[firstNonBlankLineInSuffix]) ||
-        suffixLines[firstNonBlankLineInSuffix].startsWith(closingLine);
+        closingLine.startsWith(firstNonBlankLineInSuffixText) || firstNonBlankLineInSuffixText.startsWith(closingLine);
       return allowClosingLine && !duplicatedClosingLine;
     };
   }
@@ -102,10 +101,9 @@ function processContext(
 }
 
 export function limitScopeByIndentation(
-  context: CompletionContext,
   config: AgentConfig["postprocess"]["limitScope"]["indentation"],
 ): PostprocessFilter {
-  return (input) => {
+  return (input: string, context: CompletionContext) => {
     const { prefixLines, suffixLines } = context;
     const inputLines = splitLines(input);
     if (context.mode === "fill-in-line") {
@@ -114,13 +112,15 @@ export function limitScopeByIndentation(
         return null;
       }
     }
-    const indentContext = processContext(inputLines, prefixLines, suffixLines, config);
+    const indentContext = processContext(inputLines, context, config);
     let index;
     for (index = 1; index < inputLines.length; index++) {
-      if (isBlank(inputLines[index])) {
+      const line = inputLines[index]!;
+      const prevLine = inputLines[index - 1]!;
+      if (isBlank(line)) {
         continue;
       }
-      const indentLevel = calcIndentLevel(inputLines[index]);
+      const indentLevel = calcIndentLevel(line);
       if (indentLevel < indentContext.indentLevelLimit) {
         // If the line is indented less than the indent level limit, it is closing indent block.
         // But when it is opening a new indent block immediately, such as `} else {`.
@@ -129,10 +129,7 @@ export function limitScopeByIndentation(
         }
         // We include this closing line here if context allows
         // For python, if previous line is blank, we don't include this line
-        if (
-          indentContext.allowClosingLine(inputLines[index]) &&
-          (context.language !== "python" || !isBlank(inputLines[index - 1]))
-        ) {
+        if (indentContext.allowClosingLine(line) && (context.language !== "python" || !isBlank(prevLine))) {
           index++;
         }
         break;

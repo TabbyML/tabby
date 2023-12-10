@@ -1,14 +1,4 @@
-use std::sync::Arc;
-
-use anyhow::Result;
-use axum::{
-    extract::{Query, State},
-    Json,
-};
-use hyper::StatusCode;
 use serde::Deserialize;
-use tabby_common::api::code::{CodeSearch, CodeSearchError, SearchResponse};
-use tracing::{instrument, warn};
 use utoipa::IntoParams;
 
 #[derive(Deserialize, IntoParams)]
@@ -32,8 +22,11 @@ pub struct SearchQuery {
     responses(
         (status = 200, description = "Success" , body = SearchResponse, content_type = "application/json"),
         (status = 501, description = "When code search is not enabled, the endpoint will returns 501 Not Implemented"),
-        )
-    )]
+    ),
+    security(
+        ("token" = [])
+    )
+)]
 #[instrument(skip(state, query))]
 pub async fn search(
     State(state): State<Arc<dyn CodeSearch>>,

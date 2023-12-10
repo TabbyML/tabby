@@ -1,148 +1,100 @@
 'use client'
 
-import { buttonVariants } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
-import { IconSlack } from '@/components/ui/icons'
-import { Separator } from '@/components/ui/separator'
-import { useHealth } from '@/lib/hooks/use-health'
-import { PropsWithChildren, useEffect, useState } from 'react'
-import WorkerCard from './components/worker-card'
-import { useWorkers } from '@/lib/hooks/use-workers'
-import { WorkerKind } from '@/lib/gql/generates/graphql'
-import { useGraphQL } from '@/lib/hooks/use-graphql'
-import { getRegistrationTokenDocument } from '@/lib/gql/request-documents'
-import { CopyButton } from '@/components/copy-button'
+import { useEffect, useState } from 'react'
 
-const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
+import { graphql } from '@/lib/gql/generates'
+import { useHealth } from '@/lib/hooks/use-health'
+import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
+import { Button } from '@/components/ui/button'
+import { CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { IconRotate } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { CopyButton } from '@/components/copy-button'
+import SlackDialog from '@/components/slack-dialog'
 
 export default function Home() {
-  const [open, setOpen] = useState(false)
-  useEffect(() => {
-    if (!localStorage.getItem(COMMUNITY_DIALOG_SHOWN_KEY)) {
-      setOpen(true)
-      localStorage.setItem(COMMUNITY_DIALOG_SHOWN_KEY, 'true')
-    }
-  }, [])
-
   return (
     <div className="p-4 lg:p-16">
       <MainPanel />
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader className="gap-3">
-            <DialogTitle>Join the Tabby community</DialogTitle>
-            <DialogDescription>
-              Connect with other contributors building Tabby. Share knowledge,
-              get help, and contribute to the open-source project.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-start">
-            <a
-              target="_blank"
-              href="https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA"
-              className={buttonVariants()}
-            >
-              <IconSlack className="-ml-2 h-8 w-8" />
-              Join us on Slack
-            </a>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SlackDialog />
     </div>
   )
 }
 
-interface LinkProps {
-  href: string
-}
+const meQuery = graphql(/* GraphQL */ `
+  query MeQuery {
+    me {
+      authToken
+    }
+  }
+`)
 
-function Link({ href, children }: PropsWithChildren<LinkProps>) {
-  return (
-    <a target="_blank" href={href} className="underline">
-      {children}
-    </a>
-  )
-}
-
-function toBadgeString(str: string) {
-  return encodeURIComponent(str.replaceAll('-', '--'))
-}
+const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
+  mutation ResetUserAuthToken {
+    resetUserAuthToken
+  }
+`)
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()
-  const workers = useWorkers(healthInfo)
-  const { data: registrationTokenRes } = useGraphQL(
-    getRegistrationTokenDocument
+  const { data, mutate } = useAuthenticatedGraphQLQuery(meQuery)
+  const [origin, setOrigin] = useState('')
+  useEffect(() => {
+    setOrigin(new URL(window.location.href).origin)
+  }, [])
+
+  const { onSubmit: resetUserAuthToken } = useGraphQLForm(
+    resetUserAuthTokenDocument,
+    {
+      onSuccess: () => mutate()
+    }
   )
 
-  if (!healthInfo) return
+  if (!healthInfo || !data) return
 
   return (
-    <div className="flex w-full flex-col gap-3">
-      <h1>
-        <span className="font-bold">Congratulations</span>, your tabby instance
-        is up!
-      </h1>
-      <span className="flex flex-wrap gap-1">
-        <a
-          target="_blank"
-          href={`https://github.com/TabbyML/tabby/releases/tag/${healthInfo.version.git_describe}`}
-        >
-          <img
-            src={`https://img.shields.io/badge/version-${toBadgeString(
-              healthInfo.version.git_describe
-            )}-green`}
+    <div>
+      <CardHeader>
+        <CardTitle>Getting Started</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <Label>Endpoint URL</Label>
+        <span className="flex items-center gap-1">
+          <Input value={origin} className="max-w-[320px]" />
+          <CopyButton value={origin} />
+        </span>
+
+        <Label>Token</Label>
+        <span className="flex items-center gap-1">
+          <Input
+            className="max-w-[320px] font-mono text-red-600"
+            value={data.me.authToken}
           />
-        </a>
-      </span>
-      <Separator />
-
-      <div className="mt-4 rounded-lg bg-zinc-100 p-4 dark:bg-zinc-800">
-        <span className="font-bold">Workers</span>
-
-        {!!registrationTokenRes?.registrationToken && (
-          <div className="flex items-center gap-1">
-            Registeration token: <span className="text-sm rounded-lg text-red-600">
-              {registrationTokenRes.registrationToken}
-            </span>
-            <CopyButton value={registrationTokenRes.registrationToken} />
-          </div>
-        )}
-
-        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-          {!!workers?.[WorkerKind.Completion] && (
-            <>
-              {workers[WorkerKind.Completion].map((worker, i) => {
-                return <WorkerCard key={i} {...worker} />
-              })}
-            </>
-          )}
-          {!!workers?.[WorkerKind.Chat] && (
-            <>
-              {workers[WorkerKind.Chat].map((worker, i) => {
-                return <WorkerCard key={i} {...worker} />
-              })}
-            </>
-          )}
-          <WorkerCard
-            addr="localhost"
-            name="Code Search Index"
-            kind="INDEX"
-            arch=""
-            device={healthInfo.device}
-            cudaDevices={healthInfo.cuda_devices}
-            cpuCount={healthInfo.cpu_count}
-            cpuInfo={healthInfo.cpu_info}
-          />
-        </div>
-      </div>
+          <Button
+            title="Rotate"
+            size="icon"
+            variant="hover-destructive"
+            onClick={() => resetUserAuthToken()}
+          >
+            <IconRotate />
+          </Button>
+          <CopyButton value={data.me.authToken} />
+        </span>
+      </CardContent>
+      <CardFooter>
+        <span>
+          Use informations above for IDE extensions / plugins configuration, see{' '}
+          <a
+            className="underline"
+            target="_blank"
+            href="https://tabby.tabbyml.com/docs/extensions/configurations#server"
+          >
+            documentation website
+          </a>{' '}
+          for details
+        </span>
+      </CardFooter>
     </div>
   )
 }

@@ -1,7 +1,7 @@
-import { CompletionResponse, CompletionContext } from "../CompletionContext";
+import { CompletionContext, CompletionResponse } from "../CompletionContext";
 import { rootLogger } from "../logger";
 
-export type PostprocessFilter = (item: string) => string | null | Promise<string | null>;
+export type PostprocessFilter = (item: string, context: CompletionContext) => string | null | Promise<string | null>;
 
 export const logger = rootLogger.child({ component: "Postprocess" });
 
@@ -26,7 +26,7 @@ export function applyFilter(
       await Promise.all(
         response.choices.map(async (choice) => {
           const replaceLength = context.position - choice.replaceRange.start;
-          const filtered = await filter(choice.text.slice(replaceLength));
+          const filtered = await filter(choice.text.slice(replaceLength), context);
           choice.text = choice.text.slice(0, replaceLength) + (filtered ?? "");
           return choice;
         }),

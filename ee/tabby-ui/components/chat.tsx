@@ -1,21 +1,22 @@
 'use client'
 
 import React from 'react'
+import type { Message } from 'ai/react'
 import { useChat } from 'ai/react'
+import { find, findIndex } from 'lodash-es'
+import { toast } from 'react-hot-toast'
+
+import { usePatchFetch } from '@/lib/hooks/use-patch-fetch'
+import { useStore } from '@/lib/hooks/use-store'
+import { addChat, updateMessages } from '@/lib/stores/chat-actions'
+import { useChatStore } from '@/lib/stores/chat-store'
+import type { MessageActionType } from '@/lib/types'
 import { cn, nanoid, truncateText } from '@/lib/utils'
 import { ChatList } from '@/components/chat-list'
 import { ChatPanel } from '@/components/chat-panel'
-import { EmptyScreen } from '@/components/empty-screen'
 import { ChatScrollAnchor } from '@/components/chat-scroll-anchor'
-import { toast } from 'react-hot-toast'
-import { usePatchFetch } from '@/lib/hooks/use-patch-fetch'
-import { addChat, updateMessages } from '@/lib/stores/chat-actions'
-import { find, findIndex } from 'lodash-es'
-import { useStore } from '@/lib/hooks/use-store'
-import { useChatStore } from '@/lib/stores/chat-store'
+import { EmptyScreen } from '@/components/empty-screen'
 import { ListSkeleton } from '@/components/skeleton'
-import type { MessageActionType } from '@/lib/types'
-import type { Message } from 'ai/react'
 
 export interface ChatProps extends React.ComponentProps<'div'> {
   initialMessages?: Message[]

@@ -1,14 +1,14 @@
 import type TreeSitterParser from "web-tree-sitter";
 import { getParser, languagesConfigs } from "../syntax/parser";
 import { typeList } from "../syntax/typeList";
-import { CompletionContext } from "../Agent";
-import { PostprocessFilter, logger } from "./base";
+import { CompletionContext } from "../CompletionContext";
+import { logger, PostprocessFilter } from "./base";
 
 export const supportedLanguages = Object.keys(languagesConfigs);
 
 function findLineBegin(text: string, position: number): number {
   let lastNonBlankCharPos = position - 1;
-  while (lastNonBlankCharPos >= 0 && text[lastNonBlankCharPos].match(/\s/)) {
+  while (lastNonBlankCharPos >= 0 && text[lastNonBlankCharPos]?.match(/\s/)) {
     lastNonBlankCharPos--;
   }
   if (lastNonBlankCharPos < 0) {
@@ -25,7 +25,7 @@ function findLineBegin(text: string, position: number): number {
 
 function findLineEnd(text: string, position: number): number {
   let firstNonBlankCharPos = position;
-  while (firstNonBlankCharPos < text.length && text[firstNonBlankCharPos].match(/\s/)) {
+  while (firstNonBlankCharPos < text.length && text[firstNonBlankCharPos]?.match(/\s/)) {
     firstNonBlankCharPos++;
   }
   if (firstNonBlankCharPos >= text.length) {
@@ -40,7 +40,7 @@ function findLineEnd(text: string, position: number): number {
 
 function findScope(node: TreeSitterParser.SyntaxNode, typeList: string[][]): TreeSitterParser.SyntaxNode {
   for (const types of typeList) {
-    let scope = node;
+    let scope: TreeSitterParser.SyntaxNode | null = node;
     while (scope) {
       if (types.includes(scope.type)) {
         return scope;
@@ -51,20 +51,23 @@ function findScope(node: TreeSitterParser.SyntaxNode, typeList: string[][]): Tre
   return node;
 }
 
-export function limitScopeBySyntax(context: CompletionContext): PostprocessFilter {
-  return async (input) => {
+export function limitScopeBySyntax(): PostprocessFilter {
+  return async (input: string, context: CompletionContext) => {
     const { position, text, language, prefix, suffix } = context;
     if (!supportedLanguages.includes(language)) {
       return input;
     }
-    const languageConfig = languagesConfigs[language];
+    const languageConfig = languagesConfigs[language]!;
     const parser = await getParser(languageConfig);
 
     const updatedText = prefix + input + suffix;
     const updatedTree = parser.parse(updatedText);
     const lineBegin = findLineBegin(updatedText, position);
     const lineEnd = findLineEnd(updatedText, position);
-    const scope = findScope(updatedTree.rootNode.namedDescendantForIndex(lineBegin, lineEnd), typeList[languageConfig]);
+    const scope = findScope(
+      updatedTree.rootNode.namedDescendantForIndex(lineBegin, lineEnd),
+      typeList[languageConfig] ?? [],
+    );
 
     if (scope.endIndex < position + input.length) {
       logger.debug(
