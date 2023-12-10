@@ -178,7 +178,7 @@ impl AuthenticationService for DbConn {
             return Err(RegisterError::Unknown);
         };
 
-        let id = if let Some(invitation) = invitation{
+        let id = if let Some(invitation) = invitation {
             self.create_user_with_invitation(
                 input.email.clone(),
                 pwd_hash,
