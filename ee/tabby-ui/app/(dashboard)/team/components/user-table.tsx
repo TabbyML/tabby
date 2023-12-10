@@ -5,6 +5,7 @@ import moment from 'moment'
 
 import { graphql } from '@/lib/gql/generates'
 import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
+import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -25,7 +26,7 @@ const listUsers = graphql(/* GraphQL */ `
 `)
 
 export default function UsersTable() {
-  const { data, mutate } = useAuthenticatedGraphQLQuery(listUsers)
+  const { data } = useAuthenticatedGraphQLQuery(listUsers)
   const users = data?.users
 
   return (
@@ -33,17 +34,23 @@ export default function UsersTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Email</TableHead>
-            <TableHead>Joined</TableHead>
+            <TableHead className="w-[25%]">Email</TableHead>
+            <TableHead className="w-[45%]">Joined</TableHead>
             <TableHead>Role</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {users.map((x, i) => (
             <TableRow key={i}>
-              <TableCell className="w-[300px] font-medium">{x.email}</TableCell>
+              <TableCell>{x.email}</TableCell>
               <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
-              <TableCell>{x.isAdmin ? 'Admin' : 'Member'}</TableCell>
+              <TableCell>
+                {x.isAdmin ? (
+                  <Badge>OWNER</Badge>
+                ) : (
+                  <Badge variant="secondary">MEMBER</Badge>
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

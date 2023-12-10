@@ -54,23 +54,23 @@ export default function InvitationTable() {
   return (
     invitations && (
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Invitee</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
+        {invitations.length > 0 && (
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[25%]">Invitee</TableHead>
+              <TableHead className="w-[45%]">Created</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+        )}
         <TableBody>
           {invitations.map((x, i) => {
             const link = `${origin}/auth/signup?invitationCode=${x.code}`
             return (
               <TableRow key={i}>
-                <TableCell className="w-[300px] font-medium">
-                  {x.email}
-                </TableCell>
+                <TableCell>{x.email}</TableCell>
                 <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
-                <TableCell className="flex items-center">
+                <TableCell>
                   <CopyButton value={link} />
                   <Button
                     size="icon"
