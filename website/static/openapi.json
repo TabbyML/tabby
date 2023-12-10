@@ -7,7 +7,7 @@
       "name": "Apache 2.0",
       "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE"
     },
-    "version": "0.5.5"
+    "version": "0.6.0"
   },
   "servers": [
     {
@@ -125,16 +125,16 @@
         "example": {
           "messages": [
             {
-              "content": "What is tail recursion?",
-              "role": "user"
+              "role": "user",
+              "content": "What is tail recursion?"
             },
             {
-              "content": "It's a kind of optimization in compiler?",
-              "role": "assistant"
+              "role": "assistant",
+              "content": "It's a kind of optimization in compiler?"
             },
             {
-              "content": "Could you share more details?",
-              "role": "user"
+              "role": "user",
+              "content": "Could you share more details?"
             }
           ]
         }
@@ -205,19 +205,18 @@
           }
         },
         "example": {
+          "id": "string",
           "choices": [
             {
               "index": 0,
               "text": "string"
             }
-          ],
-          "id": "string"
+          ]
         }
       },
       "HealthState": {
         "type": "object",
         "required": [
-          "model",
           "device",
           "arch",
           "cpu_info",
@@ -227,7 +226,8 @@
         ],
         "properties": {
           "model": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "chat_model": {
             "type": "string",

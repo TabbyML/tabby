@@ -12,7 +12,10 @@ use tabby_common::{
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
 use tracing::info;
-use utoipa::OpenApi;
+use utoipa::{
+    openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
+    Modify, OpenApi,
+};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
@@ -45,7 +48,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::completions, routes::health, routes::search),
+    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::search),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -65,7 +68,8 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         api::code::SearchResponse,
         api::code::Hit,
         api::code::HitDocument
-    ))
+    )),
+    modifiers(&SecurityAddon),
 )]
 struct ApiDoc;
 
@@ -90,6 +94,10 @@ pub struct ServeArgs {
     /// memory requirement e.g., GPU vRAM.
     #[clap(long, default_value_t = 1)]
     parallelism: u8,
+
+    #[cfg(feature = "ee")]
+    #[clap(hide = true, long, default_value_t = false)]
+    webserver: bool,
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
@@ -112,7 +120,12 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let (api, ui) = tabby_webserver::attach_webserver(api, ui, logger, code).await;
+    let (api, ui) = if args.webserver {
+        tabby_webserver::attach_webserver(api, ui, logger, code).await
+    } else {
+        let ui = ui.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
+        (api, ui)
+    };
 
     #[cfg(not(feature = "ee"))]
     let ui = ui.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
@@ -246,4 +259,22 @@ fn start_heartbeat(args: &ServeArgs) {
             sleep(Duration::from_secs(3000)).await;
         }
     });
+}
+
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = &mut openapi.components {
+            components.add_security_scheme(
+                "token",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("token")
+                        .build(),
+                ),
+            )
+        }
+    }
 }

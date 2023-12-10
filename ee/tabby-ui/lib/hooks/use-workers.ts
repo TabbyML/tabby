@@ -1,9 +1,11 @@
 import React from 'react'
 import { findIndex, groupBy, slice } from 'lodash-es'
+
+import { graphql } from '@/lib/gql/generates'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
-import { getAllWorkersDocument } from '@/lib/gql/request-documents'
-import { useGraphQL } from './use-graphql'
-import type { HealthInfo } from './use-health'
+import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
+
+import { useHealth, type HealthInfo } from './use-health'
 import { deviceTypeMap } from "@/lib/utils";
 
 const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
@@ -32,8 +34,29 @@ function transformHealthInfoToWorker(
   }
 }
 
-function useWorkers(healthInfo?: HealthInfo) {
-  const { data } = useGraphQL(getAllWorkersDocument)
+export const getAllWorkersDocument = graphql(/* GraphQL */ `
+  query GetWorkers {
+    workers {
+      kind
+      name
+      addr
+      device
+      arch
+      cpuInfo
+      cpuCount
+      accelerators {
+          uuid
+          chipName
+          displayName
+          deviceType
+      }
+    }
+  }
+`)
+
+function useWorkers() {
+  const { data: healthInfo } = useHealth()
+  const { data } = useAuthenticatedGraphQLQuery(getAllWorkersDocument)
   let workers = data?.workers
 
   const groupedWorkers = React.useMemo(() => {

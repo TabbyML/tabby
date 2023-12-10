@@ -78,9 +78,8 @@ function showInformationWhenInlineSuggestDisabled() {
     .then((selection) => {
       switch (selection) {
         case "Enable":
-          const configuration = workspace.getConfiguration("editor");
           console.debug(`Set editor.inlineSuggest.enabled: true.`);
-          configuration.update("inlineSuggest.enabled", true, ConfigurationTarget.Global, false);
+          workspace.getConfiguration("editor").update("inlineSuggest.enabled", true, ConfigurationTarget.Global, false);
           break;
         case "Settings":
           commands.executeCommand("workbench.action.openSettings", "@id:editor.inlineSuggest.enabled");
@@ -165,7 +164,7 @@ function showInformationWhenAuthFailed() {
 function getHelpMessageForCompletionResponseTimeIssue() {
   let helpMessageForRunningLargeModelOnCPU = "";
   const serverHealthState = agent().getServerHealthState();
-  if (serverHealthState?.device === "cpu" && serverHealthState?.model?.match(/[0-9\.]+B$/)) {
+  if (serverHealthState?.device === "cpu" && serverHealthState?.model?.match(/[0-9.]+B$/)) {
     helpMessageForRunningLargeModelOnCPU +=
       `Your Tabby server is running model ${serverHealthState?.model} on CPU. ` +
       "This model may be performing poorly due to its large parameter size, please consider trying smaller models or switch to GPU. " +

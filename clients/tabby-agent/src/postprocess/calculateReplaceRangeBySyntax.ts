@@ -1,6 +1,5 @@
-import type TreeSitterParser from "web-tree-sitter";
 import { getParser, languagesConfigs } from "../syntax/parser";
-import { CompletionContext, CompletionResponse } from "../Agent";
+import { CompletionContext, CompletionResponse } from "../CompletionContext";
 import { isBlank, splitLines } from "../utils";
 import { logger } from "./base";
 
@@ -10,14 +9,13 @@ export async function calculateReplaceRangeBySyntax(
   response: CompletionResponse,
   context: CompletionContext,
 ): Promise<CompletionResponse> {
-  const { position, prefix, suffix, prefixLines, suffixLines, language } = context;
+  const { position, prefix, suffix, prefixLines, currentLineSuffix, currentLinePrefix, language } = context;
   if (!supportedLanguages.includes(language)) {
     return response;
   }
-  const languageConfig = languagesConfigs[language];
+  const languageConfig = languagesConfigs[language]!;
   const parser = await getParser(languageConfig);
-  const prefixText = prefixLines[prefixLines.length - 1];
-  const suffixText = suffixLines[0]?.trimEnd() || "";
+  const suffixText = currentLineSuffix.trimEnd();
   if (isBlank(suffixText)) {
     return response;
   }
@@ -30,9 +28,9 @@ export async function calculateReplaceRangeBySyntax(
     while (node.hasError() && replaceLength < suffixText.length) {
       replaceLength++;
       const row = prefixLines.length - 1 + completionLines.length - 1;
-      let column = completionLines[completionLines.length - 1].length;
+      let column = completionLines[completionLines.length - 1]?.length ?? 0;
       if (completionLines.length == 1) {
-        column += prefixLines[prefixLines.length - 1].length;
+        column += currentLinePrefix.length;
       }
       tree.edit({
         startIndex: prefix.length + completionText.length,

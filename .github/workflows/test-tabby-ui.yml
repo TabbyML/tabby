@@ -1,0 +1,40 @@
+name: Test Tabby UI
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/test-tabby-ui.yml'
+      - 'ee/tabby-ui/**'
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
+  
+  # If this is enabled it will cancel current running and start latest
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: yarn
+          cache-dependency-path: 'yarn.lock'
+      - name: Install dependencies
+        working-directory: ./ee/tabby-ui
+        run: yarn install
+      - name: Format
+        working-directory: ./ee/tabby-ui
+        run: yarn format:check
+      - name: Lint
+        working-directory: ./ee/tabby-ui
+        run: yarn lint
+      - name: Test build
+        working-directory: ./ee/tabby-ui
+        run: yarn build
+      

@@ -1,25 +1,27 @@
 'use client'
 
 import React from 'react'
-import { cn, nanoid } from '@/lib/utils'
-import { useChatStore } from '@/lib/stores/chat-store'
+
+import { useStore } from '@/lib/hooks/use-store'
 import {
   clearChats,
   deleteChat,
   setActiveChatId
 } from '@/lib/stores/chat-actions'
+import { useChatStore } from '@/lib/stores/chat-store'
+import { cn, nanoid } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { IconPlus, IconTrash } from '@/components/ui/icons'
+import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { EditChatTitleDialog } from './edit-chat-title-dialog'
-import { useStore } from '@/lib/hooks/use-store'
-import { Button } from '@/components/ui/button'
 import { ListSkeleton } from '@/components/skeleton'
-import { Separator } from '@/components/ui/separator'
+
 import { ClearChatsButton } from './clear-chats-button'
+import { EditChatTitleDialog } from './edit-chat-title-dialog'
 
 interface ChatSessionsProps {
   className?: string
@@ -72,7 +74,7 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
                       key={chat.id}
                       onClick={e => setActiveChatId(chat.id)}
                       className={cn(
-                        'hover:bg-accent flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-zinc-900 transition-all hover:text-zinc-900  dark:text-zinc-50 hover:dark:bg-zinc-900 dark:hover:text-zinc-50',
+                        'flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-zinc-900 transition-all hover:bg-accent hover:text-zinc-900  dark:text-zinc-50 hover:dark:bg-zinc-900 dark:hover:text-zinc-50',
                         isActive && '!bg-zinc-200 dark:!bg-zinc-800'
                       )}
                     >

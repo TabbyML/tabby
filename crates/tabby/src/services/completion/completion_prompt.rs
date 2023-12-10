@@ -192,6 +192,14 @@ mod tests {
         PromptBuilder::new(prompt_template, None)
     }
 
+    fn make_segment(prefix: String, suffix: Option<String>) -> Segments {
+        Segments {
+            prefix,
+            suffix,
+            clipboard: None,
+        }
+    }
+
     #[test]
     fn test_prompt_template() {
         let pb = create_prompt_builder(true);
@@ -202,10 +210,10 @@ mod tests {
 
         // Test w/ prefix, w/ suffix.
         {
-            let segments = Segments {
-                prefix: "this is some prefix".into(),
-                suffix: Some("this is some suffix".into()),
-            };
+            let segments = make_segment(
+                "this is some prefix".into(),
+                Some("this is some suffix".into()),
+            );
             assert_eq!(
                 pb.build(language, segments, snippets),
                 "<PRE> this is some prefix <SUF>this is some suffix <MID>"
@@ -214,10 +222,7 @@ mod tests {
 
         // Test w/ prefix, w/o suffix.
         {
-            let segments = Segments {
-                prefix: "this is some prefix".into(),
-                suffix: None,
-            };
+            let segments = make_segment("this is some prefix".into(), None);
             assert_eq!(
                 pb.build(language, segments, snippets),
                 "<PRE> this is some prefix <SUF>\n <MID>"
@@ -226,10 +231,7 @@ mod tests {
 
         // Test w/ prefix, w/ empty suffix.
         {
-            let segments = Segments {
-                prefix: "this is some prefix".into(),
-                suffix: Some("".into()),
-            };
+            let segments = make_segment("this is some prefix".into(), Some("".into()));
             assert_eq!(
                 pb.build(language, segments, snippets),
                 "<PRE> this is some prefix <SUF>\n <MID>"
@@ -238,10 +240,7 @@ mod tests {
 
         // Test w/ empty prefix, w/ suffix.
         {
-            let segments = Segments {
-                prefix: "".into(),
-                suffix: Some("this is some suffix".into()),
-            };
+            let segments = make_segment("".into(), Some("this is some suffix".into()));
             assert_eq!(
                 pb.build(language, segments, snippets),
                 "<PRE>  <SUF>this is some suffix <MID>"
@@ -250,10 +249,7 @@ mod tests {
 
         // Test w/ empty prefix, w/o suffix.
         {
-            let segments = Segments {
-                prefix: "".into(),
-                suffix: None,
-            };
+            let segments = make_segment("".into(), None);
             assert_eq!(
                 pb.build(language, segments, snippets),
                 "<PRE>  <SUF>\n <MID>"
@@ -262,10 +258,7 @@ mod tests {
 
         // Test w/ emtpy prefix, w/ empty suffix.
         {
-            let segments = Segments {
-                prefix: "".into(),
-                suffix: Some("".into()),
-            };
+            let segments = make_segment("".into(), Some("".into()));
             assert_eq!(
                 pb.build(language, segments, snippets),
                 "<PRE>  <SUF>\n <MID>"
@@ -283,10 +276,10 @@ mod tests {
 
         // Test w/ prefix, w/ suffix.
         {
-            let segments = Segments {
-                prefix: "this is some prefix".into(),
-                suffix: Some("this is some suffix".into()),
-            };
+            let segments = make_segment(
+                "this is some prefix".into(),
+                Some("this is some suffix".into()),
+            );
             assert_eq!(
                 pb.build(language, segments, snippets),
                 "this is some prefix"
@@ -295,10 +288,7 @@ mod tests {
 
         // Test w/ prefix, w/o suffix.
         {
-            let segments = Segments {
-                prefix: "this is some prefix".into(),
-                suffix: None,
-            };
+            let segments = make_segment("this is some prefix".into(), None);
             assert_eq!(
                 pb.build(language, segments, snippets),
                 "this is some prefix"
@@ -307,10 +297,7 @@ mod tests {
 
         // Test w/ prefix, w/ empty suffix.
         {
-            let segments = Segments {
-                prefix: "this is some prefix".into(),
-                suffix: Some("".into()),
-            };
+            let segments = make_segment("this is some prefix".into(), Some("".into()));
             assert_eq!(
                 pb.build(language, segments, snippets),
                 "this is some prefix"
@@ -319,28 +306,19 @@ mod tests {
 
         // Test w/ empty prefix, w/ suffix.
         {
-            let segments = Segments {
-                prefix: "".into(),
-                suffix: Some("this is some suffix".into()),
-            };
+            let segments = make_segment("".into(), Some("this is some suffix".into()));
             assert_eq!(pb.build(language, segments, snippets), "");
         }
 
         // Test w/ empty prefix, w/o suffix.
         {
-            let segments = Segments {
-                prefix: "".into(),
-                suffix: None,
-            };
+            let segments = make_segment("".into(), None);
             assert_eq!(pb.build(language, segments, snippets), "");
         }
 
         // Test w/ empty prefix, w/ empty suffix.
         {
-            let segments = Segments {
-                prefix: "".into(),
-                suffix: Some("".into()),
-            };
+            let segments = make_segment("".into(), Some("".into()));
             assert_eq!(pb.build(language, segments, snippets), "");
         }
     }

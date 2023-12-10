@@ -1,6 +1,6 @@
 [package]
 name = "http-api-bindings"
-version = "0.6.0-dev"
+version = "0.7.0-dev"
 edition = "2021"
 
 [dependencies]
@@ -9,7 +9,7 @@ futures.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-tabby-inference = { version = "0.6.0-dev", path = "../tabby-inference" }
+tabby-inference = { version = "0.7.0-dev", path = "../tabby-inference" }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }

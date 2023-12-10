@@ -1,4 +1,3 @@
-import { CompletionContext } from "../Agent";
 import { PostprocessFilter, logger } from "./base";
 import { splitLines, isBlank } from "../utils";
 
@@ -7,18 +6,18 @@ const repetitionTests = [
   /(.{10,}?)\1{3,}$/g, // match a 10+ characters pattern repeating 3+ times
 ];
 
-export const removeLineEndsWithRepetition: (context: CompletionContext) => PostprocessFilter = () => {
-  return (input) => {
+export function removeLineEndsWithRepetition(): PostprocessFilter {
+  return (input: string) => {
     // only test last non-blank line
     const inputLines = splitLines(input);
     let index = inputLines.length - 1;
-    while (index >= 0 && isBlank(inputLines[index])) {
+    while (index >= 0 && isBlank(inputLines[index]!)) {
       index--;
     }
     if (index < 0) return input;
     // if matches repetition test, remove this line
     for (const test of repetitionTests) {
-      const match = inputLines[index].match(test);
+      const match = inputLines[index]!.match(test);
       if (match) {
         logger.debug(
           {
@@ -35,4 +34,4 @@ export const removeLineEndsWithRepetition: (context: CompletionContext) => Postp
     // no repetition found
     return input;
   };
-};
+}

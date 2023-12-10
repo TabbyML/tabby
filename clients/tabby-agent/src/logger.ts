@@ -1,4 +1,7 @@
+import path from "path";
+import os from "os";
 import pino from "pino";
+import { createStream } from "rotating-file-stream";
 import { isBrowser, isTest, testLogDebug } from "./env";
 
 /**
@@ -6,18 +9,18 @@ import { isBrowser, isTest, testLogDebug } from "./env";
  */
 const stream =
   isBrowser || isTest
-    ? null
+    ? undefined
     : /**
        * Default rotating file locate at `~/.tabby-client/agent/logs/`.
        */
-      require("rotating-file-stream").createStream("tabby-agent.log", {
-        path: require("path").join(require("os").homedir(), ".tabby-client", "agent", "logs"),
+      createStream("tabby-agent.log", {
+        path: path.join(os.homedir(), ".tabby-client", "agent", "logs"),
         size: "10M",
         interval: "1d",
       });
 
 const options = { serializers: { error: pino.stdSerializers.err } };
-export const rootLogger = !!stream ? pino(options, stream) : pino(options);
+export const rootLogger = stream ? pino(options, stream) : pino(options);
 if (isTest && testLogDebug) {
   rootLogger.level = "debug";
 } else {

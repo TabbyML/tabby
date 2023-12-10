@@ -14,7 +14,7 @@ describe("postprocess", () => {
       const completion = inline`
                   ├foo = foo = foo = foo = foo = foo = foo =┤
         `;
-      expect(removeLineEndsWithRepetition(context)(completion)).to.be.null;
+      expect(removeLineEndsWithRepetition()(completion, context)).to.be.null;
     });
 
     it("should remove last line that ends with repetition", () => {
@@ -32,7 +32,7 @@ describe("postprocess", () => {
       const expected = inline`
                               ├1000000000┤
         `;
-      expect(removeLineEndsWithRepetition(context)(completion)).to.eq(expected);
+      expect(removeLineEndsWithRepetition()(completion, context)).to.eq(expected);
     });
 
     it("should keep repetition less than threshold", () => {
@@ -47,7 +47,7 @@ describe("postprocess", () => {
                               ├1000000000000┤
         `;
       const expected = completion;
-      expect(removeLineEndsWithRepetition(context)(completion)).to.eq(expected);
+      expect(removeLineEndsWithRepetition()(completion, context)).to.eq(expected);
     });
   });
 });

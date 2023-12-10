@@ -1,20 +1,21 @@
 import * as React from 'react'
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverPortal,
-  PopoverContent,
-  PopoverClose
-} from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
 import { useCombobox } from 'downshift'
 import type {
   UseComboboxReturnValue,
   UseComboboxState,
   UseComboboxStateChangeOptions
 } from 'downshift'
-import Textarea from 'react-textarea-autosize'
 import { isNil, omitBy } from 'lodash-es'
+import Textarea from 'react-textarea-autosize'
+
+import { cn } from '@/lib/utils'
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverClose,
+  PopoverContent,
+  PopoverPortal
+} from '@/components/ui/popover'
 
 interface ComboboxContextValue<T = any> extends UseComboboxReturnValue<T> {
   open: boolean
@@ -130,7 +131,7 @@ export const ComboboxOption = React.forwardRef<
       <div
         className={cn(
           'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
-          highlighted && 'text-accent-foreground bg-accent',
+          highlighted && 'bg-accent text-accent-foreground',
           selected && 'font-bold',
           disabled && 'pointer-events-none opacity-50',
           className

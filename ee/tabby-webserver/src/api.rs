@@ -1,14 +1,12 @@
 use async_trait::async_trait;
-use juniper::{GraphQLEnum, GraphQLObject};
-use serde::{Deserialize, Serialize};
 use tabby_common::api::{
     accelerator::Accelerator,
     code::{CodeSearch, CodeSearchError, SearchResponse},
     event::RawEventLogger,
 };
-use thiserror::Error;
 use tokio_tungstenite::connect_async;
 
+pub use crate::schema::worker::{RegisterWorkerError, Worker, WorkerKind};
 use crate::websocket::WebSocketTransport;
 
 #[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]

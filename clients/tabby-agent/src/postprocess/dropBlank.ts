@@ -1,8 +1,8 @@
 import { PostprocessFilter } from "./base";
 import { isBlank } from "../utils";
 
-export const dropBlank: () => PostprocessFilter = () => {
-  return (input) => {
+export function dropBlank(): PostprocessFilter {
+  return (input: string) => {
     return isBlank(input) ? null : input;
   };
-};
+}

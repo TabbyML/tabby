@@ -1,4 +1,4 @@
-import { CompletionContext, CompletionResponse } from "../Agent";
+import { CompletionContext, CompletionResponse } from "../CompletionContext";
 import { AgentConfig } from "../AgentConfig";
 import { isBrowser } from "../env";
 import { applyFilter } from "./base";
@@ -6,6 +6,7 @@ import { removeRepetitiveBlocks } from "./removeRepetitiveBlocks";
 import { removeRepetitiveLines } from "./removeRepetitiveLines";
 import { removeLineEndsWithRepetition } from "./removeLineEndsWithRepetition";
 import { limitScope } from "./limitScope";
+import { formatIndentation } from "./formatIndentation";
 import { trimSpace } from "./trimSpace";
 import { dropDuplicated } from "./dropDuplicated";
 import { dropBlank } from "./dropBlank";
@@ -14,13 +15,13 @@ import { calculateReplaceRangeBySyntax, supportedLanguages } from "./calculateRe
 
 export async function preCacheProcess(
   context: CompletionContext,
-  config: AgentConfig["postprocess"],
+  _: AgentConfig["postprocess"],
   response: CompletionResponse,
 ): Promise<CompletionResponse> {
   return Promise.resolve(response)
-    .then(applyFilter(removeLineEndsWithRepetition(context), context))
-    .then(applyFilter(dropDuplicated(context), context))
-    .then(applyFilter(trimSpace(context), context))
+    .then(applyFilter(removeLineEndsWithRepetition(), context))
+    .then(applyFilter(dropDuplicated(), context))
+    .then(applyFilter(trimSpace(), context))
     .then(applyFilter(dropBlank(), context));
 }
 
@@ -30,11 +31,12 @@ export async function postCacheProcess(
   response: CompletionResponse,
 ): Promise<CompletionResponse> {
   return Promise.resolve(response)
-    .then(applyFilter(removeRepetitiveBlocks(context), context))
-    .then(applyFilter(removeRepetitiveLines(context), context))
-    .then(applyFilter(limitScope(context, config["limitScope"]), context))
-    .then(applyFilter(dropDuplicated(context), context))
-    .then(applyFilter(trimSpace(context), context))
+    .then(applyFilter(removeRepetitiveBlocks(), context))
+    .then(applyFilter(removeRepetitiveLines(), context))
+    .then(applyFilter(limitScope(config["limitScope"]), context))
+    .then(applyFilter(formatIndentation(), context))
+    .then(applyFilter(dropDuplicated(), context))
+    .then(applyFilter(trimSpace(), context))
     .then(applyFilter(dropBlank(), context));
 }
 

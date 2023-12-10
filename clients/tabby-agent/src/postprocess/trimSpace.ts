@@ -1,21 +1,18 @@
-import { CompletionContext } from "../Agent";
-import { PostprocessFilter, logger } from "./base";
-import { splitLines, isBlank } from "../utils";
+import { CompletionContext } from "../CompletionContext";
+import { PostprocessFilter } from "./base";
+import { isBlank } from "../utils";
 
-export const trimSpace: (context: CompletionContext) => PostprocessFilter = (context) => {
-  return (input) => {
-    const { prefixLines, suffixLines } = context;
-    const inputLines = splitLines(input);
+export function trimSpace(): PostprocessFilter {
+  return (input: string, context: CompletionContext) => {
+    const { currentLinePrefix, currentLineSuffix } = context;
     let trimmedInput = input;
-    const prefixCurrentLine = prefixLines[prefixLines.length - 1] ?? "";
-    const suffixCurrentLine = suffixLines[0] ?? "";
-    if (!isBlank(prefixCurrentLine) && prefixCurrentLine.match(/\s$/)) {
+    if (!isBlank(currentLinePrefix) && currentLinePrefix.match(/\s$/)) {
       trimmedInput = trimmedInput.trimStart();
     }
 
-    if (isBlank(suffixCurrentLine) || (!isBlank(suffixCurrentLine) && suffixCurrentLine.match(/^\s/))) {
+    if (isBlank(currentLineSuffix) || (!isBlank(currentLineSuffix) && currentLineSuffix.match(/^\s/))) {
       trimmedInput = trimmedInput.trimEnd();
     }
     return trimmedInput;
   };
-};
+}

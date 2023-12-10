@@ -1,5 +1,13 @@
-import { isBrowser } from "./env";
+import { EventEmitter } from "events";
+import path from "path";
+import os from "os";
+import fs from "fs-extra";
+import toml from "toml";
+import chokidar from "chokidar";
+import deepEqual from "deep-equal";
 import { getProperty, deleteProperty } from "dot-prop";
+import { isBrowser } from "./env";
+import { rootLogger } from "./logger";
 
 export type AgentConfig = {
   server: {
@@ -52,8 +60,8 @@ type RecursivePartial<T> = {
   [P in keyof T]?: T[P] extends (infer U)[]
     ? RecursivePartial<U>[]
     : T[P] extends object | undefined
-    ? RecursivePartial<T[P]>
-    : T[P];
+      ? RecursivePartial<T[P]>
+      : T[P];
 };
 
 export type PartialAgentConfig = RecursivePartial<AgentConfig>;
@@ -138,7 +146,7 @@ const configTomlTemplate = `## Tabby agent configuration file
 
 `;
 
-const typeCheckSchema = {
+const typeCheckSchema: Record<string, string> = {
   server: "object",
   "server.endpoint": "string",
   "server.token": "string",
@@ -149,6 +157,9 @@ const typeCheckSchema = {
   "completion.prompt.experimentalStripAutoClosingCharacters": "boolean",
   "completion.prompt.maxPrefixLines": "number",
   "completion.prompt.maxSuffixLines": "number",
+  "completion.prompt.clipboard": "object",
+  "completion.prompt.clipboard.minChars": "number",
+  "completion.prompt.clipboard.maxChars": "number",
   "completion.debounce": "object",
   "completion.debounce.mode": "string",
   "completion.debounce.interval": "number",
@@ -162,87 +173,70 @@ const typeCheckSchema = {
   "anonymousUsageTracking.disable": "boolean",
 };
 
-function checkValueType(object, key, type) {
-  if (typeof getProperty(object, key) !== type) {
-    deleteProperty(object, key);
-  }
-}
-
 function validateConfig(config: PartialAgentConfig): PartialAgentConfig {
-  const validatedConfig = { ...config };
-  for (const key in typeCheckSchema) {
-    checkValueType(validatedConfig, key, typeCheckSchema[key]);
+  for (const [key, type] of Object.entries(typeCheckSchema)) {
+    if (typeof getProperty(config, key) !== type) {
+      deleteProperty(config, key);
+    }
   }
-  return validatedConfig;
+  return config;
 }
 
-export const userAgentConfig = isBrowser
-  ? null
-  : (() => {
-      const EventEmitter = require("events");
-      const fs = require("fs-extra");
-      const toml = require("toml");
-      const chokidar = require("chokidar");
-      const deepEqual = require("deep-equal");
+class ConfigFile extends EventEmitter {
+  private data: PartialAgentConfig = {};
+  private watcher?: chokidar.FSWatcher;
+  private logger = rootLogger.child({ component: "ConfigFile" });
 
-      class ConfigFile extends EventEmitter {
-        filepath: string;
-        data: PartialAgentConfig = {};
-        watcher: ReturnType<typeof chokidar.watch> | null = null;
-        logger = require("./logger").rootLogger.child({ component: "ConfigFile" });
+  constructor(private readonly filepath: string) {
+    super();
+  }
 
-        constructor(filepath: string) {
-          super();
-          this.filepath = filepath;
-        }
+  get config(): PartialAgentConfig {
+    return this.data;
+  }
 
-        get config(): PartialAgentConfig {
-          return this.data;
-        }
-
-        async load() {
-          try {
-            const fileContent = await fs.readFile(this.filepath, "utf8");
-            const data = toml.parse(fileContent);
-            // If the config file contains no value, overwrite it with the new template.
-            if (Object.keys(data).length === 0 && fileContent.trim() !== configTomlTemplate.trim()) {
-              await this.createTemplate();
-              return;
-            }
-            this.data = validateConfig(data);
-          } catch (error) {
-            if (error.code === "ENOENT") {
-              await this.createTemplate();
-            } else {
-              this.logger.error({ error }, "Failed to load config file");
-            }
-          }
-        }
-
-        async createTemplate() {
-          try {
-            await fs.outputFile(this.filepath, configTomlTemplate);
-          } catch (error) {
-            this.logger.error({ error }, "Failed to create config template file");
-          }
-        }
-
-        watch() {
-          this.watcher = chokidar.watch(this.filepath, {
-            interval: 1000,
-          });
-          const onChanged = async () => {
-            const oldData = this.data;
-            await this.load();
-            if (!deepEqual(oldData, this.data)) {
-              super.emit("updated", this.data);
-            }
-          };
-          this.watcher.on("add", onChanged);
-          this.watcher.on("change", onChanged);
-        }
+  async load() {
+    try {
+      const fileContent = await fs.readFile(this.filepath, "utf8");
+      const data = toml.parse(fileContent);
+      // If the config file contains no value, overwrite it with the new template.
+      if (Object.keys(data).length === 0 && fileContent.trim() !== configTomlTemplate.trim()) {
+        await this.createTemplate();
+        return;
       }
+      this.data = validateConfig(data);
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        await this.createTemplate();
+      } else {
+        this.logger.error({ error }, "Failed to load config file");
+      }
+    }
+  }
 
-      const configFile = require("path").join(require("os").homedir(), ".tabby-client", "agent", "config.toml");
-      return new ConfigFile(configFile);
-    })();
+  watch() {
+    this.watcher = chokidar.watch(this.filepath, {
+      interval: 1000,
+    });
+    const onChanged = async () => {
+      const oldData = this.data;
+      await this.load();
+      if (!deepEqual(oldData, this.data)) {
+        super.emit("updated", this.data);
+      }
+    };
+    this.watcher.on("add", onChanged);
+    this.watcher.on("change", onChanged);
+  }
+
+  private async createTemplate() {
+    try {
+      await fs.outputFile(this.filepath, configTomlTemplate);
+    } catch (error) {
+      this.logger.error({ error }, "Failed to create config template file");
+    }
+  }
+}
+
+const configFilePath = path.join(os.homedir(), ".tabby-client", "agent", "config.toml");
+export const configFile = isBrowser ? undefined : new ConfigFile(configFilePath);

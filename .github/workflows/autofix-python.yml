@@ -1,0 +1,32 @@
+name: autofix.ci
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '.github/workflows/autofix-python.yml'
+      - 'python/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
+  
+  # If this is enabled it will cancel current running and start latest
+  cancel-in-progress: true
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: chartboost/ruff-action@v1
+        with:
+          src: "./python"
+          args: --fix
+
+      - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc

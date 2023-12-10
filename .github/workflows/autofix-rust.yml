@@ -1,0 +1,62 @@
+name: autofix.ci
+
+on:
+  pull_request:
+    branches: ["main" ]
+    paths:
+      - '.github/workflows/autofix-rust.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
+      - 'ee/tabby-webserver/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
+  
+  # If this is enabled it will cancel current running and start latest
+  cancel-in-progress: true
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rustfmt, clippy
+
+      - name: Install cargo-machete
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-machete
+
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+        with:
+          version: "v0.4.0"
+
+      - name: Cargo registry cache
+        uses: actions/cache@v3
+        with:
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-${{ runner.os }}-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - run: bash ./ci/prepare_build_environment.sh
+
+      - run: make fix
+
+      - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc

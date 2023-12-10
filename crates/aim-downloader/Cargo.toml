@@ -1,0 +1,26 @@
+[package]
+name = "aim-downloader"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+async-stream = "0.3.5"
+clap = { version = "4.4.11", features = ["cargo", "string"] }
+custom_error = "1.9.2"
+dotenvy = "0.15.7"
+futures-util = "0.3.29"
+home = "0.5.5"
+indicatif = "0.17.7"
+netrc = "0.4.1"
+regex.workspace = true
+reqwest = { workspace = true, features = ["stream"] }
+sha2 = "0.10.8"
+strfmt = "0.2.4"
+tokio = { workspace = true, features = ["full"] }
+tokio-util = { version="0.7.10", features = ["full"] }
+url-parse = "1.0.7"
+
+[dev-dependencies]
+serial_test = "2.0.0"

@@ -34,7 +34,7 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
 
     it("should limit scope at function_declaration", async () => {
@@ -56,7 +56,7 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(completion);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(completion);
     });
 
     it("should limit scope at function_declaration", async () => {
@@ -78,7 +78,7 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(completion);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(completion);
     });
 
     it("should limit scope at for_statement.", async () => {
@@ -109,7 +109,7 @@ describe("postprocess", () => {
           }┤
         ┴┴
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
 
     it("should limit scope at current node if no parent scope found.", async () => {
@@ -126,7 +126,7 @@ describe("postprocess", () => {
       const expected = inline`
                ├ 1;┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
 
     it("should handle the bad case of limitScopeByIndentation", async () => {
@@ -158,7 +158,7 @@ describe("postprocess", () => {
           return output;
         };┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).not.to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).not.to.eq(expected);
     });
   });
 
@@ -188,7 +188,7 @@ describe("postprocess", () => {
           return min┤
         ┴┴
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
 
     it("should limit scope at function_definition.", async () => {
@@ -215,7 +215,7 @@ describe("postprocess", () => {
           return min┤
         ┴┴
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
 
     it("should limit scope at function_definition.", async () => {
@@ -233,7 +233,7 @@ describe("postprocess", () => {
                           ├
           return min┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(completion);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(completion);
     });
 
     it("should limit scope at for_statement.", async () => {
@@ -258,7 +258,7 @@ describe("postprocess", () => {
               min = arr[i]┤
         ┴┴┴┴
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
 
     it("should handle the bad case of limitScopeByIndentation", async () => {
@@ -284,7 +284,7 @@ describe("postprocess", () => {
               max = arr[i]
           return max┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).not.to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).not.to.eq(expected);
     });
   });
 
@@ -323,7 +323,7 @@ describe("postprocess", () => {
           return min
         }┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
 
     it("should limit scope at for_statement.", async () => {
@@ -352,7 +352,7 @@ describe("postprocess", () => {
           }┤
         ┴┴
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
   });
 
@@ -378,7 +378,7 @@ describe("postprocess", () => {
           *arr.iter().min().unwrap()
         }┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
   });
 
@@ -403,7 +403,7 @@ describe("postprocess", () => {
           fibonacci(n - 1) + fibonacci(n - 2)
         end┤
       `;
-      expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
   });
 });

@@ -1,9 +1,10 @@
-import { Chat } from '@/lib/types'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+
+import { Chat } from '@/lib/types'
 import { nanoid } from '@/lib/utils'
 
-const excludeFromState = ['_hasHydrated', 'setHasHydrated']
+const excludeFromState = ['_hasHydrated', 'setHasHydrated', 'activeChatId']
 
 export interface ChatState {
   chats: Chat[] | undefined

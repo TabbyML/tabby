@@ -1,8 +1,9 @@
-import { name as agentName, version as agentVersion } from "../package.json";
+import os from "os";
 import createClient from "openapi-fetch";
-import type { paths as CloudApi } from "./types/cloudApi";
 import { setProperty } from "dot-prop";
 import { v4 as uuid } from "uuid";
+import type { paths as CloudApi } from "./types/cloudApi";
+import { name as agentName, version as agentVersion } from "../package.json";
 import { isBrowser } from "./env";
 import { rootLogger } from "./logger";
 import { dataStore, DataStore } from "./dataStore";
@@ -13,29 +14,18 @@ export class AnonymousUsageLogger {
   private systemData = {
     agent: `${agentName}, ${agentVersion}`,
     browser: isBrowser ? navigator?.userAgent || "browser" : undefined,
-    node: isBrowser
-      ? undefined
-      : `${process.version} ${process.platform} ${require("os").arch()} ${require("os").release()}`,
+    node: isBrowser ? undefined : `${process.version} ${process.platform} ${os.arch()} ${os.release()}`,
   };
   private sessionProperties: Record<string, any> = {};
   private userProperties: Record<string, any> = {};
   private userPropertiesUpdated = false;
   private emittedUniqueEvent: string[] = [];
-  private dataStore: DataStore | null = null;
-  private anonymousId: string;
+  private dataStore?: DataStore;
+  private anonymousId?: string;
+  disabled: boolean = false;
 
-  disabled: boolean;
-
-  private constructor() {}
-
-  static async create(options: { dataStore: DataStore }): Promise<AnonymousUsageLogger> {
-    const logger = new AnonymousUsageLogger();
-    logger.dataStore = options.dataStore || dataStore;
-    await logger.checkAnonymousId();
-    return logger;
-  }
-
-  private async checkAnonymousId() {
+  async init(options?: { dataStore?: DataStore }) {
+    this.dataStore = options?.dataStore || dataStore;
     if (this.dataStore) {
       try {
         await this.dataStore.load();
@@ -73,12 +63,12 @@ export class AnonymousUsageLogger {
     this.userPropertiesUpdated = true;
   }
 
-  async uniqueEvent(event: string, data: { [key: string]: any } = {}) {
+  async uniqueEvent(event: string, data: Record<string, any> = {}) {
     await this.event(event, data, true);
   }
 
-  async event(event: string, data: { [key: string]: any } = {}, unique = false) {
-    if (this.disabled) {
+  async event(event: string, data: Record<string, any> = {}, unique = false) {
+    if (this.disabled || !this.anonymousId) {
       return;
     }
     if (unique && this.emittedUniqueEvent.includes(event)) {
@@ -93,7 +83,7 @@ export class AnonymousUsageLogger {
       ...data,
     };
     if (this.userPropertiesUpdated) {
-      properties["$set"] = this.userProperties;
+      setProperty(properties, "$set", this.userProperties);
       this.userPropertiesUpdated = false;
     }
     try {

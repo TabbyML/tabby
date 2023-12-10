@@ -6,7 +6,6 @@ use async_stream::stream;
 use chat_prompt::ChatPromptBuilder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
-use tabby_common::languages::EMPTY_LANGUAGE;
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::debug;
 use utoipa::ToSchema;
@@ -54,7 +53,6 @@ impl ChatService {
         TextGenerationOptionsBuilder::default()
             .max_input_length(2048)
             .max_decoding_length(1920)
-            .language(&EMPTY_LANGUAGE)
             .sampling_temperature(0.1)
             .build()
             .unwrap()
