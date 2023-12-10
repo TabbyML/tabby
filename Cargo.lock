@@ -3690,6 +3690,7 @@ dependencies = [
  "kdam",
  "lazy_static",
  "requirements",
+ "serde",
  "serde-jsonlines 0.4.0",
  "serde_json",
  "serdeconv",
