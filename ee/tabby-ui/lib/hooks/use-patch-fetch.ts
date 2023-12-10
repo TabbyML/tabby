@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import {
+  type AIStreamCallbacksAndOptions,
   createCallbacksTransformer,
   createStreamDataTransformer,
-  StreamingTextResponse,
-  type AIStreamCallbacksAndOptions
+  StreamingTextResponse
 } from 'ai'
 
 import { useSession } from '../tabby/auth'

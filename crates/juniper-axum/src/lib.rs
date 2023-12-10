@@ -1,6 +1,3 @@
-pub mod extract;
-pub mod response;
-
 use std::future;
 
 use axum::{
@@ -11,6 +8,9 @@ use extract::AuthBearer;
 use juniper_graphql_ws::Schema;
 
 use self::{extract::JuniperRequest, response::JuniperResponse};
+
+pub mod extract;
+pub mod response;
 
 pub trait FromAuth<S> {
     fn build(state: S, bearer: Option<String>) -> Self;

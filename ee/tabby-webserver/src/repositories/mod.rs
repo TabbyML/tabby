@@ -1,5 +1,3 @@
-mod resolve;
-
 use anyhow::Result;
 use axum::{extract::Path, http::StatusCode, response::Response, routing, Json, Router};
 use tabby_common::path::repositories_dir;
@@ -9,6 +7,8 @@ use crate::{
     repositories,
     repositories::resolve::{resolve_dir, resolve_file, resolve_meta, Meta, ResolveParams},
 };
+
+mod resolve;
 
 pub fn routes() -> Router {
     Router::new()

@@ -1,8 +1,8 @@
-import { commands, window, workspace, ConfigurationTarget } from "vscode";
+import { commands, ConfigurationTarget, window, workspace } from "vscode";
 import type {
+  ConnectionFailedIssue,
   HighCompletionTimeoutRateIssue,
   SlowCompletionResponseTimeIssue,
-  ConnectionFailedIssue,
 } from "tabby-agent";
 import { agent } from "./agent";
 

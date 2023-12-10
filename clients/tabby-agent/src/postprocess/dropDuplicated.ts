@@ -1,6 +1,6 @@
 import { CompletionContext } from "../CompletionContext";
-import { PostprocessFilter, logger } from "./base";
-import { splitLines, isBlank, calcDistance } from "../utils";
+import { logger, PostprocessFilter } from "./base";
+import { calcDistance, isBlank, splitLines } from "../utils";
 
 export function dropDuplicated(): PostprocessFilter {
   return (input: string, context: CompletionContext) => {

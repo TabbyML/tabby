@@ -6,12 +6,7 @@ import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
-import {
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card'
+import { CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

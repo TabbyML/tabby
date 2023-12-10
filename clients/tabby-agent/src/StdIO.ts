@@ -1,5 +1,5 @@
 import readline from "readline";
-import { AgentFunction, AgentEvent, Agent, agentEventNames } from "./Agent";
+import { Agent, AgentEvent, agentEventNames, AgentFunction } from "./Agent";
 import { rootLogger } from "./logger";
 import { isCanceledError } from "./utils";
 

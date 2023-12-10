@@ -2,32 +2,32 @@ import { EventEmitter } from "events";
 import { v4 as uuid } from "uuid";
 import deepEqual from "deep-equal";
 import { deepmerge } from "deepmerge-ts";
-import { getProperty, setProperty, deleteProperty } from "dot-prop";
-import createClient from "openapi-fetch";
+import { deleteProperty, getProperty, setProperty } from "dot-prop";
 import type { ParseAs } from "openapi-fetch";
+import createClient from "openapi-fetch";
 import type { paths as TabbyApi } from "./types/tabbyApi";
 import type {
-  Agent,
-  AgentStatus,
-  AgentIssue,
-  AgentEvent,
-  ClientProperties,
-  AgentInitOptions,
   AbortSignalOption,
-  ServerHealthState,
+  Agent,
+  AgentEvent,
+  AgentInitOptions,
+  AgentIssue,
+  AgentStatus,
+  ClientProperties,
   CompletionRequest,
   CompletionResponse,
   LogEventRequest,
+  ServerHealthState,
 } from "./Agent";
 import type { DataStore } from "./dataStore";
-import { isBlank, abortSignalFromAnyOf, HttpError, isTimeoutError, isCanceledError, errorToString } from "./utils";
+import { abortSignalFromAnyOf, errorToString, HttpError, isBlank, isCanceledError, isTimeoutError } from "./utils";
 import { Auth } from "./Auth";
-import { AgentConfig, PartialAgentConfig, defaultAgentConfig, configFile } from "./AgentConfig";
+import { AgentConfig, configFile, defaultAgentConfig, PartialAgentConfig } from "./AgentConfig";
 import { CompletionCache } from "./CompletionCache";
 import { CompletionDebounce } from "./CompletionDebounce";
 import { CompletionContext } from "./CompletionContext";
-import { preCacheProcess, postCacheProcess, calculateReplaceRange } from "./postprocess";
-import { rootLogger, allLoggers } from "./logger";
+import { calculateReplaceRange, postCacheProcess, preCacheProcess } from "./postprocess";
+import { allLoggers, rootLogger } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { CompletionProviderStats, CompletionProviderStatsEntry } from "./CompletionProviderStats";
 

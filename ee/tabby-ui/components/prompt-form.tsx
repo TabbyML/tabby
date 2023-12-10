@@ -9,24 +9,10 @@ import fetcher from '@/lib/tabby/fetcher'
 import type { ISearchHit, SearchReponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  Combobox,
-  ComboboxAnchor,
-  ComboboxContent,
-  ComboboxOption,
-  ComboboxTextarea
-} from '@/components/ui/combobox'
-import {
-  IconArrowElbow,
-  IconEdit,
-  IconSymbolFunction
-} from '@/components/ui/icons'
+import { Combobox, ComboboxAnchor, ComboboxContent, ComboboxOption, ComboboxTextarea } from '@/components/ui/combobox'
+import { IconArrowElbow, IconEdit, IconSymbolFunction } from '@/components/ui/icons'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {

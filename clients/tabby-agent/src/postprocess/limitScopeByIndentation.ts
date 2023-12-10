@@ -1,6 +1,6 @@
 import { CompletionContext } from "../CompletionContext";
 import { AgentConfig } from "../AgentConfig";
-import { PostprocessFilter, logger } from "./base";
+import { logger, PostprocessFilter } from "./base";
 import { isBlank, splitLines } from "../utils";
 
 function calcIndentLevel(line: string): number {

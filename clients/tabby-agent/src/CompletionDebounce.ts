@@ -1,4 +1,4 @@
-import type { CompletionRequest, AbortSignalOption } from "./Agent";
+import type { AbortSignalOption, CompletionRequest } from "./Agent";
 import type { AgentConfig } from "./AgentConfig";
 import { splitLines } from "./utils";
 

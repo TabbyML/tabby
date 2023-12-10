@@ -1,9 +1,3 @@
-use std::sync::Arc;
-
-use axum::{extract::State, Json};
-
-use crate::services::health;
-
 #[utoipa::path(
     get,
     path = "/v1/health",

@@ -2,7 +2,7 @@ import type TreeSitterParser from "web-tree-sitter";
 import { getParser, languagesConfigs } from "../syntax/parser";
 import { typeList } from "../syntax/typeList";
 import { CompletionContext } from "../CompletionContext";
-import { PostprocessFilter, logger } from "./base";
+import { logger, PostprocessFilter } from "./base";
 
 export const supportedLanguages = Object.keys(languagesConfigs);
 

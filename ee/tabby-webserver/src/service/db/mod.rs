@@ -1,17 +1,16 @@
-mod invitations;
-mod refresh_tokens;
-mod users;
-
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use lazy_static::lazy_static;
 use rusqlite::params;
-use rusqlite_migration::{AsyncMigrations, M};
 use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 
 use crate::service::cron::run_offline_job;
+
+mod invitations;
+mod refresh_tokens;
+mod users;
 
 lazy_static! {
     static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
@@ -164,7 +163,6 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
     use crate::schema::auth::AuthenticationService;
 

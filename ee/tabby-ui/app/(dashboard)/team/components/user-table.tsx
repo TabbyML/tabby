@@ -6,14 +6,7 @@ import moment from 'moment'
 import { graphql } from '@/lib/gql/generates'
 import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
 import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const listUsers = graphql(/* GraphQL */ `
   query ListUsers {

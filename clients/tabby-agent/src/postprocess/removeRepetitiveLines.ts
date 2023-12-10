@@ -1,5 +1,5 @@
-import { PostprocessFilter, logger } from "./base";
-import { splitLines, isBlank, calcDistance } from "../utils";
+import { logger, PostprocessFilter } from "./base";
+import { calcDistance, isBlank, splitLines } from "../utils";
 
 export function removeRepetitiveLines(): PostprocessFilter {
   return (input: string) => {

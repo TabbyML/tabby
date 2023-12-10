@@ -1,11 +1,3 @@
-use std::sync::Arc;
-
-use axum::{extract::State, Json};
-use hyper::StatusCode;
-use tracing::{instrument, warn};
-
-use crate::services::completion::{CompletionRequest, CompletionResponse, CompletionService};
-
 #[utoipa::path(
     post,
     path = "/v1/completions",

@@ -1,5 +1,3 @@
-mod chat_prompt;
-
 use std::sync::Arc;
 
 use async_stream::stream;
@@ -12,6 +10,8 @@ use utoipa::ToSchema;
 
 use super::model;
 use crate::{fatal, Device};
+
+mod chat_prompt;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({

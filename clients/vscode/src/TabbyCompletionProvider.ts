@@ -1,15 +1,15 @@
 import {
   CancellationToken,
+  env,
   InlineCompletionContext,
   InlineCompletionItem,
   InlineCompletionItemProvider,
   InlineCompletionTriggerKind,
+  NotebookDocument,
+  NotebookRange,
   Position,
   Range,
   TextDocument,
-  NotebookDocument,
-  NotebookRange,
-  env,
   window,
   workspace,
 } from "vscode";

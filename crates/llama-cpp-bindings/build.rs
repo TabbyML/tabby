@@ -4,6 +4,19 @@ use cmake::Config;
 
 fn main() {
     const LLAMA_CMAKE_PATH: &str = "llama.cpp/CMakeLists.txt";
+    let intel_compile_flags: Vec<&str> = vec![
+        "-fsycl",
+        "-fsycl-targets=spir64_gen",
+        "-fiopenmp",
+        "-fopenmp-targets=spir64_gen",
+        "-m64",
+        "-DMKL_ILP64",
+        "-qopt-report=3",
+        "-O3",
+        "-Xs",
+        "-device skl",
+        //"-device *",
+    ];
 
     assert!(
         Path::new(LLAMA_CMAKE_PATH).exists(),
@@ -67,6 +80,41 @@ fn main() {
         println!("cargo:rustc-link-lib=amdhip64");
         println!("cargo:rustc-link-lib=rocblas");
         println!("cargo:rustc-link-lib=hipblas");
+    }
+    if cfg!(feature = "oneapi") {
+        let mkl_root = env::var("MKLROOT")
+            .expect("MKLROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
+        let compiler_root = env::var("CMPLR_ROOT")
+            .expect("CMPLR_ROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
+        config.define("LLAMA_BLAS", "ON");
+        config.define("LLAMA_BLAS_VENDOR", "Intel10_64lp");
+        config.define("C_FLAGS", intel_compile_flags.join(" "));
+        config.define("CXX_FLAGS", intel_compile_flags.join(" "));
+        config.define("CMAKE_C_COMPILER", format!("{}/bin/icx", compiler_root));
+        config.define("CMAKE_CXX_COMPILER", format!("{}/bin/icpx", compiler_root));
+        println!("cargo:rustc-link-arg=-fiopenmp");
+        println!("cargo:rustc-link-arg=-fopenmp-targets=spir64_gen");
+        println!("cargo:rustc-link-arg=-fsycl");
+        println!("cargo:rustc-link-arg=-Wl,--no-as-needed");
+        println!("cargo:rustc-link-search=native={}/lib", compiler_root);
+        println!("cargo:rustc-link-search=native={}/lib", mkl_root);
+        println!("cargo:rustc-link-lib=svml");
+        println!("cargo:rustc-link-lib=mkl_sycl_blas");
+        println!("cargo:rustc-link-lib=mkl_sycl_lapack");
+        println!("cargo:rustc-link-lib=mkl_sycl_dft");
+        println!("cargo:rustc-link-lib=mkl_sycl_sparse");
+        println!("cargo:rustc-link-lib=mkl_sycl_vm");
+        println!("cargo:rustc-link-lib=mkl_sycl_rng");
+        println!("cargo:rustc-link-lib=mkl_sycl_stats");
+        println!("cargo:rustc-link-lib=mkl_sycl_data_fitting");
+        println!("cargo:rustc-link-lib=mkl_intel_ilp64");
+        println!("cargo:rustc-link-lib=mkl_intel_thread");
+        println!("cargo:rustc-link-lib=mkl_core");
+        println!("cargo:rustc-link-lib=iomp5");
+        println!("cargo:rustc-link-lib=sycl");
+        println!("cargo:rustc-link-lib=pthread");
+        println!("cargo:rustc-link-lib=m");
+        println!("cargo:rustc-link-lib=dl");
     }
 
     let dst = config.build();

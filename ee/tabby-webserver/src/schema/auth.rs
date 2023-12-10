@@ -13,7 +13,6 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::{from_validation_errors, User};
-
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
 
@@ -283,6 +282,7 @@ pub trait AuthenticationService: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_generate_jwt() {
         let claims = JWTPayload::new("test".to_string(), false);

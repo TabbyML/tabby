@@ -65,6 +65,7 @@ export function findUnpairedAutoClosingChars(input: string): string {
 // Such as distance is 9 between `const fooFooFoo = 1;` and `const barBarBar = 1;`, but maybe 1 is enough.
 // May be better to count distance based on words instead of characters.
 import * as levenshtein from "fast-levenshtein";
+
 export function calcDistance(a: string, b: string) {
   return levenshtein.get(a, b);
 }

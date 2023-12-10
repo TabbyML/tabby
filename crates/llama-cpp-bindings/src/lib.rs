@@ -1,6 +1,3 @@
-mod llama;
-mod utils;
-
 use async_stream::stream;
 use async_trait::async_trait;
 use derive_builder::Builder;
@@ -10,6 +7,9 @@ use llama::LlamaService;
 use tabby_inference::{
     decoding::StopConditionFactory, helpers, TextGeneration, TextGenerationOptions,
 };
+
+mod llama;
+mod utils;
 
 #[cxx::bridge(namespace = "llama")]
 mod ffi {

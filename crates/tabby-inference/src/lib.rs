@@ -1,9 +1,9 @@
-pub mod decoding;
-
 use async_trait::async_trait;
 use derive_builder::Builder;
 use futures::stream::BoxStream;
 use tabby_common::languages::Language;
+
+pub mod decoding;
 
 #[derive(Builder, Debug)]
 pub struct TextGenerationOptions {

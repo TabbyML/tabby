@@ -1,14 +1,4 @@
-use std::sync::Arc;
-
-use anyhow::Result;
-use axum::{
-    extract::{Query, State},
-    Json,
-};
-use hyper::StatusCode;
 use serde::Deserialize;
-use tabby_common::api::code::{CodeSearch, CodeSearchError, SearchResponse};
-use tracing::{instrument, warn};
 use utoipa::IntoParams;
 
 #[derive(Deserialize, IntoParams)]

@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import { useChat } from 'ai/react'
 import type { Message } from 'ai/react'
+import { useChat } from 'ai/react'
 import { find, findIndex } from 'lodash-es'
 import { toast } from 'react-hot-toast'
 

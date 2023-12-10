@@ -59,7 +59,6 @@ fn random_index(size: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
     use crate::schema::worker::WorkerKind;
 

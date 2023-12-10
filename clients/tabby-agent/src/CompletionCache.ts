@@ -1,7 +1,7 @@
 import { LRUCache } from "lru-cache";
 import { CompletionContext, CompletionResponse } from "./CompletionContext";
 import { rootLogger } from "./logger";
-import { splitLines, autoClosingPairOpenings, autoClosingPairClosings, findUnpairedAutoClosingChars } from "./utils";
+import { autoClosingPairClosings, autoClosingPairOpenings, findUnpairedAutoClosingChars, splitLines } from "./utils";
 
 type CompletionCacheKey = CompletionContext;
 type CompletionCacheValue = CompletionResponse;

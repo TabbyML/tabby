@@ -5,7 +5,7 @@ import fs from "fs-extra";
 import toml from "toml";
 import chokidar from "chokidar";
 import deepEqual from "deep-equal";
-import { getProperty, deleteProperty } from "dot-prop";
+import { deleteProperty, getProperty } from "dot-prop";
 import { isBrowser } from "./env";
 import { rootLogger } from "./logger";
 

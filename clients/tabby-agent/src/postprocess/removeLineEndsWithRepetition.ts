@@ -1,5 +1,5 @@
-import { PostprocessFilter, logger } from "./base";
-import { splitLines, isBlank } from "../utils";
+import { logger, PostprocessFilter } from "./base";
+import { isBlank, splitLines } from "../utils";
 
 const repetitionTests = [
   /(.{3,}?)\1{5,}$/g, // match a 3+ characters pattern repeating 5+ times

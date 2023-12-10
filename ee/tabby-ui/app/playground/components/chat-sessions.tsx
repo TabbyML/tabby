@@ -3,21 +3,13 @@
 import React from 'react'
 
 import { useStore } from '@/lib/hooks/use-store'
-import {
-  clearChats,
-  deleteChat,
-  setActiveChatId
-} from '@/lib/stores/chat-actions'
+import { clearChats, deleteChat, setActiveChatId } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { cn, nanoid } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconPlus, IconTrash } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { ClearChatsButton } from './clear-chats-button'

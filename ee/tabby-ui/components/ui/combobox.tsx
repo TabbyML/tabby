@@ -1,21 +1,11 @@
 import * as React from 'react'
+import type { UseComboboxReturnValue, UseComboboxState, UseComboboxStateChangeOptions } from 'downshift'
 import { useCombobox } from 'downshift'
-import type {
-  UseComboboxReturnValue,
-  UseComboboxState,
-  UseComboboxStateChangeOptions
-} from 'downshift'
 import { isNil, omitBy } from 'lodash-es'
 import Textarea from 'react-textarea-autosize'
 
 import { cn } from '@/lib/utils'
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverClose,
-  PopoverContent,
-  PopoverPortal
-} from '@/components/ui/popover'
+import { Popover, PopoverAnchor, PopoverClose, PopoverContent, PopoverPortal } from '@/components/ui/popover'
 
 interface ComboboxContextValue<T = any> extends UseComboboxReturnValue<T> {
   open: boolean

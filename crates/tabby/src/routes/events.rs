@@ -1,12 +1,3 @@
-use std::{collections::HashMap, sync::Arc};
-
-use axum::{
-    extract::{Query, State},
-    Json,
-};
-use hyper::StatusCode;
-use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
-
 #[utoipa::path(
     post,
     path = "/v1/events",

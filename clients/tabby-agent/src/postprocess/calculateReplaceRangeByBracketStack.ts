@@ -1,5 +1,5 @@
 import { CompletionContext, CompletionResponse } from "../CompletionContext";
-import { isBlank, findUnpairedAutoClosingChars } from "../utils";
+import { findUnpairedAutoClosingChars, isBlank } from "../utils";
 import { logger } from "./base";
 
 export function calculateReplaceRangeByBracketStack(

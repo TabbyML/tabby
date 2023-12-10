@@ -1,6 +1,3 @@
-pub mod auth;
-pub mod worker;
-
 use std::sync::Arc;
 
 use auth::AuthenticationService;
@@ -13,17 +10,10 @@ use juniper_axum::FromAuth;
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use validator::ValidationErrors;
 
-use self::{
-    auth::{validate_jwt, Invitation, RegisterError, TokenAuthError},
-    worker::WorkerService,
-};
-use crate::schema::{
-    auth::{
-        RefreshTokenError, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
-        VerifyTokenResponse,
-    },
-    worker::Worker,
-};
+use self::{auth::validate_jwt, worker::WorkerService};
+
+pub mod auth;
+pub mod worker;
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> &dyn AuthenticationService;

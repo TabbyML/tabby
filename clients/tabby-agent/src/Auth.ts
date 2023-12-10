@@ -3,7 +3,7 @@ import decodeJwt from "jwt-decode";
 import createClient from "openapi-fetch";
 import type { paths as CloudApi } from "./types/cloudApi";
 import type { AbortSignalOption } from "./Agent";
-import { HttpError, abortSignalFromAnyOf } from "./utils";
+import { abortSignalFromAnyOf, HttpError } from "./utils";
 import { dataStore, DataStore } from "./dataStore";
 import { rootLogger } from "./logger";
 

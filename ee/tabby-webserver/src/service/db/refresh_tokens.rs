@@ -109,7 +109,6 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
-
     use std::ops::Add;
 
     use super::*;

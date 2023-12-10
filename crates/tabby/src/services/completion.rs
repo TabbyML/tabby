@@ -1,5 +1,3 @@
-mod completion_prompt;
-
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -18,6 +16,8 @@ use utoipa::ToSchema;
 
 use super::model;
 use crate::Device;
+
+mod completion_prompt;
 
 #[derive(Error, Debug)]
 pub enum CompletionError {

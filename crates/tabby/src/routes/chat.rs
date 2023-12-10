@@ -1,16 +1,3 @@
-use std::sync::Arc;
-
-use async_stream::stream;
-use axum::{
-    extract::State,
-    response::{IntoResponse, Response},
-    Json,
-};
-use axum_streams::StreamBodyAs;
-use tracing::instrument;
-
-use crate::services::chat::{ChatCompletionRequest, ChatService};
-
 #[utoipa::path(
     post,
     path = "/v1beta/chat/completions",

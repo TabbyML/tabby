@@ -1,6 +1,6 @@
 import { CompletionContext } from "../CompletionContext";
-import { PostprocessFilter, logger } from "./base";
-import { isBlank, calcDistance } from "../utils";
+import { logger, PostprocessFilter } from "./base";
+import { calcDistance, isBlank } from "../utils";
 
 function blockSplitter(_: string) {
   // Have not implemented this for each language for now

@@ -1,5 +1,5 @@
-import { ExtensionContext, workspace, env, version } from "vscode";
-import { TabbyAgent, AgentInitOptions, PartialAgentConfig, ClientProperties, DataStore } from "tabby-agent";
+import { env, ExtensionContext, version, workspace } from "vscode";
+import { AgentInitOptions, ClientProperties, DataStore, PartialAgentConfig, TabbyAgent } from "tabby-agent";
 
 function buildInitOptions(context: ExtensionContext): AgentInitOptions {
   const configuration = workspace.getConfiguration("tabby");

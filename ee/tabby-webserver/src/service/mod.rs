@@ -1,9 +1,3 @@
-mod auth;
-mod cron;
-mod db;
-mod proxy;
-mod worker;
-
 use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
@@ -23,6 +17,12 @@ use crate::schema::{
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
     ServiceLocator,
 };
+
+mod auth;
+mod cron;
+mod db;
+mod proxy;
+mod worker;
 
 struct ServerContext {
     client: Client<HttpConnector>,

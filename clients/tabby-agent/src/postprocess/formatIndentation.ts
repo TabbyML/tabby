@@ -1,5 +1,5 @@
 import { CompletionContext } from "../CompletionContext";
-import { PostprocessFilter, logger } from "./base";
+import { logger, PostprocessFilter } from "./base";
 import { isBlank, splitLines } from "../utils";
 
 function detectIndentation(lines: string[]): string | null {

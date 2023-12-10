@@ -1,14 +1,14 @@
 import {
+  commands,
   ConfigurationTarget,
+  env,
+  ExtensionContext,
   InputBoxValidationSeverity,
   ProgressLocation,
-  Uri,
   ThemeIcon,
-  ExtensionContext,
-  workspace,
+  Uri,
   window,
-  env,
-  commands,
+  workspace,
 } from "vscode";
 import os from "os";
 import { strict as assert } from "assert";

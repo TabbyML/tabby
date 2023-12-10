@@ -1,4 +1,4 @@
-import { CompletionResponse, CompletionContext } from "../CompletionContext";
+import { CompletionContext, CompletionResponse } from "../CompletionContext";
 import { rootLogger } from "../logger";
 
 export type PostprocessFilter = (item: string, context: CompletionContext) => string | null | Promise<string | null>;

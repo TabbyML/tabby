@@ -1,4 +1,4 @@
-import { splitLines, autoClosingPairClosings } from "./utils";
+import { autoClosingPairClosings, splitLines } from "./utils";
 import hashObject from "object-hash";
 
 export type CompletionRequest = {

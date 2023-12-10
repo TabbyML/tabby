@@ -7,14 +7,7 @@ import { graphql } from '@/lib/gql/generates'
 import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CopyButton } from '@/components/copy-button'
 
 import CreateInvitationForm from './create-invitation-form'
