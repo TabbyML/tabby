@@ -1,4 +1,4 @@
-use std::{env::consts::ARCH, sync::Arc, net::IpAddr};
+use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 
 use anyhow::Result;
 use axum::{routing, Router};
