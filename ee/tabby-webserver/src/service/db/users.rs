@@ -110,12 +110,14 @@ impl DbConn {
         let user = self
             .conn
             .call(move |c| {
-                c.query_row(User::select("id = ?").as_str(), params![id], User::from_row)
-                    .optional()
+                Ok(
+                    c.query_row(User::select("id = ?").as_str(), params![id], User::from_row)
+                        .optional(),
+                )
             })
             .await?;
 
-        Ok(user)
+        Ok(user?)
     }
 
     pub async fn get_user_by_email(&self, email: &str) -> Result<Option<User>> {
@@ -123,16 +125,16 @@ impl DbConn {
         let user = self
             .conn
             .call(move |c| {
-                c.query_row(
+                Ok(c.query_row(
                     User::select("email = ?").as_str(),
                     params![email],
                     User::from_row,
                 )
-                .optional()
+                .optional())
             })
             .await?;
 
-        Ok(user)
+        Ok(user?)
     }
 
     pub async fn list_admin_users(&self) -> Result<Vec<User>> {
@@ -163,17 +165,17 @@ impl DbConn {
 
     pub async fn verify_auth_token(&self, token: &str) -> bool {
         let token = token.to_owned();
-        let id: Result<i32, _> = self
+        let id: Result<Result<i32, _>, _> = self
             .conn
             .call(move |c| {
-                c.query_row(
+                Ok(c.query_row(
                     r#"SELECT id FROM users WHERE auth_token = ?"#,
                     params![token],
                     |row| row.get(0),
-                )
+                ))
             })
             .await;
-        id.is_ok()
+        matches!(id, Ok(Ok(_)))
     }
 
     pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
