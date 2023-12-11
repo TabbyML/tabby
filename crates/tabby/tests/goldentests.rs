@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use assert_json_diff::assert_json_include;
-use insta::{assert_snapshot, assert_yaml_snapshot};
+
+use insta::{assert_yaml_snapshot};
 use lazy_static::lazy_static;
-use serde::Deserialize;
+
 use serde_json::json;
 use tokio::{
     process::Command,
@@ -83,7 +83,7 @@ async fn golden_test(body: serde_json::Value) -> serde_json::Value {
         .json()
         .await
         .unwrap();
-    return actual;
+    actual
 }
 
 async fn assert_golden(body: serde_json::Value) {
@@ -102,7 +102,8 @@ async fn run_golden_tests() {
                 "prefix": "def fib(n):\n    ",
                 "suffix": "\n        return fib(n - 1) + fib(n - 2)"
             }
-    })).await;
+    }))
+    .await;
 
     assert_golden(json!({
             "language": "python",

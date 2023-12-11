@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use assert_json_diff::assert_json_include;
-use insta::{assert_snapshot, assert_yaml_snapshot};
+
+use insta::{assert_yaml_snapshot};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use serde_json::json;
@@ -106,7 +106,8 @@ async fn run_chat_golden_tests() {
                     "content": "How to convert a list of string to numbers in python"
                 }
             ]
-    })).await;
+    }))
+    .await;
 
     assert_golden(json!({
             "messages": [
@@ -115,5 +116,6 @@ async fn run_chat_golden_tests() {
                     "content": "How to parse email address with regex"
                 }
             ]
-    })).await;
+    }))
+    .await;
 }
