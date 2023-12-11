@@ -42,13 +42,13 @@ jobs:
             container: sameli/manylinux2014_x86_64_cuda_11.7
             build_args: --features cuda
           - os: windows-latest
-            target: x86_64-windows-msvc
+            target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-cuda117
             ext: .exe
             build_args: --features cuda
             windows_cuda: '11.7.1'
           - os: windows-latest
-            target: x86_64-windows-msvc
+            target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-cuda122
             ext: .exe
             build_args: --features cuda
