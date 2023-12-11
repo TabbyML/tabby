@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 
 use assert_json_diff::assert_json_include;
+use insta::{assert_snapshot, assert_yaml_snapshot};
 use lazy_static::lazy_static;
 use serde::Deserialize;
+use serde_json::json;
 use serde_jsonlines::BufReadExt;
 use tokio::{
     process::Command,
@@ -53,10 +55,6 @@ fn tabby_path() -> PathBuf {
     workspace_dir().join("target/debug/tabby")
 }
 
-fn golden_path() -> PathBuf {
-    workspace_dir().join("crates/tabby/tests/golden_chat.json")
-}
-
 async fn wait_for_server() {
     lazy_static::initialize(&SERVER);
 
@@ -73,7 +71,7 @@ async fn wait_for_server() {
     }
 }
 
-async fn golden_test(body: serde_json::Value, expected: serde_json::Value) {
+async fn golden_test(body: serde_json::Value) -> String {
     let bytes = CLIENT
         .post("http://localhost:9090/v1beta/chat/completions")
         .json(&body)
@@ -90,21 +88,32 @@ async fn golden_test(body: serde_json::Value, expected: serde_json::Value) {
         actual += &x.unwrap().content;
     }
 
-    assert_json_include!(actual: actual, expected: expected);
+    actual
 }
 
-#[derive(Deserialize)]
-struct TestCase {
-    request: serde_json::Value,
-    expected: serde_json::Value,
+async fn assert_golden(body: serde_json::Value) {
+    assert_yaml_snapshot!(golden_test(body).await);
 }
 
 #[tokio::test]
 async fn run_chat_golden_tests() {
     wait_for_server().await;
 
-    let cases: Vec<TestCase> = serdeconv::from_json_file(golden_path()).unwrap();
-    for case in cases {
-        golden_test(case.request, case.expected).await;
-    }
+    assert_golden(json!({
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "How to convert a list of string to numbers in python"
+                }
+            ]
+    })).await;
+
+    assert_golden(json!({
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "How to parse email address with regex"
+                }
+            ]
+    })).await;
 }

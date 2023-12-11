@@ -1,0 +1,10 @@
+---
+source: crates/tabby/tests/goldentests.rs
+expression: "golden_test(json!({\n                \"language\" : \"python\", \"segments\" :\n                {\n                    \"prefix\" : \"def fib(n):\\n    \", \"suffix\" :\n                    \"\\n        return fib(n - 1) + fib(n - 2)\"\n                }\n            })).await"
+---
+id: cmpl-9abdf3d1-11f7-4f26-96af-0c4175d9bb53
+choices:
+  - index: 0
+    text: "    if n <= 1:\n            return n"
+debug_data: {}
+

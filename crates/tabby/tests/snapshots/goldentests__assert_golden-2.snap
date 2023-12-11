@@ -1,0 +1,10 @@
+---
+source: crates/tabby/tests/goldentests.rs
+expression: golden_test(body).await
+---
+id: test-id
+choices:
+  - index: 0
+    text: "if line.startswith('#'):\n            continue\n        date, value, currency = line.split()\n        date = datetime.datetime.strptime(date, '%Y-%m-%d')\n        yield date, float(value), currency"
+debug_data: {}
+

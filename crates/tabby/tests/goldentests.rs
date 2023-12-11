@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use assert_json_diff::assert_json_include;
+use insta::{assert_snapshot, assert_yaml_snapshot};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use serde_json::json;
@@ -48,10 +49,6 @@ fn tabby_path() -> PathBuf {
     workspace_dir().join("target/debug/tabby")
 }
 
-fn golden_path() -> PathBuf {
-    workspace_dir().join("crates/tabby/tests/golden.json")
-}
-
 async fn wait_for_server() {
     lazy_static::initialize(&SERVER);
 
@@ -68,7 +65,7 @@ async fn wait_for_server() {
     }
 }
 
-async fn golden_test(body: serde_json::Value, expected: serde_json::Value) {
+async fn golden_test(body: serde_json::Value) -> serde_json::Value {
     let mut body = body.clone();
     body.as_object_mut().unwrap().insert(
         "debug_options".to_owned(),
@@ -86,21 +83,31 @@ async fn golden_test(body: serde_json::Value, expected: serde_json::Value) {
         .json()
         .await
         .unwrap();
-    assert_json_include!(actual: actual, expected: expected);
+    return actual;
 }
 
-#[derive(Deserialize)]
-struct TestCase {
-    request: serde_json::Value,
-    expected: serde_json::Value,
+async fn assert_golden(body: serde_json::Value) {
+    assert_yaml_snapshot!(golden_test(body).await, {
+        ".id" => "test-id"
+    });
 }
 
 #[tokio::test]
 async fn run_golden_tests() {
     wait_for_server().await;
 
-    let cases: Vec<TestCase> = serdeconv::from_json_file(golden_path()).unwrap();
-    for case in cases {
-        golden_test(case.request, case.expected).await;
-    }
+    assert_golden(json!({
+            "language": "python",
+            "segments": {
+                "prefix": "def fib(n):\n    ",
+                "suffix": "\n        return fib(n - 1) + fib(n - 2)"
+            }
+    })).await;
+
+    assert_golden(json!({
+            "language": "python",
+            "segments": {
+                "prefix": "import datetime\n\ndef parse_expenses(expenses_string):\n    \"\"\"Parse the list of expenses and return the list of triples (date, value, currency).\n    Ignore lines starting with #.\n    Parse the date using datetime.\n    Example expenses_string:\n        2016-01-02 -34.01 USD\n        2016-01-03 2.59 DKK\n        2016-01-03 -2.72 EUR\n    \"\"\"\n    for line in expenses_string.split('\\n'):\n        "
+            }
+    })).await;
 }
