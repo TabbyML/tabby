@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117,
-                 x86_64-pc-windows-msvc-cuda117, x86_64-pc-windows-msvc-cuda122]
+                 x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
@@ -42,17 +42,17 @@ jobs:
             container: sameli/manylinux2014_x86_64_cuda_11.7
             build_args: --features cuda
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            binary: x86_64-pc-windows-msvc-cuda117
+            target: x86_64-windows-msvc
+            binary: x86_64-windows-msvc-cuda117
             ext: .exe
             build_args: --features cuda
-            cuda: '11.7.1'
+            windows_cuda: '11.7.1'
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            binary: x86_64-pc-windows-msvc-cuda122
+            target: x86_64-windows-msvc
+            binary: x86_64-windows-msvc-cuda122
             ext: .exe
             build_args: --features cuda
-            cuda: '12.2.0'
+            windows_cuda: '12.2.0'
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -101,7 +101,7 @@ jobs:
       - name: Install CUDA toolkit for Windows
         uses: Jimver/cuda-toolkit@v0.2.11
         with:
-          cuda: ${{ matrix.cuda }}
+          cuda: ${{ matrix.windows_cuda }}
           method: 'network'
           sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
         if: runner.os == 'Windows'
