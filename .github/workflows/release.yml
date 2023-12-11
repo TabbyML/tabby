@@ -30,23 +30,20 @@ jobs:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
-            raw: tabby
             binary: aarch64-apple-darwin
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            raw: tabby
             binary: x86_64-manylinux2014
             container: quay.io/pypa/manylinux2014_x86_64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            raw: tabby
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
             build_args: --features cuda
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            raw: tabby.exe
-            binary: x86_64-pc-windows-msvc.exe
+            binary: x86_64-pc-windows-msvc
+            ext: .exe
             build_args: --features cuda
 
     env:
@@ -105,14 +102,14 @@ jobs:
         run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
 
       - name: Rename release binary
-        run: mv target/${{ matrix.target }}/release/${{ matrix.raw }} tabby_${{ matrix.binary }}
+        run: mv target/${{ matrix.target }}/release/tabby${{ matrix.ext }} tabby_${{ matrix.binary }}${{ matrix.ext }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           retention-days: 3
-          name: tabby_${{ matrix.binary }}
-          path: tabby_${{ matrix.binary }}
+          name: tabby_${{ matrix.binary }}${{ matrix.ext }}
+          path: tabby_${{ matrix.binary }}${{ matrix.ext }}
 
   pre-release:
     if: github.event_name == 'push'
