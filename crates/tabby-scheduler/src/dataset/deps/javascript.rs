@@ -1,9 +1,13 @@
 use std::{collections::HashMap, path::Path};
-use tabby_common::Package;
+
 use package_lock_json_parser::PackageLockJson;
+use tabby_common::Package;
 
 fn extract_deps(lock_file: &PackageLockJson) -> Vec<Package> {
-    let packages = lock_file.packages.as_ref().map_or_else(HashMap::new, |p| p.clone());
+    let packages = lock_file
+        .packages
+        .as_ref()
+        .map_or_else(HashMap::new, |p| p.clone());
 
     packages
         .values()

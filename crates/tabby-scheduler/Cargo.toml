@@ -28,10 +28,8 @@ kdam = { version = "0.5.0" }
 requirements = "0.3.0"
 serdeconv.workspace = true
 cargo-lock = { version = "9.0.0", features = ["dependency-tree"] }
-serde = { workspace = true }
 serde_json = { workspace = true}
 package-lock-json-parser = "0.4.0"
-thiserror = "1.0"
 
 [dev-dependencies]
 temp_testdir = "0.2"

@@ -1,6 +1,6 @@
+mod javascript;
 mod python;
 mod rust;
-mod javascript;
 
 use std::{collections::HashSet, path::Path};
 
