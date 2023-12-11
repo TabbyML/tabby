@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{net::IpAddr, sync::Arc, time::Duration};
 
 use axum::{routing, Router};
 use clap::Args;
@@ -81,6 +81,9 @@ pub struct ServeArgs {
     #[clap(long)]
     chat_model: Option<String>,
 
+    #[clap(long, default_value = "0.0.0.0")]
+    host: IpAddr,
+
     #[clap(long, default_value_t = 8080)]
     port: u16,
 
@@ -108,7 +111,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(not(feature = "experimental-http"))]
     load_model(args).await;
 
-    info!("Starting server, this might takes a few minutes...");
+    info!("Starting server, this might take a few minutes...");
 
     let logger = Arc::new(create_logger());
     let code = Arc::new(create_code_search());
@@ -129,7 +132,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     let ui = ui.fallback(|| async { axum::response::Redirect::permanent("/swagger-ui") });
 
     start_heartbeat(args);
-    run_app(api, Some(ui), args.port).await
+    run_app(api, Some(ui), args.host, args.port).await
 }
 
 async fn load_model(args: &ServeArgs) {
