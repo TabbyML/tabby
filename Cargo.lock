@@ -1612,6 +1612,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "insta"
+version = "1.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d64600be34b2fcfc267740a243fa7744441bb4947a619ac4e5bb6507f35fbfc"
+dependencies = [
+ "console",
+ "lazy_static",
+ "linked-hash-map",
+ "pest",
+ "pest_derive",
+ "serde",
+ "similar",
+ "yaml-rust",
+]
+
+[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3388,6 +3404,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "similar"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2aeaf503862c419d66959f5d7ca015337d864e9c49485d771b732e2a20453597"
+
+[[package]]
 name = "simple_asn1"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3599,6 +3621,7 @@ dependencies = [
  "futures",
  "http-api-bindings",
  "hyper",
+ "insta",
  "lazy_static",
  "llama-cpp-bindings",
  "minijinja",
@@ -5213,6 +5236,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "yaml-rust"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
+dependencies = [
+ "linked-hash-map",
 ]
 
 [[package]]
