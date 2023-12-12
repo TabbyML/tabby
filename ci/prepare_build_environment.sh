@@ -17,8 +17,7 @@ install_hipblas_5_7_2_centos() {
   curl -SL https://repo.radeon.com/amdgpu-install/5.7.2/rhel/7.9/amdgpu-install-5.7.50702-1.el7.noarch.rpm --output /tmp/amdgpu-install.rpm
   yum -y install /tmp/amdgpu-install.rpm
   rm /tmp/amdgpu-install.rpm
-
-  yum -y install hipblas-devel hipblaslt-devel
+  yum -y install hipblas-devel hipblaslt-devel rocblas-devel
 }
 
 if [[ "$OSTYPE" == "linux"* ]]; then
