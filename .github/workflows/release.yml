@@ -55,9 +55,10 @@ jobs:
             windows_cuda: '12.2.0'
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            binary: x86_64-manylinux2014-rocm5.7
-            container: pytorch/manylinux-rocm:5.7
+            binary: x86_64-manylinux2014-rocm57
+            container: quay.io/pypa/manylinux2014_x86_64
             build_args: --features rocm
+            linux_rocm: "5.7.2"
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -66,7 +67,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -97,6 +98,8 @@ jobs:
             ~/.cargo/git
 
       - name: Prepare build environment for macOS & Linux
+        env:
+          ROCM: ${{ matrix.linux_rocm }}
         run: bash ./ci/prepare_build_environment.sh
         if: runner.os != 'Windows'
 
