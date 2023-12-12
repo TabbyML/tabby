@@ -37,10 +37,8 @@ pub async fn handler(uri: Uri) -> impl IntoResponse {
     let mut path = uri.path().trim_start_matches('/').to_string();
     if path.is_empty() {
         path = "index.html".to_owned()
-    } else if path == "playground" {
-        path = "playground.html".to_owned();
-    } else if path == "swagger" {
-        path = "swagger.html".to_owned();
+    } else if !path.contains('.') && WebAssets::get(&format!("{}.html", path)).is_some() {
+        path += ".html"
     }
     WebStaticFile(path)
 }

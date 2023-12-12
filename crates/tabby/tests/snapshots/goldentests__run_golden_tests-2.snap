@@ -1,0 +1,10 @@
+---
+source: crates/tabby/tests/goldentests.rs
+expression: "golden_test(json!({\n                \"language\" : \"python\", \"segments\" :\n                {\n                    \"prefix\" :\n                    \"import datetime\\n\\ndef parse_expenses(expenses_string):\\n    \\\"\\\"\\\"Parse the list of expenses and return the list of triples (date, value, currency).\\n    Ignore lines starting with #.\\n    Parse the date using datetime.\\n    Example expenses_string:\\n        2016-01-02 -34.01 USD\\n        2016-01-03 2.59 DKK\\n        2016-01-03 -2.72 EUR\\n    \\\"\\\"\\\"\\n    for line in expenses_string.split('\\\\n'):\\n        \"\n                }\n            })).await"
+---
+id: cmpl-9e7f9be8-3bf3-4d90-9a5f-05067784a35f
+choices:
+  - index: 0
+    text: "if line.startswith('#'):\n            continue\n        date, value, currency = line.split()\n        date = datetime.datetime.strptime(date, '%Y-%m-%d')\n        yield date, float(value), currency"
+debug_data: {}
+

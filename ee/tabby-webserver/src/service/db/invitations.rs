@@ -37,16 +37,17 @@ impl DbConn {
         let token = self
             .conn
             .call(|conn| {
-                conn.query_row(
-                    r#"SELECT id, email, code, created_at FROM invitations WHERE code = ?"#,
-                    [code],
-                    Invitation::from_row,
-                )
-                .optional()
+                Ok(conn
+                    .query_row(
+                        r#"SELECT id, email, code, created_at FROM invitations WHERE code = ?"#,
+                        [code],
+                        Invitation::from_row,
+                    )
+                    .optional())
             })
             .await?;
 
-        Ok(token)
+        Ok(token?)
     }
 
     pub async fn create_invitation(&self, email: String) -> Result<i32> {
@@ -81,9 +82,9 @@ impl DbConn {
     pub async fn delete_invitation(&self, id: i32) -> Result<i32> {
         let res = self
             .conn
-            .call(move |c| c.execute(r#"DELETE FROM invitations WHERE id = ?"#, params![id]))
+            .call(move |c| Ok(c.execute(r#"DELETE FROM invitations WHERE id = ?"#, params![id])))
             .await?;
-        if res != 1 {
+        if res != Ok(1) {
             return Err(anyhow!("failed to delete invitation"));
         }
 
