@@ -8,13 +8,13 @@ fi
 
 install_protobuf_centos() {
   PB_REL="https://github.com/protocolbuffers/protobuf/releases"
-  curl -LO $PB_REL/download/v3.15.8/protoc-3.15.8-linux-x86_64.zip
+  curl -SLO $PB_REL/download/v3.15.8/protoc-3.15.8-linux-x86_64.zip
   unzip protoc-3.15.8-linux-x86_64.zip -d /usr
   rm protoc-3.15.8-linux-x86_64.zip
 }
 
 install_hipblas_5_7_2_centos() {
-  wget -O /tmp/amdgpu-install.rpm https://repo.radeon.com/amdgpu-install/5.7.2/rhel/7.9/amdgpu-install-5.7.50702-1.el7.noarch.rpm
+  curl -SL https://repo.radeon.com/amdgpu-install/5.7.2/rhel/7.9/amdgpu-install-5.7.50702-1.el7.noarch.rpm --output /tmp/amdgpu-install.rpm
   yum install /tmp/amdgpu-install.rpm
   rm /tmp/amdgpu-install.rpm
 
