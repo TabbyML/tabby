@@ -113,3 +113,23 @@ top_level_keywords = [
     "rescue",
     "self",
 ]
+
+[[config]]
+languages = ["csharp"]
+line_comment = "//"
+top_level_keywords = [
+    "class",
+    "struct",
+    "enum",
+    "interface",
+    "abstract",
+    "static",
+    "extern",
+    "namespace",
+    "using",
+    "var",
+    "dynamic",
+    "async",
+]
+
+
