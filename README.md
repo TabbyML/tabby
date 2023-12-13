@@ -50,25 +50,14 @@ You can find our documentation [here](https://tabby.tabbyml.com/docs/getting-sta
 - ⚙️ [Configuration](https://tabby.tabbyml.com/docs/configuration)
 
 ### Run Tabby in 1 Minute
-The easiest way to start a Tabby server is by using the following Docker command...
+The easiest way to start a Tabby server is by using the following Docker command:
 
-...with cuda:
 ```bash
 docker run -it \
   --gpus all -p 8080:8080 -v $HOME/.tabby:/data \
-  tabbyml/tabby-cuda \
+  tabbyml/tabby \
   serve --model TabbyML/StarCoder-1B --device cuda
 ```
-
-...with ROCm (Linux only):
-```bash
-docker run -it \
-  --device /dev/dri --device /dev/kfd \
-  -p 8080:8080 -v $HOME/.tabby:/data \
-  tabbyml/tabby-rocm \
-  serve --model TabbyML/StarCoder-1B --device rocm
-```
-
 For additional options (e.g inference type, parallelism), please refer to the [documentation page](https://tabbyml.github.io/tabby).
 
 ## 🤝 Contributing
