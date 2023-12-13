@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 filenamify = "0.1.0"
+home = "0.5.5"
 lazy_static = { workspace = true }
 serde = { workspace = true }
 serdeconv = { workspace = true }

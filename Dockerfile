@@ -29,11 +29,12 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLC
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /root/workspace
-COPY . .
 
 RUN mkdir -p /opt/tabby/bin
 RUN mkdir -p /opt/tabby/lib
 RUN mkdir -p target
+
+COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
@@ -55,10 +56,17 @@ RUN apt-get update && \
 # Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
 RUN git config --system --add safe.directory "*"
 
+# Automatic platform ARGs in the global scope
+# https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
+ARG TARGETARCH
+
+# AMD64 only:
 # Make link to libnvidia-ml.so (NVML) library
 # so that we could get GPU stats.
-RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
-        /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+RUN if [ "$TARGETARCH" = "amd64" ]; then  \
+    ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
+        /usr/lib/x86_64-linux-gnu/libnvidia-ml.so; \
+    fi
 
 COPY --from=build /opt/tabby /opt/tabby
 

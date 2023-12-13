@@ -276,6 +276,8 @@ pub trait AuthenticationService: Send + Sync {
     async fn delete_invitation(&self, id: i32) -> Result<i32>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
+
+    async fn list_users(&self) -> Result<Vec<User>>;
 }
 
 #[cfg(test)]

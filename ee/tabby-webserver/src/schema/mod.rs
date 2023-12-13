@@ -4,6 +4,7 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::AuthenticationService;
+use chrono::{DateTime, Utc};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
     Object, RootNode, ScalarValue, Value,
@@ -118,6 +119,15 @@ impl Query {
             Err(CoreError::Unauthorized("Not logged in"))
         }
     }
+
+    async fn users(ctx: &Context) -> Result<Vec<User>> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return Ok(ctx.locator.auth().list_users().await?);
+            }
+        }
+        Err(CoreError::Unauthorized("Only admin is able to query users"))
+    }
 }
 
 #[derive(Debug, GraphQLObject)]
@@ -125,6 +135,7 @@ pub struct User {
     pub email: String,
     pub is_admin: bool,
     pub auth_token: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Default)]

@@ -1,4 +1,4 @@
-use std::{env::consts::ARCH, sync::Arc};
+use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 
 use anyhow::Result;
 use axum::{routing, Router};
@@ -22,6 +22,9 @@ pub struct WorkerArgs {
     /// URL to register this worker.
     #[clap(long)]
     url: String,
+
+    #[clap(long, default_value = "0.0.0.0")]
+    host: IpAddr,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,
@@ -74,7 +77,7 @@ async fn make_completion_route(context: WorkerContext, args: &WorkerArgs) -> Rou
 pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
     download_model_if_needed(&args.model).await;
 
-    info!("Starting worker, this might takes a few minutes...");
+    info!("Starting worker, this might take a few minutes...");
 
     let context = WorkerContext::new(&args.url).await;
 
@@ -83,7 +86,7 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
         WorkerKind::Chat => make_chat_route(context, args).await,
     };
 
-    run_app(app, None, args.port).await
+    run_app(app, None, args.host, args.port).await
 }
 
 struct WorkerContext {

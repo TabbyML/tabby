@@ -10,11 +10,16 @@ fn main() {
         "Please init submodules with `git submodule update --init --recursive` and try again"
     );
 
-    println!("cargo:rerun-if-changed=cc/*.h");
-    println!("cargo:rerun-if-changed=cc/*.cc");
+    println!("cargo:rerun-if-changed=include/engine.h");
+    println!("cargo:rerun-if-changed=src/engine.cc");
     println!("cargo:rustc-link-lib=llama");
     println!("cargo:rustc-link-lib=ggml_static");
 
+    build_llama_cpp();
+    build_cxx_binding();
+}
+
+fn build_llama_cpp() {
     let mut config = Config::new("llama.cpp");
     if cfg!(target_os = "macos") {
         config.define("LLAMA_METAL", "ON");
@@ -26,9 +31,16 @@ fn main() {
     if cfg!(feature = "cuda") {
         config.define("LLAMA_CUBLAS", "ON");
         config.define("CMAKE_POSITION_INDEPENDENT_CODE", "ON");
-        println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+        if cfg!(target_os = "windows") {
+            let Ok(cuda_path) = env::var("CUDA_PATH") else {
+                panic!("CUDA_PATH is not set");
+            };
+            println!(r"cargo:rustc-link-search=native={}\lib\x64", cuda_path);
+        } else {
+            println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
+            println!("cargo:rustc-link-lib=culibos");
+        }
         println!("cargo:rustc-link-lib=cudart");
-        println!("cargo:rustc-link-lib=culibos");
         println!("cargo:rustc-link-lib=cublas");
         println!("cargo:rustc-link-lib=cublasLt");
     }
@@ -69,9 +81,26 @@ fn main() {
         println!("cargo:rustc-link-lib=hipblas");
     }
 
-    let dst = config.build();
-    println!("cargo:rustc-link-search=native={}/build", dst.display());
+    // By default, this value is automatically inferred from Rust’s compilation profile.
+    // For Windows platform, we always build llama.cpp in release mode.
+    // See https://github.com/TabbyML/tabby/pull/948 for more details.
+    if cfg!(target_os = "windows") {
+        config.profile("Release");
+    }
 
+    let dst = config.build();
+    if cfg!(target_os = "windows") {
+        println!(
+            r"cargo:rustc-link-search=native={}\build\{}",
+            dst.display(),
+            config.get_profile()
+        );
+    } else {
+        println!("cargo:rustc-link-search=native={}/build", dst.display());
+    }
+}
+
+fn build_cxx_binding() {
     cxx_build::bridge("src/lib.rs")
         .file("src/engine.cc")
         .flag_if_supported("-Iinclude")

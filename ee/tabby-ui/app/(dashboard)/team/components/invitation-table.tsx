@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import moment from 'moment'
 
 import { graphql } from '@/lib/gql/generates'
-import { useAuthenticatedGraphQLQuery, useGraphQLForm } from '@/lib/tabby/gql'
+import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
 import {
@@ -44,38 +44,37 @@ export default function InvitationTable() {
     setOrigin(new URL(window.location.href).origin)
   }, [])
 
-  const { onSubmit: deleteInvitation } = useGraphQLForm(
-    deleteInvitationMutation,
-    {
-      onSuccess: () => mutate()
+  const deleteInvitation = useMutation(deleteInvitationMutation, {
+    onCompleted() {
+      mutate()
     }
-  )
+  })
 
   return (
     invitations && (
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Invitee</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
+        {invitations.length > 0 && (
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[25%]">Invitee</TableHead>
+              <TableHead className="w-[45%]">Created</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+        )}
         <TableBody>
           {invitations.map((x, i) => {
             const link = `${origin}/auth/signup?invitationCode=${x.code}`
             return (
               <TableRow key={i}>
-                <TableCell className="w-[300px] font-medium">
-                  {x.email}
-                </TableCell>
+                <TableCell>{x.email}</TableCell>
                 <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
-                <TableCell className="flex items-center">
+                <TableCell className="text-center">
                   <CopyButton value={link} />
                   <Button
                     size="icon"
                     variant="hover-destructive"
-                    onClick={() => deleteInvitation({ id: x.id })}
+                    onClick={() => deleteInvitation(x)}
                   >
                     <IconTrash />
                   </Button>

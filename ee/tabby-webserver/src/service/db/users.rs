@@ -48,6 +48,7 @@ impl From<User> for schema::User {
             email: val.email,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
+            created_at: val.created_at,
         }
     }
 }
@@ -109,12 +110,14 @@ impl DbConn {
         let user = self
             .conn
             .call(move |c| {
-                c.query_row(User::select("id = ?").as_str(), params![id], User::from_row)
-                    .optional()
+                Ok(
+                    c.query_row(User::select("id = ?").as_str(), params![id], User::from_row)
+                        .optional(),
+                )
             })
             .await?;
 
-        Ok(user)
+        Ok(user?)
     }
 
     pub async fn get_user_by_email(&self, email: &str) -> Result<Option<User>> {
@@ -122,16 +125,16 @@ impl DbConn {
         let user = self
             .conn
             .call(move |c| {
-                c.query_row(
+                Ok(c.query_row(
                     User::select("email = ?").as_str(),
                     params![email],
                     User::from_row,
                 )
-                .optional()
+                .optional())
             })
             .await?;
 
-        Ok(user)
+        Ok(user?)
     }
 
     pub async fn list_admin_users(&self) -> Result<Vec<User>> {
@@ -147,27 +150,43 @@ impl DbConn {
         Ok(users)
     }
 
-    pub async fn verify_auth_token(&self, token: &str) -> bool {
-        let token = token.to_owned();
-        let id: Result<i32, _> = self
+    pub async fn list_users(&self) -> Result<Vec<User>> {
+        let users = self
             .conn
             .call(move |c| {
-                c.query_row(
+                let mut stmt = c.prepare(&User::select("true"))?;
+                let user_iter = stmt.query_map([], User::from_row)?;
+                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(users)
+    }
+
+    pub async fn verify_auth_token(&self, token: &str) -> bool {
+        let token = token.to_owned();
+        let id: Result<Result<i32, _>, _> = self
+            .conn
+            .call(move |c| {
+                Ok(c.query_row(
                     r#"SELECT id FROM users WHERE auth_token = ?"#,
                     params![token],
                     |row| row.get(0),
-                )
+                ))
             })
             .await;
-        id.is_ok()
+        matches!(id, Ok(Ok(_)))
     }
 
     pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
         let email = email.to_owned();
+        let updated_at = chrono::Utc::now();
         self.conn
             .call(move |c| {
-                let mut stmt = c.prepare(r#"UPDATE users SET auth_token = ? WHERE email = ?"#)?;
-                stmt.execute((generate_auth_token(), email))?;
+                let mut stmt = c.prepare(
+                    r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE email = ?"#,
+                )?;
+                stmt.execute((generate_auth_token(), updated_at, email))?;
                 Ok(())
             })
             .await?;

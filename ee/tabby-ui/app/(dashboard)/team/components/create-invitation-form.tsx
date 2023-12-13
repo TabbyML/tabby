@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
-import { useGraphQLForm } from '@/lib/tabby/gql'
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
-const createInvitation = graphql(/* GraphQL */ `
+const createInvitationMutation = graphql(/* GraphQL */ `
   mutation CreateInvitation($email: String!) {
     createInvitation(email: $email)
   }
@@ -37,20 +37,20 @@ export default function CreateInvitationForm({
   })
 
   const { isSubmitting } = form.formState
-  const { onSubmit } = useGraphQLForm(createInvitation, {
-    onSuccess: () => {
+  const createInvitation = useMutation(createInvitationMutation, {
+    onCompleted() {
       form.reset({ email: '' })
       onCreated()
     },
-    onError: (path, message) => form.setError(path as any, { message })
+    form
   })
 
   return (
     <Form {...form}>
-      <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-col items-start gap-2">
         <form
           className="flex w-full items-center gap-2"
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(createInvitation)}
         >
           <FormField
             control={form.control}

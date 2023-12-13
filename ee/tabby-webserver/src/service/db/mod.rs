@@ -104,12 +104,12 @@ impl DbConn {
 
         let token = uuid::Uuid::new_v4().to_string();
         conn.call(move |c| {
-            c.execute(
+            Ok(c.execute(
                 r#"INSERT OR IGNORE INTO registration_token (id, token) VALUES (1, ?)"#,
                 params![token],
-            )
+            ))
         })
-        .await?;
+        .await??;
 
         let res = Self {
             conn: Arc::new(conn),
@@ -128,33 +128,33 @@ impl DbConn {
         let token = self
             .conn
             .call(|conn| {
-                conn.query_row(
+                Ok(conn.query_row(
                     r#"SELECT token FROM registration_token WHERE id = 1"#,
                     [],
                     |row| row.get(0),
-                )
+                ))
             })
             .await?;
 
-        Ok(token)
+        Ok(token?)
     }
 
     /// Update token in database.
     pub async fn reset_registration_token(&self) -> Result<String> {
         let token = uuid::Uuid::new_v4().to_string();
         let result = token.clone();
-        let updated_at = chrono::Utc::now().timestamp() as u32;
+        let updated_at = chrono::Utc::now();
 
         let res = self
             .conn
             .call(move |conn| {
-                conn.execute(
+                Ok(conn.execute(
                     r#"UPDATE registration_token SET token = ?, updated_at = ? WHERE id = 1"#,
                     params![token, updated_at],
-                )
+                ))
             })
             .await?;
-        if res != 1 {
+        if res != Ok(1) {
             return Err(anyhow::anyhow!("failed to update token"));
         }
 
