@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{error, warn};
+use tracing::error;
 
 use crate::service::db::DbConn;
 
@@ -32,7 +32,7 @@ async fn new_refresh_token_job(db_conn: DbConn) -> Result<Job> {
 
 pub fn run_offline_job(db_conn: DbConn) {
     tokio::spawn(async move {
-        let Ok(job) = new_refresh_token_job(db_conn.clone()).await else {
+        let Ok(job) = new_refresh_token_job(db_conn).await else {
             error!("failed to create db job");
             return;
         };
@@ -48,8 +48,8 @@ pub fn run_offline_job(db_conn: DbConn) {
                     tokio::time::sleep(duration).await;
                 }
                 Ok(None) => {
-                    warn!("no job available, exit scheduler");
-                    return;
+                    // wait until scheduler increases jobs' tick
+                    tokio::time::sleep(Duration::from_millis(500)).await;
                 }
                 Err(e) => {
                     error!("failed to get job sleep time: {}, re-try in 1 second", e);
