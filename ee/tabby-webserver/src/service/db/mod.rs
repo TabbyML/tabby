@@ -5,75 +5,21 @@ mod users;
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
+use include_dir::{Dir, include_dir};
 use inquire::{Confirm, Text};
 use lazy_static::lazy_static;
 use rusqlite::params;
-use rusqlite_migration::{AsyncMigrations, SchemaVersion, M};
+use rusqlite_migration::{AsyncMigrations, SchemaVersion, M, Migrations};
 use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 
 use crate::service::cron::run_offline_job;
 
-lazy_static! {
-    static ref MIGRATIONS_LIST: Vec<M<'static>> = vec![
-        M::up(
-            r#"
-            CREATE TABLE registration_token (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                token VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT (DATETIME('now')),
-                updated_at TIMESTAMP DEFAULT (DATETIME('now')),
-                CONSTRAINT `idx_token` UNIQUE (`token`)
-            );
-        "#
-        )
-        .down("DROP TABLE registration_token"),
-        // ==== Above migrations released in 0.6.0 ====
-        M::up(
-            r#"
-            CREATE TABLE users (
-                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-                email              VARCHAR(150) NOT NULL COLLATE NOCASE,
-                password_encrypted VARCHAR(128) NOT NULL,
-                is_admin           BOOLEAN NOT NULL DEFAULT 0,
-                created_at         TIMESTAMP DEFAULT (DATETIME('now')),
-                updated_at         TIMESTAMP DEFAULT (DATETIME('now')),
-                auth_token         VARCHAR(128) NOT NULL,
+static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 
-                CONSTRAINT `idx_email`      UNIQUE (`email`)
-                CONSTRAINT `idx_auth_token` UNIQUE (`auth_token`)
-            );
-        "#
-        )
-        .down("DROP TABLE users"),
-        M::up(
-            r#"
-            CREATE TABLE invitations (
-                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-                email              VARCHAR(150) NOT NULL COLLATE NOCASE,
-                code               VARCHAR(36) NOT NULL,
-                created_at         TIMESTAMP DEFAULT (DATETIME('now')),
-                CONSTRAINT `idx_email` UNIQUE (`email`)
-                CONSTRAINT `idx_code`  UNIQUE (`code`)
-            );
-        "#
-        )
-        .down("DROP TABLE invitations"),
-        M::up(
-            r#"
-            CREATE TABLE refresh_tokens (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                token VARCHAR(255) NOT NULL COLLATE NOCASE,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT (DATETIME('now')),
-                CONSTRAINT `idx_token` UNIQUE (`token`)
-            );
-        "#
-        )
-        .down("DROP TABLE refresh_tokens"),
-    ];
-    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(MIGRATIONS_LIST.clone());
+lazy_static! {
+    static ref SCHEMA_VERSION: usize = MIGRATIONS_DIR.entries().len();
+    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::from_directory(&MIGRATIONS_DIR).unwrap();
 }
 
 async fn db_path() -> Result<PathBuf> {
@@ -101,7 +47,6 @@ impl DbConn {
     }
 
     async fn apply_migrations(conn: &mut Connection) {
-        let schema_verison = MIGRATIONS_LIST.len();
         let current_version = match MIGRATIONS.current_version(&conn).await.unwrap() {
             SchemaVersion::NoneSet => 0,
             SchemaVersion::Inside(v) => v.into(),
@@ -112,7 +57,7 @@ impl DbConn {
             return;
         }
 
-        if current_version == schema_verison {
+        if current_version == *SCHEMA_VERSION {
             return;
         }
         
