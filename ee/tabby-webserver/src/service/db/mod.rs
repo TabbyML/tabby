@@ -5,11 +5,11 @@ mod users;
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
-use include_dir::{Dir, include_dir};
-use inquire::{Confirm, Text};
+use include_dir::{include_dir, Dir};
+use inquire::{Confirm};
 use lazy_static::lazy_static;
 use rusqlite::params;
-use rusqlite_migration::{AsyncMigrations, SchemaVersion, M, Migrations};
+use rusqlite_migration::{AsyncMigrations, SchemaVersion};
 use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 
@@ -19,7 +19,8 @@ static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 
 lazy_static! {
     static ref SCHEMA_VERSION: usize = MIGRATIONS_DIR.entries().len();
-    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::from_directory(&MIGRATIONS_DIR).unwrap();
+    static ref MIGRATIONS: AsyncMigrations =
+        AsyncMigrations::from_directory(&MIGRATIONS_DIR).unwrap();
 }
 
 async fn db_path() -> Result<PathBuf> {
@@ -47,7 +48,7 @@ impl DbConn {
     }
 
     async fn apply_migrations(conn: &mut Connection) {
-        let current_version = match MIGRATIONS.current_version(&conn).await.unwrap() {
+        let current_version = match MIGRATIONS.current_version(conn).await.unwrap() {
             SchemaVersion::NoneSet => 0,
             SchemaVersion::Inside(v) => v.into(),
             SchemaVersion::Outside(v) => v.into(),
@@ -60,9 +61,8 @@ impl DbConn {
         if current_version == *SCHEMA_VERSION {
             return;
         }
-        
-        eprintln!("\n  \x1b[34;1mSCHEMA CHANGES DETECTED\x1b[0m");
 
+        eprintln!("\n  \x1b[34;1mSCHEMA CHANGES DETECTED\x1b[0m");
 
         if !atty::is(atty::Stream::Stdin) {
             eprintln!("
@@ -72,7 +72,8 @@ impl DbConn {
             );
             std::process::exit(0);
         } else {
-            eprintln!("
+            eprintln!(
+                "
   It appears that your database is running a different version than what's specified in the schema.
   It is recommended that you back up your database ({}) before proceeding with the migration.
 ",
