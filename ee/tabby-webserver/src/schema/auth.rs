@@ -39,21 +39,18 @@ pub fn validate_jwt(token: &str) -> jwt::errors::Result<JWTPayload> {
 }
 
 fn jwt_token_secret() -> String {
-    let jwt_secret = match std::env::var("TABBY_WEBSERVER_JWT_TOKEN_SECRET") {
-        Ok(x) => x,
-        Err(_) => {
-            eprintln!("
+    let jwt_secret = std::env::var("TABBY_WEBSERVER_JWT_TOKEN_SECRET").unwrap_or_else(|_| {
+        eprintln!("
     \x1b[93;1mJWT secret is not set\x1b[0m
 
     Tabby server will generate a one-time (non-persisted) JWT secret for the current process.
     Please set the \x1b[94mTABBY_WEBSERVER_JWT_TOKEN_SECRET\x1b[0m environment variable for production usage.
 "
-            );
-            Uuid::new_v4().to_string()
-        }
-    };
+        );
+        Uuid::new_v4().to_string()
+    });
 
-    if uuid::Uuid::parse_str(&jwt_secret).is_err() {
+    if Uuid::parse_str(&jwt_secret).is_err() {
         warn!("JWT token secret needs to be in standard uuid format to ensure its security, you might generate one at https://www.uuidgenerator.net");
         std::process::exit(1)
     }
