@@ -13,14 +13,7 @@ import TabItem from '@theme/TabItem';
   <TabItem value="cuda" label="CUDA (requires NVIDIA Container Toolkit)" default>
 
   ```bash title="run.sh"
-  docker run -it --gpus all -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby-cuda serve --model TabbyML/StarCoder-1B --device cuda
-  ```
-
-  </TabItem>
-  <TabItem value="rocm" label="ROCm" default>
-
-  ```bash title="run.sh"
-  docker run -it --device /dev/dri --device /dev/kfd -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby-rocm serve --model TabbyML/StarCoder-1B --device rocm
+  docker run -it --gpus all -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model TabbyML/StarCoder-1B --device cuda
   ```
 
   </TabItem>
