@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 if [[ "$OSTYPE" == "darwin"* ]]; then
   brew install protobuf
 fi
