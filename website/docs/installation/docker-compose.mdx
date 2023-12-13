@@ -16,8 +16,8 @@ version: '3.5'
 
 services:
   tabby:
-    restart: unless-stopped
-    image: tabbyml/tabby-cuda
+    restart: always
+    image: tabbyml/tabby
     command: serve --model TabbyML/StarCoder-1B --device cuda
     volumes:
       - "$HOME/.tabby:/data"
@@ -33,25 +33,6 @@ services:
 ```
 
   </TabItem>
-  <TabItem value="rocm" label="ROCm">
-
-```yaml title="docker-compose.yml"
-version: '3.5'
-services:
-  tabby:
-    restart: unless-stopped
-    image: tabbyml/tabby-rocm
-    command: serve --model TabbyML/StarCoder-1B --device rocm
-    volumes:
-      - "$HOME/.tabby:/data"
-    ports:
-      - 8080:8080
-    devices:
-      - /dev/dri
-      - /dev/kfd
-```
-
-    </TabItem>
   <TabItem value="cpu" label="CPU">
 
 ```yaml title="docker-compose.yml"
