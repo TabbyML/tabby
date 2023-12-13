@@ -5,16 +5,17 @@ mod users;
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
+use inquire::{Confirm, Text};
 use lazy_static::lazy_static;
 use rusqlite::params;
-use rusqlite_migration::{AsyncMigrations, M};
+use rusqlite_migration::{AsyncMigrations, SchemaVersion, M};
 use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 
 use crate::service::cron::run_offline_job;
 
 lazy_static! {
-    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
+    static ref MIGRATIONS_LIST: Vec<M<'static>> = vec![
         M::up(
             r#"
             CREATE TABLE registration_token (
@@ -71,7 +72,8 @@ lazy_static! {
         "#
         )
         .down("DROP TABLE refresh_tokens"),
-    ]);
+    ];
+    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(MIGRATIONS_LIST.clone());
 }
 
 async fn db_path() -> Result<PathBuf> {
@@ -98,10 +100,53 @@ impl DbConn {
         Self::init_db(conn).await
     }
 
+    async fn apply_migrations(conn: &mut Connection) {
+        let schema_verison = MIGRATIONS_LIST.len();
+        let current_version = match MIGRATIONS.current_version(&conn).await.unwrap() {
+            SchemaVersion::NoneSet => 0,
+            SchemaVersion::Inside(v) => v.into(),
+            SchemaVersion::Outside(v) => v.into(),
+        };
+        if 0 == current_version {
+            MIGRATIONS.to_latest(conn).await.unwrap();
+            return;
+        }
+
+        if current_version == schema_verison {
+            return;
+        }
+        
+        eprintln!("\n  \x1b[34;1mSCHEMA CHANGES DETECTED\x1b[0m");
+
+
+        if !atty::is(atty::Stream::Stdin) {
+            eprintln!("
+  It appears that your database is running a different version than what's specified in the schema.
+  To update your database to match the schema, please re-execute the command in an interactive shell.
+"
+            );
+            std::process::exit(0);
+        } else {
+            eprintln!("
+  It appears that your database is running a different version than what's specified in the schema.
+  It is recommended that you back up your database ({}) before proceeding with the migration.
+",
+                db_path().await.unwrap().display()
+            );
+            if Confirm::new("Do you want to apply the migration?")
+                .prompt()
+                .unwrap()
+            {
+                MIGRATIONS.to_latest(conn).await.unwrap();
+            } else {
+                std::process::exit(0);
+            }
+        }
+    }
+
     /// Initialize database, create tables and insert first token if not exist
     async fn init_db(mut conn: Connection) -> Result<Self> {
-        MIGRATIONS.to_latest(&mut conn).await?;
-
+        Self::apply_migrations(&mut conn).await;
         let token = uuid::Uuid::new_v4().to_string();
         conn.call(move |c| {
             Ok(c.execute(

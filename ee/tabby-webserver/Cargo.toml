@@ -9,11 +9,13 @@ homepage.workspace = true
 anyhow.workspace = true
 argon2 = "0.5.1"
 async-trait.workspace = true
+atty = "0.2.14"
 axum = { workspace = true, features = ["ws"] }
 bincode = "1.3.3"
 chrono = "0.4"
 futures.workspace = true
 hyper = { workspace = true, features=["client"]}
+inquire = "0.6.2"
 jsonwebtoken = "9.1.0"
 juniper.workspace = true
 juniper-axum = { path = "../../crates/juniper-axum" }
