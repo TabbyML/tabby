@@ -40,7 +40,7 @@ version: '3.5'
 
 services:
   tabby:
-    restart: unless-stopped
+    restart: always
     image: tabbyml/tabby
     command: serve --model TabbyML/StarCoder-1B
     volumes:
