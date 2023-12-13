@@ -26,8 +26,7 @@ jobs:
     container: ${{ matrix.container }}
     strategy:
       matrix:
-        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117,
-                 x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122, x86_64-manylinux2014-rocm57]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117, x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122, x86_64-manylinux2014-rocm57]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
@@ -56,9 +55,8 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-rocm57
-            container: quay.io/pypa/manylinux2014_x86_64
+            container: ghcr.io/cromefire/hipblas-manylinux/2014/5.7:latest
             build_args: --features rocm
-            linux_rocm: "5.7.2"
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -98,8 +96,6 @@ jobs:
             ~/.cargo/git
 
       - name: Prepare build environment for macOS & Linux
-        env:
-          ROCM: ${{ matrix.linux_rocm }}
         run: bash ./ci/prepare_build_environment.sh
         if: runner.os != 'Windows'
 
