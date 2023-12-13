@@ -117,6 +117,17 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "csharp",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_c_sharp::language(),
+                        tree_sitter_c_sharp::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
         ])
     };
 }

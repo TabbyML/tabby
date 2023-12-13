@@ -22,6 +22,7 @@ tree-sitter-rust = "0.20.3"
 tree-sitter-typescript = "0.20.3"
 tree-sitter-go = "0.20.0"
 tree-sitter-ruby= "0.20.0"
+tree-sitter-c-sharp="0.20.0"
 ignore = "0.4.20"
 kdam = { version = "0.5.0" }
 requirements = "0.3.0"
