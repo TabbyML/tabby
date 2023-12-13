@@ -86,9 +86,7 @@ jobs:
           # list of Docker images to use as base name for tags
           images: |
             ghcr.io/${{ env.IMAGE_NAME }}
-            ghcr.io/${{ env.IMAGE_NAME }}/cuda
             ${{ env.IMAGE_NAME }}
-            ${{ env.IMAGE_NAME }}-cuda
           # generate Docker tags based on the following events/attributes
           tags: |
             type=raw,value={{branch}}-{{sha}},enable=${{ startsWith(github.ref, 'refs/heads') }}
@@ -102,7 +100,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v5.1.0
         with:
-          file: cuda.Dockerfile
+          file: Dockerfile
           push: true
           context: .
           tags: ${{ steps.meta.outputs.tags }}
