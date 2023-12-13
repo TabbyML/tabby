@@ -26,8 +26,7 @@ jobs:
     container: ${{ matrix.container }}
     strategy:
       matrix:
-        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117,
-                 x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117, x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122, x86_64-manylinux2014-rocm57]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
@@ -53,6 +52,11 @@ jobs:
             ext: .exe
             build_args: --features cuda
             windows_cuda: '12.2.0'
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014-rocm57
+            container: ghcr.io/cromefire/hipblas-manylinux/2014/5.7:latest
+            build_args: --features rocm
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -72,7 +76,8 @@ jobs:
           target: ${{ matrix.target }}
           components: clippy
 
-      - run: rustup default ${{ env.RUST_TOOLCHAIN }}
+      - name: Set default rust version
+        run: rustup default ${{ env.RUST_TOOLCHAIN }}
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3

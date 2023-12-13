@@ -29,11 +29,12 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLC
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /root/workspace
-COPY . .
 
 RUN mkdir -p /opt/tabby/bin
 RUN mkdir -p /opt/tabby/lib
 RUN mkdir -p target
+
+COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
