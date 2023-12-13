@@ -6,7 +6,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
-use inquire::{Confirm};
+use inquire::Confirm;
 use lazy_static::lazy_static;
 use rusqlite::params;
 use rusqlite_migration::{AsyncMigrations, SchemaVersion};
