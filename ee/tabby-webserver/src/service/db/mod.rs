@@ -8,7 +8,7 @@ use anyhow::Result;
 use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
 use rusqlite::params;
-use rusqlite_migration::{AsyncMigrations};
+use rusqlite_migration::AsyncMigrations;
 use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 
