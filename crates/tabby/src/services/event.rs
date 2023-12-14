@@ -54,6 +54,13 @@ impl EventWriter {
         }
     }
 
+    #[cfg(test)]
+    fn event_file_path(&self) -> Option<PathBuf> {
+        self.filename
+            .as_ref()
+            .map(|fname| self.events_dir.join(fname))
+    }
+
     async fn write_line(&mut self, content: String) {
         let now = Utc::now();
         let fname = now.format("%Y-%m-%d.json");
@@ -115,11 +122,8 @@ mod tests {
         }
         event_wr.flush().await;
 
-        let now = Utc::now();
-        let fname = now.format("%Y-%m-%d.json");
-
         // we should be able to read target file successfully
-        let content = tokio::fs::read_to_string(events_dir().join(fname.to_string()))
+        let content = tokio::fs::read_to_string(event_wr.event_file_path().unwrap())
             .await
             .unwrap();
         assert_eq!(content.lines().count(), 100);
@@ -152,11 +156,8 @@ mod tests {
         event_wr.write_line("test data".to_string()).await;
         event_wr.flush().await;
 
-        let now = Utc::now();
-        let fname = now.format("%Y-%m-%d.json");
-
         // we should be able to read new created file successfully
-        let content = tokio::fs::read_to_string(events_dir().join(fname.to_string()))
+        let content = tokio::fs::read_to_string(event_wr.event_file_path().unwrap())
             .await
             .unwrap();
         assert_eq!(content.as_str(), "test data\n");
