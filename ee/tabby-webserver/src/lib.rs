@@ -3,12 +3,12 @@ pub mod api;
 mod schema;
 use api::Hub;
 pub use schema::create_schema;
+use serde::{Deserialize, Serialize};
 use tabby_common::api::{
     code::{CodeSearch, SearchResponse},
     event::RawEventLogger,
 };
-use tokio::sync::Mutex;
-use tracing::{error, warn};
+use tracing::warn;
 use websocket::WebSocketTransport;
 
 mod repositories;
@@ -20,15 +20,16 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
-    http::Request,
+    headers::Header,
+    http::{HeaderName, Request},
     middleware::{from_fn_with_state, Next},
     response::IntoResponse,
-    routing, Extension, Router,
+    routing, Extension, Router, TypedHeader,
 };
-use hyper::Body;
-use juniper_axum::{graphiql, graphql, playground};
+use hyper::{Body, StatusCode};
+use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
 use schema::{
-    worker::{RegisterWorkerError, Worker, WorkerKind},
+    worker::{Worker, WorkerKind},
     Schema, ServiceLocator,
 };
 use service::create_service_locator;
@@ -69,35 +70,103 @@ async fn distributed_tabby_layer(
     ws.worker().dispatch_request(request, next).await
 }
 
+#[derive(Serialize, Deserialize)]
+struct RegisterWorkerRequest {
+    kind: WorkerKind,
+    port: i32,
+    name: String,
+    device: String,
+    arch: String,
+    cpu_info: String,
+    cpu_count: i32,
+    cuda_devices: Vec<String>,
+}
+
+pub static REGISTER_WORKER_HEADER: HeaderName = HeaderName::from_static("x-tabby-register-worker");
+
+impl Header for RegisterWorkerRequest {
+    fn name() -> &'static axum::http::HeaderName {
+        &REGISTER_WORKER_HEADER
+    }
+
+    fn decode<'i, I>(values: &mut I) -> Result<Self, axum::headers::Error>
+    where
+        Self: Sized,
+        I: Iterator<Item = &'i axum::http::HeaderValue>,
+    {
+        let mut x: Vec<_> = values
+            .map(|x| serde_json::from_slice(x.as_bytes()))
+            .collect();
+        if let Some(x) = x.pop() {
+            x.map_err(|_| axum::headers::Error::invalid())
+        } else {
+            Err(axum::headers::Error::invalid())
+        }
+    }
+
+    fn encode<E: Extend<axum::http::HeaderValue>>(&self, _values: &mut E) {
+        todo!()
+    }
+}
+
 async fn ws_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<dyn ServiceLocator>>,
+    AuthBearer(token): AuthBearer,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    TypedHeader(request): TypedHeader<RegisterWorkerRequest>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(state, socket, addr))
+    let unauthorized = axum::response::Response::builder()
+        .status(StatusCode::UNAUTHORIZED)
+        .body(Body::empty())
+        .unwrap()
+        .into_response();
+
+    let Some(token) = token else {
+        return unauthorized;
+    };
+
+    let Ok(registeration_token) = state.worker().read_registration_token().await else {
+        return unauthorized;
+    };
+
+    if token != registeration_token {
+        return unauthorized;
+    }
+
+    let addr = format!("http://{}:{}", addr.ip(), request.port);
+
+    let worker = Worker {
+        name: request.name,
+        kind: request.kind,
+        addr,
+        device: request.device,
+        arch: request.arch,
+        cpu_info: request.cpu_info,
+        cpu_count: request.cpu_count,
+        cuda_devices: request.cuda_devices,
+    };
+
+    ws.on_upgrade(move |socket| handle_socket(state, socket, worker))
+        .into_response()
 }
 
-async fn handle_socket(state: Arc<dyn ServiceLocator>, socket: WebSocket, addr: SocketAddr) {
+async fn handle_socket(state: Arc<dyn ServiceLocator>, socket: WebSocket, worker: Worker) {
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
-    let imp = Arc::new(HubImpl::new(state.clone(), addr));
+    let imp = Arc::new(HubImpl::new(state.clone(), worker.addr.clone()));
+    state.worker().register_worker(worker).await.unwrap();
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
 pub struct HubImpl {
     ctx: Arc<dyn ServiceLocator>,
-    conn: SocketAddr,
-
-    worker_addr: Arc<Mutex<String>>,
+    worker_addr: String,
 }
 
 impl HubImpl {
-    pub fn new(ctx: Arc<dyn ServiceLocator>, conn: SocketAddr) -> Self {
-        Self {
-            ctx,
-            conn,
-            worker_addr: Arc::new(Mutex::new("".to_owned())),
-        }
+    pub fn new(ctx: Arc<dyn ServiceLocator>, worker_addr: String) -> Self {
+        Self { ctx, worker_addr }
     }
 }
 
@@ -107,70 +176,13 @@ impl Drop for HubImpl {
         let worker_addr = self.worker_addr.clone();
 
         tokio::spawn(async move {
-            let worker_addr = worker_addr.lock().await;
-            if !worker_addr.is_empty() {
-                ctx.worker().unregister_worker(worker_addr.as_str()).await;
-            }
+            ctx.worker().unregister_worker(worker_addr.as_str()).await;
         });
     }
 }
 
 #[tarpc::server]
 impl Hub for Arc<HubImpl> {
-    async fn register_worker(
-        self,
-        _context: tarpc::context::Context,
-        kind: WorkerKind,
-        port: i32,
-        name: String,
-        device: String,
-        arch: String,
-        cpu_info: String,
-        cpu_count: i32,
-        cuda_devices: Vec<String>,
-        token: String,
-    ) -> Result<Worker, RegisterWorkerError> {
-        if token.is_empty() {
-            return Err(RegisterWorkerError::InvalidToken(
-                "Empty worker token".to_string(),
-            ));
-        }
-        let server_token = match self.ctx.worker().read_registration_token().await {
-            Ok(t) => t,
-            Err(err) => {
-                error!("fetch server token: {}", err.to_string());
-                return Err(RegisterWorkerError::InvalidToken(
-                    "Failed to fetch server token".to_string(),
-                ));
-            }
-        };
-        if server_token != token {
-            return Err(RegisterWorkerError::InvalidToken(
-                "Token mismatch".to_string(),
-            ));
-        }
-
-        let mut worker_addr = self.worker_addr.lock().await;
-        if !worker_addr.is_empty() {
-            return Err(RegisterWorkerError::RegisterWorkerOnce);
-        }
-
-        let addr = format!("http://{}:{}", self.conn.ip(), port);
-        *worker_addr = addr.clone();
-
-        let worker = Worker {
-            name,
-            kind,
-            addr,
-            device,
-            arch,
-            cpu_info,
-            cpu_count,
-            cuda_devices,
-        };
-        self.ctx.worker().register_worker(worker).await
-    }
-
     async fn log_event(self, _context: tarpc::context::Context, content: String) {
         self.ctx.logger().log(content)
     }
