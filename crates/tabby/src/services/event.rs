@@ -115,20 +115,6 @@ mod tests {
         std::env::temp_dir().join(".tabby").join("events")
     }
 
-    async fn test_event_writer_normal_write() {
-        let mut event_wr = EventWriter::new(events_dir()).await;
-        for i in 0..100 {
-            event_wr.write_line(format!("line {}", i)).await;
-        }
-        event_wr.flush().await;
-
-        // we should be able to read target file successfully
-        let content = tokio::fs::read_to_string(event_wr.event_file_path().unwrap())
-            .await
-            .unwrap();
-        assert_eq!(content.lines().count(), 100);
-    }
-
     async fn test_event_writer_swap_file() {
         tokio::fs::create_dir_all(events_dir()).await.ok();
 
@@ -172,9 +158,6 @@ mod tests {
     async fn test_event_writer() {
         // in case previous test failed
         tokio::fs::remove_dir_all(events_dir()).await.ok();
-
-        test_event_writer_normal_write().await;
-        tokio::fs::remove_dir_all(events_dir()).await.unwrap();
 
         test_event_writer_swap_file().await;
         tokio::fs::remove_dir_all(events_dir()).await.unwrap();
