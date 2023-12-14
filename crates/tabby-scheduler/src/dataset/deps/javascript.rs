@@ -1,5 +1,6 @@
 use std::{error::Error, fs, path::Path};
-use package_lock_json_parser::{parse_dependencies};
+
+use package_lock_json_parser::parse_dependencies;
 use tabby_common::Package;
 
 pub fn process_js_package_lock(path: &Path) -> Result<Vec<Package>, Box<dyn Error>> {
