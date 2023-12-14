@@ -15,7 +15,7 @@ pub fn collect(path: &Path, file: &mut DependencyFile) {
         file.direct.append(&mut deps);
     }
 
-    if let Ok(mut deps) = javascript::process_package_lock_json(path) {
+    if let Ok(mut deps) = javascript::process_js_package_lock(path) {
         file.direct.append(&mut deps);
     }
 

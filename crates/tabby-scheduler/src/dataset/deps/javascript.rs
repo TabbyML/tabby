@@ -1,27 +1,17 @@
-use std::{collections::HashMap, path::Path};
-
-use package_lock_json_parser::PackageLockJson;
+use std::{error::Error, fs, path::Path};
+use package_lock_json_parser::{parse_dependencies};
 use tabby_common::Package;
 
-fn extract_deps(lock_file: &PackageLockJson) -> Vec<Package> {
-    let packages = lock_file
-        .packages
-        .as_ref()
-        .map_or_else(HashMap::new, |p| p.clone());
-
-    packages
-        .values()
-        .map(|pkg| Package {
-            name: pkg.name.clone().unwrap_or_default(),
-            version: Some(pkg.version.clone()),
+pub fn process_js_package_lock(path: &Path) -> Result<Vec<Package>, Box<dyn Error>> {
+    let package_lock_content = fs::read_to_string(path)?;
+    let dependencies: Vec<Package> = parse_dependencies(package_lock_content)?
+        .into_iter()
+        .map(|dep| Package {
             language: String::from("javascript"),
+            name: dep.name.to_string(),
+            version: Some(dep.version.to_string()),
         })
-        .collect()
-}
+        .collect();
 
-pub fn process_package_lock_json(path: &Path) -> Result<Vec<Package>, Box<dyn std::error::Error>> {
-    let package_lock_json_text = std::fs::read_to_string(path.join("package-lock.json"))?;
-    let lock_file: PackageLockJson = package_lock_json_parser::parse(package_lock_json_text)?;
-
-    Ok(extract_deps(&lock_file))
+    Ok(dependencies)
 }
