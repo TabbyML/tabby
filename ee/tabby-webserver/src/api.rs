@@ -1,10 +1,10 @@
 use async_trait::async_trait;
-use hyper::{Request};
+use hyper::Request;
 use tabby_common::api::{
     code::{CodeSearch, CodeSearchError, SearchResponse},
     event::RawEventLogger,
 };
-use tokio_tungstenite::{connect_async};
+use tokio_tungstenite::connect_async;
 
 pub use crate::schema::worker::{RegisterWorkerError, Worker, WorkerKind};
 use crate::{websocket::WebSocketTransport, RegisterWorkerRequest, REGISTER_WORKER_HEADER};

@@ -8,8 +8,7 @@ use tabby_common::api::{
     code::{CodeSearch, SearchResponse},
     event::RawEventLogger,
 };
-
-use tracing::{warn};
+use tracing::warn;
 use websocket::WebSocketTransport;
 
 mod repositories;
@@ -21,7 +20,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
-    headers::{Header},
+    headers::Header,
     http::{HeaderName, Request},
     middleware::{from_fn_with_state, Next},
     response::IntoResponse,

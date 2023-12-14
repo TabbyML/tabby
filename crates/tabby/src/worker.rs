@@ -1,10 +1,9 @@
 use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 
-
 use axum::{routing, Router};
 use clap::Args;
 use tabby_webserver::api::{HubClient, WorkerKind};
-use tracing::{info};
+use tracing::info;
 
 use crate::{
     routes::{self, run_app},
