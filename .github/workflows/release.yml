@@ -113,7 +113,7 @@ jobs:
           cuda: ${{ matrix.windows_cuda }}
           method: 'network'
           sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
-        if: runner.os == 'Windows' && matrix.binary != 'x86_64-windows-msvc'
+        if: runner.os == 'Windows' && matrix.windows_cuda != ''
 
       - name: Bulid release binary
         run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
