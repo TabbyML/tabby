@@ -24,6 +24,7 @@ Once you have installed the Tabby VSCode extension, you can easily get started b
 
 1. **Setup the Tabby server**: You can build your own self-hosted Tabby server following [this guide](https://tabby.tabbyml.com/docs/installation).
 2. **Connect the extension to your Tabby server**: Use the command `Tabby: Specify API Endpoint of Tabby` to connect the extension to your Tabby server.
+   - **Note**: If your Tabby server requires an authentication token, you can set it in the [config file](https://tabby.tabbyml.com/docs/extensions/configurations). (The web extension does not support setting the authentication token yet.)
 
 Once the setup is complete, Tabby will automatically provide inline suggestions. You can accept the suggestions by simply pressing the `Tab` key.
 

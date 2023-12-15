@@ -11,6 +11,7 @@ This document describes the available configurations for Tabby IDE extensions.
 The Tabby agent, which is the core component of Tabby IDE extensions, reads configurations from the `~/.tabby-client/agent/config.toml` file. This file is automatically created when you first run the Tabby IDE extensions. You can edit this file to modify the configurations. The Tabby IDE extensions will automatically reload the config file when it detects changes.
 
 :::tip
+- The config file is written in [TOML](https://toml.io/en/). When you edit the config template and want to enable a configuration, make sure to uncomment the full section including the leading line, not just the line with the configuration value.
 - Configurations set via the IDE settings page take precedence over the config file. If you want to use a configuration from the config file, make sure that the IDE setting is empty.
 - If you are using the Tabby VSCode extension in a web browser, this config file is not available. You can use the VSCode settings page to configure the extension.
 :::
@@ -18,6 +19,8 @@ The Tabby agent, which is the core component of Tabby IDE extensions, reads conf
 ## Server
 
 The `server` section contains configurations related to the Tabby server.
+
+**NOTE**: If your Tabby server requires an authentication token, remember to set it here.
 
 ```toml
 # Server
