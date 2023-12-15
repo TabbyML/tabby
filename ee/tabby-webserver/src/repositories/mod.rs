@@ -18,7 +18,7 @@ use tracing::{instrument, warn};
 use crate::{
     repositories,
     repositories::resolve::{resolve_dir, resolve_file, resolve_meta, Meta, ResolveParams},
-    schema::{auth::AuthenticationService, ServiceLocator},
+    schema::ServiceLocator,
 };
 
 pub fn routes(locator: Arc<dyn ServiceLocator>) -> Router {
