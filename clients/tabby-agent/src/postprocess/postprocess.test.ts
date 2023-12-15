@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs-extra";
 import { v4 as uuid } from "uuid";
 import toml from "toml";
-import { globSync } from "glob";
+import glob from "glob";
 import { expect } from "chai";
 import { deepmerge } from "deepmerge-ts";
 import { AgentConfig, defaultAgentConfig } from "../AgentConfig";
@@ -80,7 +80,7 @@ describe("postprocess golden test", () => {
     return processed;
   };
 
-  const files = globSync(path.join(__dirname, "golden/**/*.toml"));
+  const files = glob.sync(path.join(__dirname, "golden/**/*.toml"));
   files.sort().forEach((file) => {
     const fileContent = fs.readFileSync(file, "utf8");
     const testCase = toml.parse(fileContent);
