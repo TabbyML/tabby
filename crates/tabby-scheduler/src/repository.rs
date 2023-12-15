@@ -1,7 +1,12 @@
-use std::process::Command;
+use std::{collections::HashSet, fs, process::Command};
 
 use anyhow::{anyhow, Result};
-use tabby_common::config::{Config, RepositoryConfig};
+
+use tabby_common::{
+    config::{Config, RepositoryConfig},
+    path::repositories_dir,
+};
+use tracing::warn;
 
 trait ConfigExt {
     fn sync_repositories(&self) -> Result<()>;
@@ -9,13 +14,31 @@ trait ConfigExt {
 
 impl ConfigExt for Config {
     fn sync_repositories(&self) -> Result<()> {
+        let mut names = HashSet::new();
         for repository in self.repositories.iter() {
+            names.insert(repository.name());
             if repository.is_local_dir() {
                 if !repository.dir().exists() {
                     panic!("Directory {} does not exist", repository.dir().display());
                 }
             } else {
                 repository.sync()?;
+            }
+        }
+
+        for file in fs::read_dir(repositories_dir())?.filter_map(Result::ok) {
+            let metadata = file.metadata()?;
+            let filename = file.file_name();
+            if metadata.is_file() {
+                warn!("An unrelated file {:?} was found in repositories directory, It will now be removed...", filename);
+                // There shouldn't be any files under repositories dir.
+                fs::remove_file(file.path())?;
+            } else if metadata.is_dir() {
+                let filename = filename.to_str().ok_or(anyhow!("Invalid file name"))?;
+                if !names.contains(filename) {
+                    warn!("An unrelated directory {:?} was found in repositories directory, It will now be removed...", filename);
+                    fs::remove_dir_all(file.path())?;
+                }
             }
         }
 
