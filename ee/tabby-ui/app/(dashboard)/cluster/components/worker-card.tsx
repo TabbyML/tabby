@@ -38,7 +38,7 @@ export default function RunnerCard({
         <Info>
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className=" h-5 w-5 text-gray-400"
+            className=" h-5 w-5"
             width="24"
             height="24"
             viewBox="0 0 24 24"
@@ -60,7 +60,7 @@ export default function RunnerCard({
         </Info>
         <Info>
           <svg
-            className=" h-5 w-5 text-gray-400"
+            className=" h-5 w-5"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -91,7 +91,7 @@ export default function RunnerCard({
           cudaDevices.map((x, i) => (
             <Info key={i}>
               <svg
-                className=" h-5 w-5 text-gray-400"
+                className=" h-5 w-5"
                 fill="none"
                 height="24"
                 stroke="currentColor"
@@ -128,7 +128,7 @@ interface InfoProps {
 
 function Info({ children }: InfoProps) {
   return (
-    <div className="mt-2 flex items-center text-sm text-gray-500">
+    <div className="mt-2 flex items-center text-sm text-card-foreground/70">
       {children}
     </div>
   )

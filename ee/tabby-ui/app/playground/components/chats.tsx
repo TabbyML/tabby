@@ -22,7 +22,7 @@ export default function Chats() {
 
   return (
     <div className="grid flex-1 overflow-hidden lg:grid-cols-[280px_1fr]">
-      <ChatSessions className="hidden w-[280px] border-r bg-zinc-100/40 dark:bg-zinc-800/40 lg:block" />
+      <ChatSessions className="hidden w-[280px] border-r lg:block" />
       <Chat
         loading={!_hasHydrated}
         id={chatId}
