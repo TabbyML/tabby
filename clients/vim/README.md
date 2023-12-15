@@ -116,13 +116,16 @@ In insert mode, Tabby plugin will show inline completion automatically when you 
 
 You need to start the Tabby server before using the plugin. For Tabby server installation, please refer to this [documentation](https://tabby.tabbyml.com/docs/installation/).
 
-If your Tabby server endpoint is different from the default `http://localhost:8080`, please set the endpoint in `~/.tabby-client/agent/config.toml`.
+If your Tabby server endpoint is different from the default `http://localhost:8080`, please set the endpoint in `~/.tabby-client/agent/config.toml`. 
+
+If your Tabby server requires an authentication token, remember to set it here.
 
 ```toml
 # Server
 # You can set the server endpoint here.
 [server]
 endpoint = "http://localhost:8080" # http or https URL
+token = "your-auth-token"
 ```
 
 ### Node.js Binary Path
