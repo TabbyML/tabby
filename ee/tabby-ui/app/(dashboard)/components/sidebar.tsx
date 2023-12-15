@@ -21,11 +21,11 @@ export default function Sidebar({ children, className }: SidebarProps) {
     <div
       className={cn('grid overflow-hidden lg:grid-cols-[280px_1fr]', className)}
     >
-      <div className="hidden border-r bg-zinc-100/40 dark:bg-zinc-800/40 lg:block">
+      <div className="hidden border-r lg:block">
         <div className="flex h-full flex-col gap-2">
           <div className="h-[12px]"></div>
           <div className="flex-1">
-            <nav className="grid items-start gap-4 px-4 text-sm font-medium">
+            <nav className="grid items-start gap-2 px-4 text-sm font-medium">
               <SidebarButton href="/">
                 <IconHome /> Home
               </SidebarButton>
@@ -58,11 +58,11 @@ interface SidebarButtonProps {
 }
 
 const linkVariants = cva(
-  'flex items-center gap-3 rounded-lg px-3 py-2 text-zinc-900 transition-all hover:text-zinc-900 dark:text-zinc-50 dark:hover:text-zinc-50',
+  'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent',
   {
     variants: {
       state: {
-        selected: 'bg-zinc-200 dark:bg-zinc-800',
+        selected: 'bg-accent',
         'not-selected': ''
       }
     },

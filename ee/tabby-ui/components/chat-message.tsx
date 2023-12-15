@@ -31,10 +31,10 @@ export function ChatMessage({
     >
       <div
         className={cn(
-          'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md border shadow',
+          'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md border bg-background shadow',
           message.role === 'user'
             ? 'bg-background'
-            : 'bg-primary text-primary-foreground'
+            : 'bg-accent text-accent-foreground'
         )}
       >
         {message.role === 'user' ? <IconUser /> : <IconTabby />}
