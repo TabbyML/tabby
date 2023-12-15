@@ -19,7 +19,7 @@ export default function RootLayout({ children }: DashboardLayoutProps) {
   return (
     <>
       <Header />
-      <main className="flex flex-1 flex-col bg-muted/50">
+      <main className="flex flex-1 flex-col">
         <Sidebar className="flex-1">{children}</Sidebar>
       </main>
     </>

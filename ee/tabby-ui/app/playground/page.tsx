@@ -12,7 +12,7 @@ export default function IndexPage() {
   return (
     <>
       <Header />
-      <main className="flex flex-1 flex-col bg-muted/50">
+      <main className="flex flex-1 flex-col">
         <Chats />
       </main>
     </>

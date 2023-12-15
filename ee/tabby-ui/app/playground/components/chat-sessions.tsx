@@ -13,6 +13,7 @@ import { cn, nanoid } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconPlus, IconTrash } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Tooltip,
   TooltipContent,
@@ -50,8 +51,8 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
   return (
     <>
       <div className={cn(className)}>
-        <div className="fixed inset-y-0 left-0 flex w-[279px] flex-col gap-2 overflow-hidden px-3 pt-16">
-          <div className="shrink-0 pb-0 pt-2">
+        <div className="fixed inset-y-0 left-0 flex w-[279px] flex-col gap-2 pt-16">
+          <div className="shrink-0 pb-0 pl-3 pt-2">
             <Button
               className="h-12 w-full justify-start"
               variant="ghost"
@@ -62,7 +63,7 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
             </Button>
           </div>
           <Separator />
-          <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
+          <ScrollArea className="flex flex-col gap-2 px-3">
             {!_hasHydrated ? (
               <ListSkeleton />
             ) : (
@@ -74,8 +75,8 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
                       key={chat.id}
                       onClick={e => setActiveChatId(chat.id)}
                       className={cn(
-                        'flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-zinc-900 transition-all hover:bg-accent hover:text-zinc-900  dark:text-zinc-50 hover:dark:bg-zinc-900 dark:hover:text-zinc-50',
-                        isActive && '!bg-zinc-200 dark:!bg-zinc-800'
+                        'flex text-sm w-[254px] cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-1 my-2 transition-all hover:bg-primary/10',
+                        isActive && 'bg-primary/10'
                       )}
                     >
                       <span className="truncate leading-8">
@@ -112,7 +113,7 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
                 })}
               </>
             )}
-          </div>
+          </ScrollArea>
           <Separator />
           <div className="shrink-0 pb-2">
             <ClearChatsButton
