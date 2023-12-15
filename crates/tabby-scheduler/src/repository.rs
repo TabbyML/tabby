@@ -1,7 +1,6 @@
 use std::{collections::HashSet, fs, process::Command};
 
 use anyhow::{anyhow, Result};
-
 use tabby_common::{
     config::{Config, RepositoryConfig},
     path::repositories_dir,
