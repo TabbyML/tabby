@@ -4,13 +4,20 @@
 
 ## Fixes and Improvements
 
-# v0.7.0
+# v0.7.0 (12/15/2023)
 
 ## Features
 
+* Tabby now includes built-in user management and secure access, ensuring that it is only accessible to your team.
+* The `--webserver` flag is a new addition to `tabby serve` that enables secure access to the tabby server. When this flag is on, IDE extensions will need to provide an authorization token to access the instance.
+  - Some functionalities that are bound to the webserver (e.g. playground) will also require the `--webserver` flag.
+
+
 ## Fixes and Improvements
 
-# v0.6.0
+*  Fix https://github.com/TabbyML/tabby/issues/1036, events log should be written to dated json files.
+
+# v0.6.0 (11/27/2023)
 
 ## Features
 
