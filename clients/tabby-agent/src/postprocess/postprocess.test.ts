@@ -81,7 +81,7 @@ describe("postprocess golden test", () => {
   };
 
   const files = globSync(path.join(__dirname, "golden/**/*.toml"));
-  files.forEach((file) => {
+  files.sort().forEach((file) => {
     const fileContent = fs.readFileSync(file, "utf8");
     const testCase = toml.parse(fileContent);
     it(testCase["description"] ?? file, async () => {
@@ -99,22 +99,26 @@ describe("postprocess golden test", () => {
         id: completionId,
         choices: buildChoices(docContext),
       };
-
+      const unchanged: CompletionResponse = JSON.parse(JSON.stringify(completionResponse));
       const output = await postprocess(completionContext, config, completionResponse);
 
+      const checkExpected = (expected: CompletionResponse) => {
+        if (testCase["expected"]?.["notEqual"]) {
+          expect(output).to.not.deep.equal(expected);
+        } else {
+          expect(output).to.deep.equal(expected);
+        }
+      };
+
       if (testCase["expected"]?.["unchanged"]) {
-        expect(output).to.deep.equal(completionResponse);
+        checkExpected(unchanged);
       } else {
         const expectedContext = parseDocContext(testCase["expected"]?.["text"] ?? "");
         const expected = {
           id: completionId,
           choices: buildChoices(expectedContext),
         };
-        if (testCase["expected"]?.["notEqual"]) {
-          expect(output).to.not.deep.equal(expected);
-        } else {
-          expect(output).to.deep.equal(expected);
-        }
+        checkExpected(expected);
       }
     });
   });
