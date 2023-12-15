@@ -13,6 +13,7 @@ import { useAuthenticatedSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconGitHub, IconNotice } from '@/components/ui/icons'
+
 import { ThemeToggle } from './theme-toggle'
 
 export function Header() {
@@ -29,21 +30,13 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl">
       <div className="flex items-center">
-        <span className="hidden font-logo font-semibold sm:inline-block px-2 select-none">
+        <span className="hidden select-none px-2 font-logo font-semibold sm:inline-block">
           Tabby
         </span>
-        <HeaderLink href="/">
-          Dashboard
-        </HeaderLink>
-        <HeaderLink href="/api">
-          API
-        </HeaderLink>
+        <HeaderLink href="/">Dashboard</HeaderLink>
+        <HeaderLink href="/api">API</HeaderLink>
         {isChatEnabled && (
-          <HeaderLink
-            href="/playground"
-          >
-            Playground
-          </HeaderLink>
+          <HeaderLink href="/playground">Playground</HeaderLink>
         )}
       </div>
       <div className="flex items-center justify-end space-x-2">
@@ -85,4 +78,17 @@ function isNewVersionAvailable(version?: string, latestRelease?: ReleaseInfo) {
   }
 }
 
-const HeaderLink = ({ children, href }: { children: React.ReactNode, href: string }) => <Link href={href} className={cn(buttonVariants({ variant: "link" }), "text-foreground")}>{children}</Link>
+const HeaderLink = ({
+  children,
+  href
+}: {
+  children: React.ReactNode
+  href: string
+}) => (
+  <Link
+    href={href}
+    className={cn(buttonVariants({ variant: 'link' }), 'text-foreground')}
+  >
+    {children}
+  </Link>
+)

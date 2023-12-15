@@ -12,8 +12,8 @@ import { useChatStore } from '@/lib/stores/chat-store'
 import { cn, nanoid } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconPlus, IconTrash } from '@/components/ui/icons'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Tooltip,
   TooltipContent,
@@ -75,7 +75,7 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
                       key={chat.id}
                       onClick={e => setActiveChatId(chat.id)}
                       className={cn(
-                        'flex text-sm w-[254px] cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-1 my-2 transition-all hover:bg-primary/10',
+                        'my-2 flex w-[254px] cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-1 text-sm transition-all hover:bg-primary/10',
                         isActive && 'bg-primary/10'
                       )}
                     >
