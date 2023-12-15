@@ -1,6 +1,6 @@
 [package]
 name = "tabby-common"
-version = "0.7.0-dev"
+version = "0.7.0"
 edition = "2021"
 
 [dependencies]
