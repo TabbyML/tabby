@@ -13,6 +13,7 @@ import { useAuthenticatedSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconGitHub, IconNotice } from '@/components/ui/icons'
+import { ThemeToggle } from './theme-toggle'
 
 export function Header() {
   // Ensure login status.
@@ -46,6 +47,7 @@ export function Header() {
         )}
       </div>
       <div className="flex items-center justify-end space-x-2">
+        <ThemeToggle />
         {newVersionAvailable && (
           <a
             target="_blank"
