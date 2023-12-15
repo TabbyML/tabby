@@ -58,11 +58,11 @@ interface SidebarButtonProps {
 }
 
 const linkVariants = cva(
-  'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-primary/10',
+  'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent',
   {
     variants: {
       state: {
-        selected: 'bg-primary/10',
+        selected: 'bg-accent',
         'not-selected': ''
       }
     },

@@ -14,8 +14,6 @@ import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconGitHub, IconNotice } from '@/components/ui/icons'
 
-import { ThemeToggle } from './theme-toggle'
-
 export function Header() {
   // Ensure login status.
   useAuthenticatedSession()
@@ -30,20 +28,21 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl">
       <div className="flex items-center">
-        <ThemeToggle />
-        <Link href="/" className={cn(buttonVariants({ variant: 'link' }))}>
+        <span className="hidden font-logo font-semibold sm:inline-block px-2 select-none">
+          Tabby
+        </span>
+        <HeaderLink href="/">
           Dashboard
-        </Link>
-        <Link href="/api" className={cn(buttonVariants({ variant: 'link' }))}>
+        </HeaderLink>
+        <HeaderLink href="/api">
           API
-        </Link>
+        </HeaderLink>
         {isChatEnabled && (
-          <Link
+          <HeaderLink
             href="/playground"
-            className={cn(buttonVariants({ variant: 'link' }))}
           >
             Playground
-          </Link>
+          </HeaderLink>
         )}
       </div>
       <div className="flex items-center justify-end space-x-2">
@@ -83,3 +82,5 @@ function isNewVersionAvailable(version?: string, latestRelease?: ReleaseInfo) {
     return true
   }
 }
+
+const HeaderLink = ({ children, href }: { children: React.ReactNode, href: string }) => <Link href={href} className={cn(buttonVariants({ variant: "link" }), "text-foreground")}>{children}</Link>
