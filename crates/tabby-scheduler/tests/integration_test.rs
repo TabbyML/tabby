@@ -18,6 +18,7 @@ mod tests {
 
         let config = Config {
             repositories: vec![RepositoryConfig {
+                name: None,
                 git_url: "https://github.com/TabbyML/interview-questions".to_owned(),
             }],
             server: ServerConfig::default(),

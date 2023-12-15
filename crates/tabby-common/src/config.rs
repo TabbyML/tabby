@@ -1,12 +1,10 @@
-use std::{
-    io::{Error, ErrorKind},
-    path::PathBuf,
-};
+use std::{collections::HashSet, path::PathBuf};
 
+use anyhow::{anyhow, Result};
 use filenamify::filenamify;
 use serde::{Deserialize, Serialize};
 
-use crate::path::{config_file, repositories_dir};
+use crate::path::repositories_dir;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
@@ -18,18 +16,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load() -> Result<Self, Error> {
-        let file = serdeconv::from_toml_file(crate::path::config_file().as_path());
-        file.map_err(|err| {
-            Error::new(
-                ErrorKind::InvalidData,
-                format!(
-                    "Config {:?} doesn't exist or is not valid: `{:?}`",
-                    config_file(),
-                    err
-                ),
-            )
-        })
+    pub fn load() -> Result<Self> {
+        let cfg: Self = serdeconv::from_toml_file(crate::path::config_file().as_path())?;
+
+        if !cfg.repository_has_unique_name() {
+            return Err(anyhow!("Duplicated name in `repositories`"));
+        }
+
+        Ok(cfg)
     }
 
     #[cfg(feature = "testutils")]
@@ -37,10 +31,21 @@ impl Config {
         serdeconv::to_toml_file(self, crate::path::config_file().as_path())
             .expect("Failed to write config file");
     }
+
+    fn repository_has_unique_name(&self) -> bool {
+        let mut names = HashSet::new();
+        for repo in self.repositories.iter() {
+            names.insert(repo.name());
+        }
+
+        names.len() == self.repositories.len()
+    }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct RepositoryConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub git_url: String,
 }
 
@@ -59,7 +64,11 @@ impl RepositoryConfig {
     }
 
     pub fn name(&self) -> String {
-        filenamify(&self.git_url)
+        if let Some(name) = &self.name {
+            name.clone()
+        } else {
+            filenamify(&self.git_url)
+        }
     }
 }
 
@@ -90,12 +99,14 @@ mod tests {
     #[test]
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
+            name: None,
             git_url: "file:///home/user".to_owned(),
         };
         assert!(repo.is_local_dir());
         assert_eq!(repo.dir().display().to_string(), "/home/user");
 
         let repo = RepositoryConfig {
+            name: None,
             git_url: "https://github.com/TabbyML/tabby".to_owned(),
         };
         assert!(!repo.is_local_dir());
@@ -104,6 +115,7 @@ mod tests {
     #[test]
     fn test_repository_config_name() {
         let repo = RepositoryConfig {
+            name: None,
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
         };
         assert_eq!(repo.name(), "https_github.com_TabbyML_tabby.git");
