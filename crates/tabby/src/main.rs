@@ -123,11 +123,11 @@ async fn main() {
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
         #[cfg(feature = "ee")]
         Commands::WorkerCompletion(args) => {
-            worker::main(tabby_webserver::api::WorkerKind::Completion, args).await
+            worker::main(tabby_webserver::public::WorkerKind::Completion, args).await
         }
         #[cfg(feature = "ee")]
         Commands::WorkerChat(args) => {
-            worker::main(tabby_webserver::api::WorkerKind::Chat, args).await
+            worker::main(tabby_webserver::public::WorkerKind::Chat, args).await
         }
     }
 

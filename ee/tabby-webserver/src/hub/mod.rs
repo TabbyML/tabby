@@ -3,26 +3,20 @@ mod websocket;
 
 use std::{net::SocketAddr, sync::Arc};
 
+use api::{Hub, RegisterWorkerRequest};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
-    headers::Header,
     response::IntoResponse,
     TypedHeader,
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
-use tabby_common::api::{
-    code::{CodeSearch, SearchResponse},
-    event::RawEventLogger,
-};
+use tabby_common::api::code::SearchResponse;
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
+use websocket::WebSocketTransport;
 
-use self::websocket::WebSocketTransport;
-use crate::{
-    api::{Hub, RegisterWorkerRequest},
-    schema::{worker::Worker, ServiceLocator},
-};
+use crate::schema::{worker::Worker, ServiceLocator};
 
 pub(crate) async fn ws_handler(
     ws: WebSocketUpgrade,
@@ -74,13 +68,13 @@ async fn handle_socket(state: Arc<dyn ServiceLocator>, socket: WebSocket, worker
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
-pub struct HubImpl {
+struct HubImpl {
     ctx: Arc<dyn ServiceLocator>,
     worker_addr: String,
 }
 
 impl HubImpl {
-    pub fn new(ctx: Arc<dyn ServiceLocator>, worker_addr: String) -> Self {
+    fn new(ctx: Arc<dyn ServiceLocator>, worker_addr: String) -> Self {
         Self { ctx, worker_addr }
     }
 }

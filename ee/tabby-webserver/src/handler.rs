@@ -1,19 +1,3 @@
-mod handler;
-mod hub;
-mod repositories;
-mod schema;
-mod service;
-mod ui;
-
-pub mod public {
-    pub use super::{
-        handler::attach_webserver,
-        /* used by tabby workers (consumer of /hub api) */
-        hub::api::{create_client, HubClient, RegisterWorkerRequest, WorkerKind},
-        /* used by examples/update-schema.rs */ schema::create_schema,
-    };
-}
-
 use std::sync::Arc;
 
 use axum::{
@@ -24,9 +8,14 @@ use axum::{
 };
 use hyper::Body;
 use juniper_axum::{graphiql, graphql, playground};
-use schema::{Schema, ServiceLocator};
-use service::create_service_locator;
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+
+use crate::{
+    hub, repositories,
+    schema::{create_schema, Schema, ServiceLocator},
+    service::create_service_locator,
+    ui,
+};
 
 pub async fn attach_webserver(
     api: Router,
@@ -35,7 +24,7 @@ pub async fn attach_webserver(
     code: Arc<dyn CodeSearch>,
 ) -> (Router, Router) {
     let ctx = create_service_locator(logger, code).await;
-    let schema = Arc::new(schema::create_schema());
+    let schema = Arc::new(create_schema());
 
     let api = api
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
