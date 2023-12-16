@@ -30,10 +30,11 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl">
       <div className="flex items-center">
-        <span className="hidden select-none px-2 font-logo font-semibold sm:inline-block">
-          Tabby
-        </span>
-        <HeaderLink href="/">Dashboard</HeaderLink>
+        <Link href="/">
+          <span className="hidden select-none px-2 font-logo font-semibold sm:inline-block">
+            Tabby
+          </span>
+        </Link >
         <HeaderLink href="/api">API</HeaderLink>
         {isChatEnabled && (
           <HeaderLink href="/playground">Playground</HeaderLink>
