@@ -8,13 +8,7 @@ fn get_output_file(path: &str, silent: bool) -> (Option<std::fs::File>, u64) {
             if !silent {
                 println!("File exists. Resuming.");
             }
-            file = Some(
-                std::fs::OpenOptions::new()
-                    .write(true)
-                    .append(true)
-                    .open(path)
-                    .unwrap(),
-            );
+            file = Some(std::fs::OpenOptions::new().append(true).open(path).unwrap());
 
             let file_size = std::fs::metadata(path).unwrap().len();
             transferred = file_size;

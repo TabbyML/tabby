@@ -40,6 +40,16 @@ pub enum Commands {
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
 
+    /// Run repository sync in background
+    #[cfg(feature = "ee")]
+    #[clap(name = "job::sync", hide = true)]
+    JobSync,
+
+    /// Run repository index in background
+    #[cfg(feature = "ee")]
+    #[clap(name = "job::index", hide = true)]
+    JobIndex,
+
     /// Run completion model as worker
     #[cfg(feature = "ee")]
     #[clap(name = "worker::completion")]
@@ -121,6 +131,10 @@ async fn main() {
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
+        #[cfg(feature = "ee")]
+        Commands::JobSync => tabby_scheduler::job_sync(),
+        #[cfg(feature = "ee")]
+        Commands::JobIndex => tabby_scheduler::job_index(),
         #[cfg(feature = "ee")]
         Commands::WorkerCompletion(args) => {
             worker::main(tabby_webserver::public::WorkerKind::Completion, args).await

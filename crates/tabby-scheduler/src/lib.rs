@@ -13,28 +13,11 @@ pub async fn scheduler(now: bool) -> Result<()> {
     let mut scheduler = JobScheduler::new();
 
     let job1 = || {
-        println!("Syncing repositories...");
-        let ret = repository::sync_repositories(&config);
-        if let Err(err) = ret {
-            error!("Failed to sync repositories, err: '{}'", err);
-            return;
-        }
-
-        println!("Building dataset...");
-        let ret = dataset::create_dataset(&config);
-        if let Err(err) = ret {
-            error!("Failed to build dataset, err: '{}'", err);
-        }
-        println!();
+        dataset::sync_repository(&config);
     };
 
     let job2 = || {
-        println!("Indexing repositories...");
-        let ret = index::index_repositories(&config);
-        if let Err(err) = ret {
-            error!("Failed to index repositories, err: '{}'", err);
-        }
-        println!()
+        index::index_repository(&config);
     };
 
     if now {
@@ -57,4 +40,22 @@ pub async fn scheduler(now: bool) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(feature = "ee")]
+pub fn job_sync() {
+    let Ok(config) = Config::load() else {
+        error!("Scheduler job failed to load config");
+        return;
+    };
+    dataset::sync_repository(&config)
+}
+
+#[cfg(feature = "ee")]
+pub fn job_index() {
+    let Ok(config) = Config::load() else {
+        error!("Scheduler job failed to load config");
+        return;
+    };
+    index::index_repository(&config)
 }
