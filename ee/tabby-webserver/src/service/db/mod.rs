@@ -11,7 +11,10 @@ use rusqlite::params;
 use rusqlite_migration::AsyncMigrations;
 use tokio_rusqlite::Connection;
 
-use crate::{path::db_file, service::cron::run_offline_job};
+use crate::{
+    path::{db_file, tabby_ee_root},
+    service::cron::run_offline_job,
+};
 
 static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 
@@ -33,9 +36,8 @@ impl DbConn {
     }
 
     pub async fn new() -> Result<Self> {
-        let db_path = db_file();
-        tokio::fs::create_dir_all(db_path.as_path()).await?;
-        let conn = Connection::open(db_path).await?;
+        tokio::fs::create_dir_all(tabby_ee_root()).await?;
+        let conn = Connection::open(db_file()).await?;
         Self::init_db(conn).await
     }
 
