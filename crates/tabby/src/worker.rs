@@ -2,7 +2,7 @@ use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 
 use axum::{routing, Router};
 use clap::Args;
-use tabby_webserver::api::{HubClient, WorkerKind};
+use tabby_webserver::hub::api::{HubClient, WorkerKind};
 use tracing::info;
 
 use crate::{
@@ -94,7 +94,7 @@ impl WorkerContext {
         let cuda_devices = read_cuda_devices().unwrap_or_default();
 
         Self {
-            client: tabby_webserver::api::create_client(
+            client: tabby_webserver::hub::api::create_client(
                 &args.url,
                 &args.token,
                 kind,

@@ -1,13 +1,15 @@
 use async_trait::async_trait;
+use axum::{headers::Header, http::HeaderName};
 use hyper::Request;
+use serde::{Deserialize, Serialize};
 use tabby_common::api::{
     code::{CodeSearch, CodeSearchError, SearchResponse},
     event::RawEventLogger,
 };
 use tokio_tungstenite::connect_async;
 
+use super::websocket::WebSocketTransport;
 pub use crate::schema::worker::{RegisterWorkerError, Worker, WorkerKind};
-use crate::{websocket::WebSocketTransport, RegisterWorkerRequest, REGISTER_WORKER_HEADER};
 
 #[tarpc::service]
 pub trait Hub {
@@ -115,5 +117,45 @@ impl CodeSearch for HubClient {
             Ok(serp) => Ok(serp),
             Err(_) => Err(CodeSearchError::NotReady),
         }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct RegisterWorkerRequest {
+    pub(crate) kind: WorkerKind,
+    pub(crate) port: i32,
+    pub(crate) name: String,
+    pub(crate) device: String,
+    pub(crate) arch: String,
+    pub(crate) cpu_info: String,
+    pub(crate) cpu_count: i32,
+    pub(crate) cuda_devices: Vec<String>,
+}
+
+pub(crate) static REGISTER_WORKER_HEADER: HeaderName =
+    HeaderName::from_static("x-tabby-register-worker");
+
+impl Header for RegisterWorkerRequest {
+    fn name() -> &'static axum::http::HeaderName {
+        &REGISTER_WORKER_HEADER
+    }
+
+    fn decode<'i, I>(values: &mut I) -> Result<Self, axum::headers::Error>
+    where
+        Self: Sized,
+        I: Iterator<Item = &'i axum::http::HeaderValue>,
+    {
+        let mut x: Vec<_> = values
+            .map(|x| serde_json::from_slice(x.as_bytes()))
+            .collect();
+        if let Some(x) = x.pop() {
+            x.map_err(|_| axum::headers::Error::invalid())
+        } else {
+            Err(axum::headers::Error::invalid())
+        }
+    }
+
+    fn encode<E: Extend<axum::http::HeaderValue>>(&self, _values: &mut E) {
+        todo!()
     }
 }
