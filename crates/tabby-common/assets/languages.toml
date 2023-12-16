@@ -115,6 +115,43 @@ top_level_keywords = [
 ]
 
 [[config]]
+languages = ["c"]
+line_comment = "//"
+top_level_keywords = [
+    "const",
+    "enum",
+    "extern",
+    "inline",
+    "register",
+    "static",
+    "struct",
+    "typedef",
+    "union",
+    "volatile",
+]
+
+[[config]]
+languages = ["cpp"]
+line_comment = "//"
+top_level_keywords = [
+    "auto",
+    "class",
+    "const",
+    "concept",
+    "enum",
+    "extern",
+    "inline",
+    "namespace",
+    "register",
+    "static",
+    "struct",
+    "template",
+    "typedef",
+    "union",
+    "volatile",
+]
+
+[[config]]
 languages = ["csharp"]
 line_comment = "//"
 top_level_keywords = [

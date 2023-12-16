@@ -117,6 +117,28 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "c",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_c::language(),
+                        tree_sitter_c::TAGS_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "cpp",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_cpp::language(),
+                        tree_sitter_cpp::TAGS_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
         ])
     };
 }
