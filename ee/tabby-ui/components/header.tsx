@@ -34,7 +34,7 @@ export function Header() {
           <span className="hidden select-none px-2 font-logo font-semibold sm:inline-block">
             Tabby
           </span>
-        </Link >
+        </Link>
         <HeaderLink href="/api">API</HeaderLink>
         {isChatEnabled && (
           <HeaderLink href="/playground">Playground</HeaderLink>
