@@ -29,18 +29,7 @@ pub fn tracing_context() -> tarpc::context::Context {
     tarpc::context::current()
 }
 
-pub async fn create_client(
-    addr: &str,
-    token: &str,
-    kind: WorkerKind,
-    port: i32,
-    name: String,
-    device: String,
-    arch: String,
-    cpu_info: String,
-    cpu_count: i32,
-    cuda_devices: Vec<String>,
-) -> HubClient {
+pub async fn create_client(addr: &str, token: &str, request: RegisterWorkerRequest) -> HubClient {
     let request = Request::builder()
         .uri(format!("ws://{}/hub", addr))
         .header("Host", addr)
@@ -52,17 +41,7 @@ pub async fn create_client(
         .header("Content-Type", "application/json")
         .header(
             &REGISTER_WORKER_HEADER,
-            serde_json::to_string(&RegisterWorkerRequest {
-                kind,
-                port,
-                name,
-                device,
-                arch,
-                cpu_info,
-                cpu_count,
-                cuda_devices,
-            })
-            .unwrap(),
+            serde_json::to_string(&request).unwrap(),
         )
         .body(())
         .unwrap();
@@ -121,19 +100,18 @@ impl CodeSearch for HubClient {
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct RegisterWorkerRequest {
-    pub(crate) kind: WorkerKind,
-    pub(crate) port: i32,
-    pub(crate) name: String,
-    pub(crate) device: String,
-    pub(crate) arch: String,
-    pub(crate) cpu_info: String,
-    pub(crate) cpu_count: i32,
-    pub(crate) cuda_devices: Vec<String>,
+pub struct RegisterWorkerRequest {
+    pub kind: WorkerKind,
+    pub port: i32,
+    pub name: String,
+    pub device: String,
+    pub arch: String,
+    pub cpu_info: String,
+    pub cpu_count: i32,
+    pub cuda_devices: Vec<String>,
 }
 
-pub(crate) static REGISTER_WORKER_HEADER: HeaderName =
-    HeaderName::from_static("x-tabby-register-worker");
+pub static REGISTER_WORKER_HEADER: HeaderName = HeaderName::from_static("x-tabby-register-worker");
 
 impl Header for RegisterWorkerRequest {
     fn name() -> &'static axum::http::HeaderName {
