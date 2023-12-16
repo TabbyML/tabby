@@ -26,7 +26,7 @@ jobs:
     container: ${{ matrix.container }}
     strategy:
       matrix:
-        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-manylinux2014-cuda117, x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122, x86_64-manylinux2014-rocm57]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-windows-msvc, x86_64-manylinux2014-cuda117, x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122, x86_64-manylinux2014-rocm57]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
@@ -40,6 +40,10 @@ jobs:
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
             build_args: --features cuda
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: x86_64-windows-msvc
+            ext: .exe
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-cuda117
@@ -109,7 +113,7 @@ jobs:
           cuda: ${{ matrix.windows_cuda }}
           method: 'network'
           sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "thrust", "visual_studio_integration"]'
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && matrix.windows_cuda != ''
 
       - name: Bulid release binary
         run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
