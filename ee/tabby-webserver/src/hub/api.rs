@@ -9,7 +9,7 @@ use tabby_common::api::{
 use tokio_tungstenite::connect_async;
 
 use super::websocket::WebSocketTransport;
-pub use crate::schema::worker::{RegisterWorkerError, Worker, WorkerKind};
+pub use crate::schema::worker::{WorkerKind};
 
 #[tarpc::service]
 pub trait Hub {
