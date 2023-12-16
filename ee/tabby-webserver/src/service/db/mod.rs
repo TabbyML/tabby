@@ -33,9 +33,8 @@ impl DbConn {
     }
 
     pub async fn new() -> Result<Self> {
-        let db_path = db_file();
-        tokio::fs::create_dir_all(db_path.as_path()).await?;
-        let conn = Connection::open(db_path).await?;
+        tokio::fs::create_dir_all(db_file().parent().unwrap()).await?;
+        let conn = Connection::open(db_file()).await?;
         Self::init_db(conn).await
     }
 
