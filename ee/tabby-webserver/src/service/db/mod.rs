@@ -2,29 +2,22 @@ mod invitations;
 mod refresh_tokens;
 mod users;
 
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
 use rusqlite::params;
 use rusqlite_migration::AsyncMigrations;
-use tabby_common::path::tabby_root;
 use tokio_rusqlite::Connection;
 
-use crate::service::cron::run_offline_job;
+use crate::{path::db_file, service::cron::run_offline_job};
 
 static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 
 lazy_static! {
     static ref MIGRATIONS: AsyncMigrations =
         AsyncMigrations::from_directory(&MIGRATIONS_DIR).unwrap();
-}
-
-async fn db_path() -> Result<PathBuf> {
-    let db_dir = tabby_root().join("ee");
-    tokio::fs::create_dir_all(db_dir.clone()).await?;
-    Ok(db_dir.join("db.sqlite"))
 }
 
 #[derive(Clone)]
@@ -40,7 +33,8 @@ impl DbConn {
     }
 
     pub async fn new() -> Result<Self> {
-        let db_path = db_path().await?;
+        let db_path = db_file();
+        tokio::fs::create_dir_all(db_path.as_path()).await?;
         let conn = Connection::open(db_path).await?;
         Self::init_db(conn).await
     }
