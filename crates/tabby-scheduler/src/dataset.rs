@@ -149,7 +149,7 @@ lazy_static! {
             ("csharp", vec!["cs"]),
             (
                 "cpp",
-                vec!["cpp", "hpp", "c++", "h++", "cc", "hh", "C", "H"],
+                vec!["cpp", "hpp", "c++", "h++", "cc", "hh", "C", "H", "tcc"],
             ),
             ("css", vec!["css"]),
             ("dockerfile", vec!["Dockerfile"]),

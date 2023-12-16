@@ -3769,6 +3769,8 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-test",
+ "tree-sitter-c",
+ "tree-sitter-cpp",
  "tree-sitter-go",
  "tree-sitter-java",
  "tree-sitter-kotlin",
@@ -4577,6 +4579,24 @@ checksum = "e747b1f9b7b931ed39a548c1fae149101497de3c1fc8d9e18c62c1a66c683d3d"
 dependencies = [
  "cc",
  "regex",
+]
+
+[[package]]
+name = "tree-sitter-c"
+version = "0.20.6"
+source = "git+https://github.com/tree-sitter/tree-sitter-c/?rev=212a80f#212a80f86452bb1316324fa0db730cf52f29e05a"
+dependencies = [
+ "cc",
+ "tree-sitter",
+]
+
+[[package]]
+name = "tree-sitter-cpp"
+version = "0.20.3"
+source = "git+https://github.com/tree-sitter/tree-sitter-cpp?rev=a714740#a71474021410973b29bfe99440d57bcd750246b1"
+dependencies = [
+ "cc",
+ "tree-sitter",
 ]
 
 [[package]]
