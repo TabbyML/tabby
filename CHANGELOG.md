@@ -4,6 +4,10 @@
 
 ## Fixes and Improvements
 
+* Add windows cpu binary distribution.
+* Add linux rocm (AMD GPU) binary distribution.
+* Fix cached permanent redirection on certain browsers(e.g chrome) when `--webserver` is not enabled.
+
 # v0.7.0 (12/15/2023)
 
 ## Features
