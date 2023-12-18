@@ -26,7 +26,7 @@ jobs:
     container: ${{ matrix.container }}
     strategy:
       matrix:
-        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-windows-msvc, x86_64-manylinux2014-cuda117, x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122, x86_64-manylinux2014-rocm57]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-windows-msvc, x86_64-manylinux2014-cuda117, x86_64-manylinux2014-cuda122, x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122, x86_64-manylinux2014-rocm57]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
@@ -39,6 +39,11 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
+            build_args: --features cuda
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014-cuda122
+            container: sameli/manylinux2014_x86_64_cuda_12.2
             build_args: --features cuda
           - os: windows-latest
             target: x86_64-pc-windows-msvc
