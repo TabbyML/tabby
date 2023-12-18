@@ -112,6 +112,12 @@ describe("postprocess golden test", () => {
 
       if (testCase["expected"]?.["unchanged"]) {
         checkExpected(unchanged);
+      } else if (testCase["expected"]?.["discard"]) {
+        const expected = {
+          id: completionId,
+          choices: [],
+        };
+        checkExpected(expected);
       } else {
         const expectedContext = parseDocContext(testCase["expected"]?.["text"] ?? "");
         const expected = {

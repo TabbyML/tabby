@@ -1,4 +1,4 @@
-description = 'Limit scope experimental: syntax rust: bad case 02'
+description = 'Limit scope experimental: syntax rust: case 02'
 
 [config.limitScope]
 experimentalSyntax = true
@@ -17,10 +17,4 @@ fn add(x: i32, y: i32) -> i32 {
 '''
 
 [expected]
-text = '''
-fn add(x: i32, y: i32) -> i32 {
-    println!("x:├ {}┤", x);
-    return x + y;
-}
-'''
-notEqual = true # FIXME: fix bad case
+discard = true
