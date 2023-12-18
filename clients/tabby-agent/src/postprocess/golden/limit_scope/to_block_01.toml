@@ -1,0 +1,41 @@
+description = 'Limit scope: limit to block scope: case 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'foo.ts'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+export class Foo {
+  private _foo: number;
+  
+  constructor() {
+    this._foo = 1;
+  }
+  
+  get├ foo(): number {
+    return this._foo;
+  }
+
+  set foo(value: number) {
+    this._foo = value;
+  }┤
+}
+'''
+
+[expected]
+text = '''
+export class Foo {
+  private _foo: number;
+  
+  constructor() {
+    this._foo = 1;
+  }
+  
+  get├ foo(): number {
+    return this._foo;
+  }┤
+}
+'''

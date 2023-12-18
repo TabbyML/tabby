@@ -28,6 +28,6 @@ if (isTest && testLogDebug) {
 }
 
 export const allLoggers = [rootLogger];
-rootLogger.onChild = (child) => {
+rootLogger.onChild = (child: pino.Logger) => {
   allLoggers.push(child);
 };

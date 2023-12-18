@@ -1,0 +1,28 @@
+description = 'Replace range experimental: syntax javascript: bad case 01'
+
+[config.limitScope]
+experimentalSyntax = true
+[config.calculateReplaceRange]
+experimentalSyntax = true
+
+[context]
+filepath = 'listener.js'
+language = 'javascript'
+# indentation = '  ' # not specified
+text = '''
+const stream = process.stdin;
+// just print data string
+stream.on('data', (data) => {├
+  console.log(data.toString());
+});┤})
+'''
+
+[expected]
+text = '''
+const stream = process.stdin;
+// just print data string
+stream.on('data', (data) => {├
+  console.log(data.toString());
+});┤})╣
+'''
+notEqual = true # FIXME: fix bad case

@@ -1,0 +1,22 @@
+description = 'Limit scope: limit to block scope: bad case 03'
+
+[config]
+# use default config
+
+[context]
+filepath = 'checks.js'
+language = 'javascript'
+# indentation = '  ' # not specified
+text = '''
+function check(obj) {
+  // if obj.a is defined, then return t├rue
+  if (obj.a) {
+    return true;
+  }┤
+  return false;
+}
+'''
+
+[expected]
+unchanged = true
+notEqual = true # FIXME: fix bad case

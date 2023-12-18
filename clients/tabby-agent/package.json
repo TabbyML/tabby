@@ -12,7 +12,6 @@
     "build": "tsc --noEmit && tsup",
     "test": "mocha",
     "test:watch": "env TEST_LOG_DEBUG=1 mocha --watch",
-    "test:golden": "mocha --grep golden ./tests/golden.test.ts",
     "lint": "eslint --fix --ext .ts ./src && prettier --write .",
     "lint:check": "eslint --ext .ts ./src && prettier --check ."
   },
@@ -22,6 +21,7 @@
     "@types/deep-equal": "^1.0.4",
     "@types/fast-levenshtein": "^0.0.4",
     "@types/fs-extra": "^11.0.1",
+    "@types/glob": "^7.2.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
     "@types/object-hash": "^3.0.0",
@@ -34,6 +34,7 @@
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.0.0",
+    "glob": "^7.2.0",
     "mocha": "^10.2.0",
     "openapi-typescript": "^6.6.1",
     "prettier": "^3.0.0",

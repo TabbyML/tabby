@@ -22,7 +22,8 @@ import type {
 import type { DataStore } from "./dataStore";
 import { isBlank, abortSignalFromAnyOf, HttpError, isTimeoutError, isCanceledError, errorToString } from "./utils";
 import { Auth } from "./Auth";
-import { AgentConfig, PartialAgentConfig, defaultAgentConfig, configFile } from "./AgentConfig";
+import { AgentConfig, PartialAgentConfig, defaultAgentConfig } from "./AgentConfig";
+import { configFile } from "./configFile";
 import { CompletionCache } from "./CompletionCache";
 import { CompletionDebounce } from "./CompletionDebounce";
 import { CompletionContext } from "./CompletionContext";
