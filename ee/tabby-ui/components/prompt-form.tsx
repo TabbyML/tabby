@@ -166,11 +166,14 @@ function PromptFormRenderer(
   ) => {
     if (e.key === 'Enter' && isOpen) {
       e.preventDefault()
-    } else if (isOpen && ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) {
+    } else if (
+      isOpen &&
+      ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)
+    ) {
       setOptions([])
     } else {
-      if (!isOpen && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-        (e as any).preventDownshiftDefault = true
+      if (!isOpen && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        ;(e as any).preventDownshiftDefault = true
       }
       onKeyDown(e)
     }
