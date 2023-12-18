@@ -44,7 +44,7 @@ export function ChatPanel({
   return (
     <div
       className={cn(
-        'bg-gradient-to-b from-muted/10 from-10% to-muted/30 to-50%',
+        'bg-gradient-to-b from-transparent from-0% to-muted/25 to-100%',
         className
       )}
     >
