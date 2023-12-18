@@ -8,11 +8,11 @@ import com.intellij.openapi.editor.actionSystem.EditorAction
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler
 import com.tabbyml.intellijtabby.editor.InlineCompletionService
 
-class AcceptCompletion : EditorAction(object : EditorActionHandler() {
+class AcceptCompletionNextLine : EditorAction(object : EditorActionHandler() {
   val inlineCompletionService = service<InlineCompletionService>()
 
   override fun doExecute(editor: Editor, caret: Caret?, dataContext: DataContext?) {
-    inlineCompletionService.accept(InlineCompletionService.AcceptType.FULL_COMPLETION)
+    inlineCompletionService.accept(InlineCompletionService.AcceptType.NEXT_LINE)
   }
 
   override fun isEnabledForCaret(editor: Editor, caret: Caret, dataContext: DataContext?): Boolean {
@@ -20,5 +20,5 @@ class AcceptCompletion : EditorAction(object : EditorActionHandler() {
         && caret.offset == inlineCompletionService.shownInlineCompletion?.offset
   }
 }), HasPriority {
-  override val priority: Int = 0
+  override val priority: Int = 1
 }
