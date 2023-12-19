@@ -22,7 +22,7 @@ use tabby_common::{
 use tracing::error;
 use tree_sitter_tags::TagsContext;
 
-use crate::utils::tqdm;
+use crate::{repository, utils::tqdm};
 
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
@@ -81,6 +81,22 @@ fn is_source_code(entry: &DirEntry) -> bool {
     } else {
         false
     }
+}
+
+pub fn sync_repository(config: &Config) {
+    println!("Syncing repositories...");
+    let ret = repository::sync_repositories(config);
+    if let Err(err) = ret {
+        error!("Failed to sync repositories, err: '{}'", err);
+        return;
+    }
+
+    println!("Building dataset...");
+    let ret = create_dataset(config);
+    if let Err(err) = ret {
+        error!("Failed to build dataset, err: '{}'", err);
+    }
+    println!();
 }
 
 pub fn create_dataset(config: &Config) -> Result<()> {

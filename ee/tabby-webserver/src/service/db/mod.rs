@@ -1,4 +1,5 @@
 mod invitations;
+mod job_runs;
 mod refresh_tokens;
 mod users;
 
@@ -6,12 +7,13 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
+pub use job_runs::JobRun;
 use lazy_static::lazy_static;
 use rusqlite::params;
 use rusqlite_migration::AsyncMigrations;
 use tokio_rusqlite::Connection;
 
-use crate::{path::db_file, service::cron::run_offline_job};
+use crate::{path::db_file, service::cron::run_cron};
 
 static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 
@@ -54,7 +56,7 @@ impl DbConn {
         let res = Self {
             conn: Arc::new(conn),
         };
-        run_offline_job(res.clone());
+        run_cron(res.clone());
 
         Ok(res)
     }

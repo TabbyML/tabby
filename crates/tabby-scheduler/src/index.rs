@@ -9,6 +9,7 @@ use tabby_common::{
     SourceFile,
 };
 use tantivy::{directory::MmapDirectory, doc, Index};
+use tracing::error;
 
 use crate::utils::tqdm;
 
@@ -16,6 +17,15 @@ use crate::utils::tqdm;
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 static MAX_BODY_LINES_THRESHOLD: usize = 15;
+
+pub fn index_repository(config: &Config) {
+    println!("Indexing repositories...");
+    let ret = index_repositories(config);
+    if let Err(err) = ret {
+        error!("Failed to index repositories, err: '{}'", err);
+    }
+    println!();
+}
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let code = CodeSearchSchema::new();

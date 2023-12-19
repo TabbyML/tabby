@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = ["ee"]
-ee = ["dep:tabby-webserver"]
+ee = ["dep:tabby-webserver", "tabby-scheduler/ee"]
 cuda = ["llama-cpp-bindings/cuda"]
 rocm = ["llama-cpp-bindings/rocm"]
 experimental-http = ["dep:http-api-bindings"]
