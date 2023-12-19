@@ -50,19 +50,18 @@ export default function UserSignInForm({
   })
 
   const router = useRouter()
-  const { status } = useSession();
+  const { status } = useSession()
   React.useEffect(() => {
-    if (status === "authenticated") {
+    if (status === 'authenticated') {
       router.replace('/')
     }
-
   }, [status])
 
   const signIn = useSignIn()
   const { isSubmitting } = form.formState
   const onSubmit = useMutation(tokenAuth, {
     onCompleted(values) {
-      signIn(values.tokenAuth);
+      signIn(values.tokenAuth)
     },
     form
   })

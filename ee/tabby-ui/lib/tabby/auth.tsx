@@ -1,11 +1,11 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { jwtDecode, JwtPayload } from 'jwt-decode'
+import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
 import useInterval from '@/lib/hooks/use-interval'
 import { useGraphQLQuery, useMutation } from '@/lib/tabby/gql'
-import useLocalStorage from 'use-local-storage'
 
 interface AuthData {
   accessToken: string
@@ -13,18 +13,21 @@ interface AuthData {
 }
 
 function isSameAuthData(lhs: AuthData | null, rhs: AuthData | null) {
-  return lhs?.accessToken === rhs?.accessToken && lhs?.refreshToken === rhs?.refreshToken
+  return (
+    lhs?.accessToken === rhs?.accessToken &&
+    lhs?.refreshToken === rhs?.refreshToken
+  )
 }
 
 type AuthState =
   | {
-    status: 'authenticated'
-    data: AuthData
-  }
+      status: 'authenticated'
+      data: AuthData
+    }
   | {
-    status: 'loading' | 'unauthenticated'
-    data: null
-  }
+      status: 'loading' | 'unauthenticated'
+      data: null
+    }
 
 function isSameAuthState(lhs: AuthState, rhs: AuthState) {
   return lhs.status == rhs.status && isSameAuthData(lhs.data, rhs.data)
@@ -69,11 +72,11 @@ function authReducer(state: AuthState, action: AuthActions): AuthState {
 }
 
 function authReducerDeduped(state: AuthState, action: AuthActions): AuthState {
-  const newState = authReducer(state, action);
+  const newState = authReducer(state, action)
   if (isSameAuthState(state, newState)) {
-    return state;
+    return state
   } else {
-    return newState;
+    return newState
   }
 }
 
@@ -101,9 +104,9 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   children
 }) => {
   const [authState, dispatch] = React.useReducer(authReducerDeduped, {
-    status: "loading",
-    data: null,
-  });
+    status: 'loading',
+    data: null
+  })
 
   return (
     <AuthContext.Provider value={{ authState, dispatch }}>
@@ -114,7 +117,10 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
 }
 
 function RefreshAuth() {
-  const [authData, setAuthData] = useLocalStorage<AuthData | null>("_tabby_auth", null)
+  const [authData, setAuthData] = useLocalStorage<AuthData | null>(
+    '_tabby_auth',
+    null
+  )
 
   const { authState, dispatch } = useAuthStore()
   const refreshToken = useMutation(refreshTokenMutation, {
@@ -128,12 +134,12 @@ function RefreshAuth() {
     }
   })
 
-  const initialized = React.useRef(false);
+  const initialized = React.useRef(false)
   React.useEffect(() => {
     if (authData?.refreshToken) {
       if (!initialized.current) {
         // When the page is first loaded, we need to refresh the token
-        initialized.current = true;
+        initialized.current = true
         refreshToken(authData)
       } else {
         dispatch({ type: AuthActionType.Refresh, data: authData })
@@ -205,13 +211,13 @@ interface User {
 
 type Session =
   | {
-    data: null
-    status: 'loading' | 'unauthenticated'
-  }
+      data: null
+      status: 'loading' | 'unauthenticated'
+    }
   | {
-    data: User
-    status: 'authenticated'
-  }
+      data: User
+      status: 'authenticated'
+    }
 
 function useSession(): Session {
   const { authState } = useAuthStore()
