@@ -60,6 +60,7 @@
     "remark-gfm": "^3.0.1",
     "remark-math": "^5.1.1",
     "swr": "^2.2.4",
+    "use-local-storage": "^3.0.0",
     "zod": "^3.22.4",
     "zustand": "^4.4.6"
   },

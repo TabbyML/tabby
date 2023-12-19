@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
-import { useSignIn } from '@/lib/tabby/auth'
+import { useSession, useSignIn } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -50,13 +50,18 @@ export default function UserSignInForm({
   })
 
   const router = useRouter()
+  const { status } = useSession()
+  React.useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/')
+    }
+  }, [status])
+
   const signIn = useSignIn()
   const { isSubmitting } = form.formState
   const onSubmit = useMutation(tokenAuth, {
-    async onCompleted(values) {
-      if (await signIn(values.tokenAuth)) {
-        router.replace('/')
-      }
+    onCompleted(values) {
+      signIn(values.tokenAuth)
     },
     form
   })
