@@ -1747,6 +1747,11 @@ file-entry-cache@^6.0.1:
   dependencies:
     flat-cache "^3.0.4"
 
+file-stream-rotator@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/file-stream-rotator/-/file-stream-rotator-1.0.0.tgz#de58379321a1ea6d2938ed5f5a2eff3b7f8b2780"
+  integrity sha512-qg5mQO7o+vhS7NPqkrkfJS8qqhz0d17Tnewmb5sUTUKwYe27LKaDtbTuRAtQWkBn6jROuFPVIDF5DtckzokFTQ==
+
 fill-range@^7.0.1:
   version "7.0.1"
   resolved "https://registry.yarnpkg.com/fill-range/-/fill-range-7.0.1.tgz#1919a6a7c75fe38b2c7c77e5198535da9acdda40"
@@ -3595,11 +3600,6 @@ rollup@^4.0.2:
     "@rollup/rollup-win32-ia32-msvc" "4.9.0"
     "@rollup/rollup-win32-x64-msvc" "4.9.0"
     fsevents "~2.3.2"
-
-rotating-file-stream@^3.1.0:
-  version "3.1.1"
-  resolved "https://registry.yarnpkg.com/rotating-file-stream/-/rotating-file-stream-3.1.1.tgz#1c126ab2d34ab19c703909922182468b66d6b893"
-  integrity sha512-PNF1iDkxcZG+T87uUzLlcO4aquTCyY8yl+Q/OTK4dMwhwWDYWU4ZATYeIXHmYVGIzqZ2MrpY4WIkYc9Bsc3Nzw==
 
 run-parallel@^1.1.9:
   version "1.2.0"
