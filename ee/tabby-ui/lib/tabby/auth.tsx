@@ -5,32 +5,35 @@ import { jwtDecode, JwtPayload } from 'jwt-decode'
 import { graphql } from '@/lib/gql/generates'
 import useInterval from '@/lib/hooks/use-interval'
 import { useGraphQLQuery, useMutation } from '@/lib/tabby/gql'
+import useLocalStorage from 'use-local-storage'
 
 interface AuthData {
   accessToken: string
   refreshToken: string
 }
 
+function isSameAuthData(lhs: AuthData | null, rhs: AuthData | null) {
+  return lhs?.accessToken === rhs?.accessToken && lhs?.refreshToken === rhs?.refreshToken
+}
+
 type AuthState =
   | {
-      status: 'authenticated'
-      data: AuthData
-    }
+    status: 'authenticated'
+    data: AuthData
+  }
   | {
-      status: 'loading' | 'unauthenticated'
-      data: null
-    }
+    status: 'loading' | 'unauthenticated'
+    data: null
+  }
+
+function isSameAuthState(lhs: AuthState, rhs: AuthState) {
+  return lhs.status == rhs.status && isSameAuthData(lhs.data, rhs.data)
+}
 
 enum AuthActionType {
-  Init,
   SignIn,
   SignOut,
   Refresh
-}
-
-interface InitAction {
-  type: AuthActionType.Init
-  data: AuthData | null
 }
 
 interface SignInAction {
@@ -47,26 +50,17 @@ interface RefreshAction {
   data: AuthData
 }
 
-type AuthActions = InitAction | SignInAction | SignOutAction | RefreshAction
+type AuthActions = SignInAction | SignOutAction | RefreshAction
 
 function authReducer(state: AuthState, action: AuthActions): AuthState {
   switch (action.type) {
-    case AuthActionType.Init:
     case AuthActionType.SignIn:
     case AuthActionType.Refresh:
-      if (action.data) {
-        return {
-          status: 'authenticated',
-          data: action.data
-        }
-      } else {
-        return {
-          status: 'unauthenticated',
-          data: null
-        }
+      return {
+        status: 'authenticated',
+        data: action.data
       }
     case AuthActionType.SignOut:
-      TokenStorage.reset()
       return {
         status: 'unauthenticated',
         data: null
@@ -74,24 +68,12 @@ function authReducer(state: AuthState, action: AuthActions): AuthState {
   }
 }
 
-class TokenStorage {
-  static authName = '_tabby_auth'
-
-  initialState(): AuthData | null {
-    const authData = localStorage.getItem(TokenStorage.authName)
-    if (authData) {
-      return JSON.parse(authData)
-    } else {
-      return null
-    }
-  }
-
-  persist(state: AuthData) {
-    localStorage.setItem(TokenStorage.authName, JSON.stringify(state))
-  }
-
-  static reset() {
-    localStorage.removeItem(TokenStorage.authName)
+function authReducerDeduped(state: AuthState, action: AuthActions): AuthState {
+  const newState = authReducer(state, action);
+  if (isSameAuthState(state, newState)) {
+    return state;
+  } else {
+    return newState;
   }
 }
 
@@ -118,10 +100,10 @@ const refreshTokenMutation = graphql(/* GraphQL */ `
 const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   children
 }) => {
-  const [authState, dispatch] = React.useReducer(authReducer, {
-    status: 'loading',
-    data: null
-  })
+  const [authState, dispatch] = React.useReducer(authReducerDeduped, {
+    status: "loading",
+    data: null,
+  });
 
   return (
     <AuthContext.Provider value={{ authState, dispatch }}>
@@ -132,8 +114,9 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
 }
 
 function RefreshAuth() {
+  const [authData, setAuthData] = useLocalStorage<AuthData | null>("_tabby_auth", null)
+
   const { authState, dispatch } = useAuthStore()
-  const storage = new TokenStorage()
   const refreshToken = useMutation(refreshTokenMutation, {
     onCompleted({ refreshToken: data }) {
       dispatch({ type: AuthActionType.Refresh, data })
@@ -145,21 +128,27 @@ function RefreshAuth() {
     }
   })
 
-  const initialized = React.useRef(false)
+  const initialized = React.useRef(false);
   React.useEffect(() => {
-    if (initialized.current) return
-
-    initialized.current = true
-    const data = storage.initialState()
-    if (data?.refreshToken) {
-      refreshToken(data)
+    if (authData?.refreshToken) {
+      if (!initialized.current) {
+        // When the page is first loaded, we need to refresh the token
+        initialized.current = true;
+        refreshToken(authData)
+      } else {
+        dispatch({ type: AuthActionType.Refresh, data: authData })
+      }
     } else {
-      dispatch({ type: AuthActionType.Init, data: null })
+      dispatch({ type: AuthActionType.SignOut })
     }
-  }, [])
+  }, [authData])
 
   React.useEffect(() => {
-    authState?.data && storage.persist(authState.data)
+    if (authState?.data) {
+      setAuthData(authState.data)
+    } else if (!initialized.current) {
+      setAuthData(authState?.data || null)
+    }
   }, [authState])
 
   useInterval(async () => {
@@ -216,13 +205,13 @@ interface User {
 
 type Session =
   | {
-      data: null
-      status: 'loading' | 'unauthenticated'
-    }
+    data: null
+    status: 'loading' | 'unauthenticated'
+  }
   | {
-      data: User
-      status: 'authenticated'
-    }
+    data: User
+    status: 'authenticated'
+  }
 
 function useSession(): Session {
   const { authState } = useAuthStore()
