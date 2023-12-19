@@ -7,13 +7,12 @@ import { isBrowser, isTest, testLogDebug } from "./env";
 class LogFileStream implements pino.DestinationStream {
   private streamOptions = {
     // Rotating file locate at `~/.tabby-client/agent/logs/`.
-    filename: path.join(os.homedir(), ".tabby-client", "agent", "logs", "tabby-agent-%DATE%"),
+    filename: path.join(os.homedir(), ".tabby-client", "agent", "logs", "%DATE%"),
     frequency: "daily",
     size: "10M",
     max_logs: "30d",
     extension: ".log",
     create_symlink: true,
-    symlink_name: "tabby-agent.log",
   };
   private stream?: pino.DestinationStream;
 
