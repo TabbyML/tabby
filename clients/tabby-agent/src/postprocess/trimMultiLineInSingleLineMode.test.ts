@@ -4,7 +4,7 @@ import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 
 describe("postprocess", () => {
   describe("trimMultiLineInSingleLineMode", () => {
-    it("should drop multiline completions, when the suffix have non-auto-closed chars in the current line.", () => {
+    it("should trim multiline completions, when the suffix have non-auto-closed chars in the current line.", () => {
       const context = {
         ...documentContext`
         let error = new Error("Something went wrong");
@@ -17,6 +17,24 @@ describe("postprocess", () => {
         throw error;┤
       `;
       expect(trimMultiLineInSingleLineMode()(completion, context)).to.be.null;
+    });
+
+    it("should trim multiline completions, when the suffix have non-auto-closed chars in the current line.", () => {
+      const context = {
+        ...documentContext`
+        let error = new Error("Something went wrong");
+        console.log(║message);
+        `,
+        language: "javascript",
+      };
+      const completion = inline`
+                    ├error, message);
+        throw error;┤
+      `;
+      const expected = inline`
+                    ├error, ┤
+      `;
+      expect(trimMultiLineInSingleLineMode()(completion, context)).to.eq(expected);
     });
 
     it("should allow singleline completions, when the suffix have non-auto-closed chars in the current line.", () => {
