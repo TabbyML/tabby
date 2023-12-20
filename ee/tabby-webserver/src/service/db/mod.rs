@@ -3,8 +3,6 @@ mod job_runs;
 mod refresh_tokens;
 mod users;
 
-
-
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
 pub use job_runs::JobRun;
