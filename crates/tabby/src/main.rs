@@ -40,27 +40,25 @@ pub enum Commands {
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
 
-    /// Run repository sync in background
-    #[cfg(feature = "ee")]
-    #[clap(name = "job::sync", hide = true)]
-    JobSync,
-
-    /// Run repository index in background
-    #[cfg(feature = "ee")]
-    #[clap(name = "job::index", hide = true)]
-    JobIndex,
-
     /// Run completion model as worker
     #[cfg(feature = "ee")]
     #[clap(name = "worker::completion")]
-    #[command(arg_required_else_help = true)]
     WorkerCompletion(worker::WorkerArgs),
 
     /// Run chat model as worker
     #[cfg(feature = "ee")]
     #[clap(name = "worker::chat")]
-    #[command(arg_required_else_help = true)]
     WorkerChat(worker::WorkerArgs),
+
+    /// Execute the repository sync job.
+    #[cfg(feature = "ee")]
+    #[clap(name = "job::sync")]
+    JobSync,
+
+    /// Execute the index job.
+    #[cfg(feature = "ee")]
+    #[clap(name = "job::index")]
+    JobIndex,
 }
 
 #[derive(clap::Args)]
@@ -128,13 +126,13 @@ async fn main() {
     match &cli.command {
         Commands::Serve(args) => serve::main(&config, args).await,
         Commands::Download(args) => download::main(args).await,
-        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
+        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now, &config)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
         #[cfg(feature = "ee")]
-        Commands::JobSync => tabby_scheduler::job_sync(),
+        Commands::JobSync => tabby_scheduler::job_sync(&config),
         #[cfg(feature = "ee")]
-        Commands::JobIndex => tabby_scheduler::job_index(),
+        Commands::JobIndex => tabby_scheduler::job_index(&config),
         #[cfg(feature = "ee")]
         Commands::WorkerCompletion(args) => {
             worker::main(tabby_webserver::public::WorkerKind::Completion, args).await

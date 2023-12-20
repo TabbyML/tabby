@@ -8,17 +8,12 @@ use job_scheduler::{Job, JobScheduler};
 use tabby_common::config::Config;
 use tracing::{error, info};
 
-pub async fn scheduler(now: bool) -> Result<()> {
-    let config = Config::load()?;
+pub async fn scheduler(now: bool, config: &Config) -> Result<()> {
     let mut scheduler = JobScheduler::new();
 
-    let job1 = || {
-        dataset::sync_repository(&config);
-    };
+    let job1 = || job_sync(config);
 
-    let job2 = || {
-        index::index_repository(&config);
-    };
+    let job2 = || job_index(config);
 
     if now {
         job1();
@@ -42,20 +37,27 @@ pub async fn scheduler(now: bool) -> Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "ee")]
-pub fn job_sync() {
-    let Ok(config) = Config::load() else {
-        error!("Scheduler job failed to load config");
-        return;
-    };
-    dataset::sync_repository(&config)
+pub fn job_index(config: &Config) {
+    println!("Indexing repositories...");
+    let ret = index::index_repositories(config);
+    if let Err(err) = ret {
+        error!("Failed to index repositories, err: '{}'", err);
+    }
+    println!();
 }
 
-#[cfg(feature = "ee")]
-pub fn job_index() {
-    let Ok(config) = Config::load() else {
-        error!("Scheduler job failed to load config");
+pub fn job_sync(config: &Config) {
+    println!("Syncing repositories...");
+    let ret = repository::sync_repositories(config);
+    if let Err(err) = ret {
+        error!("Failed to sync repositories, err: '{}'", err);
         return;
-    };
-    index::index_repository(&config)
+    }
+
+    println!("Building dataset...");
+    let ret = dataset::create_dataset(config);
+    if let Err(err) = ret {
+        error!("Failed to build dataset, err: '{}'", err);
+    }
+    println!();
 }

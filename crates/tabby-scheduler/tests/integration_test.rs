@@ -24,9 +24,7 @@ mod tests {
             server: ServerConfig::default(),
         };
 
-        config.save();
-
-        let res = tabby_scheduler::scheduler(true).await;
+        let res = tabby_scheduler::scheduler(true, &config).await;
         res.expect("Failed to run scheduler");
     }
 }
