@@ -3,8 +3,6 @@ mod job_runs;
 mod refresh_tokens;
 mod users;
 
-use std::sync::Arc;
-
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
 pub use job_runs::JobRun;
@@ -24,7 +22,7 @@ lazy_static! {
 
 #[derive(Clone)]
 pub struct DbConn {
-    conn: Arc<Connection>,
+    conn: Connection,
 }
 
 impl DbConn {
@@ -53,10 +51,7 @@ impl DbConn {
         })
         .await??;
 
-        let res = Self {
-            conn: Arc::new(conn),
-        };
-
+        let res = Self { conn };
         Ok(res)
     }
 }
