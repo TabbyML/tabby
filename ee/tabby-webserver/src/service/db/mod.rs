@@ -56,7 +56,6 @@ impl DbConn {
         let res = Self {
             conn: Arc::new(conn),
         };
-        run_cron(res.clone());
 
         Ok(res)
     }
