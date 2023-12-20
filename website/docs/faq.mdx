@@ -47,3 +47,22 @@
     <p>For details on the registry format, please refer to <a href="https://github.com/TabbyML/registry-tabby/blob/main/models.json">models.json</a></p>
   </div>
 </details>
+
+<details>
+  <summary>Does Tabby currently support arm64/v8 CPUs?</summary>
+  <div>
+    <p>No, we don't have an official fix <b>yet</b>, however we have an experimental <a href="https://github.com/TabbyML/tabby/pull/1022/files">fix</a> available</p>
+    <p>To use this fix:</p>
+    <ol>
+      <li>Clone the tabby repo</li>
+      <li>Build the docker image locally with <code>--build-arg ARCHTARGET=amd64</code></li>
+      <li>Run the docker image</li>
+    </ol>
+    <pre>
+      <code>git clone https://github.com/TabbyML/tabby.git</code>
+      <code>cd tabby</code>
+      <code>docker build -t tabby:latest --build-arg ARCHTARGET=amd64 .</code>
+      <code>docker run -dt -p 8080:8080 -v $HOME/.tabby:/data --name tabby tabby:latest serve --model TabbyML/StarCoder-1B</code>
+    </pre>
+  </div>
+</details>
