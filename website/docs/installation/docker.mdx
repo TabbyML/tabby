@@ -23,5 +23,11 @@ import TabItem from '@theme/TabItem';
   docker run -it -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model TabbyML/StarCoder-1B
   ```
 
+  For `arm64` CPUs, please clone the repository to your machine, then run these commands inside the repository:
+  ```bash title="run.sh"
+  docker build -t tabby:latest --build-arg ARCHTARGET=amd64 .
+  docker run -dt -p 8080:8080 -v $HOME/.tabby:/data --name tabby tabby:latest serve --model TabbyML/StarCoder-1B
+  ```
+
   </TabItem>
 </Tabs>
