@@ -41,7 +41,7 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
 
     let mut pb = std::io::stdout()
         .is_terminal()
-        .then(|| SourceFile::all())
+        .then(SourceFile::all)
         .transpose()?
         .map(|iter| tqdm(iter.count()));
     for file in SourceFile::all()? {
