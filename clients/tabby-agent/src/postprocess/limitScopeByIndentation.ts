@@ -106,12 +106,6 @@ export function limitScopeByIndentation(
   return (input: string, context: CompletionContext) => {
     const { prefixLines, suffixLines } = context;
     const inputLines = splitLines(input);
-    if (context.mode === "fill-in-line") {
-      if (inputLines.length > 1) {
-        logger.debug({ inputLines, prefixLines, suffixLines }, "Drop content with multiple lines");
-        return null;
-      }
-    }
     const indentContext = processContext(inputLines, context, config);
     let index;
     for (index = 1; index < inputLines.length; index++) {

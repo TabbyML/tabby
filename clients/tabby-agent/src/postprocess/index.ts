@@ -8,6 +8,7 @@ import { removeLineEndsWithRepetition } from "./removeLineEndsWithRepetition";
 import { limitScope } from "./limitScope";
 import { formatIndentation } from "./formatIndentation";
 import { trimSpace } from "./trimSpace";
+import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 import { dropDuplicated } from "./dropDuplicated";
 import { dropBlank } from "./dropBlank";
 import { calculateReplaceRangeByBracketStack } from "./calculateReplaceRangeByBracketStack";
@@ -19,6 +20,7 @@ export async function preCacheProcess(
   response: CompletionResponse,
 ): Promise<CompletionResponse> {
   return Promise.resolve(response)
+    .then(applyFilter(trimMultiLineInSingleLineMode(), context))
     .then(applyFilter(removeLineEndsWithRepetition(), context))
     .then(applyFilter(dropDuplicated(), context))
     .then(applyFilter(trimSpace(), context))
