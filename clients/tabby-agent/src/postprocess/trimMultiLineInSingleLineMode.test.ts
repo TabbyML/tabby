@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { documentContext, inline } from "./testUtils";
-import { dropMultiLineInSingleLineMode } from "./dropMultiLineInSingleLineMode";
+import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 
 describe("postprocess", () => {
-  describe("dropMultiLineInSingleLineMode", () => {
+  describe("trimMultiLineInSingleLineMode", () => {
     it("should drop multiline completions, when the suffix have non-auto-closed chars in the current line.", () => {
       const context = {
         ...documentContext`
@@ -16,7 +16,7 @@ describe("postprocess", () => {
                     ├message);
         throw error;┤
       `;
-      expect(dropMultiLineInSingleLineMode()(completion, context)).to.be.null;
+      expect(trimMultiLineInSingleLineMode()(completion, context)).to.be.null;
     });
 
     it("should allow singleline completions, when the suffix have non-auto-closed chars in the current line.", () => {
@@ -30,7 +30,7 @@ describe("postprocess", () => {
       const completion = inline`
                     ├error, ┤
       `;
-      expect(dropMultiLineInSingleLineMode()(completion, context)).to.eq(completion);
+      expect(trimMultiLineInSingleLineMode()(completion, context)).to.eq(completion);
     });
 
     it("should allow multiline completions, when the suffix only have auto-closed chars that will be replaced in the current line, such as `)]}`.", () => {
@@ -51,7 +51,7 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      expect(dropMultiLineInSingleLineMode()(completion, context)).to.eq(completion);
+      expect(trimMultiLineInSingleLineMode()(completion, context)).to.eq(completion);
     });
   });
 });

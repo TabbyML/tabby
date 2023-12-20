@@ -17,4 +17,9 @@ fn add(x: i32, y: i32) -> i32 {
 '''
 
 [expected]
-discard = true
+text = '''
+fn add(x: i32, y: i32) -> i32 {
+    println!("x:├ {}┤", x);
+    return x + y;
+}
+'''
