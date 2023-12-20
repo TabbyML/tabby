@@ -3,10 +3,6 @@ name = "tabby-scheduler"
 version = "0.7.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[features]
-ee = []
-
 [dependencies]
 anyhow = { workspace = true }
 job_scheduler = "1.2.1"
