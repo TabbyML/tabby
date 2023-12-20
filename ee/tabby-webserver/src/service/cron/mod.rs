@@ -16,7 +16,8 @@ async fn new_job_scheduler(jobs: Vec<Job>) -> anyhow::Result<JobScheduler> {
     Ok(scheduler)
 }
 
-pub fn run_cron(db_conn: DbConn) {
+pub fn run_cron(db_conn: &DbConn) {
+    let db_conn = db_conn.clone();
     tokio::spawn(async move {
         let Ok(job1) = db::refresh_token_job(db_conn.clone()).await else {
             error!("failed to create db job");
