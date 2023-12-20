@@ -27,8 +27,8 @@ pub async fn log_event(
     Json(request): Json<LogEventRequest>,
 ) -> StatusCode {
     if request.event_type == "view" {
-        logger.log(&Event::View {
-            completion_id: &request.completion_id,
+        logger.log(Event::View {
+            completion_id: request.completion_id,
             choice_index: request.choice_index,
         });
         StatusCode::OK
@@ -37,8 +37,8 @@ pub async fn log_event(
             .get("select_kind")
             .map(|x| x == "line")
             .unwrap_or(false);
-        logger.log(&Event::Select {
-            completion_id: &request.completion_id,
+        logger.log(Event::Select {
+            completion_id: request.completion_id,
             choice_index: request.choice_index,
             kind: if is_line {
                 Some(SelectKind::Line)
