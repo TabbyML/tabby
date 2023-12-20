@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, io::IsTerminal};
 
 use anyhow::Result;
 use kdam::BarExt;
@@ -39,9 +39,14 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut writer = index.writer(150_000_000)?;
     writer.delete_all_documents()?;
 
-    let mut pb = tqdm(SourceFile::all()?.count());
+    let mut pb = std::io::stdout()
+        .is_terminal()
+        .then(|| SourceFile::all())
+        .transpose()?
+        .map(|iter| tqdm(iter.count()));
     for file in SourceFile::all()? {
-        pb.update(1)?;
+        pb.as_mut().map(|b| b.update(1)).transpose()?;
+
         if file.max_line_length > MAX_LINE_LENGTH_THRESHOLD {
             continue;
         }
