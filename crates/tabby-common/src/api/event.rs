@@ -14,9 +14,9 @@ pub struct LogEventRequest {
 }
 
 #[derive(Serialize)]
-pub struct Choice<'a> {
+pub struct Choice {
     pub index: u32,
-    pub text: &'a str,
+    pub text: String,
 }
 
 #[derive(Serialize)]
@@ -27,42 +27,47 @@ pub enum SelectKind {
 
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Event<'a> {
+pub enum Event {
     View {
-        completion_id: &'a str,
+        completion_id: String,
         choice_index: u32,
     },
     Select {
-        completion_id: &'a str,
+        completion_id: String,
         choice_index: u32,
+
         #[serde(skip_serializing_if = "Option::is_none")]
         kind: Option<SelectKind>,
     },
     Completion {
-        completion_id: &'a str,
-        language: &'a str,
-        prompt: &'a str,
-        segments: &'a Option<Segments>,
-        choices: Vec<Choice<'a>>,
-        user: Option<&'a str>,
+        completion_id: String,
+        language: String,
+        prompt: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        segments: Option<Segments>,
+        choices: Vec<Choice>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        user: Option<String>,
     },
 }
 
 #[derive(Serialize)]
 pub struct Segments {
     pub prefix: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub clipboard: Option<String>,
 }
 
 pub trait EventLogger: Send + Sync {
-    fn log(&self, e: &Event);
+    fn log(&self, e: Event);
 }
 
 #[derive(Serialize)]
-struct Log<'a> {
+struct Log {
     ts: u128,
-    event: &'a Event<'a>,
+    event: Event,
 }
 
 pub trait RawEventLogger: Send + Sync {
@@ -70,7 +75,7 @@ pub trait RawEventLogger: Send + Sync {
 }
 
 impl<T: RawEventLogger> EventLogger for T {
-    fn log(&self, e: &Event) {
+    fn log(&self, e: Event) {
         let content = serdeconv::to_json_string(&Log {
             ts: timestamp(),
             event: e,

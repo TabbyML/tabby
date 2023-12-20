@@ -241,16 +241,16 @@ impl CompletionService {
         let text = self.engine.generate(&prompt, options).await;
         let segments = segments.map(|s| s.into());
 
-        self.logger.log(&Event::Completion {
-            completion_id: &completion_id,
-            language: &language,
-            prompt: &prompt,
-            segments: &segments,
+        self.logger.log(Event::Completion {
+            completion_id: completion_id.clone(),
+            language,
+            prompt: prompt.clone(),
+            segments,
             choices: vec![api::event::Choice {
                 index: 0,
-                text: &text,
+                text: text.clone(),
             }],
-            user: request.user.as_deref(),
+            user: request.user.clone(),
         });
 
         let debug_data = request
