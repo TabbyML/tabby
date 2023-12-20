@@ -5,7 +5,7 @@ use std::{
     collections::HashMap,
     ffi::OsStr,
     fs::{self, read_to_string},
-    io::Write,
+    io::{IsTerminal, Write},
 };
 
 use anyhow::Result;
@@ -38,12 +38,14 @@ impl RepositoryExt for RepositoryConfig {
                 .filter(is_source_code)
         };
 
-        let mut pb = tqdm(walk_dir_iter().count());
+        let mut pb = std::io::stdout()
+            .is_terminal()
+            .then(|| tqdm(walk_dir_iter().count()));
         let walk_dir = walk_dir_iter();
 
         let mut context = TagsContext::new();
         for entry in walk_dir {
-            pb.update(1)?;
+            pb.as_mut().map(|b| b.update(1)).transpose()?;
 
             let relative_path = entry.path().strip_prefix(dir.as_path()).unwrap();
             let language = get_language(relative_path.extension().unwrap())
