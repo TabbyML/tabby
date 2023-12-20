@@ -17,7 +17,7 @@ use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::{info, warn};
 
-use self::{db::DbConn, cron::run_cron};
+use self::{cron::run_cron, db::DbConn};
 use crate::schema::{
     auth::AuthenticationService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
