@@ -3,13 +3,13 @@ mod chat_prompt;
 use std::sync::Arc;
 
 use async_stream::stream;
-use axum::Json;
 use chat_prompt::ChatPromptBuilder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::debug;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use super::model;
 use crate::{fatal, Device};
@@ -32,9 +32,45 @@ pub struct Message {
     content: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ChatCompletionChunk {
+    id: Uuid,
+    created: u64,
+    object: &'static str,
+    model: &'static str,
+    choices: [ChatCompletionChoice; 1],
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+pub struct ChatCompletionChoice {
+    index: usize,
+    message: ChatCompletionMessageChoice,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+pub struct ChatCompletionMessageChoice {
+    role: String,
+    finish_reason: Option<String>,
     content: String,
+}
+
+impl ChatCompletionChunk {
+    fn new(content: String, id: Uuid, created: u64, last_chunk: bool) -> Self {
+        ChatCompletionChunk {
+            id,
+            created,
+            object: "chat.completion.chunk",
+            model: "TabbyML",
+            choices: [ChatCompletionChoice {
+                index: 0,
+                message: ChatCompletionMessageChoice {
+                    role: "assistant".into(),
+                    finish_reason: last_chunk.then_some("stop".into()),
+                    content,
+                },
+            }],
+        }
+    }
 }
 
 pub struct ChatService {
@@ -65,11 +101,17 @@ impl ChatService {
     ) -> BoxStream<ChatCompletionChunk> {
         let prompt = self.prompt_builder.build(&request.messages);
         let options = Self::text_generation_options();
+        let created = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("Must be able to read system clock")
+            .as_secs();
+        let id = Uuid::new_v4();
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
-                yield ChatCompletionChunk { content }
+                yield ChatCompletionChunk::new(content, id.clone(), created, false)
             }
+            yield ChatCompletionChunk::new("".into(), id, created, true)
         };
 
         Box::pin(s)
@@ -85,24 +127,4 @@ pub async fn create_chat_service(model: &str, device: &Device, parallelism: u8) 
     };
 
     ChatService::new(engine, chat_template)
-}
-
-/// Format a [ChatCompletionChunk] into an OpenAI-compatible JSON event
-pub fn format_chunk_to_event(
-    chunk: ChatCompletionChunk,
-    id: &str,
-    time: u64,
-    finished: bool,
-) -> String {
-    let content = Json::from(chunk.content).to_string();
-    // Using a static format string instead of JSON serialization to avoid unnecessary heap allocations
-    format!(
-        "data: {{\
-            \"id\": {id},\
-            \"object\": \"chat.completion.chunk\",\
-            \"created\": {time},\
-            \"model\": \"TabbyML\",\
-            \"choices\": [{{\"index\": 0, \"message\": {{ \"role\": \"assistant\", \"content\": \"{content}\", \"finish_reason\": {} }} }}]\
-        }}",
-    if finished { "'stop'" } else { "null" })
 }

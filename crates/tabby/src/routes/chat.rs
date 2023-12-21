@@ -4,14 +4,13 @@ use async_stream::stream;
 use axum::{
     body::{BoxBody, StreamBody},
     extract::State,
-    http::HeaderValue,
-    response::Response,
+    response::{IntoResponse, Response},
     Json,
 };
+use axum_streams::StreamBodyAs;
 use tracing::instrument;
-use uuid::Uuid;
 
-use crate::services::chat::{format_chunk_to_event, ChatCompletionRequest, ChatService};
+use crate::services::chat::{ChatCompletionRequest, ChatService};
 
 #[utoipa::path(
     post,
@@ -32,24 +31,11 @@ pub async fn chat_completions(
     State(state): State<Arc<ChatService>>,
     Json(request): Json<ChatCompletionRequest>,
 ) -> Response {
-    let time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("System clock must be accessible")
-        .as_secs();
-    let uuid = Uuid::new_v4().to_string();
     let s = stream! {
         for await content in state.generate(&request).await {
-            let content = format_chunk_to_event(content, &uuid, time, false);
-            yield Ok::<_, Infallible>(content);
+            yield content
         }
-        yield Ok(format_chunk_to_event(Default::default(), &uuid, time, true));
     };
 
-    let body = BoxBody::new(StreamBody::new(s));
-    let mut res = Response::new(body);
-    res.headers_mut().insert(
-        "Content-Type",
-        HeaderValue::from_static("text/event-stream"),
-    );
-    res
+    StreamBodyAs::json_nl(s).into_response()
 }
