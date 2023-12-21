@@ -45,7 +45,7 @@ pub async fn repository_job(
             save_job_output(db_conn.clone(), job_id, &mut child);
 
             // wait process to exit
-            run.exit_code = child.wait().await.ok().map(|s| s.code()).flatten();
+            run.exit_code = child.wait().await.ok().and_then(|s| s.code());
             run.finish_time = Some(chrono::Utc::now());
             db_conn
                 .update_job_status(run.clone())
