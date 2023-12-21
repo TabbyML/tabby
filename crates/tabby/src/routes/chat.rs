@@ -5,11 +5,9 @@ use axum::{
     body::{BoxBody, StreamBody},
     extract::State,
     http::HeaderValue,
-    response::{Response},
+    response::Response,
     Json,
 };
-
-
 use tracing::instrument;
 use uuid::Uuid;
 
