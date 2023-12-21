@@ -56,13 +56,13 @@
     <p>To use this fix:</p>
     <ol>
       <li>Clone the tabby repo</li>
-      <li>Build the docker image locally with <code>--build-arg ARCHTARGET=amd64</code></li>
+      <li>Build the docker image locally with <code>--platform linux/amd64</code></li>
       <li>Run the docker image</li>
     </ol>
     <pre>
       <code>git clone https://github.com/TabbyML/tabby.git</code>
       <code>cd tabby</code>
-      <code>docker build -t tabby:latest --build-arg ARCHTARGET=amd64 .</code>
+      <code>docker build -t tabby:latest --platform linux/amd64 .</code>
       <code>docker run -dt -p 8080:8080 -v $HOME/.tabby:/data --name tabby tabby:latest serve --model TabbyML/StarCoder-1B</code>
     </pre>
   </div>
