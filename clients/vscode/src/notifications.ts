@@ -180,7 +180,7 @@ function getHelpMessageForCompletionResponseTimeIssue() {
       "Please consider trying smaller models. You can find a list of recommend models in the online documentation.\n";
   }
   if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1"))) {
-    commonHelpMessage += " - A poor network connection. Please check your network and proxy settings.\n";
+    commonHelpMessage += " - A poor network relay. Please check your network and proxy settings.\n";
     commonHelpMessage += " - Server overload. Please contact your Tabby server administrator for assistance.\n";
   }
   let message = "";

@@ -5,11 +5,8 @@ use std::sync::Arc;
 
 use auth::AuthenticationService;
 use chrono::{DateTime, Utc};
-use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
-    Object, RootNode, ScalarValue, Value,
-};
-use juniper_axum::FromAuth;
+use juniper::{graphql_object, graphql_value, EmptySubscription, FieldError, IntoFieldError, Object, RootNode, ScalarValue, Value, FieldResult};
+use juniper_axum::{FromAuth, relay};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use validator::ValidationErrors;
 
@@ -128,14 +125,75 @@ impl Query {
         }
         Err(CoreError::Unauthorized("Only admin is able to query users"))
     }
+
+    async fn usersNext(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<relay::Connection<User>> {
+        let res = relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                let res = ctx.locator.auth().list_users_in_page(after, before, first, last).await.unwrap();
+                Ok::<_, FieldError>(res)
+            },
+        ).await;
+
+        res
+    }
 }
 
-#[derive(Debug, GraphQLObject)]
+#[derive(Default, Debug)]
 pub struct User {
+    pub id: i32,
     pub email: String,
     pub is_admin: bool,
     pub auth_token: String,
     pub created_at: DateTime<Utc>,
+}
+
+impl relay::NodeType for User {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "UserConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "UserEdge"
+    }
+}
+
+#[graphql_object(context = Context)]
+impl User {
+    async fn id(&self) -> i32 {
+        self.id
+    }
+
+    async fn email(&self) -> &str {
+        &self.email
+    }
+
+    async fn is_admin(&self) -> bool {
+        self.is_admin
+    }
+
+    async fn auth_token(&self) -> &str {
+        &self.auth_token
+    }
+
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
 }
 
 #[derive(Default)]

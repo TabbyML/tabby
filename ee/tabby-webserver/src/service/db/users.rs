@@ -1,4 +1,4 @@
-// db read/write operations for `users` table
+//! db read/write operations for `users` table
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -29,6 +29,14 @@ impl User {
             + clause
     }
 
+    fn select_from(source: &str, clause: &str) -> String {
+        format!(
+            r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token FROM ({}) {}"#,
+            source,
+            clause
+        )
+    }
+
     fn from_row(row: &Row<'_>) -> std::result::Result<User, rusqlite::Error> {
         Ok(User {
             id: row.get(0)?,
@@ -45,6 +53,7 @@ impl User {
 impl From<User> for schema::User {
     fn from(val: User) -> Self {
         schema::User {
+            id: val.id,
             email: val.email,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
@@ -126,7 +135,7 @@ impl DbConn {
             .conn
             .call(move |c| {
                 Ok(c.query_row(
-                    User::select("email = ?").as_str(),
+                    User::select(" email = ?").as_str(),
                     params![email],
                     User::from_row,
                 )
@@ -155,6 +164,47 @@ impl DbConn {
             .conn
             .call(move |c| {
                 let mut stmt = c.prepare(&User::select("true"))?;
+                let user_iter = stmt.query_map([], User::from_row)?;
+                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(users)
+    }
+
+    pub async fn list_users_with_filter(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<User>> {
+        let mut source = String::new();
+        let mut clause = String::new();
+        if backwards {
+            source += "SELECT * FROM users";
+            if let Some(skip_id) = skip_id {
+                clause += &format!(" WHERE id < {}", skip_id);
+            }
+            source += " ORDER BY id DESC";
+            if let Some(limit) = limit {
+                clause += &format!(" LIMIT {}", limit);
+            }
+            clause += " ORDER BY id ASC";
+        } else {
+            source += "users";
+            if let Some(skip_id) = skip_id {
+                clause += &format!(" WHERE id > {}", skip_id);
+            }
+            clause += " ORDER BY id ASC";
+            if let Some(limit) = limit {
+                clause += &format!(" LIMIT {}", limit);
+            }
+        }
+
+        let users = self
+            .conn
+            .call(move |c| {
+                let mut stmt = c.prepare(&User::select_from(&source, &clause))?;
                 let user_iter = stmt.query_map([], User::from_row)?;
                 Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })

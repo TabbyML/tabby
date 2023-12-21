@@ -301,6 +301,30 @@ impl AuthenticationService for DbConn {
         let users = self.list_users().await?;
         Ok(users.into_iter().map(|x| x.into()).collect())
     }
+
+    async fn list_users_in_page(
+        &self,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<User>> {
+        let users = match (first, last) {
+            (Some(first), None) => {
+                let after = after.map(|x| x.parse::<i32>().unwrap());
+                self.list_users_with_filter(Some(first), after, false).await?
+            }
+            (None, Some(last)) => {
+                let before = before.map(|x| x.parse::<i32>().unwrap());
+                self.list_users_with_filter(Some(last), before, true).await?
+            }
+            _ => {
+                self.list_users().await?
+            }
+        };
+
+        Ok(users.into_iter().map(|x| x.into()).collect())
+    }
 }
 
 fn password_hash(raw: &str) -> password_hash::Result<String> {
