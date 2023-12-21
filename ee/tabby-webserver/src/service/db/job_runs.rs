@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::DbConn;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct JobRun {
     pub id: i32,
     pub job_name: String,
@@ -37,6 +37,49 @@ impl DbConn {
             .await?;
 
         Ok(rowid as i32)
+    }
+
+    pub async fn update_job_stdout(&self, job_id: i32, stdout: String) -> Result<()> {
+        self.conn
+            .call(move |c| {
+                let mut stmt = c.prepare(
+                    r#"UPDATE job_runs SET stdout = stdout || ?, updated_at = datetime('now') WHERE id = ?"#,
+                )?;
+                stmt.execute((stdout, job_id))?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_job_stderr(&self, job_id: i32, stderr: String) -> Result<()> {
+        self.conn
+            .call(move |c| {
+                let mut stmt = c.prepare(
+                    r#"UPDATE job_runs SET stderr = stderr || ?, updated_at = datetime('now') WHERE id = ?"#,
+                )?;
+                stmt.execute((stderr, job_id))?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_job_status(&self, run: JobRun) -> Result<()> {
+        self.conn
+            .call(move |c| {
+                let mut stmt = c.prepare(
+                    r#"UPDATE job_runs SET end_ts = ?, exit_code = ?, updated_at = datetime('now') WHERE id = ?"#,
+                )?;
+                stmt.execute((
+                    run.finish_time,
+                    run.exit_code,
+                    run.id,
+                ))?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
     }
 }
 
