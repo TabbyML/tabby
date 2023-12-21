@@ -3,6 +3,7 @@ mod chat_prompt;
 use std::sync::Arc;
 
 use async_stream::stream;
+use axum::Json;
 use chat_prompt::ChatPromptBuilder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
@@ -31,7 +32,7 @@ pub struct Message {
     content: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Default)]
 pub struct ChatCompletionChunk {
     content: String,
 }
@@ -84,4 +85,24 @@ pub async fn create_chat_service(model: &str, device: &Device, parallelism: u8) 
     };
 
     ChatService::new(engine, chat_template)
+}
+
+/// Format a [ChatCompletionChunk] into an OpenAI-compatible JSON event
+pub fn format_chunk_to_event(
+    chunk: ChatCompletionChunk,
+    id: &str,
+    time: u64,
+    finished: bool,
+) -> String {
+    let content = Json::from(chunk.content).to_string();
+    // Using a static format string instead of JSON serialization to avoid unnecessary heap allocations
+    format!(
+        "data: {{\
+            \"id\": {id},\
+            \"object\": \"chat.completion.chunk\",\
+            \"created\": {time},\
+            \"model\": \"TabbyML\",\
+            \"choices\": [{{\"index\": 0, \"message\": {{ \"role\": \"assistant\", \"content\": \"{content}\", \"finish_reason\": {} }} }}]\
+        }}",
+    if finished { "'stop'" } else { "null" })
 }
