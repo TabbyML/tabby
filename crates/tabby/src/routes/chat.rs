@@ -1,13 +1,12 @@
-use std::{convert::Infallible, sync::Arc};
+use std::sync::Arc;
 
 use async_stream::stream;
 use axum::{
-    body::{BoxBody, StreamBody},
+    body::StreamBody,
     extract::State,
     response::{IntoResponse, Response},
     Json,
 };
-use axum_streams::StreamBodyAs;
 use tracing::instrument;
 
 use crate::services::chat::{ChatCompletionRequest, ChatService};
@@ -33,9 +32,17 @@ pub async fn chat_completions(
 ) -> Response {
     let s = stream! {
         for await content in state.generate(&request).await {
-            yield content
+            let content = match serde_json::to_string(&content) {
+                Ok(s) => s,
+                Err(e) => {
+                    yield Err(e);
+                    continue
+                }
+            };
+            let content = format!("data: {}", content);
+            yield Ok(content)
         }
     };
 
-    StreamBodyAs::json_nl(s).into_response()
+    StreamBody::new(s).into_response()
 }
