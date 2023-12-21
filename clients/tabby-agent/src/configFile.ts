@@ -12,7 +12,7 @@ import { rootLogger } from "./logger";
 
 const configTomlTemplate = `## Tabby agent configuration file
 
-## Online documentation: https://tabby.tabbyml.com/docs/extensions/configuration
+## Online documentation: https://tabby.tabbyml.com/docs/extensions/configurations
 ## You can uncomment and edit the values below to change the default settings.
 ## Configurations in this file have lower priority than the IDE settings.
 
@@ -41,7 +41,7 @@ const configTomlTemplate = `## Tabby agent configuration file
 ## Anonymous usage tracking
 ## Tabby collects anonymous usage data and sends it to the Tabby team to help improve our products.
 ## Your code, generated completions, or any sensitive information is never tracked or sent.
-## For more details on data collection, see https://tabby.tabbyml.com/docs/extensions/configuration#usage-collection
+## For more details on data collection, see https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection
 ## Your contribution is greatly appreciated. However, if you prefer not to participate, you can disable anonymous usage tracking here.
 # [anonymousUsageTracking]
 # disable = false # set to true to disable
