@@ -148,7 +148,7 @@ describe("postprocess", () => {
           console.log(output);
           return output;
         }
-        sortWord("world hello");┤
+        sortWords("world hello");┤
       `;
       const expected = inline`
             ├.flat()
@@ -156,9 +156,9 @@ describe("postprocess", () => {
             .join(" ");
           console.log(output);
           return output;
-        };┤
+        }┤
       `;
-      expect(await limitScopeBySyntax()(completion, context)).not.to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
   });
 
@@ -283,8 +283,9 @@ describe("postprocess", () => {
             if arr[i] > max:
               max = arr[i]
           return max┤
+        ┴┴
       `;
-      expect(await limitScopeBySyntax()(completion, context)).not.to.eq(expected);
+      expect(await limitScopeBySyntax()(completion, context)).to.eq(expected);
     });
   });
 
