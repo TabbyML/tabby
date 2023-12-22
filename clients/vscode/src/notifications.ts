@@ -125,6 +125,24 @@ function showInformationWhenDisconnected(modal: boolean = false) {
   }
 }
 
+function showInformationWhenUnauthorized() {
+  let message = "Tabby server requires authentication, ";
+  const currentToken = agent().getConfig()["server"]["token"].trim();
+  if (currentToken.length > 0) {
+    message += ` but the current token is invalid.`;
+  } else {
+    message += ` please set your personal token.`;
+  }
+  window.showWarningMessage(message, "Set Credentials").then((selection) => {
+    switch (selection) {
+      case "Set Credentials":
+        commands.executeCommand("tabby.setApiToken");
+        break;
+    }
+  });
+}
+
+/** @deprecated Tabby Cloud auth */
 function showInformationStartAuth(callbacks?: { onAuthStart?: () => void; onAuthEnd?: () => void }) {
   window
     .showWarningMessage(
@@ -143,14 +161,17 @@ function showInformationStartAuth(callbacks?: { onAuthStart?: () => void; onAuth
     });
 }
 
+/** @deprecated Tabby Cloud auth */
 function showInformationAuthSuccess() {
   window.showInformationMessage("Congrats, you're authorized, start to use Tabby now.");
 }
 
+/** @deprecated Tabby Cloud auth */
 function showInformationWhenStartAuthButAlreadyAuthorized() {
   window.showInformationMessage("You are already authorized now.");
 }
 
+/** @deprecated Tabby Cloud auth */
 function showInformationWhenAuthFailed() {
   window.showWarningMessage("Cannot connect to server. Please check settings.", "Settings").then((selection) => {
     switch (selection) {
@@ -301,6 +322,7 @@ export const notifications = {
   showInformationWhenManualTriggerLoading,
   showInformationWhenInlineSuggestDisabled,
   showInformationWhenDisconnected,
+  showInformationWhenUnauthorized,
   showInformationStartAuth,
   showInformationAuthSuccess,
   showInformationWhenStartAuthButAlreadyAuthorized,

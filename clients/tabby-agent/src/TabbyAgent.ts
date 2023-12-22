@@ -241,13 +241,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     } catch (error) {
       this.serverHealthState = undefined;
-      if (
-        error instanceof HttpError &&
-        [401, 403, 405].includes(error.status) &&
-        new URL(this.config.server.endpoint).hostname.endsWith("app.tabbyml.com") &&
-        isBlank(this.config.server.token) &&
-        this.config.server.requestHeaders["Authorization"] === undefined
-      ) {
+      if (error instanceof HttpError && [401, 403, 405].includes(error.status)) {
         this.logger.debug({ requestId, error }, "Health check error: unauthorized");
         this.changeStatus("unauthorized");
       } else {

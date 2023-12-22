@@ -72,6 +72,35 @@ const setApiEndpoint: Command = {
   },
 };
 
+const setApiToken = (context: ExtensionContext): Command => {
+  return {
+    command: "tabby.setApiToken",
+    callback: () => {
+      const currentToken = agent().getConfig()["server"]["token"].trim();
+      window
+        .showInputBox({
+          prompt: "Enter your personal token",
+          value: currentToken.length > 0 ? currentToken : undefined,
+          password: true,
+        })
+        .then((token) => {
+          if (token === undefined) {
+            return; // User canceled
+          }
+          if (token.length > 0) {
+            console.debug("Set token: ", token);
+            context.globalState.update("server.token", token);
+            agent().updateConfig("server.token", token);
+          } else {
+            console.debug("Clear token.");
+            context.globalState.update("server.token", undefined);
+            agent().clearConfig("server.token");
+          }
+        });
+    },
+  };
+};
+
 const openSettings: Command = {
   command: "tabby.openSettings",
   callback: () => {
@@ -114,6 +143,7 @@ const gettingStarted: Command = {
   },
 };
 
+/** @deprecated Tabby Cloud auth */
 const openAuthPage: Command = {
   command: "tabby.openAuthPage",
   callback: (callbacks?: { onAuthStart?: () => void; onAuthEnd?: () => void }) => {
@@ -290,6 +320,7 @@ export const tabbyCommands = (
   [
     toggleInlineCompletionTriggerMode,
     setApiEndpoint,
+    setApiToken(context),
     openSettings,
     openTabbyAgentSettings,
     openKeybindings,
