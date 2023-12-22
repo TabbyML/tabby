@@ -1,4 +1,4 @@
-# Skypilot Serving
+# SkyPilot Serving
 [SkyPilot](https://skypilot.readthedocs.io/en/latest/) is a framework for running LLMs, AI, and batch jobs on any cloud, offering maximum cost savings, highest GPU availability, and managed execution.
 
 [SkyServe](https://skypilot.readthedocs.io/en/latest/serving/sky-serve.html) is SkyPilot’s model serving library. SkyServe (short for SkyPilot Serving) takes an existing serving framework and deploys it across one or more regions or clouds.
@@ -41,7 +41,7 @@ We first execute `sky serve up tabby.yaml -n tabby`.
 If everything goes well, you'll see messages below
 ![service ready](./service-ready.png)
 
-This only initiates SkyServe's scheduler and load balancer; the actual Tabby service is not yet activated.
+This finishes launching SkyServe's control VM which runs a load balancer for this serve; the actual replica running the Tabby service is undergoing provisioning.
 
 When you execute the following command, you'll encounter a message indicating that the replica is not ready:
 
@@ -80,4 +80,4 @@ $ curl -L -X 'POST' \
 {"id":"cmpl-ba9aae81-ed9c-419b-9616-fceb92cdbe79","choices":[{"index":0,"text":"    if n <= 1:\n            return n"}]}
 ```
 
-Now, you can utilize the load balancer URL (`http://44.203.34.65:30001` in this case) within Tabby editor extensions. Please refer to `tabby.yaml` for the comprehensive configuration usedin this tutorial.
+Now, you can utilize the load balancer URL (`http://44.203.34.65:30001` in this case) within Tabby editor extensions. Please refer to `tabby.yaml` for the comprehensive configuration used in this tutorial.
