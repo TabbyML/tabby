@@ -1,7 +1,9 @@
 # SkyPilot Serving
-[SkyPilot](https://skypilot.readthedocs.io/en/latest/) is a framework for running LLMs, AI, and batch jobs on any cloud, offering maximum cost savings, highest GPU availability, and managed execution.
+[SkyPilot](https://skypilot.readthedocs.io/en/latest/) is a versatile framework designed for the execution of LLMs, AI, and batch jobs on any cloud vendors. It stands out by offering significant cost savings, optimal GPU availability, and managed execution capabilities.
 
 [SkyServe](https://skypilot.readthedocs.io/en/latest/serving/sky-serve.html) is SkyPilot’s model serving library. SkyServe (short for SkyPilot Serving) takes an existing serving framework and deploys it across one or more regions or clouds.
+
+When leveraging SkyServe, all replica Tabby instances are seamlessly deployed within your own cloud accounts and VPCs.
 
 ## Configuration
 
