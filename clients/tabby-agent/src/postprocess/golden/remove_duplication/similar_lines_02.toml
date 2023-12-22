@@ -1,0 +1,38 @@
+description = 'Remove duplication: similar lines: bad case 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'fibonacci.test.ts'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+import { expect } from "chai";
+import { fibonacci } from "./fibonacci";
+
+describe("tests: fibonacci", () => {
+  it("test case 1", () => {
+    const input = 0;
+    const expected = 1;
+    expect(fibonacci(input)).to.be.eq(expected);
+  });
+
+  ├it("test case 2", () => {
+    const input = 1;
+    const expected = 1;
+    expect(fibonacci(input)).to.be.eq(expected);
+  });┤
+  
+  it("test case 3", () => {
+    const input = 2;
+    const expected = 2;
+    expect(fibonacci(input)).to.be.eq(expected);
+  });
+});
+
+'''
+
+[expected]
+unchanged = true
+notEqual = true # FIXME: fix bad case
