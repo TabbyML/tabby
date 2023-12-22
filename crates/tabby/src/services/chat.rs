@@ -51,6 +51,11 @@ pub struct ChatCompletionChoice {
 pub struct ChatCompletionMessageChoice {
     role: String,
     finish_reason: Option<String>,
+    delta: ChatCompletionDelta,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+pub struct ChatCompletionDelta {
     content: String,
 }
 
@@ -66,7 +71,7 @@ impl ChatCompletionChunk {
                 message: ChatCompletionMessageChoice {
                     role: "assistant".into(),
                     finish_reason: last_chunk.then_some("stop".into()),
-                    content,
+                    delta: ChatCompletionDelta { content },
                 },
             }],
         }
