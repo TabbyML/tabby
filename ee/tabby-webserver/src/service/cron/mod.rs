@@ -1,5 +1,5 @@
 mod db;
-mod repository;
+mod job_utils;
 
 use std::time::Duration;
 
@@ -26,15 +26,14 @@ pub fn run_cron(db_conn: &DbConn) {
         };
         // run every 5 minutes
         let Ok(job2) =
-            repository::repository_job(db_conn.clone(), "sync".to_owned(), "0 1/5 * * * * *").await
+            job_utils::run_job(db_conn.clone(), "sync".to_owned(), "0 1/5 * * * * *").await
         else {
             error!("failed to create sync job");
             return;
         };
         // run every 5 hours
         let Ok(job3) =
-            repository::repository_job(db_conn.clone(), "index".to_owned(), "0 0 1/5 * * * *")
-                .await
+            job_utils::run_job(db_conn.clone(), "index".to_owned(), "0 0 1/5 * * * *").await
         else {
             error!("failed to create index job");
             return;

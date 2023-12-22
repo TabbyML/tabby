@@ -6,11 +6,7 @@ use tracing::error;
 
 use crate::service::db::{DbConn, JobRun};
 
-pub async fn repository_job(
-    db_conn: DbConn,
-    job_name: String,
-    schedule: &str,
-) -> anyhow::Result<Job> {
+pub async fn run_job(db_conn: DbConn, job_name: String, schedule: &str) -> anyhow::Result<Job> {
     let job = Job::new_async(schedule, move |_, _| {
         let job_name = job_name.clone();
         let db_conn = db_conn.clone();
