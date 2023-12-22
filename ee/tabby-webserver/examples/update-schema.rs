@@ -1,6 +1,6 @@
 use std::fs::write;
 
-use tabby_webserver::create_schema;
+use tabby_webserver::public::create_schema;
 
 fn main() {
     let schema = create_schema();

@@ -56,10 +56,17 @@ RUN apt-get update && \
 # Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
 RUN git config --system --add safe.directory "*"
 
+# Automatic platform ARGs in the global scope
+# https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
+ARG TARGETARCH
+
+# AMD64 only:
 # Make link to libnvidia-ml.so (NVML) library
 # so that we could get GPU stats.
-RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
-        /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+RUN if [ "$TARGETARCH" = "amd64" ]; then  \
+    ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
+        /usr/lib/x86_64-linux-gnu/libnvidia-ml.so; \
+    fi
 
 COPY --from=build /opt/tabby /opt/tabby
 

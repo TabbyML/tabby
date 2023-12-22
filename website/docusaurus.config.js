@@ -62,6 +62,7 @@ const config = {
           showReadingTime: true,
           editUrl:
             'https://github.com/TabbyML/tabby/edit/main/website',
+          blogSidebarCount: 10,
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -123,7 +124,7 @@ const config = {
             items: [
               {
                 label: 'Slack',
-                href: 'https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA',
+                href: 'https://slack.tabbyml.com',
               },
               {
                 label: 'GitHub',

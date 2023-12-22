@@ -1,0 +1,21 @@
+description = 'Replace range: multiple closing brackets: case 02'
+
+[config]
+# use default config
+
+[context]
+filepath = 'clamp.ts'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(Math.min(├value, max), min);┤))
+}
+'''
+
+[expected]
+text = '''
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(Math.min(├value, max), min);┤))╣
+}
+'''

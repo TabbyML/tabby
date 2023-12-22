@@ -1,7 +1,7 @@
 mod metrics;
 
 use std::{
-    net::{Ipv4Addr, SocketAddr},
+    net::{IpAddr, SocketAddr},
     sync::Arc,
 };
 
@@ -14,7 +14,7 @@ use tracing::info;
 
 use crate::fatal;
 
-pub async fn run_app(api: Router, ui: Option<Router>, port: u16) {
+pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
     let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
     let app = api
         .layer(CorsLayer::permissive())
@@ -31,9 +31,8 @@ pub async fn run_app(api: Router, ui: Option<Router>, port: u16) {
         app
     };
 
-    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, port));
+    let address = SocketAddr::from((host, port));
     info!("Listening at {}", address);
-
     Server::bind(&address)
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await

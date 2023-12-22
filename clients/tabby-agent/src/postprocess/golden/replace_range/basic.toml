@@ -1,0 +1,21 @@
+description = 'Replace range: basic'
+
+[config]
+# use default config
+
+[context]
+filepath = 'hello.js'
+language = 'javascript'
+# indentation = '  ' # not specified
+text = '''
+function printHello(├) {
+  console.log('Hello');
+}┤)
+'''
+
+[expected]
+text = '''
+function printHello(├) {
+  console.log('Hello');
+}┤)╣
+'''

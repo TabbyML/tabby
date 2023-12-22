@@ -13,7 +13,7 @@ from modal import Image, Stub, asgi_app, gpu
 Next, we set the base docker image version, which model to serve, taking care to specify the GPU configuration required to fit the model into VRAM.
 
 ```python
-IMAGE_NAME = "tabbyml/tabby:0.6.0"
+IMAGE_NAME = "tabbyml/tabby"
 MODEL_ID = "TabbyML/StarCoder-1B"
 GPU_CONFIG = gpu.T4()
 ```

@@ -87,7 +87,7 @@ class CheckIssueDetail : AnAction() {
     e.project?.let {
       invokeLater {
         val actionManager = ActionManager.getInstance()
-        val actionGroup = actionManager.getAction("Tabby.OpenOnlineHelp") as? ActionGroup ?: return@invokeLater
+        val actionGroup = actionManager.getAction("Tabby.OpenOnlineHelp") as ActionGroup
         val popup = JBPopupFactory.getInstance().createActionGroupPopup(
           "Online Help",
           actionGroup,

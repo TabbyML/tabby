@@ -47,6 +47,10 @@
         "title": "Tabby: Specify API Endpoint of Tabby"
       },
       {
+        "command": "tabby.setApiToken",
+        "title": "Tabby: Set API Token"
+      },
+      {
         "command": "tabby.openSettings",
         "title": "Tabby: Open Settings"
       },

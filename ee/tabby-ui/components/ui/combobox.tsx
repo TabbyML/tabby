@@ -46,13 +46,7 @@ export const ComboboxTextarea = React.forwardRef<
       {...getInputProps(
         omitBy(
           {
-            onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-              if (e.key === 'Enter' && open) {
-                e.preventDefault()
-              } else {
-                onKeyDown?.(e)
-              }
-            },
+            onKeyDown,
             onChange,
             onInput,
             onBlur,

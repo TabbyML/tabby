@@ -1,0 +1,20 @@
+description = 'Remove duplication: similar lines: bad case 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'checks.js'
+language = 'javascript'
+# indentation = '  ' # not specified
+text = '''
+function check(obj) {
+  if (obj.a) {
+    return true;
+  ├}┤
+}
+'''
+
+[expected]
+unchanged = true
+notEqual = true # FIXME: fix bad case

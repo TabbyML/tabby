@@ -29,12 +29,12 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Ruby](https://www.ruby-lang.org/)
 * [Java](https://www.java.com/)
 * [Kotlin](https://www.kotlinlang.org/)
+* [C/C++](https://cplusplus.com/), since v0.8.0
 
 ## Languages Missing Certain Support
 
 | Language | Stop Words (time to contribute: <5 min) | Repository Context (time to contribute: <1 hr) |
 | :------: | :-------------------------------------: | :--------------------------------------------: |
-|  C/C++   |                    🚫                    |                       🚫                        |
 |    C#    |                    🚫                    |                       🚫                        |
 |   CSS    |                    🚫                    |                       🚫                        |
 | Haskell  |                    🚫                    |                       🚫                        |

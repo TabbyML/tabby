@@ -14,7 +14,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.0-dev"
+version = "0.7.0"
 edition = "2021"
 authors = ["Meng Zhang"]
 homepage = "https://github.com/TabbyML/tabby"
@@ -41,3 +41,7 @@ utoipa = "3.3"
 axum = "0.6"
 hyper = "0.14"
 juniper = "0.15"
+
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3

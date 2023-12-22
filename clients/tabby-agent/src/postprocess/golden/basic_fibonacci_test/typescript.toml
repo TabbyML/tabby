@@ -1,0 +1,27 @@
+description = 'Basic typescript function fibonacci'
+
+[config]
+# use default config
+
+[context]
+filepath = 'fibonacci.ts'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+function fibonacci(n:├ number): number {
+  if (n <= 1) {
+    return n;
+  }
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}┤)
+'''
+
+[expected]
+text = '''
+function fibonacci(n:├ number): number {
+  if (n <= 1) {
+    return n;
+  }
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}┤)╣
+'''

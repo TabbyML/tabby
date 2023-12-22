@@ -58,7 +58,7 @@ export default function InvitationTable() {
             <TableRow>
               <TableHead className="w-[25%]">Invitee</TableHead>
               <TableHead className="w-[45%]">Created</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
         )}
@@ -69,7 +69,7 @@ export default function InvitationTable() {
               <TableRow key={i}>
                 <TableCell>{x.email}</TableCell>
                 <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   <CopyButton value={link} />
                   <Button
                     size="icon"

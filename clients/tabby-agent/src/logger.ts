@@ -1,23 +1,31 @@
 import path from "path";
 import os from "os";
 import pino from "pino";
-import { createStream } from "rotating-file-stream";
+import * as FileStreamRotator from "file-stream-rotator";
 import { isBrowser, isTest, testLogDebug } from "./env";
 
-/**
- * Stream not available in browser, will use default console output.
- */
-const stream =
-  isBrowser || isTest
-    ? undefined
-    : /**
-       * Default rotating file locate at `~/.tabby-client/agent/logs/`.
-       */
-      createStream("tabby-agent.log", {
-        path: path.join(os.homedir(), ".tabby-client", "agent", "logs"),
-        size: "10M",
-        interval: "1d",
-      });
+class LogFileStream implements pino.DestinationStream {
+  private streamOptions = {
+    // Rotating file locate at `~/.tabby-client/agent/logs/`.
+    filename: path.join(os.homedir(), ".tabby-client", "agent", "logs", "%DATE%"),
+    frequency: "daily",
+    size: "10M",
+    max_logs: "30d",
+    extension: ".log",
+    create_symlink: true,
+  };
+  private stream?: pino.DestinationStream;
+
+  write(data: string): void {
+    if (!this.stream) {
+      this.stream = FileStreamRotator.getStream(this.streamOptions);
+    }
+    this.stream.write(data);
+  }
+}
+
+// LogFileStream not available in browser, will use default browser console output instead.
+const stream = isBrowser || isTest ? undefined : new LogFileStream();
 
 const options = { serializers: { error: pino.stdSerializers.err } };
 export const rootLogger = stream ? pino(options, stream) : pino(options);
@@ -28,6 +36,6 @@ if (isTest && testLogDebug) {
 }
 
 export const allLoggers = [rootLogger];
-rootLogger.onChild = (child) => {
+rootLogger.onChild = (child: pino.Logger) => {
   allLoggers.push(child);
 };

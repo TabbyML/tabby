@@ -1,0 +1,38 @@
+description = 'Limit scope: limit to single line when completing a line: case 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'foo.ts'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+export class Foo {
+  private _foo: number;
+  
+  constructor() {
+    this._foo = 1;
+  }
+  
+  update(value): Foo {
+    this._foo =├ value;
+    return this;┤
+  }
+}
+'''
+
+[expected]
+text = '''
+export class Foo {
+  private _foo: number;
+  
+  constructor() {
+    this._foo = 1;
+  }
+  
+  update(value): Foo {
+    this._foo =├ value;┤
+  }
+}
+'''

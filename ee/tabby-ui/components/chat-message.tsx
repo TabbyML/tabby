@@ -2,6 +2,7 @@
 // @see https://github.com/mckaywrigley/chatbot-ui/blob/main/components/Chat/ChatMessage.tsx
 
 import Image from 'next/image'
+import tabbyLogo from '@/assets/tabby.png'
 import { Message } from 'ai'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -30,10 +31,10 @@ export function ChatMessage({
     >
       <div
         className={cn(
-          'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md border shadow',
+          'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md border bg-background shadow',
           message.role === 'user'
             ? 'bg-background'
-            : 'bg-primary text-primary-foreground'
+            : 'bg-accent text-accent-foreground'
         )}
       >
         {message.role === 'user' ? <IconUser /> : <IconTabby />}
@@ -93,7 +94,7 @@ function IconTabby() {
   return (
     <Image
       style={{ borderRadius: 4 }}
-      src="https://avatars.githubusercontent.com/u/125617854?s=128&v=4"
+      src={tabbyLogo}
       alt="tabby"
       width="128"
       height="128"

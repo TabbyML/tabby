@@ -49,16 +49,21 @@ follow the steps below to troubleshoot the issue.
 
 Verify that the endpoint setting is correct. You can set the endpoint in the 
 IDE settings page (except for Vim/NeoVim, which do not have this option) or by 
-editing the `~/.tabby-client/agent/config.toml` file.  
+editing the [config file](https://tabby.tabbyml.com/docs/extensions/configurations).  
 Keep in mind that the IDE settings take priority over the config file. 
 If you wish to use the setting from the config file, ensure that the IDE setting
 is empty.
+
+### Authentication Token
+
+If you have enabled authentication on your Tabby server, you will need to set
+the authentication token in the [config file](https://tabby.tabbyml.com/docs/extensions/configurations).
 
 ### Verify Tabby Server Status
 
 Once the Tabby server is running, it should display a log message such as 
 `Listening at 0.0.0.0:8080`.  
-Open your browser and navigate to `http://localhost:8080/swagger`
+Open your browser and navigate to `http://localhost:8080/swagger-ui/`
 (Replace `localhost:8080` with the correct IP/domain and port if you have setup your 
 Tabby server on a remote machine). The browser should display a web page with Swagger UI.  
 
@@ -117,7 +122,7 @@ the server, make sure to specify the device in the arguments using  `--device cu
 `--device metal`. You can also try using a smaller model from the available [models](https://tabby.tabbyml.com/docs/models/). 
 
 By default, the timeout for automatically triggered completion requests is set to 4 seconds. 
-You can adjust this timeout value in the `~/.tabby-client/agent/config.toml` configuration file.
+You can adjust this timeout value in the [config file](https://tabby.tabbyml.com/docs/extensions/configurations).
 
 ## Want to Deep Dive via Logs?
 
@@ -126,8 +131,7 @@ investigate further by checking the debug logs.
 
 ### Tabby Agent Debug Logs
 
-To enable Tabby agent debug logs, editing `~/.tabby-client/agent/config.toml` file, 
-uncomment the `logs` section and set `level` to `"debug"`. Save the file to apply the changes.
+To enable Tabby agent debug logs, editing the [config file](https://tabby.tabbyml.com/docs/extensions/configurations), uncomment the `logs` section and set `level` to `"debug"`. Save the file to apply the changes.
 
 Reproduce the issue you are facing and then check the logs located in `~/.tabby-client/agent/logs/`. 
 The logs are rotated, with the most recent log file named `tabby-agent.log`. 

@@ -28,25 +28,20 @@ export function Header() {
   const newVersionAvailable = isNewVersionAvailable(version, latestRelease)
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b bg-gradient-to-b from-background/10 via-background/50 to-background/80 px-4 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl">
       <div className="flex items-center">
-        <ThemeToggle />
-        <Link href="/" className={cn(buttonVariants({ variant: 'link' }))}>
-          Dashboard
+        <Link href="/">
+          <span className="hidden select-none px-2 font-logo font-semibold sm:inline-block">
+            Tabby
+          </span>
         </Link>
-        <Link href="/api" className={cn(buttonVariants({ variant: 'link' }))}>
-          API
-        </Link>
+        <HeaderLink href="/api">API</HeaderLink>
         {isChatEnabled && (
-          <Link
-            href="/playground"
-            className={cn(buttonVariants({ variant: 'link' }))}
-          >
-            Playground
-          </Link>
+          <HeaderLink href="/playground">Playground</HeaderLink>
         )}
       </div>
       <div className="flex items-center justify-end space-x-2">
+        <ThemeToggle />
         {newVersionAvailable && (
           <a
             target="_blank"
@@ -83,3 +78,18 @@ function isNewVersionAvailable(version?: string, latestRelease?: ReleaseInfo) {
     return true
   }
 }
+
+const HeaderLink = ({
+  children,
+  href
+}: {
+  children: React.ReactNode
+  href: string
+}) => (
+  <Link
+    href={href}
+    className={cn(buttonVariants({ variant: 'link' }), 'text-foreground')}
+  >
+    {children}
+  </Link>
+)

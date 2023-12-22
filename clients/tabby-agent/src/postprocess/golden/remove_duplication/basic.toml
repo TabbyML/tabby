@@ -1,0 +1,18 @@
+description = 'Remove duplication: keep unchanged'
+
+[config]
+# use default config
+
+[context]
+filepath = 'foo.js'
+language = 'javascript'
+# indentation = '  ' # not specified
+text = '''
+function print(obj) {
+  ├console.log(obj);┤
+  console.log(obj);
+}
+'''
+
+[expected]
+discard = true

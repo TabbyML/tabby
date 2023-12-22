@@ -25,6 +25,7 @@
     "@radix-ui/react-dropdown-menu": "^2.0.5",
     "@radix-ui/react-label": "^2.0.2",
     "@radix-ui/react-popover": "^1.0.7",
+    "@radix-ui/react-scroll-area": "^1.0.5",
     "@radix-ui/react-select": "^1.2.2",
     "@radix-ui/react-separator": "^1.0.3",
     "@radix-ui/react-slot": "^1.0.2",
@@ -59,6 +60,7 @@
     "remark-gfm": "^3.0.1",
     "remark-math": "^5.1.1",
     "swr": "^2.2.4",
+    "use-local-storage": "^3.0.0",
     "zod": "^3.22.4",
     "zustand": "^4.4.6"
   },

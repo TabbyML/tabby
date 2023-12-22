@@ -25,7 +25,6 @@ import java.awt.Font
 import java.awt.Graphics
 import java.awt.Rectangle
 
-
 @Service
 class InlineCompletionService {
   private val logger = Logger.getInstance(InlineCompletionService::class.java)
@@ -68,7 +67,7 @@ class InlineCompletionService {
       }
       val currentLineSuffix = editor.document.getText(TextRange(offset, currentLineEndOffset))
 
-      val textLines = text.split("\n").toMutableList()
+      val textLines = text.lines().toMutableList()
 
       val inlays = mutableListOf<Inlay<*>>()
       val markups = mutableListOf<RangeHighlighter>()
@@ -87,10 +86,6 @@ class InlineCompletionService {
           }
         }
       } else if (suffixReplaceLength == 1) {
-        logger.info("suffixReplaceLength: $suffixReplaceLength")
-        logger.info("currentLineSuffix: $currentLineSuffix")
-        logger.info("textLines[0]: ${textLines[0]}")
-        logger.info("textLines.size: ${textLines.size}")
         // Replace range contains one char
         val replaceChar = currentLineSuffix[0]
         // Insert part is substring of first line that before the char
@@ -121,7 +116,6 @@ class InlineCompletionService {
               // First line doesn't contain the char
               offset
             }
-            logger.info("startOffset: $startOffset")
             markupReplaceText(editor, startOffset, currentLineEndOffset).let { markups.add(it) }
             textLines[textLines.lastIndex] += currentLineSuffix.substring(1)
           }
@@ -163,13 +157,36 @@ class InlineCompletionService {
     }
   }
 
-  fun accept() {
+  enum class AcceptType {
+    FULL_COMPLETION,
+    NEXT_WORD,
+    NEXT_LINE,
+  }
+
+  fun accept(type: AcceptType) {
     shownInlineCompletion?.let {
       val choice = it.completion.choices.first()
-      logger.info("Accept inline completion at ${it.offset}: $choice")
+      logger.info("Accept inline completion at ${it.offset}: $type: $choice")
 
       val prefixReplaceLength = it.offset - choice.replaceRange.start
-      val text = choice.text.substring(prefixReplaceLength)
+      val completionText = choice.text.substring(prefixReplaceLength)
+      val text = when (type) {
+        AcceptType.FULL_COMPLETION -> completionText
+        AcceptType.NEXT_WORD -> {
+          Regex("\\w+|\\W+").find(completionText)?.value ?: ""
+        }
+
+        AcceptType.NEXT_LINE -> {
+          val lines = completionText.lines()
+          if (lines.size <= 1) {
+            completionText
+          } else if (lines.first().isEmpty()) {
+            lines.subList(0, 2).joinToString("\n")
+          } else {
+            lines.first()
+          }
+        }
+      }
       WriteCommandAction.runWriteCommandAction(it.editor.project) {
         it.editor.document.deleteString(it.offset, choice.replaceRange.end)
         it.editor.document.insertString(it.offset, text)
@@ -184,11 +201,23 @@ class InlineCompletionService {
           Agent.LogEventRequest(
             type = Agent.LogEventRequest.EventType.SELECT,
             completionId = it.completion.id,
-            choiceIndex = choice.index
+            choiceIndex = choice.index,
+            selectKind = when (type) {
+              AcceptType.FULL_COMPLETION -> null
+              AcceptType.NEXT_WORD, AcceptType.NEXT_LINE -> Agent.LogEventRequest.SelectKind.LINE
+            }
           )
         )
       }
       shownInlineCompletion = null
+
+      // Update inline completion after partial completion
+      if (type == AcceptType.NEXT_LINE || type == AcceptType.NEXT_WORD) {
+        invokeLater {
+          val completionProvider = service<CompletionProvider>()
+          completionProvider.provideCompletion(it.editor, it.offset + text.length, true)
+        }
+      }
     }
   }
 
@@ -206,6 +235,10 @@ class InlineCompletionService {
 
   private fun createInlayText(editor: Editor, text: String, offset: Int, lineOffset: Int): Inlay<*>? {
     val renderer = object : EditorCustomElementRenderer {
+      override fun getContextMenuGroupId(inlay: Inlay<*>): String {
+        return "Tabby.InlineCompletionContextMenu"
+      }
+
       override fun calcWidthInPixels(inlay: Inlay<*>): Int {
         return maxOf(getWidth(inlay.editor, text), 1)
       }

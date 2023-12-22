@@ -1,0 +1,10 @@
+---
+source: crates/tabby/tests/goldentests.rs
+expression: golden_test(body).await
+---
+id: test-id
+choices:
+  - index: 0
+    text: "    if n <= 1:\n            return n"
+debug_data: {}
+

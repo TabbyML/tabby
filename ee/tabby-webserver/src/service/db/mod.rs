@@ -1,88 +1,28 @@
 mod invitations;
+mod job_runs;
 mod refresh_tokens;
 mod users;
 
-use std::{path::PathBuf, sync::Arc};
-
 use anyhow::Result;
+use include_dir::{include_dir, Dir};
+pub use job_runs::JobRun;
 use lazy_static::lazy_static;
 use rusqlite::params;
-use rusqlite_migration::{AsyncMigrations, M};
-use tabby_common::path::tabby_root;
+use rusqlite_migration::AsyncMigrations;
 use tokio_rusqlite::Connection;
 
-use crate::service::cron::run_offline_job;
+use crate::path::db_file;
+
+static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 
 lazy_static! {
-    static ref MIGRATIONS: AsyncMigrations = AsyncMigrations::new(vec![
-        M::up(
-            r#"
-            CREATE TABLE registration_token (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                token VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT (DATETIME('now')),
-                updated_at TIMESTAMP DEFAULT (DATETIME('now')),
-                CONSTRAINT `idx_token` UNIQUE (`token`)
-            );
-        "#
-        )
-        .down("DROP TABLE registration_token"),
-        // ==== Above migrations released in 0.6.0 ====
-        M::up(
-            r#"
-            CREATE TABLE users (
-                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-                email              VARCHAR(150) NOT NULL COLLATE NOCASE,
-                password_encrypted VARCHAR(128) NOT NULL,
-                is_admin           BOOLEAN NOT NULL DEFAULT 0,
-                created_at         TIMESTAMP DEFAULT (DATETIME('now')),
-                updated_at         TIMESTAMP DEFAULT (DATETIME('now')),
-                auth_token         VARCHAR(128) NOT NULL,
-
-                CONSTRAINT `idx_email`      UNIQUE (`email`)
-                CONSTRAINT `idx_auth_token` UNIQUE (`auth_token`)
-            );
-        "#
-        )
-        .down("DROP TABLE users"),
-        M::up(
-            r#"
-            CREATE TABLE invitations (
-                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-                email              VARCHAR(150) NOT NULL COLLATE NOCASE,
-                code               VARCHAR(36) NOT NULL,
-                created_at         TIMESTAMP DEFAULT (DATETIME('now')),
-                CONSTRAINT `idx_email` UNIQUE (`email`)
-                CONSTRAINT `idx_code`  UNIQUE (`code`)
-            );
-        "#
-        )
-        .down("DROP TABLE invitations"),
-        M::up(
-            r#"
-            CREATE TABLE refresh_tokens (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                token VARCHAR(255) NOT NULL COLLATE NOCASE,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT (DATETIME('now')),
-                CONSTRAINT `idx_token` UNIQUE (`token`)
-            );
-        "#
-        )
-        .down("DROP TABLE refresh_tokens"),
-    ]);
-}
-
-async fn db_path() -> Result<PathBuf> {
-    let db_dir = tabby_root().join("ee");
-    tokio::fs::create_dir_all(db_dir.clone()).await?;
-    Ok(db_dir.join("db.sqlite"))
+    static ref MIGRATIONS: AsyncMigrations =
+        AsyncMigrations::from_directory(&MIGRATIONS_DIR).unwrap();
 }
 
 #[derive(Clone)]
 pub struct DbConn {
-    conn: Arc<Connection>,
+    conn: Connection,
 }
 
 impl DbConn {
@@ -93,8 +33,8 @@ impl DbConn {
     }
 
     pub async fn new() -> Result<Self> {
-        let db_path = db_path().await?;
-        let conn = Connection::open(db_path).await?;
+        tokio::fs::create_dir_all(db_file().parent().unwrap()).await?;
+        let conn = Connection::open(db_file()).await?;
         Self::init_db(conn).await
     }
 
@@ -104,18 +44,14 @@ impl DbConn {
 
         let token = uuid::Uuid::new_v4().to_string();
         conn.call(move |c| {
-            c.execute(
+            Ok(c.execute(
                 r#"INSERT OR IGNORE INTO registration_token (id, token) VALUES (1, ?)"#,
                 params![token],
-            )
+            ))
         })
-        .await?;
+        .await??;
 
-        let res = Self {
-            conn: Arc::new(conn),
-        };
-        run_offline_job(res.clone());
-
+        let res = Self { conn };
         Ok(res)
     }
 }
@@ -128,15 +64,15 @@ impl DbConn {
         let token = self
             .conn
             .call(|conn| {
-                conn.query_row(
+                Ok(conn.query_row(
                     r#"SELECT token FROM registration_token WHERE id = 1"#,
                     [],
                     |row| row.get(0),
-                )
+                ))
             })
             .await?;
 
-        Ok(token)
+        Ok(token?)
     }
 
     /// Update token in database.
@@ -148,13 +84,13 @@ impl DbConn {
         let res = self
             .conn
             .call(move |conn| {
-                conn.execute(
+                Ok(conn.execute(
                     r#"UPDATE registration_token SET token = ?, updated_at = ? WHERE id = 1"#,
                     params![token, updated_at],
-                )
+                ))
             })
             .await?;
-        if res != 1 {
+        if res != Ok(1) {
             return Err(anyhow::anyhow!("failed to update token"));
         }
 

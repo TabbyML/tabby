@@ -1,0 +1,25 @@
+description = 'Replace range: multiple closing brackets: case 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'listener.js'
+language = 'javascript'
+# indentation = '  ' # not specified
+text = '''
+const stream = process.stdin;
+// just print data string
+stream.on('data', (data) => {├
+  console.log(data.toString());
+});┤})
+'''
+
+[expected]
+text = '''
+const stream = process.stdin;
+// just print data string
+stream.on('data', (data) => {├
+  console.log(data.toString());
+});┤})╣
+'''

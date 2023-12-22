@@ -114,17 +114,8 @@ export class TabbyStatusBarItem {
         on: {
           ready: this.subStatusForReady,
           disconnected: "disconnected",
-          authStart: "unauthorizedAndAuthInProgress",
         },
         entry: () => this.toUnauthorized(),
-      },
-      unauthorizedAndAuthInProgress: {
-        on: {
-          ready: this.subStatusForReady,
-          disconnected: "disconnected",
-          authEnd: "unauthorized", // if auth succeeds, we will get `ready` before `authEnd` event
-        },
-        entry: () => this.toUnauthorizedAndAuthInProgress(),
       },
       issuesExist: {
         on: {
@@ -160,14 +151,7 @@ export class TabbyStatusBarItem {
 
     agent().on("authRequired", (event: AuthRequiredEvent) => {
       console.debug("Tabby agent authRequired", { event });
-      notifications.showInformationStartAuth({
-        onAuthStart: () => {
-          this.fsmService.send("authStart");
-        },
-        onAuthEnd: () => {
-          this.fsmService.send("authEnd");
-        },
-      });
+      notifications.showInformationWhenUnauthorized();
     });
 
     agent().on("issuesUpdated", (event: IssuesUpdatedEvent) => {
@@ -282,30 +266,12 @@ export class TabbyStatusBarItem {
     this.item.color = colorWarning;
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconUnauthorized} ${label}`;
-    this.item.tooltip = "Tabby Server requires authorization. Click to continue.";
+    this.item.tooltip = "Tabby Server requires authorization. Please set your personal token.";
     this.item.command = {
       title: "",
       command: "tabby.applyCallback",
-      arguments: [
-        () =>
-          notifications.showInformationStartAuth({
-            onAuthStart: () => {
-              this.fsmService.send("authStart");
-            },
-            onAuthEnd: () => {
-              this.fsmService.send("authEnd");
-            },
-          }),
-      ],
+      arguments: [() => notifications.showInformationWhenUnauthorized()],
     };
-  }
-
-  private toUnauthorizedAndAuthInProgress() {
-    this.item.color = colorWarning;
-    this.item.backgroundColor = backgroundColorWarning;
-    this.item.text = `${iconUnauthorized} ${label}`;
-    this.item.tooltip = "Waiting for authorization.";
-    this.item.command = undefined;
   }
 
   private toIssuesExist() {

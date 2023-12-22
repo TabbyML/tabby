@@ -83,7 +83,7 @@ impl LlamaServiceImpl {
         };
 
         for ffi::StepOutput { request_id, text } in result {
-            let mut stopped;
+            let mut stopped: bool;
             let LlamaRunningRequest { tx, stop_condition } =
                 self.requests.get_mut(&request_id).unwrap();
 

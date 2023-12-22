@@ -1,0 +1,26 @@
+description = 'Limit scope: limit to block scope: case 03'
+
+[config]
+# use default config
+
+[context]
+filepath = 'checks.js'
+language = 'javascript'
+# indentation = '  ' # not specified
+text = '''
+function check(obj) {
+  // if obj.a is defined, then return t├rue
+  if (obj.a) {
+    return true;
+  }┤
+  return false;
+}
+'''
+
+[expected]
+text = '''
+function check(obj) {
+  // if obj.a is defined, then return t├rue┤
+  return false;
+}
+'''

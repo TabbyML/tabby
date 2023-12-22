@@ -1,0 +1,26 @@
+description = 'Limit scope experimental: syntax rust: case 01'
+
+[config.limitScope]
+experimentalSyntax = true
+
+[context]
+filepath = 'stop.rs'
+language = 'rust'
+# indentation = '  ' # not specified
+text = '''
+pub struct StopCondition {
+    stop_re: Option<Regex>,
+    max_decoding_length: ├usize,
+    max_decoding_time: Duration,
+}┤
+}
+'''
+
+[expected]
+text = '''
+pub struct StopCondition {
+    stop_re: Option<Regex>,
+    max_decoding_length: ├usize,
+    max_decoding_time: Duration,┤
+}
+'''

@@ -10,6 +10,16 @@ function buildInitOptions(context: ExtensionContext): AgentInitOptions {
       endpoint,
     };
   }
+  const token = context.globalState.get<string>("server.token");
+  if (token && token.trim().length > 0) {
+    if (config.server) {
+      config.server.token = token;
+    } else {
+      config.server = {
+        token,
+      };
+    }
+  }
   const anonymousUsageTrackingDisabled = configuration.get<boolean>("usage.anonymousUsageTracking", false);
   config.anonymousUsageTracking = {
     disable: anonymousUsageTrackingDisabled,
