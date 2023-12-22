@@ -17,7 +17,6 @@ pub mod public {
 
 use std::sync::Arc;
 
-use api::Hub;
 use axum::{
     extract::State,
     http::Request,
@@ -29,14 +28,7 @@ use juniper_axum::{graphiql, graphql, playground};
 pub use schema::create_schema;
 use schema::{Schema, ServiceLocator};
 use service::create_service_locator;
-use tabby_common::api::{
-    accelerator::{Accelerator, DeviceType},
-    code::{CodeSearch, SearchResponse},
-    event::RawEventLogger,
-};
-use tokio::sync::Mutex;
-use tracing::{error, warn};
-use websocket::WebSocketTransport;
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 
 pub async fn attach_webserver(
     api: Router,

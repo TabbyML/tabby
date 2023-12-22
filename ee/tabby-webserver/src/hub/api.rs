@@ -3,6 +3,7 @@ use axum::{headers::Header, http::HeaderName};
 use hyper::Request;
 use serde::{Deserialize, Serialize};
 use tabby_common::api::{
+    accelerator::Accelerator,
     code::{CodeSearch, CodeSearchError, SearchResponse},
     event::RawEventLogger,
 };
@@ -109,6 +110,7 @@ pub struct RegisterWorkerRequest {
     pub cpu_info: String,
     pub cpu_count: i32,
     pub cuda_devices: Vec<String>,
+    pub accelerators: Vec<Accelerator>,
 }
 
 pub static REGISTER_WORKER_HEADER: HeaderName = HeaderName::from_static("x-tabby-register-worker");

@@ -1,12 +1,26 @@
-ARG UBUNTU_VERSION=22.04
-# This needs to generally match the container host's environment.
-ARG ROCM_VERSION=5.7
-# Target the CUDA build image
-ARG BASE_ROCM_DEV_CONTAINER="rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete"
-# Target the CUDA runtime image
-ARG BASE_ROCM_RUN_CONTAINER="rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete"
+# Ubuntu version to be used as base
+ARG UBUNTU_VERSION=jammy
+# URL to the amdgpu-install debian package
+ARG AMDGPU_INSTALL_URL=https://repo.radeon.com/amdgpu-install/6.0/ubuntu/${UBUNTU_VERSION}/amdgpu-install_6.0.60000-1_all.deb
 
-FROM ${BASE_ROCM_DEV_CONTAINER} as build
+FROM ubuntu:${UBUNTU_VERSION} as hipblas_base
+
+ARG AMDGPU_INSTALL_URL
+
+# Install ROCm
+RUN apt-get update &&  \
+    apt-get install -y curl ca-certificates &&  \
+    curl -Lo /tmp/amdgpu-install.deb "${AMDGPU_INSTALL_URL}" && \
+    apt-get install -y /tmp/amdgpu-install.deb && \
+    rm /tmp/amdgpu-install.deb && \
+    apt-get update && \
+    apt-get install -y "hipblas" && \
+    apt-get purge -y curl ca-certificates && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM hipblas_base as build
 
 # Rust toolchain version
 ARG RUST_TOOLCHAIN=stable
@@ -15,23 +29,25 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
+        ca-certificates \
         pkg-config \
         libssl-dev \
         protobuf-compiler \
         git \
         cmake \
+        hipblas-dev \
+        build-essential \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # setup rust.
-RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --profile minimal --no-modify-path --default-toolchain ${RUST_TOOLCHAIN} -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /root/workspace
 
 RUN mkdir -p /opt/tabby/bin
-RUN mkdir -p /opt/tabby/lib
 RUN mkdir -p target
 
 COPY . .
@@ -41,7 +57,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --features rocm --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
-FROM ${BASE_ROCM_RUN_CONTAINER} as runtime
+FROM hipblas_base as runtime
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \

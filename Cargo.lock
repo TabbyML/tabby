@@ -3712,6 +3712,7 @@ dependencies = [
  "filenamify",
  "glob",
  "home",
+ "juniper",
  "lazy_static",
  "reqwest",
  "serde",

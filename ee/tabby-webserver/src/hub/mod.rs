@@ -45,6 +45,7 @@ pub(crate) async fn ws_handler(
 
     let addr = format!("http://{}:{}", addr.ip(), request.port);
 
+    #[allow(deprecated)]
     let worker = Worker {
         name: request.name,
         kind: request.kind,
@@ -54,6 +55,7 @@ pub(crate) async fn ws_handler(
         cpu_info: request.cpu_info,
         cpu_count: request.cpu_count,
         cuda_devices: request.cuda_devices,
+        accelerators: request.accelerators,
     };
 
     ws.on_upgrade(move |socket| handle_socket(state, socket, worker))
