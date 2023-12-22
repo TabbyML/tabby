@@ -1,11 +1,12 @@
 mod db;
+mod job_utils;
 
 use std::time::Duration;
 
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::error;
 
-use crate::service::db::{DbConn, JobRun};
+use crate::service::db::DbConn;
 
 async fn new_job_scheduler(jobs: Vec<Job>) -> anyhow::Result<JobScheduler> {
     let scheduler = JobScheduler::new().await?;
@@ -24,13 +25,15 @@ pub fn run_cron(db_conn: &DbConn) {
             return;
         };
         // run every 5 minutes
-        let Ok(job2) = repository_job(db_conn.clone(), "sync".to_owned(), "0 1/5 * * * * *").await
+        let Ok(job2) =
+            job_utils::run_job(db_conn.clone(), "sync".to_owned(), "0 1/5 * * * * *").await
         else {
             error!("failed to create sync job");
             return;
         };
         // run every 5 hours
-        let Ok(job3) = repository_job(db_conn.clone(), "index".to_owned(), "0 0 1/5 * * * *").await
+        let Ok(job3) =
+            job_utils::run_job(db_conn.clone(), "index".to_owned(), "0 0 1/5 * * * *").await
         else {
             error!("failed to create index job");
             return;
@@ -57,42 +60,4 @@ pub fn run_cron(db_conn: &DbConn) {
             }
         }
     });
-}
-
-async fn repository_job(db_conn: DbConn, job_name: String, schedule: &str) -> anyhow::Result<Job> {
-    let job = Job::new_async(schedule, move |_, _| {
-        let job_name = job_name.clone();
-        let db_conn = db_conn.clone();
-        Box::pin(async move {
-            // run command as a child process
-            let start_time = chrono::Utc::now();
-            let exe = std::env::current_exe().unwrap();
-            let output = tokio::process::Command::new(exe)
-                .arg(&format!("job::{}", &job_name))
-                .output()
-                .await;
-            let Ok(output) = output else {
-                error!("`{}` failed: {:?}", &job_name, output.unwrap_err());
-                return;
-            };
-            let finish_time = chrono::Utc::now();
-
-            // save run result to db
-            let run = JobRun {
-                id: 0,
-                job_name,
-                start_time,
-                finish_time: Some(finish_time),
-                exit_code: output.status.code(),
-                stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-                stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-            };
-            let res = db_conn.create_job_run(run).await;
-            if let Err(e) = res {
-                error!("failed to save job run result: {}", e);
-            }
-        })
-    })?;
-
-    Ok(job)
 }
