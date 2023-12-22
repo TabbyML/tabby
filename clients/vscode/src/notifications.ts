@@ -131,11 +131,11 @@ function showInformationWhenUnauthorized() {
   if (currentToken.length > 0) {
     message += ` but the current token is invalid.`;
   } else {
-    message += ` please set your auth token.`;
+    message += ` please set your personal token.`;
   }
-  window.showWarningMessage(message, "Set Token").then((selection) => {
+  window.showWarningMessage(message, "Set Credentials").then((selection) => {
     switch (selection) {
-      case "Set Token":
+      case "Set Credentials":
         commands.executeCommand("tabby.setApiToken");
         break;
     }

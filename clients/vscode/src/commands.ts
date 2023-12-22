@@ -79,7 +79,7 @@ const setApiToken = (context: ExtensionContext): Command => {
       const currentToken = agent().getConfig()["server"]["token"].trim();
       window
         .showInputBox({
-          prompt: "Enter the auth token",
+          prompt: "Enter your personal token",
           value: currentToken.length > 0 ? currentToken : undefined,
           password: true,
         })
@@ -88,11 +88,11 @@ const setApiToken = (context: ExtensionContext): Command => {
             return; // User canceled
           }
           if (token.length > 0) {
-            console.debug("Set auth token: ", token);
+            console.debug("Set token: ", token);
             context.globalState.update("server.token", token);
             agent().updateConfig("server.token", token);
           } else {
-            console.debug("Clear auth token.");
+            console.debug("Clear token.");
             context.globalState.update("server.token", undefined);
             agent().clearConfig("server.token");
           }

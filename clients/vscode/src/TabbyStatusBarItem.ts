@@ -266,7 +266,7 @@ export class TabbyStatusBarItem {
     this.item.color = colorWarning;
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconUnauthorized} ${label}`;
-    this.item.tooltip = "Tabby Server requires authorization. Please set your auth token.";
+    this.item.tooltip = "Tabby Server requires authorization. Please set your personal token.";
     this.item.command = {
       title: "",
       command: "tabby.applyCallback",

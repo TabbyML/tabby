@@ -48,7 +48,7 @@
       },
       {
         "command": "tabby.setApiToken",
-        "title": "Tabby: Set API Auth Token"
+        "title": "Tabby: Set API Token"
       },
       {
         "command": "tabby.openSettings",
