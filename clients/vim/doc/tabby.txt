@@ -24,9 +24,6 @@ Commands~
 			issue exists.
 					*:Tabby-version*
 :Tabby  version		Print the version of Tabby plugin.
-					*:Tabby-auth*
-:Tabby  auth		Start to complete the authentication process. Only used
-			when you are using a Tabby Cloud endpoint.
 					*:Tabby-help*
 :Tabby  help [subject]  Search for help information in this document using
 			VIM command `:help`.
