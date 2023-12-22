@@ -148,7 +148,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
 
           Agent.Status.UNAUTHORIZED -> {
             icon = AllIcons.General.Warning
-            tooltip = "Tabby: Authorization required, click to continue"
+            tooltip = "Tabby: Authorization required, please set your personal token in settings"
           }
         }
         invokeLater {

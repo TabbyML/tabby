@@ -13,6 +13,7 @@ import com.tabbyml.intellijtabby.agent.AgentService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+@Deprecated("Tabby Cloud auth support will be removed.")
 class OpenAuthPage : AnAction() {
   private val logger = Logger.getInstance(OpenAuthPage::class.java)
 

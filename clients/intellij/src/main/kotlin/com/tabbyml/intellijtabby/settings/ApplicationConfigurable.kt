@@ -23,6 +23,7 @@ class ApplicationConfigurable : Configurable {
         (settingsPanel.keymapStyle != keymapSettings.getCurrentKeymapStyle() &&
             settingsPanel.keymapStyle != KeymapSettings.KeymapStyle.CUSTOMIZE) ||
         settingsPanel.serverEndpoint != settings.serverEndpoint ||
+        settingsPanel.serverToken != settings.serverToken ||
         settingsPanel.nodeBinary != settings.nodeBinary ||
         settingsPanel.isAnonymousUsageTrackingDisabled != settings.isAnonymousUsageTrackingDisabled
   }
@@ -33,6 +34,7 @@ class ApplicationConfigurable : Configurable {
     settings.completionTriggerMode = settingsPanel.completionTriggerMode
     keymapSettings.applyKeymapStyle(settingsPanel.keymapStyle)
     settings.serverEndpoint = settingsPanel.serverEndpoint
+    settings.serverToken = settingsPanel.serverToken
     settings.nodeBinary = settingsPanel.nodeBinary
     settings.isAnonymousUsageTrackingDisabled = settingsPanel.isAnonymousUsageTrackingDisabled
   }
@@ -43,6 +45,7 @@ class ApplicationConfigurable : Configurable {
     settingsPanel.completionTriggerMode = settings.completionTriggerMode
     settingsPanel.keymapStyle = keymapSettings.getCurrentKeymapStyle()
     settingsPanel.serverEndpoint = settings.serverEndpoint
+    settingsPanel.serverToken = settings.serverToken
     settingsPanel.nodeBinary = settings.nodeBinary
     settingsPanel.isAnonymousUsageTrackingDisabled = settings.isAnonymousUsageTrackingDisabled
   }
