@@ -84,7 +84,10 @@ const setApiToken = (context: ExtensionContext): Command => {
           password: true,
         })
         .then((token) => {
-          if (token && token.length > 0) {
+          if (token === undefined) {
+            return; // User canceled
+          }
+          if (token.length > 0) {
             console.debug("Set auth token: ", token);
             context.globalState.update("server.token", token);
             agent().updateConfig("server.token", token);
