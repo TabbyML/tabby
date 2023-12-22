@@ -66,6 +66,11 @@ jobs:
             binary: x86_64-manylinux2014-rocm57
             container: ghcr.io/cromefire/hipblas-manylinux/2014/5.7:latest
             build_args: --features rocm
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014-rocm60
+            container: ghcr.io/cromefire/hipblas-manylinux/2014/6.0:latest
+            build_args: --features rocm
 
     env:
       SCCACHE_GHA_ENABLED: true
