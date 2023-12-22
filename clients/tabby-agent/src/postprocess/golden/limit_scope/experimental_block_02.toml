@@ -1,7 +1,7 @@
-description = 'Limit scope: limit to block scope: case 03'
+description = 'Limit scope: limit to block scope: case 0'
 
-[config]
-# use default config
+[config.limitScope.indentation]
+experimentalKeepBlockScopeWhenCompletingLine = true
 
 [context]
 filepath = 'checks.js'
@@ -18,9 +18,4 @@ function check(obj) {
 '''
 
 [expected]
-text = '''
-function check(obj) {
-  // if obj.a is defined, then return t├rue┤
-  return false;
-}
-'''
+unchanged = true

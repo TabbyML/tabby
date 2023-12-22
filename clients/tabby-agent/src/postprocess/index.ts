@@ -5,6 +5,7 @@ import { applyFilter } from "./base";
 import { removeRepetitiveBlocks } from "./removeRepetitiveBlocks";
 import { removeRepetitiveLines } from "./removeRepetitiveLines";
 import { removeLineEndsWithRepetition } from "./removeLineEndsWithRepetition";
+import { removeDuplicatedBlockClosingLine } from "./removeDuplicatedBlockClosingLine";
 import { limitScope } from "./limitScope";
 import { formatIndentation } from "./formatIndentation";
 import { trimSpace } from "./trimSpace";
@@ -36,6 +37,7 @@ export async function postCacheProcess(
     .then(applyFilter(removeRepetitiveBlocks(), context))
     .then(applyFilter(removeRepetitiveLines(), context))
     .then(applyFilter(limitScope(config["limitScope"]), context))
+    .then(applyFilter(removeDuplicatedBlockClosingLine(), context))
     .then(applyFilter(formatIndentation(), context))
     .then(applyFilter(dropDuplicated(), context))
     .then(applyFilter(trimSpace(), context))

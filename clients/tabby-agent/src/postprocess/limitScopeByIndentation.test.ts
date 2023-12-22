@@ -117,7 +117,7 @@ describe("postprocess", () => {
       expect(limitScopeByIndentationDefault(completion, context)).to.eq(expected);
     });
 
-    it("should limit scope at current indent level, exclude closing line, when completion starts new sentences at same indent level.", () => {
+    it("should limit scope at current indent level, including closing line, when completion starts new sentences at same indent level.", () => {
       const context = {
         ...documentContext`
         function findMax(arr) {
@@ -136,17 +136,7 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      const expected = inline`
-                           ├
-          for (let i = 1; i < arr.length; i++) {
-            if (arr[i] > max) {
-              max = arr[i];
-            }
-          }
-          return max;┤
-        ┴┴
-      `;
-      expect(limitScopeByIndentationDefault(completion, context)).to.eq(expected);
+      expect(limitScopeByIndentationDefault(completion, context)).to.eq(completion);
     });
 
     it("should allow only one level closing bracket", () => {
@@ -228,7 +218,8 @@ describe("postprocess", () => {
       const expected = inline`
             ├return JSON.parse(json);
           } catch (e) {
-            return null;┤
+            return null;
+          }┤
         ┴┴
       `;
       expect(limitScopeByIndentationDefault(completion, context)).to.eq(expected);
@@ -258,7 +249,7 @@ describe("postprocess", () => {
           console.log(output);
           return output;
         }
-        sortWord("world hello");┤
+        sortWords("world hello");┤
       `;
       const expected = inline`
             ├.flat()
@@ -266,7 +257,7 @@ describe("postprocess", () => {
             .join(" ");
           console.log(output);
           return output;
-        };┤
+        }┤
       `;
       expect(limitScopeByIndentationDefault(completion, context)).not.to.eq(expected);
     });
@@ -340,7 +331,8 @@ describe("postprocess", () => {
                         ├("Parsing", { json });
             return JSON.parse(json);
           } catch (e) {
-            return null;┤
+            return null;
+          }┤
         ┴┴
       `;
       expect(limitScopeByIndentationKeepBlock(completion, context)).to.eq(expected);
@@ -372,7 +364,8 @@ describe("postprocess", () => {
               max = arr[i];
             }
           }
-          return max;┤
+          return max;
+        }┤
         ┴┴
       `;
       expect(limitScopeByIndentationKeepBlock(completion, context)).to.eq(expected);

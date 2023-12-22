@@ -1,4 +1,4 @@
-description = 'Limit scope experimental: syntax rust: bad case 01'
+description = 'Limit scope experimental: syntax rust: case 01'
 
 [config.limitScope]
 experimentalSyntax = true
@@ -24,4 +24,3 @@ pub struct StopCondition {
     max_decoding_time: Duration,┤
 }
 '''
-notEqual = true # FIXME: fix bad case
