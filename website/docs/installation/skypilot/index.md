@@ -83,4 +83,4 @@ $ curl -L -X 'POST' \
 {"id":"cmpl-ba9aae81-ed9c-419b-9616-fceb92cdbe79","choices":[{"index":0,"text":"    if n <= 1:\n            return n"}]}
 ```
 
-Now, you can utilize the load balancer URL (`http://44.203.34.65:30001` in this case) within Tabby editor extensions. Please refer to `tabby.yaml` for the comprehensive configuration used in this tutorial.
+Now, you can utilize the load balancer URL (`http://44.203.34.65:30001` in this case) within Tabby editor extensions. Please refer to [tabby.yaml](https://github.com/TabbyML/tabby/blob/main/website/docs/installation/skypilot/task.yaml) for the comprehensive configuration used in this tutorial.
