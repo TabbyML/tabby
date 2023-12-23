@@ -39,7 +39,8 @@ pub async fn chat_completions(
                     continue
                 }
             };
-            let content = format!("data: {}", content);
+
+            let content = format!("data: {}\n\n", content);
             yield Ok(content)
         }
     };
