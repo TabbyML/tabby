@@ -36,6 +36,7 @@ pub struct Message {
 pub struct ChatCompletionChunk {
     id: Uuid,
     created: u64,
+    system_fingerprint: String,
     object: &'static str,
     model: &'static str,
     choices: [ChatCompletionChoice; 1],
@@ -44,12 +45,7 @@ pub struct ChatCompletionChunk {
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct ChatCompletionChoice {
     index: usize,
-    message: ChatCompletionMessageChoice,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
-pub struct ChatCompletionMessageChoice {
-    role: String,
+    logprobs: Option<String>,
     finish_reason: Option<String>,
     delta: ChatCompletionDelta,
 }
@@ -66,13 +62,12 @@ impl ChatCompletionChunk {
             created,
             object: "chat.completion.chunk",
             model: "TabbyML",
+            system_fingerprint: todo!(),
             choices: [ChatCompletionChoice {
                 index: 0,
-                message: ChatCompletionMessageChoice {
-                    role: "assistant".into(),
-                    finish_reason: last_chunk.then_some("stop".into()),
-                    delta: ChatCompletionDelta { content },
-                },
+                delta: ChatCompletionDelta { content },
+                logprobs: None,
+                finish_reason: last_chunk.then(|| "stop".into()),
             }],
         }
     }
