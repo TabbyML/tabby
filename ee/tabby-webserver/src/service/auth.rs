@@ -13,8 +13,8 @@ use super::db::DbConn;
 use crate::schema::{
     auth::{
         generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
-        JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
-        TokenAuthError, TokenAuthResponse, VerifyTokenResponse,
+        InvitationNext, JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError,
+        RegisterResponse, TokenAuthError, TokenAuthResponse, VerifyTokenResponse,
     },
     User,
 };
@@ -311,19 +311,39 @@ impl AuthenticationService for DbConn {
     ) -> Result<Vec<User>> {
         let users = match (first, last) {
             (Some(first), None) => {
-                let after = after.map(|x| x.parse::<i32>().unwrap());
+                let after = after.map(|x| x.parse::<i32>()).transpose()?;
                 self.list_users_with_filter(Some(first), after, false).await?
             }
             (None, Some(last)) => {
-                let before = before.map(|x| x.parse::<i32>().unwrap());
+                let before = before.map(|x| x.parse::<i32>()).transpose()?;
                 self.list_users_with_filter(Some(last), before, true).await?
             }
-            _ => {
-                self.list_users().await?
-            }
+            _ => self.list_users().await?,
         };
 
         Ok(users.into_iter().map(|x| x.into()).collect())
+    }
+
+    async fn list_invitations_in_page(
+        &self,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<InvitationNext>> {
+        let invitations = match (first, last) {
+            (Some(first), None) => {
+                let after = after.map(|x| x.parse::<i32>()).transpose()?;
+                self.list_invitations_with_filter(Some(first), after, false).await?
+            }
+            (None, Some(last)) => {
+                let before = before.map(|x| x.parse::<i32>()).transpose()?;
+                self.list_invitations_with_filter(Some(last), before, true).await?
+            }
+            _ => self.list_invitations().await?,
+        };
+
+        Ok(invitations.into_iter().map(|x| x.into()).collect())
     }
 }
 

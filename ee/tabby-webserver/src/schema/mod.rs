@@ -5,8 +5,11 @@ use std::sync::Arc;
 
 use auth::AuthenticationService;
 use chrono::{DateTime, Utc};
-use juniper::{graphql_object, graphql_value, EmptySubscription, FieldError, IntoFieldError, Object, RootNode, ScalarValue, Value, FieldResult};
-use juniper_axum::{FromAuth, relay};
+use juniper::{
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
+    IntoFieldError, Object, RootNode, ScalarValue, Value,
+};
+use juniper_axum::{relay, FromAuth};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use validator::ValidationErrors;
 
@@ -16,8 +19,8 @@ use self::{
 };
 use crate::schema::{
     auth::{
-        RefreshTokenError, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
-        VerifyTokenResponse,
+        InvitationNext, RefreshTokenError, RefreshTokenResponse, RegisterResponse,
+        TokenAuthResponse, VerifyTokenResponse,
     },
     worker::Worker,
 };
@@ -133,24 +136,72 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<relay::Connection<User>> {
-        let res = relay::query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                let res = ctx.locator.auth().list_users_in_page(after, before, first, last).await.unwrap();
-                Ok::<_, FieldError>(res)
-            },
-        ).await;
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return relay::query_async(
+                    after,
+                    before,
+                    first,
+                    last,
+                    |after, before, first, last| async move {
+                        match ctx
+                            .locator
+                            .auth()
+                            .list_users_in_page(after, before, first, last)
+                            .await
+                        {
+                            Ok(users) => Ok(users),
+                            Err(err) => Err(FieldError::from(err)),
+                        }
+                    },
+                )
+                .await;
+            }
+        }
+        Err(FieldError::from(CoreError::Unauthorized(
+            "Only admin is able to query users",
+        )))
+    }
 
-        res
+    async fn invitationsNext(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<relay::Connection<InvitationNext>> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return relay::query_async(
+                    after,
+                    before,
+                    first,
+                    last,
+                    |after, before, first, last| async move {
+                        match ctx
+                            .locator
+                            .auth()
+                            .list_invitations_in_page(after, before, first, last)
+                            .await
+                        {
+                            Ok(invitations) => Ok(invitations),
+                            Err(err) => Err(FieldError::from(err)),
+                        }
+                    },
+                )
+                .await;
+            }
+        }
+        Err(FieldError::from(CoreError::Unauthorized(
+            "Only admin is able to query users",
+        )))
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug, GraphQLObject)]
+#[graphql(context = Context)]
 pub struct User {
-    pub id: i32,
+    pub id: juniper::ID,
     pub email: String,
     pub is_admin: bool,
     pub auth_token: String,
@@ -170,29 +221,6 @@ impl relay::NodeType for User {
 
     fn edge_type_name() -> &'static str {
         "UserEdge"
-    }
-}
-
-#[graphql_object(context = Context)]
-impl User {
-    async fn id(&self) -> i32 {
-        self.id
-    }
-
-    async fn email(&self) -> &str {
-        &self.email
-    }
-
-    async fn is_admin(&self) -> bool {
-        self.is_admin
-    }
-
-    async fn auth_token(&self) -> &str {
-        &self.auth_token
-    }
-
-    async fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
     }
 }
 

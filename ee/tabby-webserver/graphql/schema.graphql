@@ -36,6 +36,7 @@ type Query {
   me: User!
   users: [User!]!
   usersNext(after: String, before: String, first: Int, last: Int): UserConnection!
+  invitationsNext(after: String, before: String, first: Int, last: Int): InvitationConnection!
 }
 
 type UserEdge {
@@ -52,6 +53,13 @@ type RefreshTokenResponse {
 type RegisterResponse {
   accessToken: String!
   refreshToken: String!
+}
+
+type InvitationNext {
+  id: ID!
+  email: String!
+  code: String!
+  createdAt: String!
 }
 
 type UserConnection {
@@ -71,7 +79,7 @@ type Invitation {
 }
 
 type User {
-  id: Int!
+  id: ID!
   email: String!
   isAdmin: Boolean!
   authToken: String!
@@ -89,6 +97,11 @@ type Worker {
   cudaDevices: [String!]!
 }
 
+type InvitationEdge {
+  node: InvitationNext!
+  cursor: String!
+}
+
 type TokenAuthResponse {
   accessToken: String!
   refreshToken: String!
@@ -99,6 +112,11 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type InvitationConnection {
+  edges: [InvitationEdge!]!
+  pageInfo: PageInfo!
 }
 
 schema {

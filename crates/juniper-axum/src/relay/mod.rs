@@ -1,13 +1,15 @@
 use std::future::Future;
+
 use juniper::FieldResult;
 
-pub mod connection;
-pub mod edge;
-pub mod page_info;
+mod connection;
+mod edge;
+mod node_type;
+mod page_info;
 
 pub use connection::Connection;
 pub use edge::Edge;
-pub use edge::NodeType;
+pub use node_type::NodeType;
 pub use page_info::PageInfo;
 
 pub fn query<Node, F>(
@@ -19,7 +21,12 @@ pub fn query<Node, F>(
 ) -> FieldResult<Connection<Node>>
 where
     Node: NodeType + Sync,
-    F: FnOnce(Option<String>, Option<String>, Option<usize>, Option<usize>) -> FieldResult<Vec<Node>>,
+    F: FnOnce(
+        Option<String>,
+        Option<String>,
+        Option<usize>,
+        Option<usize>,
+    ) -> FieldResult<Vec<Node>>,
 {
     if first.is_some() && last.is_some() {
         return Err("The \"first\" and \"last\" parameters cannot exist at the same time".into());
@@ -49,11 +56,11 @@ where
         (Some(first), None) => {
             let nodes = f(after, before, Some(first + 1), None)?;
             Ok(Connection::build_connection(nodes, Some(first), None))
-        },
+        }
         (None, Some(last)) => {
             let nodes = f(after, before, None, Some(last + 1))?;
             Ok(Connection::build_connection(nodes, None, Some(last)))
-        },
+        }
         _ => Err("The \"first\" and \"last\" parameters cannot exist at the same time".into()),
     }
 }
@@ -98,11 +105,11 @@ where
         (Some(first), None) => {
             let nodes = f(after, before, Some(first + 1), None).await?;
             Ok(Connection::build_connection(nodes, Some(first), None))
-        },
+        }
         (None, Some(last)) => {
             let nodes = f(after, before, None, Some(last + 1)).await?;
             Ok(Connection::build_connection(nodes, None, Some(last)))
-        },
+        }
         _ => Err("The \"first\" and \"last\" parameters cannot exist at the same time".into()),
     }
 }

@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
 use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue};
+use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -13,6 +14,7 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::{from_validation_errors, User};
+use crate::schema::Context;
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -244,6 +246,43 @@ pub struct Invitation {
     pub created_at: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, GraphQLObject)]
+#[graphql(context = Context)]
+pub struct InvitationNext {
+    pub id: juniper::ID,
+    pub email: String,
+    pub code: String,
+
+    pub created_at: String,
+}
+
+impl relay::NodeType for InvitationNext {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "InvitationConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "InvitationEdge"
+    }
+}
+
+impl From<Invitation> for InvitationNext {
+    fn from(val: Invitation) -> Self {
+        Self {
+            id: juniper::ID::new(val.id.to_string()),
+            email: val.email,
+            code: val.code,
+            created_at: val.created_at,
+        }
+    }
+}
+
 #[async_trait]
 pub trait AuthenticationService: Send + Sync {
     async fn register(
@@ -283,6 +322,14 @@ pub trait AuthenticationService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<User>>;
+
+    async fn list_invitations_in_page(
+        &self,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<InvitationNext>>;
 }
 
 #[cfg(test)]

@@ -54,6 +54,40 @@ impl DbConn {
         let res = Self { conn };
         Ok(res)
     }
+
+    fn make_pagination_query(
+        table_name: &str,
+        field_names: &[&str],
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool
+    ) -> String {
+        let mut source = String::new();
+        let mut clause = String::new();
+        if backwards {
+            source += &format!("SELECT * FROM {}", table_name);
+            if let Some(skip_id) = skip_id {
+                source += &format!(" WHERE id < {}", skip_id);
+            }
+            source += " ORDER BY id DESC";
+            if let Some(limit) = limit {
+                source += &format!(" LIMIT {}", limit);
+            }
+            clause += " ORDER BY id ASC";
+        } else {
+            source += table_name;
+            if let Some(skip_id) = skip_id {
+                clause += &format!(" WHERE id > {}", skip_id);
+            }
+            clause += " ORDER BY id ASC";
+            if let Some(limit) = limit {
+                clause += &format!(" LIMIT {}", limit);
+            }
+        }
+        let fields = field_names.join(", ");
+
+        format!(r#"SELECT {} FROM ({}) {}"#, fields, source, clause)
+    }
 }
 
 /// db read/write operations for `registration_token` table
@@ -102,7 +136,7 @@ impl DbConn {
 mod tests {
 
     use super::*;
-    use crate::schema::auth::AuthenticationService;
+    use crate::{schema::auth::AuthenticationService};
 
     async fn create_user(conn: &DbConn) -> i32 {
         let email: &str = "test@example.com";
