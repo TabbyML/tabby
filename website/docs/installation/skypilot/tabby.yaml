@@ -10,6 +10,6 @@ service:
   replicas: 1
 
 run: |
-  docker run --gpus all -p 8080:8080 -v ~/data:/data \
+  docker run --gpus all -p 8080:8080 -v ~/.tabby:/data \
     tabbyml/tabby \
     serve --model TabbyML/StarCoder-1B --device cuda
