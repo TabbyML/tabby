@@ -60,7 +60,7 @@ impl DbConn {
         field_names: &[&str],
         limit: Option<usize>,
         skip_id: Option<i32>,
-        backwards: bool
+        backwards: bool,
     ) -> String {
         let mut source = String::new();
         let mut clause = String::new();
@@ -136,7 +136,7 @@ impl DbConn {
 mod tests {
 
     use super::*;
-    use crate::{schema::auth::AuthenticationService};
+    use crate::schema::auth::AuthenticationService;
 
     async fn create_user(conn: &DbConn) -> i32 {
         let email: &str = "test@example.com";

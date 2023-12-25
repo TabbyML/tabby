@@ -312,11 +312,13 @@ impl AuthenticationService for DbConn {
         let users = match (first, last) {
             (Some(first), None) => {
                 let after = after.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_users_with_filter(Some(first), after, false).await?
+                self.list_users_with_filter(Some(first), after, false)
+                    .await?
             }
             (None, Some(last)) => {
                 let before = before.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_users_with_filter(Some(last), before, true).await?
+                self.list_users_with_filter(Some(last), before, true)
+                    .await?
             }
             _ => self.list_users().await?,
         };
@@ -334,11 +336,13 @@ impl AuthenticationService for DbConn {
         let invitations = match (first, last) {
             (Some(first), None) => {
                 let after = after.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_invitations_with_filter(Some(first), after, false).await?
+                self.list_invitations_with_filter(Some(first), after, false)
+                    .await?
             }
             (None, Some(last)) => {
                 let before = before.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_invitations_with_filter(Some(last), before, true).await?
+                self.list_invitations_with_filter(Some(last), before, true)
+                    .await?
             }
             _ => self.list_invitations().await?,
         };

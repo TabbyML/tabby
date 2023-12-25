@@ -43,7 +43,7 @@ impl DbConn {
             &["id", "email", "code", "created_at"],
             limit,
             skip_id,
-            backwards
+            backwards,
         );
 
         let invitations = self
