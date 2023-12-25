@@ -270,7 +270,7 @@ const openOnlineHelp: Command = {
               break;
             case "Tabby Slack Community":
               env.openExternal(
-                Uri.parse("https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA"),
+                Uri.parse("https://links.tabbyml.com/join-slack-extensions"),
               );
               break;
             case "Tabby GitHub Repository":

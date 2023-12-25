@@ -41,7 +41,7 @@ export default function SlackDialog() {
         <DialogFooter className="sm:justify-start">
           <a
             target="_blank"
-            href="https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA"
+            href="https://links.tabbyml.com/join-slack-webserver"
             className={buttonVariants()}
           >
             <IconSlack className="-ml-2 h-8 w-8" />

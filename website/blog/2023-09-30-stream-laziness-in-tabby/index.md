@@ -137,6 +137,6 @@ By employing streaming and implementing laziness semantics appropriately, all co
 
 ## That's it
 
-We would love to invite to join our Slack community! Please feel free to reach out to us on [Slack](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) - we have channels for discussing all aspects of the product and tech, and everyone is welcome to join the conversation.
+We would love to invite to join our Slack community! Please feel free to reach out to us on [Slack](https://links.tabbyml.com/join-slack) - we have channels for discussing all aspects of the product and tech, and everyone is welcome to join the conversation.
 
 Happy hacking 😁💪🏻
