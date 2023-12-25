@@ -32,6 +32,32 @@ impl DbConn {
         Ok(invitations)
     }
 
+    pub async fn list_invitations_with_filter(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<Invitation>> {
+        let query = Self::make_pagination_query(
+            "invitations",
+            &["id", "email", "code", "created_at"],
+            limit,
+            skip_id,
+            backwards,
+        );
+
+        let invitations = self
+            .conn
+            .call(move |c| {
+                let mut stmt = c.prepare(&query)?;
+                let invit_iter = stmt.query_map([], Invitation::from_row)?;
+                Ok(invit_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(invitations)
+    }
+
     pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<Invitation>> {
         let code = code.to_owned();
         let token = self
