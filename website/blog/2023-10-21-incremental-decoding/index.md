@@ -69,4 +69,4 @@ Incremental decoding:  ......, 207, 211  ->   "......[ hello]"  ✅
 
 For interested folks, you can refer to Tabby's exact implementation in `IncrementalDecoding` function in [`creates/tabby-inference/src/decoding.rs`](https://github.com/TabbyML/tabby/pull/491).
 
-Have you found our new decoding methods effective? Share your thoughts with us in our [Slack](https://join.slack.com/t/tabbyml/shared_invite/zt-22thejc0z-7ePKeWNCHPX31pEtnT4oYQ) channel 🌍😊!
+Have you found our new decoding methods effective? Share your thoughts with us in our [Slack](https://links.tabbyml.com/join-slack) channel 🌍😊!

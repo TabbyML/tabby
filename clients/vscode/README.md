@@ -3,14 +3,14 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![VSCode Extension Version](https://img.shields.io/visual-studio-marketplace/v/TabbyML.vscode-tabby)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
 [![VSCode Extension Installs](https://img.shields.io/visual-studio-marketplace/i/TabbyML.vscode-tabby)](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
-[![Slack Community](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
+[![Slack Community](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)
 
 Tabby is an AI coding assistant that can suggest multi-line code or full functions in real-time.
 
 Tabby VSCode extension is compatible with `VSCode ≥ 1.82.0`, as well as web environments like [vscode.dev](https://vscode.dev).
 
 For more information, please check out our [Website](https://tabbyml.com/) and [GitHub](https://github.com/TabbyML/tabby).
-If you encounter any problem or have any suggestion, please [open an issue](https://github.com/TabbyML/tabby/issues/new), or join our [Slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) for support.
+If you encounter any problem or have any suggestion, please [open an issue](https://github.com/TabbyML/tabby/issues/new), or join our [Slack community](https://links.tabbyml.com/join-slack) for support.
 
 ## Demo
 

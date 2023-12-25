@@ -18,7 +18,7 @@
         <p>Tabby is an AI coding assistant that can suggest multi-line code or full functions in real-time.</p>
         <br/>
         <p>For more information, please check out our <a href="https://tabbyml.com/">Website</a> and <a href="https://github.com/TabbyML/tabby">GitHub</a>.
-        If you encounter any problem or have any suggestion, please <a href="https://github.com/TabbyML/tabby/issues/new">open an issue</a>, or join our <a href="https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA">Slack community</a> for more support!</p>
+        If you encounter any problem or have any suggestion, please <a href="https://github.com/TabbyML/tabby/issues/new">open an issue</a>, or join our <a href="https://links.tabbyml.com/join-slack-extensions">Slack community</a> for more support!</p>
         <h2 id="demo">Demo</h2>
         <p>Try our online demo <a href="https://tabby.tabbyml.com/playground/">here</a>.</p>
         <h2 id="requirements">Requirements</h2>

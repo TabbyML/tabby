@@ -1,7 +1,7 @@
 # Tabby Plugin for Vim and NeoVim
 
 Tabby is a self-hosted AI coding assistant that can suggest multi-line code or full functions in real-time. For more information, please check out our [website](https://tabbyml.com/) and [github](https://github.com/TabbyML/tabby).  
-If you encounter any problem or have any suggestion, please [open an issue](https://github.com/TabbyML/tabby/issues/new) or join our [Slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) for support.
+If you encounter any problem or have any suggestion, please [open an issue](https://github.com/TabbyML/tabby/issues/new) or join our [Slack community](https://links.tabbyml.com/join-slack) for support.
 
 ## Table of Contents
 

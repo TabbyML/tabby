@@ -6,7 +6,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
 [![Docker pulls](https://img.shields.io/docker/pulls/tabbyml/tabby)](https://hub.docker.com/r/tabbyml/tabby)
 
-[![Slack Community](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
+[![Slack Community](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)
 [![Office Hours](https://img.shields.io/badge/Book-Office%20Hours-purple?logo=googlecalendar&logoColor=white)](https://calendly.com/tabby_ml/chat-with-tabbyml)
 
 </div>
@@ -92,7 +92,7 @@ apt-get install protobuf-compiler libopenblas-dev
 ... and don't forget to submit a [Pull Request](https://github.com/TabbyML/tabby/compare)
 
 ## 🌍 Community
-- #️⃣ [Slack](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) - connect with the TabbyML community 
+- #️⃣ [Slack](https://links.tabbyml.com/join-slack-extensions) - connect with the TabbyML community 
 - 🎤 [Twitter / X](https://twitter.com/Tabby_ML) - engage with TabbyML for all things possible 
 - 📚 [LinkedIn](https://www.linkedin.com/company/tabbyml/) - follow for the latest from the community 
 - 💌 [Newsletter](https://tinyletter.com/tabbyml/) - subscribe to unlock Tabby insights and secrets
