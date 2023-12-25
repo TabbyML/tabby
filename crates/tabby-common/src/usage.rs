@@ -35,7 +35,7 @@ impl UsageTracker {
   \x1b[1mWelcome to Tabby!\x1b[0m
 
   If you have any questions or would like to engage with the Tabby team, please join us on Slack
-  (https://tinyurl.com/35sv9kz2).
+  (https://links.tabbyml.com/join-slack-terminal).
 
 "
             );
