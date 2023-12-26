@@ -2,7 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 
 use super::DbConn;
-use crate::schema;
+use crate::schema::auth;
 
 #[derive(Default, Clone)]
 pub struct JobRun {
@@ -29,7 +29,7 @@ impl JobRun {
     }
 }
 
-impl From<JobRun> for schema::JobRun {
+impl From<JobRun> for auth::JobRun {
     fn from(run: JobRun) -> Self {
         Self {
             id: juniper::ID::new(run.id.to_string()),
@@ -126,8 +126,6 @@ impl DbConn {
                 "exit_code",
                 "stdout",
                 "stderr",
-                "created_at",
-                "updated_at",
             ],
             limit,
             skip_id,

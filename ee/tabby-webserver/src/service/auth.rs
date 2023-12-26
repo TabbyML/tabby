@@ -10,13 +10,10 @@ use async_trait::async_trait;
 use validator::{Validate, ValidationError};
 
 use super::db::DbConn;
-use crate::schema::{
-    auth::{
-        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, JWTPayload,
-        RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError,
-        TokenAuthResponse, VerifyTokenResponse,
-    },
-    Invitation, InvitationNext, JobRun, User,
+use crate::schema::auth::{
+    generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
+    InvitationNext, JWTPayload, JobRun, RefreshTokenError, RefreshTokenResponse, RegisterError,
+    RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
 };
 
 /// Input parameters for register mutation
@@ -350,7 +347,7 @@ impl AuthenticationService for DbConn {
         Ok(invitations.into_iter().map(|x| x.into()).collect())
     }
 
-    async fn list_job_runs_in_page(
+    async fn list_job_runs(
         &self,
         after: Option<String>,
         before: Option<String>,

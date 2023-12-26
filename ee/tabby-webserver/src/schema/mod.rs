@@ -13,11 +13,11 @@ use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::error;
 use validator::ValidationErrors;
 
-pub use crate::schema::auth::{Invitation, InvitationNext, JobRun, User};
 use crate::schema::{
     auth::{
-        validate_jwt, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
-        TokenAuthError, TokenAuthResponse, VerifyTokenResponse,
+        validate_jwt, Invitation, InvitationNext, JobRun, RefreshTokenError, RefreshTokenResponse,
+        RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
+        VerifyTokenResponse,
     },
     worker::{Worker, WorkerService},
 };
@@ -212,7 +212,7 @@ impl Query {
                         match ctx
                             .locator
                             .auth()
-                            .list_job_runs_in_page(after, before, first, last)
+                            .list_job_runs(after, before, first, last)
                             .await
                         {
                             Ok(job_runs) => Ok(job_runs),

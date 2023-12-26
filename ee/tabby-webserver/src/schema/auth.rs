@@ -385,7 +385,7 @@ pub trait AuthenticationService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>>;
 
-    async fn list_job_runs_in_page(
+    async fn list_job_runs(
         &self,
         after: Option<String>,
         before: Option<String>,
