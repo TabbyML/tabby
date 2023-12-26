@@ -5,24 +5,22 @@ use std::sync::Arc;
 
 use auth::AuthenticationService;
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult,
-    IntoFieldError, Object, RootNode, ScalarValue, Value,
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
+    Object, RootNode, ScalarValue, Value,
 };
-use tracing::error;
 use juniper_axum::{relay, FromAuth};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tracing::error;
 use validator::ValidationErrors;
 
+pub use crate::schema::auth::{Invitation, InvitationNext, JobRun, User};
 use crate::schema::{
     auth::{
-        validate_jwt, RegisterError, TokenAuthError,
-        RefreshTokenError, RefreshTokenResponse, RegisterResponse,
-        TokenAuthResponse, VerifyTokenResponse,
+        validate_jwt, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
+        TokenAuthError, TokenAuthResponse, VerifyTokenResponse,
     },
-    worker::Worker,
-    worker::WorkerService,
+    worker::{Worker, WorkerService},
 };
-pub use crate::schema::auth::{Invitation, InvitationNext, JobRun, User};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> &dyn AuthenticationService;

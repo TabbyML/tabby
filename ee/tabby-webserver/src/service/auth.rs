@@ -11,12 +11,12 @@ use validator::{Validate, ValidationError};
 
 use super::db::DbConn;
 use crate::schema::{
-    Invitation, InvitationNext, JobRun, User,
     auth::{
-        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService,
-        JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError,
-        RegisterResponse, TokenAuthError, TokenAuthResponse, VerifyTokenResponse,
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, JWTPayload,
+        RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError,
+        TokenAuthResponse, VerifyTokenResponse,
     },
+    Invitation, InvitationNext, JobRun, User,
 };
 
 /// Input parameters for register mutation

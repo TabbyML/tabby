@@ -13,7 +13,7 @@ use tracing::{error, warn};
 use uuid::Uuid;
 use validator::ValidationErrors;
 
-use super::{from_validation_errors};
+use super::from_validation_errors;
 use crate::schema::Context;
 
 lazy_static! {

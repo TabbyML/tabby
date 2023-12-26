@@ -1,8 +1,8 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 
-use crate::schema;
 use super::DbConn;
+use crate::schema;
 
 #[derive(Default, Clone)]
 pub struct JobRun {
@@ -118,7 +118,17 @@ impl DbConn {
     ) -> Result<Vec<JobRun>> {
         let query = Self::make_pagination_query(
             "job_runs",
-            &["id", "job", "start_ts", "end_ts", "exit_code", "stdout", "stderr", "created_at", "updated_at"],
+            &[
+                "id",
+                "job",
+                "start_ts",
+                "end_ts",
+                "exit_code",
+                "stdout",
+                "stderr",
+                "created_at",
+                "updated_at",
+            ],
             limit,
             skip_id,
             backwards,
