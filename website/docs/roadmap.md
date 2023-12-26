@@ -6,7 +6,7 @@ We continuously work on updating our roadmap and we love to discuss those with o
 
 * 🎊 Supports embedding api for document context related use cases: https://github.com/TabbyML/tabby/issues/790
 * 🔐 SSO / OAuth support in Tabby EE: https://github.com/TabbyML/tabby/issues/1039
-
+* 📋 Smart clipboard with LLM in IDE / Extensions.
 
 <details>
 
