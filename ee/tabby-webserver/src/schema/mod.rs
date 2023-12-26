@@ -4,25 +4,22 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::AuthenticationService;
-use chrono::{DateTime, Utc};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
-    IntoFieldError, Object, RootNode, ScalarValue, Value,
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
+    Object, RootNode, ScalarValue, Value,
 };
 use juniper_axum::{relay, FromAuth};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tracing::error;
 use validator::ValidationErrors;
 
-use self::{
-    auth::{validate_jwt, Invitation, RegisterError, TokenAuthError},
-    worker::WorkerService,
-};
 use crate::schema::{
     auth::{
-        InvitationNext, RefreshTokenError, RefreshTokenResponse, RegisterResponse,
-        TokenAuthResponse, VerifyTokenResponse,
+        validate_jwt, Invitation, InvitationNext, JobRun, RefreshTokenError, RefreshTokenResponse,
+        RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
+        VerifyTokenResponse,
     },
-    worker::Worker,
+    worker::{Worker, WorkerService},
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -196,31 +193,39 @@ impl Query {
             "Only admin is able to query users",
         )))
     }
-}
 
-#[derive(Debug, GraphQLObject)]
-#[graphql(context = Context)]
-pub struct User {
-    pub id: juniper::ID,
-    pub email: String,
-    pub is_admin: bool,
-    pub auth_token: String,
-    pub created_at: DateTime<Utc>,
-}
-
-impl relay::NodeType for User {
-    type Cursor = String;
-
-    fn cursor(&self) -> Self::Cursor {
-        self.id.to_string()
-    }
-
-    fn connection_type_name() -> &'static str {
-        "UserConnection"
-    }
-
-    fn edge_type_name() -> &'static str {
-        "UserEdge"
+    async fn job_runs(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<relay::Connection<JobRun>> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return relay::query_async(
+                    after,
+                    before,
+                    first,
+                    last,
+                    |after, before, first, last| async move {
+                        match ctx
+                            .locator
+                            .auth()
+                            .list_job_runs(after, before, first, last)
+                            .await
+                        {
+                            Ok(job_runs) => Ok(job_runs),
+                            Err(err) => Err(FieldError::from(err)),
+                        }
+                    },
+                )
+                .await;
+            }
+        }
+        Err(FieldError::from(CoreError::Unauthorized(
+            "Only admin is able to query job runs",
+        )))
     }
 }
 

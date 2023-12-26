@@ -4,7 +4,7 @@ use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::schema;
+use crate::schema::auth;
 
 #[allow(unused)]
 pub struct User {
@@ -40,9 +40,9 @@ impl User {
     }
 }
 
-impl From<User> for schema::User {
+impl From<User> for auth::User {
     fn from(val: User) -> Self {
-        schema::User {
+        auth::User {
             id: juniper::ID::new(val.id.to_string()),
             email: val.email,
             is_admin: val.is_admin,

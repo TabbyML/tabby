@@ -1,10 +1,10 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 
 use super::DbConn;
+use crate::schema::auth;
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone)]
 pub struct JobRun {
     pub id: i32,
     pub job_name: String,
@@ -13,6 +13,34 @@ pub struct JobRun {
     pub exit_code: Option<i32>,
     pub stdout: String,
     pub stderr: String,
+}
+
+impl JobRun {
+    fn from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Self> {
+        Ok(Self {
+            id: row.get(0)?,
+            job_name: row.get(1)?,
+            start_time: row.get(2)?,
+            finish_time: row.get(3)?,
+            exit_code: row.get(4)?,
+            stdout: row.get(5)?,
+            stderr: row.get(6)?,
+        })
+    }
+}
+
+impl From<JobRun> for auth::JobRun {
+    fn from(run: JobRun) -> Self {
+        Self {
+            id: juniper::ID::new(run.id.to_string()),
+            job_name: run.job_name,
+            start_time: run.start_time,
+            finish_time: run.finish_time,
+            exit_code: run.exit_code,
+            stdout: run.stdout,
+            stderr: run.stderr,
+        }
+    }
 }
 
 /// db read/write operations for `job_runs` table
@@ -80,6 +108,40 @@ impl DbConn {
             })
             .await?;
         Ok(())
+    }
+
+    pub async fn list_job_runs_with_filter(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<JobRun>> {
+        let query = Self::make_pagination_query(
+            "job_runs",
+            &[
+                "id",
+                "job",
+                "start_ts",
+                "end_ts",
+                "exit_code",
+                "stdout",
+                "stderr",
+            ],
+            limit,
+            skip_id,
+            backwards,
+        );
+
+        let runs = self
+            .conn
+            .call(move |c| {
+                let mut stmt = c.prepare(&query)?;
+                let run_iter = stmt.query_map([], JobRun::from_row)?;
+                Ok(run_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(runs)
     }
 }
 
