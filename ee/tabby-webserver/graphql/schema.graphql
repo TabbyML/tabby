@@ -28,6 +28,16 @@ type JWTPayload {
   isAdmin: Boolean!
 }
 
+type JobRun {
+  id: ID!
+  jobName: String!
+  startTime: DateTimeUtc!
+  finishTime: DateTimeUtc
+  exitCode: Int
+  stdout: String!
+  stderr: String!
+}
+
 type Query {
   workers: [Worker!]!
   registrationToken: String!
@@ -37,11 +47,17 @@ type Query {
   users: [User!]!
   usersNext(after: String, before: String, first: Int, last: Int): UserConnection!
   invitationsNext(after: String, before: String, first: Int, last: Int): InvitationConnection!
+  jobRuns(after: String, before: String, first: Int, last: Int): JobRunConnection!
 }
 
 type UserEdge {
   node: User!
   cursor: String!
+}
+
+type JobRunConnection {
+  edges: [JobRunEdge!]!
+  pageInfo: PageInfo!
 }
 
 type RefreshTokenResponse {
@@ -112,6 +128,11 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type JobRunEdge {
+  node: JobRun!
+  cursor: String!
 }
 
 type InvitationConnection {

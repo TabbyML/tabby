@@ -13,7 +13,7 @@ use tracing::{error, warn};
 use uuid::Uuid;
 use validator::ValidationErrors;
 
-use super::{from_validation_errors, User};
+use super::{from_validation_errors};
 use crate::schema::Context;
 
 lazy_static! {
@@ -237,6 +237,32 @@ impl JWTPayload {
     }
 }
 
+#[derive(Debug, GraphQLObject)]
+#[graphql(context = Context)]
+pub struct User {
+    pub id: juniper::ID,
+    pub email: String,
+    pub is_admin: bool,
+    pub auth_token: String,
+    pub created_at: DateTime<Utc>,
+}
+
+impl relay::NodeType for User {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "UserConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "UserEdge"
+    }
+}
+
 #[derive(Debug, Default, Serialize, Deserialize, GraphQLObject)]
 pub struct Invitation {
     pub id: i32,
@@ -280,6 +306,34 @@ impl From<Invitation> for InvitationNext {
             code: val.code,
             created_at: val.created_at,
         }
+    }
+}
+
+#[derive(Debug, GraphQLObject)]
+#[graphql(context = Context)]
+pub struct JobRun {
+    pub id: juniper::ID,
+    pub job_name: String,
+    pub start_time: DateTime<Utc>,
+    pub finish_time: Option<DateTime<Utc>>,
+    pub exit_code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+}
+
+impl relay::NodeType for JobRun {
+    type Cursor = String;
+
+    fn cursor(&self) -> Self::Cursor {
+        self.id.to_string()
+    }
+
+    fn connection_type_name() -> &'static str {
+        "JobRunConnection"
+    }
+
+    fn edge_type_name() -> &'static str {
+        "JobRunEdge"
     }
 }
 
@@ -330,6 +384,14 @@ pub trait AuthenticationService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>>;
+
+    async fn list_job_runs_in_page(
+        &self,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Result<Vec<JobRun>>;
 }
 
 #[cfg(test)]
