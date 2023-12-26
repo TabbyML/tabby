@@ -9,11 +9,8 @@ lazy_static! {
             Err(_) => home::home_dir().unwrap().join(".tabby"),
         }))
     };
-    static ref TABBY_MODEL_CACHE_ROOT: Option<PathBuf> = {
-        env::var("TABBY_MODEL_CACHE_ROOT")
-            .ok()
-            .map(PathBuf::from)
-    };
+    static ref TABBY_MODEL_CACHE_ROOT: Option<PathBuf> =
+        env::var("TABBY_MODEL_CACHE_ROOT").ok().map(PathBuf::from);
 }
 
 #[cfg(feature = "testutils")]
