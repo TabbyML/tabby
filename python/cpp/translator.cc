@@ -228,10 +228,12 @@ namespace ctranslate2 {
                   size_t max_batch_size,
                   const std::string& batch_type_str,
                   size_t max_input_length,
+                  dim_t offset,
                   bool asynchronous) {
         const auto batch_type = str_to_batch_type(batch_type_str);
         ScoringOptions options;
         options.max_input_length = max_input_length;
+        options.offset = offset;
 
         std::shared_lock lock(_mutex);
         assert_model_is_ready();
@@ -252,6 +254,7 @@ namespace ctranslate2 {
                                 size_t read_batch_size,
                                 const std::string& batch_type_str,
                                 size_t max_input_length,
+                                dim_t offset,
                                 bool with_tokens_score,
                                 const TokenizeFn& source_tokenize_fn,
                                 const TokenizeFn& target_tokenize_fn,
@@ -263,7 +266,7 @@ namespace ctranslate2 {
         const auto batch_type = str_to_batch_type(batch_type_str);
         ScoringOptions options;
         options.max_input_length = max_input_length;
-
+        options.offset = offset;
         std::shared_lock lock(_mutex);
         assert_model_is_ready();
 
@@ -592,6 +595,7 @@ namespace ctranslate2 {
              py::arg("max_batch_size")=0,
              py::arg("batch_type")="examples",
              py::arg("max_input_length")=1024,
+             py::arg("offset") = 0,
              py::arg("asynchronous")=false,
              py::call_guard<py::gil_scoped_release>(),
              R"pbdoc(
@@ -606,6 +610,7 @@ namespace ctranslate2 {
                      minimized.
                    batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
                    max_input_length: Truncate inputs after this many tokens (0 to disable).
+                   offset: Ignore the first n tokens in target in score calculation.
                    asynchronous: Run the scoring asynchronously.
 
                  Returns:
@@ -621,6 +626,7 @@ namespace ctranslate2 {
              py::arg("read_batch_size")=0,
              py::arg("batch_type")="examples",
              py::arg("max_input_length")=1024,
+             py::arg("offset")=0,
              py::arg("with_tokens_score")=false,
              py::arg("source_tokenize_fn")=nullptr,
              py::arg("target_tokenize_fn")=nullptr,
@@ -649,6 +655,7 @@ namespace ctranslate2 {
                    batch_type: Whether :obj:`max_batch_size` and :obj:`read_batch_size` are the
                      number of "examples" or "tokens".
                    max_input_length: Truncate inputs after this many tokens (0 to disable).
+                   offset: Ignore the first n tokens in target in score calculation.
                    with_tokens_score: Include the token-level scores in the output file.
                    source_tokenize_fn: Function to tokenize source lines.
                    target_tokenize_fn: Function to tokenize target lines.

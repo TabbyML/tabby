@@ -7,7 +7,8 @@ namespace ctranslate2 {
                   layers::DecoderState& state,
                   const std::vector<std::vector<size_t>>& sequences,
                   const Vocabulary& vocabulary,
-                  const dim_t preferred_size_multiple) {
+                  const dim_t preferred_size_multiple,
+                  const dim_t offset) {
     const dim_t batch_size = sequences.size();
     const Device device = decoder.device();
 
@@ -57,7 +58,7 @@ namespace ctranslate2 {
       auto& result = results[b];
       result.tokens.reserve(output_length);
       result.tokens_score.reserve(output_length);
-      for (dim_t t = 0; t < output_length; ++t) {
+      for (dim_t t = offset; t < output_length; ++t) {
         result.tokens.emplace_back(vocabulary.to_token(output_sequences[b][t]));
         result.tokens_score.emplace_back(scores.at<float>({b, t}));
       }

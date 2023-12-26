@@ -256,7 +256,8 @@ namespace ctranslate2 {
                              state,
                              target_ids,
                              _model->get_target_vocabulary(),
-                             _model->preferred_size_multiple());
+                             _model->preferred_size_multiple(),
+                             options.offset);
     }
 
     bool EncoderDecoderReplica::skip_scoring(const std::vector<std::string>& source,

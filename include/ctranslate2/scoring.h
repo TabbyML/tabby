@@ -12,6 +12,7 @@ namespace ctranslate2 {
   struct ScoringOptions {
     // Truncate the inputs after this many tokens (set 0 to disable truncation).
     size_t max_input_length = 1024;
+    dim_t offset = 0;
   };
 
   struct ScoringResult {
@@ -38,6 +39,7 @@ namespace ctranslate2 {
                   layers::DecoderState& state,
                   const std::vector<std::vector<size_t>>& sequences,
                   const Vocabulary& vocabulary,
-                  const dim_t preferred_size_multiple = 1);
+                  const dim_t preferred_size_multiple = 1,
+                  const dim_t offset=0);
 
 }

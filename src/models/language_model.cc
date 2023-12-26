@@ -122,7 +122,8 @@ namespace ctranslate2 {
                              state,
                              ids,
                              vocabulary,
-                             _model->preferred_size_multiple());
+                             _model->preferred_size_multiple(),
+                             options.offset);
     }
 
     bool DecoderReplica::skip_scoring(const std::vector<std::string>& tokens,
