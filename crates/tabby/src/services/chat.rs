@@ -105,7 +105,7 @@ impl ChatService {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("Must be able to read system clock")
             .as_secs();
-        let id = Uuid::new_v4();
+        let id = format!("chatcmpl-{}", Uuid::new_v4());
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
