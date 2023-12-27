@@ -3,7 +3,6 @@ pub mod worker;
 
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use auth::AuthenticationService;
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
@@ -102,7 +101,14 @@ impl Query {
     async fn invitations(ctx: &Context) -> Result<Vec<Invitation>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ctx.locator.auth().list_invitations().await?);
+                return Ok(ctx
+                    .locator
+                    .auth()
+                    .list_invitations(None, None, None, None)
+                    .await?
+                    .into_iter()
+                    .map(|x| x.into())
+                    .collect());
             }
         }
         Err(CoreError::Unauthorized(
@@ -185,7 +191,7 @@ impl Query {
                         match ctx
                             .locator
                             .auth()
-                            .list_invitations_in_page(after, before, first, last)
+                            .list_invitations(after, before, first, last)
                             .await
                         {
                             Ok(invitations) => Ok(invitations),
@@ -297,7 +303,7 @@ impl Mutation {
         ctx.locator.auth().refresh_token(refresh_token).await
     }
 
-    async fn create_invitation(ctx: &Context, email: String) -> Result<i32> {
+    async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return Ok(ctx.locator.auth().create_invitation(email).await?);
@@ -312,7 +318,12 @@ impl Mutation {
     async fn delete_invitation(ctx: &Context, id: i32) -> Result<i32> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ctx.locator.auth().delete_invitation(id).await?);
+                let id = ctx
+                    .locator
+                    .auth()
+                    .delete_invitation(ID::new(id.to_string()))
+                    .await?;
+                return Ok(id.parse::<i32>().unwrap());
             }
         }
         Err(CoreError::Unauthorized(
@@ -321,13 +332,9 @@ impl Mutation {
     }
 
     async fn delete_invitation_next(ctx: &Context, id: ID) -> Result<ID> {
-        let id = id
-            .parse::<i32>()
-            .map_err(|_| anyhow!("Failed to parse id {}", id))?;
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                let id = ctx.locator.auth().delete_invitation(id).await?;
-                return Ok(ID::from(id.to_string()));
+                return Ok(ctx.locator.auth().delete_invitation(id).await?);
             }
         }
         Err(CoreError::Unauthorized(

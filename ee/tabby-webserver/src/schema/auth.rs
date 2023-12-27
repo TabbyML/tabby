@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
-use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue};
+use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -263,6 +263,7 @@ impl relay::NodeType for User {
     }
 }
 
+#[deprecated]
 #[derive(Debug, Default, Serialize, Deserialize, GraphQLObject)]
 pub struct Invitation {
     pub id: i32,
@@ -270,6 +271,17 @@ pub struct Invitation {
     pub code: String,
 
     pub created_at: String,
+}
+
+impl From<InvitationNext> for Invitation {
+    fn from(value: InvitationNext) -> Self {
+        Self {
+            id: value.id.parse::<i32>().unwrap(),
+            email: value.email,
+            code: value.code,
+            created_at: value.created_at,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
@@ -295,17 +307,6 @@ impl relay::NodeType for InvitationNext {
 
     fn edge_type_name() -> &'static str {
         "InvitationEdge"
-    }
-}
-
-impl From<Invitation> for InvitationNext {
-    fn from(val: Invitation) -> Self {
-        Self {
-            id: juniper::ID::new(val.id.to_string()),
-            email: val.email,
-            code: val.code,
-            created_at: val.created_at,
-        }
     }
 }
 
@@ -361,9 +362,8 @@ pub trait AuthenticationService: Send + Sync {
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
-    async fn create_invitation(&self, email: String) -> Result<i32>;
-    async fn list_invitations(&self) -> Result<Vec<Invitation>>;
-    async fn delete_invitation(&self, id: i32) -> Result<i32>;
+    async fn create_invitation(&self, email: String) -> Result<ID>;
+    async fn delete_invitation(&self, id: ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
 
@@ -375,7 +375,7 @@ pub trait AuthenticationService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<User>>;
 
-    async fn list_invitations_in_page(
+    async fn list_invitations(
         &self,
         after: Option<String>,
         before: Option<String>,
