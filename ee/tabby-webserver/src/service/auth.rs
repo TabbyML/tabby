@@ -7,6 +7,7 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
+
 use validator::{Validate, ValidationError};
 
 use super::db::DbConn;

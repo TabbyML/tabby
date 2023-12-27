@@ -11,7 +11,8 @@ type Mutation {
   verifyToken(token: String!): VerifyTokenResponse!
   refreshToken(refreshToken: String!): RefreshTokenResponse!
   createInvitation(email: String!): Int!
-  deleteInvitation(id: Int!): Int!
+  deleteInvitation(id: Int!): Int! @deprecated
+  deleteInvitationNext(id: ID!): ID!
 }
 
 "DateTime"
@@ -42,9 +43,9 @@ type Query {
   workers: [Worker!]!
   registrationToken: String!
   isAdminInitialized: Boolean!
-  invitations: [Invitation!]!
+  invitations: [Invitation!]! @deprecated
   me: User!
-  users: [User!]!
+  users: [User!]! @deprecated
   usersNext(after: String, before: String, first: Int, last: Int): UserConnection!
   invitationsNext(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(after: String, before: String, first: Int, last: Int): JobRunConnection!

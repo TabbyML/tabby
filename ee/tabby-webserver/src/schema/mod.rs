@@ -3,10 +3,11 @@ pub mod worker;
 
 use std::sync::Arc;
 
+use anyhow::anyhow;
 use auth::AuthenticationService;
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
-    Object, RootNode, ScalarValue, Value,
+    Object, RootNode, ScalarValue, Value, ID,
 };
 use juniper_axum::{relay, FromAuth};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
@@ -97,6 +98,7 @@ impl Query {
         Ok(ctx.locator.auth().is_admin_initialized().await?)
     }
 
+    #[deprecated]
     async fn invitations(ctx: &Context) -> Result<Vec<Invitation>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
@@ -117,6 +119,7 @@ impl Query {
         }
     }
 
+    #[deprecated]
     async fn users(ctx: &Context) -> Result<Vec<User>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
@@ -126,7 +129,7 @@ impl Query {
         Err(CoreError::Unauthorized("Only admin is able to query users"))
     }
 
-    async fn usersNext(
+    async fn users_next(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
@@ -160,7 +163,7 @@ impl Query {
         )))
     }
 
-    async fn invitationsNext(
+    async fn invitations_next(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
@@ -301,10 +304,26 @@ impl Mutation {
         ))
     }
 
+    #[deprecated]
     async fn delete_invitation(ctx: &Context, id: i32) -> Result<i32> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return Ok(ctx.locator.auth().delete_invitation(id).await?);
+            }
+        }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to delete invitation",
+        ))
+    }
+
+    async fn delete_invitation_next(ctx: &Context, id: ID) -> Result<ID> {
+        let id = id
+            .parse::<i32>()
+            .map_err(|_| anyhow!("Failed to parse id {}", id))?;
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                let id = ctx.locator.auth().delete_invitation(id).await?;
+                return Ok(ID::from(id.to_string()));
             }
         }
         Err(CoreError::Unauthorized(
