@@ -10,7 +10,7 @@ type Mutation {
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): VerifyTokenResponse!
   refreshToken(refreshToken: String!): RefreshTokenResponse!
-  createInvitation(email: String!): Int!
+  createInvitation(email: String!): ID!
   deleteInvitation(id: Int!): Int! @deprecated
   deleteInvitationNext(id: ID!): ID!
 }
