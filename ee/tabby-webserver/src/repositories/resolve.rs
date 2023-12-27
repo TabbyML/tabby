@@ -55,6 +55,7 @@ struct ListDir {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
 enum DirEntryKind {
     File,
     Dir,
