@@ -8,6 +8,7 @@ use argon2::{
 };
 use async_trait::async_trait;
 use validator::{Validate, ValidationError};
+
 use super::db::DbConn;
 use crate::schema::auth::{
     generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
@@ -293,12 +294,7 @@ impl AuthenticationService for DbConn {
         self.reset_user_auth_token_by_email(email).await
     }
 
-    async fn list_users(&self) -> Result<Vec<User>> {
-        let users = self.list_users().await?;
-        Ok(users.into_iter().map(|x| x.into()).collect())
-    }
-
-    async fn list_users_in_page(
+    async fn list_users(
         &self,
         after: Option<String>,
         before: Option<String>,
@@ -316,7 +312,7 @@ impl AuthenticationService for DbConn {
                 self.list_users_with_filter(Some(last), before, true)
                     .await?
             }
-            _ => self.list_users().await?,
+            _ => self.list_users_with_filter(None, None, false).await?,
         };
 
         Ok(users.into_iter().map(|x| x.into()).collect())

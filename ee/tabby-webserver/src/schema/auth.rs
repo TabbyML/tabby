@@ -367,9 +367,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
 
-    async fn list_users(&self) -> Result<Vec<User>>;
-
-    async fn list_users_in_page(
+    async fn list_users(
         &self,
         after: Option<String>,
         before: Option<String>,

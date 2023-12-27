@@ -123,7 +123,11 @@ impl Query {
     async fn users(ctx: &Context) -> Result<Vec<User>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ctx.locator.auth().list_users().await?);
+                return Ok(ctx
+                    .locator
+                    .auth()
+                    .list_users(None, None, None, None)
+                    .await?);
             }
         }
         Err(CoreError::Unauthorized("Only admin is able to query users"))
@@ -147,7 +151,7 @@ impl Query {
                         match ctx
                             .locator
                             .auth()
-                            .list_users_in_page(after, before, first, last)
+                            .list_users(after, before, first, last)
                             .await
                         {
                             Ok(users) => Ok(users),
