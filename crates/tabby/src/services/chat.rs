@@ -61,8 +61,8 @@ impl ChatCompletionChunk {
             id,
             created,
             object: "chat.completion.chunk",
-            model: "TabbyML",
-            system_fingerprint: todo!(),
+            model: "unused-model",
+            system_fingerprint: "unused-system-fingerprint".into(),
             choices: [ChatCompletionChoice {
                 index: 0,
                 delta: ChatCompletionDelta { content },
