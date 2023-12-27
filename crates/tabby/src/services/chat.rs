@@ -34,7 +34,7 @@ pub struct Message {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ChatCompletionChunk {
-    id: Uuid,
+    id: String,
     created: u64,
     system_fingerprint: String,
     object: &'static str,
@@ -56,7 +56,7 @@ pub struct ChatCompletionDelta {
 }
 
 impl ChatCompletionChunk {
-    fn new(content: String, id: Uuid, created: u64, last_chunk: bool) -> Self {
+    fn new(content: String, id: String, created: u64, last_chunk: bool) -> Self {
         ChatCompletionChunk {
             id,
             created,
