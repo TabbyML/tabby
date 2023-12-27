@@ -1,9 +1,15 @@
 pub mod auth;
+pub mod job;
 pub mod worker;
 
 use std::sync::Arc;
 
-use auth::AuthenticationService;
+use auth::{
+    validate_jwt, AuthenticationService, Invitation, InvitationNext, RefreshTokenError,
+    RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
+    VerifyTokenResponse,
+};
+use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
     Object, RootNode, ScalarValue, Value, ID,
@@ -12,21 +18,14 @@ use juniper_axum::{relay, FromAuth};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::error;
 use validator::ValidationErrors;
-
-use crate::schema::{
-    auth::{
-        validate_jwt, Invitation, InvitationNext, JobRun, RefreshTokenError, RefreshTokenResponse,
-        RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
-        VerifyTokenResponse,
-    },
-    worker::{Worker, WorkerService},
-};
+use worker::{Worker, WorkerService};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> &dyn AuthenticationService;
     fn worker(&self) -> &dyn WorkerService;
     fn code(&self) -> &dyn CodeSearch;
     fn logger(&self) -> &dyn RawEventLogger;
+    fn job(&self) -> &dyn JobService;
 }
 
 pub struct Context {
@@ -224,7 +223,7 @@ impl Query {
                     |after, before, first, last| async move {
                         match ctx
                             .locator
-                            .auth()
+                            .job()
                             .list_job_runs(after, before, first, last)
                             .await
                         {

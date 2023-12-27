@@ -1,6 +1,7 @@
 mod auth;
 mod cron;
 mod db;
+mod job;
 mod proxy;
 mod worker;
 
@@ -20,6 +21,7 @@ use tracing::{info, warn};
 use self::{cron::run_cron, db::DbConn};
 use crate::schema::{
     auth::AuthenticationService,
+    job::JobService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
     ServiceLocator,
 };
@@ -194,6 +196,10 @@ impl ServiceLocator for ServerContext {
 
     fn logger(&self) -> &dyn RawEventLogger {
         &*self.logger
+    }
+
+    fn job(&self) -> &dyn JobService {
+        &self.db_conn
     }
 }
 

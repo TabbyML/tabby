@@ -13,7 +13,7 @@ use validator::{Validate, ValidationError};
 use super::db::DbConn;
 use crate::schema::auth::{
     generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
-    JWTPayload, JobRun, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
+    JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
     TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
 };
 
@@ -338,30 +338,6 @@ impl AuthenticationService for DbConn {
         };
 
         Ok(invitations.into_iter().map(|x| x.into()).collect())
-    }
-
-    async fn list_job_runs(
-        &self,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<usize>,
-        last: Option<usize>,
-    ) -> Result<Vec<JobRun>> {
-        let runs = match (first, last) {
-            (Some(first), None) => {
-                let after = after.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_job_runs_with_filter(Some(first), after, false)
-                    .await?
-            }
-            (None, Some(last)) => {
-                let before = before.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_job_runs_with_filter(Some(last), before, true)
-                    .await?
-            }
-            _ => self.list_job_runs_with_filter(None, None, false).await?,
-        };
-
-        Ok(runs.into_iter().map(|x| x.into()).collect())
     }
 }
 

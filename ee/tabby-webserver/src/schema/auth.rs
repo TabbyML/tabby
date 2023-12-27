@@ -310,34 +310,6 @@ impl relay::NodeType for InvitationNext {
     }
 }
 
-#[derive(Debug, GraphQLObject)]
-#[graphql(context = Context)]
-pub struct JobRun {
-    pub id: juniper::ID,
-    pub job_name: String,
-    pub start_time: DateTime<Utc>,
-    pub finish_time: Option<DateTime<Utc>>,
-    pub exit_code: Option<i32>,
-    pub stdout: String,
-    pub stderr: String,
-}
-
-impl relay::NodeType for JobRun {
-    type Cursor = String;
-
-    fn cursor(&self) -> Self::Cursor {
-        self.id.to_string()
-    }
-
-    fn connection_type_name() -> &'static str {
-        "JobRunConnection"
-    }
-
-    fn edge_type_name() -> &'static str {
-        "JobRunEdge"
-    }
-}
-
 #[async_trait]
 pub trait AuthenticationService: Send + Sync {
     async fn register(
@@ -382,14 +354,6 @@ pub trait AuthenticationService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>>;
-
-    async fn list_job_runs(
-        &self,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<usize>,
-        last: Option<usize>,
-    ) -> Result<Vec<JobRun>>;
 }
 
 #[cfg(test)]
