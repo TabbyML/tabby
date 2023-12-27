@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-
 use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
