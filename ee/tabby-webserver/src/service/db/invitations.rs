@@ -5,7 +5,7 @@ use uuid::Uuid;
 use super::DbConn;
 use crate::schema::auth;
 
-pub struct Invitation {
+pub struct InvitationDAO {
     pub id: i32,
     pub email: String,
     pub code: String,
@@ -13,7 +13,7 @@ pub struct Invitation {
     pub created_at: String,
 }
 
-impl Invitation {
+impl InvitationDAO {
     fn from_row(row: &Row<'_>) -> std::result::Result<Self, rusqlite::Error> {
         Ok(Self {
             id: row.get(0)?,
@@ -24,8 +24,8 @@ impl Invitation {
     }
 }
 
-impl From<Invitation> for auth::InvitationNext {
-    fn from(val: Invitation) -> Self {
+impl From<InvitationDAO> for auth::InvitationNext {
+    fn from(val: InvitationDAO) -> Self {
         Self {
             id: juniper::ID::new(val.id.to_string()),
             email: val.email,
@@ -42,7 +42,7 @@ impl DbConn {
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
-    ) -> Result<Vec<Invitation>> {
+    ) -> Result<Vec<InvitationDAO>> {
         let query = Self::make_pagination_query(
             "invitations",
             &["id", "email", "code", "created_at"],
@@ -55,7 +55,7 @@ impl DbConn {
             .conn
             .call(move |c| {
                 let mut stmt = c.prepare(&query)?;
-                let invit_iter = stmt.query_map([], Invitation::from_row)?;
+                let invit_iter = stmt.query_map([], InvitationDAO::from_row)?;
                 Ok(invit_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })
             .await?;
@@ -63,7 +63,7 @@ impl DbConn {
         Ok(invitations)
     }
 
-    pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<Invitation>> {
+    pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<InvitationDAO>> {
         let code = code.to_owned();
         let token = self
             .conn
@@ -72,7 +72,7 @@ impl DbConn {
                     .query_row(
                         r#"SELECT id, email, code, created_at FROM invitations WHERE code = ?"#,
                         [code],
-                        Invitation::from_row,
+                        InvitationDAO::from_row,
                     )
                     .optional())
             })

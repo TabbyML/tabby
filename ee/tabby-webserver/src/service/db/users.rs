@@ -7,7 +7,7 @@ use super::DbConn;
 use crate::schema::auth;
 
 #[allow(unused)]
-pub struct User {
+pub struct UserDAO {
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 
@@ -20,15 +20,15 @@ pub struct User {
     pub auth_token: String,
 }
 
-impl User {
+impl UserDAO {
     fn select(clause: &str) -> String {
         r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token FROM users WHERE "#
             .to_owned()
             + clause
     }
 
-    fn from_row(row: &Row<'_>) -> std::result::Result<User, rusqlite::Error> {
-        Ok(User {
+    fn from_row(row: &Row<'_>) -> std::result::Result<UserDAO, rusqlite::Error> {
+        Ok(UserDAO {
             id: row.get(0)?,
             email: row.get(1)?,
             password_encrypted: row.get(2)?,
@@ -40,8 +40,8 @@ impl User {
     }
 }
 
-impl From<User> for auth::User {
-    fn from(val: User) -> Self {
+impl From<UserDAO> for auth::User {
+    fn from(val: UserDAO) -> Self {
         auth::User {
             id: juniper::ID::new(val.id.to_string()),
             email: val.email,
@@ -106,29 +106,14 @@ impl DbConn {
         Ok(res as i32)
     }
 
-    pub async fn get_user(&self, id: i32) -> Result<Option<User>> {
-        let user = self
-            .conn
-            .call(move |c| {
-                Ok(
-                    c.query_row(User::select("id = ?").as_str(), params![id], User::from_row)
-                        .optional(),
-                )
-            })
-            .await?;
-
-        Ok(user?)
-    }
-
-    pub async fn get_user_by_email(&self, email: &str) -> Result<Option<User>> {
-        let email = email.to_owned();
+    pub async fn get_user(&self, id: i32) -> Result<Option<UserDAO>> {
         let user = self
             .conn
             .call(move |c| {
                 Ok(c.query_row(
-                    User::select("email = ?").as_str(),
-                    params![email],
-                    User::from_row,
+                    UserDAO::select("id = ?").as_str(),
+                    params![id],
+                    UserDAO::from_row,
                 )
                 .optional())
             })
@@ -137,12 +122,29 @@ impl DbConn {
         Ok(user?)
     }
 
-    pub async fn list_admin_users(&self) -> Result<Vec<User>> {
+    pub async fn get_user_by_email(&self, email: &str) -> Result<Option<UserDAO>> {
+        let email = email.to_owned();
+        let user = self
+            .conn
+            .call(move |c| {
+                Ok(c.query_row(
+                    UserDAO::select("email = ?").as_str(),
+                    params![email],
+                    UserDAO::from_row,
+                )
+                .optional())
+            })
+            .await?;
+
+        Ok(user?)
+    }
+
+    pub async fn list_admin_users(&self) -> Result<Vec<UserDAO>> {
         let users = self
             .conn
             .call(move |c| {
-                let mut stmt = c.prepare(&User::select("is_admin"))?;
-                let user_iter = stmt.query_map([], User::from_row)?;
+                let mut stmt = c.prepare(&UserDAO::select("is_admin"))?;
+                let user_iter = stmt.query_map([], UserDAO::from_row)?;
                 Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })
             .await?;
@@ -155,7 +157,7 @@ impl DbConn {
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
-    ) -> Result<Vec<User>> {
+    ) -> Result<Vec<UserDAO>> {
         let query = Self::make_pagination_query(
             "users",
             &[
@@ -176,7 +178,7 @@ impl DbConn {
             .conn
             .call(move |c| {
                 let mut stmt = c.prepare(&query)?;
-                let user_iter = stmt.query_map([], User::from_row)?;
+                let user_iter = stmt.query_map([], UserDAO::from_row)?;
                 Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })
             .await?;
@@ -269,7 +271,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         let empty: Vec<i32> = vec![];
-        let to_ids = |users: Vec<User>| users.into_iter().map(|u| u.id).collect::<Vec<_>>();
+        let to_ids = |users: Vec<UserDAO>| users.into_iter().map(|u| u.id).collect::<Vec<_>>();
 
         // empty
         // forwards

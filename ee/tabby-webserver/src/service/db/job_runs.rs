@@ -5,7 +5,7 @@ use super::DbConn;
 use crate::schema::job;
 
 #[derive(Default, Clone)]
-pub struct JobRun {
+pub struct JobRunDAO {
     pub id: i32,
     pub job_name: String,
     pub start_time: DateTime<Utc>,
@@ -15,7 +15,7 @@ pub struct JobRun {
     pub stderr: String,
 }
 
-impl JobRun {
+impl JobRunDAO {
     fn from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Self> {
         Ok(Self {
             id: row.get(0)?,
@@ -29,8 +29,8 @@ impl JobRun {
     }
 }
 
-impl From<JobRun> for job::JobRun {
-    fn from(run: JobRun) -> Self {
+impl From<JobRunDAO> for job::JobRun {
+    fn from(run: JobRunDAO) -> Self {
         Self {
             id: juniper::ID::new(run.id.to_string()),
             job_name: run.job_name,
@@ -45,7 +45,7 @@ impl From<JobRun> for job::JobRun {
 
 /// db read/write operations for `job_runs` table
 impl DbConn {
-    pub async fn create_job_run(&self, run: JobRun) -> Result<i32> {
+    pub async fn create_job_run(&self, run: JobRunDAO) -> Result<i32> {
         let rowid = self
             .conn
             .call(move |c| {
@@ -93,7 +93,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_job_status(&self, run: JobRun) -> Result<()> {
+    pub async fn update_job_status(&self, run: JobRunDAO) -> Result<()> {
         self.conn
             .call(move |c| {
                 let mut stmt = c.prepare(
@@ -115,7 +115,7 @@ impl DbConn {
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
-    ) -> Result<Vec<JobRun>> {
+    ) -> Result<Vec<JobRunDAO>> {
         let query = Self::make_pagination_query(
             "job_runs",
             &[
@@ -136,7 +136,7 @@ impl DbConn {
             .conn
             .call(move |c| {
                 let mut stmt = c.prepare(&query)?;
-                let run_iter = stmt.query_map([], JobRun::from_row)?;
+                let run_iter = stmt.query_map([], JobRunDAO::from_row)?;
                 Ok(run_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })
             .await?;
@@ -152,7 +152,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_job_run() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let run = JobRun {
+        let run = JobRunDAO {
             id: 0,
             job_name: "test".to_string(),
             start_time: chrono::Utc::now(),
@@ -164,7 +164,7 @@ mod tests {
         let id = db.create_job_run(run).await.unwrap();
         assert_eq!(id, 1);
 
-        let run = JobRun {
+        let run = JobRunDAO {
             id: 0,
             job_name: "test".to_string(),
             start_time: chrono::Utc::now(),
@@ -176,7 +176,7 @@ mod tests {
         let id = db.create_job_run(run).await.unwrap();
         assert_eq!(id, 2);
 
-        let run = JobRun {
+        let run = JobRunDAO {
             id: 0,
             job_name: "test".to_string(),
             start_time: chrono::Utc::now(),
