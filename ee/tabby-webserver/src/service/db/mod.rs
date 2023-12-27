@@ -5,7 +5,7 @@ mod users;
 
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
-pub use job_runs::JobRun;
+pub use job_runs::JobRunDAO;
 use lazy_static::lazy_static;
 use rusqlite::params;
 use rusqlite_migration::AsyncMigrations;
