@@ -17,7 +17,9 @@ mod tests {
         set_tabby_root(root.to_path_buf());
 
         let config = Config {
-            repositories: vec![RepositoryConfig::new("https://github.com/TabbyML/interview-questions".to_owned())],
+            repositories: vec![RepositoryConfig::new(
+                "https://github.com/TabbyML/interview-questions".to_owned(),
+            )],
             server: ServerConfig::default(),
         };
 
