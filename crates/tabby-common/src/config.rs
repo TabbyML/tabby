@@ -45,11 +45,19 @@ impl Config {
 #[derive(Serialize, Deserialize)]
 pub struct RepositoryConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    name: Option<String>,
     pub git_url: String,
 }
 
 impl RepositoryConfig {
+    #[cfg(feature = "testutils")]
+    pub fn new(git_url: String) -> Self {
+        Self {
+            name: None,
+            git_url,
+        }
+    }
+
     pub fn dir(&self) -> PathBuf {
         if self.is_local_dir() {
             let path = self.git_url.strip_prefix("file://").unwrap();
