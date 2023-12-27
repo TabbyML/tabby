@@ -3,7 +3,15 @@ use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::schema::auth::Invitation;
+use crate::schema::auth;
+
+pub struct Invitation {
+    pub id: i32,
+    pub email: String,
+    pub code: String,
+
+    pub created_at: String,
+}
 
 impl Invitation {
     fn from_row(row: &Row<'_>) -> std::result::Result<Self, rusqlite::Error> {
@@ -16,22 +24,19 @@ impl Invitation {
     }
 }
 
+impl From<Invitation> for auth::InvitationNext {
+    fn from(val: Invitation) -> Self {
+        Self {
+            id: juniper::ID::new(val.id.to_string()),
+            email: val.email,
+            code: val.code,
+            created_at: val.created_at,
+        }
+    }
+}
+
 /// db read/write operations for `invitations` table
 impl DbConn {
-    pub async fn list_invitations(&self) -> Result<Vec<Invitation>> {
-        let invitations = self
-            .conn
-            .call(move |c| {
-                let mut stmt =
-                    c.prepare(r#"SELECT id, email, code, created_at FROM invitations"#)?;
-                let iter = stmt.query_map([], Invitation::from_row)?;
-                Ok(iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
-            })
-            .await?;
-
-        Ok(invitations)
-    }
-
     pub async fn list_invitations_with_filter(
         &self,
         limit: Option<usize>,
@@ -129,7 +134,10 @@ mod tests {
         let email = "hello@example.com".to_owned();
         conn.create_invitation(email).await.unwrap();
 
-        let invitations = conn.list_invitations().await.unwrap();
+        let invitations = conn
+            .list_invitations_with_filter(None, None, false)
+            .await
+            .unwrap();
         assert_eq!(1, invitations.len());
 
         assert!(Uuid::parse_str(&invitations[0].code).is_ok());
@@ -143,7 +151,10 @@ mod tests {
 
         conn.delete_invitation(invitations[0].id).await.unwrap();
 
-        let invitations = conn.list_invitations().await.unwrap();
+        let invitations = conn
+            .list_invitations_with_filter(None, None, false)
+            .await
+            .unwrap();
         assert!(invitations.is_empty());
     }
 }

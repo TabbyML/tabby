@@ -6,7 +6,7 @@ use std::sync::Arc;
 use auth::AuthenticationService;
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
-    Object, RootNode, ScalarValue, Value,
+    Object, RootNode, ScalarValue, Value, ID,
 };
 use juniper_axum::{relay, FromAuth};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
@@ -97,10 +97,18 @@ impl Query {
         Ok(ctx.locator.auth().is_admin_initialized().await?)
     }
 
+    #[deprecated]
     async fn invitations(ctx: &Context) -> Result<Vec<Invitation>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ctx.locator.auth().list_invitations().await?);
+                return Ok(ctx
+                    .locator
+                    .auth()
+                    .list_invitations(None, None, None, None)
+                    .await?
+                    .into_iter()
+                    .map(|x| x.into())
+                    .collect());
             }
         }
         Err(CoreError::Unauthorized(
@@ -117,16 +125,21 @@ impl Query {
         }
     }
 
+    #[deprecated]
     async fn users(ctx: &Context) -> Result<Vec<User>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ctx.locator.auth().list_users().await?);
+                return Ok(ctx
+                    .locator
+                    .auth()
+                    .list_users(None, None, None, None)
+                    .await?);
             }
         }
         Err(CoreError::Unauthorized("Only admin is able to query users"))
     }
 
-    async fn usersNext(
+    async fn users_next(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
@@ -144,7 +157,7 @@ impl Query {
                         match ctx
                             .locator
                             .auth()
-                            .list_users_in_page(after, before, first, last)
+                            .list_users(after, before, first, last)
                             .await
                         {
                             Ok(users) => Ok(users),
@@ -160,7 +173,7 @@ impl Query {
         )))
     }
 
-    async fn invitationsNext(
+    async fn invitations_next(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
@@ -178,7 +191,7 @@ impl Query {
                         match ctx
                             .locator
                             .auth()
-                            .list_invitations_in_page(after, before, first, last)
+                            .list_invitations(after, before, first, last)
                             .await
                         {
                             Ok(invitations) => Ok(invitations),
@@ -290,7 +303,7 @@ impl Mutation {
         ctx.locator.auth().refresh_token(refresh_token).await
     }
 
-    async fn create_invitation(ctx: &Context, email: String) -> Result<i32> {
+    async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return Ok(ctx.locator.auth().create_invitation(email).await?);
@@ -301,7 +314,24 @@ impl Mutation {
         ))
     }
 
+    #[deprecated]
     async fn delete_invitation(ctx: &Context, id: i32) -> Result<i32> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                let id = ctx
+                    .locator
+                    .auth()
+                    .delete_invitation(ID::new(id.to_string()))
+                    .await?;
+                return Ok(id.parse::<i32>().unwrap());
+            }
+        }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to delete invitation",
+        ))
+    }
+
+    async fn delete_invitation_next(ctx: &Context, id: ID) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return Ok(ctx.locator.auth().delete_invitation(id).await?);

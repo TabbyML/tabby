@@ -7,13 +7,14 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
+use juniper::ID;
 use validator::{Validate, ValidationError};
 
 use super::db::DbConn;
 use crate::schema::auth::{
-    generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
-    InvitationNext, JWTPayload, JobRun, RefreshTokenError, RefreshTokenResponse, RegisterError,
-    RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
+    generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
+    JWTPayload, JobRun, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
+    TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
 };
 
 /// Input parameters for register mutation
@@ -278,28 +279,20 @@ impl AuthenticationService for DbConn {
         }
     }
 
-    async fn create_invitation(&self, email: String) -> Result<i32> {
-        self.create_invitation(email).await
+    async fn create_invitation(&self, email: String) -> Result<ID> {
+        Ok(ID::new(self.create_invitation(email).await?.to_string()))
     }
 
-    async fn list_invitations(&self) -> Result<Vec<Invitation>> {
-        self.list_invitations().await
-    }
-
-    async fn delete_invitation(&self, id: i32) -> Result<i32> {
-        self.delete_invitation(id).await
+    async fn delete_invitation(&self, id: ID) -> Result<ID> {
+        let id = id.parse::<i32>()?;
+        Ok(ID::new(self.delete_invitation(id).await?.to_string()))
     }
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
         self.reset_user_auth_token_by_email(email).await
     }
 
-    async fn list_users(&self) -> Result<Vec<User>> {
-        let users = self.list_users().await?;
-        Ok(users.into_iter().map(|x| x.into()).collect())
-    }
-
-    async fn list_users_in_page(
+    async fn list_users(
         &self,
         after: Option<String>,
         before: Option<String>,
@@ -317,13 +310,13 @@ impl AuthenticationService for DbConn {
                 self.list_users_with_filter(Some(last), before, true)
                     .await?
             }
-            _ => self.list_users().await?,
+            _ => self.list_users_with_filter(None, None, false).await?,
         };
 
         Ok(users.into_iter().map(|x| x.into()).collect())
     }
 
-    async fn list_invitations_in_page(
+    async fn list_invitations(
         &self,
         after: Option<String>,
         before: Option<String>,
@@ -341,7 +334,7 @@ impl AuthenticationService for DbConn {
                 self.list_invitations_with_filter(Some(last), before, true)
                     .await?
             }
-            _ => self.list_invitations().await?,
+            _ => self.list_invitations_with_filter(None, None, false).await?,
         };
 
         Ok(invitations.into_iter().map(|x| x.into()).collect())
@@ -467,7 +460,7 @@ mod tests {
         let password = "12345678dD^";
 
         conn.create_invitation(email.to_owned()).await.unwrap();
-        let invitation = &conn.list_invitations().await.unwrap()[0];
+        let invitation = &conn.list_invitations(None, None, None, None).await.unwrap()[0];
 
         // Admin initialized, registeration requires a invitation code;
         assert_matches!(
@@ -517,7 +510,10 @@ mod tests {
         );
 
         // Used invitation should have been deleted,  following delete attempt should fail.
-        assert!(conn.delete_invitation(invitation.id).await.is_err());
+        assert!(conn
+            .delete_invitation(invitation.id.parse::<i32>().unwrap())
+            .await
+            .is_err());
     }
 
     #[tokio::test]
