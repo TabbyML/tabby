@@ -27,7 +27,7 @@ import { configFile } from "./configFile";
 import { CompletionCache } from "./CompletionCache";
 import { CompletionDebounce } from "./CompletionDebounce";
 import { CompletionContext } from "./CompletionContext";
-import { preCacheProcess, postCacheProcess, calculateReplaceRange } from "./postprocess";
+import { preCacheProcess, postCacheProcess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { CompletionProviderStats, CompletionProviderStatsEntry } from "./CompletionProviderStats";
@@ -553,11 +553,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
       // Postprocess (post-cache)
       completionResponse = await postCacheProcess(context, this.config.postprocess, completionResponse);
-      if (signal.aborted) {
-        throw signal.reason;
-      }
-      // Calculate replace range
-      completionResponse = await calculateReplaceRange(context, this.config.postprocess, completionResponse);
       if (signal.aborted) {
         throw signal.reason;
       }

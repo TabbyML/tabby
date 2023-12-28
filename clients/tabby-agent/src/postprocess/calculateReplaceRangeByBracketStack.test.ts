@@ -11,37 +11,27 @@ describe("postprocess", () => {
         `,
         language: "typescript",
       };
-      const response = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+      const choice = {
+        index: 0,
+        text: inline`
                        ├hello";┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position,
-            },
-          },
-        ],
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position,
+        },
       };
       const expected = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+        index: 0,
+        text: inline`
                        ├hello";┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position + 1,
-            },
-          },
-        ],
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position + 1,
+        },
       };
-      expect(calculateReplaceRangeByBracketStack(response, context)).to.deep.equal(expected);
+      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
     });
 
     it("should handle auto closing quotes", () => {
@@ -51,37 +41,27 @@ describe("postprocess", () => {
         `,
         language: "typescript",
       };
-      const response = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+      const choice = {
+        index: 0,
+        text: inline`
                            ├<h1>\${message}</h1>\`;┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position,
-            },
-          },
-        ],
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position,
+        },
       };
       const expected = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+        index: 0,
+        text: inline`
                            ├<h1>\${message}</h1>\`;┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position + 1,
-            },
-          },
-        ],
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position + 1,
+        },
       };
-      expect(calculateReplaceRangeByBracketStack(response, context)).to.deep.equal(expected);
+      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
     });
 
     it("should handle multiple auto closing brackets", () => {
@@ -91,41 +71,31 @@ describe("postprocess", () => {
         `,
         language: "typescript",
       };
-      const response = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+      const choice = {
+        index: 0,
+        text: inline`
                                       ├
-              console.log(data);
-            });┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position,
-            },
-          },
-        ],
+          console.log(data);
+        });┤
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position,
+        },
       };
       const expected = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+        index: 0,
+        text: inline`
                                       ├
-              console.log(data);
-            });┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position + 2,
-            },
-          },
-        ],
+          console.log(data);
+        });┤
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position + 2,
+        },
       };
-      expect(calculateReplaceRangeByBracketStack(response, context)).to.deep.equal(expected);
+      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
     });
 
     it("should handle multiple auto closing brackets", () => {
@@ -135,37 +105,27 @@ describe("postprocess", () => {
         `,
         language: "typescript",
       };
-      const response = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+      const choice = {
+        index: 0,
+        text: inline`
                                    ├1, 2], [3, 4]], [[5, 6], [7, 8]]];┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position,
-            },
-          },
-        ],
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position,
+        },
       };
       const expected = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+        index: 0,
+        text: inline`
                                    ├1, 2], [3, 4]], [[5, 6], [7, 8]]];┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position + 3,
-            },
-          },
-        ],
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position + 3,
+        },
       };
-      expect(calculateReplaceRangeByBracketStack(response, context)).to.deep.equal(expected);
+      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
     });
   });
 
@@ -179,37 +139,27 @@ describe("postprocess", () => {
         `,
         language: "typescript",
       };
-      const response = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+      const choice = {
+        index: 0,
+        text: inline`
                                    ├n, max), min┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position,
-            },
-          },
-        ],
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position,
+        },
       };
       const expected = {
-        id: "",
-        choices: [
-          {
-            index: 0,
-            text: inline`
+        index: 0,
+        text: inline`
                                    ├n, max), min┤
-            `,
-            replaceRange: {
-              start: context.position,
-              end: context.position,
-            },
-          },
-        ],
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position,
+        },
       };
-      expect(calculateReplaceRangeByBracketStack(response, context)).not.to.deep.equal(expected);
+      expect(calculateReplaceRangeByBracketStack(choice, context)).not.to.deep.equal(expected);
     });
   });
 });

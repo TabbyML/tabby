@@ -55,7 +55,7 @@ export function limitScopeBySyntax(): PostprocessFilter {
   return async (input: string, context: CompletionContext) => {
     const { position, text, language, prefix, suffix } = context;
     if (!supportedLanguages.includes(language)) {
-      return input;
+      throw new Error(`Language ${language} is not supported`);
     }
     const languageConfig = languagesConfigs[language]!;
     const parser = await getParser(languageConfig);
@@ -69,7 +69,23 @@ export function limitScopeBySyntax(): PostprocessFilter {
       typeList[languageConfig] ?? [],
     );
 
+    if (scope.type == "ERROR") {
+      throw new Error("Cannot determine syntax scope.");
+    }
+
     if (scope.endIndex < position + input.length) {
+      console.log(
+        {
+          languageConfig,
+          text,
+          updatedText,
+          position,
+          lineBegin,
+          lineEnd,
+          scope: { type: scope.type, start: scope.startIndex, end: scope.endIndex },
+        },
+        "Remove content out of syntax scope",
+      );
       logger.debug(
         {
           languageConfig,
