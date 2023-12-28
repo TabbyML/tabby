@@ -74,18 +74,6 @@ export function limitScopeBySyntax(): PostprocessFilter {
     }
 
     if (scope.endIndex < position + input.length) {
-      console.log(
-        {
-          languageConfig,
-          text,
-          updatedText,
-          position,
-          lineBegin,
-          lineEnd,
-          scope: { type: scope.type, start: scope.startIndex, end: scope.endIndex },
-        },
-        "Remove content out of syntax scope",
-      );
       logger.debug(
         {
           languageConfig,
