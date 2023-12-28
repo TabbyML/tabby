@@ -109,7 +109,7 @@ impl ChatService {
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
-                yield ChatCompletionChunk::new(content, id, created, false)
+                yield ChatCompletionChunk::new(content, id.clone(), created, false)
             }
             yield ChatCompletionChunk::new("".into(), id, created, true)
         };
