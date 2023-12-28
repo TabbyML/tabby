@@ -4,7 +4,6 @@ import React from 'react'
 import { useChat } from 'ai/react'
 import type { Message } from 'ai/react'
 import { find, findIndex } from 'lodash-es'
-import { toast } from 'react-hot-toast'
 
 import { usePatchFetch } from '@/lib/hooks/use-patch-fetch'
 import { useStore } from '@/lib/hooks/use-store'
@@ -12,6 +11,7 @@ import { addChat, updateMessages } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import type { MessageActionType } from '@/lib/types'
 import { cn, nanoid, truncateText } from '@/lib/utils'
+import { useToast } from '@/components/ui/use-toast'
 import { ChatList } from '@/components/chat-list'
 import { ChatPanel } from '@/components/chat-panel'
 import { ChatScrollAnchor } from '@/components/chat-scroll-anchor'
@@ -27,7 +27,7 @@ export interface ChatProps extends React.ComponentProps<'div'> {
 export function Chat({ id, initialMessages, loading, className }: ChatProps) {
   usePatchFetch()
   const chats = useStore(useChatStore, state => state.chats)
-
+  const { toast } = useToast()
   const {
     messages,
     append,
@@ -45,7 +45,10 @@ export function Chat({ id, initialMessages, loading, className }: ChatProps) {
     },
     onResponse(response) {
       if (response.status === 401) {
-        toast.error(response.statusText)
+        toast({
+          title: response.statusText,
+          variant: 'destructive'
+        })
       }
     }
   })

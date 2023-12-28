@@ -2,7 +2,8 @@
 
 import * as React from 'react'
 import copy from 'copy-to-clipboard'
-import { toast } from 'react-hot-toast'
+
+import { useToast } from '@/components/ui/use-toast'
 
 export interface useCopyToClipboardProps {
   timeout?: number
@@ -13,11 +14,11 @@ export function useCopyToClipboard({
   timeout = 2000,
   onError
 }: useCopyToClipboardProps) {
+  const { toast } = useToast()
   const [isCopied, setIsCopied] = React.useState<Boolean>(false)
 
   const onCopySuccess = () => {
     setIsCopied(true)
-
     setTimeout(() => {
       setIsCopied(false)
     }, timeout)
@@ -25,7 +26,10 @@ export function useCopyToClipboard({
 
   const onCopyError = (error?: any) => {
     onError?.(error)
-    toast.error('Failed to copy.')
+    toast({
+      title: 'Failed to copy.',
+      variant: 'destructive'
+    })
   }
 
   const copyToClipboard = (value: string) => {

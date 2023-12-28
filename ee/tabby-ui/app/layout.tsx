@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
-import { Toaster } from 'react-hot-toast'
+
+import { Toaster } from '@/components/ui/toaster'
 
 import '@/app/globals.css'
 
