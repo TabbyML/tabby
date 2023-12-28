@@ -7,7 +7,7 @@ import { expect } from "chai";
 import { deepmerge } from "deepmerge-ts";
 import { AgentConfig, defaultAgentConfig } from "../AgentConfig";
 import { CompletionContext, CompletionResponse } from "../CompletionContext";
-import { preCacheProcess, postCacheProcess, calculateReplaceRange } from ".";
+import { preCacheProcess, postCacheProcess } from ".";
 
 type PostprocessConfig = AgentConfig["postprocess"];
 
@@ -76,7 +76,6 @@ describe("postprocess golden test", () => {
   const postprocess = async (context: CompletionContext, config: PostprocessConfig, response: CompletionResponse) => {
     let processed = await preCacheProcess(context, config, response);
     processed = await postCacheProcess(context, config, processed);
-    processed = await calculateReplaceRange(context, config, processed);
     return processed;
   };
 

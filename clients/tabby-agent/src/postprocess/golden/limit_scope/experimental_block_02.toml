@@ -1,4 +1,4 @@
-description = 'Limit scope: limit to block scope: case 0'
+description = 'Limit scope experimental: limit to block when completing a line: case 02'
 
 [config.limitScope.indentation]
 experimentalKeepBlockScopeWhenCompletingLine = true
