@@ -1,4 +1,4 @@
-description = 'Limit scope: limit to block scope: bad case 03'
+description = 'Limit scope: limit to block scope: case 03'
 
 [config]
 # use default config
@@ -18,5 +18,9 @@ function check(obj) {
 '''
 
 [expected]
-unchanged = true
-notEqual = true # FIXME: fix bad case
+text = '''
+function check(obj) {
+  // if obj.a is defined, then return t├rue┤
+  return false;
+}
+'''

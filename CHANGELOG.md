@@ -7,6 +7,7 @@
 * Add windows cpu binary distribution.
 * Add linux rocm (AMD GPU) binary distribution.
 * Fix cached permanent redirection on certain browsers(e.g chrome) when `--webserver` is not enabled.
+* Add environment variable `TABBY_MODEL_CACHE_ROOT` to override models cache directory individually.
 
 # v0.7.0 (12/15/2023)
 

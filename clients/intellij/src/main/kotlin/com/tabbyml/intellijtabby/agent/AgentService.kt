@@ -21,9 +21,11 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.keymap.Keymap
 import com.intellij.openapi.keymap.KeymapManagerListener
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.tabbyml.intellijtabby.settings.ApplicationConfigurable
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import com.tabbyml.intellijtabby.settings.KeymapSettings
 import io.ktor.util.*
@@ -37,8 +39,11 @@ class AgentService : Disposable {
   val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
   private var initFailedNotification: Notification? = null
+
+  @Deprecated("Tabby Cloud auth support will be removed.")
   var authNotification: Notification? = null
     private set
+
   var issueNotification: Notification? = null
     private set
 
@@ -105,6 +110,12 @@ class AgentService : Disposable {
     }
 
     scope.launch {
+      settings.serverTokenState.collect {
+        setToken(it)
+      }
+    }
+
+    scope.launch {
       settings.completionTriggerModeState.collect {
         updateClientProperties("user", "intellij.triggerMode", it)
       }
@@ -138,15 +149,26 @@ class AgentService : Disposable {
     scope.launch {
       agent.authRequiredEvent.collect {
         logger.info("Will show auth required notification.")
+        val currentToken = getConfig().server?.token
+        val message = if (currentToken?.isNotBlank() == true) {
+          "Tabby server requires authentication, but the current token is invalid."
+        } else {
+          "Tabby server requires authentication, please set your personal token."
+        }
         val notification = Notification(
           "com.tabbyml.intellijtabby.notification.warning",
-          "Authorization required for Tabby server",
+          message,
           NotificationType.WARNING,
         )
-        notification.addAction(ActionManager.getInstance().getAction("Tabby.OpenAuthPage"))
+        notification.addAction(object : AnAction("Open Settings...") {
+          override fun actionPerformed(e: AnActionEvent) {
+            issueNotification?.expire()
+            ShowSettingsUtil.getInstance().showSettingsDialog(e.project, ApplicationConfigurable::class.java)
+          }
+        })
         invokeLater {
-          authNotification?.expire()
-          authNotification = notification
+          issueNotification?.expire()
+          issueNotification = notification
           Notifications.Bus.notify(notification)
         }
       }
@@ -156,6 +178,9 @@ class AgentService : Disposable {
       agent.status.collect { status ->
         if (status == Agent.Status.READY) {
           completionResponseWarningShown = false
+          invokeLater {
+            issueNotification?.expire()
+          }
         }
       }
     }
@@ -214,9 +239,10 @@ class AgentService : Disposable {
 
   private fun createAgentConfig(state: ApplicationSettingsState.State): Agent.Config {
     return Agent.Config(
-      server = if (state.serverEndpoint.isNotBlank()) {
+      server = if (state.serverEndpoint.isNotBlank() || state.serverToken.isNotBlank()) {
         Agent.Config.Server(
-          endpoint = state.serverEndpoint,
+          endpoint = state.serverEndpoint.ifBlank { null },
+          token = state.serverToken.ifBlank { null },
         )
       } else {
         null
@@ -272,11 +298,19 @@ class AgentService : Disposable {
     agent.clearConfig(key)
   }
 
-  suspend fun setEndpoint(endpoint: String) {
+  private suspend fun setEndpoint(endpoint: String) {
     if (endpoint.isNotBlank()) {
       updateConfig("server.endpoint", endpoint)
     } else {
       clearConfig("server.endpoint")
+    }
+  }
+
+  private suspend fun setToken(token: String) {
+    if (token.isNotBlank()) {
+      updateConfig("server.token", token)
+    } else {
+      clearConfig("server.token")
     }
   }
 
@@ -309,6 +343,7 @@ class AgentService : Disposable {
     agent.postEvent(event)
   }
 
+  @Deprecated("Tabby Cloud auth support will be removed.")
   suspend fun requestAuth(progress: ProgressIndicator) {
     waitForInitialized()
     progress.isIndeterminate = true

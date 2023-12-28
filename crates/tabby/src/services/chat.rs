@@ -34,7 +34,7 @@ pub struct Message {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ChatCompletionChunk {
-    id: Uuid,
+    id: String,
     created: u64,
     system_fingerprint: String,
     object: &'static str,
@@ -56,13 +56,13 @@ pub struct ChatCompletionDelta {
 }
 
 impl ChatCompletionChunk {
-    fn new(content: String, id: Uuid, created: u64, last_chunk: bool) -> Self {
+    fn new(content: String, id: String, created: u64, last_chunk: bool) -> Self {
         ChatCompletionChunk {
             id,
             created,
             object: "chat.completion.chunk",
-            model: "TabbyML",
-            system_fingerprint: todo!(),
+            model: "unused-model",
+            system_fingerprint: "unused-system-fingerprint".into(),
             choices: [ChatCompletionChoice {
                 index: 0,
                 delta: ChatCompletionDelta { content },
@@ -105,11 +105,11 @@ impl ChatService {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("Must be able to read system clock")
             .as_secs();
-        let id = Uuid::new_v4();
+        let id = format!("chatcmpl-{}", Uuid::new_v4());
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
-                yield ChatCompletionChunk::new(content, id, created, false)
+                yield ChatCompletionChunk::new(content, id.clone(), created, false)
             }
             yield ChatCompletionChunk::new("".into(), id, created, true)
         };

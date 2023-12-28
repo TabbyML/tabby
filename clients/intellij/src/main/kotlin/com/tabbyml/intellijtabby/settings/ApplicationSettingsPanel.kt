@@ -9,10 +9,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
-import com.intellij.ui.components.JBCheckBox
-import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBRadioButton
-import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.*
 import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
@@ -43,6 +40,7 @@ private fun FormBuilder.addCopyableTooltip(text: String): FormBuilder {
 
 class ApplicationSettingsPanel {
   private val serverEndpointTextField = JBTextField()
+  private val serverTokenPasswordField = JBPasswordField()
   private val serverEndpointCheckConnectionButton = JButton("Check connection").apply {
     addActionListener {
       val parentComponent = this@ApplicationSettingsPanel.mainPanel
@@ -60,8 +58,13 @@ class ApplicationSettingsPanel {
           job = agentService.scope.launch {
             indicator.isIndeterminate = true
             indicator.text = "Checking connection..."
-            settings.serverEndpoint = serverEndpointTextField.text
-            agentService.setEndpoint(serverEndpointTextField.text)
+            settings.serverEndpoint = serverEndpoint
+            settings.serverToken = serverToken
+            var serverConfig = agentService.getConfig().server
+            while (serverConfig?.endpoint != serverEndpoint || serverConfig.token != serverToken) {
+              Thread.sleep(200)
+              serverConfig = agentService.getConfig().server
+            }
             when (agentService.status.value) {
               Agent.Status.READY -> {
                 invokeLater(ModalityState.stateForComponent(parentComponent)) {
@@ -74,23 +77,18 @@ class ApplicationSettingsPanel {
               }
 
               Agent.Status.UNAUTHORIZED -> {
-                agentService.requestAuth(indicator)
-                if (agentService.status.value == Agent.Status.READY) {
-                  invokeLater(ModalityState.stateForComponent(parentComponent)) {
-                    Messages.showInfoMessage(
-                      parentComponent,
-                      "Successfully connected to the Tabby server.",
-                      "Check Connection Completed"
-                    )
-                  }
+                val currentToken = agentService.getConfig().server?.token
+                val message = if (currentToken?.isNotBlank() == true) {
+                  "Tabby server requires authentication, but the current token is invalid."
                 } else {
-                  invokeLater(ModalityState.stateForComponent(parentComponent)) {
-                    Messages.showErrorDialog(
-                      parentComponent,
-                      "Failed to connect to the Tabby server.",
-                      "Check Connection Failed"
-                    )
-                  }
+                  "Tabby server requires authentication, please set your personal token."
+                }
+                invokeLater(ModalityState.stateForComponent(parentComponent)) {
+                  Messages.showErrorDialog(
+                    parentComponent,
+                    message,
+                    "Check Connection Failed"
+                  )
                 }
               }
 
@@ -120,7 +118,7 @@ class ApplicationSettingsPanel {
     }
   }
   private val serverEndpointPanel = FormBuilder.createFormBuilder()
-    .addComponent(serverEndpointTextField)
+    .addLabeledComponent("Endpoint", serverEndpointTextField, 0, false)
     .addCopyableTooltip(
       """
       <html>
@@ -130,6 +128,16 @@ class ApplicationSettingsPanel {
       </html>
       """.trimIndent()
     )
+    .addSeparator()
+    .addLabeledComponent("Token", serverTokenPasswordField, 0, false)
+    .addCopyableTooltip(
+      """
+      <html>
+      Set token here if your Tabby server requires authentication.
+      </html>
+      """.trimIndent()
+    )
+    .addSeparator()
     .addComponent(serverEndpointCheckConnectionButton)
     .panel
 
@@ -195,7 +203,7 @@ class ApplicationSettingsPanel {
       <html>
       Tabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.<br/>
       Your code, generated completions, or any identifying information is never tracked or transmitted.<br/>
-      For more details on data collection, please check our <a href="https://tabby.tabbyml.com/docs/extensions/configuration#usage-collection">online documentation</a>.<br/>
+      For more details on data collection, please check our <a href="https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection">online documentation</a>.<br/>
       </html>
       """
     )
@@ -215,7 +223,7 @@ class ApplicationSettingsPanel {
     .panel
 
   val mainPanel: JPanel = FormBuilder.createFormBuilder()
-    .addLabeledComponent("Server endpoint", serverEndpointPanel, 5, false)
+    .addLabeledComponent("Server", serverEndpointPanel, 5, false)
     .addSeparator(5)
     .addLabeledComponent("Inline completion trigger", completionTriggerModePanel, 5, false)
     .addSeparator(5)
@@ -237,6 +245,12 @@ class ApplicationSettingsPanel {
     get() = serverEndpointTextField.text
     set(value) {
       serverEndpointTextField.text = value
+    }
+
+  var serverToken: String
+    get() = String(serverTokenPasswordField.password)
+    set(value) {
+      serverTokenPasswordField.text = value
     }
 
   var nodeBinary: String

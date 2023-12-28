@@ -1,0 +1,32 @@
+description = 'Replace range experimental: syntax mismatched: bad case 01'
+
+[config.limitScope]
+experimentalSyntax = true
+[config.calculateReplaceRange]
+experimentalSyntax = true
+
+[context]
+filepath = 'fibonacci.ts'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+def fibonacci(├n):
+  if n == 0:
+    return 0
+  elif n == 1:
+    return 1
+  else:
+    return fibonacci(n - 1) + fibonacci(n - 2)┤)
+'''
+
+[expected]
+text = '''
+def fibonacci(├n):
+  if n == 0:
+    return 0
+  elif n == 1:
+    return 1
+  else:
+    return fibonacci(n - 1) + fibonacci(n - 2)┤)╣
+'''
+notEqual = true # FIXME: fix bad case

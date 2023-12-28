@@ -3,9 +3,17 @@ use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::schema::auth::Invitation;
+use crate::schema::auth;
 
-impl Invitation {
+pub struct InvitationDAO {
+    pub id: i32,
+    pub email: String,
+    pub code: String,
+
+    pub created_at: String,
+}
+
+impl InvitationDAO {
     fn from_row(row: &Row<'_>) -> std::result::Result<Self, rusqlite::Error> {
         Ok(Self {
             id: row.get(0)?,
@@ -16,23 +24,46 @@ impl Invitation {
     }
 }
 
+impl From<InvitationDAO> for auth::InvitationNext {
+    fn from(val: InvitationDAO) -> Self {
+        Self {
+            id: juniper::ID::new(val.id.to_string()),
+            email: val.email,
+            code: val.code,
+            created_at: val.created_at,
+        }
+    }
+}
+
 /// db read/write operations for `invitations` table
 impl DbConn {
-    pub async fn list_invitations(&self) -> Result<Vec<Invitation>> {
+    pub async fn list_invitations_with_filter(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<InvitationDAO>> {
+        let query = Self::make_pagination_query(
+            "invitations",
+            &["id", "email", "code", "created_at"],
+            limit,
+            skip_id,
+            backwards,
+        );
+
         let invitations = self
             .conn
             .call(move |c| {
-                let mut stmt =
-                    c.prepare(r#"SELECT id, email, code, created_at FROM invitations"#)?;
-                let iter = stmt.query_map([], Invitation::from_row)?;
-                Ok(iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+                let mut stmt = c.prepare(&query)?;
+                let invit_iter = stmt.query_map([], InvitationDAO::from_row)?;
+                Ok(invit_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })
             .await?;
 
         Ok(invitations)
     }
 
-    pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<Invitation>> {
+    pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<InvitationDAO>> {
         let code = code.to_owned();
         let token = self
             .conn
@@ -41,7 +72,7 @@ impl DbConn {
                     .query_row(
                         r#"SELECT id, email, code, created_at FROM invitations WHERE code = ?"#,
                         [code],
-                        Invitation::from_row,
+                        InvitationDAO::from_row,
                     )
                     .optional())
             })
@@ -103,7 +134,10 @@ mod tests {
         let email = "hello@example.com".to_owned();
         conn.create_invitation(email).await.unwrap();
 
-        let invitations = conn.list_invitations().await.unwrap();
+        let invitations = conn
+            .list_invitations_with_filter(None, None, false)
+            .await
+            .unwrap();
         assert_eq!(1, invitations.len());
 
         assert!(Uuid::parse_str(&invitations[0].code).is_ok());
@@ -117,7 +151,10 @@ mod tests {
 
         conn.delete_invitation(invitations[0].id).await.unwrap();
 
-        let invitations = conn.list_invitations().await.unwrap();
+        let invitations = conn
+            .list_invitations_with_filter(None, None, false)
+            .await
+            .unwrap();
         assert!(invitations.is_empty());
     }
 }

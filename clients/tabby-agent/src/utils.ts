@@ -15,6 +15,40 @@ export function isBlank(input: string) {
   return input.trim().length === 0;
 }
 
+// Indentation
+
+export function getIndentationLevel(line: string, indentation?: string) {
+  if (indentation === undefined) {
+    return line.match(/^[ \t]*/)?.[0]?.length ?? 0;
+  } else if (indentation === "\t") {
+    return line.match(/^\t*/g)?.[0].length ?? 0;
+  } else if (indentation.match(/^ *$/)) {
+    const spaces = line.match(/^ */)?.[0].length ?? 0;
+    return spaces / indentation.length;
+  } else {
+    throw new Error(`Invalid indentation: ${indentation}`);
+  }
+}
+
+// function foo(a) {  // <-- block opening line
+//   return a;
+// }                  // <-- block closing line
+export function isBlockOpeningLine(lines: string[], index: number): boolean {
+  if (index < 0 || index >= lines.length - 1) {
+    return false;
+  }
+  return getIndentationLevel(lines[index]!) < getIndentationLevel(lines[index + 1]!);
+}
+
+export function isBlockClosingLine(lines: string[], index: number): boolean {
+  if (index <= 0 || index > lines.length - 1) {
+    return false;
+  }
+  return getIndentationLevel(lines[index - 1]!) > getIndentationLevel(lines[index]!);
+}
+
+// Auto-closing chars
+
 export const autoClosingPairs = [
   ["(", ")"],
   ["[", "]"],

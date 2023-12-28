@@ -51,7 +51,20 @@ impl ResolveParams {
 
 #[derive(Serialize)]
 struct ListDir {
-    entries: Vec<String>,
+    entries: Vec<DirEntry>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+enum DirEntryKind {
+    File,
+    Dir,
+}
+
+#[derive(Serialize)]
+struct DirEntry {
+    kind: DirEntryKind,
+    basename: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -113,16 +126,28 @@ fn load_meta() -> HashMap<DatasetKey, Meta> {
 /// Resolve a directory
 pub async fn resolve_dir(root: PathBuf, full_path: PathBuf) -> Result<Response> {
     let mut read_dir = tokio::fs::read_dir(full_path).await?;
-    let mut entries = vec![];
+    let mut entries: Vec<DirEntry> = vec![];
 
     while let Some(entry) = read_dir.next_entry().await? {
-        let path = entry
+        let basename = entry
             .path()
             .strip_prefix(&root)?
             .to_str()
             .unwrap()
             .to_string();
-        entries.push(path);
+
+        let meta = entry.metadata().await?;
+
+        let kind = if meta.is_dir() {
+            DirEntryKind::Dir
+        } else if meta.is_file() {
+            DirEntryKind::File
+        } else {
+            // Skip others.
+            continue;
+        };
+
+        entries.push(DirEntry { kind, basename });
     }
 
     let body = Json(ListDir { entries }).into_response();

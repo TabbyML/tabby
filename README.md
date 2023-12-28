@@ -6,7 +6,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
 [![Docker pulls](https://img.shields.io/docker/pulls/tabbyml/tabby)](https://hub.docker.com/r/tabbyml/tabby)
 
-[![Slack Community](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
+[![Slack Community](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)
 [![Office Hours](https://img.shields.io/badge/Book-Office%20Hours-purple?logo=googlecalendar&logoColor=white)](https://calendly.com/tabby_ml/chat-with-tabbyml)
 
 </div>
@@ -26,14 +26,16 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 
 ## 🔥 What's New
 
+* **12/23/2023** Seamlessly [deploy Tabby on any cloud](https://tabby.tabbyml.com/docs/installation/skypilot/) with [SkyServe](https://skypilot.readthedocs.io/en/latest/serving/sky-serve.html) 🛫 from SkyPilot.
 * **12/15/2023** [v0.7.0](https://github.com/TabbyML/tabby/releases/tag/v0.7.0) released with team management and secured access!
 * **10/24/2023** ⛳️ Major updates for Tabby IDE plugins across [VSCode/Vim/IntelliJ](https://tabby.tabbyml.com/docs/extensions)!
-* **10/15/2023** RAG-based code completion is enabled by detail in [v0.3.0](https://github.com/TabbyML/tabby/releases/tag/v0.3.0)🎉! Check out the [blogpost](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion/) explaining how Tabby utilizes repo-level context to get even smarter!
+
 
 
 <details>
   <summary>Archived</summary>
 
+* **10/15/2023** RAG-based code completion is enabled by detail in [v0.3.0](https://github.com/TabbyML/tabby/releases/tag/v0.3.0)🎉! Check out the [blogpost](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion/) explaining how Tabby utilizes repo-level context to get even smarter!
 * **11/27/2023** [v0.6.0](https://github.com/TabbyML/tabby/releases/tag/v0.6.0) released!
 * **11/09/2023** [v0.5.5](https://github.com/TabbyML/tabby/releases/tag/v0.5.5) released! With a redesign of UI + performance improvement.
 * **10/04/2023** Check out the [model directory](https://tabby.tabbyml.com/docs/models/) for the latest models supported by Tabby.
@@ -92,10 +94,10 @@ apt-get install protobuf-compiler libopenblas-dev
 ... and don't forget to submit a [Pull Request](https://github.com/TabbyML/tabby/compare)
 
 ## 🌍 Community
-- #️⃣ [Slack](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) - connect with the TabbyML community 
+- #️⃣ [Slack](https://links.tabbyml.com/join-slack-extensions) - connect with the TabbyML community 
 - 🎤 [Twitter / X](https://twitter.com/Tabby_ML) - engage with TabbyML for all things possible 
 - 📚 [LinkedIn](https://www.linkedin.com/company/tabbyml/) - follow for the latest from the community 
-- 💌 [Newsletter](https://tinyletter.com/tabbyml/) - subscribe to unlock Tabby insights and secrets
+- 💌 [Newsletter](https://newsletter.tabbyml.com/archive) - subscribe to unlock Tabby insights and secrets
 
 
 

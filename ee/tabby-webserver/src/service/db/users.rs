@@ -1,15 +1,13 @@
-// db read/write operations for `users` table
-
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::schema;
+use crate::schema::auth;
 
 #[allow(unused)]
-pub struct User {
+pub struct UserDAO {
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 
@@ -22,15 +20,15 @@ pub struct User {
     pub auth_token: String,
 }
 
-impl User {
+impl UserDAO {
     fn select(clause: &str) -> String {
         r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token FROM users WHERE "#
             .to_owned()
             + clause
     }
 
-    fn from_row(row: &Row<'_>) -> std::result::Result<User, rusqlite::Error> {
-        Ok(User {
+    fn from_row(row: &Row<'_>) -> std::result::Result<UserDAO, rusqlite::Error> {
+        Ok(UserDAO {
             id: row.get(0)?,
             email: row.get(1)?,
             password_encrypted: row.get(2)?,
@@ -42,9 +40,10 @@ impl User {
     }
 }
 
-impl From<User> for schema::User {
-    fn from(val: User) -> Self {
-        schema::User {
+impl From<UserDAO> for auth::User {
+    fn from(val: UserDAO) -> Self {
+        auth::User {
+            id: juniper::ID::new(val.id.to_string()),
             email: val.email,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
@@ -53,6 +52,7 @@ impl From<User> for schema::User {
     }
 }
 
+/// db read/write operations for `users` table
 impl DbConn {
     pub async fn create_user(
         &self,
@@ -106,29 +106,14 @@ impl DbConn {
         Ok(res as i32)
     }
 
-    pub async fn get_user(&self, id: i32) -> Result<Option<User>> {
-        let user = self
-            .conn
-            .call(move |c| {
-                Ok(
-                    c.query_row(User::select("id = ?").as_str(), params![id], User::from_row)
-                        .optional(),
-                )
-            })
-            .await?;
-
-        Ok(user?)
-    }
-
-    pub async fn get_user_by_email(&self, email: &str) -> Result<Option<User>> {
-        let email = email.to_owned();
+    pub async fn get_user(&self, id: i32) -> Result<Option<UserDAO>> {
         let user = self
             .conn
             .call(move |c| {
                 Ok(c.query_row(
-                    User::select("email = ?").as_str(),
-                    params![email],
-                    User::from_row,
+                    UserDAO::select("id = ?").as_str(),
+                    params![id],
+                    UserDAO::from_row,
                 )
                 .optional())
             })
@@ -137,12 +122,29 @@ impl DbConn {
         Ok(user?)
     }
 
-    pub async fn list_admin_users(&self) -> Result<Vec<User>> {
+    pub async fn get_user_by_email(&self, email: &str) -> Result<Option<UserDAO>> {
+        let email = email.to_owned();
+        let user = self
+            .conn
+            .call(move |c| {
+                Ok(c.query_row(
+                    UserDAO::select("email = ?").as_str(),
+                    params![email],
+                    UserDAO::from_row,
+                )
+                .optional())
+            })
+            .await?;
+
+        Ok(user?)
+    }
+
+    pub async fn list_admin_users(&self) -> Result<Vec<UserDAO>> {
         let users = self
             .conn
             .call(move |c| {
-                let mut stmt = c.prepare(&User::select("is_admin"))?;
-                let user_iter = stmt.query_map([], User::from_row)?;
+                let mut stmt = c.prepare(&UserDAO::select("is_admin"))?;
+                let user_iter = stmt.query_map([], UserDAO::from_row)?;
                 Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })
             .await?;
@@ -150,12 +152,33 @@ impl DbConn {
         Ok(users)
     }
 
-    pub async fn list_users(&self) -> Result<Vec<User>> {
+    pub async fn list_users_with_filter(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<UserDAO>> {
+        let query = Self::make_pagination_query(
+            "users",
+            &[
+                "id",
+                "email",
+                "password_encrypted",
+                "is_admin",
+                "created_at",
+                "updated_at",
+                "auth_token",
+            ],
+            limit,
+            skip_id,
+            backwards,
+        );
+
         let users = self
             .conn
             .call(move |c| {
-                let mut stmt = c.prepare(&User::select("true"))?;
-                let user_iter = stmt.query_map([], User::from_row)?;
+                let mut stmt = c.prepare(&query)?;
+                let user_iter = stmt.query_map([], UserDAO::from_row)?;
                 Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
             })
             .await?;
@@ -241,5 +264,227 @@ mod tests {
         let new_user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.email, new_user.email);
         assert_ne!(user.auth_token, new_user.auth_token);
+    }
+
+    #[tokio::test]
+    async fn test_list_users_with_filter() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        let empty: Vec<i32> = vec![];
+        let to_ids = |users: Vec<UserDAO>| users.into_iter().map(|u| u.id).collect::<Vec<_>>();
+
+        // empty
+        // forwards
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(None, None, false)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(Some(2), None, false)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(None, Some(1), false)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(Some(2), Some(1), false)
+                    .await
+                    .unwrap()
+            )
+        );
+        // backwards
+        assert_eq!(
+            empty,
+            to_ids(conn.list_users_with_filter(None, None, true).await.unwrap())
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(Some(2), None, true)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(None, Some(1), true)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(Some(1), Some(1), true)
+                    .await
+                    .unwrap()
+            )
+        );
+
+        let id1 = conn
+            .create_user("use1@example.com".into(), "123456".into(), false)
+            .await
+            .unwrap();
+
+        // one user
+        // forwards
+        assert_eq!(
+            vec![id1],
+            to_ids(
+                conn.list_users_with_filter(None, None, false)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            vec![id1],
+            to_ids(
+                conn.list_users_with_filter(Some(2), None, false)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(None, Some(1), false)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(Some(2), Some(1), false)
+                    .await
+                    .unwrap()
+            )
+        );
+        // backwards
+        assert_eq!(
+            vec![id1],
+            to_ids(conn.list_users_with_filter(None, None, true).await.unwrap())
+        );
+        assert_eq!(
+            vec![id1],
+            to_ids(
+                conn.list_users_with_filter(Some(2), None, true)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(None, Some(1), true)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            empty,
+            to_ids(
+                conn.list_users_with_filter(Some(1), Some(1), true)
+                    .await
+                    .unwrap()
+            )
+        );
+
+        let id2 = conn
+            .create_user("use2@example.com".into(), "123456".into(), false)
+            .await
+            .unwrap();
+        let id3 = conn
+            .create_user("use3@example.com".into(), "123456".into(), false)
+            .await
+            .unwrap();
+        let id4 = conn
+            .create_user("use4@example.com".into(), "123456".into(), false)
+            .await
+            .unwrap();
+        let id5 = conn
+            .create_user("use5@example.com".into(), "123456".into(), false)
+            .await
+            .unwrap();
+
+        // multiple users
+        // forwards
+        assert_eq!(
+            vec![id1, id2, id3, id4, id5],
+            to_ids(
+                conn.list_users_with_filter(None, None, false)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            vec![id1, id2],
+            to_ids(
+                conn.list_users_with_filter(Some(2), None, false)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            vec![id3, id4, id5],
+            to_ids(
+                conn.list_users_with_filter(None, Some(2), false)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            vec![id3, id4],
+            to_ids(
+                conn.list_users_with_filter(Some(2), Some(2), false)
+                    .await
+                    .unwrap()
+            )
+        );
+        // backwards
+        assert_eq!(
+            vec![id1, id2, id3, id4, id5],
+            to_ids(conn.list_users_with_filter(None, None, true).await.unwrap())
+        );
+        assert_eq!(
+            vec![id4, id5],
+            to_ids(
+                conn.list_users_with_filter(Some(2), None, true)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            vec![id1, id2, id3],
+            to_ids(
+                conn.list_users_with_filter(None, Some(4), true)
+                    .await
+                    .unwrap()
+            )
+        );
+        assert_eq!(
+            vec![id2, id3],
+            to_ids(
+                conn.list_users_with_filter(Some(2), Some(4), true)
+                    .await
+                    .unwrap()
+            )
+        );
     }
 }

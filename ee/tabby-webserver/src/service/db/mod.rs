@@ -5,7 +5,7 @@ mod users;
 
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
-pub use job_runs::JobRun;
+pub use job_runs::JobRunDAO;
 use lazy_static::lazy_static;
 use rusqlite::params;
 use rusqlite_migration::AsyncMigrations;
@@ -53,6 +53,40 @@ impl DbConn {
 
         let res = Self { conn };
         Ok(res)
+    }
+
+    fn make_pagination_query(
+        table_name: &str,
+        field_names: &[&str],
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> String {
+        let mut source = String::new();
+        let mut clause = String::new();
+        if backwards {
+            source += &format!("SELECT * FROM {}", table_name);
+            if let Some(skip_id) = skip_id {
+                source += &format!(" WHERE id < {}", skip_id);
+            }
+            source += " ORDER BY id DESC";
+            if let Some(limit) = limit {
+                source += &format!(" LIMIT {}", limit);
+            }
+            clause += " ORDER BY id ASC";
+        } else {
+            source += table_name;
+            if let Some(skip_id) = skip_id {
+                clause += &format!(" WHERE id > {}", skip_id);
+            }
+            clause += " ORDER BY id ASC";
+            if let Some(limit) = limit {
+                clause += &format!(" LIMIT {}", limit);
+            }
+        }
+        let fields = field_names.join(", ");
+
+        format!(r#"SELECT {} FROM ({}) {}"#, fields, source, clause)
     }
 }
 

@@ -8,7 +8,7 @@ support.
   {1}  https://www.tabbyml.com/
   {2}  https://github.com/TabbyML/tabby
   {3}  https://github.com/TabbyML/tabby/issues/new
-  {4}  https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA
+  {4}  https://links.tabbyml.com/join-slack
 
 					*Tabby-compatibility* *Tabby-NeoVim*
 Compatibility~
@@ -24,9 +24,6 @@ Commands~
 			issue exists.
 					*:Tabby-version*
 :Tabby  version		Print the version of Tabby plugin.
-					*:Tabby-auth*
-:Tabby  auth		Start to complete the authentication process. Only used
-			when you are using a Tabby Cloud endpoint.
 					*:Tabby-help*
 :Tabby  help [subject]  Search for help information in this document using
 			VIM command `:help`.

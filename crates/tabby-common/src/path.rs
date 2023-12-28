@@ -9,6 +9,8 @@ lazy_static! {
             Err(_) => home::home_dir().unwrap().join(".tabby"),
         }))
     };
+    static ref TABBY_MODEL_CACHE_ROOT: Option<PathBuf> =
+        env::var("TABBY_MODEL_CACHE_ROOT").ok().map(PathBuf::from);
 }
 
 #[cfg(feature = "testutils")]
@@ -48,7 +50,11 @@ pub fn dataset_dir() -> PathBuf {
 }
 
 pub fn models_dir() -> PathBuf {
-    tabby_root().join("models")
+    if let Some(cache_root) = &*TABBY_MODEL_CACHE_ROOT {
+        cache_root.clone()
+    } else {
+        tabby_root().join("models")
+    }
 }
 
 pub fn events_dir() -> PathBuf {

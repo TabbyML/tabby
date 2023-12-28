@@ -1,7 +1,7 @@
 # Tabby Plugin for IntelliJ Platform
 
 [![JetBrains plugins](https://img.shields.io/jetbrains/plugin/d/22379-tabby)](https://plugins.jetbrains.com/plugin/22379-tabby)
-[![Slack Community](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
+[![Slack Community](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)
 
 Tabby is an AI coding assistant that can suggest multi-line code or full functions in real-time.
 

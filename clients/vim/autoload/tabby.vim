@@ -38,7 +38,7 @@ function! tabby#Status()
     elseif agent_status == 'disconnected'
       echo 'Tabby cannot connect to server. Please check your settings.'
     elseif agent_status == 'unauthorized'
-      echo 'Authorization required. Use `:Tabby auth` to continue.'
+      echo 'Authorization required. Please set your personal token in settings.'
     endif
   endif
 endfunction
@@ -263,37 +263,4 @@ function! s:GetLanguage()
   else
     return filetype
   endif
-endfunction
-
-function! tabby#Auth()
-  if s:status != "initialization_done"
-    echo 'Tabby is not ready for auth.'
-    return
-  endif
-  if tabby#agent#Status() != 'unauthorized'
-    echo 'Already authorized.'
-    return
-  endif
-  call tabby#agent#RequestAuthUrl({ data -> s:HandleAuthUrl(data) })
-  echo 'Generating authorization URL, please wait...'
-endfunction
-
-function! s:HandleAuthUrl(data)
-  if (type(a:data) != v:t_dict) || !has_key(a:data, 'authUrl') || !has_key(a:data, 'code')
-    echo 'Failed to create authorization URL.'
-    return
-  endif
-  call tabby#agent#WaitForAuthToken(a:data.code)
-  let command = ''
-  if executable('xdg-open')
-    let command = 'xdg-open ' . a:data.authUrl
-  elseif executable('open')
-    let command = 'open ' . a:data.authUrl
-  elseif executable('wslview')
-    let command = 'wslview ' . a:data.authUrl
-  endif
-  if command != ''
-    call system(command)
-  endif
-  echo a:data.authUrl
 endfunction
