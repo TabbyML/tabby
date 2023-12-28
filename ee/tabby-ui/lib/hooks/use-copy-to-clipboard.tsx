@@ -25,7 +25,11 @@ export function useCopyToClipboard({
   }
 
   const onCopyError = (error?: any) => {
-    onError?.(error)
+    if (typeof onError === 'function') {
+      onError?.(error)
+      return
+    }
+
     toast({
       title: 'Failed to copy.',
       variant: 'destructive'
