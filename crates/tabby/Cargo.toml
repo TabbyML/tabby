@@ -44,7 +44,6 @@ sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
 http-api-bindings = { path = "../http-api-bindings", optional = true }      # included when build with `experimental-http` feature
 async-stream = { workspace = true }
-axum-streams = { version = "0.9.1", features = ["json"] }
 minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
 regex.workspace = true

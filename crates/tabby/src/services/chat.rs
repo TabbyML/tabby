@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::debug;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use super::model;
 use crate::{fatal, Device};
@@ -33,7 +34,43 @@ pub struct Message {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ChatCompletionChunk {
+    id: String,
+    created: u64,
+    system_fingerprint: String,
+    object: &'static str,
+    model: &'static str,
+    choices: [ChatCompletionChoice; 1],
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+pub struct ChatCompletionChoice {
+    index: usize,
+    logprobs: Option<String>,
+    finish_reason: Option<String>,
+    delta: ChatCompletionDelta,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+pub struct ChatCompletionDelta {
     content: String,
+}
+
+impl ChatCompletionChunk {
+    fn new(content: String, id: String, created: u64, last_chunk: bool) -> Self {
+        ChatCompletionChunk {
+            id,
+            created,
+            object: "chat.completion.chunk",
+            model: "unused-model",
+            system_fingerprint: "unused-system-fingerprint".into(),
+            choices: [ChatCompletionChoice {
+                index: 0,
+                delta: ChatCompletionDelta { content },
+                logprobs: None,
+                finish_reason: last_chunk.then(|| "stop".into()),
+            }],
+        }
+    }
 }
 
 pub struct ChatService {
@@ -64,11 +101,17 @@ impl ChatService {
     ) -> BoxStream<ChatCompletionChunk> {
         let prompt = self.prompt_builder.build(&request.messages);
         let options = Self::text_generation_options();
+        let created = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("Must be able to read system clock")
+            .as_secs();
+        let id = format!("chatcmpl-{}", Uuid::new_v4());
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
-                yield ChatCompletionChunk { content }
+                yield ChatCompletionChunk::new(content, id.clone(), created, false)
             }
+            yield ChatCompletionChunk::new("".into(), id, created, true)
         };
 
         Box::pin(s)
