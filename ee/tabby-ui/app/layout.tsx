@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 
-import { Toaster } from '@/components/ui/toaster'
+import { Toaster } from '@/components/ui/sonner'
 
 import '@/app/globals.css'
 
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           fontMono.variable
         )}
       >
-        <Toaster />
+        <Toaster richColors />
         <Providers attribute="class" defaultTheme="system" enableSystem>
           <div className="flex min-h-screen flex-col">{children}</div>
           <TailwindIndicator />
