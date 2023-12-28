@@ -56,7 +56,7 @@ export default async () => [
         polyfills: { fs: true },
       }),
       // Mark sideEffects false for tree-shaking unused libraries in browser.
-      markSideEffects(false, ["chokidar", "rotating-file-stream"]),
+      markSideEffects(false, ["chokidar", "file-stream-rotator"]),
     ],
     esbuildOptions(options) {
       defineEnvs(options, { browser: true });
