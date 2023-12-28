@@ -23,10 +23,13 @@ use crate::{
 
 pub fn routes(locator: Arc<dyn ServiceLocator>) -> Router {
     Router::new()
+        .route("/:name/resolve/.git/", routing::get(not_found))
+        .route("/:name/resolve/.git/*path", routing::get(not_found))
         .route("/:name/resolve/", routing::get(repositories::resolve))
         .route("/:name/resolve/*path", routing::get(repositories::resolve))
         .route("/:name/meta/", routing::get(repositories::meta))
         .route("/:name/meta/*path", routing::get(repositories::meta))
+        .fallback(not_found)
         .layer(from_fn_with_state(locator, require_login_middleware))
 }
 
@@ -51,6 +54,10 @@ async fn require_login_middleware(
     };
 
     next.run(request).await
+}
+
+async fn not_found() -> StatusCode {
+    StatusCode::NOT_FOUND
 }
 
 #[instrument(skip(repo))]
