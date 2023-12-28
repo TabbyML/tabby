@@ -38,6 +38,7 @@
     "class-variance-authority": "^0.4.0",
     "clsx": "^1.2.1",
     "compare-versions": "^6.1.0",
+    "copy-to-clipboard": "^3.3.3",
     "downshift": "^8.2.2",
     "focus-trap-react": "^10.1.1",
     "graphql": "^16.8.1",
