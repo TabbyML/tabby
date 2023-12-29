@@ -42,6 +42,7 @@ utoipa = "3.3"
 axum = "0.6"
 hyper = "0.14"
 juniper = "0.15"
+chrono = "0.4"
 
 [workspace.dependencies.uuid]
 version = "1.3.3"

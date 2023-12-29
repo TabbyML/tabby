@@ -52,7 +52,7 @@ futures.workspace = true
 async-trait.workspace = true
 tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
 thiserror.workspace = true
-chrono = "0.4.31"
+chrono.workspace = true
 axum-prometheus = "0.4.0"
 uuid.workspace = true
 
