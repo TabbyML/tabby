@@ -3711,6 +3711,19 @@ dependencies = [
 [[package]]
 name = "tabby-db"
 version = "0.7.0"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "chrono",
+ "include_dir",
+ "lazy_static",
+ "rusqlite",
+ "rusqlite_migration",
+ "tabby-common",
+ "tokio",
+ "tokio-rusqlite",
+ "uuid 1.6.1",
+]
 
 [[package]]
 name = "tabby-download"
