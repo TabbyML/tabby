@@ -10,7 +10,7 @@ testutils = []
 
 [dependencies]
 anyhow.workspace = true
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { workspace = true, features = ["serde"] }
 include_dir = "0.7.3"
 lazy_static = "1.4.0"
 rusqlite = { version = "0.30.0", features = ["bundled", "chrono"] }
