@@ -3,10 +3,9 @@ mod job_utils;
 
 use std::time::Duration;
 
+use tabby_db::DbConn;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::error;
-
-use crate::service::db::DbConn;
 
 async fn new_job_scheduler(jobs: Vec<Job>) -> anyhow::Result<JobScheduler> {
     let scheduler = JobScheduler::new().await?;

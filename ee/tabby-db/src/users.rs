@@ -7,8 +7,8 @@ use super::DbConn;
 
 #[allow(unused)]
 pub struct UserDAO {
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
     pub id: i32,
     pub email: String,

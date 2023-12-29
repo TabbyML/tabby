@@ -5,6 +5,9 @@ edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
 
+[features]
+testutils = []
+
 [dependencies]
 anyhow.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
@@ -21,4 +24,3 @@ uuid.workspace = true
 [dev-dependencies]
 assert_matches = "1.5.0"
 tokio = { workspace = true, features = ["macros", "process"] }
-

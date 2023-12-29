@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use tabby_db::DbConn;
 
-use super::db::DbConn;
 use crate::schema::job::{JobRun, JobService};
 
 #[async_trait]

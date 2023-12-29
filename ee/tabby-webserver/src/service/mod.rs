@@ -1,6 +1,5 @@
 mod auth;
 mod cron;
-mod db;
 mod job;
 mod proxy;
 mod worker;
@@ -16,9 +15,10 @@ use axum::{
 };
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tabby_db::DbConn;
 use tracing::{info, warn};
 
-use self::{cron::run_cron, db::DbConn};
+use self::cron::run_cron;
 use crate::schema::{
     auth::AuthenticationService,
     job::JobService,

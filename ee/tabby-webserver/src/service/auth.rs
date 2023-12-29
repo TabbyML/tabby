@@ -8,9 +8,9 @@ use argon2::{
 };
 use async_trait::async_trait;
 use juniper::ID;
+use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
 
-use super::db::DbConn;
 use crate::schema::auth::{
     generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
     JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
@@ -362,8 +362,6 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::service::db;
-
     use super::*;
 
     #[test]
@@ -530,7 +528,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         assert!(!conn.is_admin_initialized().await.unwrap());
-        db::testutils::create_user(&conn).await;
+        tabby_db::testutils::create_user(&conn).await;
         assert!(conn.is_admin_initialized().await.unwrap());
     }
 }
