@@ -1,0 +1,8 @@
+[package]
+name = "tabby-db"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]

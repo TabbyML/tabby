@@ -11,6 +11,7 @@ members = [
     "crates/aim-downloader",
     "crates/juniper-axum",
     "ee/tabby-webserver",
+    "ee/tabby-db",
 ]
 
 [workspace.package]

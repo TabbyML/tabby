@@ -3709,6 +3709,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabby-db"
+version = "0.7.0"
+
+[[package]]
 name = "tabby-download"
 version = "0.7.0"
 dependencies = [
