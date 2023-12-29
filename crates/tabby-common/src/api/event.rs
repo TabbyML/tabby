@@ -54,7 +54,7 @@ pub enum Event {
     Dismiss {
         completion_id: String,
         choice_index: u32,
-        
+
         #[serde(skip_serializing_if = "Option::is_none")]
         view_id: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
