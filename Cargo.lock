@@ -3709,6 +3709,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabby-db"
+version = "0.7.0"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "chrono",
+ "include_dir",
+ "lazy_static",
+ "rusqlite",
+ "rusqlite_migration",
+ "tabby-common",
+ "tokio",
+ "tokio-rusqlite",
+ "uuid 1.6.1",
+]
+
+[[package]]
 name = "tabby-download"
 version = "0.7.0"
 dependencies = [
@@ -3779,24 +3796,21 @@ dependencies = [
  "chrono",
  "futures",
  "hyper",
- "include_dir",
  "jsonwebtoken",
  "juniper",
  "juniper-axum",
  "lazy_static",
  "mime_guess",
  "pin-project",
- "rusqlite",
- "rusqlite_migration",
  "rust-embed 8.0.0",
  "serde",
  "serde_json",
  "tabby-common",
+ "tabby-db",
  "tarpc",
  "thiserror",
  "tokio",
  "tokio-cron-scheduler",
- "tokio-rusqlite",
  "tokio-tungstenite",
  "tower",
  "tower-http 0.4.0",

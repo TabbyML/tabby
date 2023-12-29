@@ -1,10 +1,9 @@
 use std::process::Stdio;
 
+use tabby_db::{DbConn, JobRunDAO};
 use tokio::{io::AsyncBufReadExt, process::Child};
 use tokio_cron_scheduler::Job;
 use tracing::error;
-
-use crate::service::db::{DbConn, JobRunDAO};
 
 pub async fn run_job(db_conn: DbConn, job_name: String, schedule: &str) -> anyhow::Result<Job> {
     let job = Job::new_async(schedule, move |_, _| {

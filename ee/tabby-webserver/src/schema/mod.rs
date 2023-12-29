@@ -1,4 +1,5 @@
 pub mod auth;
+mod dao;
 pub mod job;
 pub mod worker;
 

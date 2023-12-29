@@ -4,12 +4,11 @@ use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::schema::auth;
 
 #[allow(unused)]
 pub struct UserDAO {
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
     pub id: i32,
     pub email: String,
@@ -37,18 +36,6 @@ impl UserDAO {
             updated_at: row.get(5)?,
             auth_token: row.get(6)?,
         })
-    }
-}
-
-impl From<UserDAO> for auth::User {
-    fn from(val: UserDAO) -> Self {
-        auth::User {
-            id: juniper::ID::new(val.id.to_string()),
-            email: val.email,
-            is_admin: val.is_admin,
-            auth_token: val.auth_token,
-            created_at: val.created_at,
-        }
     }
 }
 
@@ -226,7 +213,7 @@ fn generate_auth_token() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::service::db::testutils::create_user;
+    use crate::testutils::create_user;
 
     #[tokio::test]
     async fn test_create_user() {

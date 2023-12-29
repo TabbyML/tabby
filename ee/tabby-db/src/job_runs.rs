@@ -2,7 +2,6 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 
 use super::DbConn;
-use crate::schema::job;
 
 #[derive(Default, Clone)]
 pub struct JobRunDAO {
@@ -26,20 +25,6 @@ impl JobRunDAO {
             stdout: row.get(5)?,
             stderr: row.get(6)?,
         })
-    }
-}
-
-impl From<JobRunDAO> for job::JobRun {
-    fn from(run: JobRunDAO) -> Self {
-        Self {
-            id: juniper::ID::new(run.id.to_string()),
-            job_name: run.job_name,
-            start_time: run.start_time,
-            finish_time: run.finish_time,
-            exit_code: run.exit_code,
-            stdout: run.stdout,
-            stderr: run.stderr,
-        }
     }
 }
 

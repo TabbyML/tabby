@@ -3,7 +3,6 @@ use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::schema::auth;
 
 pub struct InvitationDAO {
     pub id: i32,
@@ -21,17 +20,6 @@ impl InvitationDAO {
             code: row.get(2)?,
             created_at: row.get(3)?,
         })
-    }
-}
-
-impl From<InvitationDAO> for auth::InvitationNext {
-    fn from(val: InvitationDAO) -> Self {
-        Self {
-            id: juniper::ID::new(val.id.to_string()),
-            email: val.email,
-            code: val.code,
-            created_at: val.created_at,
-        }
     }
 }
 

@@ -8,9 +8,9 @@ use argon2::{
 };
 use async_trait::async_trait;
 use juniper::ID;
+use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
 
-use super::db::DbConn;
 use crate::schema::auth::{
     generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
     JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
@@ -521,5 +521,14 @@ mod tests {
 
         let user2 = conn.get_user_by_email(ADMIN_EMAIL).await.unwrap().unwrap();
         assert_ne!(user.auth_token, user2.auth_token);
+    }
+
+    #[tokio::test]
+    async fn test_is_admin_initialized() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        assert!(!conn.is_admin_initialized().await.unwrap());
+        tabby_db::testutils::create_user(&conn).await;
+        assert!(conn.is_admin_initialized().await.unwrap());
     }
 }
