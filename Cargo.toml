@@ -43,6 +43,14 @@ axum = "0.6"
 hyper = "0.14"
 juniper = "0.15"
 
+[workspace.dependencies.uuid]
+version = "1.3.3"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
