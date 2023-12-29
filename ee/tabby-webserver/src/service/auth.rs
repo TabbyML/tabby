@@ -362,6 +362,8 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 mod tests {
     use assert_matches::assert_matches;
 
+    use crate::service::db;
+
     use super::*;
 
     #[test]
@@ -521,5 +523,14 @@ mod tests {
 
         let user2 = conn.get_user_by_email(ADMIN_EMAIL).await.unwrap().unwrap();
         assert_ne!(user.auth_token, user2.auth_token);
+    }
+
+    #[tokio::test]
+    async fn test_is_admin_initialized() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        assert!(!conn.is_admin_initialized().await.unwrap());
+        db::testutils::create_user(&conn).await;
+        assert!(conn.is_admin_initialized().await.unwrap());
     }
 }

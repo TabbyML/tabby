@@ -136,15 +136,6 @@ impl DbConn {
 mod tests {
 
     use super::*;
-    use crate::schema::auth::AuthenticationService;
-
-    async fn create_user(conn: &DbConn) -> i32 {
-        let email: &str = "test@example.com";
-        let password: &str = "123456789";
-        conn.create_user(email.to_string(), password.to_string(), true)
-            .await
-            .unwrap()
-    }
 
     #[tokio::test]
     async fn migrations_test() {
@@ -168,19 +159,10 @@ mod tests {
         assert_eq!(new_token.len(), 36);
         assert_ne!(old_token, new_token);
     }
-
-    #[tokio::test]
-    async fn test_is_admin_initialized() {
-        let conn = DbConn::new_in_memory().await.unwrap();
-
-        assert!(!conn.is_admin_initialized().await.unwrap());
-        create_user(&conn).await;
-        assert!(conn.is_admin_initialized().await.unwrap());
-    }
 }
 
 #[cfg(test)]
-mod testutils {
+pub mod testutils {
     use super::*;
 
     pub(crate) async fn create_user(conn: &DbConn) -> i32 {
