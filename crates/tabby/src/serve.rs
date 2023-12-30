@@ -122,7 +122,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     let (api, ui) = if args.webserver {
-        tabby_webserver::attach_webserver(api, ui, logger, code).await
+        tabby_webserver::public::attach_webserver(api, ui, logger, code, config).await
     } else {
         let ui = ui.fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
         (api, ui)

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use axum::{
@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, SourceFile, Tag};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
+
+use crate::repositories::ResolveState;
 
 lazy_static! {
     static ref META: HashMap<DatasetKey, Meta> = load_meta();
@@ -48,16 +50,12 @@ impl ResolveParams {
         self.path.as_deref().unwrap_or("")
     }
 
-    #[cfg(not(target_os = "windows"))]
     pub fn os_path(&self) -> String {
-        self.path.clone().unwrap_or_default()
-    }
-    #[cfg(target_os = "windows")]
-    pub fn os_path(&self) -> String {
-        self.path
-            .clone()
-            .unwrap_or_default()
-            .replace("/", r"\")
+        if cfg!(target_os = "windows") {
+            self.path.clone().unwrap_or_default().replace('/', r"\")
+        } else {
+            self.path.clone().unwrap_or_default()
+        }
     }
 }
 
@@ -187,4 +185,22 @@ pub fn resolve_meta(key: &DatasetKey) -> Option<Meta> {
         return Some(meta.clone());
     }
     None
+}
+
+pub fn resolve_all(rs: Arc<ResolveState>) -> Result<Response> {
+    let entries: Vec<_> = rs
+        .repositories
+        .iter()
+        .map(|repo| DirEntry {
+            kind: DirEntryKind::Dir,
+            basename: repo.name(),
+        })
+        .collect();
+
+    let body = Json(ListDir { entries }).into_response();
+    let resp = Response::builder()
+        .header(header::CONTENT_TYPE, DIRECTORY_MIME_TYPE)
+        .body(body.into_body())?;
+
+    Ok(resp)
 }

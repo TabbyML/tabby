@@ -40,13 +40,9 @@ impl Config {
 
         names.len() == self.repositories.len()
     }
-
-    pub fn find_repository(&self, name: &str) -> Option<&RepositoryConfig> {
-        self.repositories.iter().find(|repo| repo.name() == name)
-    }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RepositoryConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
