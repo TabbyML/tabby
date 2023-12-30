@@ -22,7 +22,7 @@ const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
 #[derive(Hash, PartialEq, Eq, Debug)]
 pub struct DatasetKey {
-    local_name: String,
+    repo_name: String,
     rel_path: String,
 }
 
@@ -35,8 +35,8 @@ pub struct ResolveParams {
 impl ResolveParams {
     pub fn dataset_key(&self) -> DatasetKey {
         DatasetKey {
-            local_name: self.name.clone(),
-            rel_path: self.path_str().to_string(),
+            repo_name: self.name.clone(),
+            rel_path: self.os_path(),
         }
     }
 
@@ -46,6 +46,18 @@ impl ResolveParams {
 
     pub fn path_str(&self) -> &str {
         self.path.as_deref().unwrap_or("")
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    pub fn os_path(&self) -> String {
+        self.path.clone().unwrap_or_default()
+    }
+    #[cfg(target_os = "windows")]
+    pub fn os_path(&self) -> String {
+        self.path
+            .clone()
+            .unwrap_or_default()
+            .replace("/", r"\")
     }
 }
 
@@ -105,16 +117,13 @@ fn load_meta() -> HashMap<DatasetKey, Meta> {
             return dataset;
         }
     };
-    let iter = match SourceFile::all() {
-        Ok(all) => all,
-        Err(_) => {
-            return dataset;
-        }
+    let Ok(iter) = SourceFile::all() else {
+        return dataset;
     };
     for file in iter {
-        if let Some(name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
+        if let Some(repo_name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
             let key = DatasetKey {
-                local_name: name,
+                repo_name,
                 rel_path: file.filepath.clone(),
             };
             dataset.insert(key, file.into());

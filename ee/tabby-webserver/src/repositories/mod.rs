@@ -11,15 +11,20 @@ use axum::{
     routing, Json, Router,
 };
 use hyper::Body;
+use lazy_static::lazy_static;
 use juniper_axum::extract::AuthBearer;
-use tabby_common::path::repositories_dir;
 use tracing::{instrument, warn};
+use tabby_common::config::Config;
 
 use crate::{
     repositories,
     repositories::resolve::{resolve_dir, resolve_file, resolve_meta, Meta, ResolveParams},
     schema::ServiceLocator,
 };
+
+lazy_static! {
+    static ref CONF: Config = Config::load().unwrap_or_default();
+}
 
 pub fn routes(locator: Arc<dyn ServiceLocator>) -> Router {
     Router::new()
@@ -62,8 +67,11 @@ async fn not_found() -> StatusCode {
 
 #[instrument(skip(repo))]
 async fn resolve(Path(repo): Path<ResolveParams>) -> Result<Response, StatusCode> {
-    let root = repositories_dir().join(repo.name_str());
-    let full_path = root.join(repo.path_str());
+    let Some(conf) = CONF.find_repository(repo.name_str()) else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+    let root = conf.dir();
+    let full_path = root.join(repo.os_path());
     let is_dir = tokio::fs::metadata(full_path.clone())
         .await
         .map(|m| m.is_dir())

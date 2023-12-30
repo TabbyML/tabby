@@ -40,6 +40,10 @@ impl Config {
 
         names.len() == self.repositories.len()
     }
+
+    pub fn find_repository(&self, name: &str) -> Option<&RepositoryConfig> {
+        self.repositories.iter().find(|repo| repo.name() == name)
+    }
 }
 
 #[derive(Serialize, Deserialize)]
