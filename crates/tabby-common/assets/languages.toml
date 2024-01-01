@@ -168,3 +168,20 @@ top_level_keywords = [
     "dynamic",
     "async",
 ]
+
+[[config]]
+languages = ["julia"]
+line_comment = "#"
+top_level_keywords = [
+    "struct",
+    "function",
+    "using",
+    "import",
+    "export",
+    "let",
+    "macro",
+    "abstract",
+    "const",
+    "mutable",
+    "module",
+]
