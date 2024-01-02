@@ -133,6 +133,7 @@ class Agent : ProcessAdapter() {
   ) {
     data class Server(
       val endpoint: String? = null,
+      val token: String? = null,
       val requestHeaders: Map<String, String>? = null,
     )
 
@@ -207,10 +208,12 @@ class Agent : ProcessAdapter() {
     val code: String,
   )
 
+  @Deprecated("Tabby Cloud auth support will be removed.")
   suspend fun requestAuthUrl(): AuthUrlResponse? {
     return request("requestAuthUrl", listOf(ABORT_SIGNAL_ENABLED))
   }
 
+  @Deprecated("Tabby Cloud auth support will be removed.")
   suspend fun waitForAuthToken(code: String) {
     return request("waitForAuthToken", listOf(code, ABORT_SIGNAL_ENABLED))
   }

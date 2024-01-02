@@ -40,6 +40,14 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
       serverEndpointFlow.value = value
     }
 
+  private val serverTokenFlow = MutableStateFlow("")
+  val serverTokenState = serverTokenFlow.asStateFlow()
+  var serverToken: String = ""
+    set(value) {
+      field = value
+      serverTokenFlow.value = value
+    }
+
   private val nodeBinaryFlow = MutableStateFlow("")
   val nodeBinaryState = nodeBinaryFlow.asStateFlow()
   var nodeBinary: String = ""
@@ -67,6 +75,7 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
   data class State(
     val completionTriggerMode: TriggerMode,
     val serverEndpoint: String,
+    val serverToken: String,
     val nodeBinary: String,
     val isAnonymousUsageTrackingDisabled: Boolean,
     val notificationsMuted: List<String>,
@@ -76,6 +85,7 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
     get() = State(
       completionTriggerMode = completionTriggerMode,
       serverEndpoint = serverEndpoint,
+      serverToken = serverToken,
       nodeBinary = nodeBinary,
       isAnonymousUsageTrackingDisabled = isAnonymousUsageTrackingDisabled,
       notificationsMuted = notificationsMuted,
@@ -84,6 +94,7 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
   val state = combine(
     completionTriggerModeState,
     serverEndpointState,
+    serverTokenState,
     nodeBinaryState,
     isAnonymousUsageTrackingDisabledState,
     notificationsMutedState,
@@ -91,9 +102,10 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
     State(
       completionTriggerMode = args[0] as TriggerMode,
       serverEndpoint = args[1] as String,
-      nodeBinary = args[2] as String,
-      isAnonymousUsageTrackingDisabled = args[3] as Boolean,
-      notificationsMuted = args[4] as List<String>,
+      serverToken = args[2] as String,
+      nodeBinary = args[3] as String,
+      isAnonymousUsageTrackingDisabled = args[4] as Boolean,
+      notificationsMuted = args[5] as List<String>,
     )
   }.stateIn(CoroutineScope(Dispatchers.IO), SharingStarted.Eagerly, this.data)
 

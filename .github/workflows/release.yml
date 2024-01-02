@@ -35,16 +35,17 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014
             container: quay.io/pypa/manylinux2014_x86_64
+            build_args: --features static-ssl
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
-            build_args: --features cuda
+            build_args: --features static-ssl --features cuda
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda122
             container: sameli/manylinux2014_x86_64_cuda_12.2
-            build_args: --features cuda
+            build_args: --features static-ssl --features cuda
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc
@@ -65,12 +66,12 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-rocm57
             container: ghcr.io/cromefire/hipblas-manylinux/2014/5.7:latest
-            build_args: --features rocm
+            build_args: --features static-ssl --features rocm
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-rocm60
             container: ghcr.io/cromefire/hipblas-manylinux/2014/6.0:latest
-            build_args: --features rocm
+            build_args: --features static-ssl --features rocm
 
     env:
       SCCACHE_GHA_ENABLED: true

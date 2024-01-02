@@ -1,52 +1,47 @@
+import Collapse from '@site/src/components/Collapse';
+
 # ⁉️ Frequently Asked Questions
 
-<details>
-  <summary>How much VRAM a LLM model consumes?</summary>
-    <div>
-        <p>By default, Tabby operates in int8 mode with CUDA, requiring approximately 8GB of VRAM for CodeLlama-7B.</p>
-        <p>For ROCm the actual limits are currently largely untested, but the same CodeLlama-7B seems to use 8GB of VRAM as well on a AMD Radeon™ RX 7900 XTX according to the ROCm monitoring tools.</p>
-    </div>
-</details>
+<Collapse title="How much VRAM a LLM model consumes?">
 
-<details>
-  <summary>What GPUs are required for reduced-precision inference (e.g int8)?</summary>
-  <div>
-    <ul>
-      <li>int8: Compute Capability >= 7.0 or Compute Capability 6.1</li>
-      <li>float16: Compute Capability >= 7.0</li>
-      <li>bfloat16: Compute Capability >= 8.0</li>
-    </ul>
-    <p>
-      To determine the mapping between the GPU card type and its compute capability, please visit <a href="https://developer.nvidia.com/cuda-gpus">this page</a>
-    </p>
-    <p>
-      This also seems to be available on AMD Radeon™ GPUs, but it's unclear which cards besides RDNA3 support this.
-    </p>
-  </div>
-</details>
+By default, Tabby operates in int8 mode with CUDA, requiring approximately 8GB of VRAM for CodeLlama-7B.
 
-<details>
-  <summary>How to utilize multiple NVIDIA GPUs?</summary>
-  <div>
-    <p>Tabby only supports the use of a single GPU. To utilize multiple GPUs, you can initiate multiple Tabby instances and set CUDA_VISIBLE_DEVICES (for cuda) or HIP_VISIBLE_DEVICES (for rocm) accordingly.</p>
-  </div>
-</details>
+For ROCm the actual limits are currently largely untested, but the same CodeLlama-7B seems to use 8GB of VRAM as well on a AMD Radeon™ RX 7900 XTX according to the ROCm monitoring tools.
 
-<details>
-  <summary>My AMD ROCm device isn't supported by ROCm</summary>
-  <div>
-    <p>
-      You can use the HSA_OVERRIDE_GFX_VERSION variable if there is a similar GPU that is supported by ROCm you can set it to that.
-      For example for RDNA2 you can set it to 10.3.0 and to 11.0.0 for RDNA3.
-    </p>
-  </div>
-</details>
+</Collapse>
 
-<details>
-  <summary>How can I convert my own model for use with Tabby?</summary>
-  <div>
-    <p>Since version 0.5.0, Tabby's inference now operates entirely on llama.cpp, allowing the use of any GGUF-compatible model format with Tabby. To enhance accessibility, we have curated models that we benchmarked, available at <a href="https://github.com/TabbyML/registry-tabby">registry-tabby</a>.</p>
-    <p>Users are free to fork the repository to create their own registry. If a user's registry is located at <code>https://github.com/USERNAME/registry-tabby</code>, the model ID will be <code>USERNAME/model</code>.</p>
-    <p>For details on the registry format, please refer to <a href="https://github.com/TabbyML/registry-tabby/blob/main/models.json">models.json</a></p>
-  </div>
-</details>
+<Collapse title="What GPUs are required for reduced-precision inference (e.g int8)?">
+
+* int8: Compute Capability >= 7.0 or Compute Capability 6.1
+* float16: Compute Capability >= 7.0
+* bfloat16: Compute Capability >= 8.0
+
+To determine the mapping between the GPU card type and its compute capability, please visit [this page](https://developer.nvidia.com/cuda-gpus)
+
+This also seems to be available on AMD Radeon™ GPUs, but it's unclear which cards besides RDNA3 support this.
+
+</Collapse>
+
+<Collapse title="How to utilize multiple NVIDIA GPUs?">
+
+Tabby only supports the use of a single GPU. To utilize multiple GPUs, you can initiate multiple Tabby instances and set CUDA_VISIBLE_DEVICES (for cuda) or HIP_VISIBLE_DEVICES (for rocm) accordingly.
+
+</Collapse>
+
+<Collapse title="My AMD device isn't supported by ROCm">
+
+You can use the HSA_OVERRIDE_GFX_VERSION variable if there is a similar GPU that is supported by ROCm you can set it to that.
+
+For example for RDNA2 you can set it to 10.3.0 and to 11.0.0 for RDNA3.
+
+</Collapse>
+
+<Collapse title="How can I convert my own model for use with Tabby?">
+
+Since version 0.5.0, Tabby's inference now operates entirely on llama.cpp, allowing the use of any GGUF-compatible model format with Tabby. To enhance accessibility, we have curated models that we benchmarked, available at [registry-tabby](https://github.com/TabbyML/registry-tabby)
+
+Users are free to fork the repository to create their own registry. If a user's registry is located at `https://github.com/USERNAME/registry-tabby`, the model ID will be `USERNAME/model`.
+
+For details on the registry format, please refer to [models.json](https://github.com/TabbyML/registry-tabby/blob/main/models.json)
+
+</Collapse>

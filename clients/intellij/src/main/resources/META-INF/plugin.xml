@@ -18,7 +18,7 @@
         <p>Tabby is an AI coding assistant that can suggest multi-line code or full functions in real-time.</p>
         <br/>
         <p>For more information, please check out our <a href="https://tabbyml.com/">Website</a> and <a href="https://github.com/TabbyML/tabby">GitHub</a>.
-        If you encounter any problem or have any suggestion, please <a href="https://github.com/TabbyML/tabby/issues/new">open an issue</a>, or join our <a href="https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA">Slack community</a> for more support!</p>
+        If you encounter any problem or have any suggestion, please <a href="https://github.com/TabbyML/tabby/issues/new">open an issue</a>, or join our <a href="https://links.tabbyml.com/join-slack-extensions">Slack community</a> for more support!</p>
         <h2 id="demo">Demo</h2>
         <p>Try our online demo <a href="https://tabby.tabbyml.com/playground/">here</a>.</p>
         <h2 id="requirements">Requirements</h2>
@@ -63,11 +63,6 @@
                 <keyboard-shortcut first-keystroke="alt BACK_SLASH" keymap="$default"/>
             </action>
             <separator/>
-            <action id="Tabby.OpenAuthPage"
-                    class="com.tabbyml.intellijtabby.actions.OpenAuthPage"
-                    text="Open Authorization Page..."
-                    description="Open the authorization web page in your web browser.">
-            </action>
             <action id="Tabby.CheckIssueDetail"
                     class="com.tabbyml.intellijtabby.actions.CheckIssueDetail"
                     text="Check Issue Detail..."
@@ -141,7 +136,6 @@
             <separator/>
             <reference id="Tabby.ToggleInlineCompletionTriggerMode"/>
             <separator/>
-            <reference id="Tabby.OpenAuthPage"/>
             <reference id="Tabby.CheckIssueDetail"/>
             <reference id="Tabby.OpenSettings"/>
             <reference id="Tabby.OpenOnlineHelp"/>

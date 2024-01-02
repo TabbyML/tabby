@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use axum::{
+    body::StreamBody,
     extract::State,
     response::{IntoResponse, Response},
     Json,
 };
-use axum_streams::StreamBodyAs;
 use tracing::instrument;
 
 use crate::services::chat::{ChatCompletionRequest, ChatService};
@@ -18,7 +18,7 @@ use crate::services::chat::{ChatCompletionRequest, ChatService};
     operation_id = "chat_completions",
     tag = "v1beta",
     responses(
-        (status = 200, description = "Success", body = ChatCompletionChunk, content_type = "application/jsonstream"),
+        (status = 200, description = "Success", body = ChatCompletionChunk, content_type = "text/event-stream"),
         (status = 405, description = "When chat model is not specified, the endpoint will returns 405 Method Not Allowed"),
     ),
     security(
@@ -32,9 +32,18 @@ pub async fn chat_completions(
 ) -> Response {
     let s = stream! {
         for await content in state.generate(&request).await {
-            yield content;
+            let content = match serde_json::to_string(&content) {
+                Ok(s) => s,
+                Err(e) => {
+                    yield Err(e);
+                    continue
+                }
+            };
+
+            let content = format!("data: {}\n\n", content);
+            yield Ok(content)
         }
     };
 
-    StreamBodyAs::json_nl(s).into_response()
+    StreamBody::new(s).into_response()
 }

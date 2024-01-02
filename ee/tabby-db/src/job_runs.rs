@@ -1,11 +1,10 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 
 use super::DbConn;
 
-#[derive(Default, Clone, Serialize, Deserialize)]
-pub struct JobRun {
+#[derive(Default, Clone)]
+pub struct JobRunDAO {
     pub id: i32,
     pub job_name: String,
     pub start_time: DateTime<Utc>,
@@ -15,9 +14,23 @@ pub struct JobRun {
     pub stderr: String,
 }
 
+impl JobRunDAO {
+    fn from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Self> {
+        Ok(Self {
+            id: row.get(0)?,
+            job_name: row.get(1)?,
+            start_time: row.get(2)?,
+            finish_time: row.get(3)?,
+            exit_code: row.get(4)?,
+            stdout: row.get(5)?,
+            stderr: row.get(6)?,
+        })
+    }
+}
+
 /// db read/write operations for `job_runs` table
 impl DbConn {
-    pub async fn create_job_run(&self, run: JobRun) -> Result<i32> {
+    pub async fn create_job_run(&self, run: JobRunDAO) -> Result<i32> {
         let rowid = self
             .conn
             .call(move |c| {
@@ -65,7 +78,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_job_status(&self, run: JobRun) -> Result<()> {
+    pub async fn update_job_status(&self, run: JobRunDAO) -> Result<()> {
         self.conn
             .call(move |c| {
                 let mut stmt = c.prepare(
@@ -81,6 +94,40 @@ impl DbConn {
             .await?;
         Ok(())
     }
+
+    pub async fn list_job_runs_with_filter(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<JobRunDAO>> {
+        let query = Self::make_pagination_query(
+            "job_runs",
+            &[
+                "id",
+                "job",
+                "start_ts",
+                "end_ts",
+                "exit_code",
+                "stdout",
+                "stderr",
+            ],
+            limit,
+            skip_id,
+            backwards,
+        );
+
+        let runs = self
+            .conn
+            .call(move |c| {
+                let mut stmt = c.prepare(&query)?;
+                let run_iter = stmt.query_map([], JobRunDAO::from_row)?;
+                Ok(run_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
+
+        Ok(runs)
+    }
 }
 
 #[cfg(test)]
@@ -90,7 +137,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_job_run() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let run = JobRun {
+        let run = JobRunDAO {
             id: 0,
             job_name: "test".to_string(),
             start_time: chrono::Utc::now(),
@@ -102,7 +149,7 @@ mod tests {
         let id = db.create_job_run(run).await.unwrap();
         assert_eq!(id, 1);
 
-        let run = JobRun {
+        let run = JobRunDAO {
             id: 0,
             job_name: "test".to_string(),
             start_time: chrono::Utc::now(),
@@ -114,7 +161,7 @@ mod tests {
         let id = db.create_job_run(run).await.unwrap();
         assert_eq!(id, 2);
 
-        let run = JobRun {
+        let run = JobRunDAO {
             id: 0,
             job_name: "test".to_string(),
             start_time: chrono::Utc::now(),

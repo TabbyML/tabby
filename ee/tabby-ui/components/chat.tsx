@@ -4,7 +4,7 @@ import React from 'react'
 import { useChat } from 'ai/react'
 import type { Message } from 'ai/react'
 import { find, findIndex } from 'lodash-es'
-import { toast } from 'react-hot-toast'
+import { toast } from 'sonner'
 
 import { usePatchFetch } from '@/lib/hooks/use-patch-fetch'
 import { useStore } from '@/lib/hooks/use-store'
@@ -27,7 +27,6 @@ export interface ChatProps extends React.ComponentProps<'div'> {
 export function Chat({ id, initialMessages, loading, className }: ChatProps) {
   usePatchFetch()
   const chats = useStore(useChatStore, state => state.chats)
-
   const {
     messages,
     append,

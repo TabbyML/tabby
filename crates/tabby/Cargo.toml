@@ -9,6 +9,10 @@ ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
 rocm = ["llama-cpp-bindings/rocm"]
 experimental-http = ["dep:http-api-bindings"]
+# If compiling on a system without OpenSSL installed, or cross-compiling for a different
+# architecture, enable this feature to compile OpenSSL as part of the build.
+# See https://docs.rs/openssl/#vendored for more.
+static-ssl = ['openssl/vendored']
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }
@@ -40,7 +44,6 @@ sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
 http-api-bindings = { path = "../http-api-bindings", optional = true }      # included when build with `experimental-http` feature
 async-stream = { workspace = true }
-axum-streams = { version = "0.9.1", features = ["json"] }
 minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
 regex.workspace = true
@@ -49,16 +52,13 @@ futures.workspace = true
 async-trait.workspace = true
 tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
 thiserror.workspace = true
-chrono = "0.4.31"
+chrono.workspace = true
 axum-prometheus = "0.4.0"
+uuid.workspace = true
 
-[dependencies.uuid]
-version = "1.3.3"
-features = [
-    "v4",                # Lets you generate random UUIDs
-    "fast-rng",          # Use a faster (but still sufficiently random) RNG
-    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
-]
+[dependencies.openssl]
+optional = true
+version = "*"
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["build", "git", "gitcl"] }
@@ -68,3 +68,6 @@ assert-json-diff = "2.0.2"
 insta = { version = "1.34.0", features = ["yaml", "redactions"] }
 reqwest.workspace = true
 serde-jsonlines = "0.5.0"
+
+[package.metadata.cargo-machete]
+ignored = ["openssl"]

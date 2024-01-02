@@ -1,4 +1,4 @@
-description = 'Replace range experimental: syntax mismatched: bad case 01'
+description = 'Replace range experimental: syntax mismatched: case 01'
 
 [config.limitScope]
 experimentalSyntax = true
@@ -29,4 +29,3 @@ def fibonacci(├n):
   else:
     return fibonacci(n - 1) + fibonacci(n - 2)┤)╣
 '''
-notEqual = true # FIXME: fix bad case

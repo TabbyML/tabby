@@ -5,7 +5,7 @@ use rusqlite::{params, OptionalExtension, Row};
 use super::DbConn;
 
 #[allow(unused)]
-pub struct RefreshToken {
+pub struct RefreshTokenDAO {
     id: u32,
     created_at: DateTime<Utc>,
 
@@ -14,14 +14,14 @@ pub struct RefreshToken {
     pub expires_at: DateTime<Utc>,
 }
 
-impl RefreshToken {
+impl RefreshTokenDAO {
     fn select(clause: &str) -> String {
         r#"SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens WHERE "#.to_owned()
             + clause
     }
 
-    fn from_row(row: &Row<'_>) -> std::result::Result<RefreshToken, rusqlite::Error> {
-        Ok(RefreshToken {
+    fn from_row(row: &Row<'_>) -> std::result::Result<RefreshTokenDAO, rusqlite::Error> {
+        Ok(RefreshTokenDAO {
             id: row.get(0)?,
             user_id: row.get(1)?,
             token: row.get(2)?,
@@ -89,15 +89,15 @@ impl DbConn {
         Ok(res? as i32)
     }
 
-    pub async fn get_refresh_token(&self, token: &str) -> Result<Option<RefreshToken>> {
+    pub async fn get_refresh_token(&self, token: &str) -> Result<Option<RefreshTokenDAO>> {
         let token = token.to_string();
         let token = self
             .conn
             .call(move |c| {
                 Ok(c.query_row(
-                    RefreshToken::select("token = ?").as_str(),
+                    RefreshTokenDAO::select("token = ?").as_str(),
                     params![token],
-                    RefreshToken::from_row,
+                    RefreshTokenDAO::from_row,
                 )
                 .optional())
             })

@@ -1,17 +1,19 @@
+pub use invitations::InvitationDAO;
+pub use job_runs::JobRunDAO;
+pub use users::UserDAO;
+
 mod invitations;
 mod job_runs;
+mod path;
 mod refresh_tokens;
 mod users;
 
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
-pub use job_runs::JobRun;
 use lazy_static::lazy_static;
 use rusqlite::params;
 use rusqlite_migration::AsyncMigrations;
 use tokio_rusqlite::Connection;
-
-use crate::path::db_file;
 
 static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 
@@ -26,15 +28,15 @@ pub struct DbConn {
 }
 
 impl DbConn {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testutils"))]
     pub async fn new_in_memory() -> Result<Self> {
         let conn = Connection::open_in_memory().await?;
         DbConn::init_db(conn).await
     }
 
     pub async fn new() -> Result<Self> {
-        tokio::fs::create_dir_all(db_file().parent().unwrap()).await?;
-        let conn = Connection::open(db_file()).await?;
+        tokio::fs::create_dir_all(path::db_file().parent().unwrap()).await?;
+        let conn = Connection::open(path::db_file()).await?;
         Self::init_db(conn).await
     }
 
@@ -53,6 +55,40 @@ impl DbConn {
 
         let res = Self { conn };
         Ok(res)
+    }
+
+    fn make_pagination_query(
+        table_name: &str,
+        field_names: &[&str],
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> String {
+        let mut source = String::new();
+        let mut clause = String::new();
+        if backwards {
+            source += &format!("SELECT * FROM {}", table_name);
+            if let Some(skip_id) = skip_id {
+                source += &format!(" WHERE id < {}", skip_id);
+            }
+            source += " ORDER BY id DESC";
+            if let Some(limit) = limit {
+                source += &format!(" LIMIT {}", limit);
+            }
+            clause += " ORDER BY id ASC";
+        } else {
+            source += table_name;
+            if let Some(skip_id) = skip_id {
+                clause += &format!(" WHERE id > {}", skip_id);
+            }
+            clause += " ORDER BY id ASC";
+            if let Some(limit) = limit {
+                clause += &format!(" LIMIT {}", limit);
+            }
+        }
+        let fields = field_names.join(", ");
+
+        format!(r#"SELECT {} FROM ({}) {}"#, fields, source, clause)
     }
 }
 
@@ -102,15 +138,6 @@ impl DbConn {
 mod tests {
 
     use super::*;
-    use crate::schema::auth::AuthenticationService;
-
-    async fn create_user(conn: &DbConn) -> i32 {
-        let email: &str = "test@example.com";
-        let password: &str = "123456789";
-        conn.create_user(email.to_string(), password.to_string(), true)
-            .await
-            .unwrap()
-    }
 
     #[tokio::test]
     async fn migrations_test() {
@@ -134,22 +161,13 @@ mod tests {
         assert_eq!(new_token.len(), 36);
         assert_ne!(old_token, new_token);
     }
-
-    #[tokio::test]
-    async fn test_is_admin_initialized() {
-        let conn = DbConn::new_in_memory().await.unwrap();
-
-        assert!(!conn.is_admin_initialized().await.unwrap());
-        create_user(&conn).await;
-        assert!(conn.is_admin_initialized().await.unwrap());
-    }
 }
 
-#[cfg(test)]
-mod testutils {
+#[cfg(any(test, feature = "testutils"))]
+pub mod testutils {
     use super::*;
 
-    pub(crate) async fn create_user(conn: &DbConn) -> i32 {
+    pub async fn create_user(conn: &DbConn) -> i32 {
         let email: &str = "test@example.com";
         let password: &str = "123456789";
         conn.create_user(email.to_string(), password.to_string(), true)

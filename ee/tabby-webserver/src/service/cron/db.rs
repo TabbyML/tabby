@@ -1,10 +1,9 @@
 //! db maintenance jobs
 
 use anyhow::Result;
+use tabby_db::DbConn;
 use tokio_cron_scheduler::Job;
 use tracing::error;
-
-use crate::service::db::DbConn;
 
 pub async fn refresh_token_job(db_conn: DbConn) -> Result<Job> {
     // job is run every 2 hours

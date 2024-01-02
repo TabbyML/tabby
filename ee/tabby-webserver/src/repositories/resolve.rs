@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use axum::{
@@ -14,6 +14,8 @@ use tabby_common::{config::Config, SourceFile, Tag};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
+use crate::repositories::ResolveState;
+
 lazy_static! {
     static ref META: HashMap<DatasetKey, Meta> = load_meta();
 }
@@ -22,7 +24,7 @@ const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
 #[derive(Hash, PartialEq, Eq, Debug)]
 pub struct DatasetKey {
-    local_name: String,
+    repo_name: String,
     rel_path: String,
 }
 
@@ -35,8 +37,8 @@ pub struct ResolveParams {
 impl ResolveParams {
     pub fn dataset_key(&self) -> DatasetKey {
         DatasetKey {
-            local_name: self.name.clone(),
-            rel_path: self.path_str().to_string(),
+            repo_name: self.name.clone(),
+            rel_path: self.os_path(),
         }
     }
 
@@ -47,11 +49,32 @@ impl ResolveParams {
     pub fn path_str(&self) -> &str {
         self.path.as_deref().unwrap_or("")
     }
+
+    pub fn os_path(&self) -> String {
+        if cfg!(target_os = "windows") {
+            self.path.clone().unwrap_or_default().replace('/', r"\")
+        } else {
+            self.path.clone().unwrap_or_default()
+        }
+    }
 }
 
 #[derive(Serialize)]
 struct ListDir {
-    entries: Vec<String>,
+    entries: Vec<DirEntry>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+enum DirEntryKind {
+    File,
+    Dir,
+}
+
+#[derive(Serialize)]
+struct DirEntry {
+    kind: DirEntryKind,
+    basename: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -92,16 +115,13 @@ fn load_meta() -> HashMap<DatasetKey, Meta> {
             return dataset;
         }
     };
-    let iter = match SourceFile::all() {
-        Ok(all) => all,
-        Err(_) => {
-            return dataset;
-        }
+    let Ok(iter) = SourceFile::all() else {
+        return dataset;
     };
     for file in iter {
-        if let Some(name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
+        if let Some(repo_name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
             let key = DatasetKey {
-                local_name: name,
+                repo_name,
                 rel_path: file.filepath.clone(),
             };
             dataset.insert(key, file.into());
@@ -113,16 +133,28 @@ fn load_meta() -> HashMap<DatasetKey, Meta> {
 /// Resolve a directory
 pub async fn resolve_dir(root: PathBuf, full_path: PathBuf) -> Result<Response> {
     let mut read_dir = tokio::fs::read_dir(full_path).await?;
-    let mut entries = vec![];
+    let mut entries: Vec<DirEntry> = vec![];
 
     while let Some(entry) = read_dir.next_entry().await? {
-        let path = entry
+        let basename = entry
             .path()
             .strip_prefix(&root)?
             .to_str()
             .unwrap()
             .to_string();
-        entries.push(path);
+
+        let meta = entry.metadata().await?;
+
+        let kind = if meta.is_dir() {
+            DirEntryKind::Dir
+        } else if meta.is_file() {
+            DirEntryKind::File
+        } else {
+            // Skip others.
+            continue;
+        };
+
+        entries.push(DirEntry { kind, basename });
     }
 
     let body = Json(ListDir { entries }).into_response();
@@ -153,4 +185,22 @@ pub fn resolve_meta(key: &DatasetKey) -> Option<Meta> {
         return Some(meta.clone());
     }
     None
+}
+
+pub fn resolve_all(rs: Arc<ResolveState>) -> Result<Response> {
+    let entries: Vec<_> = rs
+        .repositories
+        .iter()
+        .map(|repo| DirEntry {
+            kind: DirEntryKind::Dir,
+            basename: repo.name(),
+        })
+        .collect();
+
+    let body = Json(ListDir { entries }).into_response();
+    let resp = Response::builder()
+        .header(header::CONTENT_TYPE, DIRECTORY_MIME_TYPE)
+        .body(body.into_body())?;
+
+    Ok(resp)
 }

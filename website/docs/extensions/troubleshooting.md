@@ -154,6 +154,6 @@ add `com.tabbyml.intellijtabby:all` to the list.
 ## Still Have Issues?
 
 If you still have any issues, please feel free to [open an issue on github](https://github.com/TabbyML/tabby/issues/new), 
-or join our [slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
+or join our [slack community](https://links.tabbyml.com/join-slack)
 for further support.
 

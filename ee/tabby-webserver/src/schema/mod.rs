@@ -1,35 +1,32 @@
 pub mod auth;
+mod dao;
+pub mod job;
 pub mod worker;
 
 use std::sync::Arc;
 
-use auth::AuthenticationService;
-use chrono::{DateTime, Utc};
+use auth::{
+    validate_jwt, AuthenticationService, Invitation, InvitationNext, RefreshTokenError,
+    RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
+    VerifyTokenResponse,
+};
+use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
-    Object, RootNode, ScalarValue, Value,
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
+    Object, RootNode, ScalarValue, Value, ID,
 };
-use juniper_axum::FromAuth;
+use juniper_axum::{relay, FromAuth};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tracing::error;
 use validator::ValidationErrors;
-
-use self::{
-    auth::{validate_jwt, Invitation, RegisterError, TokenAuthError},
-    worker::WorkerService,
-};
-use crate::schema::{
-    auth::{
-        RefreshTokenError, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
-        VerifyTokenResponse,
-    },
-    worker::Worker,
-};
+use worker::{Worker, WorkerService};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> &dyn AuthenticationService;
     fn worker(&self) -> &dyn WorkerService;
     fn code(&self) -> &dyn CodeSearch;
     fn logger(&self) -> &dyn RawEventLogger;
+    fn job(&self) -> &dyn JobService;
 }
 
 pub struct Context {
@@ -100,10 +97,18 @@ impl Query {
         Ok(ctx.locator.auth().is_admin_initialized().await?)
     }
 
+    #[deprecated]
     async fn invitations(ctx: &Context) -> Result<Vec<Invitation>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ctx.locator.auth().list_invitations().await?);
+                return Ok(ctx
+                    .locator
+                    .auth()
+                    .list_invitations(None, None, None, None)
+                    .await?
+                    .into_iter()
+                    .map(|x| x.into())
+                    .collect());
             }
         }
         Err(CoreError::Unauthorized(
@@ -120,22 +125,121 @@ impl Query {
         }
     }
 
+    #[deprecated]
     async fn users(ctx: &Context) -> Result<Vec<User>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ctx.locator.auth().list_users().await?);
+                return Ok(ctx
+                    .locator
+                    .auth()
+                    .list_users(None, None, None, None)
+                    .await?);
             }
         }
         Err(CoreError::Unauthorized("Only admin is able to query users"))
     }
-}
 
-#[derive(Debug, GraphQLObject)]
-pub struct User {
-    pub email: String,
-    pub is_admin: bool,
-    pub auth_token: String,
-    pub created_at: DateTime<Utc>,
+    async fn users_next(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<relay::Connection<User>> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return relay::query_async(
+                    after,
+                    before,
+                    first,
+                    last,
+                    |after, before, first, last| async move {
+                        match ctx
+                            .locator
+                            .auth()
+                            .list_users(after, before, first, last)
+                            .await
+                        {
+                            Ok(users) => Ok(users),
+                            Err(err) => Err(FieldError::from(err)),
+                        }
+                    },
+                )
+                .await;
+            }
+        }
+        Err(FieldError::from(CoreError::Unauthorized(
+            "Only admin is able to query users",
+        )))
+    }
+
+    async fn invitations_next(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<relay::Connection<InvitationNext>> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return relay::query_async(
+                    after,
+                    before,
+                    first,
+                    last,
+                    |after, before, first, last| async move {
+                        match ctx
+                            .locator
+                            .auth()
+                            .list_invitations(after, before, first, last)
+                            .await
+                        {
+                            Ok(invitations) => Ok(invitations),
+                            Err(err) => Err(FieldError::from(err)),
+                        }
+                    },
+                )
+                .await;
+            }
+        }
+        Err(FieldError::from(CoreError::Unauthorized(
+            "Only admin is able to query users",
+        )))
+    }
+
+    async fn job_runs(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<relay::Connection<JobRun>> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return relay::query_async(
+                    after,
+                    before,
+                    first,
+                    last,
+                    |after, before, first, last| async move {
+                        match ctx
+                            .locator
+                            .job()
+                            .list_job_runs(after, before, first, last)
+                            .await
+                        {
+                            Ok(job_runs) => Ok(job_runs),
+                            Err(err) => Err(FieldError::from(err)),
+                        }
+                    },
+                )
+                .await;
+            }
+        }
+        Err(FieldError::from(CoreError::Unauthorized(
+            "Only admin is able to query job runs",
+        )))
+    }
 }
 
 #[derive(Default)]
@@ -199,7 +303,7 @@ impl Mutation {
         ctx.locator.auth().refresh_token(refresh_token).await
     }
 
-    async fn create_invitation(ctx: &Context, email: String) -> Result<i32> {
+    async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return Ok(ctx.locator.auth().create_invitation(email).await?);
@@ -210,7 +314,24 @@ impl Mutation {
         ))
     }
 
+    #[deprecated]
     async fn delete_invitation(ctx: &Context, id: i32) -> Result<i32> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                let id = ctx
+                    .locator
+                    .auth()
+                    .delete_invitation(ID::new(id.to_string()))
+                    .await?;
+                return Ok(id.parse::<i32>().unwrap());
+            }
+        }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to delete invitation",
+        ))
+    }
+
+    async fn delete_invitation_next(ctx: &Context, id: ID) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return Ok(ctx.locator.auth().delete_invitation(id).await?);
