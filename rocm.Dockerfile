@@ -15,7 +15,7 @@ RUN apt-get update &&  \
     rm /tmp/amdgpu-install.deb && \
     apt-get update && \
     apt-get install -y "hipblas" && \
-    apt-get purge -y curl ca-certificates && \
+    apt-get purge -y curl && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
