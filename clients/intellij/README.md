@@ -15,7 +15,7 @@ Tabby IntelliJ Platform plugin works with all [IntelliJ Platform IDEs](https://p
 4. Open the settings by clicking on the Tabby plugin status bar item and select `Open Settings...`.
    1. Fill in the server endpoint URL to connect the plugin to your Tabby server.
    - If you are using default port `http://localhost:8080`, you can skip this step.
-   2. If your Tabby server requires an authentication token, set it in the [config file](https://tabby.tabbyml.com/docs/extensions/configurations).
+   2. If your Tabby server requires an authentication token, set your token in settings. Alternatively, you can set it in the [config file](https://tabby.tabbyml.com/docs/extensions/configurations).
    3. Enter the node binary path into the designated field
    - If node binary is already accessible via your `PATH` environment variable, you can skip this step.
    - Remember to save the settings and restart the IDE if you made changes to this option.
