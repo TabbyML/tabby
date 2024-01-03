@@ -1,6 +1,6 @@
 {
   "name": "vim-tabby",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Vim plugin for Tabby AI coding assistant.",
   "repository": "https://github.com/TabbyML/tabby",
   "scripts": {
