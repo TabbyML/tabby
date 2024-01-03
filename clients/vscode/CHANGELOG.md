@@ -1,3 +1,20 @@
+## 1.2.0
+
+### Features:
+
+- Added support for setting Tabby server token in VSCode.
+  - You can still configure the token in the agent config file, but the token set in VSCode will take precedence.
+- A notification will now be displayed when the server requires a token. 
+- Removed support for automatically opening the authentication page and fetching the token when using Tabby Cloud. 
+  - For connecting to Tabby Cloud server, you need to manually set the token instead. The token already in use will still be usable.
+
+### Fixes:
+
+- Corrected invalid online documentation links.
+- Fixed a bug that the document context was not fully provided for completion when editing a jupyter notebook file.
+- Resolved a bug that resulted in empty log files being generated even when the logging level is set to `silent`.
+- Fixed bugs related to the experimental syntax-based post-processing.
+
 ## 1.1.3
 
 ### Fixes:
@@ -12,7 +29,7 @@
 
 ## 1.1.0
 
-## Features:
+### Features:
 
 - Added notification with error messages when the connection to the server fails.
 - Added a loading status indicator when fetching completions in automatic trigger mode.
