@@ -7,7 +7,7 @@
   "repository": "https://github.com/TabbyML/tabby",
   "bugs": "https://github.com/TabbyML/tabby/issues",
   "license": "Apache-2.0",
-  "version": "1.2.0-dev",
+  "version": "1.2.0",
   "keywords": [
     "ai",
     "autocomplete",
@@ -229,6 +229,6 @@
   },
   "dependencies": {
     "@xstate/fsm": "^2.0.1",
-    "tabby-agent": "1.2.0-dev"
+    "tabby-agent": "1.2.0"
   }
 }
