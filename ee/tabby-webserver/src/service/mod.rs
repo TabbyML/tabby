@@ -14,6 +14,7 @@ use axum::{
     response::IntoResponse,
 };
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
+use hyper_rustls::HttpsConnector;
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tabby_db::DbConn;
 use tracing::{info, warn};
@@ -40,6 +41,7 @@ impl ServerContext {
     pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         let db_conn = DbConn::new().await.unwrap();
         run_cron(&db_conn);
+
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -182,6 +184,7 @@ impl WorkerService for ServerContext {
 }
 
 impl ServiceLocator for Arc<ServerContext> {
+
     fn auth(&self) -> Arc<dyn AuthenticationService> {
         Arc::new(self.db_conn.clone())
     }

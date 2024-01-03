@@ -3,8 +3,11 @@ use std::fmt::Debug;
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use hyper::Client;
+use hyper::client::HttpConnector;
+use hyper_rustls::HttpsConnector;
 use jsonwebtoken as jwt;
-use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
+use juniper::{FieldError, GraphQLEnum, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -137,6 +140,30 @@ pub enum TokenAuthError {
 
     #[error("Password is not valid")]
     InvalidPassword,
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+
+    #[error("Unknown error")]
+    Unknown,
+}
+
+#[derive(Default, Serialize)]
+pub struct GithubAuthResponse {
+    access_token: String,
+    refresh_token: String,
+}
+
+#[derive(Error, Debug)]
+pub enum GithubAuthError {
+    #[error("The code passed is incorrect or expired")]
+    InvalidVerificationCode,
+
+    #[error("The Github credential is not found")]
+    CredentialNotFound,
+
+    #[error("The Github credential is not active")]
+    CredentialNotActive,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -310,6 +337,22 @@ impl relay::NodeType for InvitationNext {
     }
 }
 
+#[derive(GraphQLEnum)]
+pub enum OAuthProvider {
+    Github,
+    Google,
+}
+
+#[derive(GraphQLObject)]
+pub struct OAuthCredential {
+    pub provider: OAuthProvider,
+    pub client_id: String,
+    pub client_secret: String,
+    pub active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 #[async_trait]
 pub trait AuthenticationService: Send + Sync {
     async fn register(
@@ -354,6 +397,12 @@ pub trait AuthenticationService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>>;
+
+    async fn github_auth(
+        &self,
+        code: String,
+        client: Client<HttpsConnector<HttpConnector>>,
+    ) -> std::result::Result<GithubAuthResponse, GithubAuthError>;
 }
 
 #[cfg(test)]

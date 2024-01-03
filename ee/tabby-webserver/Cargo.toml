@@ -14,6 +14,7 @@ bincode = "1.3.3"
 chrono = { workspace = true, features = ["serde"] }
 futures.workspace = true
 hyper = { workspace = true, features=["client"]}
+hyper-rustls = { version = "0.25.0", features = ["http2"] }
 jsonwebtoken = "9.1.0"
 juniper.workspace = true
 juniper-axum = { path = "../../crates/juniper-axum" }
