@@ -1,3 +1,28 @@
+## 1.2.0
+
+### Features:
+
+- Added support for partially accepting a completion.
+  - Use `Ctrl + Right` to accept the next word, use `Ctrl + Tab` to accept the next line.
+  - Keymap scheme can be selected or customized in the plugin settings page.
+- Added support for setting Tabby server token in the plugin settings page.
+  - You can still configure the token in the agent config file, but the token set in plugin settings page will take precedence.
+- A notification will now be displayed when the server requires a token.
+- Removed support for automatically opening the authentication page and fetching the token when using Tabby Cloud.
+  - To connect to Tabby Cloud server, you need to manually set the token instead. The token already in use will remain usable.
+
+### Fixes:
+
+- Corrected invalid online documentation links.
+- Resolved a bug that resulted in empty log files being generated even when the logging level is set to `silent`.
+- Fixed bugs related to the experimental syntax-based post-processing.
+
+## 1.1.2
+
+### Fixes:
+
+- Added support for IntelliJ Platform IDEs version 2023.3.x.
+
 ## 1.1.1
 
 ### Fixes:
