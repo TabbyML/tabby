@@ -31,20 +31,25 @@ impl DbConn {
     pub async fn update_github_oauth_credential(
         &self,
         client_id: &str,
-        client_secret: &str,
+        client_secret: Option<&str>,
         active: bool,
     ) -> Result<()> {
-        let client_id = client_id.to_string();
-        let client_secret = client_secret.to_string();
+        let mut sql = r#"INSERT INTO github_oauth_credential (id, client_id, client_secret)
+                                VALUES (:id, :cid, :secret) ON CONFLICT(id) DO UPDATE "#
+            .to_string();
+        if client_secret.is_some() {
+            sql += r#"SET client_id = :cid, client_secret = :secret, active = :active, updated_at = datetime('now')
+                    WHERE id = :id"#;
+        } else {
+            sql += r#"SET client_id = :cid, active = :active, updated_at = datetime('now')
+                    WHERE id = :id"#;
+        }
 
+        let client_id = client_id.to_string();
+        let client_secret = client_secret.unwrap_or_default().to_owned();
         self.conn
             .call(move |c| {
-                let mut stmt = c.prepare(
-                    r#"INSERT INTO github_oauth_credential (id, client_id, client_secret)
-                    VALUES (:id, :cid, :secret) ON CONFLICT(id) DO UPDATE
-                    SET client_id = :cid, client_secret = :secret, active = :active, updated_at = datetime('now')
-                    WHERE id = :id"#,
-                )?;
+                let mut stmt = c.prepare(&sql)?;
                 stmt.insert(named_params! {
                     ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
                     ":cid": client_id,
@@ -84,7 +89,7 @@ mod tests {
     async fn test_update_github_oauth_credential() {
         // test insert
         let conn = DbConn::new_in_memory().await.unwrap();
-        conn.update_github_oauth_credential("client_id", "client_secret", false)
+        conn.update_github_oauth_credential("client_id", Some("client_secret"), false)
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
@@ -93,12 +98,25 @@ mod tests {
         assert!(res.active);
 
         // test update
-        conn.update_github_oauth_credential("client_id", "client_secret_2", false)
-            .await
-            .unwrap();
+        conn.update_github_oauth_credential(
+            "client_id",
+            Some("client_secret_2"),
+            false,
+        )
+        .await
+        .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret_2");
         assert!(!res.active);
+
+        // test update without client_secret
+        conn.update_github_oauth_credential("client_id_2", None, true)
+            .await
+            .unwrap();
+        let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
+        assert_eq!(res.client_id, "client_id_2");
+        assert_eq!(res.client_secret, "client_secret_2");
+        assert!(res.active);
     }
 }

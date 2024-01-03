@@ -15,9 +15,9 @@ use crate::{
     oauth::github::GithubClient,
     schema::auth::{
         generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, GithubAuthError,
-        GithubAuthResponse, InvitationNext, JWTPayload, RefreshTokenError, RefreshTokenResponse,
-        RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
-        VerifyTokenResponse,
+        GithubAuthResponse, InvitationNext, JWTPayload, OAuthCredential, OAuthProvider,
+        RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError,
+        TokenAuthResponse, User, VerifyTokenResponse,
     },
 };
 
@@ -386,6 +386,35 @@ impl AuthenticationService for DbConn {
             refresh_token,
         };
         Ok(resp)
+    }
+
+    async fn read_oauth_credential(
+        &self,
+        provider: OAuthProvider,
+    ) -> Result<Option<OAuthCredential>> {
+        match provider {
+            OAuthProvider::Github => {
+                Ok(self.read_github_oauth_credential().await?.map(|x| x.into()))
+            }
+        }
+    }
+
+    async fn update_oauth_credential(
+        &self,
+        provider: OAuthProvider,
+        client_id: String,
+        client_secret: Option<String>,
+        active: bool,
+    ) -> Result<()> {
+        match provider {
+            OAuthProvider::Github => Ok(self
+                .update_github_oauth_credential(
+                    &client_id,
+                    client_secret.as_ref().map(|x| x.as_str()),
+                    active,
+                )
+                .await?),
+        }
     }
 }
 
