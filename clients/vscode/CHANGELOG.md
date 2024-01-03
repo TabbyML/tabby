@@ -4,8 +4,8 @@
 
 - Added support for setting Tabby server token in VSCode.
   - You can still configure the token in the agent config file, but the token set in VSCode will take precedence.
-- A notification will now be displayed when the server requires a token. 
-- Removed support for automatically opening the authentication page and fetching the token when using Tabby Cloud. 
+- A notification will now be displayed when the server requires a token.
+- Removed support for automatically opening the authentication page and fetching the token when using Tabby Cloud.
   - For connecting to Tabby Cloud server, you need to manually set the token instead. The token already in use will still be usable.
 
 ### Fixes:
