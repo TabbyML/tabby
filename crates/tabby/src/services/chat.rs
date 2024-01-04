@@ -35,7 +35,7 @@ pub struct Message {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ChatCompletionChunk {
-    pub(crate) id: String,
+    id: String,
     created: u64,
     system_fingerprint: String,
     object: &'static str,
