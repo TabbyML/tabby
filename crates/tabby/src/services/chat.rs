@@ -106,7 +106,7 @@ impl ChatService {
         &self,
         request: &ChatCompletionRequest,
     ) -> BoxStream<ChatCompletionChunk> {
-        let mut log_output = vec![];
+        let mut log_output = String::new();
         let log_prompt = convert_messages(&request.messages);
 
         let prompt = self.prompt_builder.build(&request.messages);
@@ -120,12 +120,12 @@ impl ChatService {
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
-                log_output.push(assistant_message(content.clone()));
+                log_output.push_str(&content);
                 yield ChatCompletionChunk::new(content, id.clone(), created, false)
             }
             yield ChatCompletionChunk::new("".into(), id.clone(), created, true);
 
-            let event = Event::ChatCompletion { completion_id: id, input: log_prompt, output: log_output };
+            let event = Event::ChatCompletion { completion_id: id, input: log_prompt, output: assistant_message(log_output) };
             self.logger.log(event);
         };
 
