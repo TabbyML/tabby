@@ -51,8 +51,8 @@ pub enum Event {
     },
     ChatCompletion {
         completion_id: String,
-        prompt: Vec<Message>,
-        content: Vec<String>,
+        input: Vec<Message>,
+        output: Vec<String>,
     },
 }
 

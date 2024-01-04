@@ -132,7 +132,7 @@ impl ChatService {
             }
             yield ChatCompletionChunk::new("".into(), id.clone(), created, true);
 
-            let event = Event::ChatCompletion { completion_id: id, prompt: log_prompt, content: log_output };
+            let event = Event::ChatCompletion { completion_id: id, input: log_prompt, output: log_output };
             self.logger.log(event);
         };
 
