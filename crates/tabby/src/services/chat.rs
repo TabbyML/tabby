@@ -107,14 +107,7 @@ impl ChatService {
         request: &ChatCompletionRequest,
     ) -> BoxStream<ChatCompletionChunk> {
         let mut log_output = vec![];
-        let mut log_prompt = vec![];
-
-        for message in &request.messages {
-            log_prompt.push(tabby_common::api::event::Message {
-                content: message.content.clone(),
-                role: message.role.clone(),
-            });
-        }
+        let log_prompt = convert_messages(&request.messages);
 
         let prompt = self.prompt_builder.build(&request.messages);
         let options = Self::text_generation_options();
@@ -138,6 +131,19 @@ impl ChatService {
 
         Box::pin(s)
     }
+}
+
+fn convert_messages(input: &Vec<Message>) -> Vec<tabby_common::api::event::Message> {
+    let mut output = vec![];
+
+    for message in input {
+        output.push(tabby_common::api::event::Message {
+            content: message.content.clone(),
+            role: message.role.clone(),
+        })
+    }
+
+    output
 }
 
 pub async fn create_chat_service(
