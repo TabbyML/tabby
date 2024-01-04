@@ -6,6 +6,7 @@ use async_stream::stream;
 use chat_prompt::ChatPromptBuilder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
+use tabby_common::api::event::EventLogger;
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::debug;
 use utoipa::ToSchema;
@@ -34,7 +35,7 @@ pub struct Message {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ChatCompletionChunk {
-    id: String,
+    pub(crate) id: String,
     created: u64,
     system_fingerprint: String,
     object: &'static str,
@@ -75,13 +76,26 @@ impl ChatCompletionChunk {
 
 pub struct ChatService {
     engine: Arc<dyn TextGeneration>,
+    pub(crate) logger: Arc<dyn EventLogger>,
     prompt_builder: ChatPromptBuilder,
 }
 
+impl ChatCompletionRequest {
+    pub fn prompt(&self) -> String {
+        // Doubt this is the right way to find the prompt.
+        self.messages.iter().map(|m| &*m.content).collect()
+    }
+}
+
 impl ChatService {
-    fn new(engine: Arc<dyn TextGeneration>, chat_template: String) -> Self {
+    fn new(
+        engine: Arc<dyn TextGeneration>,
+        logger: Arc<dyn EventLogger>,
+        chat_template: String,
+    ) -> Self {
         Self {
             engine,
+            logger,
             prompt_builder: ChatPromptBuilder::new(chat_template),
         }
     }
@@ -118,7 +132,12 @@ impl ChatService {
     }
 }
 
-pub async fn create_chat_service(model: &str, device: &Device, parallelism: u8) -> ChatService {
+pub async fn create_chat_service(
+    logger: Arc<dyn EventLogger>,
+    model: &str,
+    device: &Device,
+    parallelism: u8,
+) -> ChatService {
     let (engine, model::PromptInfo { chat_template, .. }) =
         model::load_text_generation(model, device, parallelism).await;
 
@@ -126,5 +145,5 @@ pub async fn create_chat_service(model: &str, device: &Device, parallelism: u8) 
         fatal!("Chat model requires specifying prompt template");
     };
 
-    ChatService::new(engine, chat_template)
+    ChatService::new(engine, logger, chat_template)
 }

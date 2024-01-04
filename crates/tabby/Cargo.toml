@@ -24,7 +24,7 @@ hyper = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
 utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
-serde = { workspace = true }
+serde = { workspace = true, features = ["rc"] }
 serdeconv = { workspace = true }
 serde_json = { workspace = true }
 tower-http = { version = "0.4.0", features = ["cors", "timeout"] }

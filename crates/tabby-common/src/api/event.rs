@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -48,6 +50,11 @@ pub enum Event {
         choices: Vec<Choice>,
         #[serde(skip_serializing_if = "Option::is_none")]
         user: Option<String>,
+    },
+    ChatCompletion {
+        completion_id: String,
+        prompt: Arc<String>,
+        content: String,
     },
 }
 

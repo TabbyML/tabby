@@ -2,6 +2,7 @@ use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 
 use axum::{routing, Router};
 use clap::Args;
+use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tabby_webserver::public::{HubClient, RegisterWorkerRequest, WorkerKind};
 use tracing::info;
 
@@ -46,9 +47,9 @@ pub struct WorkerArgs {
     parallelism: u8,
 }
 
-async fn make_chat_route(args: &WorkerArgs) -> Router {
+async fn make_chat_route(logger: Arc<dyn EventLogger>, args: &WorkerArgs) -> Router {
     let chat_state =
-        Arc::new(create_chat_service(&args.model, &args.device, args.parallelism).await);
+        Arc::new(create_chat_service(logger, &args.model, &args.device, args.parallelism).await);
 
     Router::new().route(
         "/v1beta/chat/completions",
@@ -56,9 +57,11 @@ async fn make_chat_route(args: &WorkerArgs) -> Router {
     )
 }
 
-async fn make_completion_route(context: WorkerContext, args: &WorkerArgs) -> Router {
-    let code = Arc::new(context.client.clone());
-    let logger = Arc::new(context.client);
+async fn make_completion_route(
+    code: Arc<dyn CodeSearch>,
+    logger: Arc<dyn EventLogger>,
+    args: &WorkerArgs,
+) -> Router {
     let completion_state = Arc::new(
         create_completion_service(code, logger, &args.model, &args.device, args.parallelism).await,
     );
@@ -75,10 +78,12 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
     info!("Starting worker, this might take a few minutes...");
 
     let context = WorkerContext::new(kind.clone(), args).await;
+    let code = Arc::new(context.client);
+    let logger = code.clone();
 
     let app = match kind {
-        WorkerKind::Completion => make_completion_route(context, args).await,
-        WorkerKind::Chat => make_chat_route(args).await,
+        WorkerKind::Completion => make_completion_route(code, logger.clone(), args).await,
+        WorkerKind::Chat => make_chat_route(logger.clone(), args).await,
     };
 
     run_app(app, None, args.host, args.port).await
