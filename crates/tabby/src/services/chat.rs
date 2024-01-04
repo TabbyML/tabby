@@ -6,7 +6,7 @@ use async_stream::stream;
 use chat_prompt::ChatPromptBuilder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
-use tabby_common::api::event::EventLogger;
+use tabby_common::api::event::{Event, EventLogger};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::debug;
 use utoipa::ToSchema;
@@ -76,15 +76,8 @@ impl ChatCompletionChunk {
 
 pub struct ChatService {
     engine: Arc<dyn TextGeneration>,
-    pub(crate) logger: Arc<dyn EventLogger>,
+    logger: Arc<dyn EventLogger>,
     prompt_builder: ChatPromptBuilder,
-}
-
-impl ChatCompletionRequest {
-    pub fn prompt(&self) -> String {
-        // Doubt this is the right way to find the prompt.
-        self.messages.iter().map(|m| &*m.content).collect()
-    }
 }
 
 impl ChatService {
@@ -113,6 +106,8 @@ impl ChatService {
         &self,
         request: &ChatCompletionRequest,
     ) -> BoxStream<ChatCompletionChunk> {
+        let mut log_output = vec![];
+
         let prompt = self.prompt_builder.build(&request.messages);
         let options = Self::text_generation_options();
         let created = std::time::SystemTime::now()
@@ -120,12 +115,17 @@ impl ChatService {
             .expect("Must be able to read system clock")
             .as_secs();
         let id = format!("chatcmpl-{}", Uuid::new_v4());
+
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
+                log_output.push(content.clone());
                 yield ChatCompletionChunk::new(content, id.clone(), created, false)
             }
-            yield ChatCompletionChunk::new("".into(), id, created, true)
+            yield ChatCompletionChunk::new("".into(), id.clone(), created, true);
+
+            let event = Event::ChatCompletion { completion_id: id, prompt, content: log_output };
+            self.logger.log(event);
         };
 
         Box::pin(s)

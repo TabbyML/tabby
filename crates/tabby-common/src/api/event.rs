@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -53,8 +51,8 @@ pub enum Event {
     },
     ChatCompletion {
         completion_id: String,
-        prompt: Arc<String>,
-        content: String,
+        prompt: String,
+        content: Vec<String>,
     },
 }
 
