@@ -51,9 +51,15 @@ pub enum Event {
     },
     ChatCompletion {
         completion_id: String,
-        prompt: String,
+        prompt: Vec<Message>,
         content: Vec<String>,
     },
+}
+
+#[derive(Serialize)]
+pub struct Message {
+    pub role: String,
+    pub content: String,
 }
 
 #[derive(Serialize)]

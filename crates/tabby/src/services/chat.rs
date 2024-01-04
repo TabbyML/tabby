@@ -107,6 +107,14 @@ impl ChatService {
         request: &ChatCompletionRequest,
     ) -> BoxStream<ChatCompletionChunk> {
         let mut log_output = vec![];
+        let mut log_prompt = vec![];
+
+        for message in &request.messages {
+            log_prompt.push(tabby_common::api::event::Message {
+                content: message.content.clone(),
+                role: message.role.clone(),
+            });
+        }
 
         let prompt = self.prompt_builder.build(&request.messages);
         let options = Self::text_generation_options();
@@ -124,7 +132,7 @@ impl ChatService {
             }
             yield ChatCompletionChunk::new("".into(), id.clone(), created, true);
 
-            let event = Event::ChatCompletion { completion_id: id, prompt, content: log_output };
+            let event = Event::ChatCompletion { completion_id: id, prompt: log_prompt, content: log_output };
             self.logger.log(event);
         };
 
