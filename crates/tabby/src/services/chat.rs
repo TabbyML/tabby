@@ -120,7 +120,7 @@ impl ChatService {
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
-                log_output.push(content.clone());
+                log_output.push(assistant_message(content.clone()));
                 yield ChatCompletionChunk::new(content, id.clone(), created, false)
             }
             yield ChatCompletionChunk::new("".into(), id.clone(), created, true);
@@ -130,6 +130,13 @@ impl ChatService {
         };
 
         Box::pin(s)
+    }
+}
+
+fn assistant_message(string: String) -> tabby_common::api::event::Message {
+    tabby_common::api::event::Message {
+        content: string,
+        role: "assistant".into(),
     }
 }
 
