@@ -1,32 +1,36 @@
 use std::sync::Arc;
-use axum::{Json, Router, routing};
-use axum::extract::{Query, State};
-use axum::http::StatusCode;
-use hyper::Client;
-use hyper::client::HttpConnector;
-use hyper_rustls::HttpsConnector;
+
+use axum::{
+    extract::{Query, State},
+    http::StatusCode,
+    response::Redirect,
+    routing, Router,
+};
 use serde::Deserialize;
 use tracing::error;
-use crate::schema::auth::{AuthenticationService, GithubAuthError, GithubAuthResponse, OAuthProvider};
-use crate::schema::ServiceLocator;
 
-pub(crate) mod github;
+use crate::{
+    oauth::github::GithubClient,
+    schema::{
+        auth::{AuthenticationService, GithubAuthError},
+        ServiceLocator,
+    },
+};
+
+pub mod github;
 
 #[derive(Clone)]
+#[non_exhaustive]
 struct OAuthState {
     auth: Arc<dyn AuthenticationService>,
-    client: Client<HttpsConnector<HttpConnector>>,
+    github_client: Arc<GithubClient>,
 }
 
 pub fn routes(auth: Arc<dyn AuthenticationService>) -> Router {
-    let https = hyper_rustls::HttpsConnectorBuilder::new()
-        .with_native_roots()
-        .expect("no native root CA certificates found")
-        .https_only()
-        .enable_all_versions()
-        .build();
-    let client: Client<_, hyper::Body> = Client::builder().build(https);
-    let state = OAuthState { auth, client };
+    let state = OAuthState {
+        auth,
+        github_client: Arc::new(GithubClient::new()),
+    };
 
     Router::new()
         .route("/github", routing::get(github_callback))
@@ -43,13 +47,19 @@ struct GithubCallbackParam {
 async fn github_callback(
     State(state): State<OAuthState>,
     Query(param): Query<GithubCallbackParam>,
-) -> Result<Json<GithubAuthResponse>, StatusCode> {
+) -> Result<Redirect, StatusCode> {
     match state
         .auth
-        .github_auth(param.code, state.client.clone())
+        .github_auth(param.code, state.github_client.clone())
         .await
     {
-        Ok(resp) => Ok(Json(resp)),
+        Ok(resp) => {
+            let uri = format!(
+                "/auth/signin?refresh_token={}&access_token={}",
+                resp.refresh_token, resp.access_token,
+            );
+            Ok(Redirect::temporary(&uri))
+        }
         Err(GithubAuthError::InvalidVerificationCode) => Err(StatusCode::BAD_REQUEST),
         Err(GithubAuthError::CredentialNotActive) => Err(StatusCode::NOT_FOUND),
         Err(e) => {

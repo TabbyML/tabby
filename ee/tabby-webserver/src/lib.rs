@@ -1,10 +1,10 @@
 mod handler;
 mod hub;
+mod oauth;
 mod repositories;
 mod schema;
 mod service;
 mod ui;
-mod oauth;
 
 pub mod public {
     pub use super::{

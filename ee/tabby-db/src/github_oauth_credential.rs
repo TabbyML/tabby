@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{params, OptionalExtension, named_params};
 
 use super::DbConn;
 
@@ -41,15 +41,16 @@ impl DbConn {
             .call(move |c| {
                 let mut stmt = c.prepare(
                     r#"INSERT INTO github_oauth_credential (id, client_id, client_secret)
-                    VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE
-                    SET client_id = ?, client_secret = ?, active = ?, updated_at = datetime('now')
+                    VALUES (:id, :cid, :secret) ON CONFLICT(id) DO UPDATE
+                    SET client_id = :cid, client_secret = :secret, active = :active, updated_at = datetime('now')
                     WHERE id = ?"#,
                 )?;
-                stmt.insert(params![
-                    GITHUB_OAUTH_CREDENTIAL_ROW_ID, client_id, client_secret,
-                    client_id, client_secret, active,
-                    GITHUB_OAUTH_CREDENTIAL_ROW_ID
-                ])?;
+                stmt.insert(named_params! {
+                    ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
+                    ":cid": client_id,
+                    ":secret": client_secret,
+                    ":active": active,
+                })?;
                 Ok(())
             })
             .await?;
@@ -89,16 +90,15 @@ mod tests {
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret");
-        assert_eq!(res.active, true);
+        assert!(res.active);
 
         // test update
-        let id = conn
-            .update_github_oauth_credential("client_id", "client_secret_2", false)
+        conn.update_github_oauth_credential("client_id", "client_secret_2", false)
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret_2");
-        assert_eq!(res.active, false);
+        assert!(!res.active);
     }
 }

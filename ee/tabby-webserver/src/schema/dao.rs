@@ -1,9 +1,6 @@
-use tabby_db::{GithubOAuthCredentialDAO, InvitationDAO, JobRunDAO, UserDAO};
+use tabby_db::{InvitationDAO, JobRunDAO, UserDAO};
 
-use crate::schema::{
-    auth,
-    job,
-};
+use crate::schema::{auth, job};
 
 impl From<InvitationDAO> for auth::InvitationNext {
     fn from(val: InvitationDAO) -> Self {
@@ -38,19 +35,6 @@ impl From<UserDAO> for auth::User {
             is_admin: val.is_admin,
             auth_token: val.auth_token,
             created_at: val.created_at,
-        }
-    }
-}
-
-impl From<GithubOAuthCredentialDAO> for auth::OAuthCredential {
-    fn from(val: GithubOAuthCredentialDAO) -> Self {
-        auth::OAuthCredential {
-            provider: auth::OAuthProvider::Github,
-            client_id: val.client_id,
-            client_secret: val.client_secret,
-            active: val.active,
-            created_at: val.created_at,
-            updated_at: val.updated_at,
         }
     }
 }

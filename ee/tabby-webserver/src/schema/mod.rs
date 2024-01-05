@@ -4,9 +4,6 @@ pub mod job;
 pub mod worker;
 
 use std::sync::Arc;
-use hyper::Client;
-use hyper::client::HttpConnector;
-use hyper_rustls::HttpsConnector;
 
 use auth::{
     validate_jwt, AuthenticationService, Invitation, InvitationNext, RefreshTokenError,

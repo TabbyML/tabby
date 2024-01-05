@@ -159,9 +159,8 @@ curl --request GET \
 
 **Response example:**
 
-```json
-{
-  "refresh_token": "321bc1bbb043456dae1a7abc0c447875",
-  "access_token": "eyJ0eXAi......1NiJ9.eyJleHAi......bWluIjp0cnVlfQ.GvHSMUfc...S5BnwY",
-}
+The request will redirect to `/auth/signin` with refresh token & access token attached.
+
+```
+http://localhost:8080/auth/signin?refresh_token=321bc1bbb043456dae1a7abc0c447875&access_token=eyJ0eXAi......1NiJ9.eyJleHAi......bWluIjp0cnVlfQ.GvHSMUfc...S5BnwY
 ```

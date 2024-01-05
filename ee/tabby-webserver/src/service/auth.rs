@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use argon2::{
@@ -7,18 +7,19 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
-use axum::http::StatusCode;
-use axum::Json;
-use hyper::Client;
-use hyper::client::HttpConnector;
-use hyper_rustls::HttpsConnector;
 use juniper::ID;
-use tracing::error;
 use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
-use crate::oauth::github;
 
-use crate::schema::auth::{generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext, JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse, OAuthProvider, OAuthCredential, GithubAuthResponse, GithubAuthError};
+use crate::{
+    oauth::github::GithubClient,
+    schema::auth::{
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, GithubAuthError,
+        GithubAuthResponse, InvitationNext, JWTPayload, RefreshTokenError, RefreshTokenResponse,
+        RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
+        VerifyTokenResponse,
+    },
+};
 
 /// Input parameters for register mutation
 /// `validate` attribute is used to validate the input parameters
@@ -346,18 +347,17 @@ impl AuthenticationService for DbConn {
     async fn github_auth(
         &self,
         code: String,
-        client: Client<HttpsConnector<HttpConnector>>,
+        client: Arc<GithubClient>,
     ) -> std::result::Result<GithubAuthResponse, GithubAuthError> {
-        let credential: OAuthCredential = self
+        let credential = self
             .read_github_oauth_credential()
             .await?
-            .ok_or(GithubAuthError::CredentialNotFound)?
-            .into();
+            .ok_or(GithubAuthError::CredentialNotActive)?;
         if !credential.active {
             return Err(GithubAuthError::CredentialNotActive);
         }
 
-        let email = github::fetch_user_email(code, credential, client).await?;
+        let _email = client.fetch_user_email(code, credential).await?;
 
         // TODO: auto register & generate token
 

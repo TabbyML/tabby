@@ -1,13 +1,10 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use hyper::Client;
-use hyper::client::HttpConnector;
-use hyper_rustls::HttpsConnector;
 use jsonwebtoken as jwt;
-use juniper::{FieldError, GraphQLEnum, GraphQLObject, IntoFieldError, ScalarValue, ID};
+use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -17,7 +14,7 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::from_validation_errors;
-use crate::schema::Context;
+use crate::{oauth::github::GithubClient, schema::Context};
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -150,17 +147,14 @@ pub enum TokenAuthError {
 
 #[derive(Default, Serialize)]
 pub struct GithubAuthResponse {
-    access_token: String,
-    refresh_token: String,
+    pub access_token: String,
+    pub refresh_token: String,
 }
 
 #[derive(Error, Debug)]
 pub enum GithubAuthError {
     #[error("The code passed is incorrect or expired")]
     InvalidVerificationCode,
-
-    #[error("The Github credential is not found")]
-    CredentialNotFound,
 
     #[error("The Github credential is not active")]
     CredentialNotActive,
@@ -337,22 +331,6 @@ impl relay::NodeType for InvitationNext {
     }
 }
 
-#[derive(GraphQLEnum)]
-pub enum OAuthProvider {
-    Github,
-    Google,
-}
-
-#[derive(GraphQLObject)]
-pub struct OAuthCredential {
-    pub provider: OAuthProvider,
-    pub client_id: String,
-    pub client_secret: String,
-    pub active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
 #[async_trait]
 pub trait AuthenticationService: Send + Sync {
     async fn register(
@@ -401,7 +379,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn github_auth(
         &self,
         code: String,
-        client: Client<HttpsConnector<HttpConnector>>,
+        client: Arc<GithubClient>,
     ) -> std::result::Result<GithubAuthResponse, GithubAuthError>;
 }
 

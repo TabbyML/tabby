@@ -13,7 +13,12 @@ use tabby_common::{
     config::Config,
 };
 
-use crate::{hub, oauth, repositories, schema::{create_schema, Schema, ServiceLocator}, service::create_service_locator, ui};
+use crate::{
+    hub, oauth, repositories,
+    schema::{create_schema, Schema, ServiceLocator},
+    service::create_service_locator,
+    ui,
+};
 
 pub async fn attach_webserver(
     api: Router,
