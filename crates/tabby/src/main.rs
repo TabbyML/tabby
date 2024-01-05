@@ -1,3 +1,4 @@
+//! Core tabby functionality. Defines primary API and CLI behavior.
 mod routes;
 mod services;
 

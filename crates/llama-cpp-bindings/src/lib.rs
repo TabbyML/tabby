@@ -1,3 +1,4 @@
+//! Bindings to raw C++ LLaMA implementation. Used alongside tabby-inference to generate text and code.
 mod llama;
 mod utils;
 
