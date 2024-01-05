@@ -190,16 +190,16 @@ impl ServiceLocator for ServerContext {
         self
     }
 
-    fn code(&self) -> &dyn CodeSearch {
-        &*self.code
+    fn code(&self) -> Arc<dyn CodeSearch> {
+        self.code.clone()
     }
 
-    fn logger(&self) -> &dyn RawEventLogger {
-        &*self.logger
+    fn logger(&self) -> Arc<dyn RawEventLogger> {
+        self.logger.clone()
     }
 
-    fn job(&self) -> &dyn JobService {
-        &self.db_conn
+    fn job(&self) -> Arc<dyn JobService> {
+        Arc::new(self.db_conn.clone())
     }
 }
 

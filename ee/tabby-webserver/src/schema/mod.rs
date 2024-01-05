@@ -24,9 +24,9 @@ use worker::{Worker, WorkerService};
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
     fn worker(&self) -> &dyn WorkerService;
-    fn code(&self) -> &dyn CodeSearch;
-    fn logger(&self) -> &dyn RawEventLogger;
-    fn job(&self) -> &dyn JobService;
+    fn code(&self) -> Arc<dyn CodeSearch>;
+    fn logger(&self) -> Arc<dyn RawEventLogger>;
+    fn job(&self) -> Arc<dyn JobService>;
 }
 
 pub struct Context {

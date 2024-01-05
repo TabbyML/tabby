@@ -19,7 +19,7 @@ use crate::{
     repositories::resolve::{
         resolve_all, resolve_dir, resolve_file, resolve_meta, Meta, ResolveParams,
     },
-    schema::{auth::AuthenticationService},
+    schema::auth::AuthenticationService,
 };
 
 #[derive(Debug)]
