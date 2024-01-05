@@ -47,7 +47,7 @@ pub async fn attach_webserver(
         )
         .nest(
             "/repositories",
-            repositories::routes(rs.clone(), ctx.owned_auth()),
+            repositories::routes(rs.clone(), ctx.auth()),
         );
 
     let ui = ui

@@ -182,8 +182,8 @@ impl WorkerService for ServerContext {
 }
 
 impl ServiceLocator for ServerContext {
-    fn auth(&self) -> &dyn AuthenticationService {
-        &self.db_conn
+    fn auth(&self) -> Arc<dyn AuthenticationService> {
+        Arc::new(self.db_conn.clone())
     }
 
     fn worker(&self) -> &dyn WorkerService {
@@ -200,10 +200,6 @@ impl ServiceLocator for ServerContext {
 
     fn job(&self) -> &dyn JobService {
         &self.db_conn
-    }
-
-    fn owned_auth(&self) -> Arc<dyn AuthenticationService> {
-        Arc::new(self.db_conn.clone())
     }
 }
 
