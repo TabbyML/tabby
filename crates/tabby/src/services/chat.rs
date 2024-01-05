@@ -106,8 +106,8 @@ impl ChatService {
         &self,
         request: &ChatCompletionRequest,
     ) -> BoxStream<ChatCompletionChunk> {
-        let mut log_output = String::new();
-        let log_prompt = convert_messages(&request.messages);
+        let mut event_output = String::new();
+        let event_input = convert_messages(&request.messages);
 
         let prompt = self.prompt_builder.build(&request.messages);
         let options = Self::text_generation_options();
@@ -120,20 +120,19 @@ impl ChatService {
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
-                log_output.push_str(&content);
+                event_output.push_str(&content);
                 yield ChatCompletionChunk::new(content, id.clone(), created, false)
             }
             yield ChatCompletionChunk::new("".into(), id.clone(), created, true);
 
-            let event = Event::ChatCompletion { completion_id: id, input: log_prompt, output: assistant_message(log_output) };
-            self.logger.log(event);
+            self.logger.log(Event::ChatCompletion { completion_id: id, input: event_input, output: create_assistant_message(event_output) });
         };
 
         Box::pin(s)
     }
 }
 
-fn assistant_message(string: String) -> tabby_common::api::event::Message {
+fn create_assistant_message(string: String) -> tabby_common::api::event::Message {
     tabby_common::api::event::Message {
         content: string,
         role: "assistant".into(),
@@ -141,16 +140,13 @@ fn assistant_message(string: String) -> tabby_common::api::event::Message {
 }
 
 fn convert_messages(input: &Vec<Message>) -> Vec<tabby_common::api::event::Message> {
-    let mut output = vec![];
-
-    for message in input {
-        output.push(tabby_common::api::event::Message {
-            content: message.content.clone(),
-            role: message.role.clone(),
+    input
+        .iter()
+        .map(|m| tabby_common::api::event::Message {
+            content: m.content.clone(),
+            role: m.role.clone(),
         })
-    }
-
-    output
+        .collect()
 }
 
 pub async fn create_chat_service(
