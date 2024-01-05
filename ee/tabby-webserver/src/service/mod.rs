@@ -181,13 +181,13 @@ impl WorkerService for ServerContext {
     }
 }
 
-impl ServiceLocator for ServerContext {
+impl ServiceLocator for Arc<ServerContext> {
     fn auth(&self) -> Arc<dyn AuthenticationService> {
         Arc::new(self.db_conn.clone())
     }
 
-    fn worker(&self) -> &dyn WorkerService {
-        self
+    fn worker(&self) -> Arc<dyn WorkerService> {
+        self.clone()
     }
 
     fn code(&self) -> Arc<dyn CodeSearch> {
@@ -207,5 +207,5 @@ pub async fn create_service_locator(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(ServerContext::new(logger, code).await)
+    Arc::new(Arc::new(ServerContext::new(logger, code).await))
 }
