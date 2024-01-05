@@ -23,6 +23,8 @@ use worker::{Worker, WorkerService};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> &dyn AuthenticationService;
+    fn owned_auth(&self) -> Arc<dyn AuthenticationService>;
+
     fn worker(&self) -> &dyn WorkerService;
     fn code(&self) -> &dyn CodeSearch;
     fn logger(&self) -> &dyn RawEventLogger;

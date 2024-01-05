@@ -201,6 +201,10 @@ impl ServiceLocator for ServerContext {
     fn job(&self) -> &dyn JobService {
         &self.db_conn
     }
+
+    fn owned_auth(&self) -> Arc<dyn AuthenticationService> {
+        Arc::new(self.db_conn.clone())
+    }
 }
 
 pub async fn create_service_locator(
