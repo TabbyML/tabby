@@ -80,27 +80,25 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_operations_on_github_oauth_credential() {
+    async fn test_update_github_oauth_credential() {
         // test insert
         let conn = DbConn::new().await.unwrap();
-        let id = conn
-            .update_github_oauth_credential("client_id", "client_secret")
-            .await
-            .unwrap();
-        assert_eq!(id, 1);
-
-        // test update
-        let id = conn
-            .update_github_oauth_credential("client_id", "client_secret_2")
+        conn.update_github_oauth_credential("client_id", "client_secret", false)
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
-        assert_eq!(res.id, id);
-        assert_eq!(res.client_secret, "client_secret_2");
+        assert_eq!(res.client_id, "client_id");
+        assert_eq!(res.client_secret, "client_secret");
+        assert_eq!(res.active, true);
 
-        // test delete
-        conn._github_oauth_credential().await.unwrap();
-        let res = conn.read_github_oauth_credential().await.unwrap();
-        assert!(res.is_none());
+        // test update
+        let id = conn
+            .update_github_oauth_credential("client_id", "client_secret_2", false)
+            .await
+            .unwrap();
+        let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
+        assert_eq!(res.client_id, "client_id");
+        assert_eq!(res.client_secret, "client_secret_2");
+        assert_eq!(res.active, false);
     }
 }
