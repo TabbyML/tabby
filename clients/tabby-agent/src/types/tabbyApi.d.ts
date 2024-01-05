@@ -12,6 +12,8 @@ export interface paths {
   };
   "/v1/health": {
     get: operations["health"];
+    // back compatible for Tabby server 0.2.x and earlier
+    post: operations["health"];
   };
   "/v1beta/chat/completions": {
     post: operations["chat_completions"];
