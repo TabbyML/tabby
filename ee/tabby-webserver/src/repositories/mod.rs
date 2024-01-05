@@ -19,7 +19,7 @@ use crate::{
     repositories::resolve::{
         resolve_all, resolve_dir, resolve_file, resolve_meta, Meta, ResolveParams,
     },
-    schema::ServiceLocator,
+    schema::auth::AuthenticationService,
 };
 
 #[derive(Debug)]
@@ -33,7 +33,7 @@ impl ResolveState {
     }
 }
 
-pub fn routes(rs: Arc<ResolveState>, locator: Arc<dyn ServiceLocator>) -> Router {
+pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
         .route("/resolve", routing::get(resolve))
         .with_state(rs.clone())
@@ -48,11 +48,11 @@ pub fn routes(rs: Arc<ResolveState>, locator: Arc<dyn ServiceLocator>) -> Router
         .route("/:name/meta/", routing::get(meta))
         .route("/:name/meta/*path", routing::get(meta))
         .fallback(not_found)
-        .layer(from_fn_with_state(locator, require_login_middleware))
+        .layer(from_fn_with_state(auth, require_login_middleware))
 }
 
 async fn require_login_middleware(
-    State(locator): State<Arc<dyn ServiceLocator>>,
+    State(auth): State<Arc<dyn AuthenticationService>>,
     AuthBearer(token): AuthBearer,
     request: Request<Body>,
     next: Next<Body>,
@@ -67,7 +67,7 @@ async fn require_login_middleware(
         return unauthorized;
     };
 
-    let Ok(_) = locator.auth().verify_access_token(&token).await else {
+    let Ok(_) = auth.verify_access_token(&token).await else {
         return unauthorized;
     };
 
