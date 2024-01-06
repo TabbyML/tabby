@@ -1,6 +1,4 @@
 use anyhow::Result;
-use hyper::{client::HttpConnector, Client, Method, Request};
-use hyper_rustls::HttpsConnector;
 use serde::Deserialize;
 use tabby_db::GithubOAuthCredentialDAO;
 
@@ -30,7 +28,7 @@ struct GithubUserEmail {
 }
 
 pub struct GithubClient {
-    client: Client<HttpsConnector<HttpConnector>>,
+    client: reqwest::Client,
 }
 
 impl Default for GithubClient {
@@ -41,14 +39,9 @@ impl Default for GithubClient {
 
 impl GithubClient {
     pub fn new() -> Self {
-        let https = hyper_rustls::HttpsConnectorBuilder::new()
-            .with_native_roots()
-            .expect("no native root CA certificates found")
-            .https_only()
-            .enable_all_versions()
-            .build();
-        let client: Client<_, hyper::Body> = Client::builder().build(https);
-        Self { client }
+        Self {
+            client: reqwest::Client::new(),
+        }
     }
 
     pub async fn fetch_user_email(
@@ -64,20 +57,20 @@ impl GithubClient {
             ));
         }
 
-        let req = Request::builder()
-            .method(Method::GET)
-            .uri("https://api.github.com/user/emails")
-            .header(hyper::header::USER_AGENT, "Tabby")
-            .header(hyper::header::ACCEPT, "application/vnd.github+json")
+        let resp = self
+            .client
+            .get("https://api.github.com/user/emails")
+            .header(reqwest::header::USER_AGENT, "Tabby")
+            .header(reqwest::header::ACCEPT, "application/vnd.github+json")
             .header(
-                hyper::header::AUTHORIZATION,
+                reqwest::header::AUTHORIZATION,
                 format!("Bearer {}", token_resp.access_token),
             )
             .header("X-GitHub-Api-Version", "2022-11-28")
-            .body(hyper::Body::empty())?;
-        let raw = self.client.request(req).await?;
-        let body = hyper::body::to_bytes(raw.into_body()).await?;
-        let resp = serde_json::from_slice::<Vec<GithubUserEmail>>(body.as_ref())?;
+            .send()
+            .await?
+            .json::<Vec<GithubUserEmail>>()
+            .await?;
 
         if resp.is_empty() {
             return Err(anyhow::anyhow!("No email address found"));
@@ -95,18 +88,20 @@ impl GithubClient {
         code: String,
         credential: GithubOAuthCredentialDAO,
     ) -> Result<GithubOAuthResponse> {
-        let req = Request::builder()
-            .method(Method::POST)
-            .uri("https://github.com/login/oauth/access_token")
-            .header(hyper::header::ACCEPT, "application/json")
-            .body(hyper::Body::from(format!(
-                "client_id={}&client_secret={}&code={}",
-                credential.client_id, credential.client_secret, code
-            )))?;
-
-        let raw = self.client.request(req).await?;
-        let body = hyper::body::to_bytes(raw.into_body()).await?;
-        let resp = serde_json::from_slice::<GithubOAuthResponse>(body.as_ref())?;
+        let params = [
+            ("client_id", credential.client_id.as_str()),
+            ("client_secret", credential.client_secret.as_str()),
+            ("code", code.as_str()),
+        ];
+        let resp = self
+            .client
+            .post("https://github.com/login/oauth/access_token")
+            .header(reqwest::header::ACCEPT, "application/json")
+            .form(&params)
+            .send()
+            .await?
+            .json::<GithubOAuthResponse>()
+            .await?;
 
         Ok(resp)
     }
