@@ -49,6 +49,17 @@ pub enum Event {
         #[serde(skip_serializing_if = "Option::is_none")]
         user: Option<String>,
     },
+    ChatCompletion {
+        completion_id: String,
+        input: Vec<Message>,
+        output: Message,
+    },
+}
+
+#[derive(Serialize)]
+pub struct Message {
+    pub role: String,
+    pub content: String,
 }
 
 #[derive(Serialize)]

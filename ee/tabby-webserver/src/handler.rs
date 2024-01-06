@@ -8,7 +8,10 @@ use axum::{
 };
 use hyper::Body;
 use juniper_axum::{graphiql, graphql, playground};
-use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tabby_common::{
+    api::{code::CodeSearch, event::RawEventLogger},
+    config::Config,
+};
 
 use crate::{
     hub, repositories,
@@ -22,9 +25,13 @@ pub async fn attach_webserver(
     ui: Router,
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
+    config: &Config,
 ) -> (Router, Router) {
     let ctx = create_service_locator(logger, code).await;
     let schema = Arc::new(create_schema());
+    let rs = Arc::new(repositories::ResolveState {
+        repositories: config.repositories.clone(),
+    });
 
     let api = api
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
@@ -38,7 +45,10 @@ pub async fn attach_webserver(
             "/hub",
             routing::get(hub::ws_handler).with_state(ctx.clone()),
         )
-        .nest("/repositories", repositories::routes(ctx.clone()));
+        .nest(
+            "/repositories",
+            repositories::routes(rs.clone(), ctx.auth()),
+        );
 
     let ui = ui
         .route("/graphiql", routing::get(graphiql("/graphql", None)))

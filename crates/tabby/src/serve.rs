@@ -122,7 +122,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     let (api, ui) = if args.webserver {
-        tabby_webserver::attach_webserver(api, ui, logger, code).await
+        tabby_webserver::public::attach_webserver(api, ui, logger, code, config).await
     } else {
         let ui = ui.fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
         (api, ui)
@@ -168,7 +168,7 @@ async fn api_router(
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
         Some(Arc::new(
-            create_chat_service(chat_model, &args.device, args.parallelism).await,
+            create_chat_service(logger.clone(), chat_model, &args.device, args.parallelism).await,
         ))
     } else {
         None
