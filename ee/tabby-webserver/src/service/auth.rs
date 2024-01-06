@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use argon2::{
@@ -11,10 +11,14 @@ use juniper::ID;
 use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
 
-use crate::schema::auth::{
-    generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
-    JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
-    TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
+use crate::{
+    oauth::github::GithubClient,
+    schema::auth::{
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, GithubAuthError,
+        GithubAuthResponse, InvitationNext, JWTPayload, RefreshTokenError, RefreshTokenResponse,
+        RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
+        VerifyTokenResponse,
+    },
 };
 
 /// Input parameters for register mutation
@@ -338,6 +342,26 @@ impl AuthenticationService for DbConn {
         };
 
         Ok(invitations.into_iter().map(|x| x.into()).collect())
+    }
+
+    async fn github_auth(
+        &self,
+        code: String,
+        client: Arc<GithubClient>,
+    ) -> std::result::Result<GithubAuthResponse, GithubAuthError> {
+        let credential = self
+            .read_github_oauth_credential()
+            .await?
+            .ok_or(GithubAuthError::CredentialNotActive)?;
+        if !credential.active {
+            return Err(GithubAuthError::CredentialNotActive);
+        }
+
+        let _email = client.fetch_user_email(code, credential).await?;
+
+        // TODO: auto register & generate token
+
+        Ok(GithubAuthResponse::default())
     }
 }
 

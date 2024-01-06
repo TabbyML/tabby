@@ -1,7 +1,9 @@
+pub use github_oauth_credential::GithubOAuthCredentialDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use users::UserDAO;
 
+mod github_oauth_credential;
 mod invitations;
 mod job_runs;
 mod path;

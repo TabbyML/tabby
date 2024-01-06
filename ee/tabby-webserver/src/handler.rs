@@ -14,7 +14,7 @@ use tabby_common::{
 };
 
 use crate::{
-    hub, repositories,
+    hub, oauth, repositories,
     schema::{create_schema, Schema, ServiceLocator},
     service::create_service_locator,
     ui,
@@ -48,7 +48,8 @@ pub async fn attach_webserver(
         .nest(
             "/repositories",
             repositories::routes(rs.clone(), ctx.auth()),
-        );
+        )
+        .nest("/oauth_callback", oauth::routes(ctx.auth()));
 
     let ui = ui
         .route("/graphiql", routing::get(graphiql("/graphql", None)))

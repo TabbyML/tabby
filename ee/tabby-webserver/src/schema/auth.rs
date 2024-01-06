@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -14,7 +14,7 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::from_validation_errors;
-use crate::schema::Context;
+use crate::{oauth::github::GithubClient, schema::Context};
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -137,6 +137,27 @@ pub enum TokenAuthError {
 
     #[error("Password is not valid")]
     InvalidPassword,
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+
+    #[error("Unknown error")]
+    Unknown,
+}
+
+#[derive(Default, Serialize)]
+pub struct GithubAuthResponse {
+    pub access_token: String,
+    pub refresh_token: String,
+}
+
+#[derive(Error, Debug)]
+pub enum GithubAuthError {
+    #[error("The code passed is incorrect or expired")]
+    InvalidVerificationCode,
+
+    #[error("The Github credential is not active")]
+    CredentialNotActive,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -354,6 +375,12 @@ pub trait AuthenticationService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>>;
+
+    async fn github_auth(
+        &self,
+        code: String,
+        client: Arc<GithubClient>,
+    ) -> std::result::Result<GithubAuthResponse, GithubAuthError>;
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 mod handler;
 mod hub;
+mod oauth;
 mod repositories;
 mod schema;
 mod service;

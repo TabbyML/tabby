@@ -20,6 +20,7 @@ juniper-axum = { path = "../../crates/juniper-axum" }
 lazy_static.workspace = true
 mime_guess = "2.0.4"
 pin-project = "1.1.3"
+reqwest = { workspace = true, features = ["json"] }
 rust-embed = "8.0.0"
 serde.workspace = true
 serde_json.workspace = true
