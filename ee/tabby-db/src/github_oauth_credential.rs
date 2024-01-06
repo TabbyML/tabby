@@ -43,7 +43,7 @@ impl DbConn {
                     r#"INSERT INTO github_oauth_credential (id, client_id, client_secret)
                     VALUES (:id, :cid, :secret) ON CONFLICT(id) DO UPDATE
                     SET client_id = :cid, client_secret = :secret, active = :active, updated_at = datetime('now')
-                    WHERE id = ?"#,
+                    WHERE id = :id"#,
                 )?;
                 stmt.insert(named_params! {
                     ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
@@ -83,14 +83,14 @@ mod tests {
     #[tokio::test]
     async fn test_update_github_oauth_credential() {
         // test insert
-        let conn = DbConn::new().await.unwrap();
+        let conn = DbConn::new_in_memory().await.unwrap();
         conn.update_github_oauth_credential("client_id", "client_secret", false)
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret");
-        assert!(res.active);
+        assert_eq!(res.active, true);
 
         // test update
         conn.update_github_oauth_credential("client_id", "client_secret_2", false)
@@ -99,6 +99,6 @@ mod tests {
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret_2");
-        assert!(!res.active);
+        assert_eq!(res.active, false);
     }
 }
