@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use rusqlite::{params, OptionalExtension, named_params};
+use rusqlite::{named_params, OptionalExtension};
 
 use super::DbConn;
 
