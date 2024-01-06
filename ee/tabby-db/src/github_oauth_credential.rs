@@ -90,7 +90,7 @@ mod tests {
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret");
-        assert_eq!(res.active, true);
+        assert!(res.active);
 
         // test update
         conn.update_github_oauth_credential("client_id", "client_secret_2", false)
@@ -99,6 +99,6 @@ mod tests {
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret_2");
-        assert_eq!(res.active, false);
+        assert!(!res.active);
     }
 }
