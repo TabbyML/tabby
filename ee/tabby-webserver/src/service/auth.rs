@@ -187,7 +187,7 @@ impl AuthenticationService for DbConn {
                 !is_admin_initialized,
                 invitation.id,
             )
-                .await?
+            .await?
         } else {
             self.create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
                 .await?
@@ -199,9 +199,9 @@ impl AuthenticationService for DbConn {
         self.create_refresh_token(id, &refresh_token).await?;
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-            else {
-                return Err(RegisterError::Unknown);
-            };
+        else {
+            return Err(RegisterError::Unknown);
+        };
 
         let resp = RegisterResponse::new(access_token, refresh_token);
         Ok(resp)
@@ -227,9 +227,9 @@ impl AuthenticationService for DbConn {
         self.create_refresh_token(user.id, &refresh_token).await?;
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-            else {
-                return Err(TokenAuthError::Unknown);
-            };
+        else {
+            return Err(TokenAuthError::Unknown);
+        };
 
         let resp = TokenAuthResponse::new(access_token, refresh_token);
         Ok(resp)
@@ -254,9 +254,9 @@ impl AuthenticationService for DbConn {
 
         // refresh token update is done, generate new access token based on user info
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-            else {
-                return Err(RefreshTokenError::Unknown);
-            };
+        else {
+            return Err(RefreshTokenError::Unknown);
+        };
 
         let resp = RefreshTokenResponse::new(access_token, new_token, refresh_token.expires_at);
 
@@ -359,16 +359,17 @@ impl AuthenticationService for DbConn {
 
         let email = client.fetch_user_email(code, credential).await?;
 
-        let user =
-            if let Some(user) = self.get_user_by_email(&email).await? {
-                user
-            } else {
-                let Some(invitation) = self.get_invitation_by_email(&email).await? else {
-                    return Err(GithubAuthError::UserNotInvited);
-                };
-                let id = self.create_user_with_invitation(email, "".to_owned(), false, invitation.id).await?;
-                self.get_user(id).await?.unwrap()
+        let user = if let Some(user) = self.get_user_by_email(&email).await? {
+            user
+        } else {
+            let Some(invitation) = self.get_invitation_by_email(&email).await? else {
+                return Err(GithubAuthError::UserNotInvited);
             };
+            let id = self
+                .create_user_with_invitation(email, "".to_owned(), false, invitation.id)
+                .await?;
+            self.get_user(id).await?.unwrap()
+        };
 
         let refresh_token = generate_refresh_token();
         self.create_refresh_token(user.id, &refresh_token).await?;
@@ -435,8 +436,8 @@ mod tests {
             ADMIN_PASSWORD.to_owned(),
             None,
         )
-            .await
-            .unwrap()
+        .await
+        .unwrap()
     }
 
     #[tokio::test]
