@@ -62,6 +62,7 @@ async fn github_callback(
         }
         Err(GithubAuthError::InvalidVerificationCode) => Err(StatusCode::BAD_REQUEST),
         Err(GithubAuthError::CredentialNotActive) => Err(StatusCode::NOT_FOUND),
+        Err(GithubAuthError::UserNotInvited) => Err(StatusCode::UNAUTHORIZED),
         Err(e) => {
             error!("Failed to authenticate with Github: {:?}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)

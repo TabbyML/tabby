@@ -69,6 +69,24 @@ impl DbConn {
         Ok(token?)
     }
 
+    pub async fn get_invitation_by_email(&self, email: &str) -> Result<Option<InvitationDAO>> {
+        let email = email.to_owned();
+        let token = self
+            .conn
+            .call(|conn| {
+                Ok(conn
+                    .query_row(
+                        r#"SELECT id, email, code, created_at FROM invitations WHERE email = ?"#,
+                        [email],
+                        InvitationDAO::from_row,
+                    )
+                    .optional())
+            })
+            .await?;
+
+        Ok(token?)
+    }
+
     pub async fn create_invitation(&self, email: String) -> Result<i32> {
         if self.get_user_by_email(&email).await?.is_some() {
             return Err(anyhow!("User already registered"));

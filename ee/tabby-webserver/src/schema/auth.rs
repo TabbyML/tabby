@@ -159,6 +159,9 @@ pub enum GithubAuthError {
     #[error("The Github credential is not active")]
     CredentialNotActive,
 
+    #[error("The user is not invited to access the system")]
+    UserNotInvited,
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 
