@@ -1,3 +1,4 @@
+//! Responsible for downloading ML models for use with tabby.
 use std::{fs, path::Path};
 
 use aim_downloader::{bar::WrappedBar, https};

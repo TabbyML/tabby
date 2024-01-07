@@ -1,3 +1,5 @@
+//! Responsible for scheduling all of the background jobs for tabby.
+//! Includes syncing respositories and updating indices.
 mod dataset;
 mod index;
 mod repository;
