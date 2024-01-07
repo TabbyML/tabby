@@ -365,6 +365,10 @@ impl AuthenticationService for DbConn {
             let Some(invitation) = self.get_invitation_by_email(&email).await? else {
                 return Err(GithubAuthError::UserNotInvited);
             };
+            // it's ok to set password to empty string here, because
+            // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
+            // 2. `password_verify` will always return false for empty password hash read from user table
+            // so user created here is only able to login by github oauth, normal login won't work
             let id = self
                 .create_user_with_invitation(email, "".to_owned(), false, invitation.id)
                 .await?;
