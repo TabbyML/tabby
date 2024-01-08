@@ -44,3 +44,4 @@ jobs:
         github_token: ${{ secrets.VIM_RELEASE_GH_TOKEN }}
         directory: vim-tabby
         force: true
+        tags: true
