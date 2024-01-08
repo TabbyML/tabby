@@ -58,6 +58,8 @@
     "stats-logscale": "^1.0.7",
     "toml": "^3.0.0",
     "uuid": "^9.0.0",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11",
     "web-tree-sitter": "^0.20.8"
   }
 }
