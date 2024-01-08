@@ -39,69 +39,48 @@ Tabby plugin requires the following dependencies:
 
 You can install Tabby plugin using your favorite plugin manager. Here are some examples using popular plugin managers, you can choose one to follow.
 
-### 🔌 Vim-plug
-
-[Vim-plug](https://github.com/junegunn/vim-plug) is a minimalist Vim plugin manager that you can use to install Tabby plugin. You can install Vim-plug by following these [instructions](https://github.com/junegunn/vim-plug#installation).
-
-Once Vim-plug is installed, you can install Tabby plugin by adding the following line to your vim config file (`~/.vimrc` for Vim and `~/.config/nvim/init.vim` for NeoVim), between the `plug#begin()` and `plug#end()` lines.
+### 🔌 [Vim-plug](https://github.com/junegunn/vim-plug)
 
 ```vim
-" ...your vim configs...
+" Example ~/.vimrc configuration
+filetype plugin on
 
 " Section for plugins managed by vim-plug
 plug#begin()
 
-" ...other plugins...
-
-" Add Tabby plugin
+" Tabby plugin
 Plug 'TabbyML/vim-tabby'
+" Add config here. Example config:
+let g:tabby_keybinding_accept = '<Tab>'
+
 plug#end()
 ```
 
-Then, run the following command in your vim command line:
-
-```
-:PlugInstall
-```
-
-### 📦 Packer.nvim
-
-[Packer.nvim](https://github.com/wbthomason/packer.nvim) is a plugin manager for NeoVim that is written in Lua. You can install Packer.nvim by following these [instructions](https://github.com/wbthomason/packer.nvim#quickstart).
-
-Once Packer is installed, you can install Tabby plugin by adding the following line to your plugin specification, e.g. (in `~/.config/nvim/lua/plugins.lua`).
+### 📦 [Packer.nvim](https://github.com/wbthomason/packer.nvim)
 
 ```lua
---- Packer plugin specification
-return require('packer').startup(function(use)
-  --- ...other plugins...
+--- Example Packer plugin specification
 
-  --- Add Tabby plugin
-  use 'TabbyML/vim-tabby'
+--- Add config here. Example config:
+vim.g.tabby_keybinding_accept = '<Tab>'
+
+return require('packer').startup(function(use)
+  --- Tabby plugin
+  use { 'TabbyML/vim-tabby' }
 end)
 ```
 
-Then, run the following command in your NeoVim command line:
-
-```
-:PackerSync
-```
-
-### 💤 Lazy.nvim
-
-[Lazy.nvim](https://github.com/folke/lazy.nvim) is an alternative plugin manager for NeoVim. You can install Lazy.nvim by following these [instructions](https://github.com/folke/lazy.nvim#-installation).
-
-Once Lazy is installed, you can install Tabby plugin by adding the following line to your plugin specification in `~/.config/nvim/init.lua`.
+### 💤 [Lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
---- ...your NeoVim configs...
+--- Example Lazy plugin specification
 
---- Lazy plugin specification
-require("lazy").setup({
-  --- ...other plugins...
+--- Add config here. Example config:
+vim.g.tabby_keybinding_accept = '<Tab>'
 
-  --- Add Tabby plugin
-  "TabbyML/vim-tabby",
-})
+return {
+  { 'TabbyML/vim-tabby' }
+}
 ```
 
 ## Usage
@@ -116,7 +95,7 @@ In insert mode, Tabby plugin will show inline completion automatically when you 
 
 You need to start the Tabby server before using the plugin. For Tabby server installation, please refer to this [documentation](https://tabby.tabbyml.com/docs/installation/).
 
-If your Tabby server endpoint is different from the default `http://localhost:8080`, please set the endpoint in `~/.tabby-client/agent/config.toml`. 
+If your Tabby server endpoint is different from the default `http://localhost:8080`, please set the endpoint in `~/.tabby-client/agent/config.toml`.
 
 If your Tabby server requires an authentication token, remember to set it here.
 
@@ -170,6 +149,12 @@ let g:tabby_keybinding_trigger_or_dismiss = '<C-\>'
 vim.g.tabby_keybinding_accept = '<Tab>'
 vim.g.tabby_keybinding_trigger_or_dismiss = '<C-\\>'
 ```
+
+## Known Conflicts
+
+- For the default settings, Tabby will attempt to set up the `<Tab>` key mapping. If Tabby's inline completion is not displayed, it will fall back to the original mapping. However, this approach might not work when there is a conflict with other plugins that also map the `<Tab>` key, as they could overwrite Tabby's mapping. In such cases, you can use a different keybinding to accept the completion and avoid conflicts.
+
+- Tabby internally utilizes the `<C-R><C-O>` command to insert the completion. If you have mapped `<C-R>` to other functions, you won't be able to accept the completion. In such scenarios, you may need to manually modify the function `tabby#Accept()` in [`autoload/tabby.vim`](https://github.com/TabbyML/tabby/tree/main/clients/vim/autoload/tabby.vim).
 
 ## Contributing
 
