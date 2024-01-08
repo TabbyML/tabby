@@ -8,7 +8,6 @@ use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-
 use thiserror::Error;
 use tracing::{error, warn};
 use uuid::Uuid;
