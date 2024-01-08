@@ -8,7 +8,7 @@ use argon2::{
 };
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::{smtp_creds::SMTPInfo, DbConn};
+use tabby_db::{email_service_credentials::SMTPInfoDAO, DbConn};
 use validator::{Validate, ValidationError};
 
 use crate::{
@@ -386,14 +386,6 @@ impl AuthenticationService for DbConn {
             refresh_token,
         };
         Ok(resp)
-    }
-
-    async fn smtp_credentials(&self) -> Result<Option<SMTPInfo>> {
-        self.get_smtp_info().await
-    }
-
-    async fn set_smtp_credentials(&self, creds: SMTPInfo) -> Result<()> {
-        self.update_smtp_info(creds).await
     }
 }
 

@@ -8,7 +8,7 @@ use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use tabby_db::smtp_creds::SMTPInfo;
+use tabby_db::email_service_credentials::SMTPInfoDAO;
 use thiserror::Error;
 use tracing::{error, warn};
 use uuid::Uuid;
@@ -385,9 +385,6 @@ pub trait AuthenticationService: Send + Sync {
         code: String,
         client: Arc<GithubClient>,
     ) -> std::result::Result<GithubAuthResponse, GithubAuthError>;
-
-    async fn smtp_credentials(&self) -> Result<Option<SMTPInfo>>;
-    async fn set_smtp_credentials(&self, creds: SMTPInfo) -> Result<()>;
 }
 
 #[cfg(test)]
