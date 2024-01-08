@@ -28,7 +28,7 @@ impl DbConn {
             .conn
             .call(|c| {
                 Ok(c.query_row(
-                    "SELECT smtp_username, smtp_password, smtp_server FROM email_service_credentials WHERE id=?",
+                    "SELECT smtp_username, smtp_password, smtp_server FROM email_service_credential WHERE id=?",
                     [MAIL_CREDENTIAL_ROW_ID],
                     |row| Ok(EmailServiceCredentialDAO::new(row.get(1)?, row.get(2)?, row.get(3)?)),
                 )
@@ -47,9 +47,9 @@ impl DbConn {
         Ok(self
             .conn
             .call(move |c| {
-                c.execute("DELETE FROM smtp_info", ())?;
+                c.execute("DELETE FROM email_service_credential", ())?;
                 c.execute(
-                    "INSERT INTO smtp_info VALUES (?, ?, ?, ?)",
+                    "INSERT INTO email_service_credential VALUES (?, ?, ?, ?)",
                     (
                         MAIL_CREDENTIAL_ROW_ID,
                         creds.smtp_username,
