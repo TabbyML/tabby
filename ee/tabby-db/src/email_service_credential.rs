@@ -30,7 +30,7 @@ impl DbConn {
                 Ok(c.query_row(
                     "SELECT smtp_username, smtp_password, smtp_server FROM email_service_credential WHERE id=?",
                     [MAIL_CREDENTIAL_ROW_ID],
-                    |row| Ok(EmailServiceCredentialDAO::new(row.get(1)?, row.get(2)?, row.get(3)?)),
+                    |row| Ok(EmailServiceCredentialDAO::new(row.get(0)?, row.get(1)?, row.get(2)?)),
                 )
                 .optional())
             })
