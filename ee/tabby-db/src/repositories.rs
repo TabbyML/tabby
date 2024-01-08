@@ -1,4 +1,5 @@
 use anyhow::Result;
+use rusqlite::{OptionalExtension, Row};
 
 use crate::DbConn;
 
@@ -11,6 +12,10 @@ impl RepositoryDAO {
     fn new(name: String, git_url: String) -> Self {
         Self { name, git_url }
     }
+
+    fn from_row(row: &Row) -> Result<Self, rusqlite::Error> {
+        Ok(Self::new(row.get(0)?, row.get(1)?))
+    }
 }
 
 impl DbConn {
@@ -19,12 +24,26 @@ impl DbConn {
             .call(|c| {
                 let thing: Result<Vec<_>> = c
                     .prepare("SELECT name, git_url FROM repositories")?
-                    .query_map([], |row| Ok(RepositoryDAO::new(row.get(1)?, row.get(2)?)))?
+                    .query_map([], RepositoryDAO::from_row)?
                     .map(|r| r.map_err(Into::into))
                     .collect();
                 Ok(thing)
             })
             .await?
+    }
+
+    pub async fn get_repository(&self, name: String) -> Result<Option<RepositoryDAO>> {
+        Ok(self
+            .conn
+            .call(|c| {
+                Ok(c.query_row(
+                    "SELECT name, git_url FROM repositories WHERE name=?",
+                    [name],
+                    RepositoryDAO::from_row,
+                ))
+            })
+            .await?
+            .optional()?)
     }
 
     pub async fn delete_repository(&self, name: String) -> Result<bool> {
@@ -60,5 +79,29 @@ impl DbConn {
                 Ok(updated == 1)
             })
             .await?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::DbConn;
+
+    #[tokio::test]
+    async fn test_update_repository() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        conn.add_repository("test".into(), "testurl".into())
+            .await
+            .unwrap();
+
+        let repository = conn.get_repository("test".into()).await.unwrap().unwrap();
+        assert_eq!(repository.git_url, "testurl");
+
+        conn.update_repository_url("test".into(), "testurl2".into())
+            .await
+            .unwrap();
+
+        let repository = conn.get_repository("test".into()).await.unwrap().unwrap();
+        assert_eq!(repository.git_url, "testurl2");
     }
 }
