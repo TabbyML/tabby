@@ -13,11 +13,11 @@ pub struct EmailServiceCredentialDAO {
 }
 
 impl EmailServiceCredentialDAO {
-    fn new(email: String, password: String, mailserver_url: String) -> Self {
+    fn new(smtp_username: String, smtp_password: String, smtp_server: String) -> Self {
         Self {
-            smtp_username: email,
-            smtp_password: password,
-            smtp_server: mailserver_url,
+            smtp_username,
+            smtp_password,
+            smtp_server,
         }
     }
 }

@@ -3,7 +3,7 @@ pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use users::UserDAO;
 
-pub mod email_service_credential;
+mod email_service_credential;
 mod github_oauth_credential;
 mod invitations;
 mod job_runs;
