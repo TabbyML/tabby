@@ -30,6 +30,7 @@ pub async fn log_event(
         logger.log(Event::View {
             completion_id: request.completion_id,
             choice_index: request.choice_index,
+            view_id: request.view_id,
         });
         StatusCode::OK
     } else if request.event_type == "select" {
@@ -45,6 +46,16 @@ pub async fn log_event(
             } else {
                 None
             },
+            view_id: request.view_id,
+            elapsed: request.elapsed,
+        });
+        StatusCode::OK
+    } else if request.event_type == "dismiss" {
+        logger.log(Event::Dismiss {
+            completion_id: request.completion_id,
+            choice_index: request.choice_index,
+            view_id: request.view_id,
+            elapsed: request.elapsed,
         });
         StatusCode::OK
     } else {

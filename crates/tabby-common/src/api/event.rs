@@ -3,7 +3,7 @@ use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct LogEventRequest {
-    /// Event type, should be `view` or `select`.
+    /// Event type, should be `view`, `select` or `dismiss`.
     #[schema(example = "view")]
     #[serde(rename = "type")]
     pub event_type: String,
@@ -11,6 +11,10 @@ pub struct LogEventRequest {
     pub completion_id: String,
 
     pub choice_index: u32,
+
+    pub view_id: Option<String>,
+
+    pub elapsed: Option<u32>,
 }
 
 #[derive(Serialize)]
@@ -31,6 +35,9 @@ pub enum Event {
     View {
         completion_id: String,
         choice_index: u32,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
+        view_id: Option<String>,
     },
     Select {
         completion_id: String,
@@ -38,6 +45,20 @@ pub enum Event {
 
         #[serde(skip_serializing_if = "Option::is_none")]
         kind: Option<SelectKind>,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
+        view_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        elapsed: Option<u32>,
+    },
+    Dismiss {
+        completion_id: String,
+        choice_index: u32,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
+        view_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        elapsed: Option<u32>,
     },
     Completion {
         completion_id: String,
