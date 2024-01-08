@@ -1,3 +1,18 @@
+## 1.2.0
+
+### Features:
+
+- The status "Authorization required" has been updated to be more commonly used, as it was previously only used for Tabby Cloud users.
+- Removed command `:Tabby auth` for opening the authentication page and fetching the token when using Tabby Cloud.
+  - To connect to Tabby Cloud server, you need to manually set the token instead. The token already in use will remain usable.
+
+### Fixes:
+
+- Fixed a bug that caused a script error when attempting to map the `<Tab>` key with a fallback to an original mapping that had an empty `rhs`.
+- Corrected invalid online documentation links.
+- Resolved a bug that resulted in empty log files being generated even when the logging level is set to `silent`.
+- Fixed bugs related to the experimental syntax-based post-processing.
+
 ## 1.1.1
 
 ### Fixes:

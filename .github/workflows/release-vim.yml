@@ -36,6 +36,7 @@ jobs:
         git config --local user.name "github-actions[bot]"
         git add .
         git commit -m "release: vim-tabby version ${{ steps.get_version.outputs.version }}"
+        git tag ${{ steps.get_version.outputs.version }}
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
