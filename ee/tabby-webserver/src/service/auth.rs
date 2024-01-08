@@ -8,7 +8,7 @@ use argon2::{
 };
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::{email_service_credentials::SMTPInfoDAO, DbConn};
+use tabby_db::{DbConn};
 use validator::{Validate, ValidationError};
 
 use crate::{

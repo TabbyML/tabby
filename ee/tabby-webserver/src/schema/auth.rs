@@ -8,7 +8,7 @@ use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use tabby_db::email_service_credentials::SMTPInfoDAO;
+
 use thiserror::Error;
 use tracing::{error, warn};
 use uuid::Uuid;
