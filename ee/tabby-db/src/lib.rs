@@ -8,6 +8,7 @@ mod invitations;
 mod job_runs;
 mod path;
 mod refresh_tokens;
+pub mod smtp_creds;
 mod users;
 
 use anyhow::Result;
