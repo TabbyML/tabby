@@ -83,7 +83,7 @@ mod tests {
         .await
         .unwrap();
 
-        let creds = conn.get_email_service_credential().await.unwrap();
+        let creds = conn.get_email_service_credential().await.unwrap().unwrap();
         assert_eq!(creds.smtp_username, "user");
         assert_eq!(creds.smtp_password, "pass");
         assert_eq!(creds.smtp_server, "server");
