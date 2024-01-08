@@ -95,7 +95,7 @@ In insert mode, Tabby plugin will show inline completion automatically when you 
 
 You need to start the Tabby server before using the plugin. For Tabby server installation, please refer to this [documentation](https://tabby.tabbyml.com/docs/installation/).
 
-If your Tabby server endpoint is different from the default `http://localhost:8080`, please set the endpoint in `~/.tabby-client/agent/config.toml`. 
+If your Tabby server endpoint is different from the default `http://localhost:8080`, please set the endpoint in `~/.tabby-client/agent/config.toml`.
 
 If your Tabby server requires an authentication token, remember to set it here.
 
@@ -150,7 +150,7 @@ vim.g.tabby_keybinding_accept = '<Tab>'
 vim.g.tabby_keybinding_trigger_or_dismiss = '<C-\\>'
 ```
 
-## Conflict Resolutions
+## Known Conflicts
 
 - For the default settings, Tabby will attempt to set up the `<Tab>` key mapping. If Tabby's inline completion is not displayed, it will fall back to the original mapping. However, this approach might not work when there is a conflict with other plugins that also map the `<Tab>` key, as they could overwrite Tabby's mapping. In such cases, you can use a different keybinding to accept the completion and avoid conflicts.
 
