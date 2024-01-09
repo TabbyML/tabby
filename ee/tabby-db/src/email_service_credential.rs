@@ -46,7 +46,8 @@ impl DbConn {
             .conn
             .call(move |c| {
                 c.execute("INSERT INTO email_service_credential VALUES (:id, :user, :pass, :server)
-                        ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server",
+                        ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server
+                        WHERE id = :id",
                         named_params! {
                             ":id": EMAIL_CREDENTIAL_ROW_ID,
                             ":user": creds.smtp_username,
