@@ -3,7 +3,7 @@ use rusqlite::OptionalExtension;
 
 use crate::DbConn;
 
-const MAIL_CREDENTIAL_ROW_ID: i32 = 1;
+const EMAIL_CREDENTIAL_ROW_ID: i32 = 1;
 
 #[derive(Debug, PartialEq)]
 pub struct EmailServiceCredentialDAO {
@@ -23,21 +23,19 @@ impl EmailServiceCredentialDAO {
 }
 
 impl DbConn {
-    pub async fn get_email_service_credential(&self) -> Result<Option<EmailServiceCredentialDAO>> {
+    pub async fn read_email_service_credential(&self) -> Result<Option<EmailServiceCredentialDAO>> {
         let res = self
             .conn
             .call(|c| {
                 Ok(c.query_row(
                     "SELECT smtp_username, smtp_password, smtp_server FROM email_service_credential WHERE id=?",
-                    [MAIL_CREDENTIAL_ROW_ID],
+                    [EMAIL_CREDENTIAL_ROW_ID],
                     |row| Ok(EmailServiceCredentialDAO::new(row.get(0)?, row.get(1)?, row.get(2)?)),
                 )
                 .optional())
             })
             .await?;
-        // Unsure why the map_err is needed. The `?` from the previous line
-        // should convert it automatically, but this breaks without it.
-        res.map_err(Into::into)
+        Ok(res?)
     }
 
     pub async fn update_email_service_credential(
@@ -51,7 +49,7 @@ impl DbConn {
                 c.execute(
                     "INSERT INTO email_service_credential VALUES (?, ?, ?, ?)",
                     (
-                        MAIL_CREDENTIAL_ROW_ID,
+                        EMAIL_CREDENTIAL_ROW_ID,
                         creds.smtp_username,
                         creds.smtp_password,
                         creds.smtp_server,
@@ -72,7 +70,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // Test no credentials prior to insertion
-        assert_eq!(conn.get_email_service_credential().await.unwrap(), None);
+        assert_eq!(conn.read_email_service_credential().await.unwrap(), None);
 
         // Test insertion
         conn.update_email_service_credential(EmailServiceCredentialDAO::new(
@@ -83,7 +81,7 @@ mod tests {
         .await
         .unwrap();
 
-        let creds = conn.get_email_service_credential().await.unwrap().unwrap();
+        let creds = conn.read_email_service_credential().await.unwrap().unwrap();
         assert_eq!(creds.smtp_username, "user");
         assert_eq!(creds.smtp_password, "pass");
         assert_eq!(creds.smtp_server, "server");
