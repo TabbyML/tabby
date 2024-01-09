@@ -408,11 +408,7 @@ impl AuthenticationService for DbConn {
     ) -> Result<()> {
         match provider {
             OAuthProvider::Github => Ok(self
-                .update_github_oauth_credential(
-                    &client_id,
-                    client_secret.as_deref(),
-                    active,
-                )
+                .update_github_oauth_credential(&client_id, client_secret.as_deref(), active)
                 .await?),
         }
     }
