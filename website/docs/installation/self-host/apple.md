@@ -1,8 +1,8 @@
 ---
-sidebar_position: 3
+sidebar_position: 2
 ---
 
-# Homebrew (Apple M1/M2)
+#  Homebrew (Apple M1/M2)
 This guide explains how to install Tabby using homebrew.
 
 Thanks to Apple's Accelerate and CoreML frameworks, we can now run Tabby on edge devices with reasonable inference speed. Follow the steps below to set it up using homebrew:
