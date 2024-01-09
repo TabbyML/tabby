@@ -1,3 +1,5 @@
+use std::{error::Error, fmt::Display};
+
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
@@ -24,6 +26,21 @@ lazy_static! {
     static ref MIGRATIONS: AsyncMigrations =
         AsyncMigrations::from_directory(&MIGRATIONS_DIR).unwrap();
 }
+
+#[derive(Debug)]
+pub enum TabbyDBError {
+    NoSuchElement,
+}
+
+impl Display for TabbyDBError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoSuchElement => write!(f, "No matching element found in database"),
+        }
+    }
+}
+
+impl Error for TabbyDBError {}
 
 #[derive(Clone)]
 pub struct DbConn {

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rusqlite::{OptionalExtension, Row};
 
-use crate::DbConn;
+use crate::{DbConn, TabbyDBError};
 
 pub struct RepositoryDAO {
     pub id: i32,
@@ -83,17 +83,22 @@ impl DbConn {
             .await?)
     }
 
-    pub async fn update_repository_url(&self, id: i32, git_url: String) -> Result<bool> {
-        Ok(self
+    pub async fn update_repository(&self, id: i32, name: String, git_url: String) -> Result<()> {
+        let updated = self
             .conn
             .call(move |c| {
-                let updated = c.execute(
-                    "UPDATE repositories SET git_url=? WHERE id=?",
-                    (git_url, id),
+                let update_count = c.execute(
+                    "UPDATE repositories SET git_url=?, name=? WHERE id=?",
+                    (git_url, name, id),
                 )?;
-                Ok(updated == 1)
+                Ok(update_count == 1)
             })
-            .await?)
+            .await?;
+        if updated {
+            Ok(())
+        } else {
+            Err(TabbyDBError::NoSuchElement.into())
+        }
     }
 }
 
@@ -120,12 +125,13 @@ mod tests {
 
         // Update the repository
         let id = repository.id;
-        conn.update_repository_url(id, "testurl2".into())
+        conn.update_repository(id, "test2".into(), "testurl2".into())
             .await
             .unwrap();
 
         // Check the url was updated
         let repository = conn.get_repository(id).await.unwrap().unwrap();
         assert_eq!(repository.git_url, "testurl2");
+        assert_eq!(repository.name, "test2");
     }
 }
