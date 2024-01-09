@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use rusqlite::{OptionalExtension, Row};
+use rusqlite::{Row};
 
 use crate::DbConn;
 
