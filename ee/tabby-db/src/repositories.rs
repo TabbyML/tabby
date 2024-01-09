@@ -20,45 +20,30 @@ impl RepositoryDAO {
 }
 
 impl DbConn {
-    pub async fn list_repositories(&self) -> Result<Vec<RepositoryDAO>> {
+    pub async fn list_repositories_with_filter(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<RepositoryDAO>> {
+        let query = Self::make_pagination_query(
+            "repositories",
+            &["id", "name", "git_url"],
+            limit,
+            skip_id,
+            backwards,
+        );
+
         self.conn
-            .call(|c| {
+            .call(move |c| {
                 let thing: Result<Vec<_>> = c
-                    .prepare("SELECT name, git_url FROM repositories")?
+                    .prepare(&query)?
                     .query_map([], RepositoryDAO::from_row)?
                     .map(|r| r.map_err(Into::into))
                     .collect();
                 Ok(thing)
             })
             .await?
-    }
-
-    pub async fn get_repository(&self, id: i32) -> Result<Option<RepositoryDAO>> {
-        Ok(self
-            .conn
-            .call(move |c| {
-                Ok(c.query_row(
-                    "SELECT name, git_url FROM repositories WHERE id=?",
-                    [id],
-                    RepositoryDAO::from_row,
-                ))
-            })
-            .await?
-            .optional()?)
-    }
-
-    pub async fn get_repository_by_name(&self, name: String) -> Result<Option<RepositoryDAO>> {
-        Ok(self
-            .conn
-            .call(move |c| {
-                Ok(c.query_row(
-                    "SELECT name, git_url FROM repositories WHERE name=?",
-                    [name],
-                    RepositoryDAO::from_row,
-                ))
-            })
-            .await?
-            .optional()?)
     }
 
     pub async fn delete_repository(&self, id: i32) -> Result<bool> {
@@ -73,7 +58,7 @@ impl DbConn {
             .await?)
     }
 
-    pub async fn add_repository(&self, name: String, git_url: String) -> Result<()> {
+    pub async fn create_repository(&self, name: String, git_url: String) -> Result<()> {
         Ok(self
             .conn
             .call(|c| {
@@ -111,16 +96,15 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // Insert new repository
-        conn.add_repository("test".into(), "testurl".into())
+        conn.create_repository("test".into(), "testurl".into())
             .await
             .unwrap();
 
         // Test that the url can be retrieved
-        let repository = conn
-            .get_repository_by_name("test".into())
+        let repository = &conn
+            .list_repositories_with_filter(None, None, false)
             .await
-            .unwrap()
-            .unwrap();
+            .unwrap()[0];
         assert_eq!(repository.git_url, "testurl");
 
         // Update the repository
@@ -130,7 +114,10 @@ mod tests {
             .unwrap();
 
         // Check the url was updated
-        let repository = conn.get_repository(id).await.unwrap().unwrap();
+        let repository = &conn
+            .list_repositories_with_filter(None, None, false)
+            .await
+            .unwrap()[0];
         assert_eq!(repository.git_url, "testurl2");
         assert_eq!(repository.name, "test2");
     }
