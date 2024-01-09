@@ -54,6 +54,10 @@ To run Tabby locally with ROCm (AMD):
 cargo run --release --features rocm serve --chat-model TabbyML/WizardCoder-3B
 ```
 
+## Using Tabby in your IDE
+
+To connect your IDE with Tabby, either for completions while coding or to test your changes, follow the [Installation Guide](https://tabby.tabbyml.com/docs/extensions/installation/). Note that only Visual Studio Code, Vim/Neovim, and IntelliJ IDEs are supported at this time.
+
 ## Project Layout
 
 Tabby is broken up into several crates, each responsible for a different part of the functionality. These crates fall into two categories: Fully open source features, and enterprise features. All open-source feature crates are located in the `/crates` folder in the repository root, and all enterprise feature crates are located in `/ee`.
