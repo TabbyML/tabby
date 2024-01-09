@@ -98,13 +98,9 @@ mod tests {
         assert!(res.active);
 
         // test update
-        conn.update_github_oauth_credential(
-            "client_id",
-            Some("client_secret_2"),
-            false,
-        )
-        .await
-        .unwrap();
+        conn.update_github_oauth_credential("client_id", Some("client_secret_2"), false)
+            .await
+            .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret_2");

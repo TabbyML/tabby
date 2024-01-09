@@ -410,7 +410,7 @@ impl AuthenticationService for DbConn {
             OAuthProvider::Github => Ok(self
                 .update_github_oauth_credential(
                     &client_id,
-                    client_secret.as_ref().map(|x| x.as_str()),
+                    client_secret.as_deref(),
                     active,
                 )
                 .await?),
