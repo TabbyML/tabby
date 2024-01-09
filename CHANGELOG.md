@@ -4,6 +4,11 @@
 
 ### Fixes and improvements
 
+## [v3.24.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.23.0) (2024-01-08)
+
+### New features
+* Support of new option offset to ignore token score of special tokens
+
 ## [v3.23.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.23.0) (2023-12-05)
 
 ### New features
