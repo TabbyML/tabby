@@ -43,7 +43,7 @@ impl DbConn {
                                 WHERE id = :id"#;
             self.conn
                 .call(move |c| {
-                    let mut stmt = c.prepare(&sql)?;
+                    let mut stmt = c.prepare(sql)?;
                     stmt.insert(named_params! {
                     ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
                     ":cid": client_id,
@@ -58,9 +58,10 @@ impl DbConn {
             let sql = r#"
             UPDATE github_oauth_credential SET client_id = :cid, active = :active, updated_at = datetime('now')
             WHERE id = :id"#;
-            let rows = self.conn
+            let rows = self
+                .conn
                 .call(move |c| {
-                    let mut stmt = c.prepare(&sql)?;
+                    let mut stmt = c.prepare(sql)?;
                     let rows = stmt.execute(named_params! {
                     ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
                     ":cid": client_id,
@@ -70,7 +71,9 @@ impl DbConn {
                 })
                 .await?;
             if rows != 1 {
-                return Err(anyhow::anyhow!("failed to update: github credential not found"));
+                return Err(anyhow::anyhow!(
+                    "failed to update: github credential not found"
+                ));
             }
             Ok(())
         }
@@ -103,7 +106,8 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // test update failure when no record exists
-        let res = conn.update_github_oauth_credential("client_id", None, false)
+        let res = conn
+            .update_github_oauth_credential("client_id", None, false)
             .await;
         assert!(res.is_err());
 
