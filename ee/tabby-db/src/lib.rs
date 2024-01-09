@@ -27,21 +27,6 @@ lazy_static! {
         AsyncMigrations::from_directory(&MIGRATIONS_DIR).unwrap();
 }
 
-#[derive(Debug)]
-pub enum TabbyDBError {
-    NoSuchElement,
-}
-
-impl Display for TabbyDBError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NoSuchElement => write!(f, "No matching element found in database"),
-        }
-    }
-}
-
-impl Error for TabbyDBError {}
-
 #[derive(Clone)]
 pub struct DbConn {
     conn: Connection,

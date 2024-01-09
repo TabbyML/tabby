@@ -1,7 +1,7 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use rusqlite::{OptionalExtension, Row};
 
-use crate::{DbConn, TabbyDBError};
+use crate::DbConn;
 
 pub struct RepositoryDAO {
     pub id: i32,
@@ -97,7 +97,7 @@ impl DbConn {
         if updated {
             Ok(())
         } else {
-            Err(TabbyDBError::NoSuchElement.into())
+            Err(anyhow!("failed to update: repository not found"))
         }
     }
 }
