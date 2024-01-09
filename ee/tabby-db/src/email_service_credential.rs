@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusqlite::OptionalExtension;
+use rusqlite::{named_params, OptionalExtension};
 
 use crate::DbConn;
 
@@ -45,15 +45,14 @@ impl DbConn {
         Ok(self
             .conn
             .call(move |c| {
-                c.execute("DELETE FROM email_service_credential", ())?;
-                c.execute(
-                    "INSERT INTO email_service_credential VALUES (?, ?, ?, ?)",
-                    (
-                        EMAIL_CREDENTIAL_ROW_ID,
-                        creds.smtp_username,
-                        creds.smtp_password,
-                        creds.smtp_server,
-                    ),
+                c.execute("INSERT INTO email_service_credential VALUES (:id, :user, :pass, :server)
+                        ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server",
+                        named_params! {
+                            ":id": EMAIL_CREDENTIAL_ROW_ID,
+                            ":user": creds.smtp_username,
+                            ":pass": creds.smtp_password,
+                            ":server": creds.smtp_server,
+                        }
                 )?;
                 Ok(())
             })
