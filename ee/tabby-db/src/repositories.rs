@@ -61,12 +61,12 @@ impl DbConn {
             .optional()?)
     }
 
-    pub async fn delete_repository(&self, name: String) -> Result<bool> {
+    pub async fn delete_repository(&self, id: i32) -> Result<bool> {
         Ok(self
             .conn
-            .call(|c| {
+            .call(move |c| {
                 let deleted = c
-                    .execute("DELETE FROM repositories WHERE name=?", [name])
+                    .execute("DELETE FROM repositories WHERE id=?", [id])
                     .is_ok();
                 Ok(deleted)
             })
