@@ -13,6 +13,7 @@ type Mutation {
   createInvitation(email: String!): ID!
   deleteInvitation(id: Int!): Int! @deprecated
   deleteInvitationNext(id: ID!): ID!
+  updateOauthCredential(provider: OAuthProvider!, clientId: String!, clientSecret: String, active: Boolean!): Boolean!
 }
 
 "DateTime"
@@ -49,6 +50,7 @@ type Query {
   usersNext(after: String, before: String, first: Int, last: Int): UserConnection!
   invitationsNext(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(after: String, before: String, first: Int, last: Int): JobRunConnection!
+  oauthCredential(provider: OAuthProvider!): OAuthCredential
 }
 
 type UserEdge {
@@ -84,6 +86,14 @@ type UserConnection {
   pageInfo: PageInfo!
 }
 
+type OAuthCredential {
+  provider: OAuthProvider!
+  clientId: String!
+  active: Boolean!
+  createdAt: DateTimeUtc!
+  updatedAt: DateTimeUtc!
+}
+
 type VerifyTokenResponse {
   claims: JWTPayload!
 }
@@ -103,6 +113,11 @@ type User {
   createdAt: DateTimeUtc!
 }
 
+type TokenAuthResponse {
+  accessToken: String!
+  refreshToken: String!
+}
+
 type Worker {
   kind: WorkerKind!
   name: String!
@@ -119,9 +134,8 @@ type InvitationEdge {
   cursor: String!
 }
 
-type TokenAuthResponse {
-  accessToken: String!
-  refreshToken: String!
+enum OAuthProvider {
+  GITHUB
 }
 
 type PageInfo {

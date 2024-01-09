@@ -1,10 +1,10 @@
-use std::{error::Error, fmt::Display};
-
+pub use email_service_credential::EmailServiceCredentialDAO;
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use users::UserDAO;
 
+mod email_service_credential;
 mod github_oauth_credential;
 mod invitations;
 mod job_runs;
