@@ -3314,6 +3314,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_rusqlite"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4600dac14aada464c5584d327baa164e372153309bc4c0fb1498bbfbaa5a028b"
+dependencies = [
+ "rusqlite",
+ "serde",
+]
+
+[[package]]
 name = "serde_spanned"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3719,6 +3729,8 @@ dependencies = [
  "lazy_static",
  "rusqlite",
  "rusqlite_migration",
+ "serde",
+ "serde_rusqlite",
  "tabby-common",
  "tokio",
  "tokio-rusqlite",

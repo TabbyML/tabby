@@ -1,99 +1,108 @@
 use anyhow::Result;
-use rusqlite::{OptionalExtension, Row};
+use rusqlite::{OptionalExtension, Params, Row};
+use serde::{Deserialize, Serialize};
 
 use crate::DbConn;
 
+#[derive(Serialize, Deserialize)]
 pub struct RepositoryDAO {
     pub id: i32,
     pub name: String,
     pub git_url: String,
 }
 
-impl RepositoryDAO {
-    fn new(id: i32, name: String, git_url: String) -> Self {
-        Self { id, name, git_url }
+impl DbConn {
+    pub async fn execute(
+        &self,
+        query: &'static str,
+        params: impl Params + Send + 'static,
+    ) -> Result<usize> {
+        Ok(self
+            .conn
+            .call(move |c| Ok(c.execute(query, params)))
+            .await??)
     }
 
-    fn from_row(row: &Row) -> Result<Self, rusqlite::Error> {
-        Ok(Self::new(row.get(0)?, row.get(1)?, row.get(2)?))
+    pub async fn select_one<T: for<'a> Deserialize<'a> + Send + 'static>(
+        &self,
+        query: &'static str,
+        params: impl Params + Send + 'static,
+    ) -> Result<T> {
+        let row = self.conn.call(move |c| {
+            let res = c.query_row(query, params, |r| Ok(serde_rusqlite::from_row(r).unwrap()));
+            Ok(res?)
+        });
+        Ok(row.await?)
+    }
+
+    pub async fn select_one_optional<T: for<'a> Deserialize<'a> + Send + 'static>(
+        &self,
+        query: &'static str,
+        params: impl Params + Send + 'static,
+    ) -> Result<Option<T>> {
+        let row = self.conn.call(move |c| {
+            let res = c
+                .query_row(query, params, |r| {
+                    Ok(serde_rusqlite::from_row::<T>(r).unwrap())
+                })
+                .optional();
+            Ok(res?)
+        });
+        Ok(row.await?)
+    }
+
+    pub async fn select_list<T: for<'a> Deserialize<'a> + Send + 'static>(
+        &self,
+        query: &'static str,
+        params: impl Params + Send + 'static,
+    ) -> Result<Vec<T>> {
+        let row = self.conn.call(move |c| {
+            let mut stmt = c.prepare(query)?;
+            let res = stmt.query_map(params, |r| Ok(serde_rusqlite::from_row(r).unwrap()));
+            let mut elems = vec![];
+            for elem in res? {
+                elems.push(elem?);
+            }
+            Ok(elems)
+        });
+        Ok(row.await?)
     }
 }
 
 impl DbConn {
     pub async fn list_repositories(&self) -> Result<Vec<RepositoryDAO>> {
-        self.conn
-            .call(|c| {
-                let thing: Result<Vec<_>> = c
-                    .prepare("SELECT name, git_url FROM repositories")?
-                    .query_map([], RepositoryDAO::from_row)?
-                    .map(|r| r.map_err(Into::into))
-                    .collect();
-                Ok(thing)
-            })
-            .await?
+        self.select_list("SELECT * FROM repositories", []).await
     }
 
     pub async fn get_repository(&self, id: i32) -> Result<Option<RepositoryDAO>> {
-        Ok(self
-            .conn
-            .call(move |c| {
-                Ok(c.query_row(
-                    "SELECT name, git_url FROM repositories WHERE id=?",
-                    [id],
-                    RepositoryDAO::from_row,
-                ))
-            })
-            .await?
-            .optional()?)
+        self.select_one_optional("SELECT * FROM repositories WHERE id=?", [id])
+            .await
     }
 
     pub async fn get_repository_by_name(&self, name: String) -> Result<Option<RepositoryDAO>> {
-        Ok(self
-            .conn
-            .call(move |c| {
-                Ok(c.query_row(
-                    "SELECT name, git_url FROM repositories WHERE name=?",
-                    [name],
-                    RepositoryDAO::from_row,
-                ))
-            })
-            .await?
-            .optional()?)
+        self.select_one_optional("SELECT * FROM repositories WHERE name=?", [name])
+            .await
     }
 
     pub async fn delete_repository(&self, id: i32) -> Result<bool> {
-        Ok(self
-            .conn
-            .call(move |c| {
-                let deleted = c
-                    .execute("DELETE FROM repositories WHERE id=?", [id])
-                    .is_ok();
-                Ok(deleted)
-            })
-            .await?)
+        self.execute("DELETE FROM repositories WHERE id=?", [id])
+            .await
+            .map(|n| n == 1)
     }
 
     pub async fn add_repository(&self, name: String, git_url: String) -> Result<()> {
-        Ok(self
-            .conn
-            .call(|c| {
-                c.execute("INSERT INTO repositories VALUES (?, ?)", [name, git_url])?;
-                Ok(())
-            })
-            .await?)
+        self.execute("INSERT INTO repositories VALUES (?, ?)", [name, git_url])
+            .await
+            .map(|_| ())
     }
 
     pub async fn update_repository_url(&self, id: i32, git_url: String) -> Result<bool> {
-        Ok(self
-            .conn
-            .call(move |c| {
-                let updated = c.execute(
-                    "UPDATE repositories SET git_url=? WHERE id=?",
-                    (git_url, id),
-                )?;
-                Ok(updated == 1)
-            })
-            .await?)
+        self.execute(
+            "UPDATE repositories SET git_url=? WHERE id=?",
+            (git_url, id),
+        )
+        .await
+        .map(|n| n == 1)
     }
 }
 
