@@ -1,1 +1,1 @@
-DROP TABLE smtp_info;
+DROP TABLE email_service_credential;
