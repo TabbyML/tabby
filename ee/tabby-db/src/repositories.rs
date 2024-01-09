@@ -4,17 +4,18 @@ use rusqlite::{OptionalExtension, Row};
 use crate::DbConn;
 
 pub struct RepositoryDAO {
+    pub id: i32,
     pub name: String,
     pub git_url: String,
 }
 
 impl RepositoryDAO {
-    fn new(name: String, git_url: String) -> Self {
-        Self { name, git_url }
+    fn new(id: i32, name: String, git_url: String) -> Self {
+        Self { id, name, git_url }
     }
 
     fn from_row(row: &Row) -> Result<Self, rusqlite::Error> {
-        Ok(Self::new(row.get(0)?, row.get(1)?))
+        Ok(Self::new(row.get(0)?, row.get(1)?, row.get(2)?))
     }
 }
 
@@ -32,10 +33,24 @@ impl DbConn {
             .await?
     }
 
-    pub async fn get_repository(&self, name: String) -> Result<Option<RepositoryDAO>> {
+    pub async fn get_repository(&self, id: i32) -> Result<Option<RepositoryDAO>> {
         Ok(self
             .conn
-            .call(|c| {
+            .call(move |c| {
+                Ok(c.query_row(
+                    "SELECT name, git_url FROM repositories WHERE id=?",
+                    [id],
+                    RepositoryDAO::from_row,
+                ))
+            })
+            .await?
+            .optional()?)
+    }
+
+    pub async fn get_repository_by_name(&self, name: String) -> Result<Option<RepositoryDAO>> {
+        Ok(self
+            .conn
+            .call(move |c| {
                 Ok(c.query_row(
                     "SELECT name, git_url FROM repositories WHERE name=?",
                     [name],
@@ -68,13 +83,13 @@ impl DbConn {
             .await?)
     }
 
-    pub async fn update_repository_url(&self, name: String, git_url: String) -> Result<bool> {
+    pub async fn update_repository_url(&self, id: i32, git_url: String) -> Result<bool> {
         Ok(self
             .conn
-            .call(|c| {
+            .call(move |c| {
                 let updated = c.execute(
-                    "UPDATE repositories SET git_url=? WHERE name=?",
-                    [git_url, name],
+                    "UPDATE repositories SET git_url=? WHERE id=?",
+                    (git_url, id),
                 )?;
                 Ok(updated == 1)
             })
@@ -90,18 +105,27 @@ mod tests {
     async fn test_update_repository() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
+        // Insert new repository
         conn.add_repository("test".into(), "testurl".into())
             .await
             .unwrap();
 
-        let repository = conn.get_repository("test".into()).await.unwrap().unwrap();
+        // Test that the url can be retrieved
+        let repository = conn
+            .get_repository_by_name("test".into())
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(repository.git_url, "testurl");
 
-        conn.update_repository_url("test".into(), "testurl2".into())
+        // Update the repository
+        let id = repository.id;
+        conn.update_repository_url(id, "testurl2".into())
             .await
             .unwrap();
 
-        let repository = conn.get_repository("test".into()).await.unwrap().unwrap();
+        // Check the url was updated
+        let repository = conn.get_repository(id).await.unwrap().unwrap();
         assert_eq!(repository.git_url, "testurl2");
     }
 }

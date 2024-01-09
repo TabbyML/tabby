@@ -1,4 +1,7 @@
 CREATE TABLE repositories (
-    name VARCHAR(255) PRIMARY KEY,
-    git_url VARCHAR(255),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255) NOT NULL,
+    git_url VARCHAR(255) NOT NULL,
+    CONSTRAINT `idx_name` UNIQUE (`name`)
+    CONSTRAINT `idx_git_url` UNIQUE (`git_url`)
 );
