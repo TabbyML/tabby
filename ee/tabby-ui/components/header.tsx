@@ -36,6 +36,7 @@ export function Header() {
           </span>
         </Link>
         <HeaderLink href="/api">API</HeaderLink>
+        <HeaderLink href="/browser">Browser</HeaderLink>
         {isChatEnabled && (
           <HeaderLink href="/playground">Playground</HeaderLink>
         )}
