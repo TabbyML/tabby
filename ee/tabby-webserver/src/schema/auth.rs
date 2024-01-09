@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
-use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
+use juniper::{FieldError, GraphQLEnum, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -334,6 +334,21 @@ impl relay::NodeType for InvitationNext {
     }
 }
 
+#[derive(GraphQLEnum, Clone)]
+#[non_exhaustive]
+pub enum OAuthProvider {
+    Github,
+}
+
+#[derive(GraphQLObject)]
+pub struct OAuthCredential {
+    pub provider: OAuthProvider,
+    pub client_id: String,
+    pub active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 #[async_trait]
 pub trait AuthenticationService: Send + Sync {
     async fn register(
@@ -384,6 +399,19 @@ pub trait AuthenticationService: Send + Sync {
         code: String,
         client: Arc<GithubClient>,
     ) -> std::result::Result<GithubAuthResponse, GithubAuthError>;
+
+    async fn read_oauth_credential(
+        &self,
+        provider: OAuthProvider,
+    ) -> Result<Option<OAuthCredential>>;
+
+    async fn update_oauth_credential(
+        &self,
+        provider: OAuthProvider,
+        client_id: String,
+        client_secret: Option<String>,
+        active: bool,
+    ) -> Result<()>;
 }
 
 #[cfg(test)]
