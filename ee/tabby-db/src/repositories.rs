@@ -62,7 +62,10 @@ impl DbConn {
         Ok(self
             .conn
             .call(|c| {
-                c.execute("INSERT INTO repositories VALUES (?, ?)", [name, git_url])?;
+                c.execute(
+                    "INSERT INTO repositories (name, git_url) VALUES (?, ?)",
+                    [name, git_url],
+                )?;
                 Ok(())
             })
             .await?)
