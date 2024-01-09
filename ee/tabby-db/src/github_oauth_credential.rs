@@ -34,33 +34,46 @@ impl DbConn {
         client_secret: Option<&str>,
         active: bool,
     ) -> Result<()> {
-        let mut sql = r#"INSERT INTO github_oauth_credential (id, client_id, client_secret)
-                                VALUES (:id, :cid, :secret) ON CONFLICT(id) DO UPDATE "#
-            .to_string();
-        if client_secret.is_some() {
-            sql += r#"SET client_id = :cid, client_secret = :secret, active = :active, updated_at = datetime('now')
-                    WHERE id = :id"#;
-        } else {
-            sql += r#"SET client_id = :cid, active = :active, updated_at = datetime('now')
-                    WHERE id = :id"#;
-        }
-
         let client_id = client_id.to_string();
-        let client_secret = client_secret.unwrap_or_default().to_owned();
-        self.conn
-            .call(move |c| {
-                let mut stmt = c.prepare(&sql)?;
-                stmt.insert(named_params! {
+        if let Some(client_secret) = client_secret {
+            let client_secret = client_secret.to_string();
+            let sql = r#"INSERT INTO github_oauth_credential (id, client_id, client_secret, active)
+                                VALUES (:id, :cid, :secret, :active) ON CONFLICT(id) DO UPDATE
+                                SET client_id = :cid, client_secret = :secret, active = :active, updated_at = datetime('now')
+                                WHERE id = :id"#;
+            self.conn
+                .call(move |c| {
+                    let mut stmt = c.prepare(&sql)?;
+                    stmt.insert(named_params! {
                     ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
                     ":cid": client_id,
                     ":secret": client_secret,
                     ":active": active,
-                })?;
-                Ok(())
-            })
-            .await?;
-
-        Ok(())
+                    })?;
+                    Ok(())
+                })
+                .await?;
+            Ok(())
+        } else {
+            let sql = r#"
+            UPDATE github_oauth_credential SET client_id = :cid, active = :active, updated_at = datetime('now')
+            WHERE id = :id"#;
+            let rows = self.conn
+                .call(move |c| {
+                    let mut stmt = c.prepare(&sql)?;
+                    let rows = stmt.execute(named_params! {
+                    ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
+                    ":cid": client_id,
+                    ":active": active,
+                    })?;
+                    Ok(rows)
+                })
+                .await?;
+            if rows != 1 {
+                return Err(anyhow::anyhow!("failed to update: github credential not found"));
+            }
+            Ok(())
+        }
     }
 
     pub async fn read_github_oauth_credential(&self) -> Result<Option<GithubOAuthCredentialDAO>> {
@@ -87,9 +100,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_github_oauth_credential() {
-        // test insert
         let conn = DbConn::new_in_memory().await.unwrap();
-        conn.update_github_oauth_credential("client_id", Some("client_secret"), false)
+
+        // test update failure when no record exists
+        let res = conn.update_github_oauth_credential("client_id", None, false)
+            .await;
+        assert!(res.is_err());
+
+        // test insert
+        conn.update_github_oauth_credential("client_id", Some("client_secret"), true)
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
