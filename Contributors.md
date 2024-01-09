@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to Tabby! We appreciate all contributions.
+Thank you for your interest in contributing to Tabby! We appreciate all contributions. For a better experience and support, join us on [Slack](https://links.tabbyml.com/join-slack-extensions)!
 
 To begin contributing to Tabby, first clone the repository locally:
 
