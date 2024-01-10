@@ -18,7 +18,6 @@ use juniper::{
 };
 use juniper_axum::{relay, FromAuth};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-
 use tracing::error;
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
