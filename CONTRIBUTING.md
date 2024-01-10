@@ -14,7 +14,7 @@ If you have already cloned the repository, you can initialize submodules with th
 git submodule update --recursive --init
 ```
 
-Make sure you have installed [Rust](https://www.rust-lang.org/learn/get-started) and the following dependencies for MacOS or Debian-based Linux distributions:
+Make sure you have installed [Rust](https://www.rust-lang.org/learn/get-started), and the following dependencies are for MacOS or Debian-based Linux distributions:
 
 ```bash
 # For MacOS
@@ -70,3 +70,16 @@ Tabby is broken up into several crates, each responsible for a different part of
 - `ee/tabby-webserver` - The webserver for Tabby with privilege management and a chatbot playground. Also includes GraphQL API implementation. Must use `--webserver` on CLI to enable
 - `ee/tabby-db` - The database backing the webserver
 - `ee/tabby-ui` - Frontend for the Tabby webserver
+
+## Picking an Issue
+
+This [search filter](https://github.com/TabbyML/tabby/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22+no%3Aassignee) will show all the issues currently marked as "open" and "good first issue" that aren't currently assigned to anyone.
+Any of them would be a good choice for starting out, and choosing one that already has some conversation may help give context and ensure it's relevant.
+
+Most issues will have a link to the related location in the code, and if they don't, you can always reach out to us on Slack or mention one of us in the issue to provide more context.
+
+## Code Review
+
+You can feel free to open PRs that aren't quite ready yet, to work on them. If you do this, please make sure to [mark the pull request as a draft](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request).
+
+Once your PR is ready, please request review from one of the [Tabby team members](https://github.com/orgs/TabbyML/people), and watch for replies asking for any changes. Once approved, you can merge your code into Tabby!
