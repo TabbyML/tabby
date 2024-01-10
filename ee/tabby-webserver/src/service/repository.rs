@@ -31,4 +31,10 @@ impl RepositoryService for DbConn {
     async fn delete_repository(&self, id: ID) -> Result<bool> {
         self.delete_repository(id.parse()?).await
     }
+
+    async fn update_repository(&self, id: ID, name: String, git_url: String) -> Result<bool> {
+        self.update_repository(id.parse()?, name, git_url)
+            .await
+            .map(|_| true)
+    }
 }
