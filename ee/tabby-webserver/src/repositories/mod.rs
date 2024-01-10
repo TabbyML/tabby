@@ -21,6 +21,7 @@ use crate::{
     },
     schema::auth::AuthenticationService,
 };
+use crate::repositories::resolve::contains_meta;
 
 #[derive(Debug)]
 pub struct ResolveState {
@@ -94,7 +95,7 @@ async fn resolve_path(
         .unwrap_or(false);
 
     if is_dir {
-        return match resolve_dir(root, full_path.clone()).await {
+        return match resolve_dir(repo.name_str(), root, full_path.clone()).await {
             Ok(resp) => Ok(resp),
             Err(err) => {
                 warn!("failed to resolve_dir <{:?}>: {}", full_path, err);
@@ -103,6 +104,9 @@ async fn resolve_path(
         };
     }
 
+    if !contains_meta(&repo.dataset_key()) {
+        return Err(StatusCode::NOT_FOUND);
+    }
     match resolve_file(root, &repo).await {
         Ok(resp) => Ok(resp),
         Err(err) => {
