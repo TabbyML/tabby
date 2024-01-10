@@ -1,8 +1,9 @@
 use tabby_db::{
-    EmailServiceCredentialDAO, GithubOAuthCredentialDAO, InvitationDAO, JobRunDAO, UserDAO,
+    EmailServiceCredentialDAO, GithubOAuthCredentialDAO, InvitationDAO, JobRunDAO, RepositoryDAO,
+    UserDAO,
 };
 
-use super::email_service_credential::EmailServiceCredential;
+use super::{email_service_credential::EmailServiceCredential, repository::Repository};
 use crate::schema::{
     auth,
     auth::{OAuthCredential, OAuthProvider},
@@ -64,6 +65,16 @@ impl From<EmailServiceCredentialDAO> for EmailServiceCredential {
             smtp_username: value.smtp_username,
             smtp_password: value.smtp_password,
             smtp_server: value.smtp_server,
+        }
+    }
+}
+
+impl From<RepositoryDAO> for Repository {
+    fn from(value: RepositoryDAO) -> Self {
+        Repository {
+            id: juniper::ID::new(value.id.to_string()),
+            name: value.name,
+            git_url: value.git_url,
         }
     }
 }
