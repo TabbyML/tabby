@@ -7,7 +7,6 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use axum::http::StatusCode;
 use hyper::Body;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
