@@ -27,7 +27,6 @@ pub enum OAuthClient {
 struct OAuthState {
     auth: Arc<dyn AuthenticationService>,
     github_client: Arc<GithubClient>,
-    google_client: Arc<GoogleClient>,
 }
 
 pub fn routes(auth: Arc<dyn AuthenticationService>) -> Router {
@@ -46,7 +45,7 @@ pub fn routes(auth: Arc<dyn AuthenticationService>) -> Router {
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
-struct GithubOAuthQueryParam {
+struct GithubCallbackParam {
     code: String,
     state: Option<String>,
 }
