@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use tabby_db::{DbConn, EmailServiceCredentialDAO};
 
