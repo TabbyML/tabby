@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 use anyhow::{anyhow, Result};
 use argon2::{
@@ -12,12 +12,12 @@ use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
 
 use crate::{
-    oauth::github::GithubClient,
+    oauth::OAuthClient,
     schema::auth::{
-        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, GithubAuthError,
-        GithubAuthResponse, InvitationNext, JWTPayload, OAuthCredential, OAuthProvider,
-        RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError,
-        TokenAuthResponse, User, VerifyTokenResponse,
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
+        JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenError,
+        RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse,
+        User, VerifyTokenResponse,
     },
 };
 
@@ -344,23 +344,33 @@ impl AuthenticationService for DbConn {
         Ok(invitations.into_iter().map(|x| x.into()).collect())
     }
 
-    async fn github_auth(
+    async fn oauth(
         &self,
         code: String,
-        client: Arc<GithubClient>,
-    ) -> std::result::Result<GithubAuthResponse, GithubAuthError> {
-        let credential = self
-            .read_github_oauth_credential()
-            .await?
-            .ok_or(GithubAuthError::CredentialNotActive)?;
-
-        let email = client.fetch_user_email(code, credential).await?;
+        client: OAuthClient,
+    ) -> std::result::Result<OAuthResponse, OAuthError> {
+        let email = match client {
+            OAuthClient::Github(client) => {
+                let credential = self
+                    .read_github_oauth_credential()
+                    .await?
+                    .ok_or(OAuthError::CredentialNotActive)?;
+                client.fetch_user_email(code, credential).await?
+            }
+            OAuthClient::Google(client) => {
+                let credential = self
+                    .read_google_oauth_credential()
+                    .await?
+                    .ok_or(OAuthError::CredentialNotActive)?;
+                client.fetch_user_email(code, credential).await?
+            }
+        };
 
         let user = if let Some(user) = self.get_user_by_email(&email).await? {
             user
         } else {
             let Some(invitation) = self.get_invitation_by_email(&email).await? else {
-                return Err(GithubAuthError::UserNotInvited);
+                return Err(OAuthError::UserNotInvited);
             };
             // it's ok to set password to empty string here, because
             // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
@@ -376,9 +386,9 @@ impl AuthenticationService for DbConn {
         self.create_refresh_token(user.id, &refresh_token).await?;
 
         let access_token = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-            .map_err(|_| GithubAuthError::Unknown)?;
+            .map_err(|_| OAuthError::Unknown)?;
 
-        let resp = GithubAuthResponse {
+        let resp = OAuthResponse {
             access_token,
             refresh_token,
         };
@@ -393,6 +403,9 @@ impl AuthenticationService for DbConn {
             OAuthProvider::Github => {
                 Ok(self.read_github_oauth_credential().await?.map(|x| x.into()))
             }
+            OAuthProvider::Google => {
+                Ok(self.read_google_oauth_credential().await?.map(|x| x.into()))
+            }
         }
     }
 
@@ -401,10 +414,14 @@ impl AuthenticationService for DbConn {
         provider: OAuthProvider,
         client_id: String,
         client_secret: String,
+        redirect_uri: Option<String>,
     ) -> Result<()> {
         match provider {
             OAuthProvider::Github => Ok(self
                 .update_github_oauth_credential(&client_id, &client_secret)
+                .await?),
+            OAuthProvider::Google => Ok(self
+                .update_google_oauth_credential(&client_id, &client_secret, redirect_uri.as_deref())
                 .await?),
         }
     }
@@ -412,6 +429,7 @@ impl AuthenticationService for DbConn {
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()> {
         match provider {
             OAuthProvider::Github => self.delete_github_oauth_credential().await,
+            OAuthProvider::Google => self.delete_google_oauth_credential().await,
         }
     }
 }
