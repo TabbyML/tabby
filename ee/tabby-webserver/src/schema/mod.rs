@@ -1,5 +1,6 @@
 pub mod auth;
 mod dao;
+pub mod email_service_credential;
 pub mod job;
 pub mod repository;
 pub mod worker;
@@ -21,10 +22,12 @@ use juniper_axum::{
     FromAuth,
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tabby_db::EmailServiceCredentialDAO;
 use tracing::error;
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
+use self::email_service_credential::{EmailServiceCredential, EmailServiceCredentialService};
 use self::repository::RepositoryService;
 use crate::schema::{
     auth::{OAuthCredential, OAuthProvider},
@@ -38,6 +41,7 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn RawEventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
+    fn email_service_credential(&self) -> Arc<dyn EmailServiceCredentialService>;
 }
 
 pub struct Context {
@@ -272,6 +276,16 @@ impl Query {
         .await
     }
 
+    async fn email_service_credential(
+        ctx: &Context,
+    ) -> FieldResult<Option<EmailServiceCredential>> {
+        let val = ctx
+            .locator
+            .email_service_credential()
+            .get_email_service_credential()
+            .await?;
+        Ok(val)
+
     async fn oauth_credential(
         ctx: &Context,
         provider: OAuthProvider,
@@ -431,6 +445,23 @@ impl Mutation {
         Err(CoreError::Unauthorized(
             "Only admin is able to update oauth credential",
         ))
+    }
+
+    async fn update_email_service_credential(
+        ctx: &Context,
+        smtp_username: String,
+        smtp_password: String,
+        smtp_server: String,
+    ) -> FieldResult<bool> {
+        ctx.locator
+            .email_service_credential()
+            .update_email_service_credential(EmailServiceCredential {
+                smtp_username,
+                smtp_password,
+                smtp_server,
+            })
+            .await?;
+        Ok(true)
     }
 }
 

@@ -3,6 +3,7 @@ use tabby_db::{
     UserDAO,
 };
 
+use super::email_service_credential::EmailServiceCredential;
 use super::repository::Repository;
 use crate::schema::{
     auth,
@@ -77,6 +78,16 @@ impl From<RepositoryDAO> for Repository {
             id: juniper::ID::new(value.id.to_string()),
             name: value.name,
             git_url: value.git_url,
+        }
+    }
+}
+
+impl From<EmailServiceCredentialDAO> for EmailServiceCredential {
+    fn from(value: EmailServiceCredentialDAO) -> Self {
+        EmailServiceCredential {
+            smtp_username: value.smtp_username,
+            smtp_password: value.smtp_password,
+            smtp_server: value.smtp_server,
         }
     }
 }
