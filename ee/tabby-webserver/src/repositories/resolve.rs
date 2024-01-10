@@ -131,7 +131,7 @@ fn load_meta() -> HashMap<DatasetKey, Meta> {
 }
 
 /// Resolve a directory
-pub async fn resolve_dir(root: PathBuf, full_path: PathBuf) -> Result<Response> {
+pub async fn resolve_dir(repo_name: &str, root: PathBuf, full_path: PathBuf) -> Result<Response> {
     let mut read_dir = tokio::fs::read_dir(full_path).await?;
     let mut entries: Vec<DirEntry> = vec![];
 
@@ -148,6 +148,13 @@ pub async fn resolve_dir(root: PathBuf, full_path: PathBuf) -> Result<Response> 
         let kind = if meta.is_dir() {
             DirEntryKind::Dir
         } else if meta.is_file() {
+            let key = DatasetKey {
+                repo_name: repo_name.to_string(),
+                rel_path: basename.clone(),
+            };
+            if !contains_meta(&key) {
+                continue;
+            }
             DirEntryKind::File
         } else {
             // Skip others.
@@ -185,6 +192,10 @@ pub fn resolve_meta(key: &DatasetKey) -> Option<Meta> {
         return Some(meta.clone());
     }
     None
+}
+
+pub fn contains_meta(key: &DatasetKey) -> bool {
+    META.contains_key(key)
 }
 
 pub fn resolve_all(rs: Arc<ResolveState>) -> Result<Response> {
