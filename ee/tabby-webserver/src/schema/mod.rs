@@ -449,9 +449,10 @@ impl Mutation {
     async fn update_email_service_credential(
         ctx: &Context,
         smtp_username: String,
-        smtp_password: String,
+        smtp_password: Option<String>,
         smtp_server: String,
     ) -> FieldResult<bool> {
+        let service = ctx.locator.email_service_credential();
         ctx.locator
             .email_service_credential()
             .update_email_service_credential(smtp_username, smtp_password, smtp_server)
