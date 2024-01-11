@@ -56,6 +56,8 @@ To run Tabby locally with ROCm (AMD):
 cargo run --release --features rocm serve --model TabbyML/StarCoder-1B --device rocm
 ```
 
+The above command gives the following output in a termal (after compilation):
+
 ![image](https://github.com/TabbyML/tabby/assets/14198267/8f21d495-882d-462c-b426-7c495f38a5d8)
 
 
