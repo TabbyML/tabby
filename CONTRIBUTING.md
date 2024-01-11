@@ -49,25 +49,24 @@ This will run Tabby locally on CPU, which is not optimal for performance. Depend
 To run Tabby locally with CUDA (NVIDIA):
 
 ```
-cargo run --release --features cuda serve --model TabbyML/StarCoder-1B --device cuda
+cargo run --features cuda serve --model TabbyML/StarCoder-1B --device cuda
 ```
 
 To run Tabby locally with ROCm (AMD):
 
 ```
-cargo run --release --features rocm serve --model TabbyML/StarCoder-1B --device rocm
+cargo run --features rocm serve --model TabbyML/StarCoder-1B --device rocm
 ```
 
 To run Tabby locally with Metal (Apple M1/M2):
 
 ```
-cargo run --release serve --model TabbyML/StarCoder-1B --device metal
+cargo run serve --model TabbyML/StarCoder-1B --device metal
 ```
 
 After running the respective command, you should see an output similar to the below (after compilation). The demonstration is for ROCm (AMD).
 
 ![image](https://github.com/TabbyML/tabby/assets/14198267/8f21d495-882d-462c-b426-7c495f38a5d8)
-
 
 By default, Tabby will start on `localhost:8080` and serve requests.
 
