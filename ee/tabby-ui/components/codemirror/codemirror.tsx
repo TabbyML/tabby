@@ -88,7 +88,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
             )
 
             container.append(div)
-            
+
             return {
               destroy() {
                 div.remove()
@@ -146,7 +146,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       if (editor.current && value !== currentValue) {
         editor.current.dispatch({
           changes: { from: 0, to: currentValue.length, insert: value || '' },
-          effects: StateEffect.reconfigure.of(getExtensions({ excludeWidget: false }))
+          effects: StateEffect.reconfigure.of(
+            getExtensions({ excludeWidget: false })
+          )
         })
       }
     }

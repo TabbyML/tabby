@@ -13,20 +13,20 @@ import {
   ResizablePanelGroup
 } from '@/components/ui/resizable'
 
-import { FileTree as RepositoryFileTree, TFileTreeNode } from './file-tree'
+import { RepositoriesFileTree, TFileTreeNode } from './file-tree'
 import { SourceCodeEditor } from './source-code-editor'
 
 type TCodeMap = Record<string, string>
 type TFileMetaMap = Record<string, TFileMeta>
-export type TCodeTag = {
+type TCodeTag = {
   range: TRange
   name_range: TRange
   line_range: TRange
   is_definition: boolean
   syntax_type_name: string
 }
-export type TRange = { start: number; end: number }
-export type TFileMeta = {
+type TRange = { start: number; end: number }
+type TFileMeta = {
   git_url: string
   filepath: string
   language: string
@@ -47,7 +47,7 @@ type SourceCodeBrowserContextValue = {
 
 type SourceCodeBrowserProviderProps = {}
 
-export const SourceCodeBrowserContext =
+const SourceCodeBrowserContext =
   React.createContext<SourceCodeBrowserContextValue>(
     {} as SourceCodeBrowserContextValue
   )
@@ -136,9 +136,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   return (
     <ResizablePanelGroup direction="horizontal" className={cn(className)}>
       <ResizablePanel defaultSize={15} minSize={15}>
-        <RepositoryFileTree
+        <RepositoriesFileTree
           className="h-full overflow-y-auto"
-          repositoryName={repositoryName}
           onSelectTreeNode={onSelectTreeNode}
           activePath={activePath}
         />
@@ -153,10 +152,18 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   )
 }
 
-export const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
+const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
   return (
     <SourceCodeBrowserContextProvider>
       <SourceCodeBrowserRenderer {...props} />
     </SourceCodeBrowserContextProvider>
   )
+}
+
+export {
+  SourceCodeBrowserContext,
+  SourceCodeBrowser,
+  type TCodeTag,
+  type TRange,
+  type TFileMeta
 }

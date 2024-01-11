@@ -10,9 +10,7 @@ interface SourceCodeEditorProps {
   className?: string
 }
 
-export const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
-  className
-}) => {
+const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
   const { activePath, codeMap, fileMetaMap } = useContext(
     SourceCodeBrowserContext
   )
@@ -34,3 +32,5 @@ export const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
     </div>
   )
 }
+
+export { SourceCodeEditor }

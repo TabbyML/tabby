@@ -4,7 +4,7 @@ import { SourceCodeBrowser } from './components/source-code-browser'
 
 export default function Page() {
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex h-screen flex-col">
       <Header />
       <SourceCodeBrowser className="flex-1 overflow-hidden" />
     </div>
