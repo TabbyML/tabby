@@ -22,7 +22,7 @@ use juniper_axum::{
     FromAuth,
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-use tabby_db::EmailServiceCredentialDAO;
+
 use tracing::error;
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};

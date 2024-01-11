@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use juniper::GraphQLObject;
-use tabby_db::EmailServiceCredentialDAO;
+
 
 #[derive(GraphQLObject)]
 pub struct EmailServiceCredential {
