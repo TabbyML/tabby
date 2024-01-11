@@ -221,7 +221,7 @@ pub async fn create_service_locator(
     Arc::new(Arc::new(ServerContext::new(logger, code).await))
 }
 
-pub fn graphql_params_to_filter(
+pub fn graphql_pagination_to_filter(
     after: Option<String>,
     before: Option<String>,
     first: Option<usize>,
@@ -238,8 +238,4 @@ pub fn graphql_params_to_filter(
         }
         _ => Ok((None, None, false)),
     }
-}
-
-pub fn convert_vec<A: Into<B>, B>(v: Vec<A>) -> Vec<B> {
-    v.into_iter().map(Into::into).collect()
 }

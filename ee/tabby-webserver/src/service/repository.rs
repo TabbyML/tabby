@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 
-use super::{convert_vec, graphql_params_to_filter};
+use super::graphql_pagination_to_filter;
 use crate::schema::repository::{Repository, RepositoryService};
 
 #[async_trait]
@@ -15,11 +15,11 @@ impl RepositoryService for DbConn {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<Repository>> {
-        let (limit, skip_id, backwards) = graphql_params_to_filter(after, before, first, last)?;
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let repositories = self
             .list_repositories_with_filter(limit, skip_id, backwards)
             .await?;
-        Ok(convert_vec(repositories))
+        Ok(repositories.into_iter().map(Into::into).collect())
     }
 
     async fn create_repository(&self, name: String, git_url: String) -> Result<ID> {
