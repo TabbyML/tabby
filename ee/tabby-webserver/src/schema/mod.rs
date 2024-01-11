@@ -404,19 +404,6 @@ impl Mutation {
         Ok(ctx.locator.repository().delete_repository(id).await?)
     }
 
-    async fn update_repository(
-        ctx: &Context,
-        id: ID,
-        name: String,
-        git_url: String,
-    ) -> Result<bool> {
-        Ok(ctx
-            .locator
-            .repository()
-            .update_repository(id, name, git_url)
-            .await?)
-    }
-
     async fn delete_invitation_next(ctx: &Context, id: ID) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
