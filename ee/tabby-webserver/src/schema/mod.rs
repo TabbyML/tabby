@@ -455,11 +455,7 @@ impl Mutation {
     ) -> FieldResult<bool> {
         ctx.locator
             .email_service_credential()
-            .update_email_service_credential(EmailServiceCredentialDAO {
-                smtp_username,
-                smtp_password,
-                smtp_server,
-            })
+            .update_email_service_credential(smtp_username, smtp_password, smtp_server)
             .await?;
         Ok(true)
     }

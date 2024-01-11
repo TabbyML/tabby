@@ -1,5 +1,5 @@
 use tabby_db::{
-    GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO, RepositoryDAO,
+    EmailServiceCredentialDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO, RepositoryDAO,
     UserDAO,
 };
 
