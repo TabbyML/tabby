@@ -184,6 +184,17 @@ const config = {
         enableInDevelopment: false,
       },
     ],
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        redirects: [
+          {
+            to: '/docs/new-faq',
+            from: '/docs/faq',
+          },
+        ],
+      },
+    ],
   ],
 };
 
