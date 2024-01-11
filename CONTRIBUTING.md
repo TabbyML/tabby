@@ -16,7 +16,7 @@ If you have already cloned the repository, you can initialize submodules with th
 git submodule update --recursive --init
 ```
 
-Make sure you have installed [Rust](https://www.rust-lang.org/learn/get-started), and the following dependencies are for MacOS or Debian-based Linux distributions:
+Make sure you have installed [Rust](https://www.rust-lang.org/learn/get-started), and one of the following dependencies may need to be installed depending on your system:
 
 ```bash
 # For MacOS
@@ -24,6 +24,9 @@ brew install protobuf
 
 # For Ubuntu / Debian
 apt-get install protobuf-compiler libopenblas-dev
+
+# For Windows 11 with Chocolatey package manager
+choco install protoc
 ```
 
 Before proceeding, ensure that all tests are passing locally:
