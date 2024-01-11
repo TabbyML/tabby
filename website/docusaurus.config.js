@@ -206,11 +206,7 @@ const config = {
           },
           {
             to: '/docs/installation/self-host/docker.mdx',
-            from: '/docs/installation/docker.mdx',
-          },
-          {
-            to: '/docs/installation/self-host/docker.mdx',
-            from: '/docs/installation/docker-compose.mdx',
+            from: ['/docs/installation/docker.mdx', '/docs/installation/docker-compose.mdx'],
           },
           {
             to: '/docs/installation/model-hardware/models-registry.mdx',
