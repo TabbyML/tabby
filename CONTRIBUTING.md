@@ -1,4 +1,4 @@
-# Contributing
+# 🤝 Contributing
 
 Thank you for your interest in contributing to Tabby! We appreciate all contributions. For a better experience and support, join us on [Slack](https://links.tabbyml.com/join-slack)!
 
@@ -36,7 +36,7 @@ This will help ensure everything is working correctly and avoid surprises with l
 
 ## Building and Running
 
-Tabby can be run through cargo in much the same manner as docker:
+Tabby can be run through `cargo` in much the same manner as docker:
 
 ```
 cargo run serve --model TabbyML/StarCoder-1B
@@ -47,13 +47,13 @@ This will run Tabby locally on CPU, which is not optimal for performance. Depend
 To run Tabby locally with CUDA (Nvidia):
 
 ```
-cargo run --release --features cuda serve --model TabbyML/StarCoder-1B
+cargo run --release --features cuda serve --model TabbyML/StarCoder-1B --device cuda
 ```
 
 To run Tabby locally with ROCm (AMD):
 
 ```
-cargo run --release --features rocm serve --model TabbyML/StarCoder-1B
+cargo run --release --features rocm serve --model TabbyML/StarCoder-1B --device rocm
 ```
 
 By default, Tabby will start on `localhost:8080` and serve requests.
