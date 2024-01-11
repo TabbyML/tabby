@@ -353,9 +353,6 @@ impl AuthenticationService for DbConn {
             .read_github_oauth_credential()
             .await?
             .ok_or(GithubAuthError::CredentialNotActive)?;
-        if !credential.active {
-            return Err(GithubAuthError::CredentialNotActive);
-        }
 
         let email = client.fetch_user_email(code, credential).await?;
 
@@ -404,12 +401,17 @@ impl AuthenticationService for DbConn {
         provider: OAuthProvider,
         client_id: String,
         client_secret: Option<String>,
-        active: bool,
     ) -> Result<()> {
         match provider {
             OAuthProvider::Github => Ok(self
-                .update_github_oauth_credential(&client_id, client_secret.as_deref(), active)
+                .update_github_oauth_credential(&client_id, client_secret.as_deref())
                 .await?),
+        }
+    }
+
+    async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()> {
+        match provider {
+            OAuthProvider::Github => self.delete_github_oauth_credential().await,
         }
     }
 }

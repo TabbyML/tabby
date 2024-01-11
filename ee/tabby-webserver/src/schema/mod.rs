@@ -369,7 +369,7 @@ impl Mutation {
             if claims.is_admin {
                 ctx.locator
                     .auth()
-                    .update_oauth_credential(provider, client_id, client_secret, active)
+                    .update_oauth_credential(provider, client_id, client_secret)
                     .await?;
                 return Ok(true);
             }

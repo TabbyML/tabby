@@ -48,7 +48,6 @@ impl From<GithubOAuthCredentialDAO> for OAuthCredential {
         OAuthCredential {
             provider: OAuthProvider::Github,
             client_id: val.client_id,
-            active: val.active,
             created_at: val.created_at,
             updated_at: val.updated_at,
         }

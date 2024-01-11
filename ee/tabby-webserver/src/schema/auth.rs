@@ -344,7 +344,6 @@ pub enum OAuthProvider {
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
     pub client_id: String,
-    pub active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -410,8 +409,9 @@ pub trait AuthenticationService: Send + Sync {
         provider: OAuthProvider,
         client_id: String,
         client_secret: Option<String>,
-        active: bool,
     ) -> Result<()>;
+
+    async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
 }
 
 #[cfg(test)]
