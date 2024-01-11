@@ -32,6 +32,8 @@ Before proceeding, ensure that all tests are passing locally:
 cargo test -- --skip golden
 ```
 
+Golden tests should be skipped on all platforms except Apple silicon (M1/M2), because they have not been created for other platforms yet.
+
 This will help ensure everything is working correctly and avoid surprises with local breakages.
 
 ## Building and Running
@@ -42,9 +44,9 @@ Tabby can be run through `cargo` in much the same manner as docker:
 cargo run serve --model TabbyML/StarCoder-1B
 ```
 
-This will run Tabby locally on CPU, which is not optimal for performance. Depending on your GPU and its compatibility, you may be able to run Tabby with GPU acceleration. Please make sure you have CUDA or ROCm installed, for Nvidia or AMD graphics cards respectively.
+This will run Tabby locally on CPU, which is not optimal for performance. Depending on your GPU and its compatibility, you may be able to run Tabby with GPU acceleration. Please make sure you have CUDA or ROCm installed, for Nvidia or AMD graphics cards respectively. No extra library installation is necessary for Apple silicon (M1/M2) using Metal.
 
-To run Tabby locally with CUDA (Nvidia):
+To run Tabby locally with CUDA (NVIDIA):
 
 ```
 cargo run --release --features cuda serve --model TabbyML/StarCoder-1B --device cuda
@@ -56,7 +58,13 @@ To run Tabby locally with ROCm (AMD):
 cargo run --release --features rocm serve --model TabbyML/StarCoder-1B --device rocm
 ```
 
-The above command gives the following output in a termal (after compilation):
+To run Tabby locally with Metal (Apple M1/M2):
+
+```
+cargo run --release serve --model TabbyML/StarCoder-1B --device metal
+```
+
+After running the respective command, you should see an output similar to the below (after compilation). The demonstration is for ROCm (AMD).
 
 ![image](https://github.com/TabbyML/tabby/assets/14198267/8f21d495-882d-462c-b426-7c495f38a5d8)
 
