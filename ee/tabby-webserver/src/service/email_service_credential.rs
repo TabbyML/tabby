@@ -24,4 +24,8 @@ impl EmailServiceCredentialService for DbConn {
         })
         .await
     }
+
+    async fn delete_email_service_credential(&self) -> Result<()> {
+        self.delete_email_service_credential().await
+    }
 }

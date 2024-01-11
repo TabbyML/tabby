@@ -59,6 +59,19 @@ impl DbConn {
             })
             .await?)
     }
+
+    pub async fn delete_email_service_credential(&self) -> Result<()> {
+        Ok(self
+            .conn
+            .call(move |c| {
+                c.execute(
+                    "DELETE FROM email_service_credential WHERE id = ?",
+                    [EMAIL_CREDENTIAL_ROW_ID],
+                )?;
+                Ok(())
+            })
+            .await?)
+    }
 }
 
 #[cfg(test)]
