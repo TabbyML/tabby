@@ -14,7 +14,7 @@ pub trait EmailServiceCredentialService: Send + Sync {
     async fn update_email_service_credential(
         &self,
         smtp_username: String,
-        smtp_password: String,
+        smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<()>;
     async fn delete_email_service_credential(&self) -> Result<()>;
