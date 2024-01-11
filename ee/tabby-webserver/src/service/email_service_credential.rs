@@ -13,7 +13,10 @@ impl EmailServiceCredentialService for DbConn {
         Ok(creds.map(Into::into))
     }
 
-    async fn update_email_service_credential(&self, creds: EmailServiceCredential) -> Result<()> {
+    async fn update_email_service_credential(
+        &self,
+        creds: EmailServiceCredentialDAO,
+    ) -> Result<()> {
         self.update_email_service_credential(EmailServiceCredentialDAO {
             smtp_username: creds.smtp_username,
             smtp_password: creds.smtp_password,
