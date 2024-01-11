@@ -86,7 +86,6 @@ impl From<EmailServiceCredentialDAO> for EmailServiceCredential {
     fn from(value: EmailServiceCredentialDAO) -> Self {
         EmailServiceCredential {
             smtp_username: value.smtp_username,
-            smtp_password: value.smtp_password,
             smtp_server: value.smtp_server,
         }
     }
