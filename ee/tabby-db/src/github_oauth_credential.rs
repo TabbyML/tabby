@@ -29,49 +29,26 @@ impl DbConn {
     pub async fn update_github_oauth_credential(
         &self,
         client_id: &str,
-        client_secret: Option<&str>,
+        client_secret: &str,
     ) -> Result<()> {
         let client_id = client_id.to_string();
-        if let Some(client_secret) = client_secret {
-            let client_secret = client_secret.to_string();
-            let sql = r#"INSERT INTO github_oauth_credential (id, client_id, client_secret)
+        let client_secret = client_secret.to_string();
+        let sql = r#"INSERT INTO github_oauth_credential (id, client_id, client_secret)
                                 VALUES (:id, :cid, :secret) ON CONFLICT(id) DO UPDATE
                                 SET client_id = :cid, client_secret = :secret, updated_at = datetime('now')
                                 WHERE id = :id"#;
-            self.conn
-                .call(move |c| {
-                    let mut stmt = c.prepare(sql)?;
-                    stmt.insert(named_params! {
-                    ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
-                    ":cid": client_id,
-                    ":secret": client_secret,
-                    })?;
-                    Ok(())
-                })
-                .await?;
-            Ok(())
-        } else {
-            let sql = r#"
-            UPDATE github_oauth_credential SET client_id = :cid, updated_at = datetime('now')
-            WHERE id = :id"#;
-            let rows = self
-                .conn
-                .call(move |c| {
-                    let mut stmt = c.prepare(sql)?;
-                    let rows = stmt.execute(named_params! {
-                    ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
-                    ":cid": client_id,
-                    })?;
-                    Ok(rows)
-                })
-                .await?;
-            if rows != 1 {
-                return Err(anyhow::anyhow!(
-                    "failed to update: github credential not found"
-                ));
-            }
-            Ok(())
-        }
+        self.conn
+            .call(move |c| {
+                let mut stmt = c.prepare(sql)?;
+                stmt.insert(named_params! {
+                ":id": GITHUB_OAUTH_CREDENTIAL_ROW_ID,
+                ":cid": client_id,
+                ":secret": client_secret,
+                })?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
     }
 
     pub async fn delete_github_oauth_credential(&self) -> Result<()> {
@@ -113,12 +90,8 @@ mod tests {
     async fn test_update_github_oauth_credential() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        // test update failure when no record exists
-        let res = conn.update_github_oauth_credential("client_id", None).await;
-        assert!(res.is_err());
-
         // test insert
-        conn.update_github_oauth_credential("client_id", Some("client_secret"))
+        conn.update_github_oauth_credential("client_id", "client_secret")
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
@@ -126,7 +99,7 @@ mod tests {
         assert_eq!(res.client_secret, "client_secret");
 
         // test update
-        conn.update_github_oauth_credential("client_id", Some("client_secret_2"))
+        conn.update_github_oauth_credential("client_id", "client_secret_2")
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
@@ -137,8 +110,8 @@ mod tests {
         conn.delete_github_oauth_credential().await.unwrap();
         assert!(conn.read_github_oauth_credential().await.unwrap().is_none());
 
-        // test update without client_secret
-        conn.update_github_oauth_credential("client_id_2", None)
+        // test update after delete
+        conn.update_github_oauth_credential("client_id_2", "client_secret_2")
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();

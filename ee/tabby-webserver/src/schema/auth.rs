@@ -408,7 +408,7 @@ pub trait AuthenticationService: Send + Sync {
         &self,
         provider: OAuthProvider,
         client_id: String,
-        client_secret: Option<String>,
+        client_secret: String,
     ) -> Result<()>;
 
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;

@@ -400,11 +400,11 @@ impl AuthenticationService for DbConn {
         &self,
         provider: OAuthProvider,
         client_id: String,
-        client_secret: Option<String>,
+        client_secret: String,
     ) -> Result<()> {
         match provider {
             OAuthProvider::Github => Ok(self
-                .update_github_oauth_credential(&client_id, client_secret.as_deref())
+                .update_github_oauth_credential(&client_id, &client_secret)
                 .await?),
         }
     }
