@@ -69,24 +69,6 @@ impl DbConn {
             })
             .await?)
     }
-
-    pub async fn update_repository(&self, id: i32, name: String, git_url: String) -> Result<()> {
-        let updated = self
-            .conn
-            .call(move |c| {
-                let update_count = c.execute(
-                    "UPDATE repositories SET git_url=?, name=? WHERE id=?",
-                    (git_url, name, id),
-                )?;
-                Ok(update_count == 1)
-            })
-            .await?;
-        if updated {
-            Ok(())
-        } else {
-            Err(anyhow!("failed to update: repository not found"))
-        }
-    }
 }
 
 #[cfg(test)]
@@ -94,11 +76,12 @@ mod tests {
     use crate::DbConn;
 
     #[tokio::test]
-    async fn test_update_repository() {
+    async fn test_create_repository() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // Insert new repository
-        conn.create_repository("test".into(), "testurl".into())
+        let id = conn
+            .create_repository("test".into(), "testurl".into())
             .await
             .unwrap();
 
@@ -109,18 +92,12 @@ mod tests {
             .unwrap()[0];
         assert_eq!(repository.git_url, "testurl");
 
-        // Update the repository
-        let id = repository.id;
-        conn.update_repository(id, "test2".into(), "testurl2".into())
-            .await
-            .unwrap();
-
-        // Check the url was updated
-        let repository = &conn
+        // Delete the repository and test it is deleted successfully
+        assert!(conn.delete_repository(id).await.unwrap());
+        assert!(conn
             .list_repositories_with_filter(None, None, false)
             .await
-            .unwrap()[0];
-        assert_eq!(repository.git_url, "testurl2");
-        assert_eq!(repository.name, "test2");
+            .unwrap()
+            .is_empty());
     }
 }
