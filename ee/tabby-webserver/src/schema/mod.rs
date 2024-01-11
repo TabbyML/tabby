@@ -363,7 +363,6 @@ impl Mutation {
         provider: OAuthProvider,
         client_id: String,
         client_secret: Option<String>,
-        _active: bool,
     ) -> Result<bool> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {

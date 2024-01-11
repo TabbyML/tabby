@@ -133,6 +133,10 @@ mod tests {
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret_2");
 
+        // test delete
+        conn.delete_github_oauth_credential().await.unwrap();
+        assert!(conn.read_github_oauth_credential().await.unwrap().is_none());
+
         // test update without client_secret
         conn.update_github_oauth_credential("client_id_2", None)
             .await
