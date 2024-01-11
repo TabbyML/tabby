@@ -140,7 +140,7 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'focus:bg-accent focus:text-accent-foreground hover:bg-accent flex cursor-pointer flex-nowrap items-center gap-1 overflow-x-hidden whitespace-nowrap rounded-sm',
+        'flex cursor-pointer flex-nowrap items-center gap-1 overflow-x-hidden whitespace-nowrap rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         isActive && 'bg-accent',
         className
       )}
@@ -161,7 +161,7 @@ const DirectoryTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'focus:bg-accent focus:text-accent-foreground hover:bg-accent flex cursor-pointer flex-nowrap items-center gap-1 truncate whitespace-nowrap rounded-sm',
+        'flex cursor-pointer flex-nowrap items-center gap-1 truncate whitespace-nowrap rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         className
       )}
       style={{

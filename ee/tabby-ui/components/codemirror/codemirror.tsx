@@ -71,7 +71,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
                   return (
                     <Popover key={index}>
                       <PopoverTrigger>
-                        <div className="bg-secondary flex items-center gap-1 rounded-sm border px-1">
+                        <div className="flex items-center gap-1 rounded-sm border bg-secondary px-1">
                           <IconSymbolFunction />
                           <span>{item}</span>
                         </div>
