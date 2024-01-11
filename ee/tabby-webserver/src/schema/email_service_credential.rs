@@ -14,4 +14,5 @@ pub trait EmailServiceCredentialService: Send + Sync {
     async fn get_email_service_credential(&self) -> Result<Option<EmailServiceCredential>>;
     async fn update_email_service_credential(&self, creds: EmailServiceCredentialDAO)
         -> Result<()>;
+    async fn delete_email_service_credential(&self) -> Result<()>;
 }
