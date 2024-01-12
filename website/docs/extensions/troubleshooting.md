@@ -2,7 +2,7 @@
 sidebar_position: 99
 ---
 
-# 🚨 Troubleshooting
+# Troubleshooting
 
 This document aims to assist you in troubleshooting issues with the Tabby extensions 
 for various IDEs such as VSCode, IntelliJ Platform IDEs, and Vim / NeoVim.

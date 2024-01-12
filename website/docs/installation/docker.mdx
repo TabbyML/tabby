@@ -1,0 +1,27 @@
+---
+sidebar_position: 0
+---
+
+# Docker
+
+This guide explains how to launch Tabby using docker.
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+  <TabItem value="cuda" label="CUDA (requires NVIDIA Container Toolkit)" default>
+
+  ```bash title="run.sh"
+  docker run -it --gpus all -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model TabbyML/StarCoder-1B --device cuda
+  ```
+
+  </TabItem>
+  <TabItem value="cpu" label="CPU" default>
+
+  ```bash title="run.sh"
+  docker run -it -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model TabbyML/StarCoder-1B
+  ```
+
+  </TabItem>
+</Tabs>
