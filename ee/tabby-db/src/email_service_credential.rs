@@ -47,13 +47,14 @@ impl DbConn {
         Ok(self
             .conn
             .call(move |c| {
+                let transaction = c.transaction()?;
                  let smtp_password = match smtp_password {
                     Some(pass) => pass,
                     None => {
-                        c.query_row("SELECT smtp_password FROM email_service_credential WHERE id = ?", [], |r| Ok(r.get(0)?))?
+                        transaction.query_row("SELECT smtp_password FROM email_service_credential WHERE id = ?", [], |r| Ok(r.get(0)?))?
                     }
                 };       
-                c.execute("INSERT INTO email_service_credential VALUES (:id, :user, :pass, :server)
+                transaction.execute("INSERT INTO email_service_credential VALUES (:id, :user, :pass, :server)
                         ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server
                         WHERE id = :id",
                         named_params! {
@@ -63,6 +64,7 @@ impl DbConn {
                             ":server": smtp_server,
                         }
                 )?;
+                transaction.commit()?;
                 Ok(())
             })
             .await?)
