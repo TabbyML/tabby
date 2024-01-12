@@ -32,16 +32,9 @@ pub async fn chat_completions(
 ) -> Response {
     let s = stream! {
         for await content in state.generate(&request).await? {
-            let content = match serde_json::to_string(&content) {
-                Ok(s) => s,
-                Err(e) => {
-                    yield Err::<_, anyhow::Error>(e.into());
-                    continue
-                }
-            };
-
+            let content = serde_json::to_string(&content)?;
             let content = format!("data: {}\n\n", content);
-            yield Ok(content)
+            yield Ok::<_, anyhow::Error>(content)
         }
     };
 
