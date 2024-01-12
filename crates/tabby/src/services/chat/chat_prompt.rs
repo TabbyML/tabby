@@ -1,6 +1,7 @@
 use minijinja::{context, Environment};
 
 use super::Message;
+use crate::services::CompletionError;
 
 pub struct ChatPromptBuilder {
     env: Environment<'static>,
@@ -16,10 +17,10 @@ impl ChatPromptBuilder {
         Self { env }
     }
 
-    pub fn build(&self, messages: &[Message]) -> Result<String, minijinja::Error> {
-        self.env.get_template("prompt")?.render(context!(
+    pub fn build(&self, messages: &[Message]) -> Result<String, CompletionError> {
+        Ok(self.env.get_template("prompt")?.render(context!(
                 messages => messages
-        ))
+        ))?)
     }
 }
 

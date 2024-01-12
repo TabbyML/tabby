@@ -12,7 +12,7 @@ use tracing::debug;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::model;
+use super::{model, CompletionError};
 use crate::{fatal, Device};
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -105,7 +105,7 @@ impl ChatService {
     pub async fn generate(
         &self,
         request: &ChatCompletionRequest,
-    ) -> Result<BoxStream<ChatCompletionChunk>, minijinja::Error> {
+    ) -> Result<BoxStream<ChatCompletionChunk>, CompletionError> {
         let mut event_output = String::new();
         let event_input = convert_messages(&request.messages);
 
