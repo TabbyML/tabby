@@ -1,6 +1,6 @@
-use anyhow::{Result};
+use anyhow::Result;
 use async_trait::async_trait;
-use tabby_db::{DbConn};
+use tabby_db::DbConn;
 
 use crate::schema::email_service_credential::{
     EmailServiceCredential, EmailServiceCredentialService,
