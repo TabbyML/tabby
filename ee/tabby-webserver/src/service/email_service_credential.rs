@@ -19,21 +19,8 @@ impl EmailServiceCredentialService for DbConn {
         smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<()> {
-        let smtp_password = match smtp_password {
-            Some(pass) => pass,
-            None => {
-                let Some(creds) = self.read_email_service_credential().await? else {
-                    return Err(anyhow!("No existing credential to update"));
-                };
-                creds.smtp_password
-            }
-        };
-        self.update_email_service_credential(EmailServiceCredentialDAO {
-            smtp_username,
-            smtp_password,
-            smtp_server,
-        })
-        .await
+        self.update_email_service_credential(smtp_username, smtp_password, smtp_server)
+            .await
     }
 
     async fn delete_email_service_credential(&self) -> Result<()> {
