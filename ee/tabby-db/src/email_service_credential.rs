@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use rusqlite::{named_params, OptionalExtension};
 
 use crate::DbConn;
@@ -44,21 +44,15 @@ impl DbConn {
         smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<()> {
-        let smtp_password = match smtp_password {
-            Some(pass) => pass,
-            None => {
-                self.read_email_service_credential()
-                    .await?
-                    .ok_or_else(|| {
-                        anyhow!("No existing SMTP credentials, password must be specified")
-                    })?
-                    .smtp_password
-            }
-        };
-
         Ok(self
             .conn
             .call(move |c| {
+                 let smtp_password = match smtp_password {
+                    Some(pass) => pass,
+                    None => {
+                        c.query_row("SELECT smtp_password FROM email_service_credential WHERE id = ?", [], |r| Ok(r.get(0)?))?
+                    }
+                };       
                 c.execute("INSERT INTO email_service_credential VALUES (:id, :user, :pass, :server)
                         ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server
                         WHERE id = :id",
