@@ -2,7 +2,7 @@
 sidebar_position: 98
 ---
 
-# 🛠️ Advanced Configuration
+# Advanced Configuration
 
 This document describes the available configurations for Tabby IDE extensions.
 
