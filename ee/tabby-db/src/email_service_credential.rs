@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use rusqlite::{named_params, OptionalExtension};
 
 use crate::DbConn;
@@ -40,8 +40,22 @@ impl DbConn {
 
     pub async fn update_email_service_credential(
         &self,
-        creds: EmailServiceCredentialDAO,
+        smtp_username: String,
+        smtp_password: Option<String>,
+        smtp_server: String,
     ) -> Result<()> {
+        let smtp_password = match smtp_password {
+            Some(pass) => pass,
+            None => {
+                self.read_email_service_credential()
+                    .await?
+                    .ok_or_else(|| {
+                        anyhow!("No existing SMTP credentials, password must be specified")
+                    })?
+                    .smtp_password
+            }
+        };
+
         Ok(self
             .conn
             .call(move |c| {
@@ -50,10 +64,23 @@ impl DbConn {
                         WHERE id = :id",
                         named_params! {
                             ":id": EMAIL_CREDENTIAL_ROW_ID,
-                            ":user": creds.smtp_username,
-                            ":pass": creds.smtp_password,
-                            ":server": creds.smtp_server,
+                            ":user": smtp_username,
+                            ":pass": smtp_password,
+                            ":server": smtp_server,
                         }
+                )?;
+                Ok(())
+            })
+            .await?)
+    }
+
+    pub async fn delete_email_service_credential(&self) -> Result<()> {
+        Ok(self
+            .conn
+            .call(move |c| {
+                c.execute(
+                    "DELETE FROM email_service_credential WHERE id = ?",
+                    [EMAIL_CREDENTIAL_ROW_ID],
                 )?;
                 Ok(())
             })
@@ -73,13 +100,9 @@ mod tests {
         assert_eq!(conn.read_email_service_credential().await.unwrap(), None);
 
         // Test insertion
-        conn.update_email_service_credential(EmailServiceCredentialDAO::new(
-            "user".into(),
-            "pass".into(),
-            "server".into(),
-        ))
-        .await
-        .unwrap();
+        conn.update_email_service_credential("user".into(), Some("pass".into()), "server".into())
+            .await
+            .unwrap();
 
         let creds = conn.read_email_service_credential().await.unwrap().unwrap();
         assert_eq!(creds.smtp_username, "user");

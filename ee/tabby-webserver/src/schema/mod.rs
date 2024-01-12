@@ -253,9 +253,7 @@ impl Query {
         )))
     }
 
-    async fn email_service_credential(
-        ctx: &Context,
-    ) -> FieldResult<Option<EmailServiceCredential>> {
+    async fn email_service_credential(ctx: &Context) -> Result<Option<EmailServiceCredential>> {
         let val = ctx
             .locator
             .email_service_credential()
@@ -439,16 +437,13 @@ impl Mutation {
     async fn update_email_service_credential(
         ctx: &Context,
         smtp_username: String,
-        smtp_password: String,
+        smtp_password: Option<String>,
         smtp_server: String,
-    ) -> FieldResult<bool> {
+    ) -> Result<bool> {
+        let _service = ctx.locator.email_service_credential();
         ctx.locator
             .email_service_credential()
-            .update_email_service_credential(EmailServiceCredential {
-                smtp_username,
-                smtp_password,
-                smtp_server,
-            })
+            .update_email_service_credential(smtp_username, smtp_password, smtp_server)
             .await?;
         Ok(true)
     }

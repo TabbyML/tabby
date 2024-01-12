@@ -3,11 +3,11 @@ use tabby_db::{
     UserDAO,
 };
 
-use super::{email_service_credential::EmailServiceCredential, repository::Repository};
 use crate::schema::{
     auth,
     auth::{OAuthCredential, OAuthProvider},
-    job,
+    job, EmailServiceCredential,
+    repository::Repository,
 };
 
 impl From<InvitationDAO> for auth::InvitationNext {
@@ -63,7 +63,6 @@ impl From<EmailServiceCredentialDAO> for EmailServiceCredential {
     fn from(value: EmailServiceCredentialDAO) -> Self {
         EmailServiceCredential {
             smtp_username: value.smtp_username,
-            smtp_password: value.smtp_password,
             smtp_server: value.smtp_server,
         }
     }
