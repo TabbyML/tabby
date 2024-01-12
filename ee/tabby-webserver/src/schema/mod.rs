@@ -362,14 +362,13 @@ impl Mutation {
         ctx: &Context,
         provider: OAuthProvider,
         client_id: String,
-        client_secret: Option<String>,
-        active: bool,
+        client_secret: String,
     ) -> Result<bool> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 ctx.locator
                     .auth()
-                    .update_oauth_credential(provider, client_id, client_secret, active)
+                    .update_oauth_credential(provider, client_id, client_secret)
                     .await?;
                 return Ok(true);
             }
