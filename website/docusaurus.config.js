@@ -209,7 +209,7 @@ const config = {
             from: ['/docs/installation/docker', '/docs/installation/docker-compose'],
           },
           {
-            to: '/docs/installation/models/models-registry',
+            to: '/docs/installation/models/registry',
             from: '/docs/models/index',
           },
           {
