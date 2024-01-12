@@ -105,11 +105,11 @@ impl ChatService {
     pub async fn generate(
         &self,
         request: &ChatCompletionRequest,
-    ) -> BoxStream<ChatCompletionChunk> {
+    ) -> Result<BoxStream<ChatCompletionChunk>, minijinja::Error> {
         let mut event_output = String::new();
         let event_input = convert_messages(&request.messages);
 
-        let prompt = self.prompt_builder.build(&request.messages);
+        let prompt = self.prompt_builder.build(&request.messages)?;
         let options = Self::text_generation_options();
         let created = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -128,7 +128,7 @@ impl ChatService {
             self.logger.log(Event::ChatCompletion { completion_id: id, input: event_input, output: create_assistant_message(event_output) });
         };
 
-        Box::pin(s)
+        Ok(Box::pin(s))
     }
 }
 

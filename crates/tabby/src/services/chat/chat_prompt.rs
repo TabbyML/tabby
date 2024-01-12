@@ -16,14 +16,10 @@ impl ChatPromptBuilder {
         Self { env }
     }
 
-    pub fn build(&self, messages: &[Message]) -> String {
-        self.env
-            .get_template("prompt")
-            .unwrap()
-            .render(context!(
-                    messages => messages
-            ))
-            .expect("Failed to evaluate")
+    pub fn build(&self, messages: &[Message]) -> Result<String, minijinja::Error> {
+        self.env.get_template("prompt")?.render(context!(
+                messages => messages
+        ))
     }
 }
 
@@ -49,7 +45,7 @@ mod tests {
                 content: "Could you share more details?".to_owned(),
             },
         ];
-        assert_eq!(builder.build(&messages), "<s>[INST] What is tail recursion? [/INST]It's a kind of optimization in compiler?</s> [INST] Could you share more details? [/INST]")
+        assert_eq!(builder.build(&messages).unwrap(), "<s>[INST] What is tail recursion? [/INST]It's a kind of optimization in compiler?</s> [INST] Could you share more details? [/INST]")
     }
 
     #[test]
