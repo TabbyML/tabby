@@ -1,7 +1,6 @@
 use minijinja::{context, Environment};
 
-use super::Message;
-use crate::services::CompletionError;
+use super::{CompletionError, Message};
 
 pub struct ChatPromptBuilder {
     env: Environment<'static>,

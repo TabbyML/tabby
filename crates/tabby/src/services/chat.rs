@@ -8,11 +8,12 @@ use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use tabby_common::api::event::{Event, EventLogger};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
+use thiserror::Error;
 use tracing::debug;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use super::{model, CompletionError};
+use super::model;
 use crate::{fatal, Device};
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -31,6 +32,12 @@ pub struct ChatCompletionRequest {
 pub struct Message {
     role: String,
     content: String,
+}
+
+#[derive(Error, Debug)]
+pub enum CompletionError {
+    #[error("failed to format prompt")]
+    MiniJinja(#[from] minijinja::Error),
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
