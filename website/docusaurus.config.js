@@ -201,24 +201,24 @@ const config = {
             from: '/docs/installation/skypilot/',
           },
           {
-            to: '/docs/installation/self-host/apple.md',
-            from: '/docs/installation/apple.md',
+            to: '/docs/installation/self-host/apple',
+            from: '/docs/installation/apple',
           },
           {
-            to: '/docs/installation/self-host/docker.mdx',
-            from: ['/docs/installation/docker.mdx', '/docs/installation/docker-compose.mdx'],
+            to: '/docs/installation/self-host/docker',
+            from: ['/docs/installation/docker', '/docs/installation/docker-compose'],
           },
           {
-            to: '/docs/installation/model-hardware/models-registry.mdx',
-            from: '/docs/models/index.mdx',
+            to: '/docs/installation/models/models-registry',
+            from: '/docs/models/index',
           },
           {
-            to: '/docs/coding-assistant/ide/',
+            to: '/docs/clients/extensions/',
             from: '/docs/extensions/',
           },
           {
-            to: '/docs/programming-languages.md',
-            from: '/docs/coding-assistant/ide/programming-languages.md',
+            to: '/docs/programming-languages',
+            from: '/docs/clients/extensions/programming-languages',
           },
         ],
       },
