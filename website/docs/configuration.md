@@ -2,7 +2,7 @@
 sidebar_position: 5
 ---
 
-# ⚙️ Repository Configuration
+# ⚙️ Configuration
 
 Tabby server will look for a configuration file at `~/.tabby/config.toml` for advanced features.
 
