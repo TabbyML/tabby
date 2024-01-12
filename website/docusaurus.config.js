@@ -184,6 +184,45 @@ const config = {
         enableInDevelopment: false,
       },
     ],
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        redirects: [
+          {
+            to: '/docs/installation/self-host/cloud-gpu/hugging-face/',
+            from: '/docs/installation/hugging-face/',
+          },
+          {
+            to: '/docs/installation/self-host/cloud-gpu/modal/',
+            from: '/docs/installation/modal/',
+          },
+          {
+            to: '/docs/installation/self-host/cloud-gpu/skypilot/',
+            from: '/docs/installation/skypilot/',
+          },
+          {
+            to: '/docs/installation/self-host/apple',
+            from: '/docs/installation/apple',
+          },
+          {
+            to: '/docs/installation/self-host/docker',
+            from: ['/docs/installation/docker', '/docs/installation/docker-compose'],
+          },
+          {
+            to: '/docs/installation/models/registry',
+            from: '/docs/models/index',
+          },
+          {
+            to: '/docs/clients/extensions/',
+            from: '/docs/extensions/',
+          },
+          {
+            to: '/docs/programming-languages',
+            from: '/docs/clients/extensions/programming-languages',
+          },
+        ],
+      },
+    ],
   ],
 };
 
