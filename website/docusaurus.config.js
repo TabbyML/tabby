@@ -217,8 +217,8 @@ const config = {
             from: '/docs/extensions/',
           },
           {
-            to: '/docs/programming-languages',
-            from: '/docs/clients/extensions/programming-languages',
+            to: '/docs/clients/programming-languages',
+            from: '/docs/programming-languages',
           },
         ],
       },
