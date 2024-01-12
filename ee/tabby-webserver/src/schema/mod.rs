@@ -284,6 +284,7 @@ impl Query {
             .get_email_service_credential()
             .await?;
         Ok(val)
+    }
 
     async fn oauth_credential(
         ctx: &Context,
