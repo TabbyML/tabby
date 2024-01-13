@@ -41,22 +41,22 @@ pub fn routes(auth: Arc<dyn AuthenticationService>) -> Router {
     };
 
     Router::new()
-        .route("/github", routing::get(github_callback))
+        .route("/github", routing::get(github_oauth_handler))
         .with_state(state.clone())
-        .route("/google", routing::get(google_callback))
+        .route("/google", routing::get(google_oauth_handler))
         .with_state(state.clone())
 }
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
-struct GithubCallbackParam {
+struct GithubOAuthQueryParam {
     code: String,
     state: Option<String>,
 }
 
-async fn github_callback(
+async fn github_oauth_handler(
     State(state): State<OAuthState>,
-    Query(param): Query<GithubCallbackParam>,
+    Query(param): Query<GithubOAuthQueryParam>,
 ) -> Result<Redirect, StatusCode> {
     match_auth_result(
         state
@@ -68,7 +68,7 @@ async fn github_callback(
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
-struct GoogleCallbackParam {
+struct GoogleOAuthQueryParam {
     #[serde(default)]
     code: String,
     #[serde(default)]
@@ -77,9 +77,9 @@ struct GoogleCallbackParam {
     error: String,
 }
 
-async fn google_callback(
+async fn google_oauth_handler(
     State(state): State<OAuthState>,
-    Query(param): Query<GoogleCallbackParam>,
+    Query(param): Query<GoogleOAuthQueryParam>,
 ) -> Result<Redirect, StatusCode> {
     if !param.error.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
