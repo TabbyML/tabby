@@ -69,24 +69,6 @@ impl DbConn {
             })
             .await?)
     }
-
-    pub async fn update_repository(&self, id: i32, name: String, git_url: String) -> Result<()> {
-        let updated = self
-            .conn
-            .call(move |c| {
-                let update_count = c.execute(
-                    "UPDATE repositories SET git_url=?, name=? WHERE id=?",
-                    (git_url, name, id),
-                )?;
-                Ok(update_count == 1)
-            })
-            .await?;
-        if updated {
-            Ok(())
-        } else {
-            Err(anyhow!("failed to update: repository not found"))
-        }
-    }
 }
 
 #[cfg(test)]

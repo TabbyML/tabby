@@ -212,6 +212,10 @@ impl ServiceLocator for Arc<ServerContext> {
     fn email_service_credential(&self) -> Arc<dyn EmailServiceCredentialService> {
         Arc::new(self.db_conn.clone())
     }
+
+    fn repository(&self) -> Arc<dyn crate::schema::repository::RepositoryService> {
+        Arc::new(self.db_conn.clone())
+    }
 }
 
 pub async fn create_service_locator(

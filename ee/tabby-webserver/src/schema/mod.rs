@@ -452,7 +452,7 @@ impl Mutation {
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
-    ) -> FieldResult<bool> {
+    ) -> Result<bool> {
         let _service = ctx.locator.email_service_credential();
         ctx.locator
             .email_service_credential()
