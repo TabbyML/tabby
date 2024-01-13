@@ -251,6 +251,15 @@ impl Query {
         )))
     }
 
+    async fn email_service_credential(ctx: &Context) -> Result<Option<EmailServiceCredential>> {
+        let val = ctx
+            .locator
+            .email_service_credential()
+            .get_email_service_credential()
+            .await?;
+        Ok(val)
+    }
+
     async fn repositories(
         &self,
         ctx: &Context,
@@ -273,17 +282,6 @@ impl Query {
             },
         )
         .await
-    }
-
-    async fn email_service_credential(
-        ctx: &Context,
-    ) -> FieldResult<Option<EmailServiceCredential>> {
-        let val = ctx
-            .locator
-            .email_service_credential()
-            .get_email_service_credential()
-            .await?;
-        Ok(val)
     }
 
     async fn oauth_credential(
