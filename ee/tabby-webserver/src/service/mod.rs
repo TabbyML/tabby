@@ -3,10 +3,9 @@ mod cron;
 mod email_service_credential;
 mod job;
 mod proxy;
-mod repository;
 mod worker;
 
-use std::{net::SocketAddr, num::ParseIntError, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -208,10 +207,6 @@ impl ServiceLocator for Arc<ServerContext> {
     fn email_service_credential(&self) -> Arc<dyn EmailServiceCredentialService> {
         Arc::new(self.db_conn.clone())
     }
-
-    fn repository(&self) -> Arc<dyn crate::schema::repository::RepositoryService> {
-        Arc::new(self.db_conn.clone())
-    }
 }
 
 pub async fn create_service_locator(
@@ -219,23 +214,4 @@ pub async fn create_service_locator(
     code: Arc<dyn CodeSearch>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(Arc::new(ServerContext::new(logger, code).await))
-}
-
-pub fn graphql_pagination_to_filter(
-    after: Option<String>,
-    before: Option<String>,
-    first: Option<usize>,
-    last: Option<usize>,
-) -> Result<(Option<usize>, Option<i32>, bool), ParseIntError> {
-    match (first, last) {
-        (Some(first), None) => {
-            let after = after.map(|x| x.parse::<i32>()).transpose()?;
-            Ok((Some(first), after, false))
-        }
-        (None, Some(last)) => {
-            let before = before.map(|x| x.parse::<i32>()).transpose()?;
-            Ok((Some(last), before, true))
-        }
-        _ => Ok((None, None, false)),
-    }
 }

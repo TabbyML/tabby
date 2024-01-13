@@ -2,7 +2,6 @@ pub mod auth;
 mod dao;
 pub mod email_service_credential;
 pub mod job;
-pub mod repository;
 pub mod worker;
 
 use std::sync::Arc;
@@ -17,23 +16,14 @@ use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
     Object, RootNode, ScalarValue, Value, ID,
 };
-use juniper_axum::{
-    relay::{self, Connection},
-    FromAuth,
-};
+use juniper_axum::{relay, FromAuth};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::error;
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
-use self::{
-    email_service_credential::{EmailServiceCredential, EmailServiceCredentialService},
-    repository::RepositoryService,
-};
-use crate::schema::{
-    auth::{OAuthCredential, OAuthProvider},
-    repository::Repository,
-};
+use self::email_service_credential::{EmailServiceCredential, EmailServiceCredentialService};
+use crate::schema::auth::{OAuthCredential, OAuthProvider};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
@@ -42,7 +32,6 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn RawEventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn email_service_credential(&self) -> Arc<dyn EmailServiceCredentialService>;
-    fn repository(&self) -> Arc<dyn RepositoryService>;
 }
 
 pub struct Context {
@@ -161,7 +150,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<User>> {
+    ) -> FieldResult<relay::Connection<User>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return relay::query_async(
@@ -195,7 +184,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<InvitationNext>> {
+    ) -> FieldResult<relay::Connection<InvitationNext>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return relay::query_async(
@@ -229,7 +218,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<JobRun>> {
+    ) -> FieldResult<relay::Connection<JobRun>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return relay::query_async(
@@ -238,11 +227,15 @@ impl Query {
                     first,
                     last,
                     |after, before, first, last| async move {
-                        Ok(ctx
+                        match ctx
                             .locator
                             .job()
                             .list_job_runs(after, before, first, last)
-                            .await?)
+                            .await
+                        {
+                            Ok(job_runs) => Ok(job_runs),
+                            Err(err) => Err(FieldError::from(err)),
+                        }
                     },
                 )
                 .await;
@@ -260,30 +253,6 @@ impl Query {
             .get_email_service_credential()
             .await?;
         Ok(val)
-    }
-
-    async fn repositories(
-        &self,
-        ctx: &Context,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<i32>,
-        last: Option<i32>,
-    ) -> FieldResult<Connection<Repository>> {
-        relay::query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
-                    .repository()
-                    .list_repositories(after, before, first, last)
-                    .await?)
-            },
-        )
-        .await
     }
 
     async fn oauth_credential(
@@ -388,18 +357,6 @@ impl Mutation {
         Err(CoreError::Unauthorized(
             "Only admin is able to delete invitation",
         ))
-    }
-
-    async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
-        Ok(ctx
-            .locator
-            .repository()
-            .create_repository(name, git_url)
-            .await?)
-    }
-
-    async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
-        Ok(ctx.locator.repository().delete_repository(id).await?)
     }
 
     async fn delete_invitation_next(ctx: &Context, id: ID) -> Result<ID> {
