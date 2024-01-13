@@ -34,7 +34,7 @@ export class LspServer {
       return await this.shutdown();
     });
     this.connection.onExit(async () => {
-      return await this.exit();
+      return this.exit();
     });
     this.connection.onCompletion(async (params) => {
       return await this.completion(params);
@@ -69,13 +69,21 @@ export class LspServer {
 
     const { clientInfo, capabilities } = params;
     if (capabilities.textDocument?.inlineCompletion) {
-      // TODO: use inlineCompletion prefer to completion
+      // TODO: use inlineCompletion instead of completion
     }
 
     await this.agent.initialize({
       clientProperties: {
         session: {
           client: `${clientInfo?.name} ${clientInfo?.version ?? ""}`,
+          ide: {
+            name: clientInfo?.name,
+            version: clientInfo?.version,
+          },
+          tabby_plugin: {
+            name: `${agentName} (LSP)`,
+            version: agentVersion,
+          },
         },
       },
     });
@@ -106,14 +114,14 @@ export class LspServer {
     await this.agent.finalize();
   }
 
-  async exit() {
+  exit() {
     this.logger.debug("LSP: exit: request");
     return process.exit(0);
   }
 
   async showMessage(params: ShowMessageParams) {
     this.logger.debug({ params }, "LSP server notification: window/showMessage");
-    this.connection.sendNotification("window/showMessage", params);
+    await this.connection.sendNotification("window/showMessage", params);
   }
 
   async completion(params: CompletionParams): Promise<CompletionList> {
@@ -123,10 +131,8 @@ export class LspServer {
     }
 
     try {
-      const request = await this.buildCompletionRequest(params);
-      this.logger.trace({ request }, "LSP: textDocument/completion: internalState: buildCompletionRequest");
+      const request = this.buildCompletionRequest(params);
       const response = await this.agent.provideCompletions(request);
-      this.logger.trace({ response }, "LSP: textDocument/completion: internalState: provideCompletions");
       const completionList = this.toCompletionList(response, params);
       this.logger.debug({ completionList }, "LSP: textDocument/completion: response");
       return completionList;
@@ -144,10 +150,10 @@ export class LspServer {
     };
   }
 
-  private async buildCompletionRequest(
+  private buildCompletionRequest(
     documentPosition: TextDocumentPositionParams,
     manually: boolean = false,
-  ): Promise<CompletionRequest> {
+  ): CompletionRequest {
     const { textDocument, position } = documentPosition;
     const document = this.documents.get(textDocument.uri)!;
 
@@ -161,33 +167,40 @@ export class LspServer {
     return request;
   }
 
-  private async toCompletionList(
-    response: CompletionResponse,
-    documentPosition: TextDocumentPositionParams,
-  ): Promise<CompletionList> {
-    const { textDocument } = documentPosition;
+  private toCompletionList(response: CompletionResponse, documentPosition: TextDocumentPositionParams): CompletionList {
+    const { textDocument, position } = documentPosition;
     const document = this.documents.get(textDocument.uri)!;
 
+    // Get word prefix if cursor is at end of a word
+    const linePrefix = document.getText({
+      start: { line: position.line, character: 0 },
+      end: position,
+    });
+    const wordPrefix = linePrefix.match(/(\w+)$/)?.[0] ?? "";
+
     return {
-      isIncomplete: false,
+      isIncomplete: true,
       items: response.choices.map((choice): CompletionItem => {
-        const lines = splitLines(choice.text);
+        const insertionText = choice.text.slice(document.offsetAt(position) - choice.replaceRange.start);
+
+        const lines = splitLines(insertionText);
         const firstLine = lines[0] || "";
         const secondLine = lines[1] || "";
         return {
-          label: firstLine,
+          label: wordPrefix + firstLine,
           labelDetails: {
             detail: secondLine,
             description: "Tabby",
           },
           kind: CompletionItemKind.Text,
-          detail: choice.text,
-          sortText: " ", // let suggestion by tabby sorted to te top
-          filterText: "\t", // filter text
+          documentation: {
+            kind: "markdown",
+            value: `\`\`\`\n${linePrefix + insertionText}\n\`\`\`\n ---\nSuggested by Tabby.`,
+          },
           textEdit: {
-            newText: choice.text,
+            newText: wordPrefix + insertionText,
             range: {
-              start: document.positionAt(choice.replaceRange.start),
+              start: { line: position.line, character: position.character - wordPrefix.length },
               end: document.positionAt(choice.replaceRange.end),
             },
           },
