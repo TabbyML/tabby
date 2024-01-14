@@ -21,12 +21,14 @@ use tracing::error;
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
+use crate::schema::auth::{OAuthCredential, OAuthProvider};
+
 pub trait ServiceLocator: Send + Sync {
-    fn auth(&self) -> &dyn AuthenticationService;
-    fn worker(&self) -> &dyn WorkerService;
-    fn code(&self) -> &dyn CodeSearch;
-    fn logger(&self) -> &dyn RawEventLogger;
-    fn job(&self) -> &dyn JobService;
+    fn auth(&self) -> Arc<dyn AuthenticationService>;
+    fn worker(&self) -> Arc<dyn WorkerService>;
+    fn code(&self) -> Arc<dyn CodeSearch>;
+    fn logger(&self) -> Arc<dyn RawEventLogger>;
+    fn job(&self) -> Arc<dyn JobService>;
 }
 
 pub struct Context {
@@ -240,6 +242,20 @@ impl Query {
             "Only admin is able to query job runs",
         )))
     }
+
+    async fn oauth_credential(
+        ctx: &Context,
+        provider: OAuthProvider,
+    ) -> Result<Option<OAuthCredential>> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return Ok(ctx.locator.auth().read_oauth_credential(provider).await?);
+            }
+        }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to query oauth credential",
+        ))
+    }
 }
 
 #[derive(Default)]
@@ -339,6 +355,26 @@ impl Mutation {
         }
         Err(CoreError::Unauthorized(
             "Only admin is able to delete invitation",
+        ))
+    }
+
+    async fn update_oauth_credential(
+        ctx: &Context,
+        provider: OAuthProvider,
+        client_id: String,
+        client_secret: String,
+    ) -> Result<bool> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                ctx.locator
+                    .auth()
+                    .update_oauth_credential(provider, client_id, client_secret)
+                    .await?;
+                return Ok(true);
+            }
+        }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to update oauth credential",
         ))
     }
 }

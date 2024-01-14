@@ -1,0 +1,1 @@
+DROP TABLE github_oauth_credential;

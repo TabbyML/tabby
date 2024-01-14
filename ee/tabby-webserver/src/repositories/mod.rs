@@ -17,9 +17,9 @@ use tracing::{instrument, warn};
 
 use crate::{
     repositories::resolve::{
-        resolve_all, resolve_dir, resolve_file, resolve_meta, Meta, ResolveParams,
+        contains_meta, resolve_all, resolve_dir, resolve_file, resolve_meta, Meta, ResolveParams,
     },
-    schema::ServiceLocator,
+    schema::auth::AuthenticationService,
 };
 
 #[derive(Debug)]
@@ -33,7 +33,7 @@ impl ResolveState {
     }
 }
 
-pub fn routes(rs: Arc<ResolveState>, locator: Arc<dyn ServiceLocator>) -> Router {
+pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
         .route("/resolve", routing::get(resolve))
         .with_state(rs.clone())
@@ -48,11 +48,11 @@ pub fn routes(rs: Arc<ResolveState>, locator: Arc<dyn ServiceLocator>) -> Router
         .route("/:name/meta/", routing::get(meta))
         .route("/:name/meta/*path", routing::get(meta))
         .fallback(not_found)
-        .layer(from_fn_with_state(locator, require_login_middleware))
+        .layer(from_fn_with_state(auth, require_login_middleware))
 }
 
 async fn require_login_middleware(
-    State(locator): State<Arc<dyn ServiceLocator>>,
+    State(auth): State<Arc<dyn AuthenticationService>>,
     AuthBearer(token): AuthBearer,
     request: Request<Body>,
     next: Next<Body>,
@@ -67,7 +67,7 @@ async fn require_login_middleware(
         return unauthorized;
     };
 
-    let Ok(_) = locator.auth().verify_access_token(&token).await else {
+    let Ok(_) = auth.verify_access_token(&token).await else {
         return unauthorized;
     };
 
@@ -94,7 +94,7 @@ async fn resolve_path(
         .unwrap_or(false);
 
     if is_dir {
-        return match resolve_dir(root, full_path.clone()).await {
+        return match resolve_dir(repo.name_str(), root, full_path.clone()).await {
             Ok(resp) => Ok(resp),
             Err(err) => {
                 warn!("failed to resolve_dir <{:?}>: {}", full_path, err);
@@ -103,6 +103,9 @@ async fn resolve_path(
         };
     }
 
+    if !contains_meta(&repo.dataset_key()) {
+        return Err(StatusCode::NOT_FOUND);
+    }
     match resolve_file(root, &repo).await {
         Ok(resp) => Ok(resp),
         Err(err) => {

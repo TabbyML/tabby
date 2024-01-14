@@ -77,6 +77,8 @@ For additional options (e.g inference type, parallelism), please refer to the [d
 
 ## 🤝 Contributing
 
+Full guide at [CONTRIBUTING.md](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md);
+
 ### Get the Code
 
 ```bash

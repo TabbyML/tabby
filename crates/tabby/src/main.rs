@@ -1,3 +1,13 @@
+//! Core tabby functionality. Defines primary API and CLI behavior.
+mod routes;
+mod services;
+
+mod download;
+mod serve;
+
+#[cfg(feature = "ee")]
+mod worker;
+
 use clap::{Parser, Subcommand};
 use opentelemetry::{
     global,
@@ -7,15 +17,6 @@ use opentelemetry::{
 use opentelemetry_otlp::WithExportConfig;
 use tabby_common::config::Config;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
-
-mod routes;
-mod services;
-
-mod download;
-mod serve;
-
-#[cfg(feature = "ee")]
-mod worker;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

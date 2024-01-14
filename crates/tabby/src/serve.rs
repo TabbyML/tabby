@@ -170,7 +170,7 @@ async fn api_router(
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
         Some(Arc::new(
-            create_chat_service(chat_model, &args.device, args.parallelism).await,
+            create_chat_service(logger.clone(), chat_model, &args.device, args.parallelism).await,
         ))
     } else {
         None

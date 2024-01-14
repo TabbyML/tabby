@@ -106,6 +106,11 @@ function! s:NvimHandleStdout(job, data, event)
   let buf = s:nvim_job_map[a:job].out_buffer
   for data_line in a:data
     let buf .= data_line
+    if stridx(buf, '[') != 0
+      " If not an expected response, ignore it.
+      let buf = ''
+      continue
+    endif
     try
       let decoded = json_decode(buf)
       let buf = ''

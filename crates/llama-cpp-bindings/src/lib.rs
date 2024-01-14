@@ -1,3 +1,4 @@
+//! Bindings to raw C++ LLaMA implementation. implements the TextGeneration trait and being used in tabby to generate text / code.
 mod llama;
 mod utils;
 

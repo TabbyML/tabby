@@ -6,6 +6,7 @@ use async_stream::stream;
 use chat_prompt::ChatPromptBuilder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
+use tabby_common::api::event::{Event, EventLogger};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::debug;
 use utoipa::ToSchema;
@@ -75,13 +76,19 @@ impl ChatCompletionChunk {
 
 pub struct ChatService {
     engine: Arc<dyn TextGeneration>,
+    logger: Arc<dyn EventLogger>,
     prompt_builder: ChatPromptBuilder,
 }
 
 impl ChatService {
-    fn new(engine: Arc<dyn TextGeneration>, chat_template: String) -> Self {
+    fn new(
+        engine: Arc<dyn TextGeneration>,
+        logger: Arc<dyn EventLogger>,
+        chat_template: String,
+    ) -> Self {
         Self {
             engine,
+            logger,
             prompt_builder: ChatPromptBuilder::new(chat_template),
         }
     }
@@ -99,6 +106,9 @@ impl ChatService {
         &self,
         request: &ChatCompletionRequest,
     ) -> BoxStream<ChatCompletionChunk> {
+        let mut event_output = String::new();
+        let event_input = convert_messages(&request.messages);
+
         let prompt = self.prompt_builder.build(&request.messages);
         let options = Self::text_generation_options();
         let created = std::time::SystemTime::now()
@@ -106,19 +116,45 @@ impl ChatService {
             .expect("Must be able to read system clock")
             .as_secs();
         let id = format!("chatcmpl-{}", Uuid::new_v4());
+
         debug!("PROMPT: {}", prompt);
         let s = stream! {
             for await content in self.engine.generate_stream(&prompt, options).await {
+                event_output.push_str(&content);
                 yield ChatCompletionChunk::new(content, id.clone(), created, false)
             }
-            yield ChatCompletionChunk::new("".into(), id, created, true)
+            yield ChatCompletionChunk::new("".into(), id.clone(), created, true);
+
+            self.logger.log(Event::ChatCompletion { completion_id: id, input: event_input, output: create_assistant_message(event_output) });
         };
 
         Box::pin(s)
     }
 }
 
-pub async fn create_chat_service(model: &str, device: &Device, parallelism: u8) -> ChatService {
+fn create_assistant_message(string: String) -> tabby_common::api::event::Message {
+    tabby_common::api::event::Message {
+        content: string,
+        role: "assistant".into(),
+    }
+}
+
+fn convert_messages(input: &Vec<Message>) -> Vec<tabby_common::api::event::Message> {
+    input
+        .iter()
+        .map(|m| tabby_common::api::event::Message {
+            content: m.content.clone(),
+            role: m.role.clone(),
+        })
+        .collect()
+}
+
+pub async fn create_chat_service(
+    logger: Arc<dyn EventLogger>,
+    model: &str,
+    device: &Device,
+    parallelism: u8,
+) -> ChatService {
     let (engine, model::PromptInfo { chat_template, .. }) =
         model::load_text_generation(model, device, parallelism).await;
 
@@ -126,5 +162,5 @@ pub async fn create_chat_service(model: &str, device: &Device, parallelism: u8) 
         fatal!("Chat model requires specifying prompt template");
     };
 
-    ChatService::new(engine, chat_template)
+    ChatService::new(engine, logger, chat_template)
 }

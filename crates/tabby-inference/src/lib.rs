@@ -1,3 +1,4 @@
+//! Lays out the abstract definition of a text generation model, and utilities for encodings.
 pub mod decoding;
 
 use async_trait::async_trait;

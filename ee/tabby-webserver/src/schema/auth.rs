@@ -1,10 +1,10 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
-use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
+use juniper::{FieldError, GraphQLEnum, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::from_validation_errors;
-use crate::schema::Context;
+use crate::{oauth::github::GithubClient, schema::Context};
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -137,6 +137,30 @@ pub enum TokenAuthError {
 
     #[error("Password is not valid")]
     InvalidPassword,
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+
+    #[error("Unknown error")]
+    Unknown,
+}
+
+#[derive(Default, Serialize)]
+pub struct GithubAuthResponse {
+    pub access_token: String,
+    pub refresh_token: String,
+}
+
+#[derive(Error, Debug)]
+pub enum GithubAuthError {
+    #[error("The code passed is incorrect or expired")]
+    InvalidVerificationCode,
+
+    #[error("The Github credential is not active")]
+    CredentialNotActive,
+
+    #[error("The user is not invited to access the system")]
+    UserNotInvited,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -310,6 +334,20 @@ impl relay::NodeType for InvitationNext {
     }
 }
 
+#[derive(GraphQLEnum, Clone)]
+#[non_exhaustive]
+pub enum OAuthProvider {
+    Github,
+}
+
+#[derive(GraphQLObject)]
+pub struct OAuthCredential {
+    pub provider: OAuthProvider,
+    pub client_id: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 #[async_trait]
 pub trait AuthenticationService: Send + Sync {
     async fn register(
@@ -354,6 +392,26 @@ pub trait AuthenticationService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>>;
+
+    async fn github_auth(
+        &self,
+        code: String,
+        client: Arc<GithubClient>,
+    ) -> std::result::Result<GithubAuthResponse, GithubAuthError>;
+
+    async fn read_oauth_credential(
+        &self,
+        provider: OAuthProvider,
+    ) -> Result<Option<OAuthCredential>>;
+
+    async fn update_oauth_credential(
+        &self,
+        provider: OAuthProvider,
+        client_id: String,
+        client_secret: String,
+    ) -> Result<()>;
+
+    async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
 }
 
 #[cfg(test)]

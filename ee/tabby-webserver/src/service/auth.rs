@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use argon2::{
@@ -11,10 +11,14 @@ use juniper::ID;
 use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
 
-use crate::schema::auth::{
-    generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
-    JWTPayload, RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
-    TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
+use crate::{
+    oauth::github::GithubClient,
+    schema::auth::{
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, GithubAuthError,
+        GithubAuthResponse, InvitationNext, JWTPayload, OAuthCredential, OAuthProvider,
+        RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError,
+        TokenAuthResponse, User, VerifyTokenResponse,
+    },
 };
 
 /// Input parameters for register mutation
@@ -339,6 +343,77 @@ impl AuthenticationService for DbConn {
 
         Ok(invitations.into_iter().map(|x| x.into()).collect())
     }
+
+    async fn github_auth(
+        &self,
+        code: String,
+        client: Arc<GithubClient>,
+    ) -> std::result::Result<GithubAuthResponse, GithubAuthError> {
+        let credential = self
+            .read_github_oauth_credential()
+            .await?
+            .ok_or(GithubAuthError::CredentialNotActive)?;
+
+        let email = client.fetch_user_email(code, credential).await?;
+
+        let user = if let Some(user) = self.get_user_by_email(&email).await? {
+            user
+        } else {
+            let Some(invitation) = self.get_invitation_by_email(&email).await? else {
+                return Err(GithubAuthError::UserNotInvited);
+            };
+            // it's ok to set password to empty string here, because
+            // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
+            // 2. `password_verify` will always return false for empty password hash read from user table
+            // so user created here is only able to login by github oauth, normal login won't work
+            let id = self
+                .create_user_with_invitation(email, "".to_owned(), false, invitation.id)
+                .await?;
+            self.get_user(id).await?.unwrap()
+        };
+
+        let refresh_token = generate_refresh_token();
+        self.create_refresh_token(user.id, &refresh_token).await?;
+
+        let access_token = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+            .map_err(|_| GithubAuthError::Unknown)?;
+
+        let resp = GithubAuthResponse {
+            access_token,
+            refresh_token,
+        };
+        Ok(resp)
+    }
+
+    async fn read_oauth_credential(
+        &self,
+        provider: OAuthProvider,
+    ) -> Result<Option<OAuthCredential>> {
+        match provider {
+            OAuthProvider::Github => {
+                Ok(self.read_github_oauth_credential().await?.map(|x| x.into()))
+            }
+        }
+    }
+
+    async fn update_oauth_credential(
+        &self,
+        provider: OAuthProvider,
+        client_id: String,
+        client_secret: String,
+    ) -> Result<()> {
+        match provider {
+            OAuthProvider::Github => Ok(self
+                .update_github_oauth_credential(&client_id, &client_secret)
+                .await?),
+        }
+    }
+
+    async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()> {
+        match provider {
+            OAuthProvider::Github => self.delete_github_oauth_credential().await,
+        }
+    }
 }
 
 fn password_hash(raw: &str) -> password_hash::Result<String> {
@@ -468,7 +543,7 @@ mod tests {
                 email.to_owned(),
                 password.to_owned(),
                 password.to_owned(),
-                Some(invitation.code.clone())
+                Some(invitation.code.clone()),
             )
             .await
             .is_ok());
