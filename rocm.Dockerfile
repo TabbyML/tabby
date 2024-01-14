@@ -6,6 +6,8 @@ ARG AMDGPU_INSTALL_URL=https://repo.radeon.com/amdgpu-install/6.0/ubuntu/${UBUNT
 FROM ubuntu:${UBUNTU_VERSION} as hipblas_base
 
 ARG AMDGPU_INSTALL_URL
+ARG AMDGPU_TARGETS
+ENV PATH="/opt/rocm/bin:${PATH}"
 
 # Install ROCm
 RUN apt-get update &&  \
