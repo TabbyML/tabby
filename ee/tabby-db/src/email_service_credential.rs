@@ -104,5 +104,11 @@ mod tests {
         assert_eq!(creds.smtp_username, "user");
         assert_eq!(creds.smtp_password, "pass");
         assert_eq!(creds.smtp_server, "server");
+
+        // Test update without password
+        conn.update_email_service_credential("user2".into(), None, "server2".into()).await.unwrap();
+        assert_eq!(creds.smtp_username, "user2");
+        assert_eq!(creds.smtp_password, "pass");
+        assert_eq!(creds.smtp_server, "server2");
     }
 }
