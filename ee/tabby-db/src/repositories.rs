@@ -1,12 +1,92 @@
 use anyhow::{anyhow, Result};
 use rusqlite::Row;
+use sqlx::{
+    query,
+    sqlite::{SqliteConnectOptions, SqliteQueryResult},
+    FromRow, Pool, Sqlite, SqlitePool,
+};
 
 use crate::DbConn;
 
+#[derive(FromRow)]
 pub struct RepositoryDAO {
     pub id: i32,
     pub name: String,
     pub git_url: String,
+}
+
+pub struct SQLXRepositoryService {
+    conn: Pool<Sqlite>,
+}
+
+fn expect_single_change(result: SqliteQueryResult, error: &'static str) -> Result<()> {
+    if result.rows_affected() == 1 {
+        Ok(())
+    } else {
+        Err(anyhow!(error))
+    }
+}
+
+impl SQLXRepositoryService {
+    pub async fn new() -> Result<Self, sqlx::Error> {
+        let options = SqliteConnectOptions::new().filename(crate::path::db_file());
+        let conn = SqlitePool::connect_with(options).await?;
+        Ok(Self { conn: conn.into() })
+    }
+
+    pub async fn create_repository(
+        &self,
+        name: String,
+        git_url: String,
+    ) -> Result<i32, sqlx::Error> {
+        Ok(query!(
+            "INSERT INTO repositories (name, git_url) VALUES (?, ?)",
+            name,
+            git_url
+        )
+        .execute(&self.conn)
+        .await?
+        .last_insert_rowid() as i32)
+    }
+
+    pub async fn delete_repository(&self, id: i32) -> Result<()> {
+        let result = query!("DELETE FROM repositories WHERE id = ?", id)
+            .execute(&self.conn)
+            .await?;
+        expect_single_change(result, "failed to delete repository: ID not found")
+    }
+
+    pub async fn list_repositories_with_filter(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<RepositoryDAO>> {
+        let query = DbConn::make_pagination_query(
+            "repositories",
+            &["id", "name", "git_url"],
+            limit,
+            skip_id,
+            backwards,
+        );
+        let rows = sqlx::query(&query)
+            .try_map(|r| FromRow::from_row(&r))
+            .fetch_all(&self.conn)
+            .await?;
+        Ok(rows)
+    }
+
+    pub async fn update_repository(&self, id: i32, name: String, git_url: String) -> Result<()> {
+        let result = query!(
+            "UPDATE repositories SET name = ?, git_url = ? WHERE id = ?",
+            name,
+            git_url,
+            id
+        )
+        .execute(&self.conn)
+        .await?;
+        expect_single_change(result, "failed to update repository: ID not found")
+    }
 }
 
 impl RepositoryDAO {

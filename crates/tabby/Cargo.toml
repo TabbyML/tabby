@@ -55,8 +55,6 @@ thiserror.workspace = true
 chrono.workspace = true
 axum-prometheus = "0.4.0"
 uuid.workspace = true
-sqlx = "0.7.3"
-sqlx-macros = "0.7.3"
 
 [dependencies.openssl]
 optional = true
