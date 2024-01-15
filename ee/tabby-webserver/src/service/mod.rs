@@ -16,13 +16,14 @@ use axum::{
 };
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-use tabby_db::DbConn;
+use tabby_db::{DbConn, SQLXRepositoryService};
 use tracing::{info, warn};
 
 use self::cron::run_cron;
 use crate::schema::{
     auth::AuthenticationService,
     job::JobService,
+    repository::RepositoryService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
     ServiceLocator,
 };
@@ -32,6 +33,7 @@ struct ServerContext {
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
     db_conn: DbConn,
+    repo_service: Arc<dyn RepositoryService>,
 
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -40,12 +42,14 @@ struct ServerContext {
 impl ServerContext {
     pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         let db_conn = DbConn::new().await.unwrap();
+        let repo_service = Arc::new(SQLXRepositoryService::new().await.unwrap());
         run_cron(&db_conn);
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             db_conn,
+            repo_service,
             logger,
             code,
         }
@@ -203,8 +207,8 @@ impl ServiceLocator for Arc<ServerContext> {
         Arc::new(self.db_conn.clone())
     }
 
-    fn repository(&self) -> Arc<dyn crate::schema::repository::RepositoryService> {
-        Arc::new(self.db_conn.clone())
+    fn repository(&self) -> Arc<dyn RepositoryService> {
+        self.repo_service.clone()
     }
 }
 

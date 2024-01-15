@@ -2,7 +2,7 @@ pub use email_service_credential::EmailServiceCredentialDAO;
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
-pub use repositories::RepositoryDAO;
+pub use repositories::{RepositoryDAO, SQLXRepositoryService};
 pub use users::UserDAO;
 
 mod email_service_credential;
