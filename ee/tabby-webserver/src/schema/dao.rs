@@ -1,4 +1,6 @@
-use tabby_db::{GithubOAuthCredentialDAO, InvitationDAO, JobRunDAO, RepositoryDAO, UserDAO};
+use tabby_db::{
+    GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO, UserDAO,
+};
 
 use super::repository::Repository;
 use crate::schema::{
@@ -49,6 +51,19 @@ impl From<GithubOAuthCredentialDAO> for OAuthCredential {
         OAuthCredential {
             provider: OAuthProvider::Github,
             client_id: val.client_id,
+            redirect_uri: None,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
+        }
+    }
+}
+
+impl From<GoogleOAuthCredentialDAO> for OAuthCredential {
+    fn from(val: GoogleOAuthCredentialDAO) -> Self {
+        OAuthCredential {
+            provider: OAuthProvider::Google,
+            client_id: val.client_id,
+            redirect_uri: Some(val.redirect_uri),
             created_at: val.created_at,
             updated_at: val.updated_at,
         }
