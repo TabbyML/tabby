@@ -27,23 +27,12 @@ struct GithubUserEmail {
     visibility: String,
 }
 
+#[derive(Default)]
 pub struct GithubClient {
     client: reqwest::Client,
 }
 
-impl Default for GithubClient {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl GithubClient {
-    pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
-    }
-
     pub async fn fetch_user_email(
         &self,
         code: String,

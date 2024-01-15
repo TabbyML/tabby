@@ -363,12 +363,13 @@ impl Mutation {
         provider: OAuthProvider,
         client_id: String,
         client_secret: String,
+        redirect_uri: Option<String>,
     ) -> Result<bool> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 ctx.locator
                     .auth()
-                    .update_oauth_credential(provider, client_id, client_secret)
+                    .update_oauth_credential(provider, client_id, client_secret, redirect_uri)
                     .await?;
                 return Ok(true);
             }
