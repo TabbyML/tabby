@@ -1,5 +1,6 @@
 pub use email_service_credential::EmailServiceCredentialDAO;
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
+pub use google_oauth_credential::GoogleOAuthCredentialDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use repositories::RepositoryDAO;
@@ -7,6 +8,7 @@ pub use users::UserDAO;
 
 mod email_service_credential;
 mod github_oauth_credential;
+mod google_oauth_credential;
 mod invitations;
 mod job_runs;
 mod path;
