@@ -13,7 +13,7 @@ type Mutation {
   createInvitation(email: String!): ID!
   deleteInvitation(id: Int!): Int! @deprecated
   deleteInvitationNext(id: ID!): ID!
-  updateOauthCredential(provider: OAuthProvider!, clientId: String!, clientSecret: String, active: Boolean!): Boolean!
+  updateOauthCredential(provider: OAuthProvider!, clientId: String!, clientSecret: String!, redirectUri: String): Boolean!
 }
 
 "DateTime"
@@ -89,7 +89,7 @@ type UserConnection {
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
-  active: Boolean!
+  redirectUri: String
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
 }
@@ -136,6 +136,7 @@ type InvitationEdge {
 
 enum OAuthProvider {
   GITHUB
+  GOOGLE
 }
 
 type PageInfo {
