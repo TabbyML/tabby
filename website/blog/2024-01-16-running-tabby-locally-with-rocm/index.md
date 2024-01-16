@@ -25,7 +25,9 @@ If the command is used correctly and the environment is configured properly, you
 
 ![Tabby running](./tabby-running.png)
 
-And enjoy GPU-accelerated code completions! This should be considerably faster than with CPU, and you can also try GPU-accelerated chat sessions:
+And enjoy GPU-accelerated code completions! This should be considerably faster than with CPU.
+
+You can also try chat sessions with GPU-accelerated models, which can write and discuss code in plain language:
 
 ```
 ./tabby serve --chat-model TabbyML/WizardCoder-3B --device rocm --webserver
