@@ -17,3 +17,6 @@ And enjoy GPU-accelerated code completions! This should be considerably faster t
 ```
 ./tabby serve --chat-model TabbyML/WizardCoder-3B --device rocm --webserver
 ```
+If the command is used correctly and the environment is configured properly, you should see command output similar to the following:
+
+![image](https://github.com/TabbyML/tabby/assets/14198267/00ab4fec-3e79-4fd3-852b-0b18f55a99e9)
