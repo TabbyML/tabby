@@ -1,12 +1,14 @@
 use tabby_db::{
-    EmailServiceCredentialDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO, UserDAO,
+    EmailServiceCredentialDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO,
+    JobRunDAO, RepositoryDAO, UserDAO,
 };
 
 use crate::schema::{
     auth,
     auth::{OAuthCredential, OAuthProvider},
-    job, EmailServiceCredential,
+    job,
     repository::Repository,
+    EmailServiceCredential,
 };
 
 impl From<InvitationDAO> for auth::InvitationNext {

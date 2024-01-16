@@ -33,7 +33,7 @@ impl RepositoryService for DbConn {
     }
 
     async fn update_repository(&self, id: ID, name: String, git_url: String) -> Result<bool> {
-        self.update_repository(id.parse()?, name, git_url)
+        self.update_repository(id, name, git_url)
             .await
             .map(|_| true)
     }
