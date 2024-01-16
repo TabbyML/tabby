@@ -1,6 +1,6 @@
 pub mod auth;
 mod dao;
-pub mod email_service_credential;
+pub mod email;
 pub mod job;
 pub mod repository;
 pub mod worker;
@@ -27,7 +27,7 @@ use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
 use self::{
-    email_service_credential::{EmailServiceCredential, EmailServiceCredentialService},
+    email::{EmailService, EmailServiceCredential},
     repository::RepositoryService,
 };
 use crate::schema::{
@@ -42,7 +42,7 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn RawEventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
-    fn email_service_credential(&self) -> Arc<dyn EmailServiceCredentialService>;
+    fn email_service_credential(&self) -> Arc<dyn EmailService>;
 }
 
 pub struct Context {

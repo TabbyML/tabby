@@ -2,12 +2,10 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tabby_db::DbConn;
 
-use crate::schema::email_service_credential::{
-    EmailServiceCredential, EmailServiceCredentialService,
-};
+use crate::schema::email::{EmailService, EmailServiceCredential};
 
 #[async_trait]
-impl EmailServiceCredentialService for DbConn {
+impl EmailService for DbConn {
     async fn get_email_service_credential(&self) -> Result<Option<EmailServiceCredential>> {
         let creds = self.read_email_service_credential().await?;
         Ok(creds.map(Into::into))

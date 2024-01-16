@@ -3,7 +3,7 @@ use tabby_db::{
     JobRunDAO, RepositoryDAO, UserDAO,
 };
 
-use super::{email_service_credential::EmailServiceCredential, repository::Repository};
+use super::{email::EmailServiceCredential, repository::Repository};
 use crate::schema::{
     auth,
     auth::{OAuthCredential, OAuthProvider},

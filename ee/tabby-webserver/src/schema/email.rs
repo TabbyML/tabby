@@ -9,7 +9,7 @@ pub struct EmailServiceCredential {
 }
 
 #[async_trait]
-pub trait EmailServiceCredentialService: Send + Sync {
+pub trait EmailService: Send + Sync {
     async fn get_email_service_credential(&self) -> Result<Option<EmailServiceCredential>>;
     async fn update_email_service_credential(
         &self,
