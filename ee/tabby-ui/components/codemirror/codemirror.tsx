@@ -70,7 +70,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
                   return (
                     <div
                       key={key}
-                      className="bg-secondary flex cursor-pointer items-center gap-1 rounded-sm border px-1"
+                      className="flex cursor-pointer items-center gap-1 rounded-sm border bg-secondary px-1"
                       onClick={e => {
                         editor.current?.dispatch({
                           selection: {
