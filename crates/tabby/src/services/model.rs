@@ -4,7 +4,7 @@ use serde::Deserialize;
 use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
 use tabby_download::download_model;
 use tabby_inference::TextGeneration;
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::{fatal, Device};
 
@@ -65,6 +65,9 @@ impl PromptInfo {
 }
 
 fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> impl TextGeneration {
+    if !device.ggml_use_gpu() {
+        warn!("⚠️  Tabby is running on CPU! Completions will be very slow. If you have a supported GPU, please pass --device [cuda/rocm/metal]");
+    }
     let options = llama_cpp_bindings::LlamaTextGenerationOptionsBuilder::default()
         .model_path(model_path.to_owned())
         .use_gpu(device.ggml_use_gpu())
