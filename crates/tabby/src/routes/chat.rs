@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-
 use axum::{
     body::StreamBody,
     extract::State,
@@ -8,7 +7,6 @@ use axum::{
     Json,
 };
 use futures::StreamExt;
-
 use tracing::instrument;
 
 use crate::services::chat::{ChatCompletionRequest, ChatService};
@@ -21,7 +19,8 @@ use crate::services::chat::{ChatCompletionRequest, ChatService};
     tag = "v1beta",
     responses(
         (status = 200, description = "Success", body = ChatCompletionChunk, content_type = "text/event-stream"),
-        (status = 405, description = "When chat model is not specified, the endpoint will returns 405 Method Not Allowed"),
+        (status = 405, description = "When chat model is not specified, the endpoint returns 405 Method Not Allowed"),
+        (status = 422, description = "When the prompt is malformed, the endpoint returns 422 Unprocessable Entity")
     ),
     security(
         ("token" = [])
