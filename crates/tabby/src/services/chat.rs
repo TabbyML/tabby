@@ -109,10 +109,10 @@ impl ChatService {
             .unwrap()
     }
 
-    pub async fn generate(
-        &self,
-        request: &ChatCompletionRequest,
-    ) -> Result<BoxStream<ChatCompletionChunk>, CompletionError> {
+    pub async fn generate<'a>(
+        self: Arc<Self>,
+        request: ChatCompletionRequest,
+    ) -> Result<BoxStream<'a, ChatCompletionChunk>, CompletionError> {
         let mut event_output = String::new();
         let event_input = convert_messages(&request.messages);
 

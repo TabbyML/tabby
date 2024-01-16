@@ -7,6 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use futures::StreamExt;
 use http::StatusCode;
 use tracing::instrument;
 
@@ -31,28 +32,18 @@ pub async fn chat_completions(
     State(state): State<Arc<ChatService>>,
     Json(request): Json<ChatCompletionRequest>,
 ) -> Response {
-    let stream = state.generate(&request).await;
+    let stream = state.generate(request).await;
     let stream = match stream {
         Ok(s) => s,
-        Err(e) => {
+        Err(_) => {
             let mut response = StreamBody::default().into_response();
             *response.status_mut() = hyper::StatusCode::UNPROCESSABLE_ENTITY;
             return response;
         }
     };
-    let s = stream! {
-        for await content in stream {
-            let content = match serde_json::to_string(&content) {
-                Ok(c) => c,
-                Err(e) => {
-                    yield Err(e.into());
-                    continue
-                }
-            };
-            let content = format!("data: {}\n\n", content);
-            yield Ok::<_, anyhow::Error>(content)
-        }
-    };
-
+    let s = stream.map(|chunk| match serde_json::to_string(&chunk) {
+        Ok(s) => Ok(format!("data: {s}")),
+        Err(e) => Err(anyhow::Error::from(e)),
+    });
     StreamBody::new(s).into_response()
 }
