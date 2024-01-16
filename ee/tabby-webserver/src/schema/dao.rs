@@ -1,5 +1,6 @@
 use tabby_db::{
-    GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO, UserDAO,
+    GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO, RepositoryDAO,
+    UserDAO,
 };
 
 use super::repository::Repository;
