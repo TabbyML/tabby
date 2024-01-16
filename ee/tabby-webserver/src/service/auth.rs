@@ -11,6 +11,7 @@ use juniper::ID;
 use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
 
+use super::graphql_pagination_to_filter;
 use crate::{
     oauth::OAuthClient,
     schema::auth::{
@@ -303,21 +304,11 @@ impl AuthenticationService for DbConn {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<User>> {
-        let users = match (first, last) {
-            (Some(first), None) => {
-                let after = after.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_users_with_filter(Some(first), after, false)
-                    .await?
-            }
-            (None, Some(last)) => {
-                let before = before.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_users_with_filter(Some(last), before, true)
-                    .await?
-            }
-            _ => self.list_users_with_filter(None, None, false).await?,
-        };
-
-        Ok(users.into_iter().map(|x| x.into()).collect())
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+        let users = self
+            .list_users_with_filter(limit, skip_id, backwards)
+            .await?;
+        Ok(users.into_iter().map(Into::into).collect())
     }
 
     async fn list_invitations(
@@ -327,21 +318,11 @@ impl AuthenticationService for DbConn {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>> {
-        let invitations = match (first, last) {
-            (Some(first), None) => {
-                let after = after.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_invitations_with_filter(Some(first), after, false)
-                    .await?
-            }
-            (None, Some(last)) => {
-                let before = before.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_invitations_with_filter(Some(last), before, true)
-                    .await?
-            }
-            _ => self.list_invitations_with_filter(None, None, false).await?,
-        };
-
-        Ok(invitations.into_iter().map(|x| x.into()).collect())
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+        let invitations = self
+            .list_invitations_with_filter(limit, skip_id, backwards)
+            .await?;
+        Ok(invitations.into_iter().map(Into::into).collect())
     }
 
     async fn oauth(

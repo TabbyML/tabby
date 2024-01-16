@@ -1,7 +1,9 @@
 use tabby_db::{
-    GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO, UserDAO,
+    GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO, RepositoryDAO,
+    UserDAO,
 };
 
+use super::repository::Repository;
 use crate::schema::{
     auth,
     auth::{OAuthCredential, OAuthProvider},
@@ -65,6 +67,16 @@ impl From<GoogleOAuthCredentialDAO> for OAuthCredential {
             redirect_uri: Some(val.redirect_uri),
             created_at: val.created_at,
             updated_at: val.updated_at,
+        }
+    }
+}
+
+impl From<RepositoryDAO> for Repository {
+    fn from(value: RepositoryDAO) -> Self {
+        Repository {
+            id: juniper::ID::new(value.id.to_string()),
+            name: value.name,
+            git_url: value.git_url,
         }
     }
 }
