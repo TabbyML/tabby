@@ -28,6 +28,7 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
         theme={theme}
         language={language}
         tags={tags}
+        readonly={false}
       />
     </div>
   )

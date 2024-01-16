@@ -1,27 +1,22 @@
 // Inspired by
 // https://github.com/sourcegraph/opencodegraph
 
-import {
-  Facet,
-  RangeSetBuilder,
-  type EditorState,
-  type Extension
-} from '@codemirror/state'
+import { Facet, type EditorState, type Extension } from '@codemirror/state'
 import {
   Decoration,
   EditorView,
-  // ViewPlugin,
-  // ViewUpdate,
+  ViewPlugin,
+  ViewUpdate,
   WidgetType,
   type DecorationSet
 } from '@codemirror/view'
 import { groupBy, isEqual } from 'lodash-es'
 
-import { TRange } from '@/app/browser/components/source-code-browser'
+import { TCodeTag } from '@/app/browser/components/source-code-browser'
 
-type CodeTag = string
-interface CodeTagTooltipDecorationsConfig<T = CodeTag> {
+interface CodeTagTooltipDecorationsConfig<T = TCodeTag> {
   createDecoration: (
+    state: EditorState,
     container: HTMLElement,
     spec: {
       indent: string | undefined
@@ -30,10 +25,7 @@ interface CodeTagTooltipDecorationsConfig<T = CodeTag> {
   ) => { destroy?: () => void }
 }
 
-interface Annotation<T = CodeTag> {
-  item: CodeTag
-  range: TRange
-}
+interface Annotation extends TCodeTag {}
 
 // customTheme for display code tag extension
 const inlineWidgetTheme = EditorView.theme({
@@ -48,13 +40,14 @@ const inlineWidgetTheme = EditorView.theme({
   }
 })
 
-class BlockWidget<T = CodeTag> extends WidgetType {
+class BlockWidget<T = TCodeTag> extends WidgetType {
   private container: HTMLElement | null = null
   private decoration:
     | ReturnType<CodeTagTooltipDecorationsConfig['createDecoration']>
     | undefined
 
   constructor(
+    private readonly state: EditorState,
     private readonly items: T[],
     private readonly indent: string | undefined,
     private readonly config: CodeTagTooltipDecorationsConfig<T>
@@ -69,17 +62,20 @@ class BlockWidget<T = CodeTag> extends WidgetType {
   public toDOM(): HTMLElement {
     if (!this.container) {
       this.container = document.createElement('div')
-      this.decoration = this.config.createDecoration(this.container, {
-        indent: this.indent,
-        items: this.items
-      })
+      this.decoration = this.config.createDecoration(
+        this.state,
+        this.container,
+        {
+          indent: this.indent,
+          items: this.items
+        }
+      )
     }
     return this.container
   }
 
   public destroy(): void {
     this.container?.remove()
-    setTimeout(() => this.decoration?.destroy?.(), 0)
   }
 }
 
@@ -88,11 +84,9 @@ function computeDecorations(
   annotations: Annotation[],
   config: CodeTagTooltipDecorationsConfig
 ): DecorationSet {
-  const builder = new RangeSetBuilder<Decoration>()
-
   const temp: Array<{ line: number; annotation: Annotation }> = []
   for (const ann of annotations) {
-    const range = ann.range
+    const range = ann.name_range
     let lineNumber = -1
     try {
       lineNumber = state.doc.lineAt(range.start)?.number ?? -1
@@ -107,23 +101,20 @@ function computeDecorations(
   const annotationMapByLine = groupBy(temp, 'line')
   const lineNumbers = Object.keys(annotationMapByLine)
 
+  let widgets = []
   for (const lineNumber of lineNumbers) {
-    const lineItems = annotationMapByLine[lineNumber]?.map(
-      o => o.annotation?.item
-    )
+    const lineItems = annotationMapByLine[lineNumber]?.map(o => o.annotation)
     const line = state.doc.line(Number(lineNumber))
     const indent = line.text.match(/^\s*/)?.[0]
-    builder.add(
-      line.from,
-      line.from,
+    widgets.push(
       Decoration.widget({
-        widget: new BlockWidget(lineItems, indent, config),
+        widget: new BlockWidget(state, lineItems, indent, config),
         side: -1
-      })
+      }).range(line.from)
     )
   }
 
-  return builder.finish()
+  return Decoration.set(widgets)
 }
 
 const codeTagsFacet = Facet.define<Annotation[], Annotation[]>({
@@ -144,6 +135,33 @@ export function displayCodeTagWidgets(
       const data = state.facet(codeTagsFacet)
       return computeDecorations(state, data, config)
     }),
+    inlineWidgetTheme
+  ]
+}
+
+export function getCodeTagWidgetExtension(
+  tags: TCodeTag[],
+  config: CodeTagTooltipDecorationsConfig
+) {
+  return [
+    ViewPlugin.fromClass(
+      class {
+        codeTags: DecorationSet
+        constructor(view: EditorView) {
+          this.codeTags = computeDecorations(view.state, tags, config)
+        }
+        update(update: ViewUpdate) {
+          if (update.docChanged) {
+            this.codeTags = computeDecorations(update.view.state, tags, config)
+          }
+        }
+      },
+      {
+        decorations: instance => {
+          return instance.codeTags
+        }
+      }
+    ),
     inlineWidgetTheme
   ]
 }

@@ -82,13 +82,13 @@ interface SourceCodeBrowserProps {
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   className
 }) => {
-  const repositoryName = 'https_github.com_TabbyML_tabby.git'
+  const [repositoryName, setRepositoryName] = React.useState<string>()
   const [fileResolver, setFileResolver] = React.useState<string>()
   const { activePath, setActivePath, codeMap, setCodeMap, setFileMetaMap } =
     React.useContext(SourceCodeBrowserContext)
   const { data: fileContent } = useSWRImmutable(
     useAuthenticatedApi(
-      fileResolver
+      fileResolver && repositoryName
         ? `/repositories/${repositoryName}/resolve/${fileResolver}`
         : null
     ),
@@ -97,20 +97,24 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   const { data: fileMeta } = useSWRImmutable(
     useAuthenticatedApi(
-      fileContent && fileResolver
+      fileContent && fileResolver && repositoryName
         ? `/repositories/${repositoryName}/meta/${fileResolver}`
         : null
     ),
     fetcher
   )
 
-  const onSelectTreeNode = (treeNode: TFileTreeNode) => {
-    const path = treeNode.file.basename
+  const onSelectTreeNode = (
+    treeNode: TFileTreeNode,
+    repositoryName: string
+  ) => {
+    const path = `${repositoryName}/${treeNode.file.basename}`
     const isFile = treeNode.file.kind === 'file'
     if (isFile) {
+      setRepositoryName(repositoryName)
       setActivePath(path)
       if (!has(codeMap, path)) {
-        setFileResolver(path)
+        setFileResolver(treeNode.file.basename)
       }
     }
   }

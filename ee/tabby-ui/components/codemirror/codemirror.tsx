@@ -3,7 +3,6 @@ import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { EditorState, Extension, StateEffect } from '@codemirror/state'
 import { oneDarkHighlightStyle, oneDarkTheme } from '@codemirror/theme-one-dark'
 import { EditorView } from '@codemirror/view'
-import { PopoverTrigger } from '@radix-ui/react-popover'
 import {
   loadLanguage,
   type LanguageName
@@ -15,8 +14,10 @@ import { basicSetup } from '@/components/codemirror/basic-setup'
 import { TCodeTag } from '@/app/browser/components/source-code-browser'
 
 import { IconSymbolFunction } from '../ui/icons'
-import { Popover, PopoverContent, PopoverPortal } from '../ui/popover'
-import { displayCodeTagWidgets, setCodeTagData } from './code-tag-extension'
+import { getCodeTagWidgetExtension } from './code-tag-widget-extension'
+import { underlineTagNameExtension } from './tag-name-underline-extension'
+import { highlightTagExtension } from './tag-range-highlight-extension'
+import { codeTagHoverTooltip } from './tooltip-extesion'
 
 interface CodeMirrorEditorProps {
   value?: string
@@ -50,38 +51,40 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       result.push(syntaxHighlighting(defaultHighlightStyle))
     }
 
-    if (value && !options?.excludeWidget) {
+    if (value && tags && !options?.excludeWidget) {
       result.push(
-        setCodeTagData(
-          tags?.map(tag => {
-            return {
-              item: tag.syntax_type_name,
-              range: { start: tag.name_range.start, end: tag.name_range.start }
-            }
-          }) || []
-        ),
-        displayCodeTagWidgets({
-          createDecoration(container, { items, indent }) {
+        getCodeTagWidgetExtension(tags, {
+          createDecoration(state, container, { items, indent }) {
             const div = document.createElement('div')
             const root = createRoot(div)
             root.render(
-              <div className="flex flex-nowrap items-center gap-1">
+              <div className="mt-1 flex flex-nowrap items-center gap-1">
                 {indent ? <SpaceDisplay spaceLength={indent.length} /> : null}
-                {items.map((item, index) => {
+                {items.map(item => {
+                  const { name_range, syntax_type_name } = item
+                  const key = `${syntax_type_name}_${name_range.start}_${name_range.end}`
+                  const name = state.doc.slice(
+                    item.name_range.start,
+                    item.name_range.end
+                  )
                   return (
-                    <Popover key={index}>
-                      <PopoverTrigger>
-                        <div className="flex items-center gap-1 rounded-sm border bg-secondary px-1">
-                          <IconSymbolFunction />
-                          <span>{item}</span>
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverPortal>
-                        <PopoverContent side="bottom" align="start">
-                          {item}
-                        </PopoverContent>
-                      </PopoverPortal>
-                    </Popover>
+                    <div
+                      key={key}
+                      className="bg-secondary flex cursor-pointer items-center gap-1 rounded-sm border px-1"
+                      onClick={e => {
+                        editor.current?.dispatch({
+                          selection: {
+                            anchor: item.name_range.start,
+                            head: item.name_range.start
+                          }
+                        })
+                      }}
+                    >
+                      <IconSymbolFunction />
+                      <span>
+                        {syntax_type_name}: {name}
+                      </span>
+                    </div>
                   )
                 })}
               </div>
@@ -96,6 +99,14 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
             }
           }
         })
+      )
+    }
+
+    if (value && tags) {
+      result.push(
+        codeTagHoverTooltip(tags),
+        underlineTagNameExtension(tags),
+        highlightTagExtension(tags)
       )
     }
 

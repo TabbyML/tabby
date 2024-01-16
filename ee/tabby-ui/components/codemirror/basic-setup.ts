@@ -2,6 +2,7 @@ import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { highlightSelectionMatches } from '@codemirror/search'
 import { EditorState, Extension } from '@codemirror/state'
 import {
+  EditorView,
   highlightActiveLine,
   highlightActiveLineGutter,
   highlightSpecialChars,
@@ -9,7 +10,14 @@ import {
   rectangularSelection
 } from '@codemirror/view'
 
+const basicTheme = EditorView.baseTheme({
+  '.ͼ1.cm-focused': {
+    outline: 'none !important'
+  }
+})
+
 export const basicSetup: Extension = (() => [
+  basicTheme,
   lineNumbers(),
   highlightActiveLineGutter(),
   highlightSpecialChars(),

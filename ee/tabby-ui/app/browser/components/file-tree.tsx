@@ -31,13 +31,13 @@ type TFileMap = Record<
 >
 
 interface FileTreeProps extends React.HTMLAttributes<HTMLDivElement> {
-  onSelectTreeNode?: (treeNode: TFileTreeNode) => void
+  onSelectTreeNode?: (treeNode: TFileTreeNode, repositoryName: string) => void
   repositoryName: string
   activePath?: string
 }
 
 type FileTreeProviderProps = React.PropsWithChildren<{
-  onSelectTreeNode?: (treeNode: TFileTreeNode) => void
+  onSelectTreeNode?: (treeNode: TFileTreeNode, repositoryName: string) => void
   repositoryName: string
   activePath?: string
   initialFileMap?: TFileMap
@@ -176,13 +176,14 @@ const DirectoryTreeNodeView: React.FC<
 }
 
 const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node }) => {
-  const { onSelectTreeNode, activePath } = React.useContext(FileTreeContext)
+  const { onSelectTreeNode, activePath, repositoryName } =
+    React.useContext(FileTreeContext)
   const isFile = node.file.kind === 'file'
-  const isActive = node.file.basename === activePath
+  const isActive = `${repositoryName}/${node.file.basename}` === activePath
 
   const handleSelect: React.MouseEventHandler<HTMLDivElement> = e => {
     if (isFile) {
-      onSelectTreeNode?.(node)
+      onSelectTreeNode?.(node, repositoryName)
     }
   }
 
@@ -238,7 +239,8 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     }
   }, [data])
 
-  const loading = useDebounce(isValidating, 150)
+  const loading = useDebounce(isValidating, 100)
+  // const loading = isValidating
 
   const existingChildren = !!node?.children?.length
   const style = { '--level': level } as React.CSSProperties
