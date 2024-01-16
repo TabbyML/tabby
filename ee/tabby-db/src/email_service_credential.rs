@@ -51,12 +51,11 @@ impl DbConn {
                  let smtp_password = match smtp_password {
                     Some(pass) => pass,
                     None => {
-                        transaction.query_row("SELECT smtp_password FROM email_service_credential WHERE id = ?", [], |r| Ok(r.get(0)?))?
+                        transaction.query_row("SELECT smtp_password FROM email_service_credential WHERE id = ?", [EMAIL_CREDENTIAL_ROW_ID], |r| Ok(r.get(0)?))?
                     }
-                };       
+                };
                 transaction.execute("INSERT INTO email_service_credential VALUES (:id, :user, :pass, :server)
-                        ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server
-                        WHERE id = :id",
+                        ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server",
                         named_params! {
                             ":id": EMAIL_CREDENTIAL_ROW_ID,
                             ":user": smtp_username,
@@ -109,6 +108,8 @@ mod tests {
         conn.update_email_service_credential("user2".into(), None, "server2".into())
             .await
             .unwrap();
+
+        let creds = conn.read_email_service_credential().await.unwrap().unwrap();
         assert_eq!(creds.smtp_username, "user2");
         assert_eq!(creds.smtp_password, "pass");
         assert_eq!(creds.smtp_server, "server2");
