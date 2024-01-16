@@ -7,7 +7,7 @@ use tabby_common::{
 };
 use tabby_download::download_model;
 use tabby_inference::TextGeneration;
-use tracing::{info};
+use tracing::info;
 
 use crate::{fatal, Device};
 
