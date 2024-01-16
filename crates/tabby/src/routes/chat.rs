@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_stream::stream;
+
 use axum::{
     body::StreamBody,
     extract::State,
@@ -8,7 +8,7 @@ use axum::{
     Json,
 };
 use futures::StreamExt;
-use http::StatusCode;
+
 use tracing::instrument;
 
 use crate::services::chat::{ChatCompletionRequest, ChatService};
