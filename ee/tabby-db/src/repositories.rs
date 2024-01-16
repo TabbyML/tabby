@@ -58,15 +58,14 @@ impl DbConn {
             .await?)
     }
 
-    pub async fn create_repository(&self, name: String, git_url: String) -> Result<()> {
+    pub async fn create_repository(&self, name: String, git_url: String) -> Result<i32> {
         Ok(self
             .conn
             .call(|c| {
-                c.execute(
-                    "INSERT INTO repositories (name, git_url) VALUES (?, ?)",
-                    [name, git_url],
-                )?;
-                Ok(())
+                let id = c
+                    .prepare("INSERT INTO repositories (name, git_url) VALUES (?, ?)")?
+                    .insert([name, git_url])?;
+                Ok(id as i32)
             })
             .await?)
     }
