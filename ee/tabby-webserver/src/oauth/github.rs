@@ -3,6 +3,7 @@ use serde::Deserialize;
 use tabby_db::GithubOAuthCredentialDAO;
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct GithubOAuthResponse {
     #[serde(default)]
     access_token: String,
@@ -20,6 +21,7 @@ struct GithubOAuthResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct GithubUserEmail {
     email: String,
     primary: bool,
