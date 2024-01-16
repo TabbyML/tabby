@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use async_stream::stream;
 use axum::{
     body::StreamBody,
     extract::State,
     response::{IntoResponse, Response},
     Json,
 };
+use futures::StreamExt;
 use tracing::instrument;
 
 use crate::services::chat::{ChatCompletionRequest, ChatService};
@@ -19,7 +19,8 @@ use crate::services::chat::{ChatCompletionRequest, ChatService};
     tag = "v1beta",
     responses(
         (status = 200, description = "Success", body = ChatCompletionChunk, content_type = "text/event-stream"),
-        (status = 405, description = "When chat model is not specified, the endpoint will returns 405 Method Not Allowed"),
+        (status = 405, description = "When chat model is not specified, the endpoint returns 405 Method Not Allowed"),
+        (status = 422, description = "When the prompt is malformed, the endpoint returns 422 Unprocessable Entity")
     ),
     security(
         ("token" = [])
@@ -30,20 +31,18 @@ pub async fn chat_completions(
     State(state): State<Arc<ChatService>>,
     Json(request): Json<ChatCompletionRequest>,
 ) -> Response {
-    let s = stream! {
-        for await content in state.generate(&request).await {
-            let content = match serde_json::to_string(&content) {
-                Ok(s) => s,
-                Err(e) => {
-                    yield Err(e);
-                    continue
-                }
-            };
-
-            let content = format!("data: {}\n\n", content);
-            yield Ok(content)
+    let stream = state.generate(request).await;
+    let stream = match stream {
+        Ok(s) => s,
+        Err(_) => {
+            let mut response = StreamBody::default().into_response();
+            *response.status_mut() = hyper::StatusCode::UNPROCESSABLE_ENTITY;
+            return response;
         }
     };
-
+    let s = stream.map(|chunk| match serde_json::to_string(&chunk) {
+        Ok(s) => Ok(format!("data: {s}")),
+        Err(e) => Err(anyhow::Error::from(e)),
+    });
     StreamBody::new(s).into_response()
 }
