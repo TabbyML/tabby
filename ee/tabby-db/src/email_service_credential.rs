@@ -51,7 +51,7 @@ impl DbConn {
                  let smtp_password = match smtp_password {
                     Some(pass) => pass,
                     None => {
-                        transaction.query_row("SELECT smtp_password FROM email_service_credential WHERE id = ?", [EMAIL_CREDENTIAL_ROW_ID], |r| Ok(r.get(0)?))?
+                        transaction.query_row("SELECT smtp_password FROM email_service_credential WHERE id = ?", [EMAIL_CREDENTIAL_ROW_ID], |r| r.get(0))?
                     }
                 };
                 transaction.execute("INSERT INTO email_service_credential VALUES (:id, :user, :pass, :server)

@@ -26,8 +26,10 @@ use tracing::error;
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
-use self::email_service_credential::{EmailServiceCredential, EmailServiceCredentialService};
-use self::repository::RepositoryService;
+use self::{
+    email_service_credential::{EmailServiceCredential, EmailServiceCredentialService},
+    repository::RepositoryService,
+};
 use crate::schema::{
     auth::{OAuthCredential, OAuthProvider},
     repository::Repository,

@@ -1,10 +1,9 @@
 use tabby_db::{
-    EmailServiceCredentialDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO, RepositoryDAO,
-    UserDAO,
+    EmailServiceCredentialDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO,
+    JobRunDAO, RepositoryDAO, UserDAO,
 };
 
-use super::email_service_credential::EmailServiceCredential;
-use super::repository::Repository;
+use super::{email_service_credential::EmailServiceCredential, repository::Repository};
 use crate::schema::{
     auth,
     auth::{OAuthCredential, OAuthProvider},
