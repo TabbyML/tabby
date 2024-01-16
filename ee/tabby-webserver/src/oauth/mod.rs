@@ -11,10 +11,7 @@ use tracing::error;
 
 use crate::{
     oauth::{github::GithubClient, google::GoogleClient},
-    schema::{
-        auth::{AuthenticationService, OAuthError, OAuthResponse},
-        ServiceLocator,
-    },
+    schema::auth::{AuthenticationService, OAuthError, OAuthResponse},
 };
 
 pub mod github;

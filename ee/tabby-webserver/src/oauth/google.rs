@@ -3,6 +3,7 @@ use serde::Deserialize;
 use tabby_db::GoogleOAuthCredentialDAO;
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct GoogleOAuthResponse {
     #[serde(default)]
     access_token: String,
@@ -15,6 +16,7 @@ struct GoogleOAuthResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct GoogleOAuthError {
     code: i32,
     message: String,
