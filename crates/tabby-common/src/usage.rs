@@ -5,7 +5,10 @@ use reqwest::Client;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::path::usage_id_file;
+use crate::{
+    path::usage_id_file,
+    terminal::{show_info, HeaderFormat},
+};
 
 static USAGE_API_ENDPOINT: &str = "https://app.tabbyml.com/api/usage";
 
@@ -21,24 +24,16 @@ impl UsageTracker {
             let id = Uuid::new_v4().to_string();
             std::fs::write(usage_id_file(), id).expect("Failed to create usage id");
 
-            eprintln!(
-                "
-  \x1b[34;1mTELEMETRY\x1b[0m
-
-  As an open source project, we collect usage statistics to inform development priorities. For more
-  information, read https://tabby.tabbyml.com/docs/configuration#usage-collection
-
-  We will not see or any code in your development process.
-
-  To opt-out, add the TABBY_DISABLE_USAGE_COLLECTION=1 to your tabby server's environment variables.
-
-  \x1b[1mWelcome to Tabby!\x1b[0m
-
-  If you have any questions or would like to engage with the Tabby team, please join us on Slack
-  (https://links.tabbyml.com/join-slack-terminal).
-
-"
-            );
+            show_info("TELEMETRY", HeaderFormat::BoldBlue, &[
+                "As an open source project, we collect usage statistics to inform development priorities. For more",
+                "information, read https://tabby.tabbyml.com/docs/configuration#usage-collection",
+                "",
+                "We will not see or any code in your development process."
+            ]);
+            show_info("Welcome to Tabby!", HeaderFormat::BoldWhite, &[
+                "If you have any questions or would like to engage with the Tabby team, please join us on Slack",
+                "(https://links.tabbyml.com/join-slack-terminal)."
+            ]);
         }
 
         let id = fs::read_to_string(usage_id_file()).expect("Failed to read usage id");

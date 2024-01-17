@@ -94,7 +94,7 @@ async fn resolve_path(
         .unwrap_or(false);
 
     if is_dir {
-        return match resolve_dir(repo.name_str(), root, full_path.clone()).await {
+        return match resolve_dir(&repo, root, full_path.clone()).await {
             Ok(resp) => Ok(resp),
             Err(err) => {
                 warn!("failed to resolve_dir <{:?}>: {}", full_path, err);

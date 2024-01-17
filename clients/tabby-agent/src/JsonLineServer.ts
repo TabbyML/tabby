@@ -19,7 +19,7 @@ type CancellationRequest = [
   },
 ];
 
-type StdIORequest = AgentFunctionRequest<keyof AgentFunction> | CancellationRequest;
+type JsonLineRequest = AgentFunctionRequest<keyof AgentFunction> | CancellationRequest;
 
 type AgentFunctionResponse<T extends keyof AgentFunction> = [
   id: number, // Matched request id
@@ -36,16 +36,16 @@ type CancellationResponse = [
   data: boolean | null,
 ];
 
-type StdIOResponse = AgentFunctionResponse<keyof AgentFunction> | AgentEventNotification | CancellationResponse;
+type JsonLineResponse = AgentFunctionResponse<keyof AgentFunction> | AgentEventNotification | CancellationResponse;
 
 /**
  * Every request and response should be single line JSON string and end with a newline.
  */
-export class StdIO {
+export class JsonLineServer {
   private readonly process: NodeJS.Process = process;
   private readonly inStream: NodeJS.ReadStream = process.stdin;
   private readonly outStream: NodeJS.WriteStream = process.stdout;
-  private readonly logger = rootLogger.child({ component: "StdIO" });
+  private readonly logger = rootLogger.child({ component: "JsonLineServer" });
 
   private abortControllers: { [id: string]: AbortController } = {};
 
@@ -54,9 +54,9 @@ export class StdIO {
   constructor() {}
 
   private async handleLine(line: string) {
-    let request: StdIORequest;
+    let request: JsonLineRequest;
     try {
-      request = JSON.parse(line) as StdIORequest;
+      request = JSON.parse(line) as JsonLineRequest;
     } catch (error) {
       this.logger.error({ error }, `Failed to parse request: ${line}`);
       return;
@@ -67,9 +67,9 @@ export class StdIO {
     this.logger.debug({ response }, "Sent response");
   }
 
-  private async handleRequest(request: StdIORequest): Promise<StdIOResponse> {
+  private async handleRequest(request: JsonLineRequest): Promise<JsonLineResponse> {
     let requestId: number = 0;
-    const response: StdIOResponse = [0, null];
+    const response: JsonLineResponse = [0, null];
     const abortController = new AbortController();
     try {
       if (!this.agent) {
@@ -119,7 +119,7 @@ export class StdIO {
     return false;
   }
 
-  private sendResponse(response: StdIOResponse): void {
+  private sendResponse(response: JsonLineResponse): void {
     this.outStream.write(JSON.stringify(response) + "\n");
   }
 

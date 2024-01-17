@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -8,13 +8,14 @@ use juniper::{FieldError, GraphQLEnum, GraphQLObject, IntoFieldError, ScalarValu
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use tabby_common::terminal::{show_info, HeaderFormat};
 use thiserror::Error;
 use tracing::{error, warn};
 use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::from_validation_errors;
-use crate::{oauth::github::GithubClient, schema::Context};
+use crate::{oauth::OAuthClient, schema::Context};
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -42,13 +43,10 @@ pub fn validate_jwt(token: &str) -> jwt::errors::Result<JWTPayload> {
 
 fn jwt_token_secret() -> String {
     let jwt_secret = std::env::var("TABBY_WEBSERVER_JWT_TOKEN_SECRET").unwrap_or_else(|_| {
-        eprintln!("
-    \x1b[93;1mJWT secret is not set\x1b[0m
-
-    Tabby server will generate a one-time (non-persisted) JWT secret for the current process.
-    Please set the \x1b[94mTABBY_WEBSERVER_JWT_TOKEN_SECRET\x1b[0m environment variable for production usage.
-"
-        );
+        show_info("JWT secret is not set", HeaderFormat::BoldYellow, &[
+            "Tabby server will generate a one-time (non-persisted) JWT secret for the current process.",
+            &format!("Please set the {} environment variable for production usage.", HeaderFormat::Blue.format("TABBY_WEBSERVER_JWT_TOKEN_SECRET")),
+        ]);
         Uuid::new_v4().to_string()
     });
 
@@ -146,17 +144,17 @@ pub enum TokenAuthError {
 }
 
 #[derive(Default, Serialize)]
-pub struct GithubAuthResponse {
+pub struct OAuthResponse {
     pub access_token: String,
     pub refresh_token: String,
 }
 
 #[derive(Error, Debug)]
-pub enum GithubAuthError {
+pub enum OAuthError {
     #[error("The code passed is incorrect or expired")]
     InvalidVerificationCode,
 
-    #[error("The Github credential is not active")]
+    #[error("The credential is not active")]
     CredentialNotActive,
 
     #[error("The user is not invited to access the system")]
@@ -338,13 +336,14 @@ impl relay::NodeType for InvitationNext {
 #[non_exhaustive]
 pub enum OAuthProvider {
     Github,
+    Google,
 }
 
 #[derive(GraphQLObject)]
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
     pub client_id: String,
-    pub active: bool,
+    pub redirect_uri: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -394,11 +393,11 @@ pub trait AuthenticationService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>>;
 
-    async fn github_auth(
+    async fn oauth(
         &self,
         code: String,
-        client: Arc<GithubClient>,
-    ) -> std::result::Result<GithubAuthResponse, GithubAuthError>;
+        client: OAuthClient,
+    ) -> std::result::Result<OAuthResponse, OAuthError>;
 
     async fn read_oauth_credential(
         &self,
@@ -409,9 +408,11 @@ pub trait AuthenticationService: Send + Sync {
         &self,
         provider: OAuthProvider,
         client_id: String,
-        client_secret: Option<String>,
-        active: bool,
+        client_secret: String,
+        redirect_uri: Option<String>,
     ) -> Result<()>;
+
+    async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
 }
 
 #[cfg(test)]

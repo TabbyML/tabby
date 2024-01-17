@@ -58,15 +58,14 @@ impl DbConn {
             .await?)
     }
 
-    pub async fn create_repository(&self, name: String, git_url: String) -> Result<()> {
+    pub async fn create_repository(&self, name: String, git_url: String) -> Result<i32> {
         Ok(self
             .conn
             .call(|c| {
-                c.execute(
-                    "INSERT INTO repositories (name, git_url) VALUES (?, ?)",
-                    [name, git_url],
-                )?;
-                Ok(())
+                let id = c
+                    .prepare("INSERT INTO repositories (name, git_url) VALUES (?, ?)")?
+                    .insert([name, git_url])?;
+                Ok(id as i32)
             })
             .await?)
     }
@@ -95,11 +94,12 @@ mod tests {
     use crate::DbConn;
 
     #[tokio::test]
-    async fn test_update_repository() {
+    async fn test_create_repository() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // Insert new repository
-        conn.create_repository("test".into(), "testurl".into())
+        let id = conn
+            .create_repository("test".into(), "testurl".into())
             .await
             .unwrap();
 
@@ -110,18 +110,12 @@ mod tests {
             .unwrap()[0];
         assert_eq!(repository.git_url, "testurl");
 
-        // Update the repository
-        let id = repository.id;
-        conn.update_repository(id, "test2".into(), "testurl2".into())
-            .await
-            .unwrap();
-
-        // Check the url was updated
-        let repository = &conn
+        // Delete the repository and test it is deleted successfully
+        assert!(conn.delete_repository(id).await.unwrap());
+        assert!(conn
             .list_repositories_with_filter(None, None, false)
             .await
-            .unwrap()[0];
-        assert_eq!(repository.git_url, "testurl2");
-        assert_eq!(repository.name, "test2");
+            .unwrap()
+            .is_empty());
     }
 }

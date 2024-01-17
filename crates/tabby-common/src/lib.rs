@@ -6,6 +6,7 @@ pub mod index;
 pub mod languages;
 pub mod path;
 pub mod registry;
+pub mod terminal;
 pub mod usage;
 
 use std::{

@@ -8,6 +8,7 @@ use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use tabby_common::api::event::{Event, EventLogger};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
+use thiserror::Error;
 use tracing::debug;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -31,6 +32,12 @@ pub struct ChatCompletionRequest {
 pub struct Message {
     role: String,
     content: String,
+}
+
+#[derive(Error, Debug)]
+pub enum CompletionError {
+    #[error("failed to format prompt")]
+    MiniJinja(#[from] minijinja::Error),
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -102,14 +109,14 @@ impl ChatService {
             .unwrap()
     }
 
-    pub async fn generate(
-        &self,
-        request: &ChatCompletionRequest,
-    ) -> BoxStream<ChatCompletionChunk> {
+    pub async fn generate<'a>(
+        self: Arc<Self>,
+        request: ChatCompletionRequest,
+    ) -> Result<BoxStream<'a, ChatCompletionChunk>, CompletionError> {
         let mut event_output = String::new();
         let event_input = convert_messages(&request.messages);
 
-        let prompt = self.prompt_builder.build(&request.messages);
+        let prompt = self.prompt_builder.build(&request.messages)?;
         let options = Self::text_generation_options();
         let created = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -128,7 +135,7 @@ impl ChatService {
             self.logger.log(Event::ChatCompletion { completion_id: id, input: event_input, output: create_assistant_message(event_output) });
         };
 
-        Box::pin(s)
+        Ok(Box::pin(s))
     }
 }
 

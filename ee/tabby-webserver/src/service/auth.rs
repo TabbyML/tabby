@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 use anyhow::{anyhow, Result};
 use argon2::{
@@ -11,13 +11,14 @@ use juniper::ID;
 use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
 
+use super::graphql_pagination_to_filter;
 use crate::{
-    oauth::github::GithubClient,
+    oauth::OAuthClient,
     schema::auth::{
-        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, GithubAuthError,
-        GithubAuthResponse, InvitationNext, JWTPayload, OAuthCredential, OAuthProvider,
-        RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError,
-        TokenAuthResponse, User, VerifyTokenResponse,
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
+        JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenError,
+        RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse,
+        User, VerifyTokenResponse,
     },
 };
 
@@ -303,21 +304,11 @@ impl AuthenticationService for DbConn {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<User>> {
-        let users = match (first, last) {
-            (Some(first), None) => {
-                let after = after.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_users_with_filter(Some(first), after, false)
-                    .await?
-            }
-            (None, Some(last)) => {
-                let before = before.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_users_with_filter(Some(last), before, true)
-                    .await?
-            }
-            _ => self.list_users_with_filter(None, None, false).await?,
-        };
-
-        Ok(users.into_iter().map(|x| x.into()).collect())
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+        let users = self
+            .list_users_with_filter(limit, skip_id, backwards)
+            .await?;
+        Ok(users.into_iter().map(Into::into).collect())
     }
 
     async fn list_invitations(
@@ -327,43 +318,40 @@ impl AuthenticationService for DbConn {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>> {
-        let invitations = match (first, last) {
-            (Some(first), None) => {
-                let after = after.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_invitations_with_filter(Some(first), after, false)
-                    .await?
-            }
-            (None, Some(last)) => {
-                let before = before.map(|x| x.parse::<i32>()).transpose()?;
-                self.list_invitations_with_filter(Some(last), before, true)
-                    .await?
-            }
-            _ => self.list_invitations_with_filter(None, None, false).await?,
-        };
-
-        Ok(invitations.into_iter().map(|x| x.into()).collect())
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+        let invitations = self
+            .list_invitations_with_filter(limit, skip_id, backwards)
+            .await?;
+        Ok(invitations.into_iter().map(Into::into).collect())
     }
 
-    async fn github_auth(
+    async fn oauth(
         &self,
         code: String,
-        client: Arc<GithubClient>,
-    ) -> std::result::Result<GithubAuthResponse, GithubAuthError> {
-        let credential = self
-            .read_github_oauth_credential()
-            .await?
-            .ok_or(GithubAuthError::CredentialNotActive)?;
-        if !credential.active {
-            return Err(GithubAuthError::CredentialNotActive);
-        }
-
-        let email = client.fetch_user_email(code, credential).await?;
+        client: OAuthClient,
+    ) -> std::result::Result<OAuthResponse, OAuthError> {
+        let email = match client {
+            OAuthClient::Github(client) => {
+                let credential = self
+                    .read_github_oauth_credential()
+                    .await?
+                    .ok_or(OAuthError::CredentialNotActive)?;
+                client.fetch_user_email(code, credential).await?
+            }
+            OAuthClient::Google(client) => {
+                let credential = self
+                    .read_google_oauth_credential()
+                    .await?
+                    .ok_or(OAuthError::CredentialNotActive)?;
+                client.fetch_user_email(code, credential).await?
+            }
+        };
 
         let user = if let Some(user) = self.get_user_by_email(&email).await? {
             user
         } else {
             let Some(invitation) = self.get_invitation_by_email(&email).await? else {
-                return Err(GithubAuthError::UserNotInvited);
+                return Err(OAuthError::UserNotInvited);
             };
             // it's ok to set password to empty string here, because
             // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
@@ -379,9 +367,9 @@ impl AuthenticationService for DbConn {
         self.create_refresh_token(user.id, &refresh_token).await?;
 
         let access_token = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-            .map_err(|_| GithubAuthError::Unknown)?;
+            .map_err(|_| OAuthError::Unknown)?;
 
-        let resp = GithubAuthResponse {
+        let resp = OAuthResponse {
             access_token,
             refresh_token,
         };
@@ -396,6 +384,9 @@ impl AuthenticationService for DbConn {
             OAuthProvider::Github => {
                 Ok(self.read_github_oauth_credential().await?.map(|x| x.into()))
             }
+            OAuthProvider::Google => {
+                Ok(self.read_google_oauth_credential().await?.map(|x| x.into()))
+            }
         }
     }
 
@@ -403,13 +394,23 @@ impl AuthenticationService for DbConn {
         &self,
         provider: OAuthProvider,
         client_id: String,
-        client_secret: Option<String>,
-        active: bool,
+        client_secret: String,
+        redirect_uri: Option<String>,
     ) -> Result<()> {
         match provider {
             OAuthProvider::Github => Ok(self
-                .update_github_oauth_credential(&client_id, client_secret.as_deref(), active)
+                .update_github_oauth_credential(&client_id, &client_secret)
                 .await?),
+            OAuthProvider::Google => Ok(self
+                .update_google_oauth_credential(&client_id, &client_secret, redirect_uri.as_deref())
+                .await?),
+        }
+    }
+
+    async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()> {
+        match provider {
+            OAuthProvider::Github => self.delete_github_oauth_credential().await,
+            OAuthProvider::Google => self.delete_google_oauth_credential().await,
         }
     }
 }
