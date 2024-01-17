@@ -70,6 +70,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then  \
 
 COPY --from=build /opt/tabby /opt/tabby
 
+ENV PATH="$PATH:/opt/tabby/bin"
 ENV TABBY_ROOT=/data
 
 ENTRYPOINT ["/opt/tabby/bin/tabby"]
