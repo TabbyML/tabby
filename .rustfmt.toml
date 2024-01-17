@@ -1,3 +1,0 @@
-reorder_imports = true
-imports_granularity = "crate"
-group_imports = "StdExternalCrate"

@@ -1,1 +1,0 @@
-DROP TABLE google_oauth_credential;

@@ -2,10 +2,7 @@
   "private": true,
   "workspaces": [
     "clients/tabby-agent",
-    "clients/vscode",
-    "clients/vim",
-    "clients/intellij",
-    "clients/example-vscode-lsp"
+    "clients/vscode"
   ],
   "engines": {
     "node": ">=18"
