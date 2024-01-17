@@ -449,11 +449,15 @@ impl Mutation {
         smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<bool> {
-        let _service = ctx.locator.email_settings();
         ctx.locator
             .email_settings()
             .update_email_settings(smtp_username, smtp_password, smtp_server)
             .await?;
+        Ok(true)
+    }
+
+    async fn delete_email_settings(ctx: &Context) -> Result<bool> {
+        ctx.locator.email_settings().delete_email_settings().await?;
         Ok(true)
     }
 }
