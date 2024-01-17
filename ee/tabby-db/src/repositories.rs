@@ -94,12 +94,11 @@ mod tests {
     use crate::DbConn;
 
     #[tokio::test]
-    async fn test_create_repository() {
+    async fn test_update_repository() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // Insert new repository
-        let id = conn
-            .create_repository("test".into(), "testurl".into())
+        conn.create_repository("test".into(), "testurl".into())
             .await
             .unwrap();
 
@@ -110,12 +109,18 @@ mod tests {
             .unwrap()[0];
         assert_eq!(repository.git_url, "testurl");
 
-        // Delete the repository and test it is deleted successfully
-        assert!(conn.delete_repository(id).await.unwrap());
-        assert!(conn
+        // Update the repository
+        let id = repository.id;
+        conn.update_repository(id, "test2".into(), "testurl2".into())
+            .await
+            .unwrap();
+
+        // Check the url was updated
+        let repository = &conn
             .list_repositories_with_filter(None, None, false)
             .await
-            .unwrap()
-            .is_empty());
+            .unwrap()[0];
+        assert_eq!(repository.git_url, "testurl2");
+        assert_eq!(repository.name, "test2");
     }
 }

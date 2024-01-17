@@ -304,11 +304,14 @@ impl AuthenticationService for DbConn {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<User>> {
-        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
-        let users = self
-            .list_users_with_filter(limit, skip_id, backwards)
-            .await?;
-        Ok(users.into_iter().map(Into::into).collect())
+        let (skip_id, limit, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+
+        Ok(self
+            .list_users_with_filter(skip_id, limit, backwards)
+            .await?
+            .into_iter()
+            .map(|x| x.into())
+            .collect())
     }
 
     async fn list_invitations(
@@ -319,10 +322,12 @@ impl AuthenticationService for DbConn {
         last: Option<usize>,
     ) -> Result<Vec<InvitationNext>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
-        let invitations = self
+        Ok(self
             .list_invitations_with_filter(limit, skip_id, backwards)
-            .await?;
-        Ok(invitations.into_iter().map(Into::into).collect())
+            .await?
+            .into_iter()
+            .map(|x| x.into())
+            .collect())
     }
 
     async fn oauth(

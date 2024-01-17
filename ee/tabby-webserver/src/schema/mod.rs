@@ -1,5 +1,6 @@
 pub mod auth;
 mod dao;
+pub mod email;
 pub mod job;
 pub mod repository;
 pub mod worker;
@@ -25,7 +26,10 @@ use tracing::error;
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
-use self::repository::RepositoryService;
+use self::{
+    email::{EmailService, EmailSetting},
+    repository::RepositoryService,
+};
 use crate::schema::{
     auth::{OAuthCredential, OAuthProvider},
     repository::Repository,
@@ -38,6 +42,7 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn RawEventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
+    fn email_setting(&self) -> Arc<dyn EmailService>;
 }
 
 pub struct Context {
@@ -248,6 +253,11 @@ impl Query {
         )))
     }
 
+    async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
+        let val = ctx.locator.email_setting().get_email_setting().await?;
+        Ok(val)
+    }
+
     async fn repositories(
         &self,
         ctx: &Context,
@@ -431,6 +441,24 @@ impl Mutation {
         Err(CoreError::Unauthorized(
             "Only admin is able to update oauth credential",
         ))
+    }
+
+    async fn update_email_setting(
+        ctx: &Context,
+        smtp_username: String,
+        smtp_password: Option<String>,
+        smtp_server: String,
+    ) -> Result<bool> {
+        ctx.locator
+            .email_setting()
+            .update_email_setting(smtp_username, smtp_password, smtp_server)
+            .await?;
+        Ok(true)
+    }
+
+    async fn delete_email_setting(ctx: &Context) -> Result<bool> {
+        ctx.locator.email_setting().delete_email_setting().await?;
+        Ok(true)
     }
 }
 

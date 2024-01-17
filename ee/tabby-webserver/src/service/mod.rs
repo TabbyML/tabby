@@ -1,5 +1,6 @@
 mod auth;
 mod cron;
+mod email;
 mod job;
 mod proxy;
 mod repository;
@@ -22,7 +23,9 @@ use tracing::{info, warn};
 use self::cron::run_cron;
 use crate::schema::{
     auth::AuthenticationService,
+    email::EmailService,
     job::JobService,
+    repository::RepositoryService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
     ServiceLocator,
 };
@@ -203,7 +206,11 @@ impl ServiceLocator for Arc<ServerContext> {
         Arc::new(self.db_conn.clone())
     }
 
-    fn repository(&self) -> Arc<dyn crate::schema::repository::RepositoryService> {
+    fn repository(&self) -> Arc<dyn RepositoryService> {
+        Arc::new(self.db_conn.clone())
+    }
+
+    fn email_setting(&self) -> Arc<dyn EmailService> {
         Arc::new(self.db_conn.clone())
     }
 }
