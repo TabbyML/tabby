@@ -112,55 +112,55 @@ const FileTreeProvider: React.FC<
   activePath,
   defaultExpandedKeys = []
 }) => {
-  const [fileMap, setFileMap] = React.useState<TFileMap>(initialFileMap ?? {})
-  const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(
-    new Set(defaultExpandedKeys)
-  )
+    const [fileMap, setFileMap] = React.useState<TFileMap>(initialFileMap ?? {})
+    const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(
+      new Set(defaultExpandedKeys)
+    )
 
-  const updateFileMap = (map: TFileMap) => {
-    if (!map) return
+    const updateFileMap = (map: TFileMap) => {
+      if (!map) return
 
-    setFileMap({
-      ...fileMap,
-      ...map
-    })
-  }
-
-  const toggleExpandedKey = (key: string) => {
-    const expanded = expandedKeys.has(key)
-    const newSet = new Set(expandedKeys)
-    if (expanded) {
-      newSet.delete(key)
-    } else {
-      newSet.add(key)
+      setFileMap({
+        ...fileMap,
+        ...map
+      })
     }
-    setExpandedKeys(newSet)
+
+    const toggleExpandedKey = (key: string) => {
+      const expanded = expandedKeys.has(key)
+      const newSet = new Set(expandedKeys)
+      if (expanded) {
+        newSet.delete(key)
+      } else {
+        newSet.add(key)
+      }
+      setExpandedKeys(newSet)
+    }
+
+    const fileTreeData: TFileTreeNode = React.useMemo(() => {
+      const rootTree = mapToFileTree(fileMap, repositoryName)
+      sortFileTree(rootTree.children || [])
+
+      return rootTree
+    }, [fileMap, repositoryName])
+
+    return (
+      <FileTreeContext.Provider
+        value={{
+          fileMap,
+          updateFileMap,
+          onSelectTreeNode,
+          fileTree: fileTreeData,
+          repositoryName,
+          expandedKeys,
+          toggleExpandedKey,
+          activePath
+        }}
+      >
+        {children}
+      </FileTreeContext.Provider>
+    )
   }
-
-  const fileTreeData: TFileTreeNode = React.useMemo(() => {
-    const rootTree = mapToFileTree(fileMap, repositoryName)
-    sortFileTree(rootTree.children || [])
-
-    return rootTree
-  }, [fileMap, repositoryName])
-
-  return (
-    <FileTreeContext.Provider
-      value={{
-        fileMap,
-        updateFileMap,
-        onSelectTreeNode,
-        fileTree: fileTreeData,
-        repositoryName,
-        expandedKeys,
-        toggleExpandedKey,
-        activePath
-      }}
-    >
-      {children}
-    </FileTreeContext.Provider>
-  )
-}
 
 /**
  * Display FileTreeNode
@@ -171,7 +171,7 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'flex cursor-pointer flex-nowrap items-center gap-1 overflow-x-hidden whitespace-nowrap rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex cursor-pointer flex-nowrap items-center gap-1 overflow-x-hidden whitespace-nowrap rounded-sm',
         isActive && 'bg-accent',
         className
       )}
@@ -195,7 +195,7 @@ const DirectoryTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'flex cursor-pointer flex-nowrap items-center gap-1 truncate whitespace-nowrap rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex cursor-pointer flex-nowrap items-center gap-1 truncate whitespace-nowrap rounded-sm',
         className
       )}
       style={{
@@ -428,7 +428,9 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
       console.error(e)
     }
 
-    setInitialized(true)
+    setTimeout(() => {
+      setInitialized(true)
+    })
   }
 
   const { data: repositories, error }: SWRResponse<ResolveEntriesResponse> =
@@ -443,11 +445,13 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
     })
 
   if (!initialized)
-    return <div className="mt-1 flex justify-center">loading...</div>
+    return <FileTreeSkeleton />
 
   if (error)
     return (
-      <div className="mt-1 flex justify-center">error {error?.message}</div>
+      <div className="mt-1 flex justify-center">
+        error {error?.message}
+      </div>
     )
 
   if (!repositories?.entries?.length) {
@@ -530,6 +534,18 @@ function buildFileMapFromEntries(
     }
   }
   return map
+}
+
+function FileTreeSkeleton() {
+  return (
+    <ul className="duration-600 animate-pulse space-y-3 p-2">
+      <li className="h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
+      <li className="ml-4 h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
+      <li className="ml-4 h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
+      <li className="h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
+      <li className="ml-4 h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
+    </ul>
+  )
 }
 
 function sortFileTree(tree: TFileTreeNode[]): TFileTreeNode[] {
