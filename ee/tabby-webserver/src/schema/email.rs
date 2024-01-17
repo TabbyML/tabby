@@ -3,19 +3,19 @@ use async_trait::async_trait;
 use juniper::GraphQLObject;
 
 #[derive(GraphQLObject)]
-pub struct EmailServiceCredential {
+pub struct EmailSettings {
     pub smtp_username: String,
     pub smtp_server: String,
 }
 
 #[async_trait]
 pub trait EmailService: Send + Sync {
-    async fn get_email_service_credential(&self) -> Result<Option<EmailServiceCredential>>;
-    async fn update_email_service_credential(
+    async fn get_email_settings(&self) -> Result<Option<EmailSettings>>;
+    async fn update_email_settings(
         &self,
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<()>;
-    async fn delete_email_service_credential(&self) -> Result<()>;
+    async fn delete_email_settings(&self) -> Result<()>;
 }

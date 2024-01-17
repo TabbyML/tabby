@@ -27,7 +27,7 @@ use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
 use self::{
-    email::{EmailService, EmailServiceCredential},
+    email::{EmailService, EmailSettings},
     repository::RepositoryService,
 };
 use crate::schema::{
@@ -42,7 +42,7 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn RawEventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
-    fn email_service_credential(&self) -> Arc<dyn EmailService>;
+    fn email_settings(&self) -> Arc<dyn EmailService>;
 }
 
 pub struct Context {
@@ -253,12 +253,8 @@ impl Query {
         )))
     }
 
-    async fn email_service_credential(ctx: &Context) -> Result<Option<EmailServiceCredential>> {
-        let val = ctx
-            .locator
-            .email_service_credential()
-            .get_email_service_credential()
-            .await?;
+    async fn email_settings(ctx: &Context) -> Result<Option<EmailSettings>> {
+        let val = ctx.locator.email_settings().get_email_settings().await?;
         Ok(val)
     }
 
@@ -447,16 +443,16 @@ impl Mutation {
         ))
     }
 
-    async fn update_email_service_credential(
+    async fn update_email_settings(
         ctx: &Context,
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<bool> {
-        let _service = ctx.locator.email_service_credential();
+        let _service = ctx.locator.email_settings();
         ctx.locator
-            .email_service_credential()
-            .update_email_service_credential(smtp_username, smtp_password, smtp_server)
+            .email_settings()
+            .update_email_settings(smtp_username, smtp_password, smtp_server)
             .await?;
         Ok(true)
     }

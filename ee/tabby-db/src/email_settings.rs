@@ -23,12 +23,12 @@ impl EmailServiceCredentialDAO {
 }
 
 impl DbConn {
-    pub async fn read_email_service_credential(&self) -> Result<Option<EmailServiceCredentialDAO>> {
+    pub async fn read_email_settings(&self) -> Result<Option<EmailServiceCredentialDAO>> {
         let res = self
             .conn
             .call(|c| {
                 Ok(c.query_row(
-                    "SELECT smtp_username, smtp_password, smtp_server FROM email_service_credential WHERE id=?",
+                    "SELECT smtp_username, smtp_password, smtp_server FROM email_settings WHERE id=?",
                     [EMAIL_CREDENTIAL_ROW_ID],
                     |row| Ok(EmailServiceCredentialDAO::new(row.get(0)?, row.get(1)?, row.get(2)?)),
                 )
@@ -38,7 +38,7 @@ impl DbConn {
         Ok(res?)
     }
 
-    pub async fn update_email_service_credential(
+    pub async fn update_email_settings(
         &self,
         smtp_username: String,
         smtp_password: Option<String>,
@@ -51,10 +51,10 @@ impl DbConn {
                  let smtp_password = match smtp_password {
                     Some(pass) => pass,
                     None => {
-                        transaction.query_row("SELECT smtp_password FROM email_service_credential WHERE id = ?", [EMAIL_CREDENTIAL_ROW_ID], |r| r.get(0))?
+                        transaction.query_row("SELECT smtp_password FROM email_settings WHERE id = ?", [EMAIL_CREDENTIAL_ROW_ID], |r| r.get(0))?
                     }
                 };
-                transaction.execute("INSERT INTO email_service_credential VALUES (:id, :user, :pass, :server)
+                transaction.execute("INSERT INTO email_settings VALUES (:id, :user, :pass, :server)
                         ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server",
                         named_params! {
                             ":id": EMAIL_CREDENTIAL_ROW_ID,
@@ -69,12 +69,12 @@ impl DbConn {
             .await?)
     }
 
-    pub async fn delete_email_service_credential(&self) -> Result<()> {
+    pub async fn delete_email_settings(&self) -> Result<()> {
         Ok(self
             .conn
             .call(move |c| {
                 c.execute(
-                    "DELETE FROM email_service_credential WHERE id = ?",
+                    "DELETE FROM email_settings WHERE id = ?",
                     [EMAIL_CREDENTIAL_ROW_ID],
                 )?;
                 Ok(())
@@ -92,24 +92,24 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // Test no credentials prior to insertion
-        assert_eq!(conn.read_email_service_credential().await.unwrap(), None);
+        assert_eq!(conn.read_email_settings().await.unwrap(), None);
 
         // Test insertion
-        conn.update_email_service_credential("user".into(), Some("pass".into()), "server".into())
+        conn.update_email_settings("user".into(), Some("pass".into()), "server".into())
             .await
             .unwrap();
 
-        let creds = conn.read_email_service_credential().await.unwrap().unwrap();
+        let creds = conn.read_email_settings().await.unwrap().unwrap();
         assert_eq!(creds.smtp_username, "user");
         assert_eq!(creds.smtp_password, "pass");
         assert_eq!(creds.smtp_server, "server");
 
         // Test update without password
-        conn.update_email_service_credential("user2".into(), None, "server2".into())
+        conn.update_email_settings("user2".into(), None, "server2".into())
             .await
             .unwrap();
 
-        let creds = conn.read_email_service_credential().await.unwrap().unwrap();
+        let creds = conn.read_email_settings().await.unwrap().unwrap();
         assert_eq!(creds.smtp_username, "user2");
         assert_eq!(creds.smtp_password, "pass");
         assert_eq!(creds.smtp_server, "server2");

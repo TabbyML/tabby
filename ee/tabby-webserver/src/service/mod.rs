@@ -210,7 +210,7 @@ impl ServiceLocator for Arc<ServerContext> {
         Arc::new(self.db_conn.clone())
     }
 
-    fn email_service_credential(&self) -> Arc<dyn EmailService> {
+    fn email_settings(&self) -> Arc<dyn EmailService> {
         Arc::new(self.db_conn.clone())
     }
 }
