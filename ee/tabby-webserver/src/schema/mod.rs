@@ -27,7 +27,7 @@ use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
 use self::{
-    email::{EmailService, EmailSettings},
+    email::{EmailService, EmailSetting},
     repository::RepositoryService,
 };
 use crate::schema::{
@@ -42,7 +42,7 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn RawEventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
-    fn email_settings(&self) -> Arc<dyn EmailService>;
+    fn email_setting(&self) -> Arc<dyn EmailService>;
 }
 
 pub struct Context {
@@ -253,8 +253,8 @@ impl Query {
         )))
     }
 
-    async fn email_settings(ctx: &Context) -> Result<Option<EmailSettings>> {
-        let val = ctx.locator.email_settings().get_email_settings().await?;
+    async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
+        let val = ctx.locator.email_setting().get_email_setting().await?;
         Ok(val)
     }
 
@@ -443,21 +443,21 @@ impl Mutation {
         ))
     }
 
-    async fn update_email_settings(
+    async fn update_email_setting(
         ctx: &Context,
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<bool> {
         ctx.locator
-            .email_settings()
-            .update_email_settings(smtp_username, smtp_password, smtp_server)
+            .email_setting()
+            .update_email_setting(smtp_username, smtp_password, smtp_server)
             .await?;
         Ok(true)
     }
 
-    async fn delete_email_settings(ctx: &Context) -> Result<bool> {
-        ctx.locator.email_settings().delete_email_settings().await?;
+    async fn delete_email_setting(ctx: &Context) -> Result<bool> {
+        ctx.locator.email_setting().delete_email_setting().await?;
         Ok(true)
     }
 }
