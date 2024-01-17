@@ -1,8 +1,31 @@
 {
   "name": "tabby-agent",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Generic client agent for Tabby AI coding assistant IDE extensions.",
+  "homepage": "https://tabby.tabbyml.com/",
   "repository": "https://github.com/TabbyML/tabby",
+  "bugs": "https://github.com/TabbyML/tabby/issues",
+  "keywords": [
+    "tabby",
+    "ai",
+    "autocomplete",
+    "code completion",
+    "languageserver"
+  ],
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "./dist/cli.js",
+    "./dist/index.js",
+    "./dist/index.mjs",
+    "./dist/index.d.ts",
+    "./dist/wasm/**"
+  ],
+  "bin": {
+    "tabby-agent": "./dist/cli.js"
+  },
   "main": "./dist/index.js",
   "browser": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
