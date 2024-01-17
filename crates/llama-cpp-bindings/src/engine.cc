@@ -1,5 +1,6 @@
 #include <functional>
 #include <vector>
+#include <cmath>
 #include <deque>
 #include <unordered_set>
 #include <mutex>
@@ -77,6 +78,18 @@ std::string string_format(const std::string& format, Args ... args)
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
+std::vector<double> softmax(std::vector<double> nums, double temperature) {
+  double sum = 0;
+  for (double& i : nums) {
+    i = std::exp(i / temperature);
+    sum += i;
+  }
+  for (double& i : nums) {
+      i /= sum;
+  }
+  return nums;
+}    
+
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
@@ -110,7 +123,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     llama_batch_free(batch_);
   }
 
-  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length) override {
+  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length, float_t temperature) override {
     auto tokens = llama_tokenize(llama_get_model(ctx_.get()), text, false, true);
     if (tokens.size() > max_input_length) {
       int start = tokens.size() - max_input_length;
