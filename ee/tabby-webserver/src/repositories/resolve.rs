@@ -131,7 +131,11 @@ fn load_meta() -> HashMap<DatasetKey, Meta> {
 }
 
 /// Resolve a directory
-pub async fn resolve_dir(repo_name: &str, root: PathBuf, full_path: PathBuf) -> Result<Response> {
+pub async fn resolve_dir(
+    repo: &ResolveParams,
+    root: PathBuf,
+    full_path: PathBuf,
+) -> Result<Response> {
     let mut read_dir = tokio::fs::read_dir(full_path).await?;
     let mut entries: Vec<DirEntry> = vec![];
 
@@ -149,7 +153,7 @@ pub async fn resolve_dir(repo_name: &str, root: PathBuf, full_path: PathBuf) -> 
             DirEntryKind::Dir
         } else if meta.is_file() {
             let key = DatasetKey {
-                repo_name: repo_name.to_string(),
+                repo_name: repo.name_str().to_string(),
                 rel_path: basename.clone(),
             };
             if !contains_meta(&key) {
@@ -160,8 +164,9 @@ pub async fn resolve_dir(repo_name: &str, root: PathBuf, full_path: PathBuf) -> 
             // Skip others.
             continue;
         };
-        // filter out .git directory
-        if kind == DirEntryKind::Dir && basename == ".git" {
+
+        // filter out .git directory at root
+        if kind == DirEntryKind::Dir && basename == ".git" && repo.path.is_none() {
             continue;
         }
 
