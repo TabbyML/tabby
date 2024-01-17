@@ -4,6 +4,7 @@ import React, { PropsWithChildren, useState } from 'react'
 import { has } from 'lodash-es'
 import useSWRImmutable from 'swr/immutable'
 
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useAuthenticatedApi } from '@/lib/tabby/auth'
 import fetcher, { tokenTextFetcher as textFetcher } from '@/lib/tabby/fetcher'
 import { cn } from '@/lib/utils'
@@ -82,8 +83,16 @@ interface SourceCodeBrowserProps {
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   className
 }) => {
-  const [repositoryName, setRepositoryName] = React.useState<string>()
-  const [fileResolver, setFileResolver] = React.useState<string>()
+  const { pathname, router, searchParams, updateSearchParams } =
+    useRouterStuff()
+  const defaultRepositoryName = searchParams.get('repo')?.toString()
+  const defaultBasename = searchParams.get('path')?.toString()
+  const [repositoryName, setRepositoryName] = React.useState<string>(
+    defaultRepositoryName ?? ''
+  )
+  const [fileResolver, setFileResolver] = React.useState<string>(
+    defaultBasename ?? ''
+  )
   const { activePath, setActivePath, codeMap, setCodeMap, setFileMetaMap } =
     React.useContext(SourceCodeBrowserContext)
   const { data: fileContent } = useSWRImmutable(
@@ -116,8 +125,23 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       if (!has(codeMap, path)) {
         setFileResolver(treeNode.file.basename)
       }
+
+      updateSearchParams({
+        set: {
+          repo: repositoryName,
+          path: treeNode.file.basename
+        },
+        // repalce ?
+        replace: true
+      })
     }
   }
+
+  React.useEffect(() => {
+    if (defaultBasename && defaultRepositoryName) {
+      setActivePath(`${defaultRepositoryName}/${defaultBasename}`)
+    }
+  }, [])
 
   React.useEffect(() => {
     if (fileContent && activePath) {
@@ -144,9 +168,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           className="h-full overflow-y-auto"
           onSelectTreeNode={onSelectTreeNode}
           activePath={activePath}
+          defaultBasename={defaultBasename}
+          defaultRepository={defaultRepositoryName}
         />
       </ResizablePanel>
-      <ResizableHandle className="w-[2px] hover:bg-primary active:bg-primary" />
+      <ResizableHandle className="hover:bg-primary active:bg-primary w-[3px]" />
       <ResizablePanel defaultSize={85} minSize={30}>
         <SourceCodeEditor
           className={`flex h-full ${activePath ? 'block' : 'hidden'}`}

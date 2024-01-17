@@ -12,7 +12,12 @@ import { TCodeTag } from '@/app/browser/components/source-code-browser'
 const underlineMark = Decoration.mark({ class: 'cm-underline' })
 
 const underlineTheme = EditorView.baseTheme({
-  '.cm-underline': { textDecoration: 'underline', textUnderlineOffset: '4px' }
+  '.cm-underline': {
+    textDecoration: 'underline',
+    textUnderlineOffset: '3px',
+    textDecorationThickness: '2px',
+    textDecorationColor: 'hsl(var(--primary))'
+  }
 })
 
 function underlineRange(view: EditorView, tags: TCodeTag[] = []) {

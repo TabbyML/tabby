@@ -165,3 +165,53 @@ export function getCodeTagWidgetExtension(
     inlineWidgetTheme
   ]
 }
+
+/**
+ * example
+ */
+// getCodeTagWidgetExtension(tags, {
+//   createDecoration(state, container, { items, indent }) {
+//     const div = document.createElement('div')
+//     const root = createRoot(div)
+//     root.render(
+//       <div className="mt-1 flex flex-nowrap items-center gap-1">
+//         {indent ? <SpaceDisplay spaceLength={indent.length} /> : null}
+//         {items.map(item => {
+//           const { name_range, syntax_type_name } = item
+//           const key = `${syntax_type_name}_${name_range.start}_${name_range.end}`
+//           const name = state.doc.slice(
+//             item.name_range.start,
+//             item.name_range.end
+//           )
+//           return (
+//             <div
+//               key={key}
+//               className="bg-secondary flex cursor-pointer items-center gap-1 rounded-sm border px-1"
+//               onClick={e => {
+//                 editor.current?.dispatch({
+//                   selection: {
+//                     anchor: item.name_range.start,
+//                     head: item.name_range.start
+//                   }
+//                 })
+//               }}
+//             >
+//               <IconSymbolFunction />
+//               <span>
+//                 {syntax_type_name}: {name}
+//               </span>
+//             </div>
+//           )
+//         })}
+//       </div>
+//     )
+
+//     container.append(div)
+
+//     return {
+//       destroy() {
+//         div.remove()
+//       }
+//     }
+//   }
+// })

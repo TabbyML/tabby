@@ -3,6 +3,9 @@ import { useTheme } from 'next-themes'
 
 import { cn } from '@/lib/utils'
 import { CodeMirrorEditor } from '@/components/codemirror/codemirror'
+import { underlineTagNameExtension } from '@/components/codemirror/tag-name-underline-extension'
+import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
+import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
 import { SourceCodeBrowserContext } from './source-code-browser'
 
@@ -21,6 +24,17 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
     return activePath ? fileMetaMap?.[activePath]?.tags || [] : []
   }, [activePath, fileMetaMap])
 
+  const extensions = React.useMemo(() => {
+    if (activeCodeContent && tags) {
+      return [
+        codeTagHoverTooltip(tags),
+        underlineTagNameExtension(tags),
+        highlightTagExtension(tags)
+      ]
+    }
+    return undefined
+  }, [activeCodeContent, tags])
+
   return (
     <div className={cn('h-full overflow-y-auto', className)}>
       <CodeMirrorEditor
@@ -29,6 +43,7 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
         language={language}
         tags={tags}
         readonly={false}
+        extensions={extensions}
       />
     </div>
   )

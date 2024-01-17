@@ -23,6 +23,7 @@ export const codeTagHoverTooltip = (tags: TCodeTag[]) => {
         if (pos >= name_range.start && pos <= name_range.end) {
           return {
             pos: name_range.start,
+            end: name_range.end,
             above: true,
             create(view) {
               let dom = document.createElement('div')
