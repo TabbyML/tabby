@@ -1,6 +1,7 @@
 'use client'
 
 import React, { PropsWithChildren, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { has } from 'lodash-es'
 import useSWRImmutable from 'swr/immutable'
 
@@ -15,7 +16,10 @@ import {
 } from '@/components/ui/resizable'
 
 import { RepositoriesFileTree, TFileTreeNode } from './file-tree'
-import { SourceCodeEditor } from './source-code-editor'
+
+const SourceCodeEditor = dynamic(() => import('./source-code-editor'), {
+  ssr: false
+})
 
 type TCodeMap = Record<string, string>
 type TFileMetaMap = Record<string, TFileMeta>
@@ -83,8 +87,7 @@ interface SourceCodeBrowserProps {
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   className
 }) => {
-  const { pathname, router, searchParams, updateSearchParams } =
-    useRouterStuff()
+  const { searchParams, updateSearchParams } = useRouterStuff()
   const defaultRepositoryName = searchParams.get('repo')?.toString()
   const defaultBasename = searchParams.get('path')?.toString()
   const [repositoryName, setRepositoryName] = React.useState<string>(
@@ -131,7 +134,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           repo: repositoryName,
           path: treeNode.file.basename
         },
-        // repalce ?
         replace: true
       })
     }

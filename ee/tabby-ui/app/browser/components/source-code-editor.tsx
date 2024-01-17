@@ -49,4 +49,4 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
   )
 }
 
-export { SourceCodeEditor }
+export default SourceCodeEditor
