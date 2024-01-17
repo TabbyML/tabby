@@ -112,55 +112,55 @@ const FileTreeProvider: React.FC<
   activePath,
   defaultExpandedKeys = []
 }) => {
-    const [fileMap, setFileMap] = React.useState<TFileMap>(initialFileMap ?? {})
-    const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(
-      new Set(defaultExpandedKeys)
-    )
+  const [fileMap, setFileMap] = React.useState<TFileMap>(initialFileMap ?? {})
+  const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(
+    new Set(defaultExpandedKeys)
+  )
 
-    const updateFileMap = (map: TFileMap) => {
-      if (!map) return
+  const updateFileMap = (map: TFileMap) => {
+    if (!map) return
 
-      setFileMap({
-        ...fileMap,
-        ...map
-      })
-    }
-
-    const toggleExpandedKey = (key: string) => {
-      const expanded = expandedKeys.has(key)
-      const newSet = new Set(expandedKeys)
-      if (expanded) {
-        newSet.delete(key)
-      } else {
-        newSet.add(key)
-      }
-      setExpandedKeys(newSet)
-    }
-
-    const fileTreeData: TFileTreeNode = React.useMemo(() => {
-      const rootTree = mapToFileTree(fileMap, repositoryName)
-      sortFileTree(rootTree.children || [])
-
-      return rootTree
-    }, [fileMap, repositoryName])
-
-    return (
-      <FileTreeContext.Provider
-        value={{
-          fileMap,
-          updateFileMap,
-          onSelectTreeNode,
-          fileTree: fileTreeData,
-          repositoryName,
-          expandedKeys,
-          toggleExpandedKey,
-          activePath
-        }}
-      >
-        {children}
-      </FileTreeContext.Provider>
-    )
+    setFileMap({
+      ...fileMap,
+      ...map
+    })
   }
+
+  const toggleExpandedKey = (key: string) => {
+    const expanded = expandedKeys.has(key)
+    const newSet = new Set(expandedKeys)
+    if (expanded) {
+      newSet.delete(key)
+    } else {
+      newSet.add(key)
+    }
+    setExpandedKeys(newSet)
+  }
+
+  const fileTreeData: TFileTreeNode = React.useMemo(() => {
+    const rootTree = mapToFileTree(fileMap, repositoryName)
+    sortFileTree(rootTree.children || [])
+
+    return rootTree
+  }, [fileMap, repositoryName])
+
+  return (
+    <FileTreeContext.Provider
+      value={{
+        fileMap,
+        updateFileMap,
+        onSelectTreeNode,
+        fileTree: fileTreeData,
+        repositoryName,
+        expandedKeys,
+        toggleExpandedKey,
+        activePath
+      }}
+    >
+      {children}
+    </FileTreeContext.Provider>
+  )
+}
 
 /**
  * Display FileTreeNode
@@ -171,7 +171,7 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex cursor-pointer flex-nowrap items-center gap-1 overflow-x-hidden whitespace-nowrap rounded-sm',
+        'flex cursor-pointer flex-nowrap items-center gap-1 overflow-x-hidden whitespace-nowrap rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         isActive && 'bg-accent',
         className
       )}
@@ -195,7 +195,7 @@ const DirectoryTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex cursor-pointer flex-nowrap items-center gap-1 truncate whitespace-nowrap rounded-sm',
+        'flex cursor-pointer flex-nowrap items-center gap-1 truncate whitespace-nowrap rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         className
       )}
       style={{
@@ -444,14 +444,11 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
       revalidateOnMount: true
     })
 
-  if (!initialized)
-    return <FileTreeSkeleton />
+  if (!initialized) return <FileTreeSkeleton />
 
   if (error)
     return (
-      <div className="mt-1 flex justify-center">
-        error {error?.message}
-      </div>
+      <div className="mt-1 flex justify-center">error {error?.message}</div>
     )
 
   if (!repositories?.entries?.length) {
