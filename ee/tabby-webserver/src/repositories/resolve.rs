@@ -64,7 +64,7 @@ struct ListDir {
     entries: Vec<DirEntry>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 enum DirEntryKind {
     File,
@@ -160,6 +160,10 @@ pub async fn resolve_dir(repo_name: &str, root: PathBuf, full_path: PathBuf) -> 
             // Skip others.
             continue;
         };
+        // filter out .git directory
+        if kind == DirEntryKind::Dir && basename == ".git" {
+            continue;
+        }
 
         entries.push(DirEntry { kind, basename });
     }
