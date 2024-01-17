@@ -247,7 +247,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
-        softmax(logits, n_vocab, request.temperature);
+        // softmax(logits, n_vocab, request.temperature);
         // auto next_token = weighted_random(logits, n_vocab);
         auto next_token = std::distance(logits, std::max_element(logits, logits + n_vocab));
         double sum = 0;
