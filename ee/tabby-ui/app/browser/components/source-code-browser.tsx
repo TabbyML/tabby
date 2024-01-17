@@ -174,7 +174,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           defaultRepository={defaultRepositoryName}
         />
       </ResizablePanel>
-      <ResizableHandle className="hover:bg-primary active:bg-primary w-[3px]" />
+      <ResizableHandle className="w-[3px] hover:bg-primary active:bg-primary" />
       <ResizablePanel defaultSize={85} minSize={30}>
         <SourceCodeEditor
           className={`flex h-full ${activePath ? 'block' : 'hidden'}`}
