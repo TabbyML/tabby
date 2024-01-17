@@ -5,7 +5,10 @@ use reqwest::Client;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::{path::usage_id_file, show_info, HeaderFormat};
+use crate::{
+    path::usage_id_file,
+    terminal::{show_info, HeaderFormat},
+};
 
 static USAGE_API_ENDPOINT: &str = "https://app.tabbyml.com/api/usage";
 

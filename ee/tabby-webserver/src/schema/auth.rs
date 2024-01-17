@@ -8,6 +8,7 @@ use juniper::{FieldError, GraphQLEnum, GraphQLObject, IntoFieldError, ScalarValu
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use tabby_common::terminal::{show_info, HeaderFormat};
 use thiserror::Error;
 use tracing::{error, warn};
 use uuid::Uuid;
@@ -42,13 +43,10 @@ pub fn validate_jwt(token: &str) -> jwt::errors::Result<JWTPayload> {
 
 fn jwt_token_secret() -> String {
     let jwt_secret = std::env::var("TABBY_WEBSERVER_JWT_TOKEN_SECRET").unwrap_or_else(|_| {
-        eprintln!("
-    \x1b[93;1mJWT secret is not set\x1b[0m
-
-    Tabby server will generate a one-time (non-persisted) JWT secret for the current process.
-    Please set the \x1b[94mTABBY_WEBSERVER_JWT_TOKEN_SECRET\x1b[0m environment variable for production usage.
-"
-        );
+        show_info("JWT secret is not set", HeaderFormat::BoldYellow, &[
+            "Tabby server will generate a one-time (non-persisted) JWT secret for the current process.",
+            &format!("Please set the {} environment variable for production usage.", HeaderFormat::Blue.format("TABBY_WEBSERVER_JWT_TOKEN_SECRET")),
+        ]);
         Uuid::new_v4().to_string()
     });
 
