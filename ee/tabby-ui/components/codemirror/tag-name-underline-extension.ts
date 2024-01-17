@@ -7,7 +7,7 @@ import {
   ViewUpdate
 } from '@codemirror/view'
 
-import { TCodeTag } from '@/app/browser/components/source-code-browser'
+import { TCodeTag } from '@/app/files/components/source-code-browser'
 
 const underlineMark = Decoration.mark({ class: 'cm-underline' })
 

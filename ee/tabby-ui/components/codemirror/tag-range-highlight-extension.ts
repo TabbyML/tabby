@@ -7,7 +7,7 @@ import {
   ViewUpdate
 } from '@codemirror/view'
 
-import { TCodeTag } from '@/app/browser/components/source-code-browser'
+import { TCodeTag } from '@/app/files/components/source-code-browser'
 
 export const hightlightMark = Decoration.mark({ class: 'cm-range-highlight' })
 

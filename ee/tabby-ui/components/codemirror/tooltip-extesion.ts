@@ -1,6 +1,6 @@
 import { EditorView, hoverTooltip } from '@codemirror/view'
 
-import { TCodeTag } from '@/app/browser/components/source-code-browser'
+import { TCodeTag } from '@/app/files/components/source-code-browser'
 
 const cursorTooltipBaseTheme = EditorView.baseTheme({
   '.cm-tooltip': {

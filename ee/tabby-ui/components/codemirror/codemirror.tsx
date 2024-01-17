@@ -10,7 +10,7 @@ import {
 import { compact } from 'lodash-es'
 
 import { basicSetup } from '@/components/codemirror/basic-setup'
-import { TCodeTag } from '@/app/browser/components/source-code-browser'
+import { TCodeTag } from '@/app/files/components/source-code-browser'
 
 interface CodeMirrorEditorProps {
   value?: string

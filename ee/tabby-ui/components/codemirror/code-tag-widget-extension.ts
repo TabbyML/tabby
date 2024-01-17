@@ -12,7 +12,7 @@ import {
 } from '@codemirror/view'
 import { groupBy, isEqual } from 'lodash-es'
 
-import { TCodeTag } from '@/app/browser/components/source-code-browser'
+import { TCodeTag } from '@/app/files/components/source-code-browser'
 
 interface CodeTagTooltipDecorationsConfig<T = TCodeTag> {
   createDecoration: (
