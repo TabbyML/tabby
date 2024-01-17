@@ -11,7 +11,7 @@ use crate::{
     services::{
         chat::create_chat_service,
         completion::create_completion_service,
-        health::{read_cpu_info, read_cuda_devices},
+        health::{read_accelerators, read_cpu_info},
         model::download_model_if_needed,
     },
     Device,
@@ -96,7 +96,13 @@ struct WorkerContext {
 impl WorkerContext {
     async fn new(kind: WorkerKind, args: &WorkerArgs) -> Self {
         let (cpu_info, cpu_count) = read_cpu_info();
-        let cuda_devices = read_cuda_devices().unwrap_or_default();
+        let accelerators = read_accelerators();
+
+        // For compatibility
+        let mut cuda_devices = vec![];
+        for accelerator in &accelerators {
+            cuda_devices.push(accelerator.display_name.clone());
+        }
 
         Self {
             client: tabby_webserver::public::create_client(
@@ -111,6 +117,7 @@ impl WorkerContext {
                     cpu_info,
                     cpu_count: cpu_count as i32,
                     cuda_devices,
+                    accelerators,
                 },
             )
             .await,

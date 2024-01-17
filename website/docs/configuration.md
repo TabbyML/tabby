@@ -96,6 +96,17 @@ We collect non-sensitive data that helps us understand how Tabby is used. For no
 As of the date 10/07/2023, the following information has been collected:
 
 ```rust
+pub struct Accelerator {
+    /// Universally unique ID of the accelerator, if available
+    pub uuid: Option<String>,
+    /// Technical name of the underlying hardware chip, if available
+    pub chip_name: Option<String>,
+    /// User readable name for the accelerator
+    pub display_name: String,
+    /// Type of the accelerator device
+    pub device_type: DeviceType,
+}
+
 struct HealthState {
     model: String,
     chat_model: Option<String>,
@@ -103,7 +114,7 @@ struct HealthState {
     arch: String,
     cpu_info: String,
     cpu_count: usize,
-    cuda_devices: Vec<String>,
+    accelerators: Vec<Accellerator>,
     version: Version,
 }
 ```

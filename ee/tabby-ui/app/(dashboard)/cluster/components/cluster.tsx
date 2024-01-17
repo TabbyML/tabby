@@ -5,6 +5,7 @@ import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
+import { deviceTypeMap } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -103,7 +104,12 @@ export default function Workers() {
           kind="INDEX"
           arch=""
           device={healthInfo.device}
-          cudaDevices={healthInfo.cuda_devices}
+          accelerators={healthInfo.accelerators.map(a => ({
+            uuid: a.uuid,
+            chipName: a.chip_name,
+            deviceType: deviceTypeMap[a.device_type],
+            displayName: a.display_name
+          }))}
           cpuCount={healthInfo.cpu_count}
           cpuInfo={healthInfo.cpu_info}
         />

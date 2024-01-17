@@ -4,6 +4,7 @@ import { findIndex, groupBy, slice } from 'lodash-es'
 import { graphql } from '@/lib/gql/generates'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
+import { deviceTypeMap } from '@/lib/utils'
 
 import { useHealth, type HealthInfo } from './use-health'
 
@@ -24,7 +25,12 @@ function transformHealthInfoToWorker(
     cpuInfo: healthInfo.cpu_info,
     name: healthInfo?.[modelNameMap[kind]] ?? '',
     cpuCount: healthInfo.cpu_count,
-    cudaDevices: healthInfo.cuda_devices
+    accelerators: healthInfo.accelerators.map(x => ({
+      uuid: x.uuid,
+      chipName: x.chip_name,
+      displayName: x.display_name,
+      deviceType: deviceTypeMap[x.device_type]
+    }))
   }
 }
 
@@ -38,7 +44,12 @@ export const getAllWorkersDocument = graphql(/* GraphQL */ `
       arch
       cpuInfo
       cpuCount
-      cudaDevices
+      accelerators {
+        uuid
+        chipName
+        displayName
+        deviceType
+      }
     }
   }
 `)

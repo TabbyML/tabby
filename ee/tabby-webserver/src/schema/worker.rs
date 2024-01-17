@@ -4,6 +4,7 @@ use axum::middleware::Next;
 use hyper::{Body, Request};
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
+use tabby_common::api::accelerator::Accelerator;
 use thiserror::Error;
 
 #[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]
@@ -21,6 +22,8 @@ pub struct Worker {
     pub arch: String,
     pub cpu_info: String,
     pub cpu_count: i32,
+    pub accelerators: Vec<Accelerator>,
+    #[deprecated(note = "Please use the more generic accelerators instead")]
     pub cuda_devices: Vec<String>,
 }
 

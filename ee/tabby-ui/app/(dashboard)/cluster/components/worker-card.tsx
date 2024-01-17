@@ -13,7 +13,7 @@ export default function RunnerCard({
   name,
   kind,
   device,
-  cudaDevices,
+  accelerators,
   cpuCount,
   cpuInfo
 }: RunnerCardProps) {
@@ -86,9 +86,8 @@ export default function RunnerCard({
             {cpuMessage}
           </p>
         </Info>
-        {device == 'cuda' &&
-          cudaDevices?.length &&
-          cudaDevices.map((x, i) => (
+        {accelerators?.length &&
+          accelerators.map((x, i) => (
             <Info key={i}>
               <svg
                 className=" h-5 w-5"
@@ -112,8 +111,15 @@ export default function RunnerCard({
                 <path d="M2 15h20" />
                 <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.1a2 2 0 0 0 0 3.837V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5.1a2 2 0 0 0 0-3.837Z" />
               </svg>
-              <p title={x} className={textClass}>
-                {x}
+              <p
+                title={
+                  x.chipName
+                    ? `${x.displayName} (${x.chipName})`
+                    : x.displayName
+                }
+                className={textClass}
+              >
+                {x.displayName}
               </p>
             </Info>
           ))}

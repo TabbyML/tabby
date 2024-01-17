@@ -18,6 +18,8 @@ import { Label } from '@/components/ui/label'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
 
+const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
+
 export default function Home() {
   return (
     <div className="p-4 lg:p-16">

@@ -6,3 +6,5 @@ python
 **/target
 **/node_modules
 website
+*.log
+*.Dockerfile
