@@ -97,6 +97,7 @@ size_t weighted_random(float* nums, size_t len) {
     sum += nums[i];
   }
 
+  srand(time(NULL));
   float random = static_cast<float> (rand()) / static_cast<float>(RAND_MAX);
   random *= sum;
   sum = 0;
@@ -247,8 +248,15 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
         softmax(logits, n_vocab, request.temperature);
-        auto next_token = weighted_random(logits, n_vocab);
-
+        // auto next_token = weighted_random(logits, n_vocab);
+        auto next_token = std::distance(logits, std::max_element(logits, logits + n_vocab));
+        double sum = 0;
+        for (int i = 0; i < n_vocab; i++) {
+          sum += logits[i];
+        }
+        auto log = fopen("/home/redempt/.tabby/dumblog", "a");
+        fprintf(log, "next: %d, n: %d, sum: %f\n", next_token, n_vocab, sum);
+        fclose(log);
         request.n_past += request.tokens.size();
 
         request.tokens.clear();

@@ -220,7 +220,7 @@ impl CompletionService {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
         let options =
-            Self::text_generation_options(language.as_str(), request.temperature.unwrap_or(0.0));
+            Self::text_generation_options(language.as_str(), request.temperature.unwrap_or(0.1));
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
