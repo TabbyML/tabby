@@ -1,35 +1,53 @@
+import { EventEmitter } from "events";
+import { normalize } from "path";
+import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-agent";
 import {
   CancellationToken,
   InlineCompletionContext,
   InlineCompletionItem,
   InlineCompletionItemProvider,
   InlineCompletionTriggerKind,
+  NotebookDocument,
+  NotebookRange,
   Position,
   Range,
   TextDocument,
-  NotebookDocument,
-  NotebookRange,
   window,
   workspace,
+  ExtensionContext,
 } from "vscode";
-import { EventEmitter } from "events";
-import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-agent";
 import { agent } from "./agent";
+import { ContextMixer } from "./completions/context/context-mixer";
+import { ContextStrategy, DefaultContextStrategyFactory } from "./completions/context/context-strategy";
+import { getCurrentDocContext } from "./completions/get-current-doc-context";
+
+const getContextRetrieverStrategy = (): ContextStrategy =>
+  workspace.getConfiguration("rumicode").get("inlineCompletion.contextRetriever", "none");
+
+const createContextMixer = (context: ExtensionContext) =>
+  new ContextMixer(new DefaultContextStrategyFactory(getContextRetrieverStrategy(), context));
 
 export class TabbyCompletionProvider extends EventEmitter implements InlineCompletionItemProvider {
+  #context: ExtensionContext;
   private triggerMode: "automatic" | "manual" | "disabled" = "automatic";
   private onGoingRequestAbortController: AbortController | null = null;
   private loading: boolean = false;
   private latestCompletions: CompletionResponse | null = null;
+  private contextMixer?: ContextMixer;
 
-  public constructor() {
+  public constructor(context: ExtensionContext) {
     super();
+    this.#context = context;
     this.updateConfiguration();
     workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration("tabby") || event.affectsConfiguration("editor.inlineSuggest")) {
+      if (event.affectsConfiguration("rumicode") || event.affectsConfiguration("editor.inlineSuggest")) {
         this.updateConfiguration();
       }
     });
+  }
+
+  public dispose(): void {
+    this.contextMixer?.dispose();
   }
 
   public getTriggerMode(): "automatic" | "manual" | "disabled" {
@@ -66,18 +84,44 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
 
     const additionalContext = this.buildAdditionalContext(document);
 
+    const abortController = new AbortController();
+
+    const docContext = getCurrentDocContext({
+      document,
+      position,
+      maxPrefixLength: 25,
+      maxSuffixLength: 20,
+      // We ignore the current context selection if completeSuggestWidgetSelection is not enabled
+      context: undefined,
+      dynamicMultilineCompletions: true,
+    });
+
+    const { context: snippets } = this.contextMixer
+      ? await this.contextMixer.getContext({
+          document,
+          position,
+          docContext,
+          abortSignal: abortController.signal,
+          maxChars: 1024,
+        })
+      : { context: [] };
+
     const request: CompletionRequest = {
+      path: normalize(workspace.asRelativePath(document.uri.fsPath)),
       filepath: document.uri.fsPath,
       language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
       text: additionalContext.prefix + document.getText() + additionalContext.suffix,
       position: additionalContext.prefix.length + document.offsetAt(position),
       indentation: this.getEditorIndentation(),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
+      snippets: snippets.map((snippet) => ({
+        content: snippet.content,
+        file_name: snippet.fileName,
+      })),
     };
 
     this.latestCompletions = null;
 
-    const abortController = new AbortController();
     this.onGoingRequestAbortController = abortController;
     token?.onCancellationRequested(() => {
       console.debug("Completion request is canceled.");
@@ -112,7 +156,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
             ),
             {
               title: "",
-              command: "tabby.applyCallback",
+              command: "rumicode.applyCallback",
               arguments: [
                 () => {
                   this.postEvent("accept");
@@ -185,9 +229,12 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       this.triggerMode = "disabled";
       this.emit("triggerModeUpdated");
     } else {
-      this.triggerMode = workspace.getConfiguration("tabby").get("inlineCompletion.triggerMode", "automatic");
+      this.triggerMode = workspace.getConfiguration("rumicode").get("inlineCompletion.triggerMode", "automatic");
       this.emit("triggerModeUpdated");
     }
+
+    this.contextMixer?.dispose();
+    this.contextMixer = createContextMixer(this.#context);
   }
 
   private buildAdditionalContext(document: TextDocument): { prefix: string; suffix: string } {

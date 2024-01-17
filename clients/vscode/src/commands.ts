@@ -1,21 +1,20 @@
+import { strict as assert } from "assert";
+import os from "os";
 import {
   ConfigurationTarget,
+  ExtensionContext,
   InputBoxValidationSeverity,
   ProgressLocation,
   Uri,
-  ThemeIcon,
-  ExtensionContext,
-  workspace,
-  window,
-  env,
   commands,
+  env,
+  window,
+  workspace,
 } from "vscode";
-import os from "os";
-import { strict as assert } from "assert";
-import { agent } from "./agent";
-import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
+import { agent } from "./agent";
+import { notifications } from "./notifications";
 
 const configTarget = ConfigurationTarget.Global;
 
@@ -26,9 +25,9 @@ type Command = {
 };
 
 const toggleInlineCompletionTriggerMode: Command = {
-  command: "tabby.toggleInlineCompletionTriggerMode",
+  command: "rumicode.toggleInlineCompletionTriggerMode",
   callback: (value: "automatic" | "manual" | undefined) => {
-    const configuration = workspace.getConfiguration("tabby");
+    const configuration = workspace.getConfiguration("rumicode");
     let target = value;
     if (!target) {
       const current = configuration.get("inlineCompletion.triggerMode", "automatic");
@@ -43,12 +42,12 @@ const toggleInlineCompletionTriggerMode: Command = {
 };
 
 const setApiEndpoint: Command = {
-  command: "tabby.setApiEndpoint",
+  command: "rumicode.setApiEndpoint",
   callback: () => {
-    const configuration = workspace.getConfiguration("tabby");
+    const configuration = workspace.getConfiguration("rumicode");
     window
       .showInputBox({
-        prompt: "Enter the URL of your Tabby Server",
+        prompt: "Enter the URL of your RumiCode Server",
         value: configuration.get("api.endpoint", ""),
         validateInput: (input: string) => {
           try {
@@ -65,7 +64,7 @@ const setApiEndpoint: Command = {
       })
       .then((url) => {
         if (url) {
-          console.debug("Set Tabby Server URL: ", url);
+          console.debug("Set RumiCode Server URL: ", url);
           configuration.update("api.endpoint", url, configTarget, false);
         }
       });
@@ -74,7 +73,7 @@ const setApiEndpoint: Command = {
 
 const setApiToken = (context: ExtensionContext): Command => {
   return {
-    command: "tabby.setApiToken",
+    command: "rumicode.setApiToken",
     callback: () => {
       const currentToken = agent().getConfig()["server"]["token"].trim();
       window
@@ -102,17 +101,17 @@ const setApiToken = (context: ExtensionContext): Command => {
 };
 
 const openSettings: Command = {
-  command: "tabby.openSettings",
+  command: "rumicode.openSettings",
   callback: () => {
-    commands.executeCommand("workbench.action.openSettings", "@ext:TabbyML.vscode-tabby");
+    commands.executeCommand("workbench.action.openSettings", "@ext:RumiCode.rumicode");
   },
 };
 
 const openTabbyAgentSettings: Command = {
-  command: "tabby.openTabbyAgentSettings",
+  command: "rumicode.openTabbyAgentSettings",
   callback: () => {
     if (env.appHost !== "desktop") {
-      window.showWarningMessage("Tabby Agent config file is not supported on web.", { modal: true });
+      window.showWarningMessage("RumiCode Agent config file is not supported on web.", { modal: true });
       return;
     }
     const agentUserConfig = Uri.joinPath(Uri.file(os.homedir()), ".tabby-client", "agent", "config.toml");
@@ -123,34 +122,34 @@ const openTabbyAgentSettings: Command = {
         });
       },
       () => {
-        window.showWarningMessage("Tabby Agent config file not found.", { modal: true });
+        window.showWarningMessage("RumiCode Agent config file not found.", { modal: true });
       },
     );
   },
 };
 
 const openKeybindings: Command = {
-  command: "tabby.openKeybindings",
+  command: "rumicode.openKeybindings",
   callback: () => {
-    commands.executeCommand("workbench.action.openGlobalKeybindings", "tabby.inlineCompletion");
+    commands.executeCommand("workbench.action.openGlobalKeybindings", "rumicode.inlineCompletion");
   },
 };
 
 const gettingStarted: Command = {
-  command: "tabby.gettingStarted",
+  command: "rumicode.gettingStarted",
   callback: () => {
-    commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
+    commands.executeCommand("workbench.action.openWalkthrough", "RumiCode.rumicode#gettingStarted");
   },
 };
 
 /** @deprecated Tabby Cloud auth */
 const openAuthPage: Command = {
-  command: "tabby.openAuthPage",
+  command: "rumicode.openAuthPage",
   callback: (callbacks?: { onAuthStart?: () => void; onAuthEnd?: () => void }) => {
     window.withProgress(
       {
         location: ProgressLocation.Notification,
-        title: "Tabby Server Authorization",
+        title: "RumiCode Server Authorization",
         cancellable: true,
       },
       async (progress, token) => {
@@ -189,21 +188,21 @@ const openAuthPage: Command = {
 };
 
 const applyCallback: Command = {
-  command: "tabby.applyCallback",
+  command: "rumicode.applyCallback",
   callback: (callback) => {
     callback?.();
   },
 };
 
 const triggerInlineCompletion: Command = {
-  command: "tabby.inlineCompletion.trigger",
+  command: "rumicode.inlineCompletion.trigger",
   callback: () => {
     commands.executeCommand("editor.action.inlineSuggest.trigger");
   },
 };
 
 const acceptInlineCompletion: Command = {
-  command: "tabby.inlineCompletion.accept",
+  command: "rumicode.inlineCompletion.accept",
   callback: () => {
     commands.executeCommand("editor.action.inlineSuggest.commit");
   },
@@ -211,7 +210,7 @@ const acceptInlineCompletion: Command = {
 
 const acceptInlineCompletionNextWord = (completionProvider: TabbyCompletionProvider): Command => {
   return {
-    command: "tabby.inlineCompletion.acceptNextWord",
+    command: "rumicode.inlineCompletion.acceptNextWord",
     callback: () => {
       completionProvider.postEvent("accept_word");
       commands.executeCommand("editor.action.inlineSuggest.acceptNextWord");
@@ -221,7 +220,7 @@ const acceptInlineCompletionNextWord = (completionProvider: TabbyCompletionProvi
 
 const acceptInlineCompletionNextLine = (completionProvider: TabbyCompletionProvider): Command => {
   return {
-    command: "tabby.inlineCompletion.acceptNextLine",
+    command: "rumicode.inlineCompletion.acceptNextLine",
     callback: () => {
       completionProvider.postEvent("accept_line");
       // FIXME: this command move cursor to next line, but we want to move cursor to the end of current line
@@ -231,58 +230,13 @@ const acceptInlineCompletionNextLine = (completionProvider: TabbyCompletionProvi
 };
 
 const openOnlineHelp: Command = {
-  command: "tabby.openOnlineHelp",
-  callback: () => {
-    window
-      .showQuickPick([
-        {
-          label: "Online Documentation",
-          iconPath: new ThemeIcon("book"),
-          alwaysShow: true,
-        },
-        {
-          label: "Model Registry",
-          description: "Explore more recommend models from Tabby's model registry",
-          iconPath: new ThemeIcon("library"),
-          alwaysShow: true,
-        },
-        {
-          label: "Tabby Slack Community",
-          description: "Join Tabby's Slack community to get help or feed back",
-          iconPath: new ThemeIcon("comment-discussion"),
-          alwaysShow: true,
-        },
-        {
-          label: "Tabby GitHub Repository",
-          description: "View the source code for Tabby, and open issues",
-          iconPath: new ThemeIcon("github"),
-          alwaysShow: true,
-        },
-      ])
-      .then((selection) => {
-        if (selection) {
-          switch (selection.label) {
-            case "Online Documentation":
-              env.openExternal(Uri.parse("https://tabby.tabbyml.com/"));
-              break;
-            case "Model Registry":
-              env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
-              break;
-            case "Tabby Slack Community":
-              env.openExternal(Uri.parse("https://links.tabbyml.com/join-slack-extensions/"));
-              break;
-            case "Tabby GitHub Repository":
-              env.openExternal(Uri.parse("https://github.com/tabbyml/tabby"));
-              break;
-          }
-        }
-      });
-  },
+  command: "rumicode.openOnlineHelp",
+  callback: () => {},
 };
 
 const muteNotifications = (context: ExtensionContext, statusBarItem: TabbyStatusBarItem): Command => {
   return {
-    command: "tabby.notifications.mute",
+    command: "rumicode.notifications.mute",
     callback: (type: string) => {
       const notifications = context.globalState.get<string[]>("notifications.muted", []);
       notifications.push(type);
@@ -294,7 +248,7 @@ const muteNotifications = (context: ExtensionContext, statusBarItem: TabbyStatus
 
 const resetMutedNotifications = (context: ExtensionContext, statusBarItem: TabbyStatusBarItem): Command => {
   return {
-    command: "tabby.notifications.resetMuted",
+    command: "rumicode.notifications.resetMuted",
     callback: (type?: string) => {
       const notifications = context.globalState.get<string[]>("notifications.muted", []);
       if (type) {

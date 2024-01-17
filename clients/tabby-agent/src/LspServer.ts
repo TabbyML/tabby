@@ -159,6 +159,7 @@ export class LspServer {
 
     const request: CompletionRequest = {
       filepath: document.uri,
+      path: null,
       language: document.languageId,
       text: document.getText(),
       position: document.offsetAt(position),

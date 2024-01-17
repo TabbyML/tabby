@@ -6,6 +6,7 @@ import { CompletionContext } from "../CompletionContext";
 export function documentContext(literals: TemplateStringsArray, ...placeholders: any[]): CompletionContext {
   const doc = dedent(literals, ...placeholders);
   return new CompletionContext({
+    path: null,
     filepath: uuid(),
     language: "",
     text: doc.replace(/║/, ""),

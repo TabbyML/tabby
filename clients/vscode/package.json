@@ -1,13 +1,13 @@
 {
-  "name": "vscode-tabby",
-  "publisher": "TabbyML",
-  "displayName": "Tabby",
-  "description": "Tabby is a self-hosted AI coding assistant that can suggest multi-line code or full functions in real-time.",
-  "homepage": "https://tabby.tabbyml.com/",
-  "repository": "https://github.com/TabbyML/tabby",
-  "bugs": "https://github.com/TabbyML/tabby/issues",
+  "name": "rumicode",
+  "publisher": "RumiCode",
+  "displayName": "RumiCode",
+  "description": "AI coding assistant",
+  "homepage": "https://rumicode.ir/",
+  "repository": "https://github.com/erfanium/tabby",
+  "bugs": "https://github.com/erfanium/tabby/issues",
   "license": "Apache-2.0",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "keywords": [
     "ai",
     "autocomplete",
@@ -16,7 +16,7 @@
     "intellisense",
     "intellicode",
     "snippets",
-    "tabby"
+    "RumiCode"
   ],
   "icon": "assets/logo.png",
   "engines": {
@@ -35,106 +35,67 @@
   "contributes": {
     "commands": [
       {
-        "command": "tabby.toggleInlineCompletionTriggerMode",
-        "title": "Tabby: Toggle Code Completion Trigger Mode (Automatic/Manual)"
+        "command": "rumicode.toggleInlineCompletionTriggerMode",
+        "title": "RumiCode: Toggle Code Completion Trigger Mode (Automatic/Manual)"
       },
       {
-        "command": "tabby.inlineCompletion.trigger",
-        "title": "Tabby: Trigger Code Completion Manually"
+        "command": "rumicode.inlineCompletion.trigger",
+        "title": "RumiCode: Trigger Code Completion Manually"
       },
       {
-        "command": "tabby.setApiEndpoint",
-        "title": "Tabby: Specify API Endpoint of Tabby"
+        "command": "rumicode.setApiEndpoint",
+        "title": "RumiCode: Specify API Endpoint"
       },
       {
-        "command": "tabby.setApiToken",
-        "title": "Tabby: Set API Token"
+        "command": "rumicode.openSettings",
+        "title": "RumiCode: Open Settings"
       },
       {
-        "command": "tabby.openSettings",
-        "title": "Tabby: Open Settings"
+        "command": "rumicode.openTabbyAgentSettings",
+        "title": "RumiCode: Open RumiCode Agent Settings"
       },
       {
-        "command": "tabby.openTabbyAgentSettings",
-        "title": "Tabby: Open Tabby Agent Settings"
+        "command": "rumicode.gettingStarted",
+        "title": "RumiCode: Getting Started"
       },
       {
-        "command": "tabby.gettingStarted",
-        "title": "Tabby: Getting Started"
+        "command": "rumicode.openOnlineHelp",
+        "title": "RumiCode: Online Help"
       },
       {
-        "command": "tabby.openOnlineHelp",
-        "title": "Tabby: Online Help"
-      },
-      {
-        "command": "tabby.notifications.resetMuted",
-        "title": "Tabby: Reset notifications marked as \"Don't Show Again\""
+        "command": "rumicode.notifications.resetMuted",
+        "title": "RumiCode: Reset notifications marked as \"Don't Show Again\""
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "tabby.inlineCompletion.trigger",
-          "when": "config.tabby.inlineCompletion.triggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
+          "command": "rumicode.inlineCompletion.trigger",
+          "when": "config.rumicode.inlineCompletion.triggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
         },
         {
-          "command": "tabby.openTabbyAgentSettings",
+          "command": "rumicode.openTabbyAgentSettings",
           "when": "!isWeb"
         }
       ]
     },
-    "walkthroughs": [
-      {
-        "id": "gettingStarted",
-        "title": "Getting Started with Tabby",
-        "description": "Set up your own AI coding assistant",
-        "steps": [
-          {
-            "id": "getTabbyServerReady",
-            "title": "Get Tabby Server Ready",
-            "description": "The Tabby VSCode extension requires a Tabby server to work. Please follow this guide to get your Tabby server ready.",
-            "media": {
-              "markdown": "assets/walkthroughs/server.md"
-            }
-          },
-          {
-            "id": "connectToTabbyServer",
-            "title": "Connect to Tabby Server",
-            "description": "Once your Tabby server is ready, specify the server API endpoint here. \n[Specify API Endpoint](command:tabby.setApiEndpoint)",
-            "media": {
-              "markdown": "assets/walkthroughs/setApiEndpoint.md"
-            }
-          },
-          {
-            "id": "codeCompletion",
-            "title": "Code Completion",
-            "description": "Tabby provides inline suggestions automatically by default, and you can accept suggestions by just pressing the Tab key.",
-            "media": {
-              "markdown": "assets/walkthroughs/codeCompletion.md"
-            }
-          },
-          {
-            "id": "commands",
-            "title": "Commands",
-            "description": "Type `>Tabby:` in command palette to list all Tabby commands. \n[Tabby commands](command:workbench.action.quickOpen?%5B%22%3ETabby%3A%22%5D)",
-            "media": {
-              "markdown": "assets/walkthroughs/commands.md"
-            }
-          }
-        ]
-      }
-    ],
+    "walkthroughs": [],
     "configuration": {
-      "title": "Tabby",
+      "title": "RumiCode",
       "properties": {
-        "tabby.api.endpoint": {
+        "rumicode.api.endpoint": {
           "type": "string",
-          "default": "",
+          "default": "https://rumicode.ir/api",
           "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
           "patternErrorMessage": "Please enter a validate http or https URL.",
-          "markdownDescription": "Specify API Endpoint of Tabby.  \nIf leave empty, server endpoint in [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
+          "markdownDescription": "Specify API Endpoint of rumicode"
         },
-        "tabby.inlineCompletion.triggerMode": {
+        "rumicode.api.token": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Specify API Token of rumicode"
+        },
+        "rumicode.inlineCompletion.triggerMode": {
           "type": "string",
           "enum": [
             "automatic",
@@ -147,7 +108,7 @@
             "Manual trigger by pressing `Alt + \\`"
           ]
         },
-        "tabby.keybindings": {
+        "rumicode.keybindings": {
           "type": "string",
           "enum": [
             "vscode-style",
@@ -156,43 +117,50 @@
           "default": "vscode-style",
           "markdownDescription": "Select the keybinding profile to accept shown inline completion. \n | | Next Line | Full Completion | Next Word | \n |:---:|:---:|:---:|:---:| \n | _vscode-style_ | - | Tab | Ctrl + RightArrow | \n | _tabby-style_ <br/> _(experimental)_ | Tab | Ctrl + Tab | Ctrl + RightArrow | \n"
         },
-        "tabby.usage.anonymousUsageTracking": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection)."
+        "rumicode.inlineCompletion.contextRetriever": {
+          "type": "string",
+          "enum": [
+            "none",
+            "jaccard-similarity",
+            "section-history",
+            "local-mixed",
+            "lsp-light"
+          ],
+          "default": "section-history",
+          "markdownDescription": "Select the context retriever to use for inline completion"
         }
       }
     },
     "keybindings": [
       {
         "key": "alt+\\",
-        "command": "tabby.inlineCompletion.trigger",
-        "when": "config.tabby.inlineCompletion.triggerMode === 'manual' && editorTextFocus && !editorHasSelection && !inlineSuggestionsVisible"
+        "command": "rumicode.inlineCompletion.trigger",
+        "when": "config.rumicode.inlineCompletion.triggerMode === 'manual' && editorTextFocus && !editorHasSelection && !inlineSuggestionsVisible"
       },
       {
-        "command": "tabby.inlineCompletion.accept",
+        "command": "rumicode.inlineCompletion.accept",
         "key": "tab",
-        "when": "config.tabby.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorTabMovesFocus && inlineSuggestionHasIndentationLessThanTabSize"
+        "when": "config.rumicode.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorTabMovesFocus && inlineSuggestionHasIndentationLessThanTabSize"
       },
       {
-        "command": "tabby.inlineCompletion.acceptNextWord",
+        "command": "rumicode.inlineCompletion.acceptNextWord",
         "key": "ctrl+right",
-        "when": "config.tabby.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
+        "when": "config.rumicode.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
-        "command": "tabby.inlineCompletion.accept",
+        "command": "rumicode.inlineCompletion.accept",
         "key": "ctrl+tab",
-        "when": "config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
+        "when": "config.rumicode.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
-        "command": "tabby.inlineCompletion.acceptNextWord",
+        "command": "rumicode.inlineCompletion.acceptNextWord",
         "key": "ctrl+right",
-        "when": "config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
+        "when": "config.rumicode.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
-        "command": "tabby.inlineCompletion.acceptNextLine",
+        "command": "rumicode.inlineCompletion.acceptNextLine",
         "key": "tab",
-        "when": "config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorTabMovesFocus"
+        "when": "config.rumicode.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorTabMovesFocus"
       }
     ]
   },
@@ -210,6 +178,8 @@
     "vscode:publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
+    "@types/js-levenshtein": "^1.1.3",
+    "@types/lodash": "^4.14.202",
     "@types/mocha": "^10.0.1",
     "@types/node": "18.x",
     "@types/vscode": "^1.82.0",
@@ -228,7 +198,17 @@
     "typescript": "^5.3.2"
   },
   "dependencies": {
+    "@types/unzipper": "^0.10.9",
     "@xstate/fsm": "^2.0.1",
+    "axios": "^1.6.5",
+    "date-fns": "^3.0.6",
+    "detect-indent": "^7.0.1",
+    "fuzzysort": "^2.0.4",
+    "js-levenshtein": "^1.1.6",
+    "lodash": "^4.17.21",
+    "lru-cache": "^10.1.0",
+    "unzipper": "^0.10.14",
+    "wink-nlp-utils": "^2.1.0",
     "tabby-agent": "1.3.0"
   }
 }

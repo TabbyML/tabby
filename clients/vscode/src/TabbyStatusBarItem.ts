@@ -5,7 +5,7 @@ import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 
-const label = "Tabby";
+const label = "RumiCode";
 const iconLoading = "$(loading~spin)";
 const iconAutomatic = "$(check)";
 const iconManual = "$(chevron-right)";
@@ -145,17 +145,17 @@ export class TabbyStatusBarItem {
     });
 
     agent().on("statusChanged", (event: StatusChangedEvent) => {
-      console.debug("Tabby agent statusChanged", { event });
+      console.debug("RumiCode agent statusChanged", { event });
       this.fsmService.send(event.status);
     });
 
     agent().on("authRequired", (event: AuthRequiredEvent) => {
-      console.debug("Tabby agent authRequired", { event });
+      console.debug("RumiCode agent authRequired", { event });
       notifications.showInformationWhenUnauthorized();
     });
 
     agent().on("issuesUpdated", (event: IssuesUpdatedEvent) => {
-      console.debug("Tabby agent issuesUpdated", { event });
+      console.debug("RumiCode agent issuesUpdated", { event });
       const status = agent().getStatus();
       this.fsmService.send(status);
       const showCompletionResponseWarnings =
@@ -191,10 +191,10 @@ export class TabbyStatusBarItem {
     this.item.color = colorNormal;
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconLoading} ${label}`;
-    this.item.tooltip = "Tabby is initializing.";
+    this.item.tooltip = "RumiCode is initializing.";
     this.item.command = {
       title: "",
-      command: "tabby.applyCallback",
+      command: "rumicode.applyCallback",
       arguments: [() => notifications.showInformationWhenInitializing()],
     };
   }
@@ -203,10 +203,10 @@ export class TabbyStatusBarItem {
     this.item.color = colorNormal;
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconAutomatic} ${label}`;
-    this.item.tooltip = "Tabby automatic code completion is enabled.";
+    this.item.tooltip = "RumiCode automatic code completion is enabled.";
     this.item.command = {
       title: "",
-      command: "tabby.applyCallback",
+      command: "rumicode.applyCallback",
       arguments: [() => notifications.showInformationWhenAutomaticTrigger()],
     };
   }
@@ -215,10 +215,10 @@ export class TabbyStatusBarItem {
     this.item.color = colorNormal;
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconManual} ${label}`;
-    this.item.tooltip = "Tabby is standing by, click or press `Alt + \\` to trigger code completion.";
+    this.item.tooltip = "RumiCode is standing by, click or press `Alt + \\` to trigger code completion.";
     this.item.command = {
       title: "",
-      command: "tabby.applyCallback",
+      command: "rumicode.applyCallback",
       arguments: [() => notifications.showInformationWhenManualTrigger()],
     };
   }
@@ -227,10 +227,10 @@ export class TabbyStatusBarItem {
     this.item.color = colorNormal;
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconLoading} ${label}`;
-    this.item.tooltip = "Tabby is generating code completions.";
+    this.item.tooltip = "RumiCode is generating code completions.";
     this.item.command = {
       title: "",
-      command: "tabby.applyCallback",
+      command: "rumicode.applyCallback",
       arguments: [() => notifications.showInformationWhenManualTriggerLoading()],
     };
   }
@@ -239,14 +239,14 @@ export class TabbyStatusBarItem {
     this.item.color = colorWarning;
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconDisabled} ${label}`;
-    this.item.tooltip = "Tabby is disabled. Click to check settings.";
+    this.item.tooltip = "RumiCode is disabled. Click to check settings.";
     this.item.command = {
       title: "",
-      command: "tabby.applyCallback",
+      command: "rumicode.applyCallback",
       arguments: [() => notifications.showInformationWhenInlineSuggestDisabled()],
     };
 
-    console.debug("Tabby code completion is enabled but inline suggest is disabled.");
+    console.debug("RumiCode code completion is enabled but inline suggest is disabled.");
     notifications.showInformationWhenInlineSuggestDisabled();
   }
 
@@ -254,10 +254,10 @@ export class TabbyStatusBarItem {
     this.item.color = colorWarning;
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconDisconnected} ${label}`;
-    this.item.tooltip = "Cannot connect to Tabby Server. Click to open settings.";
+    this.item.tooltip = "Cannot connect to RumiCode Server. Click to open settings.";
     this.item.command = {
       title: "",
-      command: "tabby.applyCallback",
+      command: "rumicode.applyCallback",
       arguments: [() => notifications.showInformationWhenDisconnected()],
     };
   }
@@ -266,10 +266,10 @@ export class TabbyStatusBarItem {
     this.item.color = colorWarning;
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconUnauthorized} ${label}`;
-    this.item.tooltip = "Tabby Server requires authorization. Please set your personal token.";
+    this.item.tooltip = "RumiCode Server requires authorization. Please set your personal token.";
     this.item.command = {
       title: "",
-      command: "tabby.applyCallback",
+      command: "rumicode.applyCallback",
       arguments: [() => notifications.showInformationWhenUnauthorized()],
     };
   }
@@ -294,7 +294,7 @@ export class TabbyStatusBarItem {
     }
     this.item.command = {
       title: "",
-      command: "tabby.applyCallback",
+      command: "rumicode.applyCallback",
       arguments: [
         () => {
           switch (issue?.name) {

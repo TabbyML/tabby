@@ -2,28 +2,20 @@ import { ExtensionContext, workspace, env, version } from "vscode";
 import { TabbyAgent, AgentInitOptions, PartialAgentConfig, ClientProperties, DataStore } from "tabby-agent";
 
 function buildInitOptions(context: ExtensionContext): AgentInitOptions {
-  const configuration = workspace.getConfiguration("tabby");
+  const configuration = workspace.getConfiguration("rumicode");
   const config: PartialAgentConfig = {};
   const endpoint = configuration.get<string>("api.endpoint");
+  const token = configuration.get<string>("api.token");
+
+  config.server = {};
   if (endpoint && endpoint.trim().length > 0) {
-    config.server = {
-      endpoint,
-    };
+    config.server.endpoint = endpoint.trim();
   }
-  const token = context.globalState.get<string>("server.token");
+
   if (token && token.trim().length > 0) {
-    if (config.server) {
-      config.server.token = token;
-    } else {
-      config.server = {
-        token,
-      };
-    }
+    config.server.token = token.trim();
   }
-  const anonymousUsageTrackingDisabled = configuration.get<boolean>("usage.anonymousUsageTracking", false);
-  config.anonymousUsageTracking = {
-    disable: anonymousUsageTrackingDisabled,
-  };
+
   const clientProperties: ClientProperties = {
     user: {
       vscode: {
@@ -60,7 +52,7 @@ let instance: TabbyAgent | undefined = undefined;
 
 export function agent(): TabbyAgent {
   if (!instance) {
-    throw new Error("Tabby Agent not initialized");
+    throw new Error("RumiCode not initialized");
   }
   return instance;
 }
@@ -71,8 +63,8 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
     const initPromise = agent.initialize(buildInitOptions(context));
     workspace.onDidChangeConfiguration(async (event) => {
       await initPromise;
-      const configuration = workspace.getConfiguration("tabby");
-      if (event.affectsConfiguration("tabby.api.endpoint")) {
+      const configuration = workspace.getConfiguration("rumicode");
+      if (event.affectsConfiguration("rumicode.api.endpoint")) {
         const endpoint = configuration.get<string>("api.endpoint");
         if (endpoint && endpoint.trim().length > 0) {
           agent.updateConfig("server.endpoint", endpoint);
@@ -80,15 +72,20 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
           agent.clearConfig("server.endpoint");
         }
       }
-      if (event.affectsConfiguration("tabby.usage.anonymousUsageTracking")) {
-        const anonymousUsageTrackingDisabled = configuration.get<boolean>("usage.anonymousUsageTracking", false);
-        agent.updateConfig("anonymousUsageTracking.disable", anonymousUsageTrackingDisabled);
+      if (event.affectsConfiguration("rumicode.api.token")) {
+        const token = configuration.get<string>("api.token");
+        if (token && token.trim().length > 0) {
+          agent.updateConfig("server.token", token);
+        } else {
+          agent.clearConfig("server.token");
+        }
       }
-      if (event.affectsConfiguration("tabby.inlineCompletion.triggerMode")) {
+
+      if (event.affectsConfiguration("rumicode.inlineCompletion.triggerMode")) {
         const triggerMode = configuration.get<string>("inlineCompletion.triggerMode", "automatic");
         agent.updateClientProperties("user", "vscode.triggerMode", triggerMode);
       }
-      if (event.affectsConfiguration("tabby.keybindings")) {
+      if (event.affectsConfiguration("rumicode.keybindings")) {
         const keybindings = configuration.get<string>("keybindings", "vscode-style");
         agent.updateClientProperties("user", "vscode.keybindings", keybindings);
       }

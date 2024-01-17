@@ -3,13 +3,20 @@ import hashObject from "object-hash";
 
 export type CompletionRequest = {
   filepath: string;
+  path: string | null;
   language: string;
   text: string;
   position: number;
   indentation?: string;
   clipboard?: string;
   manually?: boolean;
+  snippets?: Snippet[];
 };
+
+export interface Snippet {
+  file_name: string;
+  content: string;
+}
 
 export type CompletionResponseChoice = {
   index: number;
@@ -35,11 +42,13 @@ function isAtLineEndExcludingAutoClosedChar(suffix: string) {
 }
 
 export class CompletionContext {
+  path: string | null;
   filepath: string;
   language: string;
   indentation?: string;
   text: string;
   position: number;
+  snippets: Snippet[];
 
   prefix: string;
   suffix: string;
@@ -57,11 +66,13 @@ export class CompletionContext {
   hash: string;
 
   constructor(request: CompletionRequest) {
+    this.path = request.path;
     this.filepath = request.filepath;
     this.language = request.language;
     this.text = request.text;
     this.position = request.position;
     this.indentation = request.indentation;
+    this.snippets = request.snippets ?? [];
 
     this.prefix = request.text.slice(0, request.position);
     this.suffix = request.text.slice(request.position);

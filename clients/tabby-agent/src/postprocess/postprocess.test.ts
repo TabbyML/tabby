@@ -87,6 +87,7 @@ describe("postprocess golden test", () => {
       const config = deepmerge(defaultAgentConfig["postprocess"], testCase["config"] ?? {}) as PostprocessConfig;
       const docContext = parseDocContext(testCase["context"]?.["text"] ?? "");
       const completionContext = new CompletionContext({
+        path: null,
         filepath: testCase["context"]?.["filepath"] ?? uuid(),
         language: testCase["context"]?.["language"] ?? "plaintext",
         text: getDoc(docContext),
