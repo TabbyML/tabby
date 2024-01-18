@@ -125,7 +125,6 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       batch_ = llama_batch_init(N_CTX * parallelism, 0, 1);
       // warm up
       {
-        srand(time(NULL));
         batch_.n_tokens = 16;
         for (int i = 0; i < batch_.n_tokens; ++i) {
           batch_.token[i] = 0;
@@ -368,6 +367,7 @@ std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model
   llama_context_params ctx_params = llama_context_default_params();
   ctx_params.n_ctx = N_CTX * parallelism;
   ctx_params.n_batch = N_BATCH;
+  srand(ctx_params.seed);
   if (const char* n_thread_str = std::getenv("LLAMA_CPP_N_THREADS")) {
     int n_threads = std::stoi(n_thread_str);
     ctx_params.n_threads = n_threads;
