@@ -222,7 +222,7 @@ const DirectoryTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-stretch rounded-sm',
+        'flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         className
       )}
       {...props}
