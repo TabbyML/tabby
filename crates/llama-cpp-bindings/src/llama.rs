@@ -10,6 +10,7 @@ struct LlamaInitRequest {
     prompt: String,
     max_input_length: usize,
     temperature: f32,
+    seed: u64,
 
     tx: Sender<String>,
     stop_condition: StopCondition,
@@ -58,6 +59,7 @@ impl LlamaServiceImpl {
         while let Some(LlamaInitRequest {
             prompt,
             temperature,
+            seed,
             tx,
             max_input_length,
             stop_condition,
@@ -76,6 +78,7 @@ impl LlamaServiceImpl {
                 &prompt,
                 max_input_length,
                 temperature,
+                seed,
             );
         }
 
@@ -149,6 +152,7 @@ impl LlamaService {
         prompt: &str,
         max_input_length: usize,
         temperature: f32,
+        seed: u64,
         stop_condition: StopCondition,
     ) -> Receiver<String> {
         let (tx, rx) = channel(8);
@@ -156,6 +160,7 @@ impl LlamaService {
             .send(LlamaInitRequest {
                 prompt: prompt.to_owned(),
                 temperature,
+                seed,
                 tx,
                 max_input_length,
                 stop_condition,

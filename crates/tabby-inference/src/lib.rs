@@ -17,6 +17,9 @@ pub struct TextGenerationOptions {
     #[builder(default = "0.1")]
     pub sampling_temperature: f32,
 
+    #[builder(default = "0")]
+    pub seed: u64,
+
     #[builder(default = "None")]
     pub language: Option<&'static Language>,
 }

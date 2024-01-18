@@ -19,15 +19,17 @@ namespace {
 constexpr size_t N_BATCH = 512;  // # per batch inference.
 constexpr size_t N_CTX = 4096;   // # max kv history.
 struct Request {
-  Request(size_t request_id, std::vector<llama_token> input_token_ids, float_t temperature) :
+  Request(size_t request_id, std::vector<llama_token> input_token_ids, float_t temperature, uint64_t seed) :
     id(request_id),
     tokens(input_token_ids.begin(), input_token_ids.end()),
-    temperature(temperature) {
+    temperature(temperature),
+    seed(seed) {
     }
 
   uint32_t id = -1;
   llama_seq_id seq_id = -1;
   float_t temperature = 0;
+  uint64_t seed = 0;
 
   std::vector<llama_token> tokens;
   size_t i_batch = -1;
@@ -146,13 +148,13 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     llama_batch_free(batch_);
   }
 
-  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length, float_t temperature) override {
+  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length, float_t temperature, uint64_t seed) override {
     auto tokens = llama_tokenize(llama_get_model(ctx_.get()), text, false, true);
     if (tokens.size() > max_input_length) {
       int start = tokens.size() - max_input_length;
       tokens = std::vector<llama_token>(tokens.begin() + start, tokens.end());
     }
-    pending_requests_.push_back(Request(request_id, tokens, temperature));
+    pending_requests_.push_back(Request(request_id, tokens, temperature, seed));
   }
 
   void stop_request(uint32_t request_id) override {
@@ -247,6 +249,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         if ((request.i_batch < i) || (request.i_batch >= (i + n_tokens))) {
           continue;
         }
+        srand(request.seed);
 
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
@@ -367,7 +370,6 @@ std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model
   llama_context_params ctx_params = llama_context_default_params();
   ctx_params.n_ctx = N_CTX * parallelism;
   ctx_params.n_batch = N_BATCH;
-  srand(ctx_params.seed);
   if (const char* n_thread_str = std::getenv("LLAMA_CPP_N_THREADS")) {
     int n_threads = std::stoi(n_thread_str);
     ctx_params.n_threads = n_threads;

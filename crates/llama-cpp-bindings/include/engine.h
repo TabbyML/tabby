@@ -11,7 +11,7 @@ class TextInferenceEngine {
  public:
   virtual ~TextInferenceEngine();
 
-  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length, float_t temperature) = 0;
+  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length, float_t temperature, uint64_t seed) = 0;
   virtual void stop_request(uint32_t request_id) = 0;
   virtual rust::Vec<StepOutput> step() = 0;
 };
