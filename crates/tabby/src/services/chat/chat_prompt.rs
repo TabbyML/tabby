@@ -56,6 +56,6 @@ mod tests {
             role: "system".to_owned(),
             content: "system".to_owned(),
         }];
-        builder.build(&messages);
+        builder.build(&messages).unwrap();
     }
 }
