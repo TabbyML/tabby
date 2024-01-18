@@ -17,8 +17,6 @@ import {
 
 import { RepositoriesFileTree, TFileTreeNode } from './file-tree'
 
-import './editor.css'
-
 const SourceCodeEditor = dynamic(() => import('./source-code-editor'), {
   ssr: false
 })

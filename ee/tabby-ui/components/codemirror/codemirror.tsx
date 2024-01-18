@@ -16,6 +16,8 @@ interface CodeMirrorEditorProps {
   language: LanguageName | string
   readonly?: boolean
   theme?: string
+  height?: string
+  width?: string
   extensions?: Extension[]
 }
 
@@ -24,11 +26,33 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   theme,
   language,
   readonly = true,
-  extensions: propsExtensions
+  extensions: propsExtensions,
+  height = null,
+  width = null
 }) => {
   const ref = React.useRef<HTMLDivElement>(null)
   const editor = React.useRef<EditorView | null>(null)
-  const extensions = [basicSetup, EditorState.readOnly.of(readonly)]
+
+  const defaultThemeOption = EditorView.theme({
+    '&': {
+      height,
+      width,
+      outline: 'none !important',
+      background: 'transparent'
+    },
+    '& .cm-scroller': {
+      height: '100% !important'
+    },
+    '& .cm-gutters': {
+      background: 'transparent'
+    }
+  })
+  const extensions = [
+    defaultThemeOption,
+    basicSetup,
+    EditorState.readOnly.of(readonly)
+  ]
+
   const getExtensions = (): Extension[] => {
     let result = compact([...extensions, loadLanguage(getLanguage(language))])
     if (theme === 'dark') {
@@ -97,7 +121,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     resetValue()
   }, [value])
 
-  return <div ref={ref}></div>
+  return <div className="h-full" ref={ref}></div>
 }
 
 function getLanguage(lang: LanguageName | string, ext?: string) {

@@ -53,15 +53,14 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
   }, [activeCodeContent, tags])
 
   return (
-    <div
-      className={cn('source-code-browser h-full overflow-y-auto', className)}
-    >
+    <div className={cn('source-code-browser h-full', className)}>
       <CodeMirrorEditor
         value={activeCodeContent}
         theme={theme}
         language={language}
         readonly
         extensions={extensions}
+        height="100%"
       />
     </div>
   )
