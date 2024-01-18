@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use lettre::{
-    transport::smtp::{authentication::Credentials, SmtpTransportBuilder},
+    transport::smtp::{authentication::Credentials},
     Message, SmtpTransport, Transport,
 };
 use tabby_db::DbConn;
