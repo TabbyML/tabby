@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import moment from 'moment'
 
 import { graphql } from '@/lib/gql/generates'
-import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
 import {
@@ -18,6 +18,7 @@ import {
 import { CopyButton } from '@/components/copy-button'
 
 import CreateInvitationForm from './create-invitation-form'
+import { useQuery } from 'urql'
 
 const listInvitations = graphql(/* GraphQL */ `
   query ListInvitations {
@@ -37,7 +38,8 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
 `)
 
 export default function InvitationTable() {
-  const { data, mutate } = useAuthenticatedGraphQLQuery(listInvitations)
+  const [{ data }, executeQuery] = useQuery({ query: listInvitations })
+  // const { data, mutate } = useAuthenticatedGraphQLQuery(listInvitations)
   const invitations = data?.invitations
   const [origin, setOrigin] = useState('')
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function InvitationTable() {
 
   const deleteInvitation = useMutation(deleteInvitationMutation, {
     onCompleted() {
-      mutate()
+      executeQuery()
     }
   })
 
@@ -84,7 +86,7 @@ export default function InvitationTable() {
           })}
           <TableRow>
             <TableCell className="p-2">
-              <CreateInvitationForm onCreated={() => mutate()} />
+              <CreateInvitationForm onCreated={() => executeQuery()} />
             </TableCell>
           </TableRow>
         </TableBody>

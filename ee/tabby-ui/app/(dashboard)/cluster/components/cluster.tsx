@@ -4,7 +4,7 @@ import { graphql } from '@/lib/gql/generates'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
-import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 
 import WorkerCard from './worker-card'
+import { useQuery } from 'urql'
 
 const getRegistrationTokenDocument = graphql(/* GraphQL */ `
   query GetRegistrationToken {
@@ -32,13 +33,14 @@ function toBadgeString(str: string) {
 export default function Workers() {
   const { data: healthInfo } = useHealth()
   const workers = useWorkers()
-  const { data: registrationTokenRes, mutate } = useAuthenticatedGraphQLQuery(
-    getRegistrationTokenDocument
-  )
+  const [{ data: registrationTokenRes }, executeQuery] = useQuery({ query: getRegistrationTokenDocument })
+  // const { data: registrationTokenRes, mutate } = useAuthenticatedGraphQLQuery(
+  //   getRegistrationTokenDocument
+  // )
 
   const resetRegistrationToken = useMutation(resetRegistrationTokenDocument, {
     onCompleted() {
-      mutate()
+      executeQuery()
     }
   })
 

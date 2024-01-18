@@ -4,7 +4,6 @@ import React from 'react'
 import moment from 'moment'
 
 import { graphql } from '@/lib/gql/generates'
-import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -14,6 +13,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { useQuery } from 'urql'
 
 const listUsers = graphql(/* GraphQL */ `
   query ListUsers {
@@ -26,7 +26,8 @@ const listUsers = graphql(/* GraphQL */ `
 `)
 
 export default function UsersTable() {
-  const { data } = useAuthenticatedGraphQLQuery(listUsers)
+  // const { data } = useAuthenticatedGraphQLQuery(listUsers)
+  const [{ data }] = useQuery({ query: listUsers })
   const users = data?.users
 
   return (

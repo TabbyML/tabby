@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
-import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
+import {
+  useMutation
+} from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
   CardContent,
@@ -17,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
+import { useQuery } from 'urql'
 
 export default function Home() {
   return (
@@ -43,14 +46,15 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()
-  const { data, mutate } = useAuthenticatedGraphQLQuery(meQuery)
+  const [{ data }, executeQuery] = useQuery({ query: meQuery })
+  // const { data, mutate } = useAuthenticatedGraphQLQuery(meQuery)
   const [origin, setOrigin] = useState('')
   useEffect(() => {
     setOrigin(new URL(window.location.href).origin)
   }, [])
 
   const resetUserAuthToken = useMutation(resetUserAuthTokenDocument, {
-    onCompleted: () => mutate()
+    onCompleted: () => executeQuery()
   })
 
   if (!healthInfo || !data) return

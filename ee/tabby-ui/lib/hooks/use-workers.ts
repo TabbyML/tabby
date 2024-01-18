@@ -3,9 +3,9 @@ import { findIndex, groupBy, slice } from 'lodash-es'
 
 import { graphql } from '@/lib/gql/generates'
 import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
-import { useAuthenticatedGraphQLQuery } from '@/lib/tabby/gql'
 
 import { useHealth, type HealthInfo } from './use-health'
+import { useQuery } from 'urql'
 
 const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
   [WorkerKind.Chat]: 'chat_model',
@@ -45,7 +45,8 @@ export const getAllWorkersDocument = graphql(/* GraphQL */ `
 
 function useWorkers() {
   const { data: healthInfo } = useHealth()
-  const { data } = useAuthenticatedGraphQLQuery(getAllWorkersDocument)
+  const [{ data }] = useQuery({ query: getAllWorkersDocument })
+  // const { data } = useAuthenticatedGraphQLQuery(getAllWorkersDocument)
   let workers = data?.workers
 
   const groupedWorkers = React.useMemo(() => {

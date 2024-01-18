@@ -55,6 +55,27 @@ interface RefreshAction {
 
 type AuthActions = SignInAction | SignOutAction | RefreshAction
 
+
+const TOKEN_KEY = '_tabby_token'
+const REFRESH_TOKEN_KEY = '_tabby_refresh_token'
+
+export const getToken = () => localStorage.getItem(TOKEN_KEY)
+export const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY)
+export const saveAuthData = ({
+  token,
+  refreshToken
+}: {
+  token: string
+  refreshToken: string
+}) => {
+  localStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+}
+export const clearAuthData = () => {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+}
+
 function authReducer(state: AuthState, action: AuthActions): AuthState {
   switch (action.type) {
     case AuthActionType.SignIn:
@@ -91,7 +112,7 @@ interface AuthStore {
 
 const AuthContext = React.createContext<AuthStore | null>(null)
 
-const refreshTokenMutation = graphql(/* GraphQL */ `
+export const refreshTokenMutation = graphql(/* GraphQL */ `
   mutation refreshToken($refreshToken: String!) {
     refreshToken(refreshToken: $refreshToken) {
       accessToken
@@ -151,7 +172,14 @@ function RefreshAuth() {
 
   React.useEffect(() => {
     if (authState?.data) {
+      // todo remove 
       setAuthData(authState.data)
+      // todo remove 
+      
+      saveAuthData({
+        token: authState.data.accessToken,
+        refreshToken: authState.data.refreshToken
+      })
     } else if (!initialized.current) {
       setAuthData(authState?.data || null)
     }
