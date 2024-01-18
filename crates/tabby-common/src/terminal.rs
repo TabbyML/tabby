@@ -40,7 +40,7 @@ impl<'a> InfoMessage<'a> {
     }
 
     pub fn print_messages(messages: &[Self]) {
-        let messages: Vec<String> = messages.into_iter().map(|m| m.to_string()).collect();
+        let messages: Vec<String> = messages.iter().map(|m| m.to_string()).collect();
         eprintln!("\n{}\n", messages.join("\n"));
     }
 }
@@ -51,7 +51,7 @@ impl<'a> ToString for InfoMessage<'a> {
         str.push_str(&format!("  {}\n\n", self.header_format.format(self.header)));
         for (i, line) in self.lines.iter().enumerate() {
             str.push_str("  ");
-            str.push_str(&line);
+            str.push_str(line);
             if i != self.lines.len() + 1 {
                 str.push('\n');
             }
