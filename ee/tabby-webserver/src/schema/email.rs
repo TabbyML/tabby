@@ -19,5 +19,6 @@ pub trait EmailService: Send + Sync {
         smtp_server: String,
     ) -> Result<()>;
     async fn delete_email_setting(&self) -> Result<()>;
+    /// Send emails using the saved email settings. Any emails that don't get sent due to errors will remain in the Vec.
     async fn send_mail(&self, messages: &mut Vec<Message>) -> Result<()>;
 }
