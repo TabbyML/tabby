@@ -19,5 +19,5 @@ pub trait EmailService: Send + Sync {
         smtp_server: String,
     ) -> Result<()>;
     async fn delete_email_setting(&self) -> Result<()>;
-    async fn send_mail(&self, messages: &[Message]) -> Result<()>;
+    async fn send_mail(&self, messages: &mut Vec<Message>) -> Result<()>;
 }

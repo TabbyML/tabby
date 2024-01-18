@@ -26,14 +26,15 @@ impl EmailService for DbConn {
         self.delete_email_setting().await
     }
 
-    async fn send_mail(&self, messages: &[Message]) -> Result<()> {
+    async fn send_mail(&self, messages: &mut Vec<Message>) -> Result<()> {
         let settings = self
             .read_email_setting()
             .await?
             .ok_or_else(|| anyhow!("email settings not specified, cannot send mail"))?;
         let server = SmtpTransport::relay(&settings.smtp_server)?.build();
-        for msg in messages {
-            server.send(msg)?;
+        while let Some(next) = messages.last() {
+            server.send(next)?;
+            messages.remove(messages.len() - 1);
         }
         Ok(())
     }
