@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <functional>
 #include <vector>
 #include <cmath>
@@ -80,15 +81,18 @@ std::string string_format(const std::string& format, Args ... args)
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
-void softmax(float* nums, size_t len, float_t temperature) {
+float softmax(float* nums, size_t len, float_t temperature) {
   float_t sum = 0;
+  float max = *std::max_element(nums, nums + len);
   for (size_t i = 0; i < len; i++) {
+    nums[i] -= max;
     nums[i] = std::exp(nums[i] / temperature);
     sum += nums[i];
   }
   for (size_t i = 0; i < len; i++) {
       nums[i] /= sum;
   }
+  return sum;
 }
 
 size_t weighted_random(float* nums, size_t len) {
@@ -247,16 +251,8 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
-        // softmax(logits, n_vocab, request.temperature);
-        // auto next_token = weighted_random(logits, n_vocab);
-        auto next_token = std::distance(logits, std::max_element(logits, logits + n_vocab));
-        double sum = 0;
-        for (int i = 0; i < n_vocab; i++) {
-          sum += logits[i];
-        }
-        auto log = fopen("/home/redempt/.tabby/dumblog", "a");
-        fprintf(log, "next: %d, n: %d, sum: %f\n", next_token, n_vocab, sum);
-        fclose(log);
+        softmax(logits, n_vocab, request.temperature);
+        auto next_token = weighted_random(logits, n_vocab);
         request.n_past += request.tokens.size();
 
         request.tokens.clear();
