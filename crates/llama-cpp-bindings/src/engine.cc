@@ -20,7 +20,7 @@ namespace {
 constexpr size_t N_BATCH = 512;  // # per batch inference.
 constexpr size_t N_CTX = 4096;   // # max kv history.
 struct Request {
-  Request(size_t request_id, std::vector<llama_token> input_token_ids, float_t temperature, uint64_t seed) :
+  Request(size_t request_id, std::vector<llama_token> input_token_ids, float temperature, uint64_t seed) :
     id(request_id),
     tokens(input_token_ids.begin(), input_token_ids.end()),
     temperature(temperature),
@@ -29,7 +29,7 @@ struct Request {
 
   uint32_t id = -1;
   llama_seq_id seq_id = -1;
-  float_t temperature = 0;
+  float temperature = 0;
   uint64_t seed = 0;
 
   std::vector<llama_token> tokens;
@@ -84,8 +84,8 @@ std::string string_format(const std::string& format, Args ... args)
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
-float softmax(float* nums, size_t len, float_t temperature) {
-  float_t sum = 0;
+float softmax(float* nums, size_t len, float temperature) {
+  float sum = 0;
   float max = *std::max_element(nums, nums + len);
   for (size_t i = 0; i < len; i++) {
     nums[i] -= max;
@@ -98,8 +98,8 @@ float softmax(float* nums, size_t len, float_t temperature) {
   return sum;
 }
 
-size_t weighted_random(float* nums, size_t len, std::mt19937 rng) {
-  float_t sum = 0;
+size_t weighted_random(const float* nums, size_t len, std::mt19937 rng) {
+  float sum = 0;
   for (size_t i = 0; i < len; i++) {
     sum += nums[i];
   }
@@ -149,7 +149,9 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     llama_batch_free(batch_);
   }
 
-  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length, float_t temperature, uint64_t seed) override {
+  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length,
+                           float temperature, uint64_t seed) override {
+
     auto tokens = llama_tokenize(llama_get_model(ctx_.get()), text, false, true);
     if (tokens.size() > max_input_length) {
       int start = tokens.size() - max_input_length;
