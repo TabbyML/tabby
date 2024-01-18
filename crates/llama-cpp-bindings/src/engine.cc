@@ -84,7 +84,7 @@ std::string string_format(const std::string& format, Args ... args)
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
-float softmax(float* nums, size_t len, float temperature) {
+float compute_softmax_inplace(float* nums, size_t len, float temperature) {
   float sum = 0;
   float max = *std::max_element(nums, nums + len);
   for (size_t i = 0; i < len; i++) {
@@ -98,7 +98,8 @@ float softmax(float* nums, size_t len, float temperature) {
   return sum;
 }
 
-size_t weighted_random(const float* nums, size_t len, std::mt19937 rng) {
+size_t weighted_random(const float* nums, size_t len, uint64_t seed) {
+  std::mt19937 rng(seed);
   float sum = 0;
   for (size_t i = 0; i < len; i++) {
     sum += nums[i];
@@ -252,12 +253,11 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         if ((request.i_batch < i) || (request.i_batch >= (i + n_tokens))) {
           continue;
         }
-        std::mt19937 rng(request.seed);
 
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
-        softmax(logits, n_vocab, request.temperature);
-        auto next_token = weighted_random(logits, n_vocab, rng);
+        compute_softmax_inplace(logits, n_vocab, request.temperature);
+        auto next_token = weighted_random(logits, n_vocab, request.seed);
         request.n_past += request.tokens.size();
 
         request.tokens.clear();
