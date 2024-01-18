@@ -6,20 +6,12 @@ import {
 import { highlightSelectionMatches } from '@codemirror/search'
 import { EditorState, Extension } from '@codemirror/state'
 import {
-  EditorView,
   highlightSpecialChars,
   lineNumbers,
   rectangularSelection
 } from '@codemirror/view'
 
-const basicTheme = EditorView.baseTheme({
-  '.cm-focused': {
-    outline: 'none !important'
-  }
-})
-
 export const basicSetup: Extension = (() => [
-  basicTheme,
   lineNumbers(),
   highlightSpecialChars(),
   highlightSelectionMatches(),
