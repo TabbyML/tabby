@@ -1,10 +1,9 @@
-use std::path::PathBuf;
+use std::{io::BufRead, path::PathBuf};
 
 use insta::assert_yaml_snapshot;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use serde_json::json;
-use serde_jsonlines::BufReadExt;
 use tokio::{
     process::Command,
     time::{sleep, Duration},
@@ -12,6 +11,16 @@ use tokio::{
 
 #[derive(Deserialize)]
 pub struct ChatCompletionChunk {
+    choices: [ChatCompletionChoice; 1],
+}
+
+#[derive(Deserialize)]
+pub struct ChatCompletionChoice {
+    delta: ChatCompletionDelta,
+}
+
+#[derive(Deserialize)]
+pub struct ChatCompletionDelta {
     content: String,
 }
 
@@ -81,10 +90,14 @@ async fn golden_test(body: serde_json::Value) -> String {
         .await
         .unwrap();
 
-    let lines = bytes.json_lines::<ChatCompletionChunk>();
     let mut actual = "".to_owned();
-    for x in lines {
-        actual += &x.unwrap().content;
+    for x in bytes.lines() {
+        let content = x.unwrap();
+        if content.starts_with("data:") {
+            let content = content.strip_prefix("data:").unwrap();
+            let x: ChatCompletionChunk = serde_json::from_str(content).unwrap();
+            actual += &x.choices[0].delta.content;
+        }
     }
 
     actual
