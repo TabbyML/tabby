@@ -35,6 +35,6 @@ impl EmailService for DbConn {
         for msg in messages {
             server.send(msg)?;
         }
-        todo!()
+        Ok(())
     }
 }
