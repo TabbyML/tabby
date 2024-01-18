@@ -21,7 +21,7 @@ impl HeaderFormat {
 }
 
 pub fn show_info(header: &str, style: HeaderFormat, content: &[&str]) {
-    eprintln!("  {}", style.format(header));
+    eprintln!("\n  {}\n", style.format(header));
     for line in content {
         eprintln!("  {line}");
     }
