@@ -41,7 +41,7 @@ pub async fn chat_completions(
         }
     };
     let s = stream.map(|chunk| match serde_json::to_string(&chunk) {
-        Ok(s) => Ok(format!("data: {s}")),
+        Ok(s) => Ok(format!("data: {s}\n\n")),
         Err(e) => Err(anyhow::Error::from(e)),
     });
     StreamBody::new(s).into_response()
