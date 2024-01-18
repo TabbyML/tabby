@@ -1,10 +1,10 @@
-use std::{path::PathBuf, io::BufRead};
+use std::{io::BufRead, path::PathBuf};
 
 use insta::assert_yaml_snapshot;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use serde_json::json;
-use serde_jsonlines::BufReadExt;
+
 use tokio::{
     process::Command,
     time::{sleep, Duration},
@@ -92,7 +92,7 @@ async fn golden_test(body: serde_json::Value) -> String {
         .unwrap();
 
     let mut actual = "".to_owned();
-    for x in bytes.lines(){
+    for x in bytes.lines() {
         let content = x.unwrap();
         if content.starts_with("data:") {
             let content = content.strip_prefix("data:").unwrap();
