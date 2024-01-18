@@ -101,7 +101,6 @@ size_t weighted_random(float* nums, size_t len) {
     sum += nums[i];
   }
 
-  srand(time(NULL));
   float random = static_cast<float> (rand()) / static_cast<float>(RAND_MAX);
   random *= sum;
   sum = 0;
@@ -126,6 +125,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       batch_ = llama_batch_init(N_CTX * parallelism, 0, 1);
       // warm up
       {
+        srand(time(NULL));
         batch_.n_tokens = 16;
         for (int i = 0; i < batch_.n_tokens; ++i) {
           batch_.token[i] = 0;
