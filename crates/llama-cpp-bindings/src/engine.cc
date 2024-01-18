@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <functional>
+#include <random>
 #include <vector>
 #include <cmath>
 #include <deque>
@@ -97,13 +98,13 @@ float softmax(float* nums, size_t len, float_t temperature) {
   return sum;
 }
 
-size_t weighted_random(float* nums, size_t len) {
+size_t weighted_random(float* nums, size_t len, std::mt19937 rng) {
   float_t sum = 0;
   for (size_t i = 0; i < len; i++) {
     sum += nums[i];
   }
 
-  float random = static_cast<float> (rand()) / static_cast<float>(RAND_MAX);
+  float random = std::uniform_real_distribution<float>(0, sum)(rng);
   random *= sum;
   sum = 0;
   for (size_t i = 0; i < len; i++) {
@@ -249,12 +250,12 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         if ((request.i_batch < i) || (request.i_batch >= (i + n_tokens))) {
           continue;
         }
-        srand(request.seed);
+        std::mt19937 rng(request.seed);
 
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
         softmax(logits, n_vocab, request.temperature);
-        auto next_token = weighted_random(logits, n_vocab);
+        auto next_token = weighted_random(logits, n_vocab, rng);
         request.n_past += request.tokens.size();
 
         request.tokens.clear();
