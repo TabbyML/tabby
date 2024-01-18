@@ -1,5 +1,6 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use lettre::{Message, SmtpTransport, Transport};
 use tabby_db::DbConn;
 
 use crate::schema::email::{EmailService, EmailSetting};
@@ -23,5 +24,17 @@ impl EmailService for DbConn {
 
     async fn delete_email_setting(&self) -> Result<()> {
         self.delete_email_setting().await
+    }
+
+    async fn send_mail(&self, messages: &[Message]) -> Result<()> {
+        let settings = self
+            .read_email_setting()
+            .await?
+            .ok_or_else(|| anyhow!("email settings not specified, cannot send mail"))?;
+        let server = SmtpTransport::relay(&settings.smtp_server)?.build();
+        for msg in messages {
+            server.send(msg)?;
+        }
+        todo!()
     }
 }
