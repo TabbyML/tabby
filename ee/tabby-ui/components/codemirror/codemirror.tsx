@@ -10,14 +10,12 @@ import {
 import { compact } from 'lodash-es'
 
 import { basicSetup } from '@/components/codemirror/basic-setup'
-import { TCodeTag } from '@/app/files/components/source-code-browser'
 
 interface CodeMirrorEditorProps {
   value?: string
   language: LanguageName | string
   readonly?: boolean
   theme?: string
-  tags?: TCodeTag[]
   extensions?: Extension[]
 }
 
@@ -26,7 +24,6 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   theme,
   language,
   readonly = true,
-  tags,
   extensions: propsExtensions
 }) => {
   const ref = React.useRef<HTMLDivElement>(null)

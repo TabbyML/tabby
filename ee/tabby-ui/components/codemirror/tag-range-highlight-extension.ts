@@ -12,7 +12,8 @@ import { TCodeTag } from '@/app/files/components/source-code-browser'
 export const hightlightMark = Decoration.mark({ class: 'cm-range-highlight' })
 
 export const tokenHightlightTheme = EditorView.baseTheme({
-  '.cm-range-highlight': { backgroundColor: '#cceeff44' }
+  '.cm-range-highlight': { backgroundColor: 'hsl(var(--selection))' }
+  // '.dark .cm-range-highlight': { backgroundColor: '#cceeff44' },
 })
 
 function getHightlights(state: EditorState, tags: TCodeTag[]) {

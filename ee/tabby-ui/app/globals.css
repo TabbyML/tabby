@@ -34,6 +34,8 @@
     --ring: 38 31% 25%;
 
     --radius: 0.5rem;
+
+    --selection: 200, 100%, 90%
   }
 
   .dark {
@@ -65,6 +67,8 @@
     --destructive-foreground: 44 3.5% 99.35%;
 
     --ring: 44 35% 87%;
+
+    --selection: 221, 13%, 28%
   }
 }
 

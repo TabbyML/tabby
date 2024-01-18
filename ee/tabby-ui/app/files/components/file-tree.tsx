@@ -90,10 +90,18 @@ type DirectoryTreeNodeProps = {
 }
 type FileTreeNodeProps = {
   node: TFileTreeNode
+  level: number
 }
 
 interface FileTreeNodeViewProps extends React.HTMLAttributes<HTMLDivElement> {
   isActive?: boolean
+  level: number
+}
+
+interface DirectoryTreeNodeViewProps
+  extends React.HTMLAttributes<HTMLDivElement> {
+  isActive?: boolean
+  level: number
 }
 
 type ResolveEntriesResponse = { entries: TFile[] }
@@ -162,26 +170,45 @@ const FileTreeProvider: React.FC<
   )
 }
 
+const GridArea = ({ level }: { level: number }) => {
+  const items = React.useMemo(() => {
+    return new Array(level).fill(1)
+  }, [level])
+
+  return (
+    <div className="flex h-full shrink-0 items-stretch">
+      {items.map((_item, index) => {
+        return (
+          <div
+            key={index}
+            className="group-hover:border-border group-focus-visible:border-border group-focus-within:border-border flex h-8 w-2 border-r border-transparent transition-colors duration-300"
+          />
+        )
+      })}
+    </div>
+  )
+}
+
 /**
  * Display FileTreeNode
  */
 const FileTreeNodeView: React.FC<
   React.PropsWithChildren<FileTreeNodeViewProps>
-> = ({ isActive, children, style: styleFromProps, className, ...props }) => {
+> = ({ isActive, level, children, className, ...props }) => {
   return (
     <div
       className={cn(
-        'flex cursor-pointer flex-nowrap items-center gap-1 overflow-x-hidden whitespace-nowrap rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-stretch rounded-sm',
         isActive && 'bg-accent',
         className
       )}
-      style={{
-        ...styleFromProps,
-        paddingLeft: 'calc(0.5rem * var(--level) + 1.5rem)'
-      }}
       {...props}
     >
-      {children}
+      <GridArea level={level} />
+      <div className="flex flex-nowrap items-center gap-2 truncate whitespace-nowrap py-1">
+        <div className="h-4 w-4 shrink-0"></div>
+        {children}
+      </div>
     </div>
   )
 }
@@ -190,26 +217,25 @@ const FileTreeNodeView: React.FC<
  * Display DirectoryTreeNode
  */
 const DirectoryTreeNodeView: React.FC<
-  React.PropsWithChildren<FileTreeNodeViewProps>
-> = ({ children, style: styleFromProps, className, ...props }) => {
+  React.PropsWithChildren<DirectoryTreeNodeViewProps>
+> = ({ children, level, className, ...props }) => {
   return (
     <div
       className={cn(
-        'flex cursor-pointer flex-nowrap items-center gap-1 truncate whitespace-nowrap rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex h-full cursor-pointer items-stretch rounded-sm',
         className
       )}
-      style={{
-        ...styleFromProps,
-        paddingLeft: 'calc(0.25rem * var(--level) + 0.5rem)'
-      }}
       {...props}
     >
-      {children}
+      <GridArea level={level} />
+      <div className="flex flex-nowrap items-center gap-2 truncate whitespace-nowrap py-1">
+        {children}
+      </div>
     </div>
   )
 }
 
-const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node }) => {
+const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level }) => {
   const { onSelectTreeNode, activePath, repositoryName } =
     React.useContext(FileTreeContext)
   const isFile = node.file.kind === 'file'
@@ -222,7 +248,7 @@ const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node }) => {
   }
 
   return (
-    <FileTreeNodeView onClick={handleSelect} isActive={isActive}>
+    <FileTreeNodeView level={level} onClick={handleSelect} isActive={isActive}>
       <IconFile className="shrink-0" />
       <div className="truncate">{node?.name}</div>
     </FileTreeNodeView>
@@ -254,7 +280,10 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
           ? `/repositories/${repositoryName}/resolve/${basename}`
           : null
       ),
-      fetcher
+      fetcher,
+      {
+        revalidateIfStale: false
+      }
     )
 
   React.useEffect(() => {
@@ -276,11 +305,13 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   const loading = useDebounce(isValidating, 100)
 
   const existingChildren = !!node?.children?.length
-  const style = { '--level': level } as React.CSSProperties
 
   return (
-    <div style={style}>
-      <DirectoryTreeNodeView onClick={e => toggleExpandedKey(basename)}>
+    <>
+      <DirectoryTreeNodeView
+        level={level}
+        onClick={e => toggleExpandedKey(basename)}
+      >
         <div className="shrink-0">
           {loading ? (
             <IconSpinner />
@@ -295,32 +326,28 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
         </div>
         <div className="truncate">{node?.name}</div>
       </DirectoryTreeNodeView>
-      <div>
+      <>
         {expanded && existingChildren ? (
-          <div>
+          <>
             {node.children?.map(child => {
               const key = child.file.basename
               return child.file.kind === 'dir' ? (
                 <DirectoryTreeNode key={key} node={child} level={level + 1} />
               ) : (
-                <FileTreeNode key={key} node={child} />
+                <FileTreeNode key={key} node={child} level={level + 1} />
               )
             })}
-          </div>
+          </>
         ) : null}
-      </div>
-    </div>
+      </>
+    </>
   )
 }
 
 const FileTreeRootRenderer: React.FC = () => {
   const { fileTree } = React.useContext(FileTreeContext)
 
-  return (
-    <div style={{ '--level': 0 } as React.CSSProperties}>
-      <DirectoryTreeNode root level={0} node={fileTree} />
-    </div>
-  )
+  return <DirectoryTreeNode root level={0} node={fileTree} />
 }
 
 const FileTree: React.FC<FileTreeProps> = ({
@@ -441,7 +468,8 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
       onError: () => {
         initDefaultEntries()
       },
-      revalidateOnMount: true
+      revalidateOnMount: true,
+      revalidateIfStale: false
     })
 
   if (!initialized) return <FileTreeSkeleton />
@@ -456,7 +484,7 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
   }
 
   return (
-    <div className={cn(className)} {...props}>
+    <div className={cn('group', className)} {...props}>
       {repositories?.entries.map(entry => {
         return (
           <FileTree

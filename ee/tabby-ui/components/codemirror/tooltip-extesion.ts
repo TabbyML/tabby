@@ -7,8 +7,8 @@ const cursorTooltipBaseTheme = EditorView.baseTheme({
     border: 'none !important'
   },
   '.cm-tooltip-cursor': {
-    backgroundColor: 'hsl(var(--primary))',
-    color: 'hsl(var(--primary-foreground))',
+    backgroundColor: 'hsl(var(--popover))',
+    color: 'hsl(var(--popover-foreground))',
     border: 'none !important',
     padding: '2px 7px',
     borderRadius: '4px'
@@ -28,10 +28,7 @@ export const codeTagHoverTooltip = (tags: TCodeTag[]) => {
             create(view) {
               let dom = document.createElement('div')
               dom.className = 'cm-tooltip-cursor'
-              const nameText = view.state.doc
-                .slice(name_range.start, name_range.end)
-                .toString()
-              dom.textContent = `${syntax_type_name}: ${nameText}`
+              dom.textContent = `${syntax_type_name}`
               return { dom }
             }
           }

@@ -165,17 +165,19 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   return (
     <ResizablePanelGroup direction="horizontal" className={cn(className)}>
-      <ResizablePanel defaultSize={15} minSize={15}>
-        <RepositoriesFileTree
-          className="h-full overflow-y-auto"
-          onSelectTreeNode={onSelectTreeNode}
-          activePath={activePath}
-          defaultBasename={defaultBasename}
-          defaultRepository={defaultRepositoryName}
-        />
+      <ResizablePanel defaultSize={20} minSize={20}>
+        <div className="h-full overflow-hidden py-2 pl-4">
+          <RepositoriesFileTree
+            className="h-full overflow-y-auto overflow-x-hidden pr-4"
+            onSelectTreeNode={onSelectTreeNode}
+            activePath={activePath}
+            defaultBasename={defaultBasename}
+            defaultRepository={defaultRepositoryName}
+          />
+        </div>
       </ResizablePanel>
-      <ResizableHandle className="w-[3px] hover:bg-primary active:bg-primary" />
-      <ResizablePanel defaultSize={85} minSize={30}>
+      <ResizableHandle className="hover:bg-primary active:bg-primary w-1" />
+      <ResizablePanel defaultSize={80} minSize={30}>
         <SourceCodeEditor
           className={`flex h-full ${activePath ? 'block' : 'hidden'}`}
         />
