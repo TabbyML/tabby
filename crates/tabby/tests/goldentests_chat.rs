@@ -32,9 +32,13 @@ lazy_static! {
             .arg("TabbyML/Mistral-7B")
             .arg("--port")
             .arg("9090")
-            .arg("--device")
-            .arg("metal")
             .kill_on_drop(true);
+
+        #[cfg(target_os = "x86_64-apple-darwin")]
+        {
+            cmd.arg("--device").arg("metal");
+        }
+
         tokio::task::spawn(async move {
             cmd.spawn()
                 .expect("Failed to start server")
@@ -103,31 +107,32 @@ async fn golden_test(body: serde_json::Value) -> String {
     actual
 }
 
-async fn assert_golden(body: serde_json::Value) {
-    assert_yaml_snapshot!(golden_test(body).await);
+macro_rules! assert_golden {
+    ($expr:expr) => {
+        assert_yaml_snapshot!(golden_test($expr).await);
+    };
 }
 
+#[cfg(target_os = "x86_64-apple-darwin")]
 #[tokio::test]
 async fn run_chat_golden_tests() {
     wait_for_server().await;
 
-    assert_golden(json!({
+    assert_golden!(json!({
             "messages": [
                 {
                     "role": "user",
                     "content": "How to convert a list of string to numbers in python"
                 }
             ]
-    }))
-    .await;
+    }));
 
-    assert_golden(json!({
+    assert_golden!(json!({
             "messages": [
                 {
                     "role": "user",
                     "content": "How to parse email address with regex"
                 }
             ]
-    }))
-    .await;
+    }));
 }

@@ -16,9 +16,12 @@ lazy_static! {
             .arg("TabbyML/StarCoder-1B")
             .arg("--port")
             .arg("9090")
-            .arg("--device")
-            .arg("metal")
             .kill_on_drop(true);
+
+        #[cfg(target_os = "x86_64-apple-darwin")]
+        {
+            cmd.arg("--device").arg("metal");
+        }
         tokio::task::spawn(async move {
             cmd.spawn()
                 .expect("Failed to start server")
@@ -84,12 +87,15 @@ async fn golden_test(body: serde_json::Value) -> serde_json::Value {
     actual
 }
 
-async fn assert_golden(body: serde_json::Value) {
-    assert_yaml_snapshot!(golden_test(body).await, {
-        ".id" => "test-id"
-    });
+macro_rules! assert_golden {
+    ($expr:expr) => {
+        assert_yaml_snapshot!(golden_test($expr).await, {
+            ".id" => "test-id"
+        });
+    }
 }
 
+#[cfg(target_os = "x86_64-apple-darwin")]
 #[tokio::test]
 async fn run_golden_tests() {
     wait_for_server().await;
@@ -109,4 +115,24 @@ async fn run_golden_tests() {
                 "prefix": "import datetime\n\ndef parse_expenses(expenses_string):\n    \"\"\"Parse the list of expenses and return the list of triples (date, value, currency).\n    Ignore lines starting with #.\n    Parse the date using datetime.\n    Example expenses_string:\n        2016-01-02 -34.01 USD\n        2016-01-03 2.59 DKK\n        2016-01-03 -2.72 EUR\n    \"\"\"\n    for line in expenses_string.split('\\n'):\n        "
             }
     })).await;
+}
+
+#[cfg(not(target_os = "x86_64-apple-darwin"))]
+#[tokio::test]
+async fn run_golden_tests_cpu() {
+    wait_for_server().await;
+
+    assert_golden!(json!({
+            "language": "python",
+            "segments": {
+                "prefix": "def is_prime(n):\n",
+            }
+    }));
+
+    assert_golden!(json!({
+            "language": "python",
+            "segments": {
+                "prefix": "def char_frequencies(str):\n  freqs = {}\n  ",
+            }
+    }));
 }
