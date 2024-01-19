@@ -181,7 +181,7 @@ const GridArea = ({ level }: { level: number }) => {
         return (
           <div
             key={index}
-            className="group-hover/filetree:border-border flex h-8 w-2 border-r border-transparent transition-colors duration-300"
+            className="flex h-8 w-2 border-r border-transparent transition-colors duration-300 group-hover/filetree:border-border"
           />
         )
       })}
@@ -198,7 +198,7 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-stretch rounded-sm',
+        'flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         isActive && 'bg-accent',
         className
       )}
@@ -222,7 +222,7 @@ const DirectoryTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-stretch rounded-sm',
+        'flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         className
       )}
       {...props}
