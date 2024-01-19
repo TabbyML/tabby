@@ -1,9 +1,9 @@
 use std::{io::BufRead, path::PathBuf};
 
-use insta::assert_yaml_snapshot;
+
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use serde_json::json;
+
 use tokio::{
     process::Command,
     time::{sleep, Duration},
