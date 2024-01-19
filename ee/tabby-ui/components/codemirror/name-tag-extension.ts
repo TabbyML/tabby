@@ -12,14 +12,14 @@ import { TCodeTag } from '@/app/files/components/source-code-browser'
 const tagMark = Decoration.mark({ class: 'cm-tag-mark' })
 const tagMarkTheme = EditorView.baseTheme({
   '.cm-tag-mark': {
-    border: '1px solid rgba(var(--tag-blue-border))',
+    border: '1px solid hsla(var(--tag-blue-border))',
     padding: '0px 4px',
     borderRadius: '4px',
-    backgroundColor: 'rgba(var(--tag-blue-bg))',
-    color: 'rgba(var(--tag-blue-text)) !important'
+    backgroundColor: 'hsla(var(--tag-blue-bg))',
+    color: 'hsla(var(--tag-blue-text)) !important'
   },
   '.cm-tag-mark > span': {
-    color: 'rgba(var(--tag-blue-text)) !important'
+    color: 'hsla(var(--tag-blue-text)) !important'
   }
 })
 

@@ -29,7 +29,7 @@ export const codeTagHoverTooltip = (tags: TCodeTag[]) => {
               let dom = document.createElement('div')
               dom.className = 'cm-tooltip-cursor'
               dom.textContent = `${syntax_type_name}`
-              return { dom, offset: {x: 0, y: 4 } }
+              return { dom, offset: { x: 0, y: 4 } }
             }
           }
         }

@@ -3,15 +3,21 @@
 
 @layer components {
   .codemirror-editor {
-    --tag-blue-bg: 239,246,255;
-    --tag-blue-border: 147 197 253;
-    --tag-blue-text: 29, 78, 216;
+    /* --tag-blue-bg: 239 246 255; */
+    --tag-blue-bg: 213.75, 100%, 96.86%;
+    /* --tag-blue-border: 147 197 253; */
+    --tag-blue-border: 211.7, 96.36%, 78.43%;
+    /* --tag-blue-text: 29 78 216; */
+    --tag-blue-text: 224.28, 76.33%, 48.04%;
 
   }
 
   .dark .codemirror-editor {
-    --tag-blue-bg: 96,165,250,0.15;
-    --tag-blue-border: 59,130,246;
-    --tag-blue-text: 96,165,250;
+    /* --tag-blue-bg: 96 165 250 0.15; */
+    --tag-blue-bg: 213.12, 93.9%, 67.84%, 0.15;
+    /* --tag-blue-border: 59 130 246; */
+    --tag-blue-border: 217.22, 91.22%, 59.8%;
+    /* --tag-blue-text: 96 165 250; */
+    --tag-blue-text: 213.12, 93.9%, 67.84%;
   }
 }

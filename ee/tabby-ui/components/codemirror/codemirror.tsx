@@ -10,6 +10,7 @@ import {
 import { compact } from 'lodash-es'
 
 import { basicSetup } from '@/components/codemirror/basic-setup'
+
 import './style.css'
 
 interface CodeMirrorEditorProps {
