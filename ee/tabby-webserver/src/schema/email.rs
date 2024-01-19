@@ -1,6 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use juniper::GraphQLObject;
+use lettre::Message;
 
 #[derive(GraphQLObject)]
 pub struct EmailSetting {
@@ -18,4 +19,6 @@ pub trait EmailService: Send + Sync {
         smtp_server: String,
     ) -> Result<()>;
     async fn delete_email_setting(&self) -> Result<()>;
+    /// Send emails using the saved email settings. Any emails that don't get sent due to errors will remain in the Vec.
+    async fn send_mail(&self, messages: &Message) -> Result<()>;
 }
