@@ -106,15 +106,15 @@ size_t weighted_random(const float* nums, size_t len, uint64_t seed) {
   }
 
   float random = std::uniform_real_distribution<float>(0, sum)(rng);
-  random *= sum;
   sum = 0;
-  for (size_t i = 0; i < len; i++) {
+  size_t i;
+  for (i = 0; i < len; i++) {
     sum += nums[i];
     if (sum >= random) {
       return i;
     }
   }
-  return 0;
+  return i;
 }
 
 template<class T>
