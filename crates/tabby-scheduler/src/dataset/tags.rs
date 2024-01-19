@@ -56,7 +56,7 @@ lazy_static! {
                 TagsConfigurationSync(
                     TagsConfiguration::new(
                         tree_sitter_rust::language(),
-                        tree_sitter_rust::TAGGING_QUERY,
+                        include_str!("../../queries/rust.scm"),
                         "",
                     )
                     .unwrap(),
