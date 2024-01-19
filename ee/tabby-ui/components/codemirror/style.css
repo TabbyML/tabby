@@ -1,0 +1,17 @@
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .codemirror-editor {
+    --tag-blue-bg: 239,246,255;
+    --tag-blue-border: 147 197 253;
+    --tag-blue-text: 29, 78, 216;
+
+  }
+
+  .dark .codemirror-editor {
+    --tag-blue-bg: 96,165,250,0.15;
+    --tag-blue-border: 59,130,246;
+    --tag-blue-text: 96,165,250;
+  }
+}

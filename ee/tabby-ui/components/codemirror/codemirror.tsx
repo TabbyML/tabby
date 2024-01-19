@@ -10,6 +10,7 @@ import {
 import { compact } from 'lodash-es'
 
 import { basicSetup } from '@/components/codemirror/basic-setup'
+import './style.css'
 
 interface CodeMirrorEditorProps {
   value?: string
@@ -121,7 +122,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     resetValue()
   }, [value])
 
-  return <div className="h-full" ref={ref}></div>
+  return <div className="codemirror-editor h-full" ref={ref}></div>
 }
 
 function getLanguage(lang: LanguageName | string, ext?: string) {
