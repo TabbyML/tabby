@@ -24,6 +24,7 @@ pub fn collect(context: &mut TagsContext, language: &str, content: &str) -> Vec<
         .map(|x| Tag {
             range: x.range,
             name_range: x.name_range,
+            utf16_column_range: x.utf16_column_range,
             line_range: x.line_range,
             docs: x.docs,
             is_definition: x.is_definition,

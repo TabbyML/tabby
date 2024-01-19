@@ -52,6 +52,7 @@ impl SourceFile {
 pub struct Tag {
     pub range: Range<usize>,
     pub name_range: Range<usize>,
+    pub utf16_column_range: Range<usize>,
     pub line_range: Range<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub docs: Option<String>,
