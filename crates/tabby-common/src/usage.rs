@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     path::usage_id_file,
-    terminal::{show_info, HeaderFormat},
+    terminal::{HeaderFormat, InfoMessage},
 };
 
 static USAGE_API_ENDPOINT: &str = "https://app.tabbyml.com/api/usage";
@@ -24,15 +24,17 @@ impl UsageTracker {
             let id = Uuid::new_v4().to_string();
             std::fs::write(usage_id_file(), id).expect("Failed to create usage id");
 
-            show_info("TELEMETRY", HeaderFormat::BoldBlue, &[
-                "As an open source project, we collect usage statistics to inform development priorities. For more",
-                "information, read https://tabby.tabbyml.com/docs/configuration#usage-collection",
-                "",
-                "We will not see or any code in your development process."
-            ]);
-            show_info("Welcome to Tabby!", HeaderFormat::BoldWhite, &[
-                "If you have any questions or would like to engage with the Tabby team, please join us on Slack",
-                "(https://links.tabbyml.com/join-slack-terminal)."
+            InfoMessage::print_messages(&[
+                InfoMessage::new("TELEMETRY", HeaderFormat::BoldBlue, &[
+                    "As an open source project, we collect usage statistics to inform development priorities. For more",
+                    "information, read https://tabby.tabbyml.com/docs/configuration#usage-collection",
+                    "",
+                    "We will not see or any code in your development process."
+                ]),
+                InfoMessage::new("Welcome to Tabby!", HeaderFormat::BoldWhite, &[
+                    "If you have any questions or would like to engage with the Tabby team, please join us on Slack",
+                    "(https://links.tabbyml.com/join-slack-terminal)."
+                ])
             ]);
         }
 

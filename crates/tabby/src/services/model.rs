@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf, sync::Arc};
 use serde::Deserialize;
 use tabby_common::{
     registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
-    terminal::{show_info, HeaderFormat},
+    terminal::{HeaderFormat, InfoMessage},
 };
 use tabby_download::download_model;
 use tabby_inference::TextGeneration;
@@ -69,7 +69,7 @@ impl PromptInfo {
 
 fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> impl TextGeneration {
     if !device.ggml_use_gpu() {
-        show_info(
+        InfoMessage::new(
             "CPU Device",
             HeaderFormat::BoldBlue,
             &[

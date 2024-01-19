@@ -20,10 +20,42 @@ impl HeaderFormat {
     }
 }
 
-pub fn show_info(header: &str, style: HeaderFormat, content: &[&str]) {
-    eprintln!("\n  {}\n", style.format(header));
-    for line in content {
-        eprintln!("  {line}");
+pub struct InfoMessage<'a> {
+    header: &'a str,
+    header_format: HeaderFormat,
+    lines: &'a [&'a str],
+}
+
+impl<'a> InfoMessage<'a> {
+    pub fn new(header: &'a str, header_format: HeaderFormat, lines: &'a [&'a str]) -> Self {
+        Self {
+            header,
+            header_format,
+            lines,
+        }
     }
-    eprintln!();
+
+    pub fn print(self) {
+        eprintln!("\n{}\n", self.to_string());
+    }
+
+    pub fn print_messages(messages: &[Self]) {
+        let messages: Vec<String> = messages.iter().map(|m| m.to_string()).collect();
+        eprintln!("\n{}\n", messages.join("\n"));
+    }
+}
+
+impl<'a> ToString for InfoMessage<'a> {
+    fn to_string(&self) -> String {
+        let mut str = String::new();
+        str.push_str(&format!("  {}\n\n", self.header_format.format(self.header)));
+        for (i, line) in self.lines.iter().enumerate() {
+            str.push_str("  ");
+            str.push_str(line);
+            if i != self.lines.len() + 1 {
+                str.push('\n');
+            }
+        }
+        str
+    }
 }
