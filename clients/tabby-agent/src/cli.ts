@@ -1,4 +1,4 @@
-#!/bin/env node
+#!/usr/bin/env node
 
 import { TabbyAgent } from "./TabbyAgent";
 import { JsonLineServer } from "./JsonLineServer";

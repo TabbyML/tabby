@@ -1,4 +1,4 @@
-#!/bin/env node
+#!/usr/bin/env node
 'use strict';
 
 var events = require('events');
