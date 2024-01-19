@@ -65,7 +65,7 @@ const highlightTagExtension = (tags: TCodeTag[]) => {
       triggerType: 'cursor' | 'hover' | undefined
       constructor(view: EditorView) {
         this.view = view
-        this.highlight = Decoration.none
+        this.highlight = getHightlights(view.state, tags)
         this.timeout = -1
         this.triggerType = 'hover'
         // todo add hover event

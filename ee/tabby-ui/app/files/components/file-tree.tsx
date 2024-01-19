@@ -181,7 +181,7 @@ const GridArea = ({ level }: { level: number }) => {
         return (
           <div
             key={index}
-            className="flex h-8 w-2 border-r border-transparent transition-colors duration-300 group-focus-within:border-border group-hover:border-border group-focus-visible:border-border"
+            className="group-hover/filetree:border-border flex h-8 w-2 border-r border-transparent transition-colors duration-300"
           />
         )
       })}
@@ -198,7 +198,7 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'hover:bg-accent focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-stretch rounded-sm',
         isActive && 'bg-accent',
         className
       )}
@@ -268,6 +268,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     toggleExpandedKey
   } = React.useContext(FileTreeContext)
 
+  const initialized = React.useRef(false)
   const basename = root ? '' : node.file.basename
   const expanded = expandedKeys.has(basename)
   const shouldFetchChildren =
@@ -287,6 +288,8 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     )
 
   React.useEffect(() => {
+    if (initialized.current) return
+
     if (data?.entries?.length) {
       const patchMap: TFileMap = data.entries.reduce((sum, cur) => {
         return {
@@ -299,6 +302,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
       }, {} as TFileMap)
 
       updateFileMap(patchMap)
+      initialized.current = true
     }
   }, [data])
 
@@ -313,7 +317,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
         onClick={e => toggleExpandedKey(basename)}
       >
         <div className="shrink-0">
-          {loading ? (
+          {loading && !initialized.current ? (
             <IconSpinner />
           ) : expanded ? (
             <IconChevronDown />
@@ -405,18 +409,19 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
 }) => {
   const { data } = useSession()
   const accessToken = data?.accessToken
-  const [initialized, setInitialized] = React.useState(false)
+  const initialized = React.useRef(false)
+  const entriesLoaded = React.useRef(false)
   const [defaultEntries, setDefaultEntries] = React.useState<TFile[]>()
   const [defaultExpandedKeys, setDefaultExpandedKeys] =
     React.useState<string[]>()
 
-  const fetchDefaultEntries = async (data?: ResolveEntriesResponse) => {
+  const fetchDefaultEntries = async (data?: TFile[]) => {
     try {
       if (!accessToken) return undefined
       if (!defaultRepository || !defaultBasename) return undefined
       // match default repository
       const repositoryIdx = findIndex(
-        data?.entries,
+        data,
         entry => entry.basename === defaultRepository
       )
       if (repositoryIdx < 0) return undefined
@@ -442,7 +447,7 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
     }
   }
 
-  const initDefaultEntries = async (data?: ResolveEntriesResponse) => {
+  const initDefaultEntries = async (data?: TFile[]) => {
     try {
       if (defaultBasename && defaultRepository && data) {
         const defaultEntriesRes = await fetchDefaultEntries(data)
@@ -455,24 +460,29 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
       console.error(e)
     }
 
-    setTimeout(() => {
-      setInitialized(true)
-    })
+    initialized.current = true
   }
 
   const { data: repositories, error }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(useAuthenticatedApi(`/repositories/resolve/`), fetcher, {
-      onSuccess: (data: ResolveEntriesResponse) => {
-        initDefaultEntries(data)
-      },
-      onError: () => {
-        initDefaultEntries()
-      },
       revalidateOnMount: true,
-      revalidateIfStale: false
+      revalidateIfStale: false,
+      keepPreviousData: true,
+      onSuccess() {
+        entriesLoaded.current = true
+      },
+      onError() {
+        entriesLoaded.current = true
+      }
     })
 
-  if (!initialized) return <FileTreeSkeleton />
+  React.useEffect(() => {
+    if (initialized.current || !entriesLoaded.current) return
+
+    initDefaultEntries(repositories?.entries)
+  }, [repositories])
+
+  if (!initialized.current) return <FileTreeSkeleton />
 
   if (error)
     return (
@@ -484,19 +494,19 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
   }
 
   return (
-    <div className={cn('group', className)} {...props}>
-      {repositories?.entries.map(entry => {
+    <div className={cn('group/filetree', className)} {...props}>
+      {repositories?.entries?.map(repo => {
         return (
           <FileTree
-            key={entry.basename}
-            repositoryName={entry.basename}
+            key={repo.basename}
+            repositoryName={repo.basename}
             activePath={activePath}
             onSelectTreeNode={onSelectTreeNode}
             defaultEntries={
-              entry.basename === defaultRepository ? defaultEntries : undefined
+              repo.basename === defaultRepository ? defaultEntries : undefined
             }
             defaultExpandedKeys={
-              entry.basename === defaultRepository
+              repo.basename === defaultRepository
                 ? defaultExpandedKeys
                 : undefined
             }

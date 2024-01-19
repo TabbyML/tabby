@@ -36,7 +36,7 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
           padding: '0px 16px'
         },
         '.cm-gutters': {
-          marginLeft: '32px',
+          paddingLeft: '32px',
           backgroundColor: 'transparent',
           borderRight: 'none'
         }

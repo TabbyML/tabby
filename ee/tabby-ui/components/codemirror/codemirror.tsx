@@ -38,13 +38,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       height,
       width,
       outline: 'none !important',
-      background: 'transparent'
+      background: 'hsl(var(--background))'
     },
     '& .cm-scroller': {
       height: '100% !important'
     },
     '& .cm-gutters': {
-      background: 'transparent'
+      background: 'hsl(var(--background))'
     }
   })
   const extensions = [

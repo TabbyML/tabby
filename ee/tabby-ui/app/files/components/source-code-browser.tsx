@@ -189,7 +189,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
   return (
     <SourceCodeBrowserContextProvider>
-      <SourceCodeBrowserRenderer {...props} />
+      <SourceCodeBrowserRenderer className="source-code-browser" {...props} />
     </SourceCodeBrowserContextProvider>
   )
 }
