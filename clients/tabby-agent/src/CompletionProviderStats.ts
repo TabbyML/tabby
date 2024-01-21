@@ -193,7 +193,7 @@ export class CompletionProviderStats {
 
     if (
       latencies
-        .slice(-Math.max(this.config.windowSize, config.healthy.windowSize))
+        .slice(-Math.min(this.config.windowSize, config.healthy.windowSize))
         .every((latency) => latency < config.healthy.latency)
     ) {
       return "healthy";
