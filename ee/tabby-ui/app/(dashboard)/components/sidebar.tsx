@@ -7,7 +7,6 @@ import { cva } from 'class-variance-authority'
 import { useSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
 import { IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
-import UserPanel from '@/components/user-panel'
 
 export interface SidebarProps {
   children: React.ReactNode
@@ -26,6 +25,11 @@ export default function Sidebar({ children, className }: SidebarProps) {
           <div className="h-[12px]"></div>
           <div className="flex-1">
             <nav className="grid items-start gap-2 px-4 text-sm font-medium">
+              <Link href="/" className="pb-4">
+                <span className="hidden select-none px-2 font-logo text-xl font-semibold sm:inline-block">
+                  Tabby
+                </span>
+              </Link>
               <SidebarButton href="/">
                 <IconHome /> Home
               </SidebarButton>
@@ -40,10 +44,6 @@ export default function Sidebar({ children, className }: SidebarProps) {
                 </>
               )}
             </nav>
-          </div>
-
-          <div className="mt-auto">
-            <UserPanel />
           </div>
         </div>
       </div>
