@@ -30,7 +30,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Java](https://www.java.com/)
 * [Kotlin](https://www.kotlinlang.org/)
 * [C/C++](https://cplusplus.com/), since v0.8.0
-* [PHP](https://www.php.net/): Since v0.9.0
+* [PHP](https://www.php.net/): Since v0.8.0
 
 ## Languages Missing Certain Support
 
