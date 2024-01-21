@@ -2,7 +2,7 @@ use std::{io::BufRead, path::PathBuf};
 
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use serde_json::json;
+
 use tokio::{
     process::Command,
     time::{sleep, Duration},
@@ -32,7 +32,6 @@ lazy_static! {
             .arg("--port")
             .arg("9090")
             .kill_on_drop(true);
-
 
         if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
             cmd.arg("--device").arg("metal");
