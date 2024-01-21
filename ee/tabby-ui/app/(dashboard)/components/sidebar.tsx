@@ -11,6 +11,13 @@ import { useSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
 import { IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { Button } from '@/components/ui/button'
+
 export interface SidebarProps {
   children: React.ReactNode
   className?: string
@@ -50,9 +57,16 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   <SidebarButton href="/cluster">
                     <IconNetwork /> Cluster Information
                   </SidebarButton>
-                  <SidebarButton href="/team">
-                    <IconUsers /> Team Management
-                  </SidebarButton>
+                  <Collapsible>
+                    <CollapsibleTrigger className='w-full'>
+                      <span className={linkVariants()}><IconUsers /> Workspace</span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className='pt-2'>
+                      <SidebarButton href="/team">
+                        <span className='w-4' /> Team Management
+                      </SidebarButton>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </>
               )}
             </nav>
