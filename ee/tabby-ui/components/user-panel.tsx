@@ -1,5 +1,4 @@
 import React from 'react'
-import Link from 'next/link'
 import { has } from 'lodash-es'
 import NiceAvatar, { genConfig } from 'react-nice-avatar'
 
@@ -41,21 +40,30 @@ export default function UserPanel() {
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isChatEnabled && (
-          <DropdownMenuItem onClick={() => window.open("/playground")} className='cursor-pointer'>
+          <DropdownMenuItem
+            onClick={() => window.open('/playground')}
+            className="cursor-pointer"
+          >
             <IconChat />
             <span className="ml-2">Chat Playground</span>
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={() => window.open("/files")} className='cursor-pointer'>
+        <DropdownMenuItem
+          onClick={() => window.open('/files')}
+          className="cursor-pointer"
+        >
           <IconCode />
           <span className="ml-2">Code Browser</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => window.open("/api")} className='cursor-pointer'>
+        <DropdownMenuItem
+          onClick={() => window.open('/api')}
+          className="cursor-pointer"
+        >
           <IconBackpack />
           <span className="ml-2">API Docs</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut} className='cursor-pointer'>
+        <DropdownMenuItem onClick={signOut} className="cursor-pointer">
           <IconLogout />
           <span className="ml-2">Logout</span>
         </DropdownMenuItem>
