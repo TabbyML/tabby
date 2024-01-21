@@ -1,16 +1,15 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import logoDarkUrl from '@/assets/logo-dark.png'
+import logoUrl from '@/assets/logo.png'
 import { cva } from 'class-variance-authority'
 
 import { useSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
 import { IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
-
-import logoUrl from '@/assets/logo.png';
-import logoDarkUrl from '@/assets/logo-dark.png';
-import Image from 'next/image'
 
 export interface SidebarProps {
   children: React.ReactNode
@@ -29,9 +28,19 @@ export default function Sidebar({ children, className }: SidebarProps) {
           <div className="h-[12px]"></div>
           <div className="flex-1">
             <nav className="grid items-start gap-2 px-4 text-sm font-medium">
-              <Link href="/" className="pb-4 flex justify-center">
-                <Image src={logoUrl} alt='logo' width={128} className='dark:hidden' />
-                <Image src={logoDarkUrl} alt='logo' width={96} className='hidden dark:block' />
+              <Link href="/" className="flex justify-center pb-4">
+                <Image
+                  src={logoUrl}
+                  alt="logo"
+                  width={128}
+                  className="dark:hidden"
+                />
+                <Image
+                  src={logoDarkUrl}
+                  alt="logo"
+                  width={96}
+                  className="hidden dark:block"
+                />
               </Link>
               <SidebarButton href="/">
                 <IconHome /> Home
