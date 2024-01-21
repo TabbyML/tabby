@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use insta::assert_yaml_snapshot;
 use lazy_static::lazy_static;
 use serde_json::json;
 use tokio::{
@@ -18,10 +17,10 @@ lazy_static! {
             .arg("9090")
             .kill_on_drop(true);
 
-        #[cfg(target_os = "x86_64-apple-darwin")]
-        {
+        if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
             cmd.arg("--device").arg("metal");
         }
+
         tokio::task::spawn(async move {
             cmd.spawn()
                 .expect("Failed to start server")
@@ -89,35 +88,34 @@ async fn golden_test(body: serde_json::Value) -> serde_json::Value {
 
 macro_rules! assert_golden {
     ($expr:expr) => {
-        assert_yaml_snapshot!(golden_test($expr).await, {
+        insta::assert_yaml_snapshot!(golden_test($expr).await, {
             ".id" => "test-id"
         });
     }
 }
 
-#[cfg(target_os = "x86_64-apple-darwin")]
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[tokio::test]
 async fn run_golden_tests() {
     wait_for_server().await;
 
-    assert_golden(json!({
+    assert_golden!(json!({
             "language": "python",
             "segments": {
                 "prefix": "def fib(n):\n    ",
                 "suffix": "\n        return fib(n - 1) + fib(n - 2)"
             }
-    }))
-    .await;
+    }));
 
-    assert_golden(json!({
+    assert_golden!(json!({
             "language": "python",
             "segments": {
                 "prefix": "import datetime\n\ndef parse_expenses(expenses_string):\n    \"\"\"Parse the list of expenses and return the list of triples (date, value, currency).\n    Ignore lines starting with #.\n    Parse the date using datetime.\n    Example expenses_string:\n        2016-01-02 -34.01 USD\n        2016-01-03 2.59 DKK\n        2016-01-03 -2.72 EUR\n    \"\"\"\n    for line in expenses_string.split('\\n'):\n        "
             }
-    })).await;
+    }));
 }
 
-#[cfg(not(target_os = "x86_64-apple-darwin"))]
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 #[tokio::test]
 async fn run_golden_tests_cpu() {
     wait_for_server().await;

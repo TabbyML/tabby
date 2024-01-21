@@ -2,6 +2,7 @@ use std::{io::BufRead, path::PathBuf};
 
 use lazy_static::lazy_static;
 use serde::Deserialize;
+use serde_json::json;
 use tokio::{
     process::Command,
     time::{sleep, Duration},
@@ -32,8 +33,8 @@ lazy_static! {
             .arg("9090")
             .kill_on_drop(true);
 
-        #[cfg(target_os = "x86_64-apple-darwin")]
-        {
+
+        if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
             cmd.arg("--device").arg("metal");
         }
 
@@ -107,11 +108,11 @@ async fn golden_test(body: serde_json::Value) -> String {
 
 macro_rules! assert_golden {
     ($expr:expr) => {
-        assert_yaml_snapshot!(golden_test($expr).await);
+        insta::assert_yaml_snapshot!(golden_test($expr).await);
     };
 }
 
-#[cfg(target_os = "x86_64-apple-darwin")]
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[tokio::test]
 async fn run_chat_golden_tests() {
     wait_for_server().await;
