@@ -1,7 +1,5 @@
 import { Metadata } from 'next'
 
-import { Header } from '@/components/header'
-
 import Chats from './components/chats'
 
 export const metadata: Metadata = {
@@ -10,11 +8,8 @@ export const metadata: Metadata = {
 
 export default function IndexPage() {
   return (
-    <>
-      <Header />
-      <main className="flex flex-1 flex-col">
-        <Chats />
-      </main>
-    </>
+    <main className="flex flex-1 flex-col">
+      <Chats />
+    </main>
   )
 }
