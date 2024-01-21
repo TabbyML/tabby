@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-use tabby_common::Tag;
+use tabby_common::{Point, Tag};
 use tree_sitter_tags::{TagsConfiguration, TagsContext};
 
 pub fn collect(context: &mut TagsContext, language: &str, content: &str) -> Vec<Tag> {
@@ -29,6 +29,8 @@ pub fn collect(context: &mut TagsContext, language: &str, content: &str) -> Vec<
             docs: x.docs,
             is_definition: x.is_definition,
             syntax_type_name: config.0.syntax_type_name(x.syntax_type_id).to_owned(),
+            span: Point::new(x.span.start.row, x.span.start.column)
+                ..Point::new(x.span.end.row, x.span.end.column),
         })
         .collect()
 }
