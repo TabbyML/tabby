@@ -9,7 +9,7 @@ import { cva } from 'class-variance-authority'
 
 import { useSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
-import { IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
+import { IconGear, IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
 
 import {
   Collapsible,
@@ -57,11 +57,17 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   <SidebarButton href="/cluster">
                     <IconNetwork /> Cluster Information
                   </SidebarButton>
-                  <Collapsible>
+                  <Collapsible defaultOpen={true}>
                     <CollapsibleTrigger className='w-full'>
-                      <span className={linkVariants()}><IconUsers /> Workspace</span>
+                      <span className={linkVariants()}><IconGear />Settings</span>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className='pt-2'>
+                    <CollapsibleContent className='py-2 flex flex-col gap-2'>
+                      <SidebarButton href="/general">
+                        <span className='w-4' /> General
+                      </SidebarButton>
+                      <SidebarButton href="/general">
+                        <span className='w-4' /> Mail Delivery
+                      </SidebarButton>
                       <SidebarButton href="/team">
                         <span className='w-4' /> Team Management
                       </SidebarButton>
