@@ -119,6 +119,20 @@ mod tests {
                       "start": 296,
                       "end": 317
                     },
+                    "utf16_column_range": {
+                      "start": 6,
+                      "end": 27
+                    },
+                    "span": {
+                      "start": {
+                        "row": 17,
+                        "column": 6
+                      },
+                      "end": {
+                        "row": 17,
+                        "column": 27
+                      }
+                    },
                     "line_range": {
                       "start": 290,
                       "end": 318
@@ -134,6 +148,20 @@ mod tests {
                     "name_range": {
                       "start": 957,
                       "end": 965
+                    },
+                    "utf16_column_range": {
+                      "start": 8,
+                      "end": 16
+                    },
+                    "span": {
+                      "start": {
+                        "row": 29,
+                        "column": 8
+                      },
+                      "end": {
+                        "row": 29,
+                        "column": 16
+                      }
                     },
                     "line_range": {
                       "start": 953,

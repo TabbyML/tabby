@@ -32,5 +32,5 @@ cargo-lock = { version = "9.0.0", features = ["dependency-tree"] }
 temp_testdir = "0.2"
 tabby-common = { path = "../tabby-common", features = [ "testutils" ] }
 tracing-test = "0.1"
-tokio = { workspace = true, features = ["rt"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
 serde_json = { workspace = true }
