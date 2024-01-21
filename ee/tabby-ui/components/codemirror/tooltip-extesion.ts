@@ -2,6 +2,8 @@ import { EditorView, hoverTooltip } from '@codemirror/view'
 
 import { TCodeTag } from '@/app/files/components/source-code-browser'
 
+import { getRangeOffset } from './utils'
+
 const cursorTooltipBaseTheme = EditorView.baseTheme({
   '.cm-tooltip': {
     border: 'none !important'
@@ -20,7 +22,11 @@ export const codeTagHoverTooltip = (tags: TCodeTag[]) => {
     hoverTooltip((view, pos, side) => {
       for (const tag of tags) {
         const { name_range, syntax_type_name } = tag
-        if (pos >= name_range.start && pos <= name_range.end) {
+        const offset = getRangeOffset(view.state, tag)
+        if (
+          pos >= name_range.start + offset &&
+          pos <= name_range.end + offset
+        ) {
           return {
             pos: name_range.start,
             end: name_range.end,

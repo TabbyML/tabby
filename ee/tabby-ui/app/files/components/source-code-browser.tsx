@@ -29,6 +29,7 @@ type TCodeTag = {
   line_range: TRange
   is_definition: boolean
   syntax_type_name: string
+  utf16_column_range: TRange
 }
 type TRange = { start: number; end: number }
 type TFileMeta = {
