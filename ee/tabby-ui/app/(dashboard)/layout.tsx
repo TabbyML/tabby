@@ -21,7 +21,7 @@ export default function RootLayout({ children }: DashboardLayoutProps) {
       <main className="flex flex-1 flex-col">
         <Sidebar className="flex-1">
           <Header />
-          {children}
+          <div className="p-4">{children}</div>
         </Sidebar>
       </main>
     </>
