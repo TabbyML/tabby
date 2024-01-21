@@ -29,8 +29,16 @@ function underlineRange(view: EditorView, tags: TCodeTag[] = []) {
 
   let widgets: Range<Decoration>[] = []
   for (const tag of tags) {
-    const { name_range } = tag
-    widgets.push(tagMark.range(name_range.start, name_range.end))
+    const { name_range, utf16_column_range } = tag
+    try {
+      const line = doc.lineAt(name_range.start)
+      const startPos = line.from + utf16_column_range.start
+      const endPos = line.from + utf16_column_range.end
+      widgets.push(tagMark.range(startPos, endPos))
+    } catch (e) {
+      console.log(name_range.end)
+      console.error(e)
+    }
   }
   return Decoration.set(widgets)
 }
