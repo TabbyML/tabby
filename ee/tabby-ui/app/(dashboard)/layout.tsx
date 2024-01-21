@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import { Header } from '@/components/header'
 
 import Sidebar from './components/sidebar'
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export const metadata: Metadata = {
   title: {
@@ -20,8 +21,10 @@ export default function RootLayout({ children }: DashboardLayoutProps) {
     <>
       <main className="flex flex-1 flex-col">
         <Sidebar className="flex-1">
-          <Header />
-          <div className="p-4">{children}</div>
+          <ScrollArea className='max-h-[100vh]'>
+            <Header />
+            <div className="p-4">{children}</div>
+          </ScrollArea>
         </Sidebar>
       </main>
     </>
