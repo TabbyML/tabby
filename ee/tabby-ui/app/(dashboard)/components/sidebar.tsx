@@ -1,7 +1,10 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import logoDarkUrl from '@/assets/logo-dark.png'
+import logoUrl from '@/assets/logo.png'
 import { cva } from 'class-variance-authority'
 
 import { useSession } from '@/lib/tabby/auth'
@@ -25,10 +28,19 @@ export default function Sidebar({ children, className }: SidebarProps) {
           <div className="h-[12px]"></div>
           <div className="flex-1">
             <nav className="grid items-start gap-2 px-4 text-sm font-medium">
-              <Link href="/" className="pb-4">
-                <span className="hidden select-none px-2 font-logo text-xl font-semibold sm:inline-block">
-                  Tabby
-                </span>
+              <Link href="/" className="flex justify-center pb-4">
+                <Image
+                  src={logoUrl}
+                  alt="logo"
+                  width={128}
+                  className="dark:hidden"
+                />
+                <Image
+                  src={logoDarkUrl}
+                  alt="logo"
+                  width={96}
+                  className="hidden dark:block"
+                />
               </Link>
               <SidebarButton href="/">
                 <IconHome /> Home
