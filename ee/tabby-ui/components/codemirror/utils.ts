@@ -1,22 +1,18 @@
 import { EditorState } from '@codemirror/state'
 
-import { TCodeTag } from '@/app/files/components/source-code-browser'
+import { TCodeTag, TRange } from '@/app/files/components/source-code-browser'
 
 /**
- * resolve the range offset caused by emoji encoding
+ * ranges encoded in tag are UTF-8 based, converting them into UTF-16 based range.
  */
-function getRangeOffset(state: EditorState, tag: TCodeTag): number {
-  if (!tag) return 0
+function getUTF16NameRange(state: EditorState, tag: TCodeTag): TRange {
+  const doc = state.doc
+  const { span, utf16_column_range } = tag
 
-  const { utf16_column_range, name_range } = tag
-
-  try {
-    const line = state.doc.lineAt(name_range.start)
-    const column = name_range.start - line.from
-    return utf16_column_range.start - column
-  } catch (e) {
-    return 0
-  }
+  const line = doc.line(span.start.row + 1)
+  const start = line.from + utf16_column_range.start
+  const end = line.from + utf16_column_range.end
+  return { start, end }
 }
 
-export { getRangeOffset }
+export { getUTF16NameRange }

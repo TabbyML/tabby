@@ -9,7 +9,7 @@ import {
 
 import { TCodeTag } from '@/app/files/components/source-code-browser'
 
-import { getRangeOffset } from './utils'
+import { getUTF16NameRange } from './utils'
 
 export const hightlightMark = Decoration.mark({ class: 'cm-range-highlight' })
 
@@ -24,11 +24,9 @@ function getHightlights(state: EditorState, tags: TCodeTag[]) {
   const ranges = state.selection.ranges
   loop: for (const range of ranges) {
     for (const tag of tags) {
-      const offset = getRangeOffset(state, tag)
-      if (
-        range.from >= tag.name_range.start + offset &&
-        range.to <= tag.name_range.end + offset
-      ) {
+      const name_range = getUTF16NameRange(state, tag)
+      const offset = name_range.start - tag.name_range.start
+      if (range.from >= name_range.start && range.to <= name_range.end) {
         highlightRange = {
           from: tag.range.start + offset,
           to: tag.range.end + offset

@@ -2,7 +2,7 @@ import { EditorView, hoverTooltip } from '@codemirror/view'
 
 import { TCodeTag } from '@/app/files/components/source-code-browser'
 
-import { getRangeOffset } from './utils'
+import { getUTF16NameRange } from './utils'
 
 const cursorTooltipBaseTheme = EditorView.baseTheme({
   '.cm-tooltip': {
@@ -21,21 +21,16 @@ export const codeTagHoverTooltip = (tags: TCodeTag[]) => {
   return [
     hoverTooltip((view, pos, side) => {
       for (const tag of tags) {
-        const { name_range, syntax_type_name } = tag
-        const offset = getRangeOffset(view.state, tag)
-        if (
-          pos >= name_range.start + offset &&
-          pos <= name_range.end + offset
-        ) {
+        const name_range = getUTF16NameRange(view.state, tag)
+        if (pos >= name_range.start && pos <= name_range.end) {
           return {
-            pos: name_range.start,
-            end: name_range.end,
+            pos,
             above: true,
             create(view) {
               let dom = document.createElement('div')
               dom.className = 'cm-tooltip-cursor'
-              dom.textContent = `${syntax_type_name}`
-              return { dom, offset: { x: 0, y: 4 } }
+              dom.textContent = `${tag.syntax_type_name}`
+              return { dom, offset: { x: -20, y: 4 } }
             }
           }
         }
