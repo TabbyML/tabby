@@ -12,7 +12,7 @@ export function calculateReplaceRangeByBracketStack(
     return choice;
   }
   const completionText = choice.text.slice(context.position - choice.replaceRange.start);
-  const unpaired = findUnpairedAutoClosingChars(completionText);
+  const unpaired = findUnpairedAutoClosingChars(completionText).join("");
   if (isBlank(unpaired)) {
     return choice;
   }
