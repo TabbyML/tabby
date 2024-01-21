@@ -1,5 +1,4 @@
 import React from 'react'
-import Link from 'next/link'
 import { has } from 'lodash-es'
 import NiceAvatar, { genConfig } from 'react-nice-avatar'
 
@@ -37,47 +36,36 @@ export default function UserPanel() {
           <NiceAvatar className="w-full" {...config} />
         </span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent collisionPadding={{ right: 16 }}>
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isChatEnabled && (
-          <DropdownMenuItem>
-            <Link
-              target="_blank"
-              href="/playground"
-              className="flex w-full items-center"
-            >
-              <IconChat />
-              <span className="ml-2">Chat Playground</span>
-            </Link>
+          <DropdownMenuItem
+            onClick={() => window.open('/playground')}
+            className="cursor-pointer"
+          >
+            <IconChat />
+            <span className="ml-2">Chat Playground</span>
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem>
-          <Link
-            target="_blank"
-            href="/files"
-            className="flex w-full items-center"
-          >
-            <IconCode />
-            <span className="ml-2">Code Browser</span>
-          </Link>
+        <DropdownMenuItem
+          onClick={() => window.open('/files')}
+          className="cursor-pointer"
+        >
+          <IconCode />
+          <span className="ml-2">Code Browser</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Link
-            target="_blank"
-            href="/api"
-            className="flex w-full items-center"
-          >
-            <IconBackpack />
-            <span className="ml-2">API Docs</span>
-          </Link>
+        <DropdownMenuItem
+          onClick={() => window.open('/api')}
+          className="cursor-pointer"
+        >
+          <IconBackpack />
+          <span className="ml-2">API Docs</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut}>
-          <span className="flex items-center">
-            <IconLogout />
-            <span className="ml-2">Logout</span>
-          </span>
+        <DropdownMenuItem onClick={signOut} className="cursor-pointer">
+          <IconLogout />
+          <span className="ml-2">Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
