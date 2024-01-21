@@ -13,7 +13,7 @@ function getRangeOffset(state: EditorState, tag: TCodeTag): number {
   try {
     const line = state.doc.lineAt(name_range.start)
     const column = name_range.start - line.from
-    return  utf16_column_range.start - column
+    return utf16_column_range.start - column
   } catch (e) {
     return 0
   }

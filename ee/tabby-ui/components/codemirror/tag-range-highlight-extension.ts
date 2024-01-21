@@ -8,6 +8,7 @@ import {
 } from '@codemirror/view'
 
 import { TCodeTag } from '@/app/files/components/source-code-browser'
+
 import { getRangeOffset } from './utils'
 
 export const hightlightMark = Decoration.mark({ class: 'cm-range-highlight' })
@@ -28,7 +29,10 @@ function getHightlights(state: EditorState, tags: TCodeTag[]) {
         range.from >= tag.name_range.start + offset &&
         range.to <= tag.name_range.end + offset
       ) {
-        highlightRange = { from: tag.range.start + offset, to: tag.range.end + offset }
+        highlightRange = {
+          from: tag.range.start + offset,
+          to: tag.range.end + offset
+        }
         break loop
       }
     }
