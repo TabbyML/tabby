@@ -27,12 +27,6 @@ const configTomlTemplate = `## Tabby agent configuration file
 # Header1 = "Value1" # list your custom headers here
 # Header2 = "Value2" # values can be strings, numbers or booleans
 
-## Completion
-## (Since 1.1.0) You can set the completion request timeout here.
-## Note that there is also a timeout config at the server side.
-# [completion]
-# timeout = 4000 # 4s
-
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
 # [logs]
@@ -65,7 +59,6 @@ const typeCheckSchema: Record<string, string> = {
   "completion.debounce": "object",
   "completion.debounce.mode": "string",
   "completion.debounce.interval": "number",
-  "completion.timeout": "number",
   postprocess: "object",
   "postprocess.limitScopeByIndentation": "object",
   "postprocess.limitScopeByIndentation.experimentalKeepBlockScopeWhenCompletingLine": "boolean",

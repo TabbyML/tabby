@@ -110,12 +110,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     }
 
-    if (oldConfig.completion.timeout !== this.config.completion.timeout) {
-      this.completionProviderStats.updateConfigByRequestTimeout(this.config.completion.timeout);
-      this.popIssue("slowCompletionResponseTime");
-      this.popIssue("highCompletionTimeoutRate");
-    }
-
     const event: AgentEvent = { event: "configUpdated", config: this.config };
     this.logger.debug({ event }, "Config updated");
     super.emit("configUpdated", event);
@@ -496,10 +490,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
                 segments,
                 user: this.auth?.user,
               },
-              signal: this.createAbortSignal({
-                signal,
-                timeout: this.config.completion.timeout,
-              }),
+              signal: this.createAbortSignal({ signal }),
             };
             this.logger.debug(
               { requestId, requestOptions, url: this.config.server.endpoint + requestPath },
