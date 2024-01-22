@@ -53,6 +53,16 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       return null;
     }
 
+    // Skip when trigger automatically and text selected
+    if (
+      context.triggerKind === InlineCompletionTriggerKind.Automatic &&
+      window.activeTextEditor &&
+      !window.activeTextEditor.selection.isEmpty
+    ) {
+      console.debug("Text selected, skipping.");
+      return null;
+    }
+
     // Check if autocomplete widget is visible
     if (context.selectedCompletionInfo !== undefined) {
       console.debug("Autocomplete widget is visible, skipping.");
