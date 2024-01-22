@@ -62,11 +62,11 @@ export class CompletionProviderStats {
     checks: {
       disable: false,
       // Mark status as healthy if the latency is less than the threshold for each latest windowSize requests.
-      healthy: { windowSize: 3, latency: 2400 },
+      healthy: { windowSize: 1, latency: 3000 },
       // If there is at least {count} requests, and the average response time is higher than the {latency}, show warning
-      slowResponseTime: { latency: 3200, count: 3 },
+      slowResponseTime: { latency: 5000, count: 1 },
       // If there is at least {count} timeouts, and the timeout rate is higher than the {rate}, show warning
-      highTimeoutRate: { rate: 0.5, count: 3 },
+      highTimeoutRate: { rate: 0.5, count: 1 },
     },
   };
 
@@ -82,12 +82,6 @@ export class CompletionProviderStats {
   private completionRequestTimeoutCount = 0;
 
   private recentCompletionRequestLatencies: Windowed = new Windowed(this.config.windowSize);
-
-  updateConfigByRequestTimeout(timeout: number) {
-    this.config.checks.healthy.latency = timeout * 0.6;
-    this.config.checks.slowResponseTime.latency = timeout * 0.8;
-    this.resetWindowed();
-  }
 
   add(value: CompletionProviderStatsEntry): void {
     const { triggerMode, cacheHit, aborted, requestSent, requestLatency, requestCanceled, requestTimeout } = value;
@@ -199,7 +193,7 @@ export class CompletionProviderStats {
 
     if (
       latencies
-        .slice(-Math.max(this.config.windowSize, config.healthy.windowSize))
+        .slice(-Math.min(this.config.windowSize, config.healthy.windowSize))
         .every((latency) => latency < config.healthy.latency)
     ) {
       return "healthy";
