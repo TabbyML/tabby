@@ -1,0 +1,22 @@
+description = 'Remove duplication: duplicated block closing line: case 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'checks.js'
+language = 'javascript'
+# indentation = '  ' # not specified
+text = '''
+function log(obj) {├
+  console.log(obj);
+};┤
+}
+'''
+
+[expected]
+text = '''
+function log(obj) {├
+  console.log(obj);┤
+}
+'''
