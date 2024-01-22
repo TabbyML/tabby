@@ -36,7 +36,7 @@ llama_print_timings:       total time =   340.25 ms
 </center>
 
 
-This enhancement leads to a significant inference speed upgrade🚀, for example, It marks a meaningful milestone in Tabby's adoption on Apple devices. Check out our [Model Directory](/docs/models) to discover LLM models with Metal support! 🎁
+This enhancement leads to a significant inference speed upgrade🚀, for example, It marks a meaningful milestone in Tabby's adoption on Apple devices. Check out our [Model Directory](/docs/installation/models/registry) to discover LLM models with Metal support! 🎁
 
 :::tip
 Check out latest Tabby updates on [Linkedin](https://www.linkedin.com/company/tabbyml/) and [Slack community](https://links.tabbyml.com/join-slack)! Our Tabby community is eager for your participation. ❤️ 
