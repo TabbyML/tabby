@@ -2,12 +2,15 @@
 
 ## Features
 
+* Introducing a preview release of the `Source Code Browser`, featuring visualization of code snippets utilized for code completion in RAG.
+
 ## Fixes and Improvements
 
-* Add windows cpu binary distribution.
-* Add linux rocm (AMD GPU) binary distribution.
-* Fix cached permanent redirection on certain browsers(e.g chrome) when `--webserver` is not enabled.
-* Add environment variable `TABBY_MODEL_CACHE_ROOT` to override models cache directory individually.
+* Added a Windows CPU binary distribution.
+* Added a Linux ROCm (AMD GPU) binary distribution.
+* Fixed an issue with cached permanent redirection in certain browsers (e.g., Chrome) when the `--webserver` flag is disabled.
+* Introduced the `TABBY_MODEL_CACHE_ROOT` environment variable to individually override the model cache directory.
+* The `/v1beta/chat/completions` API endpoint is now compatible with OpenAI's chat completion API.
 
 # v0.7.0 (12/15/2023)
 
