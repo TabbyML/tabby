@@ -27,7 +27,7 @@ pub fn run_cron(db_conn: &DbConn, turn_on_scheduler_jobs: bool) {
         };
         jobs.push(job1);
 
-        if (turn_on_scheduler_jobs) {
+        if turn_on_scheduler_jobs {
             // run every 5 minutes
             let Ok(job2) =
                 job_utils::run_job(db_conn.clone(), "sync".to_owned(), "0 1/5 * * * * *").await
