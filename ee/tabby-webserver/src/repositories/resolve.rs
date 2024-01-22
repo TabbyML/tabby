@@ -1,4 +1,10 @@
-use std::{collections::HashMap, path::PathBuf, str::FromStr, sync::Arc};
+use std::{
+    collections::HashMap,
+    ops::Deref,
+    path::PathBuf,
+    str::FromStr,
+    sync::{Arc, RwLock},
+};
 
 use anyhow::Result;
 use axum::{
@@ -17,7 +23,34 @@ use tower_http::services::ServeDir;
 use crate::repositories::ResolveState;
 
 lazy_static! {
-    static ref META: HashMap<RepositoryKey, RepositoryMeta> = load_meta();
+    static ref META: RepositoryCache = RepositoryCache::new_initialized();
+}
+
+pub fn reload_repository_cache() {
+    META.reload()
+}
+
+pub struct RepositoryCache {
+    repositories: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
+}
+
+impl RepositoryCache {
+    fn new_initialized() -> RepositoryCache {
+        let cache = RepositoryCache {
+            repositories: Default::default(),
+        };
+        cache.reload();
+        cache
+    }
+
+    fn reload(&self) {
+        let mut repositories = self.repositories.write().unwrap();
+        *repositories = load_meta();
+    }
+
+    pub fn repositories<'a>(&'a self) -> impl Deref<Target = HashMap<RepositoryKey, RepositoryMeta>> + 'a {
+        self.repositories.read().unwrap()
+    }
 }
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";

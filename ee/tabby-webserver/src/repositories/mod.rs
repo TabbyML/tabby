@@ -12,6 +12,7 @@ use axum::{
 };
 use hyper::Body;
 use juniper_axum::extract::AuthBearer;
+pub use resolve::reload_repository_cache;
 use tabby_common::config::RepositoryConfig;
 use tracing::{instrument, warn};
 

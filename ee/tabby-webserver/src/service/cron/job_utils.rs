@@ -1,14 +1,17 @@
-use std::process::Stdio;
+use std::{process::Stdio, sync::Arc};
 
 use tabby_db::{DbConn, JobRunDAO};
 use tokio::{io::AsyncBufReadExt, process::Child};
 use tokio_cron_scheduler::Job;
 use tracing::error;
 
-pub async fn run_job(db_conn: DbConn, job_name: String, schedule: &str) -> anyhow::Result<Job> {
-    let job = Job::new_async(schedule, move |_, _| {
-        let job_name = job_name.clone();
+use super::{JobHooks, JobType};
+
+pub async fn run_job(db_conn: DbConn, job: JobType, hooks: Arc<JobHooks>) -> anyhow::Result<Job> {
+    let job = Job::new_async(job.schedule(), move |_, _| {
+        let job_name = job.name().to_string();
         let db_conn = db_conn.clone();
+        let hooks_clone = hooks.clone();
         Box::pin(async move {
             // create job run record
             let mut run = JobRunDAO {
@@ -48,6 +51,9 @@ pub async fn run_job(db_conn: DbConn, job_name: String, schedule: &str) -> anyho
                 .unwrap_or_else(|e| {
                     error!("failed to update `{}` run record: {}", job_name, e);
                 });
+
+            // run job hooks
+            hooks_clone.run_hooks(job);
         })
     })?;
 
