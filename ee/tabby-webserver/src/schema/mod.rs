@@ -5,7 +5,7 @@ pub mod job;
 pub mod repository;
 pub mod worker;
 
-use std::{error::Error, num::ParseIntError, sync::Arc};
+use std::{num::ParseIntError, sync::Arc};
 
 use auth::{
     validate_jwt, AuthenticationService, Invitation, InvitationNext, RefreshTokenError,
