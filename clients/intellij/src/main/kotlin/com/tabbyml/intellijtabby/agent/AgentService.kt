@@ -47,8 +47,6 @@ class AgentService : Disposable {
   var issueNotification: Notification? = null
     private set
 
-  private var completionResponseWarningShown = false
-
   enum class Status {
     INITIALIZING,
     INITIALIZATION_FAILED,
@@ -177,7 +175,6 @@ class AgentService : Disposable {
     scope.launch {
       agent.status.collect { status ->
         if (status == Agent.Status.READY) {
-          completionResponseWarningShown = false
           invokeLater {
             issueNotification?.expire()
           }
@@ -187,22 +184,13 @@ class AgentService : Disposable {
 
     scope.launch {
       agent.currentIssue.collect { issueName ->
-        val showCompletionResponseWarnings = !completionResponseWarningShown &&
-            !settings.notificationsMuted.contains("completionResponseTimeIssues")
-        val message = when (issueName) {
-          "connectionFailed" -> "Cannot connect to Tabby server"
-          "slowCompletionResponseTime" -> if (showCompletionResponseWarnings) {
-            completionResponseWarningShown = true
-            "Completion requests appear to take too much time"
-          } else {
-            return@collect
-          }
-
-          "highCompletionTimeoutRate" -> if (showCompletionResponseWarnings) {
-            completionResponseWarningShown = true
-            "Most completion requests timed out"
-          } else {
-            return@collect
+        val notification = when (issueName) {
+          "connectionFailed" -> Notification(
+            "com.tabbyml.intellijtabby.notification.warning",
+            "Cannot connect to Tabby server",
+            NotificationType.ERROR,
+          ).apply {
+            addAction(ActionManager.getInstance().getAction("Tabby.CheckIssueDetail"))
           }
 
           else -> {
@@ -211,22 +199,6 @@ class AgentService : Disposable {
             }
             return@collect
           }
-        }
-        val notification = Notification(
-          "com.tabbyml.intellijtabby.notification.warning",
-          message,
-          NotificationType.WARNING,
-        )
-        notification.addAction(ActionManager.getInstance().getAction("Tabby.CheckIssueDetail"))
-        if (issueName in listOf("slowCompletionResponseTime", "highCompletionTimeoutRate")) {
-          notification.addAction(
-            object : AnAction("Don't Show Again") {
-              override fun actionPerformed(e: AnActionEvent) {
-                issueNotification?.expire()
-                settings.notificationsMuted += listOf("completionResponseTimeIssues")
-              }
-            }
-          )
         }
         invokeLater {
           issueNotification?.expire()
