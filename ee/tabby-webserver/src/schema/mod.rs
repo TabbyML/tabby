@@ -5,7 +5,7 @@ pub mod job;
 pub mod repository;
 pub mod worker;
 
-use std::sync::Arc;
+use std::{error::Error, num::ParseIntError, sync::Arc};
 
 use auth::{
     validate_jwt, AuthenticationService, Invitation, InvitationNext, RefreshTokenError,
@@ -66,6 +66,9 @@ pub enum CoreError {
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+
+    #[error("{0}")]
+    ParseInt(#[from] ParseIntError),
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
@@ -326,8 +329,11 @@ impl Mutation {
         }
     }
 
-    async fn update_user_active(ctx: &Context, id: i32, active: bool) -> Result<bool> {
-        ctx.locator.auth().update_user_active(id, active).await?;
+    async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
+        ctx.locator
+            .auth()
+            .update_user_active(id.parse()?, active)
+            .await?;
         Ok(true)
     }
 
