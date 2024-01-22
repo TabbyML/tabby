@@ -6,6 +6,7 @@ CREATE TABLE users (
     created_at         TIMESTAMP DEFAULT (DATETIME('now')),
     updated_at         TIMESTAMP DEFAULT (DATETIME('now')),
     auth_token         VARCHAR(128) NOT NULL,
+    active             BOOLEAN NOT NULL DEFAULT 1,
 
     CONSTRAINT `idx_email`      UNIQUE (`email`)
     CONSTRAINT `idx_auth_token` UNIQUE (`auth_token`)

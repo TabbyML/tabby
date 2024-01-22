@@ -17,11 +17,12 @@ pub struct UserDAO {
 
     /// To authenticate IDE extensions / plugins to access code completion / chat api endpoints.
     pub auth_token: String,
+    pub active: bool,
 }
 
 impl UserDAO {
     fn select(clause: &str) -> String {
-        r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token FROM users WHERE "#
+        r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active FROM users WHERE "#
             .to_owned()
             + clause
     }
@@ -35,6 +36,7 @@ impl UserDAO {
             created_at: row.get(4)?,
             updated_at: row.get(5)?,
             auth_token: row.get(6)?,
+            active: row.get(7)?,
         })
     }
 }
@@ -155,6 +157,7 @@ impl DbConn {
                 "created_at",
                 "updated_at",
                 "auth_token",
+                "active",
             ],
             limit,
             skip_id,
@@ -203,6 +206,16 @@ impl DbConn {
 
         Ok(())
     }
+
+    pub async fn update_user_active(&self, id: i32, active: bool) -> Result<()> {
+        self.conn
+            .call(move |c| {
+                c.execute("UPDATE users SET active=? WHERE id=?", (active, id))?;
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    }
 }
 
 fn generate_auth_token() -> String {
@@ -222,6 +235,18 @@ mod tests {
         let id = create_user(&conn).await;
         let user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.id, 1);
+    }
+
+    #[tokio::test]
+    async fn test_set_active() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        let id = create_user(&conn).await;
+
+        assert!(conn.get_user(id).await.unwrap().unwrap().active);
+
+        conn.update_user_active(id, false).await.unwrap();
+
+        assert!(!conn.get_user(id).await.unwrap().unwrap().active);
     }
 
     #[tokio::test]

@@ -326,6 +326,11 @@ impl Mutation {
         }
     }
 
+    async fn update_user_active(ctx: &Context, id: i32, active: bool) -> Result<bool> {
+        ctx.locator.auth().update_user_active(id, active).await?;
+        Ok(true)
+    }
+
     async fn register(
         ctx: &Context,
         email: String,
