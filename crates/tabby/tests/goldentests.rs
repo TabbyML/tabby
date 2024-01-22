@@ -8,28 +8,6 @@ use tokio::{
 };
 
 lazy_static! {
-    static ref SERVER: bool = {
-        let mut cmd = Command::new(tabby_path());
-        cmd.arg("serve")
-            .arg("--model")
-            .arg("TabbyML/StarCoder-1B")
-            .arg("--port")
-            .arg("9090")
-            .kill_on_drop(true);
-
-        if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            cmd.arg("--device").arg("metal");
-        }
-
-        tokio::task::spawn(async move {
-            cmd.spawn()
-                .expect("Failed to start server")
-                .wait()
-                .await
-                .unwrap();
-        });
-        true
-    };
     static ref CLIENT: reqwest::Client = reqwest::Client::new();
 }
 
@@ -49,8 +27,30 @@ fn tabby_path() -> PathBuf {
     workspace_dir().join("target/debug/tabby")
 }
 
-async fn wait_for_server() {
-    lazy_static::initialize(&SERVER);
+fn initialize_server(gpu_device: Option<&str>) {
+    let mut cmd = Command::new(tabby_path());
+    cmd.arg("serve")
+        .arg("--model")
+        .arg("TabbyML/StarCoder-1B")
+        .arg("--port")
+        .arg("9090")
+        .kill_on_drop(true);
+
+    if let Some(gpu_device) = gpu_device {
+        cmd.arg("--device").arg(gpu_device);
+    }
+
+    tokio::task::spawn(async move {
+        cmd.spawn()
+            .expect("Failed to start server")
+            .wait()
+            .await
+            .unwrap();
+    });
+}
+
+async fn wait_for_server(device: Option<&str>) {
+    initialize_server(device);
 
     loop {
         println!("Waiting for server to start...");
@@ -97,7 +97,7 @@ macro_rules! assert_golden {
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[tokio::test]
 async fn run_golden_tests() {
-    wait_for_server().await;
+    wait_for_server(Some("metal")).await;
 
     assert_golden!(json!({
             "language": "python",
@@ -115,10 +115,9 @@ async fn run_golden_tests() {
     }));
 }
 
-#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 #[tokio::test]
 async fn run_golden_tests_cpu() {
-    wait_for_server().await;
+    wait_for_server(None).await;
 
     assert_golden!(json!({
             "language": "python",

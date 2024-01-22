@@ -2,6 +2,7 @@ use std::{io::BufRead, path::PathBuf};
 
 use lazy_static::lazy_static;
 use serde::Deserialize;
+use serde_json::json;
 use tokio::{
     process::Command,
     time::{sleep, Duration},
@@ -23,28 +24,6 @@ pub struct ChatCompletionDelta {
 }
 
 lazy_static! {
-    static ref SERVER: bool = {
-        let mut cmd = Command::new(tabby_path());
-        cmd.arg("serve")
-            .arg("--chat-model")
-            .arg("TabbyML/Mistral-7B")
-            .arg("--port")
-            .arg("9090")
-            .kill_on_drop(true);
-
-        if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            cmd.arg("--device").arg("metal");
-        }
-
-        tokio::task::spawn(async move {
-            cmd.spawn()
-                .expect("Failed to start server")
-                .wait()
-                .await
-                .unwrap();
-        });
-        true
-    };
     static ref CLIENT: reqwest::Client = reqwest::Client::new();
 }
 
@@ -64,8 +43,30 @@ fn tabby_path() -> PathBuf {
     workspace_dir().join("target/debug/tabby")
 }
 
-async fn wait_for_server() {
-    lazy_static::initialize(&SERVER);
+fn initialize_server(gpu_device: Option<&str>) {
+    let mut cmd = Command::new(tabby_path());
+    cmd.arg("serve")
+        .arg("--chat-model")
+        .arg("TabbyML/Mistral-7B")
+        .arg("--port")
+        .arg("9090")
+        .kill_on_drop(true);
+
+    if let Some(gpu_device) = gpu_device {
+        cmd.arg("--device").arg(gpu_device);
+    }
+
+    tokio::task::spawn(async move {
+        cmd.spawn()
+            .expect("Failed to start server")
+            .wait()
+            .await
+            .unwrap();
+    });
+}
+
+async fn wait_for_server(gpu_device: Option<&str>) {
+    initialize_server(gpu_device);
 
     loop {
         println!("Waiting for server to start...");
@@ -113,7 +114,7 @@ macro_rules! assert_golden {
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[tokio::test]
 async fn run_chat_golden_tests() {
-    wait_for_server().await;
+    wait_for_server(Some("metal")).await;
 
     assert_golden!(json!({
             "messages": [
@@ -129,6 +130,20 @@ async fn run_chat_golden_tests() {
                 {
                     "role": "user",
                     "content": "How to parse email address with regex"
+                }
+            ]
+    }));
+}
+
+#[tokio::test]
+async fn run_chat_golden_tests_cpu() {
+    wait_for_server(None).await;
+
+    assert_golden!(json!({
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "How are you?"
                 }
             ]
     }));
