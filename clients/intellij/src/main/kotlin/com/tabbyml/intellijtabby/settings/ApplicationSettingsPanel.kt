@@ -61,7 +61,10 @@ class ApplicationSettingsPanel {
             settings.serverEndpoint = serverEndpoint
             settings.serverToken = serverToken
             var serverConfig = agentService.getConfig().server
-            while (serverConfig?.endpoint != serverEndpoint || serverConfig.token != serverToken) {
+            while (
+              (serverEndpoint.isNotBlank() && serverConfig?.endpoint != serverEndpoint) ||
+              (serverToken.isNotBlank() && serverConfig?.token != serverToken)
+            ) {
               Thread.sleep(200)
               serverConfig = agentService.getConfig().server
             }
