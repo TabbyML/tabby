@@ -135,7 +135,6 @@ impl From<SourceFile> for RepositoryMeta {
     }
 }
 
-/// TODO: implement auto reloading logic in future (so changes produced by tabby-scheduler command will be loaded)
 fn load_meta() -> HashMap<RepositoryKey, RepositoryMeta> {
     let mut dataset = HashMap::new();
     let repo_conf = match Config::load() {
