@@ -29,7 +29,11 @@ type TCodeTag = {
   line_range: TRange
   is_definition: boolean
   syntax_type_name: string
+  utf16_column_range: TRange
+  span: TPointRange
 }
+type TPoint = { row: number; column: number }
+type TPointRange = { start: TPoint; end: TPoint }
 type TRange = { start: number; end: number }
 type TFileMeta = {
   git_url: string

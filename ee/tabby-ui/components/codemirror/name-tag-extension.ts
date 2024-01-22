@@ -9,6 +9,8 @@ import {
 
 import { TCodeTag } from '@/app/files/components/source-code-browser'
 
+import { getUTF16NameRange } from './utils'
+
 const tagMark = Decoration.mark({ class: 'cm-tag-mark' })
 const tagMarkTheme = EditorView.baseTheme({
   '.cm-tag-mark': {
@@ -29,8 +31,8 @@ function underlineRange(view: EditorView, tags: TCodeTag[] = []) {
 
   let widgets: Range<Decoration>[] = []
   for (const tag of tags) {
-    const { name_range } = tag
-    widgets.push(tagMark.range(name_range.start, name_range.end))
+    const range = getUTF16NameRange(view.state, tag)
+    widgets.push(tagMark.range(range.start, range.end))
   }
   return Decoration.set(widgets)
 }
