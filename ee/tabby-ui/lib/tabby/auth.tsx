@@ -157,14 +157,6 @@ function RefreshAuth() {
     }
   }, [authState])
 
-  useInterval(async () => {
-    if (authState?.status !== 'authenticated') {
-      return
-    }
-
-    await refreshToken(authState.data)
-  }, 5)
-
   return <></>
 }
 
