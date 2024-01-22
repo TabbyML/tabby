@@ -4,7 +4,6 @@ import { jwtDecode, JwtPayload } from 'jwt-decode'
 import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
-import useInterval from '@/lib/hooks/use-interval'
 import { useGraphQLQuery, useMutation } from '@/lib/tabby/gql'
 
 interface AuthData {
