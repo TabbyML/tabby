@@ -3,6 +3,7 @@ use std::{io::BufRead, path::PathBuf};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use serde_json::json;
+use serial_test::serial;
 use tokio::{
     process::Command,
     time::{sleep, Duration},
@@ -113,6 +114,7 @@ macro_rules! assert_golden {
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[tokio::test]
+#[serial]
 async fn run_chat_golden_tests() {
     wait_for_server(Some("metal")).await;
 
@@ -136,6 +138,7 @@ async fn run_chat_golden_tests() {
 }
 
 #[tokio::test]
+#[serial]
 async fn run_chat_golden_tests_cpu() {
     wait_for_server(None).await;
 
