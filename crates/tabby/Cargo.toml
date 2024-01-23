@@ -55,6 +55,7 @@ thiserror.workspace = true
 chrono.workspace = true
 axum-prometheus = "0.4.0"
 uuid.workspace = true
+serial_test = "3.0.0"
 
 [dependencies.openssl]
 optional = true

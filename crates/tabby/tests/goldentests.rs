@@ -1,33 +1,14 @@
 use std::path::PathBuf;
 
-use insta::assert_yaml_snapshot;
 use lazy_static::lazy_static;
 use serde_json::json;
+use serial_test::serial;
 use tokio::{
     process::Command,
     time::{sleep, Duration},
 };
 
 lazy_static! {
-    static ref SERVER: bool = {
-        let mut cmd = Command::new(tabby_path());
-        cmd.arg("serve")
-            .arg("--model")
-            .arg("TabbyML/StarCoder-1B")
-            .arg("--port")
-            .arg("9090")
-            .arg("--device")
-            .arg("metal")
-            .kill_on_drop(true);
-        tokio::task::spawn(async move {
-            cmd.spawn()
-                .expect("Failed to start server")
-                .wait()
-                .await
-                .unwrap();
-        });
-        true
-    };
     static ref CLIENT: reqwest::Client = reqwest::Client::new();
 }
 
@@ -47,8 +28,30 @@ fn tabby_path() -> PathBuf {
     workspace_dir().join("target/debug/tabby")
 }
 
-async fn wait_for_server() {
-    lazy_static::initialize(&SERVER);
+fn initialize_server(gpu_device: Option<&str>) {
+    let mut cmd = Command::new(tabby_path());
+    cmd.arg("serve")
+        .arg("--model")
+        .arg("TabbyML/StarCoder-1B")
+        .arg("--port")
+        .arg("9090")
+        .kill_on_drop(true);
+
+    if let Some(gpu_device) = gpu_device {
+        cmd.arg("--device").arg(gpu_device);
+    }
+
+    tokio::task::spawn(async move {
+        cmd.spawn()
+            .expect("Failed to start server")
+            .wait()
+            .await
+            .unwrap();
+    });
+}
+
+async fn wait_for_server(device: Option<&str>) {
+    initialize_server(device);
 
     loop {
         println!("Waiting for server to start...");
@@ -84,29 +87,52 @@ async fn golden_test(body: serde_json::Value) -> serde_json::Value {
     actual
 }
 
-async fn assert_golden(body: serde_json::Value) {
-    assert_yaml_snapshot!(golden_test(body).await, {
-        ".id" => "test-id"
-    });
+macro_rules! assert_golden {
+    ($expr:expr) => {
+        insta::assert_yaml_snapshot!(golden_test($expr).await, {
+            ".id" => "test-id"
+        });
+    }
 }
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[tokio::test]
+#[serial]
 async fn run_golden_tests() {
-    wait_for_server().await;
+    wait_for_server(Some("metal")).await;
 
-    assert_golden(json!({
+    assert_golden!(json!({
             "language": "python",
             "segments": {
                 "prefix": "def fib(n):\n    ",
                 "suffix": "\n        return fib(n - 1) + fib(n - 2)"
             }
-    }))
-    .await;
+    }));
 
-    assert_golden(json!({
+    assert_golden!(json!({
             "language": "python",
             "segments": {
                 "prefix": "import datetime\n\ndef parse_expenses(expenses_string):\n    \"\"\"Parse the list of expenses and return the list of triples (date, value, currency).\n    Ignore lines starting with #.\n    Parse the date using datetime.\n    Example expenses_string:\n        2016-01-02 -34.01 USD\n        2016-01-03 2.59 DKK\n        2016-01-03 -2.72 EUR\n    \"\"\"\n    for line in expenses_string.split('\\n'):\n        "
             }
-    })).await;
+    }));
+}
+
+#[tokio::test]
+#[serial]
+async fn run_golden_tests_cpu() {
+    wait_for_server(Some("cpu")).await;
+
+    assert_golden!(json!({
+            "language": "python",
+            "segments": {
+                "prefix": "def is_prime(n):\n",
+            }
+    }));
+
+    assert_golden!(json!({
+            "language": "python",
+            "segments": {
+                "prefix": "def char_frequencies(str):\n  freqs = {}\n  ",
+            }
+    }));
 }

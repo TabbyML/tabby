@@ -1,9 +1,9 @@
 use std::{io::BufRead, path::PathBuf};
 
-use insta::assert_yaml_snapshot;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use serde_json::json;
+use serial_test::serial;
 use tokio::{
     process::Command,
     time::{sleep, Duration},
@@ -25,25 +25,6 @@ pub struct ChatCompletionDelta {
 }
 
 lazy_static! {
-    static ref SERVER: bool = {
-        let mut cmd = Command::new(tabby_path());
-        cmd.arg("serve")
-            .arg("--chat-model")
-            .arg("TabbyML/Mistral-7B")
-            .arg("--port")
-            .arg("9090")
-            .arg("--device")
-            .arg("metal")
-            .kill_on_drop(true);
-        tokio::task::spawn(async move {
-            cmd.spawn()
-                .expect("Failed to start server")
-                .wait()
-                .await
-                .unwrap();
-        });
-        true
-    };
     static ref CLIENT: reqwest::Client = reqwest::Client::new();
 }
 
@@ -63,8 +44,30 @@ fn tabby_path() -> PathBuf {
     workspace_dir().join("target/debug/tabby")
 }
 
-async fn wait_for_server() {
-    lazy_static::initialize(&SERVER);
+fn initialize_server(gpu_device: Option<&str>) {
+    let mut cmd = Command::new(tabby_path());
+    cmd.arg("serve")
+        .arg("--chat-model")
+        .arg("TabbyML/Mistral-7B")
+        .arg("--port")
+        .arg("9090")
+        .kill_on_drop(true);
+
+    if let Some(gpu_device) = gpu_device {
+        cmd.arg("--device").arg(gpu_device);
+    }
+
+    tokio::task::spawn(async move {
+        cmd.spawn()
+            .expect("Failed to start server")
+            .wait()
+            .await
+            .unwrap();
+    });
+}
+
+async fn wait_for_server(gpu_device: Option<&str>) {
+    initialize_server(gpu_device);
 
     loop {
         println!("Waiting for server to start...");
@@ -103,31 +106,48 @@ async fn golden_test(body: serde_json::Value) -> String {
     actual
 }
 
-async fn assert_golden(body: serde_json::Value) {
-    assert_yaml_snapshot!(golden_test(body).await);
+macro_rules! assert_golden {
+    ($expr:expr) => {
+        insta::assert_yaml_snapshot!(golden_test($expr).await);
+    };
 }
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[tokio::test]
+#[serial]
 async fn run_chat_golden_tests() {
-    wait_for_server().await;
+    wait_for_server(Some("metal")).await;
 
-    assert_golden(json!({
+    assert_golden!(json!({
             "messages": [
                 {
                     "role": "user",
                     "content": "How to convert a list of string to numbers in python"
                 }
             ]
-    }))
-    .await;
+    }));
 
-    assert_golden(json!({
+    assert_golden!(json!({
             "messages": [
                 {
                     "role": "user",
                     "content": "How to parse email address with regex"
                 }
             ]
-    }))
-    .await;
+    }));
+}
+
+#[tokio::test]
+#[serial]
+async fn run_chat_golden_tests_cpu() {
+    wait_for_server(Some("cpu")).await;
+
+    assert_golden!(json!({
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "How are you?"
+                }
+            ]
+    }));
 }
