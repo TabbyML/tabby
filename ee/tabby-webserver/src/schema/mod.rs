@@ -71,7 +71,9 @@ pub enum CoreError {
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
-            Self::Unauthorized(msg) => FieldError::new(msg, graphql_value!("Unauthorized")),
+            Self::Unauthorized(msg) => {
+                FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
+            }
             _ => self.into(),
         }
     }
