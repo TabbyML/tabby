@@ -20,7 +20,7 @@ import SlackDialog from '@/components/slack-dialog'
 
 export default function Home() {
   return (
-    <div className="p-4 lg:p-16">
+    <div>
       <MainPanel />
       <SlackDialog />
     </div>

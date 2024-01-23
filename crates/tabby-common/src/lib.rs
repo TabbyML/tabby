@@ -49,9 +49,23 @@ impl SourceFile {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Point {
+    pub row: usize,
+    pub column: usize,
+}
+
+impl Point {
+    pub fn new(row: usize, column: usize) -> Self {
+        Self { row, column }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Tag {
     pub range: Range<usize>,
     pub name_range: Range<usize>,
+    pub utf16_column_range: Range<usize>,
+    pub span: Range<Point>,
     pub line_range: Range<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub docs: Option<String>,

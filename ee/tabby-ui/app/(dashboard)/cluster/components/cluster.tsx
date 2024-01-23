@@ -45,7 +45,7 @@ export default function Workers() {
   if (!healthInfo) return
 
   return (
-    <div className="flex w-full flex-col gap-3 p-4 lg:p-16">
+    <div className="flex w-full flex-col gap-3">
       <h1>
         <span className="font-bold">Congratulations</span>, your tabby instance
         is up!

@@ -19,7 +19,6 @@ export type AgentConfig = {
       mode: "adaptive" | "fixed";
       interval: number;
     };
-    timeout: number;
   };
   postprocess: {
     limitScope: {
@@ -60,7 +59,7 @@ export const defaultAgentConfig: AgentConfig = {
     endpoint: "http://localhost:8080",
     token: "",
     requestHeaders: {},
-    requestTimeout: 30000, // 30s
+    requestTimeout: 2 * 60 * 1000, // 2 minutes
   },
   completion: {
     prompt: {
@@ -76,7 +75,6 @@ export const defaultAgentConfig: AgentConfig = {
       mode: "adaptive",
       interval: 250, // ms
     },
-    timeout: 4000, // ms
   },
   postprocess: {
     limitScope: {

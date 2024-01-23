@@ -51,7 +51,7 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
   return (
     <>
       <div className={cn(className)}>
-        <div className="fixed inset-y-0 left-0 flex w-[279px] flex-col gap-2 pt-16">
+        <div className="fixed inset-y-0 left-0 flex w-[279px] flex-col gap-2">
           <div className="shrink-0 pb-0 pl-3 pt-2">
             <Button
               className="h-12 w-full justify-start"

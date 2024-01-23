@@ -30,7 +30,10 @@ export function removeDuplicatedBlockClosingLine(): PostprocessFilter {
     }
     const suffixBeginningLine = suffixLines[suffixBeginningIndex]!;
 
-    if (inputEndingLine.startsWith(suffixBeginningLine) || suffixBeginningLine.startsWith(inputEndingLine)) {
+    if (
+      inputEndingLine.startsWith(suffixBeginningLine.trimEnd()) ||
+      suffixBeginningLine.startsWith(inputEndingLine.trimEnd())
+    ) {
       logger.debug({ inputLines, suffixLines }, "Removing duplicated block closing line");
       return inputLines
         .slice(0, inputLines.length - 1)

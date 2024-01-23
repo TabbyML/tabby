@@ -20,7 +20,7 @@ use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tabby_db::DbConn;
 use tracing::{info, warn};
 
-use self::cron::run_cron;
+use self::{cron::run_cron, email::new_email_service};
 use crate::schema::{
     auth::AuthenticationService,
     email::EmailService,
@@ -35,6 +35,7 @@ struct ServerContext {
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
     db_conn: DbConn,
+    mail_service: Arc<dyn EmailService>,
 
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -43,11 +44,16 @@ struct ServerContext {
 impl ServerContext {
     pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         let db_conn = DbConn::new().await.unwrap();
-        run_cron(&db_conn);
+        run_cron(&db_conn, false);
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
+            mail_service: Arc::new(
+                new_email_service(db_conn.clone())
+                    .await
+                    .expect("failed to initialize mail service"),
+            ),
             db_conn,
             logger,
             code,
@@ -211,7 +217,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn email_setting(&self) -> Arc<dyn EmailService> {
-        Arc::new(self.db_conn.clone())
+        self.mail_service.clone()
     }
 }
 

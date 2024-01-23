@@ -168,3 +168,32 @@ top_level_keywords = [
     "dynamic",
     "async",
 ]
+
+
+[[config]]
+languages = ["php"]
+line_comment = "//"
+top_level_keywords = [
+    "abstract",
+    "class",
+    "const",
+    "declare",
+    "extends",
+    "final",
+    "finally",
+    "function",
+    "global",
+    "implements",
+    "include_once",
+    "include",
+    "interface",
+    "namespace",
+    "private",
+    "protected",
+    "public",
+    "require_once",
+    "require",
+    "static",
+    "trait",
+    "use",
+]

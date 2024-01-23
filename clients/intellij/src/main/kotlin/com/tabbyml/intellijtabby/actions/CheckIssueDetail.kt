@@ -1,5 +1,6 @@
 package com.tabbyml.intellijtabby.actions
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
@@ -170,6 +171,11 @@ class CheckIssueDetail : AnAction() {
       muted += listOf("slowCompletionResponseTime", "highCompletionTimeoutRate")
     }
     e.presentation.isVisible = agentService.currentIssue.value != null && agentService.currentIssue.value !in muted
+    e.presentation.icon = if (agentService.currentIssue.value == "connectionFailed") {
+      AllIcons.General.Error
+    } else {
+      AllIcons.General.Warning
+    }
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread {

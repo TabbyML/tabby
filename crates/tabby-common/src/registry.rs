@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::path::models_dir;
@@ -21,16 +21,25 @@ fn models_json_file(registry: &str) -> PathBuf {
 }
 
 async fn load_remote_registry(registry: &str) -> Result<Vec<ModelInfo>> {
-    let value = reqwest::get(format!(
+    let model_info = reqwest::get(format!(
         "https://raw.githubusercontent.com/{}/registry-tabby/main/models.json",
         registry
     ))
-    .await?
+    .await
+    .context("Failed to download")?
     .json()
-    .await?;
-    fs::create_dir_all(models_dir().join(registry))?;
-    serdeconv::to_json_file(&value, models_json_file(registry))?;
-    Ok(value)
+    .await
+    .context("Failed to get JSON")?;
+    let dir = models_dir().join(registry);
+    // We don't want to fail if the TabbyML directory already exists,
+    // which is exactly, what `create_dir_all` will do, see
+    // https://doc.rust-lang.org/std/fs/fn.create_dir.html#errors.
+    if !dir.exists() {
+        fs::create_dir_all(&dir).context(format!("Failed to create dir {dir:?}"))?;
+    }
+    serdeconv::to_json_file(&model_info, models_json_file(registry))
+        .context("Failed to convert JSON to file")?;
+    Ok(model_info)
 }
 
 fn load_local_registry(registry: &str) -> Result<Vec<ModelInfo>> {
