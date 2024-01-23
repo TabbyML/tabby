@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import moment from 'moment'
+import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
@@ -18,7 +19,6 @@ import {
 import { CopyButton } from '@/components/copy-button'
 
 import CreateInvitationForm from './create-invitation-form'
-import { useQuery } from 'urql'
 
 const listInvitations = graphql(/* GraphQL */ `
   query ListInvitations {
@@ -39,7 +39,6 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
 
 export default function InvitationTable() {
   const [{ data }, executeQuery] = useQuery({ query: listInvitations })
-  // const { data, mutate } = useAuthenticatedGraphQLQuery(listInvitations)
   const invitations = data?.invitations
   const [origin, setOrigin] = useState('')
   useEffect(() => {

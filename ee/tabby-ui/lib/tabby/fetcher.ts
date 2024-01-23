@@ -1,24 +1,95 @@
-export default function tokenFetcher([url, token]: [
-  string,
-  string
-]): Promise<any> {
-  const headers = new Headers()
-  headers.append('authorization', `Bearer ${token}`)
+import { createRequest } from '@urql/core'
 
+import {
+  clearAuthData,
+  getAuthToken,
+  refreshTokenMutation,
+  saveAuthData
+} from './auth'
+import { client } from './gql'
+
+interface PendingRequest {
+  url: string
+  init?: RequestInit & { format?: 'json' | 'text' }
+  resolve: Function
+}
+let refreshing = false
+const queue: PendingRequest[] = []
+
+export default async function tokenFetcher(
+  url: string,
+  init?: PendingRequest['init']
+): Promise<any> {
   if (process.env.NODE_ENV !== 'production') {
     url = `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}${url}`
   }
+  const response: Response = await fetch(url, addAuthToRequest(init))
+  if (response.status === 401) {
+    if (refreshing) {
+      return new Promise(resolve => {
+        queue.push({ url, init, resolve })
+      })
+    }
 
-  return fetch(url, { headers }).then(x => x.json())
+    const refreshToken = getAuthToken()?.refreshToken
+    if (!refreshToken) {
+      clearAuthData()
+      return
+    }
+
+    refreshing = true
+
+    const refreshAuthRes = await refreshAuth(refreshToken)
+
+    const newToken = refreshAuthRes?.data?.refreshToken
+    if (newToken) {
+      saveAuthData({
+        accessToken: newToken.accessToken,
+        refreshToken: newToken.refreshToken
+      })
+      refreshing = false
+      while (queue.length) {
+        const q = queue.shift()
+        q?.resolve(requestWithAuth(q.url, q.init))
+      }
+
+      return requestWithAuth(url, init)
+    } else {
+      refreshing = false
+      queue.length = 0
+      clearAuthData()
+    }
+  } else {
+    return init?.format === 'text' ? response.text() : response.json()
+  }
 }
 
-export function tokenTextFetcher([url, token]: [string, string]): Promise<any> {
-  const headers = new Headers()
-  headers.append('authorization', `Bearer ${token}`)
+function addAuthToRequest(
+  init?: PendingRequest['init']
+): PendingRequest['init'] {
+  const headers = new Headers(init?.headers)
 
-  if (process.env.NODE_ENV !== 'production') {
-    url = `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}${url}`
+  if (typeof window !== 'undefined') {
+    headers.append('authorization', `Bearer ${getAuthToken()?.accessToken}`)
   }
 
-  return fetch(url, { headers }).then(x => x.text())
+  return {
+    ...(init || {}),
+    headers
+  }
+}
+
+async function refreshAuth(refreshToken: string) {
+  const refreshAuth = client.createRequestOperation(
+    'mutation',
+    createRequest(refreshTokenMutation, { refreshToken })
+  )
+  // refreshAuth
+  return client.executeMutation(refreshAuth)
+}
+
+function requestWithAuth(url: string, init?: PendingRequest['init']) {
+  return fetch(url, addAuthToRequest(init)).then(x => {
+    return init?.format === 'text' ? x.text() : x.json()
+  })
 }

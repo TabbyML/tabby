@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
-import { useSession, useSignIn } from '@/lib/tabby/auth'
+import { saveAuthData, useSession, useSignIn } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -63,6 +63,10 @@ export default function UserSignInForm({
   const onSubmit = useMutation(tokenAuth, {
     onCompleted(values) {
       signIn(values.tokenAuth)
+      saveAuthData({
+        accessToken: values.tokenAuth.accessToken,
+        refreshToken: values.tokenAuth.refreshToken
+      })
     },
     form
   })

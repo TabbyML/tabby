@@ -1,11 +1,12 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { jwtDecode, JwtPayload } from 'jwt-decode'
+import { useQuery } from 'urql'
 import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
-import useInterval from '@/lib/hooks/use-interval'
-import { useGraphQLQuery, useMutation } from '@/lib/tabby/gql'
+
+import { isClientSide } from '../utils'
 
 interface AuthData {
   accessToken: string
@@ -55,25 +56,25 @@ interface RefreshAction {
 
 type AuthActions = SignInAction | SignOutAction | RefreshAction
 
+const AUTH_TOKEN_KEY = '_tabby_auth'
 
-const TOKEN_KEY = '_tabby_token'
-const REFRESH_TOKEN_KEY = '_tabby_refresh_token'
-
-export const getToken = () => localStorage.getItem(TOKEN_KEY)
-export const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY)
-export const saveAuthData = ({
-  token,
-  refreshToken
-}: {
-  token: string
-  refreshToken: string
-}) => {
-  localStorage.setItem(TOKEN_KEY, token)
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+export const getAuthToken = (): AuthData | null => {
+  if (isClientSide()) {
+    let tokenData = localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!tokenData) return null
+    try {
+      return JSON.parse(tokenData)
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+}
+export const saveAuthData = (authData: AuthData) => {
+  localStorage.setItem(AUTH_TOKEN_KEY, JSON.stringify(authData))
 }
 export const clearAuthData = () => {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  localStorage.removeItem(AUTH_TOKEN_KEY)
 }
 
 function authReducer(state: AuthState, action: AuthActions): AuthState {
@@ -124,76 +125,58 @@ export const refreshTokenMutation = graphql(/* GraphQL */ `
 const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   children
 }) => {
+  const initialized = React.useRef(false)
   const [authState, dispatch] = React.useReducer(authReducerDeduped, {
     status: 'loading',
     data: null
   })
 
-  return (
-    <AuthContext.Provider value={{ authState, dispatch }}>
-      <RefreshAuth />
-      {children}
-    </AuthContext.Provider>
-  )
-}
+  const [authData] = useLocalStorage<AuthData | null>(AUTH_TOKEN_KEY, null)
 
-function RefreshAuth() {
-  const [authData, setAuthData] = useLocalStorage<AuthData | null>(
-    '_tabby_auth',
-    null
-  )
-
-  const { authState, dispatch } = useAuthStore()
-  const refreshToken = useMutation(refreshTokenMutation, {
-    onCompleted({ refreshToken: data }) {
-      dispatch({ type: AuthActionType.Refresh, data })
-    },
-    onError() {
-      dispatch({
-        type: AuthActionType.SignOut
-      })
-    }
-  })
-
-  const initialized = React.useRef(false)
   React.useEffect(() => {
-    if (authData?.refreshToken) {
-      if (!initialized.current) {
-        // When the page is first loaded, we need to refresh the token
-        initialized.current = true
-        refreshToken(authData)
-      } else {
-        dispatch({ type: AuthActionType.Refresh, data: authData })
-      }
+    initialized.current = true
+    if (authData?.accessToken && authData?.refreshToken) {
+      dispatch({ type: AuthActionType.Refresh, data: authData })
     } else {
       dispatch({ type: AuthActionType.SignOut })
     }
-  }, [authData])
+  }, [])
 
-  React.useEffect(() => {
-    if (authState?.data) {
-      // todo remove 
-      setAuthData(authState.data)
-      // todo remove 
-      
-      saveAuthData({
-        token: authState.data.accessToken,
-        refreshToken: authState.data.refreshToken
-      })
-    } else if (!initialized.current) {
-      setAuthData(authState?.data || null)
-    }
-  }, [authState])
+  // const session: Session = React.useMemo(() => {
+  //   if (authState?.status == 'authenticated') {
+  //     try {
+  //       const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
+  //         authState.data.accessToken
+  //       )
+  //       return {
+  //         data: {
+  //           email: sub!,
+  //           isAdmin: is_admin,
+  //           accessToken: authState.data.accessToken
+  //         },
+  //         status: authState.status
+  //       }
+  //     } catch(e) {
+  //       console.error(e)
+  //       // todo
+  //       return {
+  //         status: authState?.status ?? 'loading',
+  //         data: null
+  //       }
+  //     }
+  //   } else {
+  //     return {
+  //       status: authState?.status ?? 'loading',
+  //       data: null
+  //     }
+  //   }
+  // }, [authState])
 
-  useInterval(async () => {
-    if (authState?.status !== 'authenticated') {
-      return
-    }
-
-    await refreshToken(authState.data)
-  }, 5)
-
-  return <></>
+  return (
+    <AuthContext.Provider value={{ authState, dispatch }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 class AuthProviderIsMissing extends Error {
@@ -249,24 +232,38 @@ type Session =
 
 function useSession(): Session {
   const { authState } = useAuthStore()
-  if (authState?.status == 'authenticated') {
-    const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
-      authState.data.accessToken
-    )
-    return {
-      data: {
-        email: sub!,
-        isAdmin: is_admin,
-        accessToken: authState.data.accessToken
-      },
-      status: authState.status
+
+  const session: Session = React.useMemo(() => {
+    if (authState?.status == 'authenticated') {
+      try {
+        const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
+          authState.data.accessToken
+        )
+        return {
+          data: {
+            email: sub!,
+            isAdmin: is_admin,
+            accessToken: authState.data.accessToken
+          },
+          status: authState.status
+        }
+      } catch (e) {
+        console.error(e)
+        // todo
+        return {
+          status: authState?.status ?? 'loading',
+          data: null
+        }
+      }
+    } else {
+      return {
+        status: authState?.status ?? 'loading',
+        data: null
+      }
     }
-  } else {
-    return {
-      status: authState?.status ?? 'loading',
-      data: null
-    }
-  }
+  }, [authState])
+
+  return session
 }
 
 export const getIsAdminInitialized = graphql(/* GraphQL */ `
@@ -276,7 +273,7 @@ export const getIsAdminInitialized = graphql(/* GraphQL */ `
 `)
 
 function useAuthenticatedSession() {
-  const { data } = useGraphQLQuery(getIsAdminInitialized)
+  const [{ data }] = useQuery({ query: getIsAdminInitialized })
   const router = useRouter()
   const { data: session, status } = useSession()
 
@@ -294,9 +291,9 @@ function useAuthenticatedSession() {
   return session
 }
 
-function useAuthenticatedApi(path: string | null): [string, string] | null {
-  const { data, status } = useSession()
-  return path && status === 'authenticated' ? [path, data.accessToken] : null
+function useAuthenticatedApi(path: string | null): string | null {
+  const { status } = useSession()
+  return path && status === 'authenticated' ? path : null
 }
 
 export type { AuthStore, User, Session }

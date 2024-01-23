@@ -5,9 +5,9 @@ import dynamic from 'next/dynamic'
 import { has } from 'lodash-es'
 import useSWRImmutable from 'swr/immutable'
 
+import { useHealth } from '@/lib/hooks/use-health'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
-import { useAuthenticatedApi } from '@/lib/tabby/auth'
-import fetcher, { tokenTextFetcher as textFetcher } from '@/lib/tabby/fetcher'
+import fetcher from '@/lib/tabby/fetcher'
 import { cn } from '@/lib/utils'
 import {
   ResizableHandle,
@@ -91,6 +91,7 @@ interface SourceCodeBrowserProps {
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   className
 }) => {
+  const hea = useHealth()
   const { searchParams, updateSearchParams } = useRouterStuff()
   const defaultRepositoryName = searchParams.get('repo')?.toString()
   const defaultBasename = searchParams.get('path')?.toString()
@@ -103,20 +104,16 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const { activePath, setActivePath, codeMap, setCodeMap, setFileMetaMap } =
     React.useContext(SourceCodeBrowserContext)
   const { data: fileContent } = useSWRImmutable(
-    useAuthenticatedApi(
-      fileResolver && repositoryName
-        ? `/repositories/${repositoryName}/resolve/${fileResolver}`
-        : null
-    ),
-    textFetcher
+    fileResolver && repositoryName
+      ? `/repositories/${repositoryName}/resolve/${fileResolver}`
+      : null,
+    (url: string) => fetcher(url, { format: 'text' })
   )
 
   const { data: fileMeta } = useSWRImmutable(
-    useAuthenticatedApi(
-      fileContent && fileResolver && repositoryName
-        ? `/repositories/${repositoryName}/meta/${fileResolver}`
-        : null
-    ),
+    fileContent && fileResolver && repositoryName
+      ? `/repositories/${repositoryName}/meta/${fileResolver}`
+      : null,
     fetcher
   )
 

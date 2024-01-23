@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
-import {
-  useMutation
-} from '@/lib/tabby/gql'
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
   CardContent,
@@ -19,7 +18,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
-import { useQuery } from 'urql'
 
 export default function Home() {
   return (
@@ -47,7 +45,6 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 function MainPanel() {
   const { data: healthInfo } = useHealth()
   const [{ data }, executeQuery] = useQuery({ query: meQuery })
-  // const { data, mutate } = useAuthenticatedGraphQLQuery(meQuery)
   const [origin, setOrigin] = useState('')
   useEffect(() => {
     setOrigin(new URL(window.location.href).origin)
