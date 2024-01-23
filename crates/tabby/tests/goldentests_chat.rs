@@ -140,7 +140,7 @@ async fn run_chat_golden_tests() {
 #[tokio::test]
 #[serial]
 async fn run_chat_golden_tests_cpu() {
-    wait_for_server(None).await;
+    wait_for_server(Some("cpu")).await;
 
     assert_golden!(json!({
             "messages": [
