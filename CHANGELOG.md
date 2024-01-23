@@ -1,5 +1,9 @@
 # v0.8.0 [Unreleased]
 
+## Notice
+
+* Due to format changes, re-executing `tabby scheduler --now` is required to ensure that `Code Browser` functions properly.
+
 ## Features
 
 * Introducing a preview release of the `Source Code Browser`, featuring visualization of code snippets utilized for code completion in RAG.
