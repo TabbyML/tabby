@@ -1,0 +1,6 @@
+---
+source: crates/tabby/tests/goldentests_chat.rs
+expression: "golden_test(json!({\n                \"messages\": [{ \"role\": \"user\", \"content\": \"How are you?\" }]\n            })).await"
+---
+" I'm just a computer program, so I don't have feelings or emotions. But I'm here to help you with any questions or problems you have! How can I assist you today?"
+
