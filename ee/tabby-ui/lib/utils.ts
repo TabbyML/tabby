@@ -68,3 +68,7 @@ export function truncateText(
 
   return truncatedText + '...'
 }
+
+export const isClientSide = () => {
+  return typeof window !== 'undefined'
+}

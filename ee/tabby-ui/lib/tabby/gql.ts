@@ -1,33 +1,41 @@
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
-import { GraphQLClient, Variables } from 'graphql-request'
-import { GraphQLResponse } from 'graphql-request/build/esm/types'
+import { authExchange } from '@urql/exchange-auth'
+import { jwtDecode } from 'jwt-decode'
 import { FieldValues, UseFormReturn } from 'react-hook-form'
-import useSWR, { SWRConfiguration, SWRResponse } from 'swr'
+import {
+  AnyVariables,
+  cacheExchange,
+  Client,
+  CombinedError,
+  fetchExchange,
+  useMutation as useUrqlMutation
+} from 'urql'
 
-import { useSession } from './auth'
+import {
+  clearAuthToken,
+  getAuthToken,
+  refreshTokenMutation,
+  saveAuthToken
+} from './auth'
 
-const gqlClient = new GraphQLClient(
-  `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`
-)
-
-export interface ValidationError {
+interface ValidationError {
   path: string
   message: string
 }
 
-export interface ValidationErrors {
+interface ValidationErrors {
   errors: Array<ValidationError>
 }
 
-export function useMutation<TResult, TVariables extends Variables | undefined>(
+function useMutation<TResult, TVariables extends AnyVariables>(
   document: TypedDocumentNode<TResult, TVariables>,
   options?: {
     onCompleted?: (data: TResult) => void
-    onError?: (err: any) => any
+    onError?: (err: CombinedError) => any
     form?: any
   }
 ) {
-  const { data: session } = useSession()
+  const [mutationResult, executeMutation] = useUrqlMutation<TResult>(document)
   const onFormError = options?.form
     ? makeFormErrorHandler(options.form)
     : undefined
@@ -35,31 +43,31 @@ export function useMutation<TResult, TVariables extends Variables | undefined>(
   const fn = async (variables?: TVariables) => {
     let res: TResult | undefined
     try {
-      res = await gqlClient.request({
-        document,
-        variables: variables,
-        requestHeaders: session
-          ? {
-              authorization: `Bearer ${session.accessToken}`
-            }
-          : undefined
-      })
-    } catch (err) {
-      onFormError && onFormError(err)
+      const response = await executeMutation(variables)
+
+      if (response?.error) {
+        onFormError && onFormError(response.error)
+        options?.onError && options.onError(response.error)
+        return
+      }
+
+      res = response?.data
+    } catch (err: any) {
       options?.onError && options.onError(err)
       return
     }
 
-    options?.onCompleted && options.onCompleted(res)
+    res && options?.onCompleted && options.onCompleted(res)
+    return res
   }
 
   return fn
 }
 
 function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
-  return (err: any) => {
-    const { errors = [] } = err.response as GraphQLResponse
-    for (const error of errors) {
+  return (err: CombinedError) => {
+    const { graphQLErrors = [] } = err
+    for (const error of graphQLErrors) {
       if (error.extensions && error.extensions['validation-errors']) {
         const validationErrors = error.extensions[
           'validation-errors'
@@ -74,46 +82,107 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
   }
 }
 
-export function useGraphQLQuery<
-  TResult,
-  TVariables extends Variables | undefined
->(
-  document: TypedDocumentNode<TResult, TVariables>,
-  variables?: TVariables,
-  swrConfiguration?: SWRConfiguration<TResult>
-): SWRResponse<TResult> {
-  return useSWR(
-    [document, variables],
-    ([document, variables]) =>
-      gqlClient.request({
-        document,
-        variables
-      }),
-    swrConfiguration
-  )
+const isTokenExpired = (exp: number) => {
+  return Date.now() > exp * 1000
 }
+const client = new Client({
+  url: `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`,
+  requestPolicy: 'cache-and-network',
+  exchanges: [
+    cacheExchange,
+    authExchange(async utils => {
+      const authData = getAuthToken()
+      let accessToken = authData?.accessToken
+      let refreshToken = authData?.refreshToken
 
-export function useAuthenticatedGraphQLQuery<
-  TResult,
-  TVariables extends Variables | undefined
->(
-  document: TypedDocumentNode<TResult, TVariables>,
-  variables?: TVariables,
-  swrConfiguration?: SWRConfiguration<TResult>
-): SWRResponse<TResult> {
-  const { data, status } = useSession()
-  return useSWR(
-    status === 'authenticated'
-      ? [document, variables, data?.accessToken]
-      : null,
-    ([document, variables, accessToken]) =>
-      gqlClient.request({
-        document,
-        variables,
-        requestHeaders: {
-          authorization: `Bearer ${accessToken}`
+      return {
+        addAuthToOperation(operation) {
+          if (!accessToken) return operation
+          return utils.appendHeaders(operation, {
+            Authorization: `Bearer ${accessToken}`
+          })
+        },
+        didAuthError(error, _operation) {
+          return (
+            error.response.status === 401 ||
+            error.graphQLErrors.some(
+              // todo
+              // @ts-ignore
+              e => e.extensions === 'Unauthorized'
+            )
+          )
+        },
+        willAuthError(operation) {
+          // Sync tokens on every operation
+          const authData = getAuthToken()
+          accessToken = authData?.accessToken
+          refreshToken = authData?.refreshToken
+
+          if (
+            operation.kind === 'mutation' &&
+            operation.query.definitions.some(definition => {
+              return (
+                definition.kind === 'OperationDefinition' &&
+                definition.name?.value &&
+                ['tokenAuth', 'registerUser'].includes(definition.name.value)
+              )
+            })
+          ) {
+            return false
+          }
+
+          if (
+            refreshToken &&
+            operation.kind === 'mutation' &&
+            operation.query.definitions.some(definition => {
+              return (
+                definition.kind === 'OperationDefinition' &&
+                definition?.name?.value === 'refreshToken'
+              )
+            })
+          ) {
+            return false
+          }
+
+          if (accessToken) {
+            // Check whether `token` JWT is expired
+            try {
+              const { exp } = jwtDecode(accessToken)
+              return exp ? isTokenExpired(exp) : true
+            } catch (e) {
+              return true
+            }
+          } else {
+            return true
+          }
+        },
+        async refreshAuth() {
+          // if not refreshToken, do logout
+          if (refreshToken) {
+            const result = await utils.mutate(refreshTokenMutation, {
+              refreshToken
+            })
+            if (result.data?.refreshToken) {
+              // Update our local variables and write to our storage
+              accessToken = result.data.refreshToken.accessToken
+              refreshToken = result.data.refreshToken.refreshToken
+              saveAuthToken({
+                accessToken,
+                refreshToken
+              })
+            } else {
+              clearAuthToken()
+            }
+          } else {
+            // This is where auth has gone wrong and we need to clean up and redirect to a login page
+            clearAuthToken()
+          }
         }
-      }),
-    swrConfiguration
-  )
-}
+      }
+    }),
+    fetchExchange
+  ]
+})
+
+export type { ValidationError, ValidationErrors }
+export { useMutation, client }

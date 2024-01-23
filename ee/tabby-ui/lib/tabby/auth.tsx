@@ -1,11 +1,11 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { jwtDecode, JwtPayload } from 'jwt-decode'
+import { useQuery } from 'urql'
 import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
-import useInterval from '@/lib/hooks/use-interval'
-import { useGraphQLQuery, useMutation } from '@/lib/tabby/gql'
+import { isClientSide } from '@/lib/utils'
 
 interface AuthData {
   accessToken: string
@@ -55,6 +55,27 @@ interface RefreshAction {
 
 type AuthActions = SignInAction | SignOutAction | RefreshAction
 
+const AUTH_TOKEN_KEY = '_tabby_auth'
+
+const getAuthToken = (): AuthData | null => {
+  if (isClientSide()) {
+    let tokenData = localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!tokenData) return null
+    try {
+      return JSON.parse(tokenData)
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+}
+const saveAuthToken = (authData: AuthData) => {
+  localStorage.setItem(AUTH_TOKEN_KEY, JSON.stringify(authData))
+}
+const clearAuthToken = () => {
+  localStorage.removeItem(AUTH_TOKEN_KEY)
+}
+
 function authReducer(state: AuthState, action: AuthActions): AuthState {
   switch (action.type) {
     case AuthActionType.SignIn:
@@ -84,14 +105,20 @@ interface AuthProviderProps {
   children: React.ReactNode
 }
 
+interface AuthContextValue extends AuthStore {
+  session: Session
+}
+
 interface AuthStore {
   authState: AuthState | null
   dispatch: React.Dispatch<AuthActions>
 }
 
-const AuthContext = React.createContext<AuthStore | null>(null)
+const AuthContext = React.createContext<AuthContextValue>(
+  {} as AuthContextValue
+)
 
-const refreshTokenMutation = graphql(/* GraphQL */ `
+export const refreshTokenMutation = graphql(/* GraphQL */ `
   mutation refreshToken($refreshToken: String!) {
     refreshToken(refreshToken: $refreshToken) {
       accessToken
@@ -103,69 +130,57 @@ const refreshTokenMutation = graphql(/* GraphQL */ `
 const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   children
 }) => {
+  const [authToken] = useLocalStorage<AuthData | null>(AUTH_TOKEN_KEY, null)
   const [authState, dispatch] = React.useReducer(authReducerDeduped, {
     status: 'loading',
     data: null
   })
-
-  return (
-    <AuthContext.Provider value={{ authState, dispatch }}>
-      <RefreshAuth />
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-function RefreshAuth() {
-  const [authData, setAuthData] = useLocalStorage<AuthData | null>(
-    '_tabby_auth',
-    null
-  )
-
-  const { authState, dispatch } = useAuthStore()
-  const refreshToken = useMutation(refreshTokenMutation, {
-    onCompleted({ refreshToken: data }) {
-      dispatch({ type: AuthActionType.Refresh, data })
-    },
-    onError() {
-      dispatch({
-        type: AuthActionType.SignOut
-      })
-    }
-  })
-
-  const initialized = React.useRef(false)
   React.useEffect(() => {
-    if (authData?.refreshToken) {
-      if (!initialized.current) {
-        // When the page is first loaded, we need to refresh the token
-        initialized.current = true
-        refreshToken(authData)
-      } else {
-        dispatch({ type: AuthActionType.Refresh, data: authData })
-      }
+    if (authToken?.accessToken && authToken?.refreshToken) {
+      dispatch({ type: AuthActionType.Refresh, data: authToken })
     } else {
       dispatch({ type: AuthActionType.SignOut })
     }
-  }, [authData])
+  }, [authToken])
 
-  React.useEffect(() => {
-    if (authState?.data) {
-      setAuthData(authState.data)
-    } else if (!initialized.current) {
-      setAuthData(authState?.data || null)
+  const session: Session = React.useMemo(() => {
+    if (authState?.status == 'authenticated') {
+      try {
+        const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
+          authState.data.accessToken
+        )
+        return {
+          data: {
+            email: sub!,
+            isAdmin: is_admin,
+            accessToken: authState.data.accessToken
+          },
+          status: authState.status
+        }
+      } catch (e) {
+        console.error('jwt decode failed')
+        return {
+          status: authState?.status ?? 'loading',
+          data: {
+            email: '',
+            isAdmin: false,
+            accessToken: authState.data.accessToken
+          }
+        }
+      }
+    }
+
+    return {
+      status: authState?.status ?? 'loading',
+      data: null
     }
   }, [authState])
 
-  useInterval(async () => {
-    if (authState?.status !== 'authenticated') {
-      return
-    }
-
-    await refreshToken(authState.data)
-  }, 5)
-
-  return <></>
+  return (
+    <AuthContext.Provider value={{ authState, dispatch, session }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 class AuthProviderIsMissing extends Error {
@@ -174,7 +189,7 @@ class AuthProviderIsMissing extends Error {
   }
 }
 
-function useAuthStore(): AuthStore {
+function useAuthStore() {
   const context = React.useContext(AuthContext)
 
   if (!context) {
@@ -187,6 +202,10 @@ function useAuthStore(): AuthStore {
 function useSignIn(): (params: AuthData) => Promise<boolean> {
   const { dispatch } = useAuthStore()
   return async data => {
+    saveAuthToken({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken
+    })
     dispatch({
       type: AuthActionType.SignIn,
       data
@@ -199,6 +218,7 @@ function useSignIn(): (params: AuthData) => Promise<boolean> {
 function useSignOut(): () => Promise<void> {
   const { dispatch } = useAuthStore()
   return async () => {
+    clearAuthToken()
     dispatch({ type: AuthActionType.SignOut })
   }
 }
@@ -220,25 +240,8 @@ type Session =
     }
 
 function useSession(): Session {
-  const { authState } = useAuthStore()
-  if (authState?.status == 'authenticated') {
-    const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
-      authState.data.accessToken
-    )
-    return {
-      data: {
-        email: sub!,
-        isAdmin: is_admin,
-        accessToken: authState.data.accessToken
-      },
-      status: authState.status
-    }
-  } else {
-    return {
-      status: authState?.status ?? 'loading',
-      data: null
-    }
-  }
+  const { session } = useAuthStore()
+  return session
 }
 
 export const getIsAdminInitialized = graphql(/* GraphQL */ `
@@ -248,7 +251,7 @@ export const getIsAdminInitialized = graphql(/* GraphQL */ `
 `)
 
 function useAuthenticatedSession() {
-  const { data } = useGraphQLQuery(getIsAdminInitialized)
+  const [{ data }] = useQuery({ query: getIsAdminInitialized })
   const router = useRouter()
   const { data: session, status } = useSession()
 
@@ -266,9 +269,9 @@ function useAuthenticatedSession() {
   return session
 }
 
-function useAuthenticatedApi(path: string | null): [string, string] | null {
-  const { data, status } = useSession()
-  return path && status === 'authenticated' ? [path, data.accessToken] : null
+function useAuthenticatedApi(path: string | null): string | null {
+  const { status } = useSession()
+  return path && status === 'authenticated' ? path : null
 }
 
 export type { AuthStore, User, Session }
@@ -279,5 +282,9 @@ export {
   useSignOut,
   useSession,
   useAuthenticatedSession,
-  useAuthenticatedApi
+  useAuthenticatedApi,
+  getAuthToken,
+  saveAuthToken,
+  clearAuthToken,
+  AUTH_TOKEN_KEY
 }

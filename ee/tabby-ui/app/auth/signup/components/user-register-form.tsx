@@ -69,7 +69,7 @@ export function UserAuthForm({
   const { isSubmitting } = form.formState
   const onSubmit = useMutation(registerUser, {
     async onCompleted(values) {
-      if (await signIn(values.register)) {
+      if (await signIn(values?.register)) {
         router.replace('/')
       }
     },

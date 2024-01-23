@@ -1,10 +1,13 @@
 'use client'
 
+import { noop } from 'lodash-es'
+import { useQuery } from 'urql'
+
 import { graphql } from '@/lib/gql/generates'
 import { WorkerKind } from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
-import { useAuthenticatedGraphQLQuery, useMutation } from '@/lib/tabby/gql'
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -32,13 +35,13 @@ function toBadgeString(str: string) {
 export default function Workers() {
   const { data: healthInfo } = useHealth()
   const workers = useWorkers()
-  const { data: registrationTokenRes, mutate } = useAuthenticatedGraphQLQuery(
-    getRegistrationTokenDocument
-  )
+  const [{ data: registrationTokenRes }, reexecuteQuery] = useQuery({
+    query: getRegistrationTokenDocument
+  })
 
   const resetRegistrationToken = useMutation(resetRegistrationTokenDocument, {
     onCompleted() {
-      mutate()
+      reexecuteQuery()
     }
   })
 
@@ -69,6 +72,7 @@ export default function Workers() {
           <Input
             className="max-w-[320px] font-mono text-red-600"
             value={registrationTokenRes.registrationToken}
+            onChange={noop}
           />
           <Button
             title="Rotate"

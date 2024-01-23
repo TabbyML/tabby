@@ -6,7 +6,7 @@ import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
 import { useDebounce } from '@/lib/hooks/use-debounce'
-import { useAuthenticatedApi, useSession } from '@/lib/tabby/auth'
+import { useSession } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
 import { cn } from '@/lib/utils'
 import {
@@ -276,11 +276,9 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 
   const { data, isValidating }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
-      useAuthenticatedApi(
-        shouldFetchChildren
-          ? `/repositories/${repositoryName}/resolve/${basename}`
-          : null
-      ),
+      shouldFetchChildren
+        ? `/repositories/${repositoryName}/resolve/${basename}`
+        : null,
       fetcher,
       {
         revalidateIfStale: false
@@ -422,10 +420,9 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
     try {
       if (!accessToken) return []
 
-      const repos: ResolveEntriesResponse = await fetcher([
-        '/repositories/resolve/',
-        accessToken
-      ])
+      const repos: ResolveEntriesResponse = await fetcher(
+        '/repositories/resolve/'
+      )
       return repos?.entries
     } catch (e) {
       return []
@@ -447,10 +444,7 @@ const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
       // fetch default directories
       const requests: Array<() => Promise<ResolveEntriesResponse>> =
         directoryPaths.map(path => () => {
-          return fetcher([
-            `/repositories/${defaultRepository}/resolve/${path}`,
-            accessToken
-          ])
+          return fetcher(`/repositories/${defaultRepository}/resolve/${path}`)
         })
       const entries = await Promise.all(requests.map(fn => fn()))
       let result: TFile[] = []
