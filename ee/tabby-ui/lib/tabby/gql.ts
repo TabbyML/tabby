@@ -12,10 +12,10 @@ import {
 } from 'urql'
 
 import {
-  clearAuthData,
+  clearAuthToken,
   getAuthToken,
   refreshTokenMutation,
-  saveAuthData
+  saveAuthToken
 } from './auth'
 
 interface ValidationError {
@@ -166,16 +166,16 @@ const client = new Client({
               // Update our local variables and write to our storage
               accessToken = result.data.refreshToken.accessToken
               refreshToken = result.data.refreshToken.refreshToken
-              saveAuthData({
+              saveAuthToken({
                 accessToken,
                 refreshToken
               })
             } else {
-              clearAuthData()
+              clearAuthToken()
             }
           } else {
             // This is where auth has gone wrong and we need to clean up and redirect to a login page
-            clearAuthData()
+            clearAuthToken()
           }
         }
       }
@@ -184,4 +184,5 @@ const client = new Client({
   ]
 })
 
-export { type ValidationError, type ValidationErrors, useMutation, client }
+export type { ValidationError, ValidationErrors }
+export { useMutation, client }

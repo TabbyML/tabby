@@ -1,10 +1,10 @@
 import { createRequest } from '@urql/core'
 
 import {
-  clearAuthData,
+  clearAuthToken,
   getAuthToken,
   refreshTokenMutation,
-  saveAuthData
+  saveAuthToken
 } from './auth'
 import { client } from './gql'
 
@@ -33,7 +33,7 @@ export default async function tokenFetcher(
 
     const refreshToken = getAuthToken()?.refreshToken
     if (!refreshToken) {
-      clearAuthData()
+      clearAuthToken()
       return
     }
 
@@ -43,7 +43,7 @@ export default async function tokenFetcher(
 
     const newToken = refreshAuthRes?.data?.refreshToken
     if (newToken) {
-      saveAuthData({
+      saveAuthToken({
         accessToken: newToken.accessToken,
         refreshToken: newToken.refreshToken
       })
@@ -57,7 +57,7 @@ export default async function tokenFetcher(
     } else {
       refreshing = false
       queue.length = 0
-      clearAuthData()
+      clearAuthToken()
     }
   } else {
     return init?.format === 'text' ? response.text() : response.json()

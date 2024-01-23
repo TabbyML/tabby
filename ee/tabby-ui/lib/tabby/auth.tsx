@@ -5,8 +5,7 @@ import { useQuery } from 'urql'
 import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
-
-import { isClientSide } from '../utils'
+import { isClientSide } from '@/lib/utils'
 
 interface AuthData {
   accessToken: string
@@ -58,7 +57,7 @@ type AuthActions = SignInAction | SignOutAction | RefreshAction
 
 const AUTH_TOKEN_KEY = '_tabby_auth'
 
-export const getAuthToken = (): AuthData | null => {
+const getAuthToken = (): AuthData | null => {
   if (isClientSide()) {
     let tokenData = localStorage.getItem(AUTH_TOKEN_KEY)
     if (!tokenData) return null
@@ -70,10 +69,10 @@ export const getAuthToken = (): AuthData | null => {
   }
   return null
 }
-export const saveAuthData = (authData: AuthData) => {
+const saveAuthToken = (authData: AuthData) => {
   localStorage.setItem(AUTH_TOKEN_KEY, JSON.stringify(authData))
 }
-export const clearAuthData = () => {
+const clearAuthToken = () => {
   localStorage.removeItem(AUTH_TOKEN_KEY)
 }
 
@@ -203,6 +202,10 @@ function useAuthStore() {
 function useSignIn(): (params: AuthData) => Promise<boolean> {
   const { dispatch } = useAuthStore()
   return async data => {
+    saveAuthToken({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken
+    })
     dispatch({
       type: AuthActionType.SignIn,
       data
@@ -215,7 +218,7 @@ function useSignIn(): (params: AuthData) => Promise<boolean> {
 function useSignOut(): () => Promise<void> {
   const { dispatch } = useAuthStore()
   return async () => {
-    clearAuthData()
+    clearAuthToken()
     dispatch({ type: AuthActionType.SignOut })
   }
 }
@@ -279,5 +282,9 @@ export {
   useSignOut,
   useSession,
   useAuthenticatedSession,
-  useAuthenticatedApi
+  useAuthenticatedApi,
+  getAuthToken,
+  saveAuthToken,
+  clearAuthToken,
+  AUTH_TOKEN_KEY
 }
