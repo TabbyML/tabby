@@ -12,21 +12,19 @@ use axum::{
 };
 use hyper::Body;
 use juniper_axum::extract::AuthBearer;
-pub use resolve::{RepositoryCache, start_reload_job};
+pub use resolve::RepositoryCache;
 use tabby_common::config::RepositoryConfig;
 use tracing::{instrument, warn};
 
 use crate::{
-    repositories::resolve::{
-        contains_meta, resolve_all, resolve_dir, resolve_file, resolve_meta, RepositoryMeta,
-        ResolveParams,
-    },
+    repositories::resolve::{RepositoryMeta, ResolveParams},
     schema::auth::AuthenticationService,
 };
 
 #[derive(Debug)]
 pub struct ResolveState {
     pub repositories: Vec<RepositoryConfig>,
+    pub cache: Arc<RepositoryCache>,
 }
 
 impl ResolveState {
@@ -38,17 +36,14 @@ impl ResolveState {
 pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
         .route("/resolve", routing::get(resolve))
-        .with_state(rs.clone())
         .route("/resolve/", routing::get(resolve))
-        .with_state(rs.clone())
         .route("/:name/resolve/.git/", routing::get(not_found))
         .route("/:name/resolve/.git/*path", routing::get(not_found))
         .route("/:name/resolve/", routing::get(resolve_path))
-        .with_state(rs.clone())
         .route("/:name/resolve/*path", routing::get(resolve_path))
-        .with_state(rs.clone())
         .route("/:name/meta/", routing::get(meta))
         .route("/:name/meta/*path", routing::get(meta))
+        .with_state(rs.clone())
         .fallback(not_found)
         .layer(from_fn_with_state(auth, require_login_middleware))
 }
@@ -96,7 +91,7 @@ async fn resolve_path(
         .unwrap_or(false);
 
     if is_dir {
-        return match resolve_dir(&repo, root, full_path.clone()).await {
+        return match rs.cache.resolve_dir(&repo, root, full_path.clone()).await {
             Ok(resp) => Ok(resp),
             Err(err) => {
                 warn!("failed to resolve_dir <{:?}>: {}", full_path, err);
@@ -105,10 +100,10 @@ async fn resolve_path(
         };
     }
 
-    if !contains_meta(&repo.dataset_key()) {
+    if !rs.cache.contains_meta(&repo.dataset_key()) {
         return Err(StatusCode::NOT_FOUND);
     }
-    match resolve_file(root, &repo).await {
+    match rs.cache.resolve_file(root, &repo).await {
         Ok(resp) => Ok(resp),
         Err(err) => {
             warn!("failed to resolve_file <{:?}>: {}", full_path, err);
@@ -118,14 +113,20 @@ async fn resolve_path(
 }
 
 #[instrument(skip(repo))]
-async fn meta(Path(repo): Path<ResolveParams>) -> Result<Json<RepositoryMeta>, StatusCode> {
+async fn meta(
+    State(rs): State<Arc<ResolveState>>,
+    Path(repo): Path<ResolveParams>,
+) -> Result<Json<RepositoryMeta>, StatusCode> {
     let key = repo.dataset_key();
-    if let Some(resp) = resolve_meta(&key) {
+    if let Some(resp) = rs.cache.resolve_meta(&key) {
         return Ok(Json(resp));
     }
     Err(StatusCode::NOT_FOUND)
 }
 
 async fn resolve(State(rs): State<Arc<ResolveState>>) -> Result<Response, StatusCode> {
-    resolve_all(rs).map_err(|_| StatusCode::NOT_FOUND)
+    rs.clone()
+        .cache
+        .resolve_all(rs)
+        .map_err(|_| StatusCode::NOT_FOUND)
 }
