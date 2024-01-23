@@ -38,7 +38,7 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
 `)
 
 export default function InvitationTable() {
-  const [{ data }, executeQuery] = useQuery({ query: listInvitations })
+  const [{ data }, reexecuteQuery] = useQuery({ query: listInvitations })
   const invitations = data?.invitations
   const [origin, setOrigin] = useState('')
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function InvitationTable() {
 
   const deleteInvitation = useMutation(deleteInvitationMutation, {
     onCompleted() {
-      executeQuery()
+      reexecuteQuery()
     }
   })
 
@@ -85,7 +85,7 @@ export default function InvitationTable() {
           })}
           <TableRow>
             <TableCell className="p-2">
-              <CreateInvitationForm onCreated={() => executeQuery()} />
+              <CreateInvitationForm onCreated={() => reexecuteQuery()} />
             </TableCell>
           </TableRow>
         </TableBody>

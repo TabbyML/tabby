@@ -15,8 +15,7 @@ import {
   clearAuthData,
   getAuthToken,
   refreshTokenMutation,
-  saveAuthData,
-  useSession
+  saveAuthData
 } from './auth'
 
 interface ValidationError {
@@ -52,7 +51,6 @@ function useMutation<TResult, TVariables extends AnyVariables>(
         return
       }
 
-      // todo not only return data?
       res = response?.data
     } catch (err: any) {
       options?.onError && options.onError(err)
@@ -89,6 +87,7 @@ const isTokenExpired = (exp: number) => {
 }
 const client = new Client({
   url: `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`,
+  requestPolicy: 'cache-and-network',
   exchanges: [
     cacheExchange,
     authExchange(async utils => {

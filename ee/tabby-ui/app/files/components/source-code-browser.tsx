@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import { has } from 'lodash-es'
 import useSWRImmutable from 'swr/immutable'
 
-import { useHealth } from '@/lib/hooks/use-health'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import fetcher from '@/lib/tabby/fetcher'
 import { cn } from '@/lib/utils'
@@ -91,7 +90,6 @@ interface SourceCodeBrowserProps {
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   className
 }) => {
-  const hea = useHealth()
   const { searchParams, updateSearchParams } = useRouterStuff()
   const defaultRepositoryName = searchParams.get('repo')?.toString()
   const defaultBasename = searchParams.get('path')?.toString()

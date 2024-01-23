@@ -125,7 +125,6 @@ export const refreshTokenMutation = graphql(/* GraphQL */ `
 const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   children
 }) => {
-  const initialized = React.useRef(false)
   const [authState, dispatch] = React.useReducer(authReducerDeduped, {
     status: 'loading',
     data: null
@@ -134,13 +133,12 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   const [authData] = useLocalStorage<AuthData | null>(AUTH_TOKEN_KEY, null)
 
   React.useEffect(() => {
-    initialized.current = true
     if (authData?.accessToken && authData?.refreshToken) {
       dispatch({ type: AuthActionType.Refresh, data: authData })
     } else {
       dispatch({ type: AuthActionType.SignOut })
     }
-  }, [])
+  }, [authData])
 
   // const session: Session = React.useMemo(() => {
   //   if (authState?.status == 'authenticated') {
@@ -210,6 +208,7 @@ function useSignIn(): (params: AuthData) => Promise<boolean> {
 function useSignOut(): () => Promise<void> {
   const { dispatch } = useAuthStore()
   return async () => {
+    clearAuthData()
     dispatch({ type: AuthActionType.SignOut })
   }
 }

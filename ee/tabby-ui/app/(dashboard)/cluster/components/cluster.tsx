@@ -1,5 +1,6 @@
 'use client'
 
+import { noop } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -34,13 +35,13 @@ function toBadgeString(str: string) {
 export default function Workers() {
   const { data: healthInfo } = useHealth()
   const workers = useWorkers()
-  const [{ data: registrationTokenRes }, executeQuery] = useQuery({
+  const [{ data: registrationTokenRes }, reexecuteQuery] = useQuery({
     query: getRegistrationTokenDocument
   })
 
   const resetRegistrationToken = useMutation(resetRegistrationTokenDocument, {
     onCompleted() {
-      executeQuery()
+      reexecuteQuery()
     }
   })
 
@@ -71,6 +72,7 @@ export default function Workers() {
           <Input
             className="max-w-[320px] font-mono text-red-600"
             value={registrationTokenRes.registrationToken}
+            onChange={noop}
           />
           <Button
             title="Rotate"

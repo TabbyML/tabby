@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { noop } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -44,14 +45,14 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()
-  const [{ data }, executeQuery] = useQuery({ query: meQuery })
+  const [{ data }, reexecuteQuery] = useQuery({ query: meQuery })
   const [origin, setOrigin] = useState('')
   useEffect(() => {
     setOrigin(new URL(window.location.href).origin)
   }, [])
 
   const resetUserAuthToken = useMutation(resetUserAuthTokenDocument, {
-    onCompleted: () => executeQuery()
+    onCompleted: () => reexecuteQuery()
   })
 
   if (!healthInfo || !data) return
@@ -64,7 +65,7 @@ function MainPanel() {
       <CardContent className="flex flex-col gap-4">
         <Label>Endpoint URL</Label>
         <span className="flex items-center gap-1">
-          <Input value={origin} className="max-w-[320px]" />
+          <Input value={origin} onChange={noop} className="max-w-[320px]" />
           <CopyButton value={origin} />
         </span>
 
@@ -73,6 +74,7 @@ function MainPanel() {
           <Input
             className="max-w-[320px] font-mono text-red-600"
             value={data.me.authToken}
+            onChange={noop}
           />
           <Button
             title="Rotate"
