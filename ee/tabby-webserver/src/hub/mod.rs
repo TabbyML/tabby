@@ -11,7 +11,7 @@ use axum::{
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
-use tabby_common::api::code::SearchResponse;
+use tabby_common::{api::code::SearchResponse, config::RepositoryConfig};
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
 use websocket::WebSocketTransport;
@@ -132,5 +132,20 @@ impl Hub for Arc<HubImpl> {
                 SearchResponse::default()
             }
         }
+    }
+    async fn get_repositories(
+        self,
+        _context: tarpc::context::Context,
+    ) -> Result<Vec<RepositoryConfig>, String> {
+        self.ctx
+            .repository()
+            .list_repositories(None, None, None, None)
+            .await
+            .map_err(|e| e.to_string())
+            .map(|v| {
+                v.into_iter()
+                    .map(|r| RepositoryConfig::new_named(r.name, r.git_url))
+                    .collect()
+            })
     }
 }
