@@ -12,7 +12,7 @@ use axum::{
 };
 use hyper::Body;
 use juniper_axum::extract::AuthBearer;
-pub use resolve::start_reload_job;
+pub use resolve::{RepositoryCache, start_reload_job};
 use tabby_common::config::RepositoryConfig;
 use tracing::{instrument, warn};
 

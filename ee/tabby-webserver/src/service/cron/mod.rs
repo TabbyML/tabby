@@ -68,5 +68,4 @@ pub fn run_cron(db_conn: &DbConn, turn_on_scheduler_jobs: bool) {
             }
         }
     });
-    hooks
 }

@@ -62,7 +62,9 @@ impl RepositoryCache {
         *repositories = load_meta();
     }
 
-    pub fn repositories<'a>(&'a self) -> impl Deref<Target = HashMap<RepositoryKey, RepositoryMeta>> + 'a {
+    pub fn repositories<'a>(
+        &'a self,
+    ) -> impl Deref<Target = HashMap<RepositoryKey, RepositoryMeta>> + 'a {
         self.repositories.read().unwrap()
     }
 }
@@ -243,14 +245,14 @@ pub async fn resolve_file(root: PathBuf, repo: &ResolveParams) -> Result<Respons
 }
 
 pub fn resolve_meta(key: &RepositoryKey) -> Option<RepositoryMeta> {
-    if let Some(meta) = META.get(key) {
+    if let Some(meta) = META.repositories().get(key) {
         return Some(meta.clone());
     }
     None
 }
 
 pub fn contains_meta(key: &RepositoryKey) -> bool {
-    META.contains_key(key)
+    META.repositories().contains_key(key)
 }
 
 pub fn resolve_all(rs: Arc<ResolveState>) -> Result<Response> {
