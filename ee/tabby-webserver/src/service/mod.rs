@@ -21,13 +21,16 @@ use tabby_db::DbConn;
 use tracing::{info, warn};
 
 use self::{cron::run_cron, email::new_email_service};
-use crate::schema::{
-    auth::AuthenticationService,
-    email::EmailService,
-    job::JobService,
-    repository::RepositoryService,
-    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    ServiceLocator,
+use crate::{
+    repositories::start_reload_job,
+    schema::{
+        auth::AuthenticationService,
+        email::EmailService,
+        job::JobService,
+        repository::RepositoryService,
+        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+        ServiceLocator,
+    },
 };
 
 struct ServerContext {
@@ -45,6 +48,7 @@ impl ServerContext {
     pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         let db_conn = DbConn::new().await.unwrap();
         run_cron(&db_conn, false);
+        start_reload_job();
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),

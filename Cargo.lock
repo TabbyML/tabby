@@ -3924,6 +3924,7 @@ dependencies = [
  "chrono",
  "futures",
  "hyper",
+ "job_scheduler",
  "jsonwebtoken",
  "juniper",
  "juniper-axum",

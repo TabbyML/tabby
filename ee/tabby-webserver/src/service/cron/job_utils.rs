@@ -5,11 +5,9 @@ use tokio::{io::AsyncBufReadExt, process::Child};
 use tokio_cron_scheduler::Job;
 use tracing::error;
 
-use super::JobType;
-
-pub async fn run_job(db_conn: DbConn, job: JobType) -> anyhow::Result<Job> {
-    let job = Job::new_async(job.schedule(), move |_, _| {
-        let job_name = job.name().to_string();
+pub async fn run_job(db_conn: DbConn, job_name: String, schedule: &str) -> anyhow::Result<Job> {
+    let job = Job::new_async(schedule, move |_, _| {
+        let job_name = job_name.clone();
         let db_conn = db_conn.clone();
         Box::pin(async move {
             // create job run record
@@ -50,9 +48,6 @@ pub async fn run_job(db_conn: DbConn, job: JobType) -> anyhow::Result<Job> {
                 .unwrap_or_else(|e| {
                     error!("failed to update `{}` run record: {}", job_name, e);
                 });
-
-            // run any post-command steps
-            job.afterwards();
         })
     })?;
 

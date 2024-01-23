@@ -14,6 +14,7 @@ use axum::{
     Json,
 };
 use hyper::Body;
+use job_scheduler::{Job, JobScheduler};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, SourceFile, Tag};
@@ -28,6 +29,19 @@ lazy_static! {
 
 pub fn reload_repository_cache() {
     META.reload()
+}
+
+pub fn start_reload_job() {
+    std::thread::spawn(|| {
+        let mut scheduler = JobScheduler::new();
+        scheduler.add(Job::new("0 1/5 * * * * *".parse().unwrap(), || {
+            reload_repository_cache();
+        }));
+        loop {
+            std::thread::sleep(scheduler.time_till_next_job());
+            scheduler.tick();
+        }
+    });
 }
 
 pub struct RepositoryCache {
