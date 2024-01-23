@@ -44,7 +44,7 @@ struct ServerContext {
 impl ServerContext {
     pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         let db_conn = DbConn::new().await.unwrap();
-        run_cron(&db_conn, false);
+        run_cron(&db_conn, false).await;
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
