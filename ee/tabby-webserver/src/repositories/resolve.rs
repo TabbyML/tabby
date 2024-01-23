@@ -17,13 +17,13 @@ use tower_http::services::ServeDir;
 use crate::repositories::ResolveState;
 
 lazy_static! {
-    static ref META: HashMap<DatasetKey, Meta> = load_meta();
+    static ref META: HashMap<RepositoryKey, RepositoryMeta> = load_meta();
 }
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
 #[derive(Hash, PartialEq, Eq, Debug)]
-pub struct DatasetKey {
+pub struct RepositoryKey {
     repo_name: String,
     rel_path: String,
 }
@@ -35,8 +35,8 @@ pub struct ResolveParams {
 }
 
 impl ResolveParams {
-    pub fn dataset_key(&self) -> DatasetKey {
-        DatasetKey {
+    pub fn dataset_key(&self) -> RepositoryKey {
+        RepositoryKey {
             repo_name: self.name.clone(),
             rel_path: self.os_path(),
         }
@@ -78,7 +78,7 @@ struct DirEntry {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Meta {
+pub struct RepositoryMeta {
     git_url: String,
     filepath: String,
     language: String,
@@ -88,7 +88,7 @@ pub struct Meta {
     tags: Vec<Tag>,
 }
 
-impl From<SourceFile> for Meta {
+impl From<SourceFile> for RepositoryMeta {
     fn from(file: SourceFile) -> Self {
         Self {
             git_url: file.git_url,
@@ -103,7 +103,7 @@ impl From<SourceFile> for Meta {
 }
 
 /// TODO: implement auto reloading logic in future (so changes produced by tabby-scheduler command will be loaded)
-fn load_meta() -> HashMap<DatasetKey, Meta> {
+fn load_meta() -> HashMap<RepositoryKey, RepositoryMeta> {
     let mut dataset = HashMap::new();
     let repo_conf = match Config::load() {
         Ok(config) => config
@@ -120,7 +120,7 @@ fn load_meta() -> HashMap<DatasetKey, Meta> {
     };
     for file in iter {
         if let Some(repo_name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
-            let key = DatasetKey {
+            let key = RepositoryKey {
                 repo_name,
                 rel_path: file.filepath.clone(),
             };
@@ -152,7 +152,7 @@ pub async fn resolve_dir(
         let kind = if meta.is_dir() {
             DirEntryKind::Dir
         } else if meta.is_file() {
-            let key = DatasetKey {
+            let key = RepositoryKey {
                 repo_name: repo.name_str().to_string(),
                 rel_path: basename.clone(),
             };
@@ -196,14 +196,14 @@ pub async fn resolve_file(root: PathBuf, repo: &ResolveParams) -> Result<Respons
     Ok(resp.map(boxed))
 }
 
-pub fn resolve_meta(key: &DatasetKey) -> Option<Meta> {
+pub fn resolve_meta(key: &RepositoryKey) -> Option<RepositoryMeta> {
     if let Some(meta) = META.get(key) {
         return Some(meta.clone());
     }
     None
 }
 
-pub fn contains_meta(key: &DatasetKey) -> bool {
+pub fn contains_meta(key: &RepositoryKey) -> bool {
     META.contains_key(key)
 }
 
