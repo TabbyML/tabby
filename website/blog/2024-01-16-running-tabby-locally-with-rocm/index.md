@@ -7,6 +7,8 @@ tags: [deployment]
 
 For those using (compatible) **AMD** graphics cards, you can now run Tabby locally with GPU acceleration using AMD's ROCm toolkit! 🎉
 
+ROCm is AMD's equivalent of NVidia's CUDA library, making it possible to run highly parallelized computations on the GPU. Cuda is open source and supports using multiple GPUs at the same time to perform the same computation.
+
 Currently, Tabby with ROCm is only supported on Linux, and can only be run directly from a compiled binary. In the future, Tabby will be able to run with ROCm on Windows, and we will distribute a Docker container capable of running with ROCm on any platform.
 
 ## Install ROCm
@@ -27,14 +29,6 @@ Once you have a compiled binary, you can run it with this command:
 
 If the command is used correctly and the environment is configured properly, you should see command output similar to the following:  
 ![Tabby running](./tabby-running.png)  
-And enjoy GPU-accelerated code completions! This should be considerably faster than with CPU (I saw a ~5x speedup).
+And enjoy GPU-accelerated code completions! This should be considerably faster than with CPU (I saw a ~5x speedup with StarCoder-1B using a Ryzen 7 5800X and an RX 6950XT).
 
-## Try Chatting
-
-You can also try chat sessions with GPU-accelerated models, which can write and discuss code in plain language:
-
-```
-./tabby serve --chat-model TabbyML/WizardCoder-3B --device rocm --webserver
-```
-
-![Tabby chat](./chat-session.png)
+![Completions demo](./using-completions.png)
