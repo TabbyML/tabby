@@ -106,12 +106,18 @@ interface AuthProviderProps {
   children: React.ReactNode
 }
 
+interface AuthContextValue extends AuthStore {
+  session: Session
+}
+
 interface AuthStore {
   authState: AuthState | null
   dispatch: React.Dispatch<AuthActions>
 }
 
-const AuthContext = React.createContext<AuthStore | null>(null)
+const AuthContext = React.createContext<AuthContextValue>(
+  {} as AuthContextValue
+)
 
 export const refreshTokenMutation = graphql(/* GraphQL */ `
   mutation refreshToken($refreshToken: String!) {
@@ -125,53 +131,54 @@ export const refreshTokenMutation = graphql(/* GraphQL */ `
 const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   children
 }) => {
+  const [authToken] = useLocalStorage<AuthData | null>(AUTH_TOKEN_KEY, null)
   const [authState, dispatch] = React.useReducer(authReducerDeduped, {
     status: 'loading',
     data: null
   })
-
-  const [authData] = useLocalStorage<AuthData | null>(AUTH_TOKEN_KEY, null)
-
   React.useEffect(() => {
-    if (authData?.accessToken && authData?.refreshToken) {
-      dispatch({ type: AuthActionType.Refresh, data: authData })
+    if (authToken?.accessToken && authToken?.refreshToken) {
+      dispatch({ type: AuthActionType.Refresh, data: authToken })
     } else {
       dispatch({ type: AuthActionType.SignOut })
     }
-  }, [authData])
+  }, [authToken])
 
-  // const session: Session = React.useMemo(() => {
-  //   if (authState?.status == 'authenticated') {
-  //     try {
-  //       const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
-  //         authState.data.accessToken
-  //       )
-  //       return {
-  //         data: {
-  //           email: sub!,
-  //           isAdmin: is_admin,
-  //           accessToken: authState.data.accessToken
-  //         },
-  //         status: authState.status
-  //       }
-  //     } catch(e) {
-  //       console.error(e)
-  //       // todo
-  //       return {
-  //         status: authState?.status ?? 'loading',
-  //         data: null
-  //       }
-  //     }
-  //   } else {
-  //     return {
-  //       status: authState?.status ?? 'loading',
-  //       data: null
-  //     }
-  //   }
-  // }, [authState])
+  const session: Session = React.useMemo(() => {
+    if (authState?.status == 'authenticated') {
+      try {
+        const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
+          authState.data.accessToken
+        )
+        return {
+          data: {
+            email: sub!,
+            isAdmin: is_admin,
+            accessToken: authState.data.accessToken
+          },
+          status: authState.status
+        }
+      } catch (e) {
+        console.error('jwt decode failed')
+        return {
+          status: authState?.status ?? 'loading',
+          data: {
+            email: '',
+            isAdmin: false,
+            accessToken: authState.data.accessToken
+          }
+        }
+      }
+    }
+
+    return {
+      status: authState?.status ?? 'loading',
+      data: null
+    }
+  }, [authState])
 
   return (
-    <AuthContext.Provider value={{ authState, dispatch }}>
+    <AuthContext.Provider value={{ authState, dispatch, session }}>
       {children}
     </AuthContext.Provider>
   )
@@ -183,7 +190,7 @@ class AuthProviderIsMissing extends Error {
   }
 }
 
-function useAuthStore(): AuthStore {
+function useAuthStore() {
   const context = React.useContext(AuthContext)
 
   if (!context) {
@@ -230,38 +237,7 @@ type Session =
     }
 
 function useSession(): Session {
-  const { authState } = useAuthStore()
-
-  const session: Session = React.useMemo(() => {
-    if (authState?.status == 'authenticated') {
-      try {
-        const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
-          authState.data.accessToken
-        )
-        return {
-          data: {
-            email: sub!,
-            isAdmin: is_admin,
-            accessToken: authState.data.accessToken
-          },
-          status: authState.status
-        }
-      } catch (e) {
-        console.error(e)
-        // todo
-        return {
-          status: authState?.status ?? 'loading',
-          data: null
-        }
-      }
-    } else {
-      return {
-        status: authState?.status ?? 'loading',
-        data: null
-      }
-    }
-  }, [authState])
-
+  const { session } = useAuthStore()
   return session
 }
 
