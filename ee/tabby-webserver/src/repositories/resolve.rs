@@ -23,8 +23,6 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
-use crate::repositories::ResolveState;
-
 #[derive(Debug)]
 pub struct RepositoryCache {
     repositories: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
@@ -239,9 +237,8 @@ impl RepositoryCache {
         self.repositories().contains_key(key)
     }
 
-    pub fn resolve_all(&self, rs: Arc<ResolveState>) -> Result<Response> {
-        let entries: Vec<_> = rs
-            .cache
+    pub fn resolve_all(&self) -> Result<Response> {
+        let entries: Vec<_> = self
             .configured_repositories
             .iter()
             .map(|repo| DirEntry {
@@ -270,5 +267,10 @@ impl RepositoryCache {
             .await
             .unwrap();
         scheduler.start().await.unwrap();
+    }
+    pub fn find_repository(&self, name: &str) -> Option<&RepositoryConfig> {
+        self.configured_repositories
+            .iter()
+            .find(|repo| repo.name() == name)
     }
 }

@@ -13,7 +13,6 @@ use axum::{
 use hyper::Body;
 use juniper_axum::extract::AuthBearer;
 pub use resolve::RepositoryCache;
-use tabby_common::config::RepositoryConfig;
 use tracing::{instrument, warn};
 
 use crate::{
@@ -21,19 +20,7 @@ use crate::{
     schema::auth::AuthenticationService,
 };
 
-#[derive(Debug)]
-pub struct ResolveState {
-    pub cache: Arc<RepositoryCache>,
-}
-
-impl ResolveState {
-    pub fn find_repository(&self, name: &str) -> Option<&RepositoryConfig> {
-        self.cache
-            .configured_repositories
-            .iter()
-            .find(|repo| repo.name() == name)
-    }
-}
+pub type ResolveState = Arc<RepositoryCache>;
 
 pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
@@ -93,7 +80,7 @@ async fn resolve_path(
         .unwrap_or(false);
 
     if is_dir {
-        return match rs.cache.resolve_dir(&repo, root, full_path.clone()).await {
+        return match rs.resolve_dir(&repo, root, full_path.clone()).await {
             Ok(resp) => Ok(resp),
             Err(err) => {
                 warn!("failed to resolve_dir <{:?}>: {}", full_path, err);
@@ -102,10 +89,10 @@ async fn resolve_path(
         };
     }
 
-    if !rs.cache.contains_meta(&repo.dataset_key()) {
+    if !rs.contains_meta(&repo.dataset_key()) {
         return Err(StatusCode::NOT_FOUND);
     }
-    match rs.cache.resolve_file(root, &repo).await {
+    match rs.resolve_file(root, &repo).await {
         Ok(resp) => Ok(resp),
         Err(err) => {
             warn!("failed to resolve_file <{:?}>: {}", full_path, err);
@@ -120,15 +107,12 @@ async fn meta(
     Path(repo): Path<ResolveParams>,
 ) -> Result<Json<RepositoryMeta>, StatusCode> {
     let key = repo.dataset_key();
-    if let Some(resp) = rs.cache.resolve_meta(&key) {
+    if let Some(resp) = rs.resolve_meta(&key) {
         return Ok(Json(resp));
     }
     Err(StatusCode::NOT_FOUND)
 }
 
 async fn resolve(State(rs): State<Arc<ResolveState>>) -> Result<Response, StatusCode> {
-    rs.clone()
-        .cache
-        .resolve_all(rs)
-        .map_err(|_| StatusCode::NOT_FOUND)
+    rs.resolve_all().map_err(|_| StatusCode::NOT_FOUND)
 }

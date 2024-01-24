@@ -34,9 +34,7 @@ pub async fn attach_webserver(
     repository_cache.start_reload_job().await;
     let ctx = create_service_locator(logger, code).await;
     let schema = Arc::new(create_schema());
-    let rs = Arc::new(repositories::ResolveState {
-        cache: repository_cache,
-    });
+    let rs = Arc::new(repository_cache);
 
     let api = api
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
