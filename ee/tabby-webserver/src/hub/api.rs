@@ -27,7 +27,7 @@ pub trait Hub {
         offset: usize,
     ) -> SearchResponse;
 
-    async fn get_repositories() -> Result<Vec<RepositoryConfig>, String>;
+    async fn get_repositories() -> Vec<RepositoryConfig>;
 }
 
 pub fn tracing_context() -> tarpc::context::Context {

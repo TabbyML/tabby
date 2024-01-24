@@ -133,11 +133,9 @@ impl Hub for Arc<HubImpl> {
             }
         }
     }
-    async fn get_repositories(
-        self,
-        _context: tarpc::context::Context,
-    ) -> Result<Vec<RepositoryConfig>, String> {
-        self.ctx
+    async fn get_repositories(self, _context: tarpc::context::Context) -> Vec<RepositoryConfig> {
+        let result = self
+            .ctx
             .repository()
             .list_repositories(None, None, None, None)
             .await
@@ -146,6 +144,10 @@ impl Hub for Arc<HubImpl> {
                 v.into_iter()
                     .map(|r| RepositoryConfig::new_named(r.name, r.git_url))
                     .collect()
-            })
+            });
+        result.unwrap_or_else(|e| {
+            warn!("Failed to fetch repositories: {e}");
+            vec![]
+        })
     }
 }
