@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use rusqlite::{params, OptionalExtension, Row};
 use uuid::Uuid;
@@ -208,13 +208,20 @@ impl DbConn {
     }
 
     pub async fn update_user_active(&self, id: i32, active: bool) -> Result<()> {
-        self.conn
+        let new_active = self
+            .conn
             .call(move |c| {
                 c.execute("UPDATE users SET active=? WHERE id=?", (active, id))?;
-                Ok(())
+                let new_active: bool =
+                    c.query_row("SELECT active FROM users WHERE id=?", [id], |r| r.get(0))?;
+                Ok(new_active)
             })
             .await?;
-        Ok(())
+        if new_active != active {
+            Err(anyhow!("user active status was not changed"))
+        } else {
+            Ok(())
+        }
     }
 }
 
