@@ -35,6 +35,8 @@ mod ffi {
             request_id: u32,
             prompt: &str,
             max_input_length: usize,
+            temperature: f32,
+            seed: u64,
         );
         fn stop_request(self: Pin<&mut TextInferenceEngine>, request_id: u32);
         fn step(self: Pin<&mut TextInferenceEngine>) -> Result<Vec<StepOutput>>;
@@ -101,7 +103,13 @@ impl TextGeneration for LlamaTextGeneration {
 
         let mut rx = self
             .service
-            .add_request(prompt, options.max_input_length, stop_condition)
+            .add_request(
+                prompt,
+                options.max_input_length,
+                options.sampling_temperature,
+                options.seed,
+                stop_condition,
+            )
             .await;
 
         let s = stream! {

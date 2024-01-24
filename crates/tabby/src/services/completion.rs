@@ -47,6 +47,12 @@ pub struct CompletionRequest {
     user: Option<String>,
 
     debug_options: Option<DebugOptions>,
+
+    /// The temperature parameter for the model, used to tune variance and "creativity" of the model output
+    temperature: Option<f32>,
+
+    /// The seed used for randomly selecting tokens
+    seed: Option<u64>,
 }
 
 impl CompletionRequest {
@@ -200,11 +206,16 @@ impl CompletionService {
         }
     }
 
-    fn text_generation_options(language: &str) -> TextGenerationOptions {
+    fn text_generation_options(
+        language: &str,
+        temperature: f32,
+        seed: u64,
+    ) -> TextGenerationOptions {
         TextGenerationOptionsBuilder::default()
             .max_input_length(1024 + 512)
             .max_decoding_length(128)
-            .sampling_temperature(0.1)
+            .sampling_temperature(temperature)
+            .seed(seed)
             .language(Some(get_language(language)))
             .build()
             .unwrap()
@@ -216,7 +227,16 @@ impl CompletionService {
     ) -> Result<CompletionResponse, CompletionError> {
         let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
         let language = request.language_or_unknown();
-        let options = Self::text_generation_options(language.as_str());
+        let options = Self::text_generation_options(
+            language.as_str(),
+            request.temperature.unwrap_or(0.1),
+            request.seed.unwrap_or_else(|| {
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as u64
+            }),
+        );
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])

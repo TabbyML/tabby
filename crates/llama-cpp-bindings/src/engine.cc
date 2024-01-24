@@ -1,5 +1,8 @@
+#include <algorithm>
 #include <functional>
+#include <random>
 #include <vector>
+#include <cmath>
 #include <deque>
 #include <unordered_set>
 #include <mutex>
@@ -17,13 +20,17 @@ namespace {
 constexpr size_t N_BATCH = 512;  // # per batch inference.
 constexpr size_t N_CTX = 4096;   // # max kv history.
 struct Request {
-  Request(size_t request_id, std::vector<llama_token> input_token_ids) :
+  Request(size_t request_id, std::vector<llama_token> input_token_ids, float temperature, uint64_t seed) :
     id(request_id),
-    tokens(input_token_ids.begin(), input_token_ids.end()) {
+    tokens(input_token_ids.begin(), input_token_ids.end()),
+    temperature(temperature),
+    seed(seed) {
     }
 
   uint32_t id = -1;
   llama_seq_id seq_id = -1;
+  float temperature = 0;
+  uint64_t seed = 0;
 
   std::vector<llama_token> tokens;
   size_t i_batch = -1;
@@ -77,6 +84,39 @@ std::string string_format(const std::string& format, Args ... args)
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
+float compute_softmax_inplace(float* nums, size_t len, float temperature) {
+  float sum = 0;
+  float max = *std::max_element(nums, nums + len);
+  for (size_t i = 0; i < len; i++) {
+    nums[i] -= max;
+    nums[i] = std::exp(nums[i] / temperature);
+    sum += nums[i];
+  }
+  for (size_t i = 0; i < len; i++) {
+      nums[i] /= sum;
+  }
+  return sum;
+}
+
+size_t weighted_random(const float* nums, size_t len, uint64_t seed) {
+  std::mt19937 rng(seed);
+  float sum = 0;
+  for (size_t i = 0; i < len; i++) {
+    sum += nums[i];
+  }
+
+  float random = std::uniform_real_distribution<float>(0, sum)(rng);
+  sum = 0;
+  size_t i;
+  for (i = 0; i < len; i++) {
+    sum += nums[i];
+    if (sum >= random) {
+      return i;
+    }
+  }
+  return i;
+}
+
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
@@ -110,13 +150,15 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     llama_batch_free(batch_);
   }
 
-  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length) override {
+  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length,
+                           float temperature, uint64_t seed) override {
+
     auto tokens = llama_tokenize(llama_get_model(ctx_.get()), text, false, true);
     if (tokens.size() > max_input_length) {
       int start = tokens.size() - max_input_length;
       tokens = std::vector<llama_token>(tokens.begin() + start, tokens.end());
     }
-    pending_requests_.push_back(Request(request_id, tokens));
+    pending_requests_.push_back(Request(request_id, tokens, temperature, seed));
   }
 
   void stop_request(uint32_t request_id) override {
@@ -213,9 +255,9 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         }
 
         int32_t i_batch = request.i_batch - i;
-        auto logits = llama_get_logits_ith(ctx, i_batch);
-        auto next_token = std::distance(logits, std::max_element(logits, logits + n_vocab));
-
+        float* logits = llama_get_logits_ith(ctx, i_batch);
+        compute_softmax_inplace(logits, n_vocab, request.temperature);
+        auto next_token = weighted_random(logits, n_vocab, request.seed);
         request.n_past += request.tokens.size();
 
         request.tokens.clear();

@@ -103,6 +103,7 @@ async fn run_golden_tests() {
 
     assert_golden!(json!({
             "language": "python",
+            "seed": 0,
             "segments": {
                 "prefix": "def fib(n):\n    ",
                 "suffix": "\n        return fib(n - 1) + fib(n - 2)"
@@ -111,6 +112,7 @@ async fn run_golden_tests() {
 
     assert_golden!(json!({
             "language": "python",
+            "seed": 0,
             "segments": {
                 "prefix": "import datetime\n\ndef parse_expenses(expenses_string):\n    \"\"\"Parse the list of expenses and return the list of triples (date, value, currency).\n    Ignore lines starting with #.\n    Parse the date using datetime.\n    Example expenses_string:\n        2016-01-02 -34.01 USD\n        2016-01-03 2.59 DKK\n        2016-01-03 -2.72 EUR\n    \"\"\"\n    for line in expenses_string.split('\\n'):\n        "
             }
@@ -124,6 +126,7 @@ async fn run_golden_tests_cpu() {
 
     assert_golden!(json!({
             "language": "python",
+            "seed": 0,
             "segments": {
                 "prefix": "def is_prime(n):\n",
             }
@@ -131,6 +134,7 @@ async fn run_golden_tests_cpu() {
 
     assert_golden!(json!({
             "language": "python",
+            "seed": 0,
             "segments": {
                 "prefix": "def char_frequencies(str):\n  freqs = {}\n  ",
             }

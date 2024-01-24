@@ -14,8 +14,11 @@ pub struct TextGenerationOptions {
     #[builder(default = "256")]
     pub max_decoding_length: usize,
 
-    #[builder(default = "1.0")]
+    #[builder(default = "0.1")]
     pub sampling_temperature: f32,
+
+    #[builder(default = "0")]
+    pub seed: u64,
 
     #[builder(default = "None")]
     pub language: Option<&'static Language>,

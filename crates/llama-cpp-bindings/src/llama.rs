@@ -9,6 +9,8 @@ use crate::ffi;
 struct LlamaInitRequest {
     prompt: String,
     max_input_length: usize,
+    temperature: f32,
+    seed: u64,
 
     tx: Sender<String>,
     stop_condition: StopCondition,
@@ -56,6 +58,8 @@ impl LlamaServiceImpl {
     async fn background_job(&mut self) {
         while let Some(LlamaInitRequest {
             prompt,
+            temperature,
+            seed,
             tx,
             max_input_length,
             stop_condition,
@@ -69,10 +73,13 @@ impl LlamaServiceImpl {
             let request_id = self.alloc_request_id();
             self.requests
                 .insert(request_id, LlamaRunningRequest { tx, stop_condition });
-            self.engine
-                .as_mut()
-                .unwrap()
-                .add_request(request_id, &prompt, max_input_length);
+            self.engine.as_mut().unwrap().add_request(
+                request_id,
+                &prompt,
+                max_input_length,
+                temperature,
+                seed,
+            );
         }
 
         let result = match self.engine.as_mut().unwrap().step() {
@@ -144,12 +151,16 @@ impl LlamaService {
         &self,
         prompt: &str,
         max_input_length: usize,
+        temperature: f32,
+        seed: u64,
         stop_condition: StopCondition,
     ) -> Receiver<String> {
         let (tx, rx) = channel(8);
         self.tx
             .send(LlamaInitRequest {
                 prompt: prompt.to_owned(),
+                temperature,
+                seed,
                 tx,
                 max_input_length,
                 stop_condition,
