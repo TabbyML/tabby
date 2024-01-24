@@ -15,7 +15,10 @@ use axum::{
 };
 use hyper::Body;
 use serde::{Deserialize, Serialize};
-use tabby_common::{config::Config, SourceFile, Tag};
+use tabby_common::{
+    config::{Config, RepositoryConfig},
+    SourceFile, Tag,
+};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
@@ -25,12 +28,14 @@ use crate::repositories::ResolveState;
 #[derive(Debug)]
 pub struct RepositoryCache {
     repositories: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
+    pub configured_repositories: Vec<RepositoryConfig>,
 }
 
 impl RepositoryCache {
-    pub fn new_initialized() -> RepositoryCache {
+    pub fn new_initialized(configured_repositories: Vec<RepositoryConfig>) -> RepositoryCache {
         let cache = RepositoryCache {
             repositories: Default::default(),
+            configured_repositories,
         };
         cache.reload();
         cache
@@ -236,7 +241,8 @@ impl RepositoryCache {
 
     pub fn resolve_all(&self, rs: Arc<ResolveState>) -> Result<Response> {
         let entries: Vec<_> = rs
-            .repositories
+            .cache
+            .configured_repositories
             .iter()
             .map(|repo| DirEntry {
                 kind: DirEntryKind::Dir,

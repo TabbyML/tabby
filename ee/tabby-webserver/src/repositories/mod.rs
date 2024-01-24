@@ -23,13 +23,15 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ResolveState {
-    pub repositories: Vec<RepositoryConfig>,
     pub cache: Arc<RepositoryCache>,
 }
 
 impl ResolveState {
     pub fn find_repository(&self, name: &str) -> Option<&RepositoryConfig> {
-        self.repositories.iter().find(|repo| repo.name() == name)
+        self.cache
+            .configured_repositories
+            .iter()
+            .find(|repo| repo.name() == name)
     }
 }
 
