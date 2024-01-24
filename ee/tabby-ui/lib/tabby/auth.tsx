@@ -75,10 +75,10 @@ const saveAuthToken = (authData: AuthData) => {
 const clearAuthToken = () => {
   localStorage.removeItem(AUTH_TOKEN_KEY)
   window.dispatchEvent(
-    new StorageEvent("storage", {
+    new StorageEvent('storage', {
       storageArea: window.localStorage,
       url: window.location.href,
-      key: AUTH_TOKEN_KEY,
+      key: AUTH_TOKEN_KEY
     })
   )
 }
