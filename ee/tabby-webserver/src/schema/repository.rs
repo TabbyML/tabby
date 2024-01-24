@@ -2,9 +2,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay::NodeType;
-use validator::ValidationErrors;
 
-use super::{from_validation_errors, Context};
+
+use super::{Context};
 
 #[derive(thiserror::Error, Debug)]
 pub enum RepositoryError {

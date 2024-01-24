@@ -23,11 +23,10 @@ use juniper_axum::{
 };
 use tabby_common::{
     api::{code::CodeSearch, event::RawEventLogger},
-    config::ConfigError,
     validate_identifier,
 };
 use tracing::error;
-use validator::{ValidationError, ValidationErrors};
+use validator::{ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
