@@ -267,6 +267,7 @@ pub struct User {
     pub is_admin: bool,
     pub auth_token: String,
     pub created_at: DateTime<Utc>,
+    pub active: bool,
 }
 
 impl relay::NodeType for User {
@@ -413,6 +414,7 @@ pub trait AuthenticationService: Send + Sync {
     ) -> Result<()>;
 
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
+    async fn update_user_active(&self, id: i32, active: bool) -> Result<()>;
 }
 
 #[cfg(test)]

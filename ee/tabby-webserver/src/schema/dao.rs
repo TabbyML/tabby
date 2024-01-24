@@ -43,6 +43,7 @@ impl From<UserDAO> for auth::User {
             is_admin: val.is_admin,
             auth_token: val.auth_token,
             created_at: val.created_at,
+            active: val.active,
         }
     }
 }

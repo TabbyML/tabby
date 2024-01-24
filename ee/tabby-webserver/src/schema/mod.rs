@@ -5,7 +5,7 @@ pub mod job;
 pub mod repository;
 pub mod worker;
 
-use std::sync::Arc;
+use std::{num::ParseIntError, sync::Arc};
 
 use auth::{
     validate_jwt, AuthenticationService, Invitation, InvitationNext, RefreshTokenError,
@@ -66,6 +66,9 @@ pub enum CoreError {
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+
+    #[error("Malformed ID input: {0}")]
+    InvalidIDError(#[from] ParseIntError),
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
@@ -326,6 +329,14 @@ impl Mutation {
         } else {
             Err(CoreError::Unauthorized("You're not logged in"))
         }
+    }
+
+    async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
+        ctx.locator
+            .auth()
+            .update_user_active(id.parse()?, active)
+            .await?;
+        Ok(true)
     }
 
     async fn register(

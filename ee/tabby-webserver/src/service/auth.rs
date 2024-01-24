@@ -418,6 +418,10 @@ impl AuthenticationService for DbConn {
             OAuthProvider::Google => self.delete_google_oauth_credential().await,
         }
     }
+
+    async fn update_user_active(&self, id: i32, active: bool) -> Result<()> {
+        self.update_user_active(id, active).await
+    }
 }
 
 fn password_hash(raw: &str) -> password_hash::Result<String> {
