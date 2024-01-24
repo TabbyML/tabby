@@ -106,9 +106,7 @@ const client = new Client({
           return (
             error.response.status === 401 ||
             error.graphQLErrors.some(
-              // todo
-              // @ts-ignore
-              e => e.extensions === 'Unauthorized'
+              e => e?.extensions?.code === 'UNAUTHORIZED'
             )
           )
         },
