@@ -2,9 +2,12 @@ use async_trait::async_trait;
 use axum::{headers::Header, http::HeaderName};
 use hyper::Request;
 use serde::{Deserialize, Serialize};
-use tabby_common::api::{
-    code::{CodeSearch, CodeSearchError, SearchResponse},
-    event::RawEventLogger,
+use tabby_common::{
+    api::{
+        code::{CodeSearch, CodeSearchError, SearchResponse},
+        event::RawEventLogger,
+    },
+    config::RepositoryConfig,
 };
 use tokio_tungstenite::connect_async;
 
@@ -23,6 +26,8 @@ pub trait Hub {
         limit: usize,
         offset: usize,
     ) -> SearchResponse;
+
+    async fn get_repositories() -> Vec<RepositoryConfig>;
 }
 
 pub fn tracing_context() -> tarpc::context::Context {

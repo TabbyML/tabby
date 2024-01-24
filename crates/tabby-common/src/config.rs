@@ -58,6 +58,13 @@ impl RepositoryConfig {
         }
     }
 
+    pub fn new_named(name: String, git_url: String) -> Self {
+        Self {
+            name: Some(name),
+            git_url,
+        }
+    }
+
     pub fn dir(&self) -> PathBuf {
         if self.is_local_dir() {
             let path = self.git_url.strip_prefix("file://").unwrap();
