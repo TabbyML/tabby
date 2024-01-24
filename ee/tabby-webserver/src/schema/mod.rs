@@ -73,7 +73,7 @@ pub enum CoreError {
     #[error("Malformed ID input")]
     InvalidIDError(#[from] ParseIntError),
 
-    #[error("Invalid character in identifier")]
+    #[error("Invalid character in identifier: {0}")]
     InvalidIdentifierError(String),
 }
 
