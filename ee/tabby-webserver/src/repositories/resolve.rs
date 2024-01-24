@@ -26,7 +26,7 @@ use tower_http::services::ServeDir;
 #[derive(Debug)]
 pub struct RepositoryCache {
     repositories: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
-    pub configured_repositories: Vec<RepositoryConfig>,
+    configured_repositories: Vec<RepositoryConfig>,
 }
 
 impl RepositoryCache {
