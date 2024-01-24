@@ -255,6 +255,9 @@ mod tests {
         conn.update_user_active(id, false).await.unwrap();
 
         assert!(!conn.get_user(id).await.unwrap().unwrap().active);
+
+        // Setting an already inactive user to inactive should error
+        assert!(conn.update_user_active(id, false).await.is_err());
     }
 
     #[tokio::test]
