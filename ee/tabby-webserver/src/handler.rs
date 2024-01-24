@@ -14,7 +14,8 @@ use tabby_common::{
 };
 
 use crate::{
-    hub, oauth, repositories,
+    hub, oauth,
+    repositories::{self, RepositoryCache},
     schema::{create_schema, Schema, ServiceLocator},
     service::create_service_locator,
     ui,
@@ -27,11 +28,13 @@ pub async fn attach_webserver(
     code: Arc<dyn CodeSearch>,
     config: &Config,
 ) -> (Router, Router) {
+    let repository_cache = Arc::new(RepositoryCache::new_initialized(
+        config.repositories.clone(),
+    ));
+    repository_cache.start_reload_job().await;
     let ctx = create_service_locator(logger, code).await;
     let schema = Arc::new(create_schema());
-    let rs = Arc::new(repositories::ResolveState {
-        repositories: config.repositories.clone(),
-    });
+    let rs = Arc::new(repository_cache);
 
     let api = api
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))

@@ -1,4 +1,10 @@
-use std::{collections::HashMap, path::PathBuf, str::FromStr, sync::Arc};
+use std::{
+    collections::HashMap,
+    ops::Deref,
+    path::PathBuf,
+    str::FromStr,
+    sync::{Arc, RwLock},
+};
 
 use anyhow::Result;
 use axum::{
@@ -8,16 +14,39 @@ use axum::{
     Json,
 };
 use hyper::Body;
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use tabby_common::{config::Config, SourceFile, Tag};
+use tabby_common::{
+    config::{Config, RepositoryConfig},
+    SourceFile, Tag,
+};
+use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
-use crate::repositories::ResolveState;
+#[derive(Debug)]
+pub struct RepositoryCache {
+    repositories: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
+    configured_repositories: Vec<RepositoryConfig>,
+}
 
-lazy_static! {
-    static ref META: HashMap<RepositoryKey, RepositoryMeta> = load_meta();
+impl RepositoryCache {
+    pub fn new_initialized(configured_repositories: Vec<RepositoryConfig>) -> RepositoryCache {
+        let cache = RepositoryCache {
+            repositories: Default::default(),
+            configured_repositories,
+        };
+        cache.reload();
+        cache
+    }
+
+    fn reload(&self) {
+        let mut repositories = self.repositories.write().unwrap();
+        *repositories = load_meta();
+    }
+
+    fn repositories(&self) -> impl Deref<Target = HashMap<RepositoryKey, RepositoryMeta>> + '_ {
+        self.repositories.read().unwrap()
+    }
 }
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
@@ -102,7 +131,6 @@ impl From<SourceFile> for RepositoryMeta {
     }
 }
 
-/// TODO: implement auto reloading logic in future (so changes produced by tabby-scheduler command will be loaded)
 fn load_meta() -> HashMap<RepositoryKey, RepositoryMeta> {
     let mut dataset = HashMap::new();
     let repo_conf = match Config::load() {
@@ -130,97 +158,119 @@ fn load_meta() -> HashMap<RepositoryKey, RepositoryMeta> {
     dataset
 }
 
-/// Resolve a directory
-pub async fn resolve_dir(
-    repo: &ResolveParams,
-    root: PathBuf,
-    full_path: PathBuf,
-) -> Result<Response> {
-    let mut read_dir = tokio::fs::read_dir(full_path).await?;
-    let mut entries: Vec<DirEntry> = vec![];
+impl RepositoryCache {
+    /// Resolve a directory
+    pub async fn resolve_dir(
+        &self,
+        repo: &ResolveParams,
+        root: PathBuf,
+        full_path: PathBuf,
+    ) -> Result<Response> {
+        let mut read_dir = tokio::fs::read_dir(full_path).await?;
+        let mut entries: Vec<DirEntry> = vec![];
 
-    while let Some(entry) = read_dir.next_entry().await? {
-        let basename = entry
-            .path()
-            .strip_prefix(&root)?
-            .to_str()
-            .unwrap()
-            .to_string();
+        while let Some(entry) = read_dir.next_entry().await? {
+            let basename = entry
+                .path()
+                .strip_prefix(&root)?
+                .to_str()
+                .unwrap()
+                .to_string();
 
-        let meta = entry.metadata().await?;
+            let meta = entry.metadata().await?;
 
-        let kind = if meta.is_dir() {
-            DirEntryKind::Dir
-        } else if meta.is_file() {
-            let key = RepositoryKey {
-                repo_name: repo.name_str().to_string(),
-                rel_path: basename.clone(),
+            let kind = if meta.is_dir() {
+                DirEntryKind::Dir
+            } else if meta.is_file() {
+                let key = RepositoryKey {
+                    repo_name: repo.name_str().to_string(),
+                    rel_path: basename.clone(),
+                };
+                if !self.contains_meta(&key) {
+                    continue;
+                }
+                DirEntryKind::File
+            } else {
+                // Skip others.
+                continue;
             };
-            if !contains_meta(&key) {
+
+            // filter out .git directory at root
+            if kind == DirEntryKind::Dir && basename == ".git" && repo.path.is_none() {
                 continue;
             }
-            DirEntryKind::File
-        } else {
-            // Skip others.
-            continue;
-        };
 
-        // filter out .git directory at root
-        if kind == DirEntryKind::Dir && basename == ".git" && repo.path.is_none() {
-            continue;
+            entries.push(DirEntry { kind, basename });
         }
 
-        entries.push(DirEntry { kind, basename });
+        let body = Json(ListDir { entries }).into_response();
+        let resp = Response::builder()
+            .header(header::CONTENT_TYPE, DIRECTORY_MIME_TYPE)
+            .body(body.into_body())?;
+
+        Ok(resp)
     }
 
-    let body = Json(ListDir { entries }).into_response();
-    let resp = Response::builder()
-        .header(header::CONTENT_TYPE, DIRECTORY_MIME_TYPE)
-        .body(body.into_body())?;
+    /// Resolve a file
+    pub async fn resolve_file(&self, root: PathBuf, repo: &ResolveParams) -> Result<Response> {
+        let uri = if !repo.path_str().starts_with('/') {
+            let path = format!("/{}", repo.path_str());
+            Uri::from_str(path.as_str())?
+        } else {
+            Uri::from_str(repo.path_str())?
+        };
 
-    Ok(resp)
-}
+        let req = Request::builder().uri(uri).body(Body::empty()).unwrap();
+        let resp = ServeDir::new(root).oneshot(req).await?;
 
-/// Resolve a file
-pub async fn resolve_file(root: PathBuf, repo: &ResolveParams) -> Result<Response> {
-    let uri = if !repo.path_str().starts_with('/') {
-        let path = format!("/{}", repo.path_str());
-        Uri::from_str(path.as_str())?
-    } else {
-        Uri::from_str(repo.path_str())?
-    };
-
-    let req = Request::builder().uri(uri).body(Body::empty()).unwrap();
-    let resp = ServeDir::new(root).oneshot(req).await?;
-
-    Ok(resp.map(boxed))
-}
-
-pub fn resolve_meta(key: &RepositoryKey) -> Option<RepositoryMeta> {
-    if let Some(meta) = META.get(key) {
-        return Some(meta.clone());
+        Ok(resp.map(boxed))
     }
-    None
-}
 
-pub fn contains_meta(key: &RepositoryKey) -> bool {
-    META.contains_key(key)
-}
+    pub fn resolve_meta(&self, key: &RepositoryKey) -> Option<RepositoryMeta> {
+        if let Some(meta) = self.repositories().get(key) {
+            return Some(meta.clone());
+        }
+        None
+    }
 
-pub fn resolve_all(rs: Arc<ResolveState>) -> Result<Response> {
-    let entries: Vec<_> = rs
-        .repositories
-        .iter()
-        .map(|repo| DirEntry {
-            kind: DirEntryKind::Dir,
-            basename: repo.name(),
-        })
-        .collect();
+    pub fn contains_meta(&self, key: &RepositoryKey) -> bool {
+        self.repositories().contains_key(key)
+    }
 
-    let body = Json(ListDir { entries }).into_response();
-    let resp = Response::builder()
-        .header(header::CONTENT_TYPE, DIRECTORY_MIME_TYPE)
-        .body(body.into_body())?;
+    pub fn resolve_all(&self) -> Result<Response> {
+        let entries: Vec<_> = self
+            .configured_repositories
+            .iter()
+            .map(|repo| DirEntry {
+                kind: DirEntryKind::Dir,
+                basename: repo.name(),
+            })
+            .collect();
 
-    Ok(resp)
+        let body = Json(ListDir { entries }).into_response();
+        let resp = Response::builder()
+            .header(header::CONTENT_TYPE, DIRECTORY_MIME_TYPE)
+            .body(body.into_body())?;
+
+        Ok(resp)
+    }
+    pub async fn start_reload_job(self: &Arc<Self>) {
+        let cache = self.clone();
+        let scheduler = JobScheduler::new().await.unwrap();
+        scheduler
+            .add(
+                Job::new("0 1/5 * * * * *", move |_, _| {
+                    cache.reload();
+                })
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        scheduler.start().await.unwrap();
+    }
+    pub fn find_repository(&self, name: &str) -> Option<&RepositoryConfig> {
+        self.configured_repositories
+            .iter()
+            .find(|repo| repo.name() == name)
+    }
 }
