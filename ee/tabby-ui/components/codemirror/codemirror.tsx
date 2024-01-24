@@ -1,6 +1,11 @@
 import React from 'react'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { EditorState, Extension, StateEffect } from '@codemirror/state'
+import {
+  Annotation,
+  EditorState,
+  Extension,
+  StateEffect
+} from '@codemirror/state'
 import { oneDarkHighlightStyle, oneDarkTheme } from '@codemirror/theme-one-dark'
 import { EditorView } from '@codemirror/view'
 import {
@@ -22,6 +27,8 @@ interface CodeMirrorEditorProps {
   width?: string
   extensions?: Extension[]
 }
+
+const External = Annotation.define<boolean>()
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   value,
@@ -102,7 +109,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         effects: StateEffect.reconfigure.of(getExtensions())
       })
     }
-  }, [theme, language, propsExtensions])
+  }, [height, width, theme, language, propsExtensions])
 
   React.useEffect(() => {
     const resetValue = () => {
@@ -115,7 +122,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       if (editor.current && value !== currentValue) {
         editor.current.dispatch({
           changes: { from: 0, to: currentValue.length, insert: value || '' },
-          effects: StateEffect.reconfigure.of(getExtensions())
+          annotations: [External.of(true)]
         })
       }
     }

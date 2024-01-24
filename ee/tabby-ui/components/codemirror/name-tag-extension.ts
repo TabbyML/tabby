@@ -7,7 +7,7 @@ import {
   ViewUpdate
 } from '@codemirror/view'
 
-import { TCodeTag } from '@/app/files/components/source-code-browser'
+import type { TCodeTag } from '@/lib/types'
 
 import { getUTF16NameRange } from './utils'
 
@@ -25,34 +25,41 @@ const tagMarkTheme = EditorView.baseTheme({
   }
 })
 
-function underlineRange(view: EditorView, tags: TCodeTag[] = []) {
+function getNameTags(view: EditorView, tags: TCodeTag[] = []) {
   const doc = view.state.doc
-  if (!doc.length) return Decoration.none
+  const len = doc.length
+  if (!len) return Decoration.none
 
   let widgets: Range<Decoration>[] = []
   for (const tag of tags) {
     const range = getUTF16NameRange(view.state, tag)
-    widgets.push(tagMark.range(range.start, range.end))
+    try {
+      if (range && range.start <= len && range.end <= len) {
+        widgets.push(tagMark.range(range.start, range.end))
+      }
+    } catch (e) {}
   }
+
+  if (!widgets.length) return Decoration.none
   return Decoration.set(widgets)
 }
 
 const markTagNameExtension = (tags: TCodeTag[]) => {
   const extension = ViewPlugin.fromClass(
     class {
-      underlines: DecorationSet
+      marks: DecorationSet
       constructor(view: EditorView) {
-        this.underlines = underlineRange(view, tags)
+        this.marks = getNameTags(view, tags)
       }
       update(update: ViewUpdate) {
         if (update.docChanged || update.viewportChanged) {
-          this.underlines = underlineRange(update.view, tags)
+          this.marks = getNameTags(update.view, tags)
         }
       }
     },
     {
       decorations: instance => {
-        return instance.underlines
+        return instance.marks
       }
     }
   )

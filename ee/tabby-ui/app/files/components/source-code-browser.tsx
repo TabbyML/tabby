@@ -2,11 +2,13 @@
 
 import React, { PropsWithChildren, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { has } from 'lodash-es'
+import { compact, findIndex, has } from 'lodash-es'
+import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import fetcher from '@/lib/tabby/fetcher'
+import type { ResolveEntriesResponse, TFile, TFileMeta } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
   ResizableHandle,
@@ -14,7 +16,20 @@ import {
   ResizablePanelGroup
 } from '@/components/ui/resizable'
 
-import { RepositoriesFileTree, TFileTreeNode } from './file-tree'
+import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
+import { DirectoryPanel } from './file-directory-panel'
+import {
+  mapToFileTree,
+  FileTree as RepositoriesFileTree,
+  sortFileTree,
+  type TFileTreeNode
+} from './file-tree'
+import {
+  getDirectoriesFromPath,
+  resolveBasenameFromPath,
+  resolveFileNameFromPath,
+  resolveRepoNameFromPath
+} from './utils'
 
 const SourceCodeEditor = dynamic(() => import('./source-code-editor'), {
   ssr: false
@@ -22,27 +37,28 @@ const SourceCodeEditor = dynamic(() => import('./source-code-editor'), {
 
 type TCodeMap = Record<string, string>
 type TFileMetaMap = Record<string, TFileMeta>
-type TCodeTag = {
-  range: TRange
-  name_range: TRange
-  line_range: TRange
-  is_definition: boolean
-  syntax_type_name: string
-  utf16_column_range: TRange
-  span: TPointRange
+/**
+ * FileMap example
+ * {
+ *   'tabby/ee/tabby-ui/README.md': {
+ *     file: {
+ *      kind: 'file',
+ *      basename: 'ee/tabby-ui/README.md'
+ *     },
+ *     name: 'README.md',
+ *     fullPath: 'tabby/ee/tabby-ui/README.md',
+ *     treeExpanded: false
+ *   },
+ *   ...
+ * }
+ */
+type TFileMapItem = {
+  file: TFile
+  name: string
+  fullPath: string
+  treeExpanded?: boolean
 }
-type TPoint = { row: number; column: number }
-type TPointRange = { start: TPoint; end: TPoint }
-type TRange = { start: number; end: number }
-type TFileMeta = {
-  git_url: string
-  filepath: string
-  language: string
-  max_line_length: number
-  avg_line_length: number
-  alphanum_fraction: number
-  tags: TCodeTag[]
-}
+type TFileMap = Record<string, TFileMapItem>
 
 type SourceCodeBrowserContextValue = {
   codeMap: Record<string, string>
@@ -50,7 +66,16 @@ type SourceCodeBrowserContextValue = {
   fileMetaMap: TFileMetaMap
   setFileMetaMap: React.Dispatch<React.SetStateAction<TFileMetaMap>>
   activePath: string | undefined
-  setActivePath: React.Dispatch<React.SetStateAction<string | undefined>>
+  setActivePath: (path: string | undefined) => void
+  fileMap: TFileMap
+  updateFileMap: (map: TFileMap) => void
+  expandedKeys: Set<string>
+  setExpandedKeys: React.Dispatch<React.SetStateAction<Set<string>>>
+  toggleExpandedKey: (key: string) => void
+  currentFileRoutes: TFileMapItem[]
+  initialized: boolean
+  setInitialized: React.Dispatch<React.SetStateAction<boolean>>
+  fileTreeData: TFileTreeNode[]
 }
 
 type SourceCodeBrowserProviderProps = {}
@@ -63,19 +88,79 @@ const SourceCodeBrowserContext =
 const SourceCodeBrowserContextProvider: React.FC<
   PropsWithChildren<SourceCodeBrowserProviderProps>
 > = ({ children }) => {
-  const [activePath, setActivePath] = React.useState<string>()
+  const { searchParams, updateSearchParams } = useRouterStuff()
+
+  const activePath = React.useMemo(() => {
+    return searchParams.get('path')?.toString() ?? ''
+  }, [searchParams])
+
+  const setActivePath = (path: string | undefined) => {
+    if (!path) {
+      updateSearchParams({ del: 'path' })
+    } else {
+      updateSearchParams({ set: { path } })
+    }
+  }
+
+  const [initialized, setInitialized] = React.useState(false)
+  const [fileMap, setFileMap] = React.useState<TFileMap>({})
   const [codeMap, setCodeMap] = useState<TCodeMap>({})
   const [fileMetaMap, setFileMetaMap] = useState<TFileMetaMap>({})
+  const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(new Set())
+
+  const updateFileMap = (map: TFileMap) => {
+    if (!map) return
+
+    setFileMap({
+      ...fileMap,
+      ...map
+    })
+  }
+
+  const toggleExpandedKey = (key: string) => {
+    const expanded = expandedKeys.has(key)
+    const newSet = new Set(expandedKeys)
+    if (expanded) {
+      newSet.delete(key)
+    } else {
+      newSet.add(key)
+    }
+    setExpandedKeys(newSet)
+  }
+
+  const currentFileRoutes = React.useMemo(() => {
+    if (!activePath) return []
+    let result: TFileMapItem[] = []
+    const pathSegments = activePath.split('/')
+    for (let i = 0; i < pathSegments.length; i++) {
+      const p = pathSegments.slice(0, i + 1).join('/')
+      result.push(fileMap?.[p])
+    }
+    return compact(result)
+  }, [activePath, fileMap])
+
+  const fileTreeData: TFileTreeNode[] = React.useMemo(() => {
+    return sortFileTree(mapToFileTree(fileMap))
+  }, [fileMap])
 
   return (
     <SourceCodeBrowserContext.Provider
       value={{
+        initialized,
+        setInitialized,
         codeMap,
         setCodeMap,
         fileMetaMap,
         setFileMetaMap,
         activePath,
-        setActivePath
+        setActivePath,
+        fileMap,
+        updateFileMap,
+        expandedKeys,
+        setExpandedKeys,
+        toggleExpandedKey,
+        currentFileRoutes,
+        fileTreeData
       }}
     >
       {children}
@@ -90,96 +175,190 @@ interface SourceCodeBrowserProps {
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   className
 }) => {
-  const { searchParams, updateSearchParams } = useRouterStuff()
-  const defaultRepositoryName = searchParams.get('repo')?.toString()
-  const defaultBasename = searchParams.get('path')?.toString()
-  const [repositoryName, setRepositoryName] = React.useState<string>(
-    defaultRepositoryName ?? ''
-  )
-  const [fileResolver, setFileResolver] = React.useState<string>(
-    defaultBasename ?? ''
-  )
-  const { activePath, setActivePath, codeMap, setCodeMap, setFileMetaMap } =
-    React.useContext(SourceCodeBrowserContext)
+  const {
+    activePath,
+    setActivePath,
+    codeMap,
+    setCodeMap,
+    updateFileMap,
+    fileMetaMap,
+    setFileMetaMap,
+    fileMap,
+    initialized,
+    setInitialized,
+    expandedKeys,
+    toggleExpandedKey,
+    setExpandedKeys,
+    fileTreeData
+  } = React.useContext(SourceCodeBrowserContext)
+
+  const activeRepoName = React.useMemo(() => {
+    return resolveRepoNameFromPath(activePath)
+  }, [activePath])
+
+  const activeBasename = React.useMemo(() => {
+    return resolveBasenameFromPath(activePath)
+  }, [activePath])
+
+  const shouldFetchRawFile = React.useMemo(() => {
+    const isFile = activePath && fileMap?.[activePath]?.file?.kind === 'file'
+    return isFile && !has(codeMap, activePath)
+  }, [activePath, fileMap, codeMap])
+
+  const shouldFetchFileMeta = React.useMemo(() => {
+    const isFile = activePath && fileMap?.[activePath]?.file?.kind === 'file'
+    return isFile && !has(fileMetaMap, activePath)
+  }, [activePath, fileMap, codeMap])
+
+  const shouldFetchSubDir = React.useMemo(() => {
+    if (!initialized) return false
+
+    const isDir = activePath && fileMap?.[activePath]?.file?.kind === 'dir'
+    return isDir && !fileMap?.[activePath]?.treeExpanded
+  }, [activePath, fileMap, initialized])
+
+  // fetch raw file
   const { data: fileContent } = useSWRImmutable(
-    fileResolver && repositoryName
-      ? `/repositories/${repositoryName}/resolve/${fileResolver}`
+    shouldFetchRawFile
+      ? `/repositories/${activeRepoName}/resolve/${activeBasename}`
       : null,
     (url: string) => fetcher(url, { format: 'text' })
   )
 
+  // fetch active file meta
   const { data: fileMeta } = useSWRImmutable(
-    fileContent && fileResolver && repositoryName
-      ? `/repositories/${repositoryName}/meta/${fileResolver}`
+    shouldFetchFileMeta
+      ? `/repositories/${activeRepoName}/meta/${activeBasename}`
       : null,
     fetcher
   )
 
-  const onSelectTreeNode = (
-    treeNode: TFileTreeNode,
-    repositoryName: string
-  ) => {
-    const path = `${repositoryName}/${treeNode.file.basename}`
-    const isFile = treeNode.file.kind === 'file'
-    if (isFile) {
-      setRepositoryName(repositoryName)
-      setActivePath(path)
-      if (!has(codeMap, path)) {
-        setFileResolver(treeNode.file.basename)
-      }
+  // fetch active dir
+  const {
+    data: subTree,
+    isLoading: fetchingSubTree
+  }: SWRResponse<ResolveEntriesResponse> = useSWRImmutable(
+    shouldFetchSubDir
+      ? `/repositories/${activeRepoName}/resolve/${activeBasename}`
+      : null,
+    fetcher
+  )
 
-      updateSearchParams({
-        set: {
-          repo: repositoryName,
-          path: treeNode.file.basename
-        },
-        replace: true
-      })
-    }
+  const onSelectTreeNode = (treeNode: TFileTreeNode) => {
+    setActivePath(treeNode.fullPath)
   }
 
   React.useEffect(() => {
-    if (defaultBasename && defaultRepositoryName) {
-      setActivePath(`${defaultRepositoryName}/${defaultBasename}`)
+    const init = async () => {
+      const { patchMap, expandedKeys } = await initFileMap(activePath)
+      if (patchMap) {
+        updateFileMap(patchMap)
+      }
+      if (expandedKeys?.length) {
+        setExpandedKeys(new Set(expandedKeys))
+      }
+      setInitialized(true)
     }
+
+    init()
   }, [])
 
   React.useEffect(() => {
-    if (fileContent && activePath) {
-      setCodeMap(map => ({
-        ...map,
-        [activePath]: fileContent
-      }))
+    const afterFetchRawFile = () => {
+      if (fileContent && activePath) {
+        setCodeMap(map => ({
+          ...map,
+          [activePath]: fileContent
+        }))
+      }
     }
+
+    afterFetchRawFile()
   }, [fileContent])
 
   React.useEffect(() => {
-    if (fileMeta && activePath) {
-      setFileMetaMap(map => ({
-        ...map,
-        [activePath]: fileMeta
-      }))
+    const afterFetchMeta = () => {
+      if (fileMeta && activePath) {
+        setFileMetaMap(map => ({
+          ...map,
+          [activePath]: fileMeta
+        }))
+      }
     }
+
+    afterFetchMeta()
   }, [fileMeta])
+
+  React.useEffect(() => {
+    const afterFetchSubTree = () => {
+      if (subTree?.entries?.length && activePath) {
+        const repoName = resolveRepoNameFromPath(activePath)
+        let patchMap: TFileMap = {}
+        for (const entry of subTree.entries) {
+          const path = `${repoName}/${entry.basename}`
+          patchMap[path] = {
+            file: entry,
+            name: resolveFileNameFromPath(path),
+            fullPath: path,
+            treeExpanded: false
+          }
+        }
+        updateFileMap(patchMap)
+        const expandedKeysToAdd = getDirectoriesFromPath(activePath, true)
+        if (expandedKeysToAdd?.length) {
+          setExpandedKeys(keys => {
+            const newSet = new Set(keys)
+            for (const k of expandedKeysToAdd) {
+              newSet.add(k)
+            }
+            return newSet
+          })
+        }
+      }
+    }
+
+    afterFetchSubTree()
+  }, [subTree])
+
+  const activeEntry = activePath ? fileMap?.[activePath]?.file : undefined
+  const showEditor = activeEntry?.kind === 'file'
+  const showDirectoryPanel = activeEntry?.kind === 'dir' || activePath === ''
 
   return (
     <ResizablePanelGroup direction="horizontal" className={cn(className)}>
       <ResizablePanel defaultSize={20} minSize={20}>
-        <div className="h-full overflow-hidden py-2 pl-4">
+        <div className="h-full overflow-hidden py-2">
           <RepositoriesFileTree
-            className="h-full overflow-y-auto overflow-x-hidden pr-4"
+            className="h-full overflow-y-auto overflow-x-hidden px-4"
             onSelectTreeNode={onSelectTreeNode}
             activePath={activePath}
-            defaultBasename={defaultBasename}
-            defaultRepository={defaultRepositoryName}
+            fileMap={fileMap}
+            updateFileMap={updateFileMap}
+            expandedKeys={expandedKeys}
+            toggleExpandedKey={toggleExpandedKey}
+            initialized={initialized}
+            fileTreeData={fileTreeData}
           />
         </div>
       </ResizablePanel>
-      <ResizableHandle className="w-1 hover:bg-primary active:bg-primary" />
+      <ResizableHandle className="hover:bg-card active:bg-card w-1" />
       <ResizablePanel defaultSize={80} minSize={30}>
-        <SourceCodeEditor
-          className={`flex h-full ${activePath ? 'block' : 'hidden'}`}
-        />
+        <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
+          <FileDirectoryBreadcrumb className="bg-background sticky top-0 z-10 py-4" />
+          <div className="flex-1">
+            <DirectoryPanel
+              loading={fetchingSubTree}
+              className={`rounded-lg border ${
+                showDirectoryPanel ? 'block' : 'hidden'
+              }`}
+            />
+            <SourceCodeEditor
+              className={`rounded-lg border py-2 ${
+                showEditor ? 'block' : 'hidden'
+              }`}
+            />
+          </div>
+        </div>
       </ResizablePanel>
     </ResizablePanelGroup>
   )
@@ -193,10 +372,111 @@ const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
   )
 }
 
-export {
-  SourceCodeBrowserContext,
-  SourceCodeBrowser,
-  type TCodeTag,
-  type TRange,
-  type TFileMeta
+async function initFileMap(path?: string) {
+  const defaultRepositoryName = resolveRepoNameFromPath(path)
+  const defaultBasename = resolveBasenameFromPath(path)
+
+  try {
+    const repos = await fetchRepositories()
+    const { defaultEntries, expandedDir } = await initDefaultEntries(repos)
+
+    const patchMap: TFileMap = {}
+    for (const repo of repos) {
+      patchMap[repo.basename] = {
+        file: repo,
+        name: repo.basename,
+        fullPath: repo.basename,
+        treeExpanded: repo.basename === defaultRepositoryName
+      }
+    }
+    for (const entry of defaultEntries) {
+      const path = `${defaultRepositoryName}/${entry.basename}`
+      patchMap[path] = {
+        file: entry,
+        name: resolveFileNameFromPath(path),
+        fullPath: path,
+        treeExpanded: expandedDir.includes(entry.basename)
+      }
+    }
+    const expandedKeys = expandedDir.map(dir =>
+      [defaultRepositoryName, dir].filter(Boolean).join('/')
+    )
+
+    return { patchMap, expandedKeys }
+  } catch (e) {
+    console.error(e)
+    return {}
+  }
+
+  async function fetchRepositories(): Promise<TFile[]> {
+    try {
+      // if (!accessToken) return []
+
+      const repos: ResolveEntriesResponse = await fetcher(
+        '/repositories/resolve/'
+      )
+      return repos?.entries
+    } catch (e) {
+      return []
+    }
+  }
+
+  async function fetchDefaultEntries(data?: TFile[]) {
+    try {
+      // if (!accessToken) return undefined
+
+      if (!defaultRepositoryName) return undefined
+      // match default repository
+      const repositoryIdx = findIndex(
+        data,
+        entry => entry.basename === defaultRepositoryName
+      )
+      if (repositoryIdx < 0) return undefined
+
+      const directoryPaths = getDirectoriesFromPath(defaultBasename)
+      // fetch default directories
+      const requests: Array<() => Promise<ResolveEntriesResponse>> =
+        directoryPaths.map(path => () => {
+          return fetcher(
+            `/repositories/${defaultRepositoryName}/resolve/${path}`
+          )
+        })
+      const entries = await Promise.all(requests.map(fn => fn()))
+      let result: TFile[] = []
+      for (let entry of entries) {
+        if (entry.entries?.length) {
+          result = [...result, ...entry.entries]
+        }
+      }
+      return result
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  async function initDefaultEntries(data?: TFile[]) {
+    let result: { defaultEntries: TFile[]; expandedDir: string[] } = {
+      defaultEntries: [],
+      expandedDir: []
+    }
+    try {
+      if (defaultRepositoryName && data?.length) {
+        const defaultEntries = await fetchDefaultEntries(data)
+        const expandedDir = getDirectoriesFromPath(defaultBasename)
+        if (defaultEntries?.length) {
+          result.defaultEntries = defaultEntries
+        }
+        if (expandedDir?.length) {
+          result.expandedDir = expandedDir
+        }
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    return result
+  }
 }
+
+export type { TFileMap, TFileMapItem }
+
+export { SourceCodeBrowserContext, SourceCodeBrowser }

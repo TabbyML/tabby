@@ -22,9 +22,7 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
   const { theme } = useTheme()
   const activeCodeContent = activePath ? codeMap?.[activePath] ?? '' : ''
   const language = activePath ? fileMetaMap?.[activePath]?.language ?? '' : ''
-  const tags = React.useMemo(() => {
-    return activePath ? fileMetaMap?.[activePath]?.tags || [] : []
-  }, [activePath, fileMetaMap])
+  const tags = activePath ? fileMetaMap?.[activePath]?.tags : undefined
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -44,8 +42,8 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
     ]
     if (activeCodeContent && tags) {
       result.push(
-        codeTagHoverTooltip(tags),
         markTagNameExtension(tags),
+        codeTagHoverTooltip(tags),
         highlightTagExtension(tags)
       )
     }
@@ -53,14 +51,14 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
   }, [activeCodeContent, tags])
 
   return (
-    <div className={cn('source-code-browser h-full', className)}>
+    <div className={cn('source-code-browser', className)}>
       <CodeMirrorEditor
+        key={activePath}
         value={activeCodeContent}
         theme={theme}
         language={language}
         readonly
         extensions={extensions}
-        height="100%"
       />
     </div>
   )

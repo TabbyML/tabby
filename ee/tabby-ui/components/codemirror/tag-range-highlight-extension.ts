@@ -7,7 +7,7 @@ import {
   ViewUpdate
 } from '@codemirror/view'
 
-import { TCodeTag } from '@/app/files/components/source-code-browser'
+import type { TCodeTag } from '@/lib/types'
 
 import { getUTF16NameRange } from './utils'
 
@@ -15,7 +15,6 @@ export const hightlightMark = Decoration.mark({ class: 'cm-range-highlight' })
 
 export const tokenHightlightTheme = EditorView.baseTheme({
   '.cm-range-highlight': { backgroundColor: 'hsl(var(--selection))' }
-  // '.dark .cm-range-highlight': { backgroundColor: '#cceeff44' },
 })
 
 function getHightlights(state: EditorState, tags: TCodeTag[]) {
@@ -25,6 +24,8 @@ function getHightlights(state: EditorState, tags: TCodeTag[]) {
   loop: for (const range of ranges) {
     for (const tag of tags) {
       const name_range = getUTF16NameRange(state, tag)
+      if (!name_range) continue
+
       const offset = name_range.start - tag.name_range.start
       if (range.from >= name_range.start && range.to <= name_range.end) {
         highlightRange = {

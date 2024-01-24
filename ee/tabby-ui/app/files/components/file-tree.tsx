@@ -1,13 +1,12 @@
 'use client'
 
 import React from 'react'
-import { findIndex, isNil } from 'lodash-es'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
 import { useDebounce } from '@/lib/hooks/use-debounce'
-import { useSession } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
+import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
   IconChevronDown,
@@ -18,69 +17,38 @@ import {
   IconSpinner
 } from '@/components/ui/icons'
 
-type TFile = {
-  kind: 'file' | 'dir'
-  basename: string
-}
-
-/**
- * FileMap example
- * {
- *   'https_github.com_TabbyML_tabby.git/ee/tabby-ui/README.md': {
- *     file: {
- *      kind: 'file',
- *      basename: 'ee/tabby-ui/README.md'
- *     },
- *     treeExpanded: false
- *   },
- *   ...
- * }
- */
-type TFileMap = Record<
-  string,
-  {
-    file: TFile
-    treeExpanded?: boolean
-  }
->
-
-interface FileTreeProps extends React.HTMLAttributes<HTMLDivElement> {
-  onSelectTreeNode?: (treeNode: TFileTreeNode, repositoryName: string) => void
-  repositoryName: string
-  activePath?: string
-  defaultEntries?: TFile[]
-  defaultExpandedKeys?: string[]
-}
-
-interface RepositoriesFileTreeProps
-  extends Omit<FileTreeProps, 'repositoryName'> {
-  defaultRepository?: string
-  defaultBasename?: string
-}
-
-type FileTreeProviderProps = React.PropsWithChildren<{
-  onSelectTreeNode?: (treeNode: TFileTreeNode, repositoryName: string) => void
-  repositoryName: string
-  activePath?: string
-  initialFileMap?: TFileMap
-  defaultExpandedKeys?: string[]
-}>
+import { TFileMap } from './source-code-browser'
+import { resolveFileNameFromPath, resolveRepoNameFromPath } from './utils'
 
 type TFileTreeNode = {
   name: string
   file: TFile
+  fullPath: string
   children?: Array<TFileTreeNode>
 }
 
-type FileTreeContextValue = {
-  repositoryName: string
+interface FileTreeProps extends React.HTMLAttributes<HTMLDivElement> {
+  onSelectTreeNode?: (treeNode: TFileTreeNode) => void
+  activePath?: string
   fileMap: TFileMap
   updateFileMap: (map: TFileMap) => void
-  fileTree: TFileTreeNode
+  expandedKeys: Set<string>
+  toggleExpandedKey: (key: string) => void
+  initialized: boolean
+  fileTreeData: TFileTreeNode[]
+}
+
+interface FileTreeProviderProps extends FileTreeProps {}
+
+type FileTreeContextValue = {
+  fileMap: TFileMap
+  updateFileMap: (map: TFileMap) => void
+  fileTreeData: TFileTreeNode[]
   onSelectTreeNode: FileTreeProps['onSelectTreeNode']
   expandedKeys: Set<string>
   toggleExpandedKey: (key: string) => void
   activePath: string | undefined
+  initialized: boolean
 }
 
 type DirectoryTreeNodeProps = {
@@ -104,8 +72,6 @@ interface DirectoryTreeNodeViewProps
   level: number
 }
 
-type ResolveEntriesResponse = { entries: TFile[] }
-
 const FileTreeContext = React.createContext<FileTreeContextValue>(
   {} as FileTreeContextValue
 )
@@ -115,54 +81,25 @@ const FileTreeProvider: React.FC<
 > = ({
   onSelectTreeNode,
   children,
-  repositoryName,
-  initialFileMap,
   activePath,
-  defaultExpandedKeys = []
+  fileMap,
+  updateFileMap,
+  expandedKeys,
+  toggleExpandedKey,
+  initialized,
+  fileTreeData
 }) => {
-  const [fileMap, setFileMap] = React.useState<TFileMap>(initialFileMap ?? {})
-  const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(
-    new Set(defaultExpandedKeys)
-  )
-
-  const updateFileMap = (map: TFileMap) => {
-    if (!map) return
-
-    setFileMap({
-      ...fileMap,
-      ...map
-    })
-  }
-
-  const toggleExpandedKey = (key: string) => {
-    const expanded = expandedKeys.has(key)
-    const newSet = new Set(expandedKeys)
-    if (expanded) {
-      newSet.delete(key)
-    } else {
-      newSet.add(key)
-    }
-    setExpandedKeys(newSet)
-  }
-
-  const fileTreeData: TFileTreeNode = React.useMemo(() => {
-    const rootTree = mapToFileTree(fileMap, repositoryName)
-    sortFileTree(rootTree.children || [])
-
-    return rootTree
-  }, [fileMap, repositoryName])
-
   return (
     <FileTreeContext.Provider
       value={{
-        fileMap,
-        updateFileMap,
         onSelectTreeNode,
-        fileTree: fileTreeData,
-        repositoryName,
+        fileTreeData,
         expandedKeys,
         toggleExpandedKey,
-        activePath
+        activePath,
+        fileMap,
+        updateFileMap,
+        initialized
       }}
     >
       {children}
@@ -170,7 +107,7 @@ const FileTreeProvider: React.FC<
   )
 }
 
-const GridArea = ({ level }: { level: number }) => {
+const GridArea: React.FC<{ level: number }> = ({ level }) => {
   const items = React.useMemo(() => {
     return new Array(level).fill(1)
   }, [level])
@@ -181,12 +118,16 @@ const GridArea = ({ level }: { level: number }) => {
         return (
           <div
             key={index}
-            className="flex h-8 w-2 border-r border-transparent transition-colors duration-300 group-hover/filetree:border-border"
+            className="group-hover/filetree:border-border flex h-8 w-2 border-r border-transparent transition-colors duration-300"
           />
         )
       })}
     </div>
   )
+}
+
+const ActiveViewBar = () => {
+  return <div className="bg-primary absolute -left-2 h-8 w-1 rounded-md" />
 }
 
 /**
@@ -198,14 +139,15 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'hover:bg-accent focus:bg-accent focus:text-accent-foreground relative flex cursor-pointer items-stretch rounded-sm',
         isActive && 'bg-accent',
         className
       )}
       {...props}
     >
+      {isActive && <ActiveViewBar />}
       <GridArea level={level} />
-      <div className="flex flex-nowrap items-center gap-2 truncate whitespace-nowrap py-1">
+      <div className="flex flex-nowrap items-center gap-2 truncate whitespace-nowrap">
         <div className="h-4 w-4 shrink-0"></div>
         {children}
       </div>
@@ -218,17 +160,19 @@ const FileTreeNodeView: React.FC<
  */
 const DirectoryTreeNodeView: React.FC<
   React.PropsWithChildren<DirectoryTreeNodeViewProps>
-> = ({ children, level, className, ...props }) => {
+> = ({ children, level, isActive, className, ...props }) => {
   return (
     <div
       className={cn(
-        'flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'hover:bg-accent focus:bg-accent focus:text-accent-foreground relative flex cursor-pointer items-stretch rounded-sm',
+        isActive ? 'bg-accent text-accent-foreground' : undefined,
         className
       )}
       {...props}
     >
+      {isActive && <ActiveViewBar />}
       <GridArea level={level} />
-      <div className="flex flex-nowrap items-center gap-2 truncate whitespace-nowrap py-1">
+      <div className="flex flex-nowrap items-center gap-2 truncate whitespace-nowrap">
         {children}
       </div>
     </div>
@@ -236,14 +180,14 @@ const DirectoryTreeNodeView: React.FC<
 }
 
 const FileTreeNode: React.FC<FileTreeNodeProps> = ({ node, level }) => {
-  const { onSelectTreeNode, activePath, repositoryName } =
-    React.useContext(FileTreeContext)
+  const { onSelectTreeNode, activePath } = React.useContext(FileTreeContext)
+
   const isFile = node.file.kind === 'file'
-  const isActive = `${repositoryName}/${node.file.basename}` === activePath
+  const isActive = node.fullPath === activePath
 
   const handleSelect: React.MouseEventHandler<HTMLDivElement> = e => {
     if (isFile) {
-      onSelectTreeNode?.(node, repositoryName)
+      onSelectTreeNode?.(node)
     }
   }
 
@@ -261,18 +205,24 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   root
 }) => {
   const {
-    repositoryName,
     fileMap,
     updateFileMap,
     expandedKeys,
-    toggleExpandedKey
+    toggleExpandedKey,
+    onSelectTreeNode,
+    activePath
   } = React.useContext(FileTreeContext)
 
   const initialized = React.useRef(false)
+  const repositoryName = React.useMemo(() => {
+    return resolveRepoNameFromPath(node.fullPath)
+  }, [node.fullPath])
   const basename = root ? '' : node.file.basename
-  const expanded = expandedKeys.has(basename)
+  const expanded = expandedKeys.has(node.fullPath)
   const shouldFetchChildren =
-    node.file.kind === 'dir' && !fileMap?.[basename]?.treeExpanded && expanded
+    node.file.kind === 'dir' &&
+    !fileMap?.[node.fullPath]?.treeExpanded &&
+    expanded
 
   const { data, isValidating }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
@@ -290,10 +240,13 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 
     if (data?.entries?.length) {
       const patchMap: TFileMap = data.entries.reduce((sum, cur) => {
+        const path = `${repositoryName}/${cur.basename}`
         return {
           ...sum,
-          [`${repositoryName}/${cur.basename}`]: {
+          [path]: {
             file: cur,
+            name: resolveFileNameFromPath(path),
+            fullPath: path,
             treeExpanded: false
           }
         }
@@ -304,6 +257,10 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     }
   }, [data])
 
+  const onSelectDirectory: React.MouseEventHandler<HTMLDivElement> = e => {
+    onSelectTreeNode?.(node)
+  }
+
   const loading = useDebounce(isValidating, 100)
 
   const existingChildren = !!node?.children?.length
@@ -312,12 +269,17 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     <>
       <DirectoryTreeNodeView
         level={level}
-        onClick={e => {
-          if (loading) return
-          toggleExpandedKey(basename)
-        }}
+        onClick={onSelectDirectory}
+        isActive={activePath === node.fullPath}
       >
-        <div className="shrink-0">
+        <div
+          className="hover:bg-primary/10 hover:text-popover-foreground shrink-0 h-8 flex items-center"
+          onClick={e => {
+            if (loading) return
+            toggleExpandedKey(node.fullPath)
+            e.stopPropagation()
+          }}
+        >
           {loading && !initialized.current ? (
             <IconSpinner />
           ) : expanded ? (
@@ -349,203 +311,40 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   )
 }
 
-const FileTreeRootRenderer: React.FC = () => {
-  const { fileTree } = React.useContext(FileTreeContext)
+const FileTreeRenderer: React.FC = () => {
+  const { fileTreeData, initialized } = React.useContext(FileTreeContext)
 
-  return <DirectoryTreeNode root level={0} node={fileTree} />
-}
+  if (!initialized) return <FileTreeSkeleton />
 
-const FileTree: React.FC<FileTreeProps> = ({
-  onSelectTreeNode,
-  repositoryName,
-  className,
-  activePath,
-  defaultEntries,
-  defaultExpandedKeys,
-  ...props
-}) => {
-  const initialFileMap: TFileMap = React.useMemo(() => {
-    const map: TFileMap = {
-      [repositoryName]: {
-        file: {
-          kind: 'dir',
-          basename: repositoryName
-        },
-        treeExpanded: false
-      }
-    }
-    if (!defaultEntries?.length) {
-      return map
-    } else {
-      return buildFileMapFromEntries(
-        defaultEntries,
-        repositoryName,
-        defaultExpandedKeys
-      )
-    }
-  }, [])
+  if (!fileTreeData?.length) return <div>No Data</div>
 
   return (
-    <div className={cn(className)} {...props}>
-      <FileTreeProvider
-        onSelectTreeNode={onSelectTreeNode}
-        repositoryName={repositoryName}
-        activePath={activePath}
-        initialFileMap={initialFileMap}
-        defaultExpandedKeys={defaultExpandedKeys}
-      >
-        <FileTreeRootRenderer />
+    <>
+      {fileTreeData?.map(node => (
+        <DirectoryTreeNode root level={0} node={node} key={node.fullPath} />
+      ))}
+    </>
+  )
+}
+
+const FileTree: React.FC<FileTreeProps> = ({ className, ...props }) => {
+  return (
+    <div className={cn('group/filetree', className)}>
+      <FileTreeProvider {...props}>
+        <FileTreeRenderer />
       </FileTreeProvider>
     </div>
   )
 }
 
-const RepositoriesFileTree: React.FC<RepositoriesFileTreeProps> = ({
-  onSelectTreeNode,
-  activePath,
-  className,
-  defaultBasename,
-  defaultRepository,
-  ...props
-}) => {
-  const { data } = useSession()
-  const accessToken = data?.accessToken
-  const initialized = React.useRef(false)
-  const [defaultEntries, setDefaultEntries] = React.useState<TFile[]>()
-  const [defaultExpandedKeys, setDefaultExpandedKeys] =
-    React.useState<string[]>()
-  const [repositories, setRepositories] = React.useState<TFile[]>()
-
-  const fetchRepositories = async (): Promise<TFile[]> => {
-    try {
-      if (!accessToken) return []
-
-      const repos: ResolveEntriesResponse = await fetcher(
-        '/repositories/resolve/'
-      )
-      return repos?.entries
-    } catch (e) {
-      return []
-    }
-  }
-
-  const fetchDefaultEntries = async (data?: TFile[]) => {
-    try {
-      if (!accessToken) return undefined
-      if (!defaultRepository || !defaultBasename) return undefined
-      // match default repository
-      const repositoryIdx = findIndex(
-        data,
-        entry => entry.basename === defaultRepository
-      )
-      if (repositoryIdx < 0) return undefined
-
-      const directoryPaths = getDirectoriesFromBasename(defaultBasename)
-      // fetch default directories
-      const requests: Array<() => Promise<ResolveEntriesResponse>> =
-        directoryPaths.map(path => () => {
-          return fetcher(`/repositories/${defaultRepository}/resolve/${path}`)
-        })
-      const entries = await Promise.all(requests.map(fn => fn()))
-      let result: TFile[] = []
-      for (let entry of entries) {
-        if (entry.entries?.length) {
-          result = [...result, ...entry.entries]
-        }
-      }
-      return result
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  const initDefaultEntries = async (data?: TFile[]) => {
-    let result: { defaultEntriesRes: TFile[]; expandedKeys: string[] } = {
-      defaultEntriesRes: [],
-      expandedKeys: []
-    }
-    try {
-      if (defaultBasename && defaultRepository && data?.length) {
-        const defaultEntriesRes = await fetchDefaultEntries(data)
-        const expandedKeys = getDirectoriesFromBasename(defaultBasename)
-        if (defaultEntriesRes?.length) {
-          result.defaultEntriesRes = defaultEntriesRes
-        }
-        if (expandedKeys?.length) {
-          result.expandedKeys = expandedKeys
-        }
-      }
-    } catch (e) {
-      console.error(e)
-    }
-
-    initialized.current = true
-    return result
-  }
-
-  const init = async () => {
-    try {
-      const repos = await fetchRepositories()
-      const { defaultEntriesRes, expandedKeys } = await initDefaultEntries(
-        repos
-      )
-
-      setRepositories(repos)
-      setDefaultEntries(defaultEntriesRes)
-      setDefaultExpandedKeys(expandedKeys)
-    } catch (e) {
-      console.error(e)
-    }
-    initialized.current = true
-  }
-
-  React.useEffect(() => {
-    if (!initialized.current && accessToken) {
-      init()
-    }
-  }, [accessToken])
-
-  if (!initialized.current) return <FileTreeSkeleton />
-
-  if (!repositories?.length) {
-    // todo introduce & retry button?
-    return <div className="mt-1 flex justify-center">No Data</div>
-  }
-
-  return (
-    <div className={cn('group/filetree', className)} {...props}>
-      {repositories?.map(repo => {
-        return (
-          <FileTree
-            key={repo.basename}
-            repositoryName={repo.basename}
-            activePath={activePath}
-            onSelectTreeNode={onSelectTreeNode}
-            defaultEntries={
-              repo.basename === defaultRepository ? defaultEntries : undefined
-            }
-            defaultExpandedKeys={
-              repo.basename === defaultRepository
-                ? defaultExpandedKeys
-                : undefined
-            }
-          />
-        )
-      })}
-    </div>
-  )
-}
-
-function mapToFileTree(fileMap: TFileMap, rootBasename: string): TFileTreeNode {
+function mapToFileTree(fileMap: TFileMap | undefined): TFileTreeNode[] {
   const tree: TFileTreeNode[] = []
+  if (!fileMap) return tree
 
   const fileKeys = Object.keys(fileMap)
-  const childrenKeys = fileKeys.filter(k => k !== rootBasename)
-  const rootNode = fileMap?.[rootBasename]
-
-  for (const fileKey of childrenKeys) {
+  for (const fileKey of fileKeys) {
     const file = fileMap[fileKey]
-    const pathSegments = file.file.basename.split('/')
+    const pathSegments = fileKey.split('/')
     let currentNode = tree
 
     for (let i = 0; i < pathSegments.length; i++) {
@@ -558,6 +357,7 @@ function mapToFileTree(fileMap: TFileMap, rootBasename: string): TFileTreeNode {
         const newNode: TFileTreeNode = {
           file: file.file,
           name: segment,
+          fullPath: fileKey,
           children: []
         }
         currentNode.push(newNode)
@@ -566,28 +366,7 @@ function mapToFileTree(fileMap: TFileMap, rootBasename: string): TFileTreeNode {
     }
   }
 
-  return {
-    file: rootNode?.file || { kind: 'dir', basename: rootBasename },
-    name: resolveRepositoryName(rootBasename),
-    children: tree
-  }
-}
-
-function buildFileMapFromEntries(
-  entries: TFile[],
-  repositoryName: string,
-  defaultExpandedKeys?: string[]
-): TFileMap {
-  let map: TFileMap = {}
-  for (const entry of entries) {
-    map[`${repositoryName}/${entry.basename}`] = {
-      file: entry,
-      treeExpanded:
-        entry.basename === repositoryName ||
-        defaultExpandedKeys?.includes(entry.basename)
-    }
-  }
-  return map
+  return tree
 }
 
 function FileTreeSkeleton() {
@@ -602,7 +381,7 @@ function FileTreeSkeleton() {
   )
 }
 
-function sortFileTree(tree: TFileTreeNode[]): TFileTreeNode[] {
+function sortFileTree(tree: TFileTreeNode[]) {
   if (!tree.length) return []
 
   tree.sort((a, b) => {
@@ -624,15 +403,5 @@ function resolveRepositoryName(name: string) {
   return repositoryName || name
 }
 
-function getDirectoriesFromBasename(basename: string): string[] {
-  if (isNil(basename)) return []
-
-  let result = ['']
-  const pathSegments = basename.split('/')
-  for (let i = 0; i < pathSegments.length - 1; i++) {
-    result.push(pathSegments.slice(0, i + 1).join('/'))
-  }
-  return result
-}
-
-export { RepositoriesFileTree, type TFile, type TFileTreeNode }
+export type { TFileTreeNode }
+export { FileTree, mapToFileTree, sortFileTree }
