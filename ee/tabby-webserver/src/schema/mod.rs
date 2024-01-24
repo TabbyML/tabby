@@ -21,7 +21,10 @@ use juniper_axum::{
     relay::{self, Connection},
     FromAuth,
 };
-use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tabby_common::{
+    api::{code::CodeSearch, event::RawEventLogger},
+    validate_identifier,
+};
 use tracing::error;
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
@@ -69,6 +72,9 @@ pub enum CoreError {
 
     #[error("Malformed ID input")]
     InvalidIDError(#[from] ParseIntError),
+
+    #[error("Invalid character in identifier")]
+    InvalidIdentifierError(String),
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
@@ -400,6 +406,9 @@ impl Mutation {
     }
 
     async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
+        if !validate_identifier(&name) {
+            return Err(CoreError::InvalidIdentifierError(name));
+        }
         Ok(ctx
             .locator
             .repository()

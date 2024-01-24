@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use filenamify::filenamify;
 use serde::{Deserialize, Serialize};
 
-use crate::path::repositories_dir;
+use crate::{path::repositories_dir, validate_identifier};
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
@@ -19,9 +19,7 @@ impl Config {
     pub fn load() -> Result<Self> {
         let cfg: Self = serdeconv::from_toml_file(crate::path::config_file().as_path())?;
 
-        if !cfg.repository_has_unique_name() {
-            return Err(anyhow!("Duplicated name in `repositories`"));
-        }
+        cfg.validate_names()?;
 
         Ok(cfg)
     }
@@ -32,13 +30,21 @@ impl Config {
             .expect("Failed to write config file");
     }
 
-    fn repository_has_unique_name(&self) -> bool {
+    fn validate_names(&self) -> Result<()> {
         let mut names = HashSet::new();
         for repo in self.repositories.iter() {
-            names.insert(repo.name());
+            let name = repo.name();
+            if !validate_identifier(&name) {
+                return Err(anyhow!(
+                    "Invalid characters in repository identifier: {}",
+                    name
+                ));
+            }
+            if !names.insert(repo.name()) {
+                return Err(anyhow!("Duplicate name in `repositories`: {}", repo.name()));
+            }
         }
-
-        names.len() == self.repositories.len()
+        Ok(())
     }
 }
 

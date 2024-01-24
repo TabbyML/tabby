@@ -48,6 +48,12 @@ impl SourceFile {
     }
 }
 
+pub fn validate_identifier(ident: &str) -> bool {
+    ident
+        .chars()
+        .all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-'))
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Point {
     pub row: usize,
