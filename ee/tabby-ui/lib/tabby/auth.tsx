@@ -74,6 +74,9 @@ const saveAuthToken = (authData: AuthData) => {
 }
 const clearAuthToken = () => {
   localStorage.removeItem(AUTH_TOKEN_KEY)
+  // FIXME
+  // dispatching storageEvent to notify updating `authToken` in `AuthProvider`, 
+  // the `useEffect` hook depending on `authToken` in `AuthProvider` will be fired and updating the authState
   window.dispatchEvent(
     new StorageEvent('storage', {
       storageArea: window.localStorage,
