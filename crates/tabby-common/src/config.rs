@@ -4,7 +4,11 @@ use anyhow::{anyhow, Result};
 use filenamify::filenamify;
 use serde::{Deserialize, Serialize};
 
-use crate::{path::repositories_dir, validate_identifier};
+use crate::{
+    path::repositories_dir,
+    terminal::{HeaderFormat, InfoMessage},
+    validate_identifier,
+};
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
@@ -15,11 +19,34 @@ pub struct Config {
     pub server: ServerConfig,
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum ConfigError {
+    #[error("Invalid repository name {0}")]
+    InvalidRepositoryName(String),
+    #[error("Duplicate repository name {0}")]
+    DuplicateRepositoryName(String),
+}
+
 impl Config {
     pub fn load() -> Result<Self> {
-        let cfg: Self = serdeconv::from_toml_file(crate::path::config_file().as_path())?;
+        let mut cfg: Self = serdeconv::from_toml_file(crate::path::config_file().as_path())?;
 
-        cfg.validate_names()?;
+        if let Err(e) = cfg.validate_names() {
+            cfg = Default::default();
+            InfoMessage::new(
+                "Parsing config failed",
+                HeaderFormat::BoldRed,
+                &[
+                    &format!(
+                        "Warning: Could not parse the Tabby configuration at {}",
+                        crate::path::config_file().as_path().to_string_lossy()
+                    ),
+                    &format!("Reason: {e}"),
+                    "Falling back to default config, please resolve the errors and restart Tabby",
+                ],
+            )
+            .print();
+        }
 
         Ok(cfg)
     }
@@ -35,12 +62,9 @@ impl Config {
         for repo in self.repositories.iter() {
             let name = repo.name();
             if !validate_identifier(&name) {
-                return Err(anyhow!(
-                    "Invalid characters in repository identifier: {}",
-                    name
-                ));
+                return Err(anyhow!("Invalid characters in repository name: {name}"));
             }
-            if !names.insert(repo.name()) {
+            if !names.insert(name) {
                 return Err(anyhow!("Duplicate name in `repositories`: {}", repo.name()));
             }
         }

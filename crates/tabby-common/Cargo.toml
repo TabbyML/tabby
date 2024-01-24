@@ -19,6 +19,7 @@ utoipa.workspace = true
 serde_json.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
+validator = { version = "0.16.1", features = ["derive"] }
 
 [features]
 testutils = []
