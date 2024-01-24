@@ -67,7 +67,7 @@ pub enum CoreError {
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 
-    #[error("Malformed ID input: {0}")]
+    #[error("Malformed ID input")]
     InvalidIDError(#[from] ParseIntError),
 }
 
