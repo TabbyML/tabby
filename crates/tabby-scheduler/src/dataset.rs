@@ -51,20 +51,23 @@ impl RepositoryExt for RepositoryConfig {
             let language = get_language(relative_path.extension().unwrap())
                 .unwrap()
                 .to_owned();
-            if let Ok(file_content) = read_to_string(entry.path()) {
-                let source_file = SourceFile {
-                    git_url: self.git_url.clone(),
-                    filepath: relative_path.display().to_string(),
-                    max_line_length: metrics::max_line_length(&file_content),
-                    avg_line_length: metrics::avg_line_length(&file_content),
-                    alphanum_fraction: metrics::alphanum_fraction(&file_content),
-                    tags: tags::collect(&mut context, &language, &file_content),
-                    language,
-                    content: file_content,
-                };
-                writer.write_json_lines([source_file])?;
-            } else {
-                error!("Cannot read {:?}", relative_path);
+            match read_to_string(entry.path()) {
+                Ok(file_content) => {
+                    let source_file = SourceFile {
+                        git_url: self.git_url.clone(),
+                        filepath: relative_path.display().to_string(),
+                        max_line_length: metrics::max_line_length(&file_content),
+                        avg_line_length: metrics::avg_line_length(&file_content),
+                        alphanum_fraction: metrics::alphanum_fraction(&file_content),
+                        tags: tags::collect(&mut context, &language, &file_content),
+                        language,
+                        content: file_content,
+                    };
+                    writer.write_json_lines([source_file])?;
+                }
+                Err(e) => {
+                    error!("Cannot read {relative_path:?}: {e:?}");
+                }
             }
         }
 
