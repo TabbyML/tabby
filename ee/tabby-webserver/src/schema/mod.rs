@@ -26,7 +26,7 @@ use tabby_common::{
     validate_identifier,
 };
 use tracing::error;
-use validator::{ValidationErrors};
+use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
 use self::{

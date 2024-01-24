@@ -3,8 +3,7 @@ use async_trait::async_trait;
 use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay::NodeType;
 
-
-use super::{Context};
+use super::Context;
 
 #[derive(thiserror::Error, Debug)]
 pub enum RepositoryError {
