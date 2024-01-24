@@ -67,8 +67,8 @@ pub enum CoreError {
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 
-    #[error("{0}")]
-    ParseInt(#[from] ParseIntError),
+    #[error("Malformed ID input: {0}")]
+    InvalidIDError(#[from] ParseIntError),
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
