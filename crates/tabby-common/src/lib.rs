@@ -49,9 +49,9 @@ impl SourceFile {
 }
 
 pub fn validate_identifier(ident: &str) -> bool {
-    ident
-        .chars()
-        .all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-'))
+    let mut chars = ident.chars();
+    chars.next().is_some_and(|c| c.is_ascii_alphabetic())
+        && chars.all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-'))
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

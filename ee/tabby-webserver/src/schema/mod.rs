@@ -23,15 +23,16 @@ use juniper_axum::{
 };
 use tabby_common::{
     api::{code::CodeSearch, event::RawEventLogger},
+    config::ConfigError,
     validate_identifier,
 };
 use tracing::error;
-use validator::ValidationErrors;
+use validator::{ValidationError, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
     email::{EmailService, EmailSetting},
-    repository::RepositoryService,
+    repository::{RepositoryError, RepositoryService},
 };
 use crate::schema::{
     auth::{OAuthCredential, OAuthProvider},
@@ -72,9 +73,6 @@ pub enum CoreError {
 
     #[error("Malformed ID input")]
     InvalidIDError(#[from] ParseIntError),
-
-    #[error("Invalid character in identifier: {0}")]
-    InvalidIdentifierError(String),
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
@@ -405,9 +403,13 @@ impl Mutation {
         ))
     }
 
-    async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
+    async fn create_repository(
+        ctx: &Context,
+        name: String,
+        git_url: String,
+    ) -> Result<ID, RepositoryError> {
         if !validate_identifier(&name) {
-            return Err(CoreError::InvalidIdentifierError(name));
+            return Err(RepositoryError::InvalidName);
         }
         Ok(ctx
             .locator

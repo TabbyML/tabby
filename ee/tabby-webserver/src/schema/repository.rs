@@ -1,9 +1,24 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use juniper::{GraphQLObject, ID};
+use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay::NodeType;
+use validator::ValidationErrors;
 
-use super::Context;
+use super::{from_validation_errors, Context};
+
+#[derive(thiserror::Error, Debug)]
+pub enum RepositoryError {
+    #[error("Invalid repository name")]
+    InvalidName,
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for RepositoryError {
+    fn into_field_error(self) -> FieldError<S> {
+        self.into()
+    }
+}
 
 #[derive(GraphQLObject, Debug)]
 #[graphql(context = Context)]
