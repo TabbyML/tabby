@@ -208,16 +208,17 @@ impl DbConn {
     }
 
     pub async fn update_user_active(&self, id: i32, active: bool) -> Result<()> {
-        let new_active = self
+        let changed = self
             .conn
             .call(move |c| {
-                c.execute("UPDATE users SET active=? WHERE id=?", (active, id))?;
-                let new_active: bool =
-                    c.query_row("SELECT active FROM users WHERE id=?", [id], |r| r.get(0))?;
-                Ok(new_active)
+                let changed = c.execute(
+                    "UPDATE users SET active=? WHERE id=? AND active=?",
+                    (active, id, !active),
+                )?;
+                Ok(changed)
             })
             .await?;
-        if new_active != active {
+        if changed != 1 {
             Err(anyhow!("user active status was not changed"))
         } else {
             Ok(())
