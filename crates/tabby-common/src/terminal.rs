@@ -2,6 +2,7 @@ pub enum HeaderFormat {
     BoldWhite,
     BoldBlue,
     BoldYellow,
+    BoldRed,
     Blue,
 }
 
@@ -12,6 +13,7 @@ impl HeaderFormat {
             HeaderFormat::BoldBlue => "\x1b[34;1m",
             HeaderFormat::BoldYellow => "\x1b[93;1m",
             HeaderFormat::Blue => "\x1b[34m",
+            HeaderFormat::BoldRed => "\x1b[1;31m",
         }
     }
 

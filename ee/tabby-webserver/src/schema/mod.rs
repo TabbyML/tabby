@@ -28,7 +28,7 @@ use worker::{Worker, WorkerService};
 
 use self::{
     email::{EmailService, EmailSetting},
-    repository::RepositoryService,
+    repository::{RepositoryError, RepositoryService},
 };
 use crate::schema::{
     auth::{OAuthCredential, OAuthProvider},
@@ -399,12 +399,15 @@ impl Mutation {
         ))
     }
 
-    async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
-        Ok(ctx
-            .locator
+    async fn create_repository(
+        ctx: &Context,
+        name: String,
+        git_url: String,
+    ) -> Result<ID, RepositoryError> {
+        ctx.locator
             .repository()
             .create_repository(name, git_url)
-            .await?)
+            .await
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {

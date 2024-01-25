@@ -2,9 +2,14 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Result};
 use filenamify::filenamify;
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::path::repositories_dir;
+use crate::{
+    path::repositories_dir,
+    terminal::{HeaderFormat, InfoMessage},
+};
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
@@ -17,10 +22,23 @@ pub struct Config {
 
 impl Config {
     pub fn load() -> Result<Self> {
-        let cfg: Self = serdeconv::from_toml_file(crate::path::config_file().as_path())?;
+        let mut cfg: Self = serdeconv::from_toml_file(crate::path::config_file().as_path())?;
 
-        if !cfg.repository_has_unique_name() {
-            return Err(anyhow!("Duplicated name in `repositories`"));
+        if let Err(e) = cfg.validate_names() {
+            cfg = Default::default();
+            InfoMessage::new(
+                "Parsing config failed",
+                HeaderFormat::BoldRed,
+                &[
+                    &format!(
+                        "Warning: Could not parse the Tabby configuration at {}",
+                        crate::path::config_file().as_path().to_string_lossy()
+                    ),
+                    &format!("Reason: {e}"),
+                    "Falling back to default config, please resolve the errors and restart Tabby",
+                ],
+            )
+            .print();
         }
 
         Ok(cfg)
@@ -32,14 +50,23 @@ impl Config {
             .expect("Failed to write config file");
     }
 
-    fn repository_has_unique_name(&self) -> bool {
+    fn validate_names(&self) -> Result<()> {
         let mut names = HashSet::new();
         for repo in self.repositories.iter() {
-            names.insert(repo.name());
+            let name = repo.name();
+            if !RepositoryConfig::validate_name(&name) {
+                return Err(anyhow!("Invalid characters in repository name: {}", name));
+            }
+            if !names.insert(repo.name()) {
+                return Err(anyhow!("Duplicate name in `repositories`: {}", repo.name()));
+            }
         }
-
-        names.len() == self.repositories.len()
+        Ok(())
     }
+}
+
+lazy_static! {
+    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("[a-zA-Z][a-zA-Z0-9-]+").unwrap();
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -63,6 +90,10 @@ impl RepositoryConfig {
             name: Some(name),
             git_url,
         }
+    }
+
+    pub fn validate_name(name: &str) -> bool {
+        REPOSITORY_NAME_REGEX.is_match(name)
     }
 
     pub fn dir(&self) -> PathBuf {
