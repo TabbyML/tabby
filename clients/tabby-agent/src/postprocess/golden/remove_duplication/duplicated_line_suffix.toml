@@ -1,0 +1,23 @@
+description = 'Remove duplication: dupicated line suffix'
+
+[config]
+# use default config
+
+[context]
+filepath = 'checks.js'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+const log = ({ ok }: { ok:├ boolean }) => { ┤ }) => {
+  console.log(ok);
+}
+'''
+
+[expected]
+# text = '''
+# const log = ({ ok }: { ok:├ boolean┤ }) => {
+#   console.log(ok);
+# }
+# '''
+unchanged = true
+notEqual = true  # FIXME: fix bad case
