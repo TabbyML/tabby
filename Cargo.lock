@@ -3825,6 +3825,7 @@ dependencies = [
  "glob",
  "home",
  "lazy_static",
+ "regex",
  "reqwest",
  "serde",
  "serde-jsonlines 0.4.0",

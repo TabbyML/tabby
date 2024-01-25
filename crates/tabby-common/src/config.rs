@@ -2,6 +2,8 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Result};
 use filenamify::filenamify;
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -63,6 +65,10 @@ impl Config {
     }
 }
 
+lazy_static! {
+    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("[a-zA-Z][a-zA-Z0-9-]+").unwrap();
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RepositoryConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -87,9 +93,7 @@ impl RepositoryConfig {
     }
 
     pub fn validate_name(name: &str) -> bool {
-        let mut chars = name.chars();
-        chars.next().is_some_and(|c| c.is_ascii_alphabetic())
-            && chars.all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-'))
+        REPOSITORY_NAME_REGEX.is_match(name)
     }
 
     pub fn dir(&self) -> PathBuf {
