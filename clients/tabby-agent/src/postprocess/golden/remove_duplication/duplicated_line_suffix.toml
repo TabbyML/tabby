@@ -14,10 +14,9 @@ const log = ({ ok }: { ok:├ boolean }) => { ┤ }) => {
 '''
 
 [expected]
-# text = '''
-# const log = ({ ok }: { ok:├ boolean┤ }) => {
-#   console.log(ok);
-# }
-# '''
-unchanged = true
+text = '''
+const log = ({ ok }: { ok:├ boolean┤ }) => {
+  console.log(ok);
+}
+'''
 notEqual = true  # FIXME: fix bad case
