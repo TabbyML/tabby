@@ -23,7 +23,6 @@ use juniper_axum::{
 };
 use tabby_common::{
     api::{code::CodeSearch, event::RawEventLogger},
-    validate_identifier,
 };
 use tracing::error;
 use validator::{Validate, ValidationErrors};
