@@ -14,11 +14,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::model;
-use crate::{
-    fatal,
-    services::{default_seed, DEFAULT_TEMPERATURE},
-    Device,
-};
+use crate::{fatal, Device};
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -125,8 +121,12 @@ impl ChatService {
 
         let prompt = self.prompt_builder.build(&request.messages)?;
         let options = Self::text_generation_options(
-            request.temperature.unwrap_or(DEFAULT_TEMPERATURE),
-            request.seed.unwrap_or_else(default_seed),
+            request
+                .temperature
+                .unwrap_or(TextGenerationOptions::DEFAULT_TEMPERATURE),
+            request
+                .seed
+                .unwrap_or_else(TextGenerationOptions::default_seed),
         );
         let created = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
