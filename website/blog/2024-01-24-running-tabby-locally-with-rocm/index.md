@@ -4,7 +4,7 @@ authors: [boxbeam]
 tags: [deployment]
 ---
 
-:::warning
+:::info
 
 Tabby's ROCm support is currently only in our [nightly builds](https://github.com/TabbyML/tabby/releases/tag/nightly). It will become stable in version 0.8.
 
