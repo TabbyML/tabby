@@ -208,17 +208,19 @@ impl CompletionService {
 
     fn text_generation_options(
         language: &str,
-        temperature: f32,
+        temperature: Option<f32>,
         seed: u64,
     ) -> TextGenerationOptions {
-        TextGenerationOptionsBuilder::default()
+        let mut builder = TextGenerationOptionsBuilder::default();
+        builder
             .max_input_length(1024 + 512)
             .max_decoding_length(128)
-            .sampling_temperature(temperature)
             .seed(seed)
-            .language(Some(get_language(language)))
-            .build()
-            .unwrap()
+            .language(Some(get_language(language)));
+        if let Some(temperature) = temperature {
+            builder.sampling_temperature(temperature);
+        }
+        builder.build().unwrap()
     }
 
     pub async fn generate(
@@ -229,13 +231,10 @@ impl CompletionService {
         let language = request.language_or_unknown();
         let options = Self::text_generation_options(
             language.as_str(),
-            request.temperature.unwrap_or(0.1),
-            request.seed.unwrap_or_else(|| {
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis() as u64
-            }),
+            request.temperature,
+            request
+                .seed
+                .unwrap_or_else(TextGenerationOptions::default_seed),
         );
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {

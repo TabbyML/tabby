@@ -26,6 +26,8 @@ use crate::{fatal, Device};
 }))]
 pub struct ChatCompletionRequest {
     messages: Vec<Message>,
+    temperature: Option<f32>,
+    seed: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -100,13 +102,16 @@ impl ChatService {
         }
     }
 
-    fn text_generation_options() -> TextGenerationOptions {
-        TextGenerationOptionsBuilder::default()
+    fn text_generation_options(temperature: Option<f32>, seed: u64) -> TextGenerationOptions {
+        let mut builder = TextGenerationOptionsBuilder::default();
+        builder
             .max_input_length(2048)
             .max_decoding_length(1920)
-            .sampling_temperature(0.1)
-            .build()
-            .unwrap()
+            .seed(seed);
+        if let Some(temperature) = temperature {
+            builder.sampling_temperature(temperature);
+        }
+        builder.build().unwrap()
     }
 
     pub async fn generate<'a>(
@@ -117,7 +122,12 @@ impl ChatService {
         let event_input = convert_messages(&request.messages);
 
         let prompt = self.prompt_builder.build(&request.messages)?;
-        let options = Self::text_generation_options();
+        let options = Self::text_generation_options(
+            request.temperature,
+            request
+                .seed
+                .unwrap_or_else(TextGenerationOptions::default_seed),
+        );
         let created = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("Must be able to read system clock")

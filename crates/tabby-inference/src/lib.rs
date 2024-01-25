@@ -24,6 +24,15 @@ pub struct TextGenerationOptions {
     pub language: Option<&'static Language>,
 }
 
+impl TextGenerationOptions {
+    pub fn default_seed() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64
+    }
+}
+
 #[async_trait]
 pub trait TextGeneration: Sync + Send {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String;

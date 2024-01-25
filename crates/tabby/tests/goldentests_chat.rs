@@ -119,6 +119,7 @@ async fn run_chat_golden_tests() {
     wait_for_server(Some("metal")).await;
 
     assert_golden!(json!({
+            "seed": 0,
             "messages": [
                 {
                     "role": "user",
@@ -128,6 +129,7 @@ async fn run_chat_golden_tests() {
     }));
 
     assert_golden!(json!({
+            "seed": 0,
             "messages": [
                 {
                     "role": "user",
@@ -143,6 +145,7 @@ async fn run_chat_golden_tests_cpu() {
     wait_for_server(Some("cpu")).await;
 
     assert_golden!(json!({
+            "seed": 0,
             "messages": [
                 {
                     "role": "user",
