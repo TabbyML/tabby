@@ -1,9 +1,10 @@
 ---
-slug: running-tabby-locally-with-rocm.md
 title: Running Tabby Locally with AMD ROCm
 authors: [boxbeam]
 tags: [deployment]
 ---
+
+⚠️ ROCm is only supported in Tabby's nightly builds! Support will be stable in version 0.8.
 
 For those using (compatible) **AMD** graphics cards, you can now run Tabby locally with GPU acceleration using AMD's ROCm toolkit! 🎉
 
