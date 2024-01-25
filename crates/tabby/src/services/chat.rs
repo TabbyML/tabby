@@ -14,7 +14,11 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::model;
-use crate::{fatal, Device};
+use crate::{
+    fatal,
+    services::{default_seed, DEFAULT_TEMPERATURE},
+    Device,
+};
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -26,6 +30,8 @@ use crate::{fatal, Device};
 }))]
 pub struct ChatCompletionRequest {
     messages: Vec<Message>,
+    temperature: Option<f32>,
+    seed: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -100,11 +106,12 @@ impl ChatService {
         }
     }
 
-    fn text_generation_options() -> TextGenerationOptions {
+    fn text_generation_options(temperature: f32, seed: u64) -> TextGenerationOptions {
         TextGenerationOptionsBuilder::default()
             .max_input_length(2048)
             .max_decoding_length(1920)
-            .sampling_temperature(0.1)
+            .sampling_temperature(temperature)
+            .seed(seed)
             .build()
             .unwrap()
     }
@@ -117,7 +124,10 @@ impl ChatService {
         let event_input = convert_messages(&request.messages);
 
         let prompt = self.prompt_builder.build(&request.messages)?;
-        let options = Self::text_generation_options();
+        let options = Self::text_generation_options(
+            request.temperature.unwrap_or(DEFAULT_TEMPERATURE),
+            request.seed.unwrap_or_else(default_seed),
+        );
         let created = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("Must be able to read system clock")

@@ -17,7 +17,10 @@ use tracing::debug;
 use utoipa::ToSchema;
 
 use super::model;
-use crate::Device;
+use crate::{
+    services::{default_seed, DEFAULT_TEMPERATURE},
+    Device,
+};
 
 #[derive(Error, Debug)]
 pub enum CompletionError {
@@ -229,13 +232,8 @@ impl CompletionService {
         let language = request.language_or_unknown();
         let options = Self::text_generation_options(
             language.as_str(),
-            request.temperature.unwrap_or(0.1),
-            request.seed.unwrap_or_else(|| {
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis() as u64
-            }),
+            request.temperature.unwrap_or(DEFAULT_TEMPERATURE),
+            request.seed.unwrap_or_else(default_seed),
         );
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
