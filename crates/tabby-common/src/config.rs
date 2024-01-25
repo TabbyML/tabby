@@ -51,11 +51,9 @@ impl Config {
     fn validate_names(&self) -> Result<()> {
         let mut names = HashSet::new();
         for repo in self.repositories.iter() {
-            if !repo.validate_name() {
-                return Err(anyhow!(
-                    "Invalid characters in repository name: {}",
-                    repo.name()
-                ));
+            let name = repo.name();
+            if !RepositoryConfig::validate_name(&name) {
+                return Err(anyhow!("Invalid characters in repository name: {}", name));
             }
             if !names.insert(repo.name()) {
                 return Err(anyhow!("Duplicate name in `repositories`: {}", repo.name()));
@@ -88,10 +86,7 @@ impl RepositoryConfig {
         }
     }
 
-    pub fn validate_name(&self) -> bool {
-        let Some(name) = &self.name else {
-            return true;
-        };
+    pub fn validate_name(name: &str) -> bool {
         let mut chars = name.chars();
         chars.next().is_some_and(|c| c.is_ascii_alphabetic())
             && chars.all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-'))
