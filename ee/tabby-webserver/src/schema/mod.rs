@@ -26,7 +26,7 @@ use tabby_common::{
     validate_identifier,
 };
 use tracing::error;
-use validator::ValidationErrors;
+use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
@@ -35,7 +35,7 @@ use self::{
 };
 use crate::schema::{
     auth::{OAuthCredential, OAuthProvider},
-    repository::Repository,
+    repository::{CreateRepositoryInput, Repository},
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -407,13 +407,12 @@ impl Mutation {
         name: String,
         git_url: String,
     ) -> Result<ID, RepositoryError> {
-        if !validate_identifier(&name) {
-            return Err(RepositoryError::InvalidName);
-        }
+        let repository = CreateRepositoryInput { name, git_url };
+        repository.validate()?;
         Ok(ctx
             .locator
             .repository()
-            .create_repository(name, git_url)
+            .create_repository(repository.name, repository.git_url)
             .await?)
     }
 

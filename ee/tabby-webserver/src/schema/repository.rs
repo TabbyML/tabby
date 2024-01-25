@@ -2,20 +2,38 @@ use anyhow::Result;
 use async_trait::async_trait;
 use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay::NodeType;
+use lazy_static::lazy_static;
+use regex::Regex;
+use validator::{Validate, ValidationErrors};
 
-use super::Context;
+use super::{from_validation_errors, Context};
+
+lazy_static! {
+    static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("[a-zA-Z][a-zA-Z0-9-]+").unwrap();
+}
+
+#[derive(Validate)]
+pub struct CreateRepositoryInput {
+    #[validate(regex = "REPOSITORY_NAME_REGEX")]
+    pub name: String,
+    #[validate(url)]
+    pub git_url: String,
+}
 
 #[derive(thiserror::Error, Debug)]
 pub enum RepositoryError {
-    #[error("Invalid repository name")]
-    InvalidName,
+    #[error("Invalid input parameters")]
+    InvalidInput(#[from] ValidationErrors),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for RepositoryError {
     fn into_field_error(self) -> FieldError<S> {
-        self.into()
+        match self {
+            Self::InvalidInput(errors) => from_validation_errors(errors),
+            _ => self.into(),
+        }
     }
 }
 

@@ -19,14 +19,6 @@ pub struct Config {
     pub server: ServerConfig,
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum ConfigError {
-    #[error("Invalid repository name {0}")]
-    InvalidRepositoryName(String),
-    #[error("Duplicate repository name {0}")]
-    DuplicateRepositoryName(String),
-}
-
 impl Config {
     pub fn load() -> Result<Self> {
         let mut cfg: Self = serdeconv::from_toml_file(crate::path::config_file().as_path())?;
