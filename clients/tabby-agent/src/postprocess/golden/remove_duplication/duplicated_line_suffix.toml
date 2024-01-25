@@ -4,7 +4,7 @@ description = 'Remove duplication: dupicated line suffix'
 # use default config
 
 [context]
-filepath = 'checks.js'
+filepath = 'checks.ts'
 language = 'typescript'
 # indentation = '  ' # not specified
 text = '''
