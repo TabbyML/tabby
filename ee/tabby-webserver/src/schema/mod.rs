@@ -21,9 +21,7 @@ use juniper_axum::{
     relay::{self, Connection},
     FromAuth,
 };
-use tabby_common::{
-    api::{code::CodeSearch, event::RawEventLogger},
-};
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};

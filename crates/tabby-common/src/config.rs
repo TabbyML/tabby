@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use crate::{
     path::repositories_dir,
     terminal::{HeaderFormat, InfoMessage},
-    validate_identifier,
 };
 
 #[derive(Serialize, Deserialize, Default)]
@@ -52,11 +51,13 @@ impl Config {
     fn validate_names(&self) -> Result<()> {
         let mut names = HashSet::new();
         for repo in self.repositories.iter() {
-            let name = repo.name();
-            if !validate_identifier(&name) {
-                return Err(anyhow!("Invalid characters in repository name: {name}"));
+            if !repo.validate_name() {
+                return Err(anyhow!(
+                    "Invalid characters in repository name: {}",
+                    repo.name()
+                ));
             }
-            if !names.insert(name) {
+            if !names.insert(repo.name()) {
                 return Err(anyhow!("Duplicate name in `repositories`: {}", repo.name()));
             }
         }
@@ -85,6 +86,15 @@ impl RepositoryConfig {
             name: Some(name),
             git_url,
         }
+    }
+
+    pub fn validate_name(&self) -> bool {
+        let Some(name) = &self.name else {
+            return true;
+        };
+        let mut chars = name.chars();
+        chars.next().is_some_and(|c| c.is_ascii_alphabetic())
+            && chars.all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-'))
     }
 
     pub fn dir(&self) -> PathBuf {
