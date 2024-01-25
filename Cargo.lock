@@ -3932,7 +3932,6 @@ dependencies = [
  "lettre",
  "mime_guess",
  "pin-project",
- "regex",
  "reqwest",
  "rust-embed 8.0.0",
  "serde",

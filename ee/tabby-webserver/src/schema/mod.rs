@@ -23,7 +23,7 @@ use juniper_axum::{
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::error;
-use validator::{Validate, ValidationErrors};
+use validator::{ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
@@ -32,7 +32,7 @@ use self::{
 };
 use crate::schema::{
     auth::{OAuthCredential, OAuthProvider},
-    repository::{CreateRepositoryInput, Repository},
+    repository::{Repository},
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -404,11 +404,11 @@ impl Mutation {
         name: String,
         git_url: String,
     ) -> Result<ID, RepositoryError> {
-        Ok(ctx
+        ctx
             .locator
             .repository()
             .create_repository(name, git_url)
-            .await?)
+            .await
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
