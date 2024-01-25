@@ -102,14 +102,16 @@ impl ChatService {
         }
     }
 
-    fn text_generation_options(temperature: f32, seed: u64) -> TextGenerationOptions {
-        TextGenerationOptionsBuilder::default()
+    fn text_generation_options(temperature: Option<f32>, seed: u64) -> TextGenerationOptions {
+        let mut builder = TextGenerationOptionsBuilder::default();
+        builder
             .max_input_length(2048)
             .max_decoding_length(1920)
-            .sampling_temperature(temperature)
-            .seed(seed)
-            .build()
-            .unwrap()
+            .seed(seed);
+        if let Some(temperature) = temperature {
+            builder.sampling_temperature(temperature);
+        }
+        builder.build().unwrap()
     }
 
     pub async fn generate<'a>(
@@ -121,9 +123,7 @@ impl ChatService {
 
         let prompt = self.prompt_builder.build(&request.messages)?;
         let options = Self::text_generation_options(
-            request
-                .temperature
-                .unwrap_or(TextGenerationOptions::DEFAULT_TEMPERATURE),
+            request.temperature,
             request
                 .seed
                 .unwrap_or_else(TextGenerationOptions::default_seed),
