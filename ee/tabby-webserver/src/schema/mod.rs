@@ -404,12 +404,10 @@ impl Mutation {
         name: String,
         git_url: String,
     ) -> Result<ID, RepositoryError> {
-        let repository = CreateRepositoryInput { name, git_url };
-        repository.validate()?;
         Ok(ctx
             .locator
             .repository()
-            .create_repository(repository.name, repository.git_url)
+            .create_repository(name, git_url)
             .await?)
     }
 
