@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { jwtDecode, JwtPayload } from 'jwt-decode'
 import { useQuery } from 'urql'
 import useLocalStorage from 'use-local-storage'
@@ -260,9 +260,12 @@ export const getIsAdminInitialized = graphql(/* GraphQL */ `
   }
 `)
 
+const redirctWhiteList = ['/auth/signin', '/auth/signup']
+
 function useAuthenticatedSession() {
   const [{ data }] = useQuery({ query: getIsAdminInitialized })
   const router = useRouter()
+  const pathName = usePathname()
   const { data: session, status } = useSession()
 
   React.useEffect(() => {
@@ -271,7 +274,7 @@ function useAuthenticatedSession() {
 
     if (data?.isAdminInitialized === false) {
       router.replace('/auth/signup?isAdmin=true')
-    } else if (status === 'unauthenticated') {
+    } else if (!redirctWhiteList.includes(pathName)) {
       router.replace('/auth/signin')
     }
   }, [data, status])

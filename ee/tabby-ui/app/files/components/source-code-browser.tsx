@@ -348,6 +348,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           <div className="flex-1">
             <DirectoryPanel
               loading={fetchingSubTree}
+              initialized={initialized}
               className={`rounded-lg border ${
                 showDirectoryPanel ? 'block' : 'hidden'
               }`}
@@ -410,8 +411,6 @@ async function initFileMap(path?: string) {
 
   async function fetchRepositories(): Promise<TFile[]> {
     try {
-      // if (!accessToken) return []
-
       const repos: ResolveEntriesResponse = await fetcher(
         '/repositories/resolve/'
       )

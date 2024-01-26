@@ -118,7 +118,7 @@ const GridArea: React.FC<{ level: number }> = ({ level }) => {
         return (
           <div
             key={index}
-            className="flex h-8 w-2 border-r border-transparent transition-colors duration-300 group-hover/filetree:border-border"
+            className="group-hover/filetree:border-border flex h-8 w-2 border-r border-transparent transition-colors duration-300"
           />
         )
       })}
@@ -127,7 +127,7 @@ const GridArea: React.FC<{ level: number }> = ({ level }) => {
 }
 
 const ActiveViewBar = () => {
-  return <div className="absolute -left-2 h-8 w-1 rounded-md bg-primary" />
+  return <div className="bg-primary absolute -left-2 h-8 w-1 rounded-md" />
 }
 
 /**
@@ -139,7 +139,7 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'relative flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'hover:bg-accent focus:bg-accent focus:text-accent-foreground relative flex cursor-pointer items-stretch rounded-sm',
         isActive && 'bg-accent',
         className
       )}
@@ -164,7 +164,7 @@ const DirectoryTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'relative flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'hover:bg-accent focus:bg-accent focus:text-accent-foreground relative flex cursor-pointer items-stretch rounded-sm',
         isActive ? 'bg-accent text-accent-foreground' : undefined,
         className
       )}
@@ -273,7 +273,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
         isActive={activePath === node.fullPath}
       >
         <div
-          className="flex h-8 shrink-0 items-center hover:bg-primary/10 hover:text-popover-foreground"
+          className="hover:bg-primary/10 hover:text-popover-foreground flex h-8 shrink-0 items-center"
           onClick={e => {
             if (loading) return
             toggleExpandedKey(node.fullPath)
@@ -316,7 +316,10 @@ const FileTreeRenderer: React.FC = () => {
 
   if (!initialized) return <FileTreeSkeleton />
 
-  if (!fileTreeData?.length) return <div>No Data</div>
+  if (!fileTreeData?.length)
+    return (
+      <div className="flex h-full items-center justify-center">No Data</div>
+    )
 
   return (
     <>
