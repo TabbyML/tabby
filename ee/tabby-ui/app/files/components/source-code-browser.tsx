@@ -341,10 +341,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           />
         </div>
       </ResizablePanel>
-      <ResizableHandle className="hover:bg-card active:bg-card w-1" />
+      <ResizableHandle className="w-1 hover:bg-card active:bg-card" />
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="bg-background sticky top-0 z-10 py-4" />
+          <FileDirectoryBreadcrumb className="sticky top-0 z-10 bg-background py-4" />
           <div className="flex-1">
             <DirectoryPanel
               loading={fetchingSubTree}

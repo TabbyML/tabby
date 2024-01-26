@@ -96,7 +96,7 @@ const DirectoryPanel: React.FC<DirectoryPanelProps> = ({
                           </div>
                           <span
                             onClick={e => onClickFile(file)}
-                            className="hover:text-primary cursor-pointer px-1 py-2 hover:underline"
+                            className="cursor-pointer px-1 py-2 hover:text-primary hover:underline"
                           >
                             {resolveFileNameFromPath(file.fullPath)}
                           </span>
