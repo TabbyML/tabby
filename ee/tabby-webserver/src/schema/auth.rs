@@ -136,6 +136,9 @@ pub enum TokenAuthError {
     #[error("Password is not valid")]
     InvalidPassword,
 
+    #[error("User is disabled")]
+    UserDisabled,
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 
@@ -159,6 +162,9 @@ pub enum OAuthError {
 
     #[error("The user is not invited to access the system")]
     UserNotInvited,
+
+    #[error("User is disabled")]
+    UserDisabled,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -186,6 +192,9 @@ pub enum RefreshTokenError {
 
     #[error("User not found")]
     UserNotFound,
+
+    #[error("User is disabled")]
+    UserDisabled,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
