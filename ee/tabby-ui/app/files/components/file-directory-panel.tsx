@@ -8,8 +8,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow
 } from '@/components/ui/table'
 
@@ -55,11 +53,6 @@ const DirectoryPanel: React.FC<DirectoryPanelProps> = ({
   return (
     <div className={cn(className)}>
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-          </TableRow>
-        </TableHeader>
         <TableBody>
           {showParentEntry && (
             <TableRow className="cursor-pointer" onClick={e => onClickParent()}>
