@@ -316,7 +316,10 @@ const FileTreeRenderer: React.FC = () => {
 
   if (!initialized) return <FileTreeSkeleton />
 
-  if (!fileTreeData?.length) return <div>No Data</div>
+  if (!fileTreeData?.length)
+    return (
+      <div className="flex h-full items-center justify-center">No Data</div>
+    )
 
   return (
     <>
