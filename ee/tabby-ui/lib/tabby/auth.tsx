@@ -274,7 +274,7 @@ function useAuthenticatedSession() {
 
     if (data?.isAdminInitialized === false) {
       router.replace('/auth/signup?isAdmin=true')
-    } else if (!redirctWhiteList.includes(pathName)) {
+    } else if (!redirectWhitelist.includes(pathName)) {
       router.replace('/auth/signin')
     }
   }, [data, status])
