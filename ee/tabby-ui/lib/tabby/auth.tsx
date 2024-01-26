@@ -260,7 +260,7 @@ export const getIsAdminInitialized = graphql(/* GraphQL */ `
   }
 `)
 
-const redirctWhiteList = ['/auth/signin', '/auth/signup']
+const redirectWhitelist = ['/auth/signin', '/auth/signup']
 
 function useAuthenticatedSession() {
   const [{ data }] = useQuery({ query: getIsAdminInitialized })
