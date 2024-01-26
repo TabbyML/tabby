@@ -1,6 +1,6 @@
 import { EditorView, hoverTooltip } from '@codemirror/view'
 
-import { TCodeTag } from '@/app/files/components/source-code-browser'
+import type { TCodeTag } from '@/lib/types'
 
 import { getUTF16NameRange } from './utils'
 
@@ -22,6 +22,7 @@ export const codeTagHoverTooltip = (tags: TCodeTag[]) => {
     hoverTooltip((view, pos, side) => {
       for (const tag of tags) {
         const name_range = getUTF16NameRange(view.state, tag)
+        if (!name_range) continue
         if (pos >= name_range.start && pos <= name_range.end) {
           return {
             pos,
