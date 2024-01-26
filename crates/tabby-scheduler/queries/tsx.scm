@@ -1,31 +1,26 @@
-; Modified based on https://github.com/tree-sitter/tree-sitter-typescript/blob/master/queries/tags.scm
-
-(function_signature
+(function_declaration
   name: (identifier) @name) @definition.function
 
-(method_signature
-  name: (property_identifier) @name) @definition.method
-
-(abstract_method_signature
-  name: (property_identifier) @name) @definition.method
-
-(abstract_class_declaration
+(class_declaration
   name: (type_identifier) @name) @definition.class
-
-(module
-  name: (identifier) @name) @definition.module
 
 (interface_declaration
   name: (type_identifier) @name) @definition.interface
 
-(type_annotation
-  (type_identifier) @name) @reference.type
+(type_alias_declaration
+  (type_identifier) @name) @definition.type
 
-(new_expression
-  constructor: (identifier) @name) @reference.class
+;; Top-level arrow function are definitions.
+(program
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier) @name
+      value: (arrow_function))) @definition.function)
 
-(call_expression
-  function: (identifier) @name) @reference.call
-
-(call_expression
-  function: (member_expression property: (property_identifier) @name)) @reference.call
+;; Exported top-level arrow function are also definitions.
+(program
+  (export_statement
+    (lexical_declaration
+      (variable_declarator
+        name: (identifier) @name
+        value: (arrow_function))) @definition.function))
