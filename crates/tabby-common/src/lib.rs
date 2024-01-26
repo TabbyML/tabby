@@ -42,7 +42,7 @@ impl SourceFile {
         let iter = files.filter_map(|x| x.ok()).flat_map(|path| {
             let fp = BufReader::new(File::open(path).unwrap());
             let reader = JsonLinesReader::new(fp);
-            reader.read_all::<SourceFile>().map(|x| x.unwrap())
+            reader.read_all::<SourceFile>().filter_map(|x| x.ok())
         });
         Ok(iter)
     }

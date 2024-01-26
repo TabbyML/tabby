@@ -22,6 +22,7 @@ use tabby_common::{
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct RepositoryCache {
@@ -41,6 +42,7 @@ impl RepositoryCache {
 
     fn reload(&self) {
         let mut repositories = self.repositories.write().unwrap();
+        debug!("Reloading repositoriy metadata...");
         *repositories = load_meta();
     }
 
@@ -259,6 +261,7 @@ impl RepositoryCache {
         let scheduler = JobScheduler::new().await.unwrap();
         scheduler
             .add(
+                // Reload every 5 minutes
                 Job::new("0 1/5 * * * * *", move |_, _| {
                     cache.reload();
                 })
