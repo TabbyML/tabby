@@ -75,8 +75,8 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
         for (const error of validationErrors.errors) {
           form.setError(error.path as any, error)
         }
-      } else {
-        form.setError('root', error)
+      } else if (error?.originalError) {
+        form.setError('root', error.originalError)
       }
     }
   }
