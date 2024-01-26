@@ -22,7 +22,7 @@ use tabby_common::{
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-use tracing::{debug};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct RepositoryCache {
