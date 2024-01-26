@@ -220,6 +220,10 @@ impl AuthenticationService for DbConn {
             return Err(TokenAuthError::UserNotFound);
         };
 
+        if !user.active {
+            return Err(TokenAuthError::UserDisabled);
+        }
+
         if !password_verify(&input.password, &user.password_encrypted) {
             return Err(TokenAuthError::InvalidPassword);
         }
@@ -249,6 +253,10 @@ impl AuthenticationService for DbConn {
         let Some(user) = self.get_user(refresh_token.user_id).await? else {
             return Err(RefreshTokenError::UserNotFound);
         };
+
+        if !user.active {
+            return Err(RefreshTokenError::UserDisabled);
+        }
 
         let new_token = generate_refresh_token();
         self.replace_refresh_token(&token, &new_token).await?;
@@ -353,6 +361,9 @@ impl AuthenticationService for DbConn {
         };
 
         let user = if let Some(user) = self.get_user_by_email(&email).await? {
+            if !user.active {
+                return Err(OAuthError::UserDisabled);
+            }
             user
         } else {
             let Some(invitation) = self.get_invitation_by_email(&email).await? else {
