@@ -4,12 +4,7 @@ import { find, omit } from 'lodash-es'
 import { useDebounce } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 import { IconDirectorySolid, IconFile } from '@/components/ui/icons'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 
 import { TFileTreeNode } from './file-tree'
 import { SourceCodeBrowserContext, TFileMapItem } from './source-code-browser'
