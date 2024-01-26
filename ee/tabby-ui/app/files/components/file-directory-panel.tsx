@@ -95,7 +95,7 @@ const DirectoryPanel: React.FC<DirectoryPanelProps> = ({
           </TableBody>
         </Table>
       ) : (
-        <div className="py-8 flex justify-center">
+        <div className="flex justify-center py-8">
           No indexed repository yet
         </div>
       )}
