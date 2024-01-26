@@ -13,11 +13,15 @@ pub mod public {
     pub static USER_HEADER_FIELD_NAME: HeaderName = HeaderName::from_static("x-tabby-user");
 
     use axum::http::HeaderName;
+    pub use tarpc::context::Context;
 
     pub use super::{
         handler::attach_webserver,
         /* used by tabby workers (consumer of /hub api) */
-        hub::api::{create_client, HubClient, RegisterWorkerRequest, WorkerKind},
+        hub::api::{
+            create_client, ClientRequest, ClientRequestType, HubClient, RegisterWorkerRequest,
+            WorkerKind,
+        },
         /* used by examples/update-schema.rs */ schema::create_schema,
     };
 }

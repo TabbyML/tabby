@@ -44,10 +44,31 @@ struct ServerContext {
     code: Arc<dyn CodeSearch>,
 }
 
+fn to_cli_args(address: String, port: u16, token: String) -> Arc<[String]> {
+    vec![
+        "--port".to_string(),
+        port.to_string(),
+        "--token".to_string(),
+        token,
+        "--address".to_string(),
+        address,
+    ]
+    .into()
+}
+
 impl ServerContext {
-    pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
+    pub async fn new(
+        logger: Arc<dyn RawEventLogger>,
+        code: Arc<dyn CodeSearch>,
+        address: String,
+        port: u16,
+    ) -> Self {
         let db_conn = DbConn::new().await.unwrap();
-        run_cron(&db_conn, false).await;
+        let token = db_conn.read_registration_token().await;
+        let scheduler_args = token
+            .map(|t| to_cli_args(address, port, t))
+            .unwrap_or([].into());
+        run_cron(&db_conn, scheduler_args, false).await;
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -226,8 +247,12 @@ impl ServiceLocator for Arc<ServerContext> {
 pub async fn create_service_locator(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
+    address: String,
+    port: u16,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(Arc::new(ServerContext::new(logger, code).await))
+    Arc::new(Arc::new(
+        ServerContext::new(logger, code, address, port).await,
+    ))
 }
 
 pub fn graphql_pagination_to_filter(

@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use async_trait::async_trait;
 use axum::{headers::Header, http::HeaderName};
 use hyper::Request;
@@ -12,6 +14,7 @@ use tabby_common::{
 use tokio_tungstenite::connect_async;
 
 use super::websocket::WebSocketTransport;
+use crate::schema::worker::Worker;
 pub use crate::schema::worker::WorkerKind;
 
 #[tarpc::service]
@@ -34,7 +37,7 @@ pub fn tracing_context() -> tarpc::context::Context {
     tarpc::context::current()
 }
 
-pub async fn create_client(addr: &str, token: &str, request: RegisterWorkerRequest) -> HubClient {
+pub async fn create_client(addr: &str, token: &str, request: ClientRequest) -> HubClient {
     let request = Request::builder()
         .uri(format!("ws://{}/hub", addr))
         .header("Host", addr)
@@ -45,7 +48,7 @@ pub async fn create_client(addr: &str, token: &str, request: RegisterWorkerReque
         .header("Authorization", format!("Bearer {}", token))
         .header("Content-Type", "application/json")
         .header(
-            &REGISTER_WORKER_HEADER,
+            &CLIENT_REQUEST_HEADER,
             serde_json::to_string(&request).unwrap(),
         )
         .body(())
@@ -105,9 +108,20 @@ impl CodeSearch for HubClient {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ClientRequest {
+    pub port: u16,
+    pub typ: ClientRequestType,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum ClientRequestType {
+    Data,
+    Worker(RegisterWorkerRequest),
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct RegisterWorkerRequest {
     pub kind: WorkerKind,
-    pub port: i32,
     pub name: String,
     pub device: String,
     pub arch: String,
@@ -116,11 +130,27 @@ pub struct RegisterWorkerRequest {
     pub cuda_devices: Vec<String>,
 }
 
-pub static REGISTER_WORKER_HEADER: HeaderName = HeaderName::from_static("x-tabby-register-worker");
+impl RegisterWorkerRequest {
+    pub fn into_worker(self, addr: IpAddr, port: u16) -> Worker {
+        let addr = format!("http://{addr}:{port}");
+        Worker {
+            name: self.name,
+            kind: self.kind,
+            addr,
+            device: self.device,
+            arch: self.arch,
+            cpu_info: self.cpu_info,
+            cpu_count: self.cpu_count,
+            cuda_devices: self.cuda_devices,
+        }
+    }
+}
 
-impl Header for RegisterWorkerRequest {
+pub static CLIENT_REQUEST_HEADER: HeaderName = HeaderName::from_static("x-tabby-client-request");
+
+impl Header for ClientRequest {
     fn name() -> &'static axum::http::HeaderName {
-        &REGISTER_WORKER_HEADER
+        &CLIENT_REQUEST_HEADER
     }
 
     fn decode<'i, I>(values: &mut I) -> Result<Self, axum::headers::Error>

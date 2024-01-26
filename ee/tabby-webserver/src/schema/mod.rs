@@ -110,7 +110,7 @@ impl Query {
             }
         }
         Err(CoreError::Unauthorized(
-            "Only admin is able to read registeration_token",
+            "Only admin is able to read registration_token",
         ))
     }
 
