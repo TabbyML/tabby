@@ -21,25 +21,35 @@ import { CopyButton } from '@/components/copy-button'
 import CreateInvitationForm from './create-invitation-form'
 
 const listInvitations = graphql(/* GraphQL */ `
-  query ListInvitations {
-    invitations {
-      id
-      email
-      code
-      createdAt
+  query ListInvitations($after: String, $before: String, $first: Int, $last: Int) {
+    invitationsNext(after: $after, before: $before, first: $first, last: $last) {
+      edges {
+        node {
+          id
+          email
+          code
+          createdAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        startCursor
+        endCursor
+      }
     }
   }
 `)
 
 const deleteInvitationMutation = graphql(/* GraphQL */ `
-  mutation DeleteInvitation($id: Int!) {
-    deleteInvitation(id: $id)
+  mutation DeleteInvitation($id: ID!) {
+    deleteInvitationNext(id: $id)
   }
 `)
 
 export default function InvitationTable() {
   const [{ data }, reexecuteQuery] = useQuery({ query: listInvitations })
-  const invitations = data?.invitations
+  const invitations = data?.invitationsNext?.edges
   const [origin, setOrigin] = useState('')
   useEffect(() => {
     setOrigin(new URL(window.location.href).origin)
@@ -65,17 +75,17 @@ export default function InvitationTable() {
         )}
         <TableBody>
           {invitations.map((x, i) => {
-            const link = `${origin}/auth/signup?invitationCode=${x.code}`
+            const link = `${origin}/auth/signup?invitationCode=${x.node.code}`
             return (
-              <TableRow key={i}>
-                <TableCell>{x.email}</TableCell>
-                <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
+              <TableRow key={x.node.id}>
+                <TableCell>{x.node.email}</TableCell>
+                <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
                 <TableCell className="text-center">
                   <CopyButton value={link} />
                   <Button
                     size="icon"
                     variant="hover-destructive"
-                    onClick={() => deleteInvitation(x)}
+                    onClick={() => deleteInvitation(x.node)}
                   >
                     <IconTrash />
                   </Button>

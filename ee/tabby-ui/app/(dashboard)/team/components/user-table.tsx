@@ -16,18 +16,28 @@ import {
 } from '@/components/ui/table'
 
 const listUsers = graphql(/* GraphQL */ `
-  query ListUsers {
-    users {
-      email
-      isAdmin
-      createdAt
+  query ListUsersNext($after: String, $before: String, $first: Int, $last: Int) {
+    usersNext(after: $after, before: $before, first: $first, last: $last) {
+      edges {
+        node {
+          email
+          isAdmin
+          createdAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        startCursor
+        endCursor
+      }
     }
   }
 `)
 
 export default function UsersTable() {
   const [{ data }] = useQuery({ query: listUsers })
-  const users = data?.users
+  const users = data?.usersNext?.edges
 
   return (
     users && (
@@ -41,11 +51,11 @@ export default function UsersTable() {
         </TableHeader>
         <TableBody>
           {users.map((x, i) => (
-            <TableRow key={i}>
-              <TableCell>{x.email}</TableCell>
-              <TableCell>{moment.utc(x.createdAt).fromNow()}</TableCell>
+            <TableRow key={x.node.email}>
+              <TableCell>{x.node.email}</TableCell>
+              <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
               <TableCell className="text-center">
-                {x.isAdmin ? (
+                {x.node.isAdmin ? (
                   <Badge>ADMIN</Badge>
                 ) : (
                   <Badge variant="secondary">MEMBER</Badge>
