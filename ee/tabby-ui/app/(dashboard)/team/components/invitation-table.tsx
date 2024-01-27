@@ -59,12 +59,12 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 2
 export default function InvitationTable() {
   const [queryVariables, setQueryVariables] = React.useState<
     QueryVariables<typeof listInvitations>
   >({
-    first: 5
+    first: PAGE_SIZE,
   })
   const [{ data }, reexecuteQuery] = useQuery({
     query: listInvitations,
@@ -131,7 +131,7 @@ export default function InvitationTable() {
             }
             onPrev={() =>
               setQueryVariables({
-                first: PAGE_SIZE,
+                last: PAGE_SIZE,
                 before: pageInfo?.startCursor
               })
             }

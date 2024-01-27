@@ -97,7 +97,7 @@ export default function UsersTable() {
             }
             onPrev={() =>
               setQueryVariables({
-                first: PAGE_SIZE,
+                last: PAGE_SIZE,
                 before: pageInfo?.startCursor
               })
             }
