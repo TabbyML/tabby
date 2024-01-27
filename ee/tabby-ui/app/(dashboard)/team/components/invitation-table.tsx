@@ -5,7 +5,7 @@ import moment from 'moment'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import { useMutation } from '@/lib/tabby/gql'
+import { QueryVariables, useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
 import {
@@ -17,12 +17,23 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { CopyButton } from '@/components/copy-button'
+import { SimplePagination } from '@/components/simple-pagination'
 
 import CreateInvitationForm from './create-invitation-form'
 
 const listInvitations = graphql(/* GraphQL */ `
-  query ListInvitations($after: String, $before: String, $first: Int, $last: Int) {
-    invitationsNext(after: $after, before: $before, first: $first, last: $last) {
+  query ListInvitations(
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    invitationsNext(
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
       edges {
         node {
           id
@@ -34,6 +45,7 @@ const listInvitations = graphql(/* GraphQL */ `
       }
       pageInfo {
         hasNextPage
+        hasPreviousPage
         startCursor
         endCursor
       }
@@ -47,9 +59,19 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
   }
 `)
 
+const PAGE_SIZE = 5
 export default function InvitationTable() {
-  const [{ data }, reexecuteQuery] = useQuery({ query: listInvitations })
+  const [queryVariables, setQueryVariables] = React.useState<
+    QueryVariables<typeof listInvitations>
+  >({
+    first: 5
+  })
+  const [{ data }, reexecuteQuery] = useQuery({
+    query: listInvitations,
+    variables: queryVariables
+  })
   const invitations = data?.invitationsNext?.edges
+  const pageInfo = data?.invitationsNext?.pageInfo
   const [origin, setOrigin] = useState('')
   useEffect(() => {
     setOrigin(new URL(window.location.href).origin)
@@ -62,9 +84,9 @@ export default function InvitationTable() {
   })
 
   return (
-    invitations && (
-      <Table>
-        {invitations.length > 0 && (
+    <div>
+      <Table className="border-b">
+        {!!invitations?.length && (
           <TableHeader>
             <TableRow>
               <TableHead className="w-[25%]">Invitee</TableHead>
@@ -74,7 +96,7 @@ export default function InvitationTable() {
           </TableHeader>
         )}
         <TableBody>
-          {invitations.map((x, i) => {
+          {invitations?.map(x => {
             const link = `${origin}/auth/signup?invitationCode=${x.node.code}`
             return (
               <TableRow key={x.node.id}>
@@ -93,13 +115,29 @@ export default function InvitationTable() {
               </TableRow>
             )
           })}
-          <TableRow>
-            <TableCell className="p-2">
-              <CreateInvitationForm onCreated={() => reexecuteQuery()} />
-            </TableCell>
-          </TableRow>
         </TableBody>
       </Table>
-    )
+      <div className="flex justify-between mt-4 items-start">
+        <CreateInvitationForm onCreated={() => reexecuteQuery()} />
+        {!!invitations?.length && (
+          <SimplePagination
+            hasNextPage={pageInfo?.hasNextPage}
+            hasPreviousPage={pageInfo?.hasPreviousPage}
+            onNext={() =>
+              setQueryVariables({
+                first: PAGE_SIZE,
+                after: pageInfo?.endCursor
+              })
+            }
+            onPrev={() =>
+              setQueryVariables({
+                first: PAGE_SIZE,
+                before: pageInfo?.startCursor
+              })
+            }
+          />
+        )}
+      </div>
+    </div>
   )
 }
