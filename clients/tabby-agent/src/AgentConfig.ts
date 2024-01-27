@@ -8,8 +8,6 @@ export type AgentConfig = {
   completion: {
     prompt: {
       experimentalStripAutoClosingCharacters: boolean;
-      maxPrefixLines: number;
-      maxSuffixLines: number;
       clipboard: {
         minChars: number;
         maxChars: number;
@@ -65,8 +63,6 @@ export const defaultAgentConfig: AgentConfig = {
   completion: {
     prompt: {
       experimentalStripAutoClosingCharacters: false,
-      maxPrefixLines: 25,
-      maxSuffixLines: 20,
       clipboard: {
         minChars: 3,
         maxChars: 2000,

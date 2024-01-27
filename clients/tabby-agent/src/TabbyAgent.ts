@@ -270,8 +270,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
     snippets: Snippet[];
   } {
     // max lines in prefix and suffix configurable
-    const maxPrefixLines = this.config.completion.prompt.maxPrefixLines;
-    const maxSuffixLines = this.config.completion.prompt.maxSuffixLines;
+    const maxPrefixLines = context.maxPrefixLines;
+    const maxSuffixLines = context.maxSuffixLines;
     const { prefixLines, suffixLines } = context;
     const prefix = prefixLines.slice(Math.max(prefixLines.length - maxPrefixLines, 0)).join("");
     let suffix;

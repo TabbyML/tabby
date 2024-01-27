@@ -30,6 +30,13 @@ const createContextMixer = (context: ExtensionContext) =>
 export class TabbyCompletionProvider extends EventEmitter implements InlineCompletionItemProvider {
   #context: ExtensionContext;
   private triggerMode: "automatic" | "manual" | "disabled" = "automatic";
+  private cursorContextLimits: {
+    maxPrefixLines: number;
+    maxSuffixLines: number;
+  } = {
+    maxPrefixLines: 20,
+    maxSuffixLines: 20,
+  };
   private onGoingRequestAbortController: AbortController | null = null;
   private loading: boolean = false;
   private latestCompletions: CompletionResponse | null = null;
@@ -89,8 +96,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     const docContext = getCurrentDocContext({
       document,
       position,
-      maxPrefixLength: 25,
-      maxSuffixLength: 20,
+      maxPrefixLength: 1024,
+      maxSuffixLength: 128,
       // We ignore the current context selection if completeSuggestWidgetSelection is not enabled
       context: undefined,
       dynamicMultilineCompletions: true,
@@ -113,6 +120,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       text: additionalContext.prefix + document.getText() + additionalContext.suffix,
       position: additionalContext.prefix.length + document.offsetAt(position),
       indentation: this.getEditorIndentation(),
+      maxPrefixLines: this.cursorContextLimits.maxPrefixLines,
+      maxSuffixLines: this.cursorContextLimits.maxSuffixLines,
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
       snippets: snippets.map((snippet) => ({
         content: snippet.content,
@@ -229,8 +238,29 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       this.triggerMode = "disabled";
       this.emit("triggerModeUpdated");
     } else {
-      this.triggerMode = workspace.getConfiguration("rumicode").get("inlineCompletion.triggerMode", "automatic");
+      const configuration = workspace.getConfiguration("rumicode");
+
+      this.triggerMode = configuration.get("inlineCompletion.triggerMode", "automatic");
       this.emit("triggerModeUpdated");
+
+      const cursorContextMode = configuration.get<"small" | "medium" | "large">(
+        "inlineCompletion.cursorContext",
+        "medium",
+      );
+
+      switch (cursorContextMode) {
+        case "small":
+          this.cursorContextLimits.maxPrefixLines = 20;
+          this.cursorContextLimits.maxSuffixLines = 10;
+          break;
+        case "medium":
+          this.cursorContextLimits.maxPrefixLines = 30;
+          this.cursorContextLimits.maxSuffixLines = 20;
+          break;
+        case "large":
+          this.cursorContextLimits.maxPrefixLines = 50;
+          this.cursorContextLimits.maxSuffixLines = 20;
+      }
     }
 
     this.contextMixer?.dispose();

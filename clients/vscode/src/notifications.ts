@@ -46,6 +46,7 @@ function showInformationWhenManualTrigger() {
     .then((selection) => {
       switch (selection) {
         case "Trigger":
+          // Show information when triggering code completion..
           commands.executeCommand("editor.action.inlineSuggest.trigger");
           break;
         case "Automatic Mode":

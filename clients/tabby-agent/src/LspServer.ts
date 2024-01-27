@@ -164,6 +164,8 @@ export class LspServer {
       text: document.getText(),
       position: document.offsetAt(position),
       manually,
+      maxPrefixLines: 20,
+      maxSuffixLines: 20,
     };
     return request;
   }

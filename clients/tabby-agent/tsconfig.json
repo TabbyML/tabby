@@ -13,7 +13,7 @@
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
   },
-  "include": ["./src", "./tests/**/*.test.ts"]
+  "include": ["./src", "./tests/**/*.test.ts"],
 }

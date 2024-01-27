@@ -11,6 +11,8 @@ export type CompletionRequest = {
   clipboard?: string;
   manually?: boolean;
   snippets?: Snippet[];
+  maxPrefixLines: number;
+  maxSuffixLines: number;
 };
 
 export interface Snippet {
@@ -49,6 +51,8 @@ export class CompletionContext {
   text: string;
   position: number;
   snippets: Snippet[];
+  maxPrefixLines: number;
+  maxSuffixLines: number;
 
   prefix: string;
   suffix: string;
@@ -73,6 +77,8 @@ export class CompletionContext {
     this.position = request.position;
     this.indentation = request.indentation;
     this.snippets = request.snippets ?? [];
+    this.maxPrefixLines = request.maxPrefixLines;
+    this.maxSuffixLines = request.maxSuffixLines;
 
     this.prefix = request.text.slice(0, request.position);
     this.suffix = request.text.slice(request.position);

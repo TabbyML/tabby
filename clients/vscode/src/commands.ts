@@ -197,6 +197,7 @@ const applyCallback: Command = {
 const triggerInlineCompletion: Command = {
   command: "rumicode.inlineCompletion.trigger",
   callback: () => {
+    
     commands.executeCommand("editor.action.inlineSuggest.trigger");
   },
 };

@@ -93,6 +93,8 @@ describe("postprocess golden test", () => {
         text: getDoc(docContext),
         position: getPosition(docContext),
         indentation: testCase["context"]?.["indentation"],
+        maxPrefixLines: 20,
+        maxSuffixLines: 20,
       });
       const completionId = "test-" + uuid();
       const completionResponse = {

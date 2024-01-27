@@ -1,19 +1,25 @@
-import { ExtensionContext, workspace, env, version } from "vscode";
+import { ExtensionContext, workspace, env, version, WorkspaceConfiguration } from "vscode";
 import { TabbyAgent, AgentInitOptions, PartialAgentConfig, ClientProperties, DataStore } from "tabby-agent";
 
 function buildInitOptions(context: ExtensionContext): AgentInitOptions {
   const configuration = workspace.getConfiguration("rumicode");
   const config: PartialAgentConfig = {};
   const endpoint = configuration.get<string>("api.endpoint");
-  const token = configuration.get<string>("api.token");
 
   config.server = {};
   if (endpoint && endpoint.trim().length > 0) {
     config.server.endpoint = endpoint.trim();
   }
 
+  const token = getServerToken(context, configuration);
   if (token && token.trim().length > 0) {
-    config.server.token = token.trim();
+    if (config.server) {
+      config.server.token = token;
+    } else {
+      config.server = {
+        token,
+      };
+    }
   }
 
   const clientProperties: ClientProperties = {
@@ -48,6 +54,20 @@ function buildInitOptions(context: ExtensionContext): AgentInitOptions {
   return { config, clientProperties, dataStore };
 }
 
+function getServerToken(context: ExtensionContext, configuration: WorkspaceConfiguration): string | undefined {
+  const token = context.globalState.get<string>("server.token");
+  if (!token) {
+    const legacyToken = configuration.get<string>("api.token");
+    console.warn("[RumiCode] Legacy token detected, migrating to new token storage");
+    if (legacyToken && legacyToken.trim().length > 0) {
+      context.globalState.update("server.token", legacyToken);
+      configuration.update("api.token", "", true);
+      return legacyToken;
+    }
+  }
+  return token;
+}
+
 let instance: TabbyAgent | undefined = undefined;
 
 export function agent(): TabbyAgent {
@@ -70,14 +90,6 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
           agent.updateConfig("server.endpoint", endpoint);
         } else {
           agent.clearConfig("server.endpoint");
-        }
-      }
-      if (event.affectsConfiguration("rumicode.api.token")) {
-        const token = configuration.get<string>("api.token");
-        if (token && token.trim().length > 0) {
-          agent.updateConfig("server.token", token);
-        } else {
-          agent.clearConfig("server.token");
         }
       }
 

@@ -7,7 +7,7 @@
   "repository": "https://github.com/erfanium/tabby",
   "bugs": "https://github.com/erfanium/tabby/issues",
   "license": "Apache-2.0",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "keywords": [
     "ai",
     "autocomplete",
@@ -47,6 +47,10 @@
         "title": "RumiCode: Specify API Endpoint"
       },
       {
+        "command": "rumicode.setApiToken",
+        "title": "RumiCode: Set API Token"
+      },
+      {
         "command": "rumicode.openSettings",
         "title": "RumiCode: Open Settings"
       },
@@ -71,7 +75,7 @@
       "commandPalette": [
         {
           "command": "rumicode.inlineCompletion.trigger",
-          "when": "config.rumicode.inlineCompletion.triggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
+          "when": "!editorHasSelection && !inlineSuggestionsVisible"
         },
         {
           "command": "rumicode.openTabbyAgentSettings",
@@ -89,11 +93,6 @@
           "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
           "patternErrorMessage": "Please enter a validate http or https URL.",
           "markdownDescription": "Specify API Endpoint of rumicode"
-        },
-        "rumicode.api.token": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Specify API Token of rumicode"
         },
         "rumicode.inlineCompletion.triggerMode": {
           "type": "string",
@@ -117,17 +116,43 @@
           "default": "vscode-style",
           "markdownDescription": "Select the keybinding profile to accept shown inline completion. \n | | Next Line | Full Completion | Next Word | \n |:---:|:---:|:---:|:---:| \n | _vscode-style_ | - | Tab | Ctrl + RightArrow | \n | _tabby-style_ <br/> _(experimental)_ | Tab | Ctrl + Tab | Ctrl + RightArrow | \n"
         },
+        "rumicode.inlineCompletion.cursorContext": {
+          "type": "string",
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "default": "medium",
+          "enumDescriptions": [
+            "Lower completion quality, Faster completion speed (20 line prefix + 10 line suffix)",
+            "Medium (30 line prefix + 20 line suffix)",
+            "Higher completion quality, Slow completion speed (50 line prefix + 20 line suffix)"
+          ]
+        },
         "rumicode.inlineCompletion.contextRetriever": {
           "type": "string",
           "enum": [
             "none",
-            "jaccard-similarity",
             "section-history",
+            "jaccard-similarity",
             "local-mixed",
             "lsp-light"
           ],
+          "enumDescriptions": [
+            "Low Quanlity, Fast completions",
+            "Default",
+            "Experimental",
+            "Experimental",
+            "Experimental"
+          ],
           "default": "section-history",
           "markdownDescription": "Select the context retriever to use for inline completion"
+        },
+        "rumicode.api.token": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Specify API Token of rumicode (Deprecated, use rumicode.setApiToken command)"
         }
       }
     },

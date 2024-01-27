@@ -11,6 +11,8 @@ export function documentContext(literals: TemplateStringsArray, ...placeholders:
     language: "",
     text: doc.replace(/║/, ""),
     position: doc.indexOf("║"),
+    maxPrefixLines: 20,
+    maxSuffixLines: 20,
   });
 }
 
