@@ -208,12 +208,10 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       // Add all the cells in the notebook as context
       const notebook = window.activeNotebookEditor.notebook;
       const current = window.activeNotebookEditor.selection.start;
-      const prefix = this.buildNotebookContext(notebook, new NotebookRange(0, current), document.languageId);
-      const suffix = this.buildNotebookContext(
-        notebook,
-        new NotebookRange(current + 1, notebook.cellCount),
-        document.languageId,
-      );
+      const prefix = this.buildNotebookContext(notebook, new NotebookRange(0, current), document.languageId) + "\n\n";
+      const suffix =
+        "\n\n" +
+        this.buildNotebookContext(notebook, new NotebookRange(current + 1, notebook.cellCount), document.languageId);
       return { prefix, suffix };
     }
     return { prefix: "", suffix: "" };
@@ -233,13 +231,13 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       .getCells(range)
       .map((cell) => {
         if (cell.document.languageId === languageId) {
-          return cell.document.getText() + "\n\n";
+          return cell.document.getText();
         } else if (Object.keys(this.notebookLanguageComments).includes(languageId)) {
-          return this.notebookLanguageComments[languageId]!(cell.document.getText()) + "\n\n";
+          return this.notebookLanguageComments[languageId]!(cell.document.getText());
         } else {
           return "";
         }
       })
-      .join("");
+      .join("\n\n");
   }
 }
