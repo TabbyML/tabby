@@ -176,7 +176,8 @@ function! s:HandleCompletionResponse(request, response)
   call tabby#virtual_text#Render(s:current_completion_request, choice)
   let s:current_completion_response = a:response
   let s:current_completion_display_at = s:GetTimestamp()
-  let s:current_completion_display_id = "view-" . a:response.id . "-at-" . string(s:current_completion_display_at)
+  let cmplId = substitute(a:response.id, 'cmpl-', '', '')
+  let s:current_completion_display_id = "view-" . cmplId . "-at-" . string(s:current_completion_display_at)
 
   call tabby#agent#PostEvent(#{
     \ type: "view",
