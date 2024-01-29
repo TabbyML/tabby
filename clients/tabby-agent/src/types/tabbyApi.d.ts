@@ -3,7 +3,6 @@
  * Do not make direct changes to the file.
  */
 
-
 export interface paths {
   "/v1/completions": {
     post: operations["completion"];
@@ -221,7 +220,6 @@ export type $defs = Record<string, never>;
 export type external = Record<string, never>;
 
 export interface operations {
-
   completion: {
     requestBody: {
       content: {
