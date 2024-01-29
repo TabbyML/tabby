@@ -16,6 +16,7 @@ lazy_static = "1.4.0"
 rusqlite = { version = "0.30.0", features = ["bundled", "chrono"] }
 # `alpha-async-tokio-rusqlite` is only available from 1.1.0-alpha.2, will bump up version when it's stable
 rusqlite_migration = { version = "1.1.0-beta.1", features = ["alpha-async-tokio-rusqlite", "from-directory"] }
+sqlx = { version = "0.7.3", features = ["sqlite"] }
 tabby-common = { path = "../../crates/tabby-common" }
 tokio = { workspace = true, features = ["fs"] }
 tokio-rusqlite = "0.5.0"
