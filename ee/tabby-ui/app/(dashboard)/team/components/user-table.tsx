@@ -81,8 +81,8 @@ export default function UsersTable() {
             <TableRow>
               <TableHead className="w-[25%]">Email</TableHead>
               <TableHead className="w-[35%]">Joined</TableHead>
-              <TableHead className="w-[15%]">Status</TableHead>
-              <TableHead className="w-[15%]">Level</TableHead>
+              <TableHead className="w-[15%] text-center">Status</TableHead>
+              <TableHead className="w-[15%] text-center">Level</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -91,14 +91,14 @@ export default function UsersTable() {
               <TableRow key={x.node.id}>
                 <TableCell>{x.node.email}</TableCell>
                 <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   {x.node.active ? (
                     <Badge variant="successful">Active</Badge>
                   ) : (
-                    <Badge variant="destructive">InActive</Badge>
+                    <Badge variant="secondary">Inactive</Badge>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   {x.node.isAdmin ? (
                     <Badge>ADMIN</Badge>
                   ) : (
