@@ -26,9 +26,15 @@ where
         }
     }
 
-    pub fn build_connection(nodes: Vec<Node>, first: Option<usize>, last: Option<usize>) -> Self {
-        let has_next_page = first.is_some_and(|first| nodes.len() > first);
-        let has_previous_page = first.is_some_and(|first| first > 0);
+    pub fn build_connection(
+        nodes: Vec<Node>,
+        after: bool,
+        before: bool,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Self {
+        let has_next_page = first.or(last).is_some_and(|count| nodes.len() > count);
+        let has_previous_page = after || before;
         let len = nodes.len();
 
         let edges: Vec<_> = if let Some(last) = last {

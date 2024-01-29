@@ -50,16 +50,40 @@ where
 
     match (first, last) {
         (None, None) => {
+            let after_some = after.is_some();
+            let before_some = before.is_some();
             let nodes = f(after, before, None, None)?;
-            Ok(Connection::build_connection(nodes, None, None))
+            Ok(Connection::build_connection(
+                nodes,
+                after_some,
+                before_some,
+                None,
+                None,
+            ))
         }
         (Some(first), None) => {
+            let after_some = after.is_some();
+            let before_some = before.is_some();
             let nodes = f(after, before, Some(first + 1), None)?;
-            Ok(Connection::build_connection(nodes, Some(first), None))
+            Ok(Connection::build_connection(
+                nodes,
+                after_some,
+                before_some,
+                Some(first),
+                None,
+            ))
         }
         (None, Some(last)) => {
+            let after_some = after.is_some();
+            let before_some = before.is_some();
             let nodes = f(after, before, None, Some(last + 1))?;
-            Ok(Connection::build_connection(nodes, None, Some(last)))
+            Ok(Connection::build_connection(
+                nodes,
+                after_some,
+                before_some,
+                None,
+                Some(last),
+            ))
         }
         _ => Err("The \"first\" and \"last\" parameters cannot exist at the same time".into()),
     }
@@ -99,16 +123,40 @@ where
 
     match (first, last) {
         (None, None) => {
+            let after_some = after.is_some();
+            let before_some = before.is_some();
             let nodes = f(after, before, None, None).await?;
-            Ok(Connection::build_connection(nodes, None, None))
+            Ok(Connection::build_connection(
+                nodes,
+                after_some,
+                before_some,
+                None,
+                None,
+            ))
         }
         (Some(first), None) => {
+            let after_some = after.is_some();
+            let before_some = before.is_some();
             let nodes = f(after, before, Some(first + 1), None).await?;
-            Ok(Connection::build_connection(nodes, Some(first), None))
+            Ok(Connection::build_connection(
+                nodes,
+                after_some,
+                before_some,
+                Some(first),
+                None,
+            ))
         }
         (None, Some(last)) => {
+            let after_some = after.is_some();
+            let before_some = before.is_some();
             let nodes = f(after, before, None, Some(last + 1)).await?;
-            Ok(Connection::build_connection(nodes, None, Some(last)))
+            Ok(Connection::build_connection(
+                nodes,
+                after_some,
+                before_some,
+                None,
+                Some(last),
+            ))
         }
         _ => Err("The \"first\" and \"last\" parameters cannot exist at the same time".into()),
     }
