@@ -76,7 +76,7 @@ export default function UsersTable() {
       }
     },
     onError: (e) => {
-      toast.error(e.message)
+      toast.error(e.message || 'update failed')
     }
   })
 
