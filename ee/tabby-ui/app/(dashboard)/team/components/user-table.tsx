@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { toast } from 'sonner'
 
 const listUsers = graphql(/* GraphQL */ `
   query ListUsersNext(
@@ -68,8 +69,14 @@ export default function UsersTable() {
   const users = data?.usersNext?.edges
 
   const updateUserActive = useMutation(updateUserActiveMutation, {
-    onCompleted() {
-      reexecuteQuery()
+    onCompleted(values) {
+      if (values?.updateUserActive) {
+        toast.success('success')
+        reexecuteQuery()
+      }
+    },
+    onError: (e) => {
+      toast.error(e.message)
     }
   })
 
@@ -117,7 +124,7 @@ export default function UsersTable() {
                     <DropdownMenuContent collisionPadding={{ right: 16 }}>
                       {x.node.active && (
                         <DropdownMenuItem
-                          onClick={() =>
+                          onSelect={() =>
                             updateUserActive({
                               id: x.node.id,
                               active: false
@@ -125,12 +132,12 @@ export default function UsersTable() {
                           }
                           className="cursor-pointer"
                         >
-                          <span className="ml-2">Deactivate user</span>
+                          <span className="ml-2">Deactivate</span>
                         </DropdownMenuItem>
                       )}
                       {!x.node.active && (
                         <DropdownMenuItem
-                          onClick={() =>
+                          onSelect={() =>
                             updateUserActive({
                               id: x.node.id,
                               active: true
@@ -138,7 +145,7 @@ export default function UsersTable() {
                           }
                           className="cursor-pointer"
                         >
-                          <span className="ml-2">Activate user</span>
+                          <span className="ml-2">Activate</span>
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
