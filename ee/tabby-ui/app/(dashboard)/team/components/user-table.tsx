@@ -2,6 +2,7 @@
 
 import React from 'react'
 import moment from 'moment'
+import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -23,7 +24,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { toast } from 'sonner'
 
 const listUsers = graphql(/* GraphQL */ `
   query ListUsersNext(
@@ -75,7 +75,7 @@ export default function UsersTable() {
         reexecuteQuery()
       }
     },
-    onError: (e) => {
+    onError: e => {
       toast.error(e.message || 'update failed')
     }
   })
