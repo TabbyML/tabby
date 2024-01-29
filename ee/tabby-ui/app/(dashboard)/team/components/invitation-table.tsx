@@ -59,9 +59,8 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
 `)
 
 export default function InvitationTable() {
-  const [queryVariables, setQueryVariables] = React.useState<
-    QueryVariables<typeof listInvitations>
-  >()
+  const [queryVariables, setQueryVariables] =
+    React.useState<QueryVariables<typeof listInvitations>>()
   const [{ data }, reexecuteQuery] = useQuery({
     query: listInvitations,
     variables: queryVariables
@@ -97,8 +96,8 @@ export default function InvitationTable() {
               <TableRow key={x.node.id}>
                 <TableCell>{x.node.email}</TableCell>
                 <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
-                <TableCell className='flex justify-end'>
-                  <div className='flex gap-1'>
+                <TableCell className="flex justify-end">
+                  <div className="flex gap-1">
                     <CopyButton value={link} />
                     <Button
                       size="icon"
@@ -114,7 +113,7 @@ export default function InvitationTable() {
           })}
         </TableBody>
       </Table>
-      <div className="flex justify-between mt-4 items-start">
+      <div className="mt-4 flex items-start justify-between">
         <CreateInvitationForm onCreated={() => reexecuteQuery()} />
       </div>
     </div>

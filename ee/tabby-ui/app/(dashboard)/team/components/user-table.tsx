@@ -7,6 +7,14 @@ import { useQuery } from 'urql'
 import { graphql } from '@/lib/gql/generates'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import { IconMore } from '@/components/ui/icons'
 import {
   Table,
   TableBody,
@@ -15,9 +23,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuContent } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { IconMore } from '@/components/ui/icons'
 
 const listUsers = graphql(/* GraphQL */ `
   query ListUsersNext(
@@ -54,9 +59,8 @@ const updateUserActiveMutation = graphql(/* GraphQL */ `
 `)
 
 export default function UsersTable() {
-  const [queryVariables, setQueryVariables] = React.useState<
-    QueryVariables<typeof listUsers>
-  >()
+  const [queryVariables, setQueryVariables] =
+    React.useState<QueryVariables<typeof listUsers>>()
   const [{ data }, reexecuteQuery] = useQuery({
     query: listUsers,
     variables: queryVariables
@@ -79,7 +83,7 @@ export default function UsersTable() {
               <TableHead className="w-[35%]">Joined</TableHead>
               <TableHead className="w-[15%]">Status</TableHead>
               <TableHead className="w-[15%]">Level</TableHead>
-              <TableHead className='w-[100px]'></TableHead>
+              <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -87,7 +91,13 @@ export default function UsersTable() {
               <TableRow key={x.node.id}>
                 <TableCell>{x.node.email}</TableCell>
                 <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
-                <TableCell>{x.node.active ? <Badge variant='successful'>Active</Badge> : <Badge variant='destructive'>InActive</Badge>}</TableCell>
+                <TableCell>
+                  {x.node.active ? (
+                    <Badge variant="successful">Active</Badge>
+                  ) : (
+                    <Badge variant="destructive">InActive</Badge>
+                  )}
+                </TableCell>
                 <TableCell>
                   {x.node.isAdmin ? (
                     <Badge>ADMIN</Badge>
@@ -95,11 +105,11 @@ export default function UsersTable() {
                     <Badge variant="secondary">MEMBER</Badge>
                   )}
                 </TableCell>
-                <TableCell className='flex justify-end'>
+                <TableCell className="flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger>
                       {x.node.isAdmin ? null : (
-                        <Button size="icon" variant='ghost'>
+                        <Button size="icon" variant="ghost">
                           <IconMore />
                         </Button>
                       )}
@@ -107,10 +117,12 @@ export default function UsersTable() {
                     <DropdownMenuContent collisionPadding={{ right: 16 }}>
                       {x.node.active && (
                         <DropdownMenuItem
-                          onClick={() => updateUserActive({
-                            id: x.node.id,
-                            active: false
-                          })}
+                          onClick={() =>
+                            updateUserActive({
+                              id: x.node.id,
+                              active: false
+                            })
+                          }
                           className="cursor-pointer"
                         >
                           <span className="ml-2">Deactivate user</span>
@@ -118,10 +130,12 @@ export default function UsersTable() {
                       )}
                       {!x.node.active && (
                         <DropdownMenuItem
-                          onClick={() => updateUserActive({
-                            id: x.node.id,
-                            active: true
-                          })}
+                          onClick={() =>
+                            updateUserActive({
+                              id: x.node.id,
+                              active: true
+                            })
+                          }
                           className="cursor-pointer"
                         >
                           <span className="ml-2">Activate user</span>
