@@ -454,7 +454,10 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use assert_matches::assert_matches;
+    use juniper_axum::relay::{self, Connection};
 
     use super::*;
 
@@ -624,5 +627,59 @@ mod tests {
         assert!(!conn.is_admin_initialized().await.unwrap());
         tabby_db::testutils::create_user(&conn).await;
         assert!(conn.is_admin_initialized().await.unwrap());
+    }
+
+    async fn list_users(
+        db: &DbConn,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Connection<User> {
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                Ok(db.list_users(after, before, first, last).await.unwrap())
+            },
+        )
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_pagination() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        conn.create_user("a@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+        conn.create_user("b@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+        conn.create_user("c@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+
+        let users = list_users(&conn, None, None, None, None).await;
+
+        assert!(!users.page_info.has_next_page);
+        assert!(!users.page_info.has_previous_page);
+
+        let users = list_users(&conn, Some("1".into()), None, None, None).await;
+
+        assert!(!users.page_info.has_next_page);
+        assert!(users.page_info.has_previous_page);
+
+        let users = list_users(&conn, None, None, Some(2), None).await;
+
+        assert!(users.page_info.has_next_page);
+        assert!(!users.page_info.has_previous_page);
+
+        let users = list_users(&conn, None, Some("2".into()), None, Some(1)).await;
+
+        assert!(!users.page_info.has_next_page);
+        assert!(users.page_info.has_previous_page);
     }
 }

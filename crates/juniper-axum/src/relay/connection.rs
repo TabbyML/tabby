@@ -33,7 +33,8 @@ where
         first: Option<usize>,
         last: Option<usize>,
     ) -> Self {
-        let has_next_page = first.or(last).is_some_and(|count| nodes.len() > count);
+        let selected_count = first.or(last).unwrap_or(nodes.len());
+        let has_next_page = selected_count < nodes.len();
         let has_previous_page = after || before;
         let len = nodes.len();
 
