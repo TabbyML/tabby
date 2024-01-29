@@ -29,7 +29,10 @@ export async function calculateReplaceRangeBySyntax(
   const completionLines = splitLines(completionText);
   let replaceLength = 0;
   let tree = parser.parse(prefix + completionText + suffix);
-  let node = tree.rootNode.namedDescendantForIndex(prefix.length + completionText.length);
+  let node = tree.rootNode.namedDescendantForIndex(
+    prefix.length + completionText.length,
+    prefix.length + completionText.length + suffixText.length - replaceLength,
+  );
   while (node.hasError() && replaceLength < suffixText.length) {
     replaceLength++;
     const row = prefixLines.length - 1 + completionLines.length - 1;
@@ -46,7 +49,10 @@ export async function calculateReplaceRangeBySyntax(
       newEndPosition: { row, column },
     });
     tree = parser.parse(prefix + completionText + suffix.slice(replaceLength), tree);
-    node = tree.rootNode.namedDescendantForIndex(prefix.length + completionText.length);
+    node = tree.rootNode.namedDescendantForIndex(
+      prefix.length + completionText.length,
+      prefix.length + completionText.length + suffixText.length - replaceLength,
+    );
   }
   if (node.hasError()) {
     throw new Error("Syntax error when parsing completion");

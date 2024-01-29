@@ -1,7 +1,9 @@
 description = 'Limit scope: limit to single line when completing a line: case 01'
 
-[config]
-# use default config
+[config.limitScope]
+experimentalSyntax = false
+[config.limitScope.indentation]
+experimentalKeepBlockScopeWhenCompletingLine = false
 
 [context]
 filepath = 'foo.ts'

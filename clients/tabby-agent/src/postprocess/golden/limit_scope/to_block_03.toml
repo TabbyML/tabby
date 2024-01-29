@@ -1,7 +1,9 @@
 description = 'Limit scope: limit to block scope: case 03'
 
-[config]
-# use default config
+[config.limitScope]
+experimentalSyntax = false
+[config.limitScope.indentation]
+experimentalKeepBlockScopeWhenCompletingLine = false
 
 [context]
 filepath = 'checks.js'
