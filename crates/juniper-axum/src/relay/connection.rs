@@ -27,8 +27,8 @@ where
     }
 
     pub fn build_connection(nodes: Vec<Node>, first: Option<usize>, last: Option<usize>) -> Self {
-        let has_next_page = first.map_or(false, |first| nodes.len() > first);
-        let has_previous_page = last.map_or(false, |last| nodes.len() > last);
+        let has_next_page = first.is_some_and(|first| nodes.len() > first);
+        let has_previous_page = first.is_some_and(|first| first > 0);
         let len = nodes.len();
 
         let edges: Vec<_> = if let Some(last) = last {
