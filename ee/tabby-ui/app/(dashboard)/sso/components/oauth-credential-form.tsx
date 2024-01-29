@@ -21,12 +21,11 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
-import { OauthProvider } from '@/lib/constant'
+import { OAuthProvider } from '@/lib/gql/generates/graphql'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation updateOauthCredential($provider: OAuthProvider!, $clientId: String!, $clientSecret: String!, $redirectUri: String) {
-    updateOauthCredential(provider: $provider, clientId: $clientId, clientSecret: $clientSecret, redirectUri: $redirectUri) {
-    }
+    updateOauthCredential(provider: $provider, clientId: $clientId, clientSecret: $clientSecret, redirectUri: $redirectUri)
   }
 `)
 
@@ -37,7 +36,7 @@ const formSchema = z.object({
 })
 
 interface OAuthCredentialFormProps extends React.HTMLAttributes<HTMLDivElement> {
-  provider?: OauthProvider
+  provider: OAuthProvider
 }
 
 export default function UserSignInForm({
@@ -61,7 +60,8 @@ export default function UserSignInForm({
   const { isSubmitting } = form.formState
   const onSubmit = useMutation(updateOauthCredentialMutation, {
     onCompleted(values) {
-      signIn(values.tokenAuth)
+      console.log(values.updateOauthCredential)
+      
     },
     form
   })
@@ -69,17 +69,16 @@ export default function UserSignInForm({
   return (
     <div className={cn('grid gap-6', className)} {...props}>
       <Form {...form}>
-        <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
+        <form className="grid gap-2" onSubmit={form.handleSubmit(values => onSubmit({ provider, ...values }))}>
           <FormField
             control={form.control}
-            name="email"
+            name='clientId'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>Client ID</FormLabel>
                 <FormControl>
                   <Input
                     placeholder=""
-                    type="email"
                     autoCapitalize="none"
                     autoComplete="email"
                     autoCorrect="off"
@@ -92,10 +91,10 @@ export default function UserSignInForm({
           />
           <FormField
             control={form.control}
-            name="password"
+            name="clientSecret"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>Client Secret</FormLabel>
                 <FormControl>
                   <Input type="password" {...field} />
                 </FormControl>

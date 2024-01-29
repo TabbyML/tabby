@@ -1,7 +1,5 @@
-const OAUTH_PROVIDERS = ['github', 'google'] as const
+import { OAuthProvider } from '@/lib/gql/generates/graphql'
 
-type OauthProvider = typeof OAUTH_PROVIDERS[number]
-
+const OAUTH_PROVIDERS = [OAuthProvider.Github, OAuthProvider.Google]
 
 export { OAUTH_PROVIDERS }
-export type { OauthProvider }
