@@ -71,12 +71,12 @@ export default function UsersTable() {
   const updateUserActive = useMutation(updateUserActiveMutation, {
     onCompleted(values) {
       if (values?.updateUserActive) {
-        toast.success('success')
+        toast.success('Success')
         reexecuteQuery()
       }
     },
     onError: e => {
-      toast.error(e.message || 'update failed')
+      toast.error(e.message || 'Failed to update user')
     }
   })
 
