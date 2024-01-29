@@ -34,9 +34,17 @@ where
         last: Option<usize>,
     ) -> Self {
         let selected_count = first.or(last).unwrap_or(nodes.len());
-        let has_next_page = selected_count < nodes.len();
-        let has_previous_page = after || before;
         let len = nodes.len();
+        let has_next_page = if last.is_some() {
+            before
+        } else {
+            selected_count < len
+        };
+        let has_previous_page = if last.is_some() {
+            selected_count < len
+        } else {
+            after
+        };
 
         let edges: Vec<_> = if let Some(last) = last {
             nodes
