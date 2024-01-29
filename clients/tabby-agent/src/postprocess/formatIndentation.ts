@@ -37,7 +37,7 @@ function detectIndentation(lines: string[]): string | null {
 
 function getIndentLevel(line: string, indentation: string): number {
   if (indentation === "\t") {
-    return line.match(/^\t*/g)?.[0].length ?? 0;
+    return line.match(/^\t*/)?.[0].length ?? 0;
   } else {
     const spaces = line.match(/^ */)?.[0].length ?? 0;
     return spaces / indentation.length;

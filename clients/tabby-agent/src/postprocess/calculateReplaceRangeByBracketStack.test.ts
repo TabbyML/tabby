@@ -127,6 +127,70 @@ describe("postprocess", () => {
       };
       expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
     });
+
+    it("should handle html tags", () => {
+      const context = {
+        ...documentContext`
+        <html></h║>
+        `,
+        language: "html",
+      };
+      const choice = {
+        index: 0,
+        text: inline`
+                 ├tml>┤
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position,
+        },
+      };
+      const expected = {
+        index: 0,
+        text: inline`
+                 ├tml>┤
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position + 1,
+        },
+      };
+      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
+    });
+
+    it("should handle jsx tags", () => {
+      const context = {
+        ...documentContext`
+        root.render(
+          <React.StrictMode>
+            <App m║/>
+          </React.StrictMode>
+        );
+        `,
+        language: "javascriptreact",
+      };
+      const choice = {
+        index: 0,
+        text: inline`
+                  ├essage={message} />┤
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position,
+        },
+      };
+      const expected = {
+        index: 0,
+        text: inline`
+                  ├essage={message} />┤
+        `,
+        replaceRange: {
+          start: context.position,
+          end: context.position + 2,
+        },
+      };
+      expect(calculateReplaceRangeByBracketStack(choice, context)).to.deep.equal(expected);
+    });
   });
 
   describe("calculateReplaceRangeByBracketStack: bad cases", () => {
