@@ -251,6 +251,8 @@ class Agent : ProcessAdapter() {
     @SerializedName("completion_id") val completionId: String,
     @SerializedName("choice_index") val choiceIndex: Int,
     @SerializedName("select_kind") val selectKind: SelectKind? = null,
+    @SerializedName("view_id") val viewId: String? = null,
+    val elapsed: Int? = null,
   ) {
     enum class EventType {
       @SerializedName("view")
@@ -258,6 +260,9 @@ class Agent : ProcessAdapter() {
 
       @SerializedName("select")
       SELECT,
+
+      @SerializedName("dismiss")
+      DISMISS,
     }
 
     enum class SelectKind {

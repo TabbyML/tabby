@@ -35,6 +35,8 @@ class InlineCompletionService {
     val completion: Agent.CompletionResponse,
     val inlays: List<Inlay<*>>,
     val markups: List<RangeHighlighter>,
+    val id: String,
+    val displayAt: Long,
   )
 
   var shownInlineCompletion: InlineCompletion? = null
@@ -143,17 +145,22 @@ class InlineCompletionService {
         }
       }
 
-      shownInlineCompletion = InlineCompletion(editor, offset, completion, inlays, markups)
-    }
-    val agentService = service<AgentService>()
-    agentService.scope.launch {
-      agentService.postEvent(
-        Agent.LogEventRequest(
-          type = Agent.LogEventRequest.EventType.VIEW,
-          completionId = completion.id,
-          choiceIndex = completion.choices.first().index
+      val cmplId = completion.id.replace("cmpl-", "")
+      val displayAt = System.currentTimeMillis()
+      val id = "view-${cmplId}-at-${displayAt}"
+      shownInlineCompletion = InlineCompletion(editor, offset, completion, inlays, markups, id, displayAt)
+
+      val agentService = service<AgentService>()
+      agentService.scope.launch {
+        agentService.postEvent(
+          Agent.LogEventRequest(
+            type = Agent.LogEventRequest.EventType.VIEW,
+            completionId = completion.id,
+            choiceIndex = completion.choices.first().index,
+            viewId = id,
+          )
         )
-      )
+      }
     }
   }
 
@@ -187,12 +194,12 @@ class InlineCompletionService {
           }
         }
       }
-      WriteCommandAction.runWriteCommandAction(it.editor.project) {
-        it.editor.document.deleteString(it.offset, choice.replaceRange.end)
-        it.editor.document.insertString(it.offset, text)
-        it.editor.caretModel.moveToOffset(it.offset + text.length)
-      }
       invokeLater {
+        WriteCommandAction.runWriteCommandAction(it.editor.project) {
+          it.editor.document.deleteString(it.offset, choice.replaceRange.end)
+          it.editor.document.insertString(it.offset, text)
+          it.editor.caretModel.moveToOffset(it.offset + text.length)
+        }
         it.inlays.forEach(Disposer::dispose)
       }
       val agentService = service<AgentService>()
@@ -205,7 +212,9 @@ class InlineCompletionService {
             selectKind = when (type) {
               AcceptType.FULL_COMPLETION -> null
               AcceptType.NEXT_WORD, AcceptType.NEXT_LINE -> Agent.LogEventRequest.SelectKind.LINE
-            }
+            },
+            viewId = it.id,
+            elapsed = (System.currentTimeMillis() - it.displayAt).toInt(),
           )
         )
       }
@@ -228,6 +237,19 @@ class InlineCompletionService {
         it.markups.forEach { markup ->
           it.editor.markupModel.removeHighlighter(markup)
         }
+      }
+      val choice = it.completion.choices.first()
+      val agentService = service<AgentService>()
+      agentService.scope.launch {
+        agentService.postEvent(
+          Agent.LogEventRequest(
+            type = Agent.LogEventRequest.EventType.DISMISS,
+            completionId = it.completion.id,
+            choiceIndex = choice.index,
+            viewId = it.id,
+            elapsed = (System.currentTimeMillis() - it.displayAt).toInt(),
+          )
+        )
       }
       shownInlineCompletion = null
     }

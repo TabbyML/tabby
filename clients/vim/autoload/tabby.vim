@@ -155,6 +155,8 @@ endfunction
 
 " Store the completion response that is shown as inline completion.
 let s:current_completion_response = {}
+let s:current_completion_display_at = 0
+let s:current_completion_display_id = ""
 
 function! s:HandleCompletionResponse(request, response)
   if s:current_completion_request != a:request
@@ -173,11 +175,15 @@ function! s:HandleCompletionResponse(request, response)
   let choice = a:response.choices[0]
   call tabby#virtual_text#Render(s:current_completion_request, choice)
   let s:current_completion_response = a:response
-  
+  let s:current_completion_display_at = s:GetTimestamp()
+  let cmplId = substitute(a:response.id, 'cmpl-', '', '')
+  let s:current_completion_display_id = "view-" . cmplId . "-at-" . string(s:current_completion_display_at)
+
   call tabby#agent#PostEvent(#{
     \ type: "view",
     \ completion_id: a:response.id,
     \ choice_index: choice.index,
+    \ view_id: s:current_completion_display_id,
     \ })
 endfunction
 
@@ -203,6 +209,7 @@ function! tabby#Accept(...)
     endif
   endif
 
+  let accept_at = s:GetTimestamp()
   let response = s:current_completion_response
   let choice = response.choices[0]
   if (type(choice.text) != v:t_string) || (len(choice.text) == 0)
@@ -218,20 +225,42 @@ function! tabby#Accept(...)
     let s:text_to_insert .= "_"
     let insertion .= "\<BS>"
   endif
-  
-  call tabby#Dismiss()
-  
+
   call tabby#agent#PostEvent(#{
     \ type: "select",
     \ completion_id: response.id,
     \ choice_index: choice.index,
+    \ view_id: s:current_completion_display_id,
+    \ elapsed: accept_at - s:current_completion_display_at,
     \ })
 
+  call tabby#ClearDisplayedCompletion()
   return insertion
 endfunction
 
 function! tabby#Dismiss()
+  if s:current_completion_response == {}
+    return
+  endif
+
+  let dismiss_at = s:GetTimestamp()
+  let response = s:current_completion_response
+  let choice = response.choices[0]
+  call tabby#agent#PostEvent(#{
+    \ type: "dismiss",
+    \ completion_id: response.id,
+    \ choice_index: choice.index,
+    \ view_id: s:current_completion_display_id,
+    \ elapsed: dismiss_at - s:current_completion_display_at,
+    \ })
+
+  call tabby#ClearDisplayedCompletion()
+endfunction
+
+function! tabby#ClearDisplayedCompletion()
   let s:current_completion_response = {}
+  let s:current_completion_display_at = 0
+  let s:current_completion_display_id = ""
   call tabby#virtual_text#Clear()
 endfunction
 
@@ -263,4 +292,8 @@ function! s:GetLanguage()
   else
     return filetype
   endif
+endfunction
+
+function! s:GetTimestamp()
+  return float2nr(reltimefloat(reltime()) * 1000)
 endfunction
