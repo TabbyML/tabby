@@ -182,5 +182,15 @@ const client = new Client({
   ]
 })
 
-export type { ValidationError, ValidationErrors }
+type QueryVariables<T> = T extends TypedDocumentNode<any, infer U> ? U : never
+type QueryResponseData<T> = T extends TypedDocumentNode<infer U, any>
+  ? U
+  : never
+
+export type {
+  ValidationError,
+  ValidationErrors,
+  QueryVariables,
+  QueryResponseData
+}
 export { useMutation, client }

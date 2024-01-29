@@ -825,6 +825,25 @@ function IconBackpack({ className, ...props }: React.ComponentProps<'svg'>) {
   )
 }
 
+function IconMore({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+      <circle cx="5" cy="12" r="1" />
+    </svg>
+  )
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -868,5 +887,6 @@ export {
   IconDirectoryExpandSolid,
   IconChat,
   IconCode,
-  IconBackpack
+  IconBackpack,
+  IconMore
 }
