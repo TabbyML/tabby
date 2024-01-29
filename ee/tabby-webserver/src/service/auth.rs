@@ -454,7 +454,7 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    
 
     use assert_matches::assert_matches;
     use juniper_axum::relay::{self, Connection};
