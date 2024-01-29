@@ -17,7 +17,6 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { CopyButton } from '@/components/copy-button'
-import { SimplePagination } from '@/components/simple-pagination'
 
 import CreateInvitationForm from './create-invitation-form'
 
@@ -59,19 +58,15 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const PAGE_SIZE = 2
 export default function InvitationTable() {
   const [queryVariables, setQueryVariables] = React.useState<
     QueryVariables<typeof listInvitations>
-  >({
-    first: PAGE_SIZE,
-  })
+  >()
   const [{ data }, reexecuteQuery] = useQuery({
     query: listInvitations,
     variables: queryVariables
   })
   const invitations = data?.invitationsNext?.edges
-  const pageInfo = data?.invitationsNext?.pageInfo
   const [origin, setOrigin] = useState('')
   useEffect(() => {
     setOrigin(new URL(window.location.href).origin)
@@ -102,15 +97,17 @@ export default function InvitationTable() {
               <TableRow key={x.node.id}>
                 <TableCell>{x.node.email}</TableCell>
                 <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
-                <TableCell className="text-center">
-                  <CopyButton value={link} />
-                  <Button
-                    size="icon"
-                    variant="hover-destructive"
-                    onClick={() => deleteInvitation(x.node)}
-                  >
-                    <IconTrash />
-                  </Button>
+                <TableCell className='flex justify-end'>
+                  <div className='flex gap-1'>
+                    <CopyButton value={link} />
+                    <Button
+                      size="icon"
+                      variant="hover-destructive"
+                      onClick={() => deleteInvitation(x.node)}
+                    >
+                      <IconTrash />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             )
@@ -119,24 +116,6 @@ export default function InvitationTable() {
       </Table>
       <div className="flex justify-between mt-4 items-start">
         <CreateInvitationForm onCreated={() => reexecuteQuery()} />
-        {!!invitations?.length && (
-          <SimplePagination
-            hasNextPage={pageInfo?.hasNextPage}
-            hasPreviousPage={pageInfo?.hasPreviousPage}
-            onNext={() =>
-              setQueryVariables({
-                first: PAGE_SIZE,
-                after: pageInfo?.endCursor
-              })
-            }
-            onPrev={() =>
-              setQueryVariables({
-                last: PAGE_SIZE,
-                before: pageInfo?.startCursor
-              })
-            }
-          />
-        )}
       </div>
     </div>
   )

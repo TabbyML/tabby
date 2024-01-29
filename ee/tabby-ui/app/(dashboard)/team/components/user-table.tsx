@@ -5,7 +5,7 @@ import moment from 'moment'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import { QueryVariables } from '@/lib/tabby/gql'
+import { QueryVariables, useMutation } from '@/lib/tabby/gql'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -15,7 +15,9 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { SimplePagination } from '@/components/simple-pagination'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuContent } from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+import { IconMore } from '@/components/ui/icons'
 
 const listUsers = graphql(/* GraphQL */ `
   query ListUsersNext(
@@ -31,6 +33,7 @@ const listUsers = graphql(/* GraphQL */ `
           email
           isAdmin
           createdAt
+          active
         }
         cursor
       }
@@ -44,19 +47,27 @@ const listUsers = graphql(/* GraphQL */ `
   }
 `)
 
-const PAGE_SIZE = 5
+const updateUserActiveMutation = graphql(/* GraphQL */ `
+  mutation UpdateUserActive($id: ID!, $active: Boolean!) {
+    updateUserActive(id: $id, active: $active)
+  }
+`)
+
 export default function UsersTable() {
   const [queryVariables, setQueryVariables] = React.useState<
     QueryVariables<typeof listUsers>
-  >({
-    first: PAGE_SIZE
-  })
-  const [{ data }] = useQuery({
+  >()
+  const [{ data }, reexecuteQuery] = useQuery({
     query: listUsers,
     variables: queryVariables
   })
   const users = data?.usersNext?.edges
-  const pageInfo = data?.usersNext?.pageInfo
+
+  const updateUserActive = useMutation(updateUserActiveMutation, {
+    onCompleted() {
+      reexecuteQuery()
+    }
+  })
 
   return (
     !!users?.length && (
@@ -65,8 +76,10 @@ export default function UsersTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[25%]">Email</TableHead>
-              <TableHead className="w-[45%]">Joined</TableHead>
-              <TableHead className="text-center">Level</TableHead>
+              <TableHead className="w-[35%]">Joined</TableHead>
+              <TableHead className="w-[15%]">Status</TableHead>
+              <TableHead className="w-[15%]">Level</TableHead>
+              <TableHead className='w-[100px]'></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -74,35 +87,53 @@ export default function UsersTable() {
               <TableRow key={x.node.id}>
                 <TableCell>{x.node.email}</TableCell>
                 <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
-                <TableCell className="text-center">
+                <TableCell>{x.node.active ? <Badge variant='successful'>Active</Badge> : <Badge variant='destructive'>InActive</Badge>}</TableCell>
+                <TableCell>
                   {x.node.isAdmin ? (
                     <Badge>ADMIN</Badge>
                   ) : (
                     <Badge variant="secondary">MEMBER</Badge>
                   )}
                 </TableCell>
+                <TableCell className='flex justify-end'>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      {x.node.isAdmin ? null : (
+                        <Button size="icon" variant='ghost'>
+                          <IconMore />
+                        </Button>
+                      )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent collisionPadding={{ right: 16 }}>
+                      {x.node.active && (
+                        <DropdownMenuItem
+                          onClick={() => updateUserActive({
+                            id: x.node.id,
+                            active: false
+                          })}
+                          className="cursor-pointer"
+                        >
+                          <span className="ml-2">Deactivate user</span>
+                        </DropdownMenuItem>
+                      )}
+                      {!x.node.active && (
+                        <DropdownMenuItem
+                          onClick={() => updateUserActive({
+                            id: x.node.id,
+                            active: true
+                          })}
+                          className="cursor-pointer"
+                        >
+                          <span className="ml-2">Activate user</span>
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-        <div className="flex justify-end mt-4">
-          <SimplePagination
-            hasNextPage={pageInfo?.hasNextPage}
-            hasPreviousPage={pageInfo?.hasPreviousPage}
-            onNext={() =>
-              setQueryVariables({
-                first: PAGE_SIZE,
-                after: pageInfo?.endCursor
-              })
-            }
-            onPrev={() =>
-              setQueryVariables({
-                last: PAGE_SIZE,
-                before: pageInfo?.startCursor
-              })
-            }
-          />
-        </div>
       </>
     )
   )

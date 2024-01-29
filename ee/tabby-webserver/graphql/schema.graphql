@@ -6,14 +6,25 @@ enum WorkerKind {
 type Mutation {
   resetRegistrationToken: String!
   resetUserAuthToken: Boolean!
+  updateUserActive(id: ID!, active: Boolean!): Boolean!
   register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): VerifyTokenResponse!
   refreshToken(refreshToken: String!): RefreshTokenResponse!
   createInvitation(email: String!): ID!
   deleteInvitation(id: Int!): Int! @deprecated
+  createRepository(name: String!, gitUrl: String!): ID!
+  deleteRepository(id: ID!): Boolean!
+  updateRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
   deleteInvitationNext(id: ID!): ID!
   updateOauthCredential(provider: OAuthProvider!, clientId: String!, clientSecret: String!, redirectUri: String): Boolean!
+  updateEmailSetting(smtpUsername: String!, smtpPassword: String, smtpServer: String!): Boolean!
+  deleteEmailSetting: Boolean!
+}
+
+type RepositoryEdge {
+  node: Repository!
+  cursor: String!
 }
 
 "DateTime"
@@ -50,6 +61,8 @@ type Query {
   usersNext(after: String, before: String, first: Int, last: Int): UserConnection!
   invitationsNext(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(after: String, before: String, first: Int, last: Int): JobRunConnection!
+  emailSetting: EmailSetting
+  repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
 }
 
@@ -72,6 +85,11 @@ type RefreshTokenResponse {
 type RegisterResponse {
   accessToken: String!
   refreshToken: String!
+}
+
+type RepositoryConnection {
+  edges: [RepositoryEdge!]!
+  pageInfo: PageInfo!
 }
 
 type InvitationNext {
@@ -105,12 +123,18 @@ type Invitation {
   createdAt: String!
 }
 
+type EmailSetting {
+  smtpUsername: String!
+  smtpServer: String!
+}
+
 type User {
   id: ID!
   email: String!
   isAdmin: Boolean!
   authToken: String!
   createdAt: DateTimeUtc!
+  active: Boolean!
 }
 
 type TokenAuthResponse {
@@ -149,6 +173,12 @@ type PageInfo {
 type JobRunEdge {
   node: JobRun!
   cursor: String!
+}
+
+type Repository {
+  id: ID!
+  name: String!
+  gitUrl: String!
 }
 
 type InvitationConnection {
