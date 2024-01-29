@@ -678,6 +678,18 @@ mod tests {
 
         let users = list_users(&conn, None, Some("2".into()), None, Some(1)).await;
 
+        assert!(users.page_info.has_next_page);
+        assert!(!users.page_info.has_previous_page);
+
+        let users = list_users(&conn, Some("3".into()), None, None, None).await;
+        assert!(!users.page_info.has_next_page);
+        assert!(users.page_info.has_previous_page);
+
+        let users = list_users(&conn, None, None, Some(3), None).await;
+        assert!(!users.page_info.has_next_page);
+        assert!(!users.page_info.has_previous_page);
+
+        let users = list_users(&conn, Some("1".into()), None, Some(2), None).await;
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
     }
