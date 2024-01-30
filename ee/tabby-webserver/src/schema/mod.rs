@@ -88,6 +88,16 @@ impl juniper::Context for Context {}
 #[derive(Default)]
 pub struct Query;
 
+fn check_admin(ctx: Option<&JWTPayload>) -> Result<(), CoreError> {
+    if let Some(JWTPayload { is_admin: true, .. }) = ctx {
+        Ok(())
+    } else {
+        Err(CoreError::Unauthorized(
+            "Only admin is able to read registeration_token",
+        ))
+    }
+}
+
 #[graphql_object(context = Context)]
 impl Query {
     async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
@@ -103,15 +113,9 @@ impl Query {
     }
 
     async fn registration_token(ctx: &Context) -> Result<String> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                let token = ctx.locator.worker().read_registration_token().await?;
-                return Ok(token);
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to read registration_token",
-        ))
+        check_admin(ctx.claims.as_ref())?;
+        let token = ctx.locator.worker().read_registration_token().await?;
+        Ok(token)
     }
 
     async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
@@ -120,22 +124,16 @@ impl Query {
 
     #[deprecated]
     async fn invitations(ctx: &Context) -> Result<Vec<Invitation>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return Ok(ctx
-                    .locator
-                    .auth()
-                    .list_invitations(None, None, None, None)
-                    .await?
-                    .0
-                    .into_iter()
-                    .map(|x| x.into())
-                    .collect());
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to query invitations",
-        ))
+        check_admin(ctx.claims.as_ref())?;
+        Ok(ctx
+            .locator
+            .auth()
+            .list_invitations(None, None, None, None)
+            .await?
+            .0
+            .into_iter()
+            .map(|x| x.into())
+            .collect())
     }
 
     async fn me(ctx: &Context) -> Result<User> {
@@ -149,17 +147,13 @@ impl Query {
 
     #[deprecated]
     async fn users(ctx: &Context) -> Result<Vec<User>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return Ok(ctx
-                    .locator
-                    .auth()
-                    .list_users(None, None, None, None)
-                    .await?
-                    .0);
-            }
-        }
-        Err(CoreError::Unauthorized("Only admin is able to query users"))
+        check_admin(ctx.claims.as_ref())?;
+        Ok(ctx
+            .locator
+            .auth()
+            .list_users(None, None, None, None)
+            .await?
+            .0)
     }
 
     async fn users_next(
@@ -169,11 +163,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<User>> {
-        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
-            return Err(FieldError::from(CoreError::Unauthorized(
-                "Only admin is able to query users",
-            )));
-        };
+        check_admin(ctx.claims.as_ref())?;
         relay::query_async(
             after,
             before,
@@ -201,31 +191,25 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<InvitationNext>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return relay::query_async(
-                    after,
-                    before,
-                    first,
-                    last,
-                    |after, before, first, last| async move {
-                        match ctx
-                            .locator
-                            .auth()
-                            .list_invitations(after, before, first, last)
-                            .await
-                        {
-                            Ok(invitations) => Ok(invitations),
-                            Err(err) => Err(FieldError::from(err)),
-                        }
-                    },
-                )
-                .await;
-            }
-        }
-        Err(FieldError::from(CoreError::Unauthorized(
-            "Only admin is able to query users",
-        )))
+        check_admin(ctx.claims.as_ref())?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                match ctx
+                    .locator
+                    .auth()
+                    .list_invitations(after, before, first, last)
+                    .await
+                {
+                    Ok(invitations) => Ok(invitations),
+                    Err(err) => Err(FieldError::from(err)),
+                }
+            },
+        )
+        .await
     }
 
     async fn job_runs(
@@ -235,27 +219,21 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<JobRun>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return relay::query_async(
-                    after,
-                    before,
-                    first,
-                    last,
-                    |after, before, first, last| async move {
-                        Ok(ctx
-                            .locator
-                            .job()
-                            .list_job_runs(after, before, first, last)
-                            .await?)
-                    },
-                )
-                .await;
-            }
-        }
-        Err(FieldError::from(CoreError::Unauthorized(
-            "Only admin is able to query job runs",
-        )))
+        check_admin(ctx.claims.as_ref())?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                Ok(ctx
+                    .locator
+                    .job()
+                    .list_job_runs(after, before, first, last)
+                    .await?)
+            },
+        )
+        .await
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
@@ -291,20 +269,14 @@ impl Query {
         ctx: &Context,
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                let Some(mut credentials) =
-                    ctx.locator.auth().read_oauth_credential(provider).await?
-                else {
-                    return Ok(None);
-                };
-                credentials.client_secret = None;
-                return Ok(Some(credentials));
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to query oauth credential",
-        ))
+        check_admin(ctx.claims.as_ref())?;
+        let Some(mut credentials) =
+            ctx.locator.auth().read_oauth_credential(provider).await?
+        else {
+            return Ok(None);
+        };
+        credentials.client_secret = None;
+        return Ok(Some(credentials));
     }
 }
 
