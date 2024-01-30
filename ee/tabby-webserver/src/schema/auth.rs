@@ -354,6 +354,9 @@ pub enum OAuthProvider {
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
     pub client_id: String,
+
+    /// Won't be passed to client side.
+    pub client_secret: Option<String>,
     pub redirect_uri: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

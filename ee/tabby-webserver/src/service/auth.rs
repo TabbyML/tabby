@@ -349,14 +349,14 @@ impl AuthenticationService for DbConn {
                     .read_github_oauth_credential()
                     .await?
                     .ok_or(OAuthError::CredentialNotActive)?;
-                client.fetch_user_email(code, credential).await?
+                client.fetch_user_email(code, credential.into()).await?
             }
             OAuthClient::Google(client) => {
                 let credential = self
                     .read_google_oauth_credential()
                     .await?
                     .ok_or(OAuthError::CredentialNotActive)?;
-                client.fetch_user_email(code, credential).await?
+                client.fetch_user_email(code, credential.into()).await?
             }
         };
 

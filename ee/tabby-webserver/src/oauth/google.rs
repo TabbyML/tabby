@@ -43,7 +43,7 @@ impl GoogleClient {
     pub async fn fetch_user_email(
         &self,
         code: String,
-        credential: GoogleOAuthCredentialDAO,
+        credential: OAuthCredential,
     ) -> Result<String> {
         let token_resp = self.exchange_access_token(code, credential).await?;
         if token_resp.access_token.is_empty() {
@@ -71,15 +71,24 @@ impl GoogleClient {
     async fn exchange_access_token(
         &self,
         code: String,
-        credential: GoogleOAuthCredentialDAO,
+        credential: OAuthCredential,
     ) -> Result<GoogleOAuthResponse> {
+        let Some(client_secret) = credential.client_secret else {
+            return Err(anyhow::anyhow!("Missing client secret"))
+        };
+
+        let Some(redirect_uri) = credential.redirect_uri else {
+            return Err(anyhow::anyhow!("Missing redirect uri"))
+        };
+
         let params = [
             ("client_id", credential.client_id.as_str()),
-            ("client_secret", credential.client_secret.as_str()),
+            ("client_secret", client_secret.as_str()),
             ("code", code.as_str()),
             ("grant_type", "authorization_code"),
-            ("redirect_uri", credential.redirect_uri.as_str()),
+            ("redirect_uri", redirect_uri.as_str()),
         ];
+
         let resp = self
             .client
             .post("https://oauth2.googleapis.com/token")

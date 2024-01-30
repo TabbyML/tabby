@@ -3,6 +3,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use tabby_db::GithubOAuthCredentialDAO;
+use tokio_tungstenite::tungstenite::client;
 use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 #[derive(Debug, Deserialize)]
@@ -41,7 +42,7 @@ impl GithubClient {
     pub async fn fetch_user_email(
         &self,
         code: String,
-        credential: GithubOAuthCredentialDAO,
+        credential: OAuthCredential,
     ) -> Result<String> {
         let token_resp = self.exchange_access_token(code, credential).await?;
         if !token_resp.error.is_empty() {
@@ -79,11 +80,15 @@ impl GithubClient {
     async fn exchange_access_token(
         &self,
         code: String,
-        credential: GithubOAuthCredentialDAO,
+        credential: OAuthCredential,
     ) -> Result<GithubOAuthResponse> {
+        let Some(client_secret) = credential.client_secret else {
+            return Err(anyhow::anyhow!("Missing client secret"))
+        };
+
         let params = [
             ("client_id", credential.client_id.as_str()),
-            ("client_secret", credential.client_secret.as_str()),
+            ("client_secret", client_secret.as_str()),
             ("code", code.as_str()),
         ];
         let resp = self
