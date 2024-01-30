@@ -3,7 +3,6 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use tabby_db::GithubOAuthCredentialDAO;
-
 use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 #[derive(Debug, Deserialize)]
@@ -30,7 +29,7 @@ struct GithubUserEmail {
     email: String,
     primary: bool,
     verified: bool,
-    visibility: String,
+    visibility: Option<String>,
 }
 
 #[derive(Default)]
@@ -63,19 +62,18 @@ impl GithubClient {
             )
             .header("X-GitHub-Api-Version", "2022-11-28")
             .send()
-            .await?
-            .json::<Vec<GithubUserEmail>>()
             .await?;
 
-        if resp.is_empty() {
-            return Err(anyhow::anyhow!("No email address found"));
-        }
-        for item in &resp {
+        let emails = resp.json::<Vec<GithubUserEmail>>()
+            .await?;
+
+        for item in &emails {
             if item.primary {
                 return Ok(item.email.clone());
             }
         }
-        Ok(resp[0].email.clone())
+
+        return Err(anyhow::anyhow!("No primary email address found"));
     }
 
     async fn exchange_access_token(

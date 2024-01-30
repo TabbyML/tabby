@@ -156,7 +156,7 @@ fn match_auth_result(result: Result<OAuthResponse, OAuthError>) -> Result<Redire
         Err(OAuthError::CredentialNotActive) => Err(StatusCode::NOT_FOUND),
         Err(OAuthError::UserNotInvited) => Err(StatusCode::UNAUTHORIZED),
         Err(e) => {
-            error!("Failed to authenticate with Google: {:?}", e);
+            error!("Failed to authenticate: {:?}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
