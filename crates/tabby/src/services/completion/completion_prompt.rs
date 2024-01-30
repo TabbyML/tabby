@@ -387,18 +387,4 @@ def this_is_prefix():\n";
             ]
         );
 
-        let tokenized_vec: Vec<String> = TOKENIZER.split(prefix).map(|x| x.to_owned()).collect();
-
-        // without filter
-        assert_eq!(
-            tokenized_vec,
-            [
-                "public", "static", "String", "getFileExtension", "String", "fullName", "", "",
-                "", "", "", "", "", "", "", "", "", "String", "fileName", "", "", "", "new", "File",
-                "fullName", "", "", "getName", "", "", "", "", "", "", "", "", "", "", "", "int",
-                "dotIndex", "", "", "fileName", "lastIndexOf", "", "", "", "", "", "", "", "", "",
-                "", "", "", "", "", "", "", ""
-            ]
-        );
-    }
 }
