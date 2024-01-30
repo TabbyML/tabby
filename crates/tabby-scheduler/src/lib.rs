@@ -41,7 +41,7 @@ pub async fn scheduler(now: bool, access: Vec<RepositoryConfig>) -> Result<()> {
 
 pub fn job_index(repositories: &Vec<RepositoryConfig>) {
     println!("Indexing repositories...");
-    let ret = index::index_repositories(&repositories);
+    let ret = index::index_repositories(repositories);
     if let Err(err) = ret {
         error!("Failed to index repositories, err: '{}'", err);
     }
@@ -51,14 +51,14 @@ pub fn job_index(repositories: &Vec<RepositoryConfig>) {
 pub fn job_sync(repositories: &Vec<RepositoryConfig>) {
     println!("Syncing repositories...");
     let repositories = repositories;
-    let ret = repository::sync_repositories(&repositories);
+    let ret = repository::sync_repositories(repositories);
     if let Err(err) = ret {
         error!("Failed to sync repositories, err: '{}'", err);
         return;
     }
 
     println!("Building dataset...");
-    let ret = dataset::create_dataset(&repositories);
+    let ret = dataset::create_dataset(repositories);
     if let Err(err) = ret {
         error!("Failed to build dataset, err: '{}'", err);
     }
