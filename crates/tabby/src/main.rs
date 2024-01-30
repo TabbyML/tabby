@@ -69,8 +69,6 @@ pub struct JobArgs {
     token: Option<String>,
     #[clap(long, requires = "port")]
     addr: Option<String>,
-    #[clap(long, requires = "token")]
-    port: Option<u16>,
 }
 
 #[derive(clap::Args)]
@@ -144,14 +142,12 @@ async fn main() {
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
         #[cfg(feature = "ee")]
         Commands::JobSync(args) => {
-            let repositories =
-                get_repositories(args.addr, args.port, args.token, &config.repositories);
+            let repositories = get_repositories(args.addr, args.token, &config.repositories);
             tabby_scheduler::job_sync(&repositories)
         }
         #[cfg(feature = "ee")]
         Commands::JobIndex(args) => {
-            let repositories =
-                get_repositories(args.addr, args.port, args.token, &config.repositories);
+            let repositories = get_repositories(args.addr, args.token, &config.repositories);
             tabby_scheduler::job_index(&repositories)
         }
         #[cfg(feature = "ee")]
@@ -169,18 +165,13 @@ async fn main() {
 
 fn get_repositories(
     addr: Option<String>,
-    port: Option<u16>,
     token: Option<String>,
     config: &Vec<RepositoryConfig>,
 ) -> Vec<RepositoryConfig> {
-    match addr.zip(port).zip(token) {
-        Some(((addr, port), token)) => {
-            let server_addr = format!("http://{}:{}", addr, port);
-            let client = tabby_webserver::public::create_client(
-                &server_addr,
-                &token,
-                ConnectHubRequest::Job,
-            );
+    match addr.zip(token) {
+        Some((addr, token)) => {
+            let client =
+                tabby_webserver::public::create_client(&addr, &token, ConnectHubRequest::Job);
             let client = futures::executor::block_on(client);
             let repositories =
                 futures::executor::block_on(client.get_repositories(Context::current()))
