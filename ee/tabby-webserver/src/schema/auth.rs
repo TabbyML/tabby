@@ -342,7 +342,7 @@ impl relay::NodeType for InvitationNext {
     }
 }
 
-#[derive(GraphQLEnum, Clone, Serialize)]
+#[derive(GraphQLEnum, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum OAuthProvider {

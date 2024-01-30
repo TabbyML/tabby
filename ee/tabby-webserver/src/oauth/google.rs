@@ -1,6 +1,10 @@
-use anyhow::Result;
+use std::sync::Arc;
+
+use anyhow::{Context, Result};
 use serde::Deserialize;
 use tabby_db::GoogleOAuthCredentialDAO;
+
+use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -86,5 +90,23 @@ impl GoogleClient {
             .await?;
 
         Ok(resp)
+    }
+
+    pub async fn get_authorization_url(&self, credential: OAuthCredential) -> Result<String> {
+        let mut url = reqwest::Url::parse("https://accounts.google.com/o/oauth2/v2/auth")?;
+        let redirect_uri = credential
+            .redirect_uri
+            .context("Google OAuth requires redirect_uri")?;
+        let params = vec![
+            ("client_id", credential.client_id.as_str()),
+            ("redirect_uri", redirect_uri.as_str()),
+            ("response_type", "code"),
+            ("scope", "https://www.googleapis.com/auth/userinfo.email"),
+            ("access_type", "offline"),
+        ];
+        for (k, v) in params {
+            url.query_pairs_mut().append_pair(k, v);
+        }
+        Ok(url.to_string())
     }
 }

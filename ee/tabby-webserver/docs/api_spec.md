@@ -163,6 +163,23 @@ curl --request GET \
 ["github"]
 ```
 
+### SignIn
+
+**URL:** `/oauth/signin`
+
+**Method:** `GET`
+
+**Request example:**
+
+```shell
+curl --request GET \
+  --url http://localhost:8080/oauth/signin?provider=google
+```
+
+**Response example:**
+
+Redirect to oauth provider for signin
+
 
 ### GitHub
 

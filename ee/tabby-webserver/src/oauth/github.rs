@@ -1,6 +1,10 @@
-use anyhow::Result;
+use std::sync::Arc;
+
+use anyhow::{Context, Result};
 use serde::Deserialize;
 use tabby_db::GithubOAuthCredentialDAO;
+
+use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -95,5 +99,18 @@ impl GithubClient {
             .await?;
 
         Ok(resp)
+    }
+
+    pub async fn get_authorization_url(&self, credential: OAuthCredential) -> Result<String> {
+        let mut url = reqwest::Url::parse("https://github.com/login/oauth/authorize")?;
+        let params = vec![
+            ("client_id", credential.client_id.as_str()),
+            ("response_type", "code"),
+            ("scope", "read:user user:email"),
+        ];
+        for (k, v) in params {
+            url.query_pairs_mut().append_pair(k, v);
+        }
+        Ok(url.to_string())
     }
 }
