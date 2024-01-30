@@ -78,12 +78,6 @@ pub struct SchedulerArgs {
     /// If true, runs scheduler jobs immediately.
     #[clap(long, default_value_t = false)]
     now: bool,
-    #[clap(long, requires = "address")]
-    token: Option<String>,
-    #[clap(long, requires = "port")]
-    addr: Option<String>,
-    #[clap(long, requires = "token")]
-    port: Option<u16>,
 }
 
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
@@ -145,12 +139,9 @@ async fn main() {
     match cli.command {
         Commands::Serve(ref args) => serve::main(&config, args).await,
         Commands::Download(ref args) => download::main(args).await,
-        Commands::Scheduler(args) => {
-            let access = get_repositories(args.addr, args.port, args.token, &config.repositories);
-            tabby_scheduler::scheduler(args.now, access)
-                .await
-                .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err))
-        }
+        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now, config.repositories)
+            .await
+            .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
         #[cfg(feature = "ee")]
         Commands::JobSync(args) => {
             let repositories =
