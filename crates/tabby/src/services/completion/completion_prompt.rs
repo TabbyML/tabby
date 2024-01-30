@@ -368,4 +368,37 @@ def this_is_prefix():\n";
             expected_built_prefix
         );
     }
+
+    /// Empty strings tokens are not participating rag search and therefore could be removed.
+    #[test]
+    fn test_tokenized_text_filter() {
+        let prefix = r#"public static String getFileExtension(String fullName) {
+        String fileName = (new File(fullName)).getName();
+        int dotIndex = fileName.lastIndexOf('.');
+         }"#;
+
+        // with filter
+        assert_eq!(
+            tokenize_text(prefix),
+            [
+                "public", "static", "String", "getFileExtension", "String", "fullName", "String",
+                "fileName", "new", "File", "fullName", "getName", "int", "dotIndex", "fileName",
+                "lastIndexOf",
+            ]
+        );
+
+        let tokenized_vec: Vec<String> = TOKENIZER.split(prefix).map(|x| x.to_owned()).collect();
+
+        // without filter
+        assert_eq!(
+            tokenized_vec,
+            [
+                "public", "static", "String", "getFileExtension", "String", "fullName", "", "",
+                "", "", "", "", "", "", "", "", "", "String", "fileName", "", "", "", "new", "File",
+                "fullName", "", "", "getName", "", "", "", "", "", "", "", "", "", "", "", "int",
+                "dotIndex", "", "", "fileName", "lastIndexOf", "", "", "", "", "", "", "", "", "",
+                "", "", "", "", "", "", "", ""
+            ]
+        );
+    }
 }
