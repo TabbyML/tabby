@@ -1,9 +1,11 @@
 use anyhow::{anyhow, Result};
-use rusqlite::{params, OptionalExtension, Row};
+use rusqlite::Row;
+use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
 
 use super::DbConn;
 
+#[derive(FromRow)]
 pub struct InvitationDAO {
     pub id: i32,
     pub email: String,
@@ -39,83 +41,53 @@ impl DbConn {
             backwards,
         );
 
-        let invitations = self
-            .conn
-            .call(move |c| {
-                let mut stmt = c.prepare(&query)?;
-                let invit_iter = stmt.query_map([], InvitationDAO::from_row)?;
-                Ok(invit_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
-            })
-            .await?;
+        let invitations = sqlx::query_as(&query).fetch_all(&self.pool).await?;
 
         Ok(invitations)
     }
 
     pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<InvitationDAO>> {
-        let code = code.to_owned();
-        let token = self
-            .conn
-            .call(|conn| {
-                Ok(conn
-                    .query_row(
-                        r#"SELECT id, email, code, created_at FROM invitations WHERE code = ?"#,
-                        [code],
-                        InvitationDAO::from_row,
-                    )
-                    .optional())
-            })
-            .await?;
+        let token =
+            sqlx::query_as(r#"SELECT id, email, code, created_at FROM invitations WHERE code = ?"#)
+                .bind(code)
+                .fetch_optional(&self.pool)
+                .await?;
 
-        Ok(token?)
+        Ok(token)
     }
 
     pub async fn get_invitation_by_email(&self, email: &str) -> Result<Option<InvitationDAO>> {
-        let email = email.to_owned();
-        let token = self
-            .conn
-            .call(|conn| {
-                Ok(conn
-                    .query_row(
-                        r#"SELECT id, email, code, created_at FROM invitations WHERE email = ?"#,
-                        [email],
-                        InvitationDAO::from_row,
-                    )
-                    .optional())
-            })
-            .await?;
+        let token = sqlx::query_as(
+            r#"SELECT id, email, code, created_at FROM invitations WHERE email = ?"#,
+        )
+        .bind(email)
+        .fetch_optional(&self.pool)
+        .await?;
 
-        Ok(token?)
+        Ok(token)
     }
 
-    pub async fn create_invitation(&self, email: String) -> Result<InvitationDAO> {
+    pub async fn create_invitation(&self, email: String) -> Result<i32> {
         if self.get_user_by_email(&email).await?.is_some() {
             return Err(anyhow!("User already registered"));
         }
 
         let code = Uuid::new_v4().to_string();
-        let code_clone = code.clone();
-        let email_clone = email.clone();
-        let res = self
-            .conn
-            .call(move |c| {
-                let mut stmt =
-                    c.prepare(r#"INSERT INTO invitations (email, code) VALUES (?, ?)"#)?;
-                let rowid = stmt.insert((email, code.clone()))?;
-                Ok(rowid)
-            })
-            .await;
+        let res = query!(
+            "INSERT INTO invitations (email, code) VALUES (?, ?)",
+            email,
+            code
+        )
+        .execute(&self.pool)
+        .await;
 
         match res {
-            Err(tokio_rusqlite::Error::Rusqlite(rusqlite::Error::SqliteFailure(err, msg))) => {
-                if err.code == rusqlite::ErrorCode::ConstraintViolation {
-                    Err(anyhow!("Failed to create invitation, email already exists"))
-                } else {
-                    Err(rusqlite::Error::SqliteFailure(err, msg).into())
-                }
+            Err(sqlx::Error::Database(db)) if db.constraint().is_some() => {
+                Err(anyhow!("Failed to create invitation, email already exists"))
             }
             Err(err) => Err(err.into()),
-            Ok(rowid) => Ok(InvitationDAO {
-                id: rowid as i32,
+            Ok(res) => Ok(InvitationDAO {
+                id: res.last_insert_rowid() as i32,
                 email: email_clone,
                 code: code_clone,
                 created_at: "".into(),
@@ -124,11 +96,10 @@ impl DbConn {
     }
 
     pub async fn delete_invitation(&self, id: i32) -> Result<i32> {
-        let res = self
-            .conn
-            .call(move |c| Ok(c.execute(r#"DELETE FROM invitations WHERE id = ?"#, params![id])))
+        let res = query!("DELETE FROM invitations WHERE id = ?", id)
+            .execute(&self.pool)
             .await?;
-        if res != Ok(1) {
+        if res.rows_affected() != 1 {
             return Err(anyhow!("failed to delete invitation"));
         }
 

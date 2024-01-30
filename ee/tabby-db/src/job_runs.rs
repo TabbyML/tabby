@@ -1,9 +1,10 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use sqlx::{query, FromRow};
 
 use super::DbConn;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {
     pub id: i32,
     pub job_name: String,
@@ -31,67 +32,44 @@ impl JobRunDAO {
 /// db read/write operations for `job_runs` table
 impl DbConn {
     pub async fn create_job_run(&self, run: JobRunDAO) -> Result<i32> {
-        let rowid = self
-            .conn
-            .call(move |c| {
-                let mut stmt = c.prepare(
-                    r#"INSERT INTO job_runs (job, start_ts, end_ts, exit_code, stdout, stderr) VALUES (?, ?, ?, ?, ?, ?)"#,
-                )?;
-                let rowid = stmt.insert((
-                    run.job_name,
-                    run.start_time,
-                    run.finish_time,
-                    run.exit_code,
-                    run.stdout,
-                    run.stderr,
-                ))?;
-                Ok(rowid)
-            })
-            .await?;
+        let rowid = query!(
+            r#"INSERT INTO job_runs (job, start_ts, end_ts, exit_code, stdout, stderr) VALUES (?, ?, ?, ?, ?, ?)"#,
+                run.job_name,
+                run.start_time,
+                run.finish_time,
+                run.exit_code,
+                run.stdout,
+                run.stderr,
+        ).execute(&self.pool).await?.last_insert_rowid();
 
         Ok(rowid as i32)
     }
 
     pub async fn update_job_stdout(&self, job_id: i32, stdout: String) -> Result<()> {
-        self.conn
-            .call(move |c| {
-                let mut stmt = c.prepare(
-                    r#"UPDATE job_runs SET stdout = stdout || ?, updated_at = datetime('now') WHERE id = ?"#,
-                )?;
-                stmt.execute((stdout, job_id))?;
-                Ok(())
-            })
-            .await?;
+        query!(
+            r#"UPDATE job_runs SET stdout = stdout || ?, updated_at = datetime('now') WHERE id = ?"#,
+            stdout,
+            job_id
+        ).execute(&self.pool).await?;
         Ok(())
     }
 
     pub async fn update_job_stderr(&self, job_id: i32, stderr: String) -> Result<()> {
-        self.conn
-            .call(move |c| {
-                let mut stmt = c.prepare(
-                    r#"UPDATE job_runs SET stderr = stderr || ?, updated_at = datetime('now') WHERE id = ?"#,
-                )?;
-                stmt.execute((stderr, job_id))?;
-                Ok(())
-            })
-            .await?;
+        query!(
+            r#"UPDATE job_runs SET stderr = stderr || ?, updated_at = datetime('now') WHERE id = ?"#,
+            stderr,
+            job_id
+        ).execute(&self.pool).await?;
         Ok(())
     }
 
     pub async fn update_job_status(&self, run: JobRunDAO) -> Result<()> {
-        self.conn
-            .call(move |c| {
-                let mut stmt = c.prepare(
-                    r#"UPDATE job_runs SET end_ts = ?, exit_code = ?, updated_at = datetime('now') WHERE id = ?"#,
-                )?;
-                stmt.execute((
-                    run.finish_time,
-                    run.exit_code,
-                    run.id,
-                ))?;
-                Ok(())
-            })
-            .await?;
+        query!(
+            r#"UPDATE job_runs SET end_ts = ?, exit_code = ?, updated_at = datetime('now') WHERE id = ?"#,
+            run.finish_time,
+            run.exit_code,
+            run.id
+        ).execute(&self.pool).await?;
         Ok(())
     }
 
@@ -117,15 +95,7 @@ impl DbConn {
             backwards,
         );
 
-        let runs = self
-            .conn
-            .call(move |c| {
-                let mut stmt = c.prepare(&query)?;
-                let run_iter = stmt.query_map([], JobRunDAO::from_row)?;
-                Ok(run_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
-            })
-            .await?;
-
+        let runs = sqlx::query_as(&query).fetch_all(&self.pool).await?;
         Ok(runs)
     }
 }

@@ -1,9 +1,11 @@
 pub use email_setting::EmailSettingDAO;
+use futures::{stream::BoxStream, Stream, StreamExt};
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
 pub use google_oauth_credential::GoogleOAuthCredentialDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use repositories::RepositoryDAO;
+use sqlx::{query, query_as, query_scalar, Either, Pool, Sqlite, SqlitePool};
 pub use users::UserDAO;
 
 mod email_setting;
@@ -19,9 +21,8 @@ mod users;
 use anyhow::Result;
 use include_dir::{include_dir, Dir};
 use lazy_static::lazy_static;
-use rusqlite::params;
 use rusqlite_migration::AsyncMigrations;
-use tokio_rusqlite::Connection;
+use sqlx::sqlite::SqliteConnectOptions;
 
 static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 
@@ -32,36 +33,36 @@ lazy_static! {
 
 #[derive(Clone)]
 pub struct DbConn {
-    conn: Connection,
+    pool: Pool<Sqlite>,
 }
 
 impl DbConn {
     #[cfg(any(test, feature = "testutils"))]
     pub async fn new_in_memory() -> Result<Self> {
-        let conn = Connection::open_in_memory().await?;
-        DbConn::init_db(conn).await
+        let options = SqliteConnectOptions::new().filename("sqlite::memory:");
+        DbConn::init_db(options).await
     }
 
     pub async fn new() -> Result<Self> {
         tokio::fs::create_dir_all(path::db_file().parent().unwrap()).await?;
-        let conn = Connection::open(path::db_file()).await?;
-        Self::init_db(conn).await
+        let options = SqliteConnectOptions::new().filename(path::db_file());
+        Self::init_db(options).await
     }
 
     /// Initialize database, create tables and insert first token if not exist
-    async fn init_db(mut conn: Connection) -> Result<Self> {
-        MIGRATIONS.to_latest(&mut conn).await?;
+    async fn init_db(options: SqliteConnectOptions) -> Result<Self> {
+        let pool = SqlitePool::connect_with(options).await?;
+        sqlx::migrate!("./migrations").run(&pool);
 
         let token = uuid::Uuid::new_v4().to_string();
-        conn.call(move |c| {
-            Ok(c.execute(
-                r#"INSERT OR IGNORE INTO registration_token (id, token) VALUES (1, ?)"#,
-                params![token],
-            ))
-        })
-        .await??;
+        query!(
+            "INSERT OR IGNORE INTO registration_token (id, token) VALUES (1, ?)",
+            token
+        )
+        .execute(&pool)
+        .await?;
 
-        let res = Self { conn };
+        let res = Self { pool };
         Ok(res)
     }
 
@@ -105,18 +106,11 @@ impl DbConn {
     /// Query token from database.
     /// Since token is global unique for each tabby server, by right there's only one row in the table.
     pub async fn read_registration_token(&self) -> Result<String> {
-        let token = self
-            .conn
-            .call(|conn| {
-                Ok(conn.query_row(
-                    r#"SELECT token FROM registration_token WHERE id = 1"#,
-                    [],
-                    |row| row.get(0),
-                ))
-            })
-            .await?;
-
-        Ok(token?)
+        Ok(
+            query_scalar!("SELECT token FROM registration_token WHERE id = 1")
+                .fetch_one(&self.pool)
+                .await?,
+        )
     }
 
     /// Update token in database.
@@ -125,16 +119,14 @@ impl DbConn {
         let result = token.clone();
         let updated_at = chrono::Utc::now();
 
-        let res = self
-            .conn
-            .call(move |conn| {
-                Ok(conn.execute(
-                    r#"UPDATE registration_token SET token = ?, updated_at = ? WHERE id = 1"#,
-                    params![token, updated_at],
-                ))
-            })
-            .await?;
-        if res != Ok(1) {
+        let res = query!(
+            "UPDATE registration_token SET token = ?, updated_at = ? WHERE id = 1",
+            token,
+            updated_at
+        )
+        .execute(&self.pool)
+        .await?;
+        if res.rows_affected() != 1 {
             return Err(anyhow::anyhow!("failed to update token"));
         }
 

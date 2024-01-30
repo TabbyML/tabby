@@ -1,10 +1,12 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use rusqlite::{params, OptionalExtension, Row};
+use rusqlite::Row;
+use sqlx::{query, FromRow};
 
 use super::DbConn;
 
 #[allow(unused)]
+#[derive(FromRow)]
 pub struct RefreshTokenDAO {
     id: u32,
     created_at: DateTime<Utc>,
@@ -39,17 +41,13 @@ impl RefreshTokenDAO {
 /// db read/write operations for `refresh_tokens` table
 impl DbConn {
     pub async fn create_refresh_token(&self, user_id: i32, token: &str) -> Result<()> {
-        let token = token.to_string();
-        let res = self
-            .conn
-            .call(move |c| {
-                Ok(c.execute(
-                    r#"INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, datetime('now', '+7 days'))"#,
-                    params![user_id, token],
-                ))
-            })
-            .await?;
-        if res != Ok(1) {
+        let res = query!(
+            r#"INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, datetime('now', '+7 days'))"#,
+            user_id,
+            token
+        ).execute(&self.pool).await?;
+
+        if res.rows_affected() != 1 {
             return Err(anyhow::anyhow!("failed to create refresh token"));
         }
 
@@ -57,18 +55,15 @@ impl DbConn {
     }
 
     pub async fn replace_refresh_token(&self, old: &str, new: &str) -> Result<()> {
-        let old = old.to_string();
-        let new = new.to_string();
-        let res = self
-            .conn
-            .call(move |c| {
-                Ok(c.execute(
-                    r#"UPDATE refresh_tokens SET token = ? WHERE token = ?"#,
-                    params![new, old],
-                ))
-            })
-            .await?;
-        if res != Ok(1) {
+        let res = query!(
+            "UPDATE refresh_tokens SET token = ? WHERE token = ?",
+            old,
+            new
+        )
+        .execute(&self.pool)
+        .await?;
+
+        if res.rows_affected() != 1 {
             return Err(anyhow::anyhow!("failed to replace refresh token"));
         }
 
@@ -76,34 +71,21 @@ impl DbConn {
     }
 
     pub async fn delete_expired_token(&self) -> Result<i32> {
-        let res = self
-            .conn
-            .call(move |c| {
-                Ok(c.execute(
-                    r#"DELETE FROM refresh_tokens WHERE expires_at < ?"#,
-                    params![Utc::now()],
-                ))
-            })
+        let time = Utc::now();
+        let res = query!(r#"DELETE FROM refresh_tokens WHERE expires_at < ?"#, time)
+            .execute(&self.pool)
             .await?;
 
-        Ok(res? as i32)
+        Ok(res.rows_affected() as i32)
     }
 
     pub async fn get_refresh_token(&self, token: &str) -> Result<Option<RefreshTokenDAO>> {
-        let token = token.to_string();
-        let token = self
-            .conn
-            .call(move |c| {
-                Ok(c.query_row(
-                    RefreshTokenDAO::select("token = ?").as_str(),
-                    params![token],
-                    RefreshTokenDAO::from_row,
-                )
-                .optional())
-            })
+        let token = sqlx::query_as("SELECT * FROM refresh_tokens WHERE token = ?")
+            .bind(token)
+            .fetch_optional(&self.pool)
             .await?;
 
-        Ok(token?)
+        Ok(token)
     }
 }
 
