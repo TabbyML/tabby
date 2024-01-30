@@ -15,7 +15,7 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::from_validation_errors;
-use crate::{schema::Context};
+use crate::schema::Context;
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();

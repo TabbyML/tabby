@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use anyhow::{Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use serde::Deserialize;
-
-
 
 use super::OAuthClient;
 use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};

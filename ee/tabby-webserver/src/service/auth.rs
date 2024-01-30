@@ -7,7 +7,6 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
-
 use juniper::ID;
 use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
