@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { SimplePagination } from '@/components/simple-pagination'
 
 const listUsers = graphql(/* GraphQL */ `
   query ListUsersNext(
@@ -60,14 +61,17 @@ const updateUserActiveMutation = graphql(/* GraphQL */ `
   }
 `)
 
+const PAGE_SIZE = 2
 export default function UsersTable() {
-  const [queryVariables, setQueryVariables] =
-    React.useState<QueryVariables<typeof listUsers>>()
+  const [queryVariables, setQueryVariables] = React.useState<
+    QueryVariables<typeof listUsers>
+  >({ first: PAGE_SIZE })
   const [{ data }, reexecuteQuery] = useQuery({
     query: listUsers,
     variables: queryVariables
   })
   const users = data?.usersNext?.edges
+  const pageInfo = data?.usersNext?.pageInfo
 
   const updateUserActive = useMutation(updateUserActiveMutation)
 
@@ -154,6 +158,24 @@ export default function UsersTable() {
             ))}
           </TableBody>
         </Table>
+        <div className="flex justify-end my-4">
+          <SimplePagination
+            hasPreviousPage={pageInfo?.hasPreviousPage}
+            hasNextPage={pageInfo?.hasNextPage}
+            onNext={() =>
+              setQueryVariables({
+                first: PAGE_SIZE,
+                after: pageInfo?.endCursor
+              })
+            }
+            onPrev={() =>
+              setQueryVariables({
+                last: PAGE_SIZE,
+                before: pageInfo?.startCursor
+              })
+            }
+          />
+        </div>
       </>
     )
   )
