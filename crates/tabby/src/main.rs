@@ -68,7 +68,7 @@ pub struct JobArgs {
     #[clap(long, requires = "address")]
     token: Option<String>,
     #[clap(long, requires = "port")]
-    addr: Option<String>,
+    url: Option<String>,
 }
 
 #[derive(clap::Args)]
@@ -142,12 +142,12 @@ async fn main() {
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
         #[cfg(feature = "ee")]
         Commands::JobSync(args) => {
-            let repositories = get_repositories(args.addr, args.token, &config.repositories);
+            let repositories = get_repositories(args.url, args.token, &config.repositories);
             tabby_scheduler::job_sync(&repositories)
         }
         #[cfg(feature = "ee")]
         Commands::JobIndex(args) => {
-            let repositories = get_repositories(args.addr, args.token, &config.repositories);
+            let repositories = get_repositories(args.url, args.token, &config.repositories);
             tabby_scheduler::job_index(&repositories)
         }
         #[cfg(feature = "ee")]
@@ -164,11 +164,11 @@ async fn main() {
 }
 
 fn get_repositories(
-    addr: Option<String>,
+    url: Option<String>,
     token: Option<String>,
     config: &Vec<RepositoryConfig>,
 ) -> Vec<RepositoryConfig> {
-    match addr.zip(token) {
+    match url.zip(token) {
         Some((addr, token)) => {
             let client =
                 tabby_webserver::public::create_client(&addr, &token, ConnectHubRequest::Job);
