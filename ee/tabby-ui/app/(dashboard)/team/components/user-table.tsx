@@ -158,7 +158,7 @@ export default function UsersTable() {
             ))}
           </TableBody>
         </Table>
-        <div className="flex justify-end my-4">
+        <div className="my-4 flex justify-end">
           <SimplePagination
             hasPreviousPage={pageInfo?.hasPreviousPage}
             hasNextPage={pageInfo?.hasNextPage}
