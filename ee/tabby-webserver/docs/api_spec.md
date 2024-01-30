@@ -142,11 +142,31 @@ The `Content-Type` for successful response is always `application/json`.
 }
 ```
 
-## OAuth api: `/oauth_callback`
+## OAuth api: `/oauth`
+
+### List Providers
+
+**URL:** `/oauth/providers`
+
+**Method:** `GET`
+
+**Request example:**
+
+```shell
+curl --request GET \
+  --url http://localhost:8080/oauth/providers
+```
+
+**Response example:**
+
+```json
+["github"]
+```
+
 
 ### GitHub
 
-**URL:** `/oauth_callback/github`
+**URL:** `/oauth/callback/github`
 
 **Method:** `GET`
 
@@ -167,7 +187,7 @@ http://localhost:8080/auth/signin?refresh_token=321bc1bbb043456dae1a7abc0c447875
 
 ### Google
 
-**URL:** `/oauth_callback/google`
+**URL:** `/oauth/callback/google`
 
 **Method:** `GET`
 

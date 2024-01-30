@@ -4,14 +4,14 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
     response::Redirect,
-    routing, Router,
+    routing, Json, Router,
 };
 use serde::Deserialize;
 use tracing::error;
 
 use crate::{
     oauth::{github::GithubClient, google::GoogleClient},
-    schema::auth::{AuthenticationService, OAuthError, OAuthResponse},
+    schema::auth::{AuthenticationService, OAuthError, OAuthProvider, OAuthResponse},
 };
 
 pub mod github;
@@ -31,6 +31,36 @@ struct OAuthState {
 }
 
 pub fn routes(auth: Arc<dyn AuthenticationService>) -> Router {
+    Router::new()
+        .route(
+            "/providers",
+            routing::get(providers_handler).with_state(auth.clone()),
+        )
+        .nest("/callback", callback_routes(auth))
+}
+
+async fn has_provider(auth: &Arc<dyn AuthenticationService>, x: &OAuthProvider) -> bool {
+    auth.read_oauth_credential(x.clone())
+        .await
+        .is_ok_and(|x| x.is_some())
+}
+
+async fn providers_handler(
+    state: State<Arc<dyn AuthenticationService>>,
+) -> Json<Vec<OAuthProvider>> {
+    let candidates = vec![OAuthProvider::Google, OAuthProvider::Github];
+    let mut providers = vec![];
+
+    for x in candidates {
+        if has_provider(&state.0, &x).await {
+            providers.push(x);
+        }
+    }
+
+    Json(providers)
+}
+
+fn callback_routes(auth: Arc<dyn AuthenticationService>) -> Router {
     let state = OAuthState {
         auth,
         github_client: Arc::new(GithubClient::default()),
@@ -39,7 +69,6 @@ pub fn routes(auth: Arc<dyn AuthenticationService>) -> Router {
 
     Router::new()
         .route("/github", routing::get(github_oauth_handler))
-        .with_state(state.clone())
         .route("/google", routing::get(google_oauth_handler))
         .with_state(state.clone())
 }
