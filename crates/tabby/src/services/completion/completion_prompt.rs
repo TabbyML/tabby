@@ -386,5 +386,5 @@ def this_is_prefix():\n";
                 "lastIndexOf",
             ]
         );
-
+    }
 }
