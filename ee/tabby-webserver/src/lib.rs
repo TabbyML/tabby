@@ -19,8 +19,7 @@ pub mod public {
         handler::attach_webserver,
         /* used by tabby workers (consumer of /hub api) */
         hub::api::{
-            create_client, ClientRequest, ClientRequestType, HubClient, RegisterWorkerRequest,
-            WorkerKind,
+            create_client, ConnectHubRequest, HubClient, RegisterWorkerRequest, WorkerKind,
         },
         /* used by examples/update-schema.rs */ schema::create_schema,
     };

@@ -16,8 +16,7 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::WithExportConfig;
 use tabby_common::config::{Config, RepositoryConfig};
-use tabby_scheduler::RepositoryAccess;
-use tabby_webserver::public::{ClientRequest, ClientRequestType, Context, HubClient};
+use tabby_webserver::public::{ConnectHubRequest, Context};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]
@@ -147,20 +146,22 @@ async fn main() {
         Commands::Serve(ref args) => serve::main(&config, args).await,
         Commands::Download(ref args) => download::main(args).await,
         Commands::Scheduler(args) => {
-            let access = to_repo_access(args.addr, args.port, args.token, &config.repositories);
+            let access = get_repositories(args.addr, args.port, args.token, &config.repositories);
             tabby_scheduler::scheduler(args.now, access)
                 .await
                 .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err))
         }
         #[cfg(feature = "ee")]
         Commands::JobSync(args) => {
-            let access = to_repo_access(args.addr, args.port, args.token, &config.repositories);
-            tabby_scheduler::job_sync(&access)
+            let repositories =
+                get_repositories(args.addr, args.port, args.token, &config.repositories);
+            tabby_scheduler::job_sync(&repositories)
         }
         #[cfg(feature = "ee")]
         Commands::JobIndex(args) => {
-            let access = to_repo_access(args.addr, args.port, args.token, &config.repositories);
-            tabby_scheduler::job_index(&access)
+            let repositories =
+                get_repositories(args.addr, args.port, args.token, &config.repositories);
+            tabby_scheduler::job_index(&repositories)
         }
         #[cfg(feature = "ee")]
         Commands::WorkerCompletion(ref args) => {
@@ -175,37 +176,27 @@ async fn main() {
     opentelemetry::global::shutdown_tracer_provider();
 }
 
-fn to_repo_access(
+fn get_repositories(
     addr: Option<String>,
     port: Option<u16>,
     token: Option<String>,
     config: &Vec<RepositoryConfig>,
-) -> Box<dyn RepositoryAccess> {
+) -> Vec<RepositoryConfig> {
     match addr.zip(port).zip(token) {
         Some(((addr, port), token)) => {
             let server_addr = format!("http://{}:{}", addr, port);
             let client = tabby_webserver::public::create_client(
                 &server_addr,
                 &token,
-                ClientRequest {
-                    port,
-                    typ: ClientRequestType::Data,
-                },
+                ConnectHubRequest::Job,
             );
             let client = futures::executor::block_on(client);
-            Box::new(RepoAccess(client))
+            let repositories =
+                futures::executor::block_on(client.get_repositories(Context::current()))
+                    .expect("Must be able to load repositories");
+            repositories
         }
-        None => Box::new(config.to_vec()),
-    }
-}
-
-struct RepoAccess(HubClient);
-
-impl RepositoryAccess for RepoAccess {
-    fn get_repositories(&self) -> Vec<RepositoryConfig> {
-        futures::executor::block_on(async {
-            self.0.get_repositories(Context::current()).await.unwrap()
-        })
+        None => config.to_vec(),
     }
 }
 

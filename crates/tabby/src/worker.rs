@@ -3,9 +3,7 @@ use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 use axum::{routing, Router};
 use clap::Args;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
-use tabby_webserver::public::{
-    ClientRequest, ClientRequestType, HubClient, RegisterWorkerRequest, WorkerKind,
-};
+use tabby_webserver::public::{ConnectHubRequest, HubClient, RegisterWorkerRequest, WorkerKind};
 use tracing::info;
 
 use crate::{
@@ -104,18 +102,16 @@ impl WorkerContext {
             client: tabby_webserver::public::create_client(
                 &args.url,
                 &args.token,
-                ClientRequest {
+                ConnectHubRequest::Worker(RegisterWorkerRequest {
+                    kind,
                     port: args.port,
-                    typ: ClientRequestType::Worker(RegisterWorkerRequest {
-                        kind,
-                        name: args.model.to_owned(),
-                        device: args.device.to_string(),
-                        arch: ARCH.to_string(),
-                        cpu_info,
-                        cpu_count: cpu_count as i32,
-                        cuda_devices,
-                    }),
-                },
+                    name: args.model.to_owned(),
+                    device: args.device.to_string(),
+                    arch: ARCH.to_string(),
+                    cpu_info,
+                    cpu_count: cpu_count as i32,
+                    cuda_devices,
+                }),
             )
             .await,
         }

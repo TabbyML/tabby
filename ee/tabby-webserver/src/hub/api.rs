@@ -37,7 +37,7 @@ pub fn tracing_context() -> tarpc::context::Context {
     tarpc::context::current()
 }
 
-pub async fn create_client(addr: &str, token: &str, request: ClientRequest) -> HubClient {
+pub async fn create_client(addr: &str, token: &str, request: ConnectHubRequest) -> HubClient {
     let request = Request::builder()
         .uri(format!("ws://{}/hub", addr))
         .header("Host", addr)
@@ -108,14 +108,8 @@ impl CodeSearch for HubClient {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ClientRequest {
-    pub port: u16,
-    pub typ: ClientRequestType,
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum ClientRequestType {
-    Data,
+pub enum ConnectHubRequest {
+    Job,
     Worker(RegisterWorkerRequest),
 }
 
@@ -128,10 +122,12 @@ pub struct RegisterWorkerRequest {
     pub cpu_info: String,
     pub cpu_count: i32,
     pub cuda_devices: Vec<String>,
+    pub port: u16,
 }
 
 impl RegisterWorkerRequest {
-    pub fn into_worker(self, addr: IpAddr, port: u16) -> Worker {
+    pub fn into_worker(self, addr: IpAddr) -> Worker {
+        let port = self.port;
         let addr = format!("http://{addr}:{port}");
         Worker {
             name: self.name,
@@ -148,7 +144,7 @@ impl RegisterWorkerRequest {
 
 pub static CLIENT_REQUEST_HEADER: HeaderName = HeaderName::from_static("x-tabby-client-request");
 
-impl Header for ClientRequest {
+impl Header for ConnectHubRequest {
     fn name() -> &'static axum::http::HeaderName {
         &CLIENT_REQUEST_HEADER
     }

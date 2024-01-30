@@ -6,7 +6,7 @@ use std::{
     sync::Arc,
 };
 
-use api::{ClientRequest, ClientRequestType, Hub};
+use api::{ConnectHubRequest, Hub};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     response::IntoResponse,
@@ -26,7 +26,7 @@ pub(crate) async fn ws_handler(
     State(state): State<Arc<dyn ServiceLocator>>,
     AuthBearer(token): AuthBearer,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    TypedHeader(request): TypedHeader<ClientRequest>,
+    TypedHeader(request): TypedHeader<ConnectHubRequest>,
 ) -> impl IntoResponse {
     let unauthorized = axum::response::Response::builder()
         .status(StatusCode::UNAUTHORIZED)
@@ -54,14 +54,14 @@ async fn handle_socket(
     state: Arc<dyn ServiceLocator>,
     socket: WebSocket,
     addr: IpAddr,
-    req: ClientRequest,
+    req: ConnectHubRequest,
 ) {
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
-    if let ClientRequestType::Worker(worker) = req.typ {
+    if let ConnectHubRequest::Worker(worker) = req {
         state
             .worker()
-            .register_worker(worker.into_worker(addr, req.port))
+            .register_worker(worker.into_worker(addr))
             .await
             .unwrap();
     };

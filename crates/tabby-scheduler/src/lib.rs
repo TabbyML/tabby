@@ -10,7 +10,7 @@ use job_scheduler::{Job, JobScheduler};
 use tabby_common::config::RepositoryConfig;
 use tracing::{error, info};
 
-pub async fn scheduler(now: bool, access: Box<dyn RepositoryAccess>) -> Result<()> {
+pub async fn scheduler(now: bool, access: Vec<RepositoryConfig>) -> Result<()> {
     let mut scheduler = JobScheduler::new();
 
     let job1 = || job_sync(&access);
@@ -39,18 +39,18 @@ pub async fn scheduler(now: bool, access: Box<dyn RepositoryAccess>) -> Result<(
     Ok(())
 }
 
-pub fn job_index(access: &Box<dyn RepositoryAccess>) {
+pub fn job_index(repositories: &Vec<RepositoryConfig>) {
     println!("Indexing repositories...");
-    let ret = index::index_repositories(&access.get_repositories());
+    let ret = index::index_repositories(&repositories);
     if let Err(err) = ret {
         error!("Failed to index repositories, err: '{}'", err);
     }
     println!();
 }
 
-pub fn job_sync(access: &Box<dyn RepositoryAccess>) {
+pub fn job_sync(repositories: &Vec<RepositoryConfig>) {
     println!("Syncing repositories...");
-    let repositories = access.get_repositories();
+    let repositories = repositories;
     let ret = repository::sync_repositories(&repositories);
     if let Err(err) = ret {
         error!("Failed to sync repositories, err: '{}'", err);
@@ -63,14 +63,4 @@ pub fn job_sync(access: &Box<dyn RepositoryAccess>) {
         error!("Failed to build dataset, err: '{}'", err);
     }
     println!();
-}
-
-pub trait RepositoryAccess {
-    fn get_repositories(&self) -> Vec<RepositoryConfig>;
-}
-
-impl RepositoryAccess for Vec<RepositoryConfig> {
-    fn get_repositories(&self) -> Vec<RepositoryConfig> {
-        self.clone()
-    }
 }
