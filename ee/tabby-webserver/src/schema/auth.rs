@@ -15,7 +15,7 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::from_validation_errors;
-use crate::{oauth::OAuthClient, schema::Context};
+use crate::schema::Context;
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -342,7 +342,8 @@ impl relay::NodeType for InvitationNext {
     }
 }
 
-#[derive(GraphQLEnum, Clone)]
+#[derive(GraphQLEnum, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum OAuthProvider {
     Github,
@@ -353,6 +354,9 @@ pub enum OAuthProvider {
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
     pub client_id: String,
+
+    /// Won't be passed to client side.
+    pub client_secret: Option<String>,
     pub redirect_uri: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -406,7 +410,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn oauth(
         &self,
         code: String,
-        client: OAuthClient,
+        provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError>;
 
     async fn read_oauth_credential(

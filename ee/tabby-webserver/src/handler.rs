@@ -52,7 +52,7 @@ pub async fn attach_webserver(
             "/repositories",
             repositories::routes(rs.clone(), ctx.auth()),
         )
-        .nest("/oauth_callback", oauth::routes(ctx.auth()));
+        .nest("/oauth", oauth::routes(ctx.auth()));
 
     let ui = ui
         .route("/graphiql", routing::get(graphiql("/graphql", None)))
