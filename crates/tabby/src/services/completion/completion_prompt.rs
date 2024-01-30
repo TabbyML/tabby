@@ -173,7 +173,11 @@ lazy_static! {
 }
 
 fn tokenize_text(text: &str) -> Vec<String> {
-    TOKENIZER.split(text).map(|x| x.to_owned()).collect()
+    TOKENIZER
+        .split(text)
+        .map(|x| x.to_owned())
+        .filter(|x| !x.is_empty())
+        .collect()
 }
 
 #[cfg(test)]
@@ -366,6 +370,38 @@ def this_is_prefix():\n";
         assert_eq!(
             build_prefix("python", prefix, &snippets),
             expected_built_prefix
+        );
+    }
+
+    /// Empty strings tokens are not participating rag search and therefore could be removed.
+    #[test]
+    fn test_tokenized_text_filter() {
+        let prefix = r#"public static String getFileExtension(String fullName) {
+        String fileName = (new File(fullName)).getName();
+        int dotIndex = fileName.lastIndexOf('.');
+         }"#;
+
+        // with filter
+        assert_eq!(
+            tokenize_text(prefix),
+            [
+                "public",
+                "static",
+                "String",
+                "getFileExtension",
+                "String",
+                "fullName",
+                "String",
+                "fileName",
+                "new",
+                "File",
+                "fullName",
+                "getName",
+                "int",
+                "dotIndex",
+                "fileName",
+                "lastIndexOf",
+            ]
         );
     }
 }
