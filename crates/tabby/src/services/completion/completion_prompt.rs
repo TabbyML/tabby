@@ -173,7 +173,11 @@ lazy_static! {
 }
 
 fn tokenize_text(text: &str) -> Vec<String> {
-    TOKENIZER.split(text).map(|x| x.to_owned()).filter(|x| !x.is_empty()).collect()
+    TOKENIZER
+        .split(text)
+        .map(|x| x.to_owned())
+        .filter(|x| !x.is_empty())
+        .collect()
 }
 
 #[cfg(test)]
@@ -381,8 +385,21 @@ def this_is_prefix():\n";
         assert_eq!(
             tokenize_text(prefix),
             [
-                "public", "static", "String", "getFileExtension", "String", "fullName", "String",
-                "fileName", "new", "File", "fullName", "getName", "int", "dotIndex", "fileName",
+                "public",
+                "static",
+                "String",
+                "getFileExtension",
+                "String",
+                "fullName",
+                "String",
+                "fileName",
+                "new",
+                "File",
+                "fullName",
+                "getName",
+                "int",
+                "dotIndex",
+                "fileName",
                 "lastIndexOf",
             ]
         );
