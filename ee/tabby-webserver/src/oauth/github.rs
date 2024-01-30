@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::{Result};
+use async_trait::async_trait;
 use serde::Deserialize;
-use tabby_db::GithubOAuthCredentialDAO;
-use tokio_tungstenite::tungstenite::client;
+
+
+
+use super::OAuthClient;
 use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 #[derive(Debug, Deserialize)]
@@ -33,18 +36,63 @@ struct GithubUserEmail {
     visibility: Option<String>,
 }
 
-#[derive(Default)]
 pub struct GithubClient {
     client: reqwest::Client,
+    auth: Arc<dyn AuthenticationService>,
 }
 
 impl GithubClient {
-    pub async fn fetch_user_email(
+    pub fn new(auth: Arc<dyn AuthenticationService>) -> Self {
+        Self {
+            client: reqwest::Client::new(),
+            auth,
+        }
+    }
+
+    async fn read_credential(&self) -> Result<OAuthCredential> {
+        match self
+            .auth
+            .read_oauth_credential(OAuthProvider::Github)
+            .await?
+        {
+            Some(credential) => Ok(credential),
+            None => Err(anyhow::anyhow!("No Github OAuth credential found")),
+        }
+    }
+
+    async fn exchange_access_token(
         &self,
         code: String,
         credential: OAuthCredential,
-    ) -> Result<String> {
-        let token_resp = self.exchange_access_token(code, credential).await?;
+    ) -> Result<GithubOAuthResponse> {
+        let Some(client_secret) = credential.client_secret else {
+            return Err(anyhow::anyhow!("Missing client secret"));
+        };
+
+        let params = [
+            ("client_id", credential.client_id.as_str()),
+            ("client_secret", client_secret.as_str()),
+            ("code", code.as_str()),
+        ];
+        let resp = self
+            .client
+            .post("https://github.com/login/oauth/access_token")
+            .header(reqwest::header::ACCEPT, "application/json")
+            .form(&params)
+            .send()
+            .await?
+            .json::<GithubOAuthResponse>()
+            .await?;
+
+        Ok(resp)
+    }
+}
+
+#[async_trait]
+impl OAuthClient for GithubClient {
+    async fn fetch_user_email(&self, code: String) -> Result<String> {
+        let credentials = self.read_credential().await?;
+        let token_resp = self.exchange_access_token(code, credentials).await?;
         if !token_resp.error.is_empty() {
             return Err(anyhow::anyhow!(
                 "Failed to exchange access token: {}",
@@ -65,8 +113,7 @@ impl GithubClient {
             .send()
             .await?;
 
-        let emails = resp.json::<Vec<GithubUserEmail>>()
-            .await?;
+        let emails = resp.json::<Vec<GithubUserEmail>>().await?;
 
         for item in &emails {
             if item.primary {
@@ -77,37 +124,11 @@ impl GithubClient {
         return Err(anyhow::anyhow!("No primary email address found"));
     }
 
-    async fn exchange_access_token(
-        &self,
-        code: String,
-        credential: OAuthCredential,
-    ) -> Result<GithubOAuthResponse> {
-        let Some(client_secret) = credential.client_secret else {
-            return Err(anyhow::anyhow!("Missing client secret"))
-        };
-
-        let params = [
-            ("client_id", credential.client_id.as_str()),
-            ("client_secret", client_secret.as_str()),
-            ("code", code.as_str()),
-        ];
-        let resp = self
-            .client
-            .post("https://github.com/login/oauth/access_token")
-            .header(reqwest::header::ACCEPT, "application/json")
-            .form(&params)
-            .send()
-            .await?
-            .json::<GithubOAuthResponse>()
-            .await?;
-
-        Ok(resp)
-    }
-
-    pub async fn get_authorization_url(&self, credential: OAuthCredential) -> Result<String> {
+    async fn get_authorization_url(&self) -> Result<String> {
+        let credentials = self.read_credential().await?;
         let mut url = reqwest::Url::parse("https://github.com/login/oauth/authorize")?;
         let params = vec![
-            ("client_id", credential.client_id.as_str()),
+            ("client_id", credentials.client_id.as_str()),
             ("response_type", "code"),
             ("scope", "read:user user:email"),
         ];

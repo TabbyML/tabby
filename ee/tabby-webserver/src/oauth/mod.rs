@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use anyhow::Result;
+use async_trait::async_trait;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -17,32 +19,31 @@ use crate::{
 pub mod github;
 pub mod google;
 
-pub enum OAuthClient {
-    Github(Arc<GithubClient>),
-    Google(Arc<GoogleClient>),
-}
+type OAuthState = Arc<dyn AuthenticationService>;
 
-#[derive(Clone)]
-#[non_exhaustive]
-struct OAuthState {
-    auth: Arc<dyn AuthenticationService>,
-    github_client: Arc<GithubClient>,
-    google_client: Arc<GoogleClient>,
-}
-
-pub fn routes(auth: Arc<dyn AuthenticationService>) -> Router {
-    let state = OAuthState {
-        auth,
-        github_client: Arc::new(GithubClient::default()),
-        google_client: Arc::new(GoogleClient::default()),
-    };
-
+pub fn routes(state: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
         .route("/signin", routing::get(signin_handler))
         .route("/providers", routing::get(providers_handler))
         .route("/callback/github", routing::get(github_oauth_handler))
         .route("/callback/google", routing::get(google_oauth_handler))
         .with_state(state)
+}
+
+#[async_trait]
+pub trait OAuthClient: Send + Sync {
+    async fn fetch_user_email(&self, code: String) -> Result<String>;
+    async fn get_authorization_url(&self) -> Result<String>;
+}
+
+pub fn new_oauth_client(
+    provider: OAuthProvider,
+    auth: Arc<dyn AuthenticationService>,
+) -> Arc<dyn OAuthClient> {
+    match provider {
+        OAuthProvider::Google => Arc::new(GoogleClient::new(auth)),
+        OAuthProvider::Github => Arc::new(GithubClient::new(auth)),
+    }
 }
 
 #[derive(Deserialize)]
@@ -54,21 +55,9 @@ async fn signin_handler(
     State(state): State<OAuthState>,
     Query(params): Query<SigninQueryParams>,
 ) -> Result<Redirect, StatusCode> {
-    let provider = params.provider;
-    let Some(credential) = state
-        .auth
-        .read_oauth_credential(provider.clone())
-        .await
-        .ok()
-        .flatten()
-    else {
-        return Err(StatusCode::NOT_FOUND);
-    };
-
-    let redirect_uri = match provider {
-        OAuthProvider::Google => state.google_client.get_authorization_url(credential).await,
-        OAuthProvider::Github => state.github_client.get_authorization_url(credential).await,
-    };
+    let redirect_uri = new_oauth_client(params.provider, state)
+        .get_authorization_url()
+        .await;
 
     match redirect_uri {
         Ok(uri) => Ok(Redirect::temporary(&uri)),
@@ -90,7 +79,7 @@ async fn providers_handler(state: State<OAuthState>) -> Json<Vec<OAuthProvider>>
     let mut providers = vec![];
 
     for x in candidates {
-        if has_provider(&state.auth, &x).await {
+        if has_provider(&state, &x).await {
             providers.push(x);
         }
     }
@@ -109,12 +98,7 @@ async fn github_oauth_handler(
     State(state): State<OAuthState>,
     Query(param): Query<GithubOAuthQueryParam>,
 ) -> Result<Redirect, StatusCode> {
-    match_auth_result(
-        state
-            .auth
-            .oauth(param.code, OAuthClient::Github(state.github_client.clone()))
-            .await,
-    )
+    match_auth_result(state.oauth(param.code, OAuthProvider::Github).await)
 }
 
 #[derive(Deserialize)]
@@ -135,12 +119,7 @@ async fn google_oauth_handler(
     if !param.error.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
-    match_auth_result(
-        state
-            .auth
-            .oauth(param.code, OAuthClient::Google(state.google_client.clone()))
-            .await,
-    )
+    match_auth_result(state.oauth(param.code, OAuthProvider::Google).await)
 }
 
 fn match_auth_result(result: Result<OAuthResponse, OAuthError>) -> Result<Redirect, StatusCode> {

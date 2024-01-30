@@ -15,7 +15,7 @@ use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::from_validation_errors;
-use crate::{oauth::OAuthClient, schema::Context};
+use crate::{schema::Context};
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -410,7 +410,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn oauth(
         &self,
         code: String,
-        client: OAuthClient,
+        provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError>;
 
     async fn read_oauth_credential(

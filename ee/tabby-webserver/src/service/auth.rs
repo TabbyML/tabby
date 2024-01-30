@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use argon2::{
@@ -7,13 +7,14 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
+
 use juniper::ID;
 use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
 
 use super::graphql_pagination_to_filter;
 use crate::{
-    oauth::OAuthClient,
+    oauth::{self, OAuthClient},
     schema::auth::{
         generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
         JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenError,
@@ -341,25 +342,10 @@ impl AuthenticationService for DbConn {
     async fn oauth(
         &self,
         code: String,
-        client: OAuthClient,
+        provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError> {
-        let email = match client {
-            OAuthClient::Github(client) => {
-                let credential = self
-                    .read_github_oauth_credential()
-                    .await?
-                    .ok_or(OAuthError::CredentialNotActive)?;
-                client.fetch_user_email(code, credential.into()).await?
-            }
-            OAuthClient::Google(client) => {
-                let credential = self
-                    .read_google_oauth_credential()
-                    .await?
-                    .ok_or(OAuthError::CredentialNotActive)?;
-                client.fetch_user_email(code, credential.into()).await?
-            }
-        };
-
+        let client = oauth::new_oauth_client(provider, Arc::new(self.clone()));
+        let email = client.fetch_user_email(code).await?;
         let user = if let Some(user) = self.get_user_by_email(&email).await? {
             if !user.active {
                 return Err(OAuthError::UserDisabled);
