@@ -1,9 +1,11 @@
-import OAuthCredentialForm from "../components/oauth-credential-form"
+import OAuthCredentialForm from '../components/oauth-credential-form'
 
 const CreateSSO = () => {
-  return <div>
-    <OAuthCredentialForm />
-  </div>
+  return (
+    <div>
+      <OAuthCredentialForm />
+    </div>
+  )
 }
 
 export default CreateSSO

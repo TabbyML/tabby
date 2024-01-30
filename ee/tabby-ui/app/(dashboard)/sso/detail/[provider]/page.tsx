@@ -1,7 +1,9 @@
 import React from 'react'
 import type { NextPage } from 'next'
-import { OAuthProvider } from '@/lib/gql/generates/graphql'
 import { find } from 'lodash-es'
+
+import { OAuthProvider } from '@/lib/gql/generates/graphql'
+
 import { OAuthCredentialDetail } from '../../components/oauth-credential-detail'
 
 type Params = {
@@ -16,15 +18,16 @@ export const PARAMS_TO_ENUM = [
   {
     name: 'google',
     enum: OAuthProvider.Google
-  },
+  }
 ]
 
 export function generateStaticParams() {
   return PARAMS_TO_ENUM.map(item => ({ provider: item.name }))
 }
 
-const OAuthCredentialDetailPage: NextPage<{ params: Params }> = ({ params }) => {
-
+const OAuthCredentialDetailPage: NextPage<{ params: Params }> = ({
+  params
+}) => {
   const provider = find(PARAMS_TO_ENUM, { name: params.provider })!.enum
 
   return (

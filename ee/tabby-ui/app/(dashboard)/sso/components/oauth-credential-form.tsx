@@ -1,11 +1,14 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { find } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
+import { OAuthCredential, OAuthProvider } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -19,16 +22,24 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
-import { OAuthCredential, OAuthProvider } from '@/lib/gql/generates/graphql'
-import { Label } from "@/components/ui/label"
+import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { useRouter } from 'next/navigation'
-import { find } from 'lodash-es'
+
 import { PARAMS_TO_ENUM } from '../detail/[provider]/page'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
-  mutation updateOauthCredential($provider: OAuthProvider!, $clientId: String!, $clientSecret: String!, $redirectUri: String) {
-    updateOauthCredential(provider: $provider, clientId: $clientId, clientSecret: $clientSecret, redirectUri: $redirectUri)
+  mutation updateOauthCredential(
+    $provider: OAuthProvider!
+    $clientId: String!
+    $clientSecret: String!
+    $redirectUri: String
+  ) {
+    updateOauthCredential(
+      provider: $provider
+      clientId: $clientId
+      clientSecret: $clientSecret
+      redirectUri: $redirectUri
+    )
   }
 `)
 
@@ -39,7 +50,8 @@ const formSchema = z.object({
   provider: z.nativeEnum(OAuthProvider)
 })
 
-interface OAuthCredentialFormProps extends React.HTMLAttributes<HTMLDivElement> {
+interface OAuthCredentialFormProps
+  extends React.HTMLAttributes<HTMLDivElement> {
   provider?: OAuthProvider
   defaultValues?: OAuthCredential
 }
@@ -52,7 +64,7 @@ export default function OAuthCredentialForm({
 }: OAuthCredentialFormProps) {
   const router = useRouter()
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema)
     // defaultValues: defaultValues ?? undefined
   })
 
@@ -74,19 +86,34 @@ export default function OAuthCredentialForm({
         <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
-            name='provider'
+            name="provider"
             render={({ field: { onChange, ...rest } }) => (
               <FormItem>
                 <FormLabel>Provider</FormLabel>
                 <FormControl>
-                  <RadioGroup className='flex gap-6' orientation='horizontal' {...rest} onValueChange={onChange} >
+                  <RadioGroup
+                    className="flex gap-6"
+                    orientation="horizontal"
+                    {...rest}
+                    onValueChange={onChange}
+                  >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value={OAuthProvider.Github} id="r_github" />
-                      <Label className='cursor-pointer' htmlFor="r_github">Github</Label>
+                      <RadioGroupItem
+                        value={OAuthProvider.Github}
+                        id="r_github"
+                      />
+                      <Label className="cursor-pointer" htmlFor="r_github">
+                        Github
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value={OAuthProvider.Google} id="r_google" />
-                      <Label className='cursor-pointer' htmlFor="r_google">Google</Label>
+                      <RadioGroupItem
+                        value={OAuthProvider.Google}
+                        id="r_google"
+                      />
+                      <Label className="cursor-pointer" htmlFor="r_google">
+                        Google
+                      </Label>
                     </div>
                   </RadioGroup>
                 </FormControl>
@@ -96,7 +123,7 @@ export default function OAuthCredentialForm({
           />
           <FormField
             control={form.control}
-            name='clientId'
+            name="clientId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Client ID</FormLabel>
@@ -128,7 +155,7 @@ export default function OAuthCredentialForm({
           />
           <FormField
             control={form.control}
-            name='redirectUri'
+            name="redirectUri"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Redirect URI</FormLabel>
