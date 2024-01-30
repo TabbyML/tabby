@@ -173,7 +173,7 @@ lazy_static! {
 }
 
 fn tokenize_text(text: &str) -> Vec<String> {
-    TOKENIZER.split(text).map(|x| x.to_owned()).collect()
+    TOKENIZER.split(text).map(|x| x.to_owned()).filter(|x| !x.is_empty()).collect()
 }
 
 #[cfg(test)]
