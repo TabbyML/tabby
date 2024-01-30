@@ -1,6 +1,7 @@
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { authExchange } from '@urql/exchange-auth'
 import { jwtDecode } from 'jwt-decode'
+import { isNil } from 'lodash-es'
 import { FieldValues, UseFormReturn } from 'react-hook-form'
 import {
   AnyVariables,
@@ -8,6 +9,7 @@ import {
   Client,
   CombinedError,
   fetchExchange,
+  OperationResult,
   useMutation as useUrqlMutation
 } from 'urql'
 
@@ -41,24 +43,22 @@ function useMutation<TResult, TVariables extends AnyVariables>(
     : undefined
 
   const fn = async (variables?: TVariables) => {
-    let res: TResult | undefined
-    try {
-      const response = await executeMutation(variables)
+    let response: OperationResult<TResult, AnyVariables> | undefined
 
+    try {
+      response = await executeMutation(variables)
       if (response?.error) {
         onFormError && onFormError(response.error)
         options?.onError && options.onError(response.error)
-        return
+      } else if (!isNil(response?.data)) {
+        options?.onCompleted?.(response.data)
       }
-
-      res = response?.data
     } catch (err: any) {
       options?.onError && options.onError(err)
       return
     }
 
-    res && options?.onCompleted && options.onCompleted(res)
-    return res
+    return response
   }
 
   return fn
