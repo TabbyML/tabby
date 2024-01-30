@@ -36,9 +36,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
           fontMono.variable
         )}
       >
-        <Toaster richColors />
         <Providers attribute="class" defaultTheme="system" enableSystem>
           <div className="flex min-h-screen flex-col">{children}</div>
+          <Toaster richColors />
           <TailwindIndicator />
         </Providers>
       </body>

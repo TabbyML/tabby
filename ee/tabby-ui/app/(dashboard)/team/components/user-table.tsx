@@ -7,6 +7,7 @@ import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
+import type { ArrayElementType } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -68,17 +69,25 @@ export default function UsersTable() {
   })
   const users = data?.usersNext?.edges
 
-  const updateUserActive = useMutation(updateUserActiveMutation, {
-    onCompleted(values) {
-      if (values?.updateUserActive) {
-        toast.success('Success')
-        reexecuteQuery()
+  const updateUserActive = useMutation(updateUserActiveMutation)
+
+  const onUpdateUserActive = (
+    node: ArrayElementType<typeof users>['node'],
+    active: boolean
+  ) => {
+    updateUserActive({ id: node.id, active }).then(response => {
+      if (response?.error || !response?.data?.updateUserActive) {
+        toast.error(
+          response?.error?.message ||
+            `${active ? 'activate' : 'deactivate'} failed`
+        )
+        return
       }
-    },
-    onError: e => {
-      toast.error(e.message || 'Failed to update user')
-    }
-  })
+
+      reexecuteQuery()
+      toast.success(`${node.email} is ${active ? 'activated' : 'deactivated'}`)
+    })
+  }
 
   return (
     !!users?.length && (
@@ -124,12 +133,7 @@ export default function UsersTable() {
                     <DropdownMenuContent collisionPadding={{ right: 16 }}>
                       {x.node.active && (
                         <DropdownMenuItem
-                          onSelect={() =>
-                            updateUserActive({
-                              id: x.node.id,
-                              active: false
-                            })
-                          }
+                          onSelect={() => onUpdateUserActive(x.node, false)}
                           className="cursor-pointer"
                         >
                           <span className="ml-2">Deactivate</span>
@@ -137,12 +141,7 @@ export default function UsersTable() {
                       )}
                       {!x.node.active && (
                         <DropdownMenuItem
-                          onSelect={() =>
-                            updateUserActive({
-                              id: x.node.id,
-                              active: true
-                            })
-                          }
+                          onSelect={() => onUpdateUserActive(x.node, true)}
                           className="cursor-pointer"
                         >
                           <span className="ml-2">Activate</span>
