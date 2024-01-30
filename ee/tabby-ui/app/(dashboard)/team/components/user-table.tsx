@@ -18,6 +18,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { IconMore } from '@/components/ui/icons'
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious
+} from '@/components/ui/pagination'
+import {
   Table,
   TableBody,
   TableCell,
@@ -25,7 +32,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { SimplePagination } from '@/components/simple-pagination'
 
 const listUsers = graphql(/* GraphQL */ `
   query ListUsersNext(
@@ -158,24 +164,32 @@ export default function UsersTable() {
             ))}
           </TableBody>
         </Table>
-        <div className="my-4 flex justify-end">
-          <SimplePagination
-            hasPreviousPage={pageInfo?.hasPreviousPage}
-            hasNextPage={pageInfo?.hasNextPage}
-            onNext={() =>
-              setQueryVariables({
-                first: PAGE_SIZE,
-                after: pageInfo?.endCursor
-              })
-            }
-            onPrev={() =>
-              setQueryVariables({
-                last: PAGE_SIZE,
-                before: pageInfo?.startCursor
-              })
-            }
-          />
-        </div>
+        <Pagination className="my-4">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                disabled={!pageInfo?.hasPreviousPage}
+                onClick={e =>
+                  setQueryVariables({
+                    last: PAGE_SIZE,
+                    before: pageInfo?.startCursor
+                  })
+                }
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                disabled={!pageInfo?.hasNextPage}
+                onClick={e =>
+                  setQueryVariables({
+                    first: PAGE_SIZE,
+                    after: pageInfo?.endCursor
+                  })
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       </>
     )
   )
