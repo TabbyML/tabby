@@ -1,14 +1,13 @@
 'use client'
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { find } from 'lodash-es'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
-import { OAuthCredential, OAuthProvider } from '@/lib/gql/generates/graphql'
+import { OAuthProvider } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -24,8 +23,6 @@ import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-
-import { PARAMS_TO_ENUM } from '../detail/[provider]/page'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation updateOauthCredential(
@@ -50,43 +47,77 @@ const formSchema = z.object({
   provider: z.nativeEnum(OAuthProvider)
 })
 
+export type OAuthCredentialFormValues = z.infer<typeof formSchema>
+
 interface OAuthCredentialFormProps
   extends React.HTMLAttributes<HTMLDivElement> {
   provider?: OAuthProvider
-  defaultValues?: OAuthCredential
+  defaultValues?: Partial<OAuthCredentialFormValues> | undefined
+  onSuccess?: (formValues: OAuthCredentialFormValues) => void
 }
 
 export default function OAuthCredentialForm({
   className,
   provider,
   defaultValues,
+  onSuccess,
   ...props
 }: OAuthCredentialFormProps) {
-  const router = useRouter()
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema)
-    // defaultValues: defaultValues ?? undefined
+  const formatedDefaultValues = React.useMemo(() => {
+    return {
+      ...(defaultValues || {}),
+      provider
+    }
+  }, [])
+  const isNew = !provider
+
+  const form = useForm<OAuthCredentialFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: formatedDefaultValues
   })
+  const providerValue = form.watch('provider')
 
   const { isSubmitting } = form.formState
   const onSubmit = useMutation(updateOauthCredentialMutation, {
     onCompleted(values) {
       if (values?.updateOauthCredential) {
-        const _provider = form.getValues()?.provider
-        const pathSegment = find(PARAMS_TO_ENUM, p => p.enum === _provider)
-        router.push(`/sso/detail/${pathSegment?.name}`)
+        toast.success(`success`)
+        onSuccess?.(form.getValues())
       }
     },
     form
   })
 
+  React.useEffect(() => {
+    if (providerValue) {
+      form.setValue(
+        'redirectUri',
+        `${
+          process.env.NEXT_PUBLIC_TABBY_SERVER_URL
+        }/oauth_callback/${providerValue.toLowerCase()}`
+      )
+    }
+  }, [providerValue])
+
   return (
     <div className={cn('grid gap-6', className)} {...props}>
       <Form {...form}>
         <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <FormItem>
+            <FormLabel>Type</FormLabel>
+            <RadioGroup defaultValue="oauth">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="oauth" id="type_oauth" />
+                <Label className="cursor-pointer" htmlFor="type_oauth">
+                  OAuth 2.0
+                </Label>
+              </div>
+            </RadioGroup>
+          </FormItem>
           <FormField
             control={form.control}
             name="provider"
+            disabled={!isNew}
             render={({ field: { onChange, ...rest } }) => (
               <FormItem>
                 <FormLabel>Provider</FormLabel>
@@ -156,6 +187,7 @@ export default function OAuthCredentialForm({
           <FormField
             control={form.control}
             name="redirectUri"
+            disabled
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Redirect URI</FormLabel>

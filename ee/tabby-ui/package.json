@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "run-p dev:*",
     "dev:next": "next dev",
-    "dev:codegen": "yarn codegen:watch",
+    "dev:codegen": "yarn codegen",
     "build": "next build",
     "prebuild": "yarn codegen",
     "start": "next start",

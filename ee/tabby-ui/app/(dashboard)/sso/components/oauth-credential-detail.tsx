@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { pick } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { OAuthProvider } from '@/lib/gql/generates/graphql'
@@ -25,13 +26,22 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
 
   return (
     <div>
-      detail
       {fetching ? (
         <div>loading</div>
-      ) : credential ? (
-        <OAuthCredentialForm provider={provider} />
       ) : (
-        <div>cta go to create or redirect</div>
+        <OAuthCredentialForm
+          provider={provider}
+          defaultValues={
+            credential
+              ? pick(credential, [
+                  'clientId',
+                  'provider',
+                  'clientSecret',
+                  'redirectUri'
+                ])
+              : undefined
+          }
+        />
       )}
     </div>
   )
