@@ -897,6 +897,23 @@ function IconKey({ className, ...props }: React.ComponentProps<'svg'>) {
   )
 }
 
+function IconCircle({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <circle cx="12" cy="12" r="10"/>
+    </svg>
+  )
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -943,5 +960,7 @@ export {
   IconCode,
   IconBackpack,
   IconGear,
-  IconMore
+  IconMore,
+  IconKey,
+  IconCircle
 }

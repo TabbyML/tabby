@@ -1,12 +1,14 @@
+import React from 'react'
 import type { NextPage } from 'next'
-import { OAUTH_PROVIDERS } from "@/lib/constant"
 import { OAuthProvider } from '@/lib/gql/generates/graphql'
+import { find } from 'lodash-es'
+import { OAuthCredentialDetail } from '../../components/oauth-credential-detail'
 
 type Params = {
-  provider: OAuthProvider
+  provider: string
 }
 
-const PARAMS_TO_ENUM_ARR: Array<{name: string, enum: OAuthProvider}> = [
+export const PARAMS_TO_ENUM = [
   {
     name: 'github',
     enum: OAuthProvider.Github
@@ -18,20 +20,18 @@ const PARAMS_TO_ENUM_ARR: Array<{name: string, enum: OAuthProvider}> = [
 ]
 
 export function generateStaticParams() {
-  return OAUTH_PROVIDERS.map(provider => {
-    const p = PARAMS_TO_ENUM_ARR.find(x => x.enum === provider)
-    return { provider: p!.name }
-  })
+  return PARAMS_TO_ENUM.map(item => ({ provider: item.name }))
 }
 
-const SSODetail: NextPage<{ params: Params }> = ({ params }) => {
+const OAuthCredentialDetailPage: NextPage<{ params: Params }> = ({ params }) => {
+
+  const provider = find(PARAMS_TO_ENUM, { name: params.provider })!.enum
 
   return (
     <div>
-      detail
-      <div>{params.provider}</div>
+      <OAuthCredentialDetail provider={provider} />
     </div>
   )
 }
 
-export default SSODetail
+export default OAuthCredentialDetailPage
