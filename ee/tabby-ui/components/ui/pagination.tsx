@@ -69,7 +69,7 @@ const PaginationPrevious = ({
     aria-label="Go to previous page"
     size="default"
     className={cn(
-      'gap-1 pl-2.5 cursor-pointer',
+      'cursor-pointer gap-1 pl-2.5',
       disabled && 'cursor-not-allowed text-muted-foreground',
       className
     )}
@@ -90,7 +90,7 @@ const PaginationNext = ({
     aria-label="Go to next page"
     size="default"
     className={cn(
-      'gap-1 pr-2.5 cursor-pointer',
+      'cursor-pointer gap-1 pr-2.5',
       disabled && 'cursor-not-allowed text-muted-foreground',
       className
     )}
