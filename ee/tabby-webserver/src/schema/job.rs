@@ -44,5 +44,5 @@ pub trait JobService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<JobRun>>;
+    ) -> Result<(Vec<JobRun>, usize)>;
 }

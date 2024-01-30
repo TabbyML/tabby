@@ -312,15 +312,17 @@ impl AuthenticationService for DbConn {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<User>> {
+    ) -> Result<(Vec<User>, usize)> {
         let (skip_id, limit, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+        let users_count = self.count_rows("users").await?;
 
-        Ok(self
+        let users = self
             .list_users_with_filter(skip_id, limit, backwards)
             .await?
             .into_iter()
             .map(|x| x.into())
-            .collect())
+            .collect();
+        Ok((users, users_count))
     }
 
     async fn list_invitations(
@@ -329,14 +331,16 @@ impl AuthenticationService for DbConn {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<InvitationNext>> {
+    ) -> Result<(Vec<InvitationNext>, usize)> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
-        Ok(self
+        let invitations_count = self.count_rows("invitations").await?;
+        let invitations = self
             .list_invitations_with_filter(limit, skip_id, backwards)
             .await?
             .into_iter()
             .map(|x| x.into())
-            .collect())
+            .collect();
+        Ok((invitations, invitations_count))
     }
 
     async fn oauth(
@@ -518,7 +522,11 @@ mod tests {
         let password = "12345678dD^";
 
         conn.create_invitation(email.to_owned()).await.unwrap();
-        let invitation = &conn.list_invitations(None, None, None, None).await.unwrap()[0];
+        let invitation = &conn
+            .list_invitations(None, None, None, None)
+            .await
+            .unwrap()
+            .0[0];
 
         // Admin initialized, registeration requires a invitation code;
         assert_matches!(

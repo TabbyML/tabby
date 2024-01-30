@@ -17,12 +17,16 @@ impl RepositoryService for DbConn {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<Repository>> {
+    ) -> Result<(Vec<Repository>, usize)> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+        let repositories_count = self.count_rows("repositories").await?;
         let repositories = self
             .list_repositories_with_filter(limit, skip_id, backwards)
-            .await?;
-        Ok(repositories.into_iter().map(Into::into).collect())
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect();
+        Ok((repositories, repositories_count))
     }
 
     async fn create_repository(

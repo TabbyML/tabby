@@ -12,6 +12,7 @@ pub struct Connection<Node> {
     /// All edges of the current page.
     pub edges: Vec<Edge<Node>>,
     pub page_info: PageInfo,
+    pub total_count: i32,
 }
 
 impl<Node> Connection<Node>
@@ -23,6 +24,7 @@ where
         Self {
             edges: Vec::new(),
             page_info: PageInfo::default(),
+            total_count: 0,
         }
     }
 
@@ -32,6 +34,7 @@ where
         before: bool,
         first: Option<usize>,
         last: Option<usize>,
+        total_count: usize,
     ) -> Self {
         let selected_count = first.or(last).unwrap_or(nodes.len());
         let len = nodes.len();
@@ -75,6 +78,7 @@ where
                 start_cursor: edges.first().map(|edge| edge.cursor.clone()),
                 end_cursor: edges.last().map(|edge| edge.cursor.clone()),
             },
+            total_count: total_count as i32,
             edges,
         }
     }

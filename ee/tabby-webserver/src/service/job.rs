@@ -13,13 +13,15 @@ impl JobService for DbConn {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<JobRun>> {
+    ) -> Result<(Vec<JobRun>, usize)> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
-        Ok(self
+        let jobs_count = self.count_rows("job_runs").await?;
+        let job_runs = self
             .list_job_runs_with_filter(limit, skip_id, backwards)
             .await?
             .into_iter()
             .map(Into::into)
-            .collect())
+            .collect();
+        Ok((job_runs, jobs_count))
     }
 }

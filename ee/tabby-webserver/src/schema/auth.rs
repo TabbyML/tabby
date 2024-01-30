@@ -398,7 +398,7 @@ pub trait AuthenticationService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<User>>;
+    ) -> Result<(Vec<User>, usize)>;
 
     async fn list_invitations(
         &self,
@@ -406,7 +406,7 @@ pub trait AuthenticationService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<InvitationNext>>;
+    ) -> Result<(Vec<InvitationNext>, usize)>;
 
     async fn oauth(
         &self,

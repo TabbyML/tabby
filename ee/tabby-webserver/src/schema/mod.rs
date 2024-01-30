@@ -127,6 +127,7 @@ impl Query {
                     .auth()
                     .list_invitations(None, None, None, None)
                     .await?
+                    .0
                     .into_iter()
                     .map(|x| x.into())
                     .collect());
@@ -154,7 +155,8 @@ impl Query {
                     .locator
                     .auth()
                     .list_users(None, None, None, None)
-                    .await?);
+                    .await?
+                    .0);
             }
         }
         Err(CoreError::Unauthorized("Only admin is able to query users"))
@@ -167,31 +169,29 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<User>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return relay::query_async(
-                    after,
-                    before,
-                    first,
-                    last,
-                    |after, before, first, last| async move {
-                        match ctx
-                            .locator
-                            .auth()
-                            .list_users(after, before, first, last)
-                            .await
-                        {
-                            Ok(users) => Ok(users),
-                            Err(err) => Err(FieldError::from(err)),
-                        }
-                    },
-                )
-                .await;
-            }
-        }
-        Err(FieldError::from(CoreError::Unauthorized(
-            "Only admin is able to query users",
-        )))
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(FieldError::from(CoreError::Unauthorized(
+                "Only admin is able to query users",
+            )));
+        };
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                match ctx
+                    .locator
+                    .auth()
+                    .list_users(after, before, first, last)
+                    .await
+                {
+                    Ok(users) => Ok(users),
+                    Err(err) => Err(FieldError::from(err)),
+                }
+            },
+        )
+        .await
     }
 
     async fn invitations_next(

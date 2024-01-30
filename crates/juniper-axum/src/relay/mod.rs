@@ -52,7 +52,7 @@ where
         Option<String>,
         Option<usize>,
         Option<usize>,
-    ) -> FieldResult<Vec<Node>>,
+    ) -> FieldResult<(Vec<Node>, usize)>,
 {
     let (first, last) = validate_first_last(first, last)?;
 
@@ -60,13 +60,14 @@ where
     let last_plus_one = last.map(|i| i + 1);
     let after_some = after.is_some();
     let before_some = before.is_some();
-    let nodes = f(after, before, first_plus_one, last_plus_one)?;
+    let (nodes, total_count) = f(after, before, first_plus_one, last_plus_one)?;
     Ok(Connection::build_connection(
         nodes,
         after_some,
         before_some,
         first,
         last,
+        total_count,
     ))
 }
 
@@ -80,7 +81,7 @@ pub async fn query_async<Node, F, R>(
 where
     Node: NodeType + Sync,
     F: FnOnce(Option<String>, Option<String>, Option<usize>, Option<usize>) -> R,
-    R: Future<Output = FieldResult<Vec<Node>>>,
+    R: Future<Output = FieldResult<(Vec<Node>, usize)>>,
 {
     let (first, last) = validate_first_last(first, last)?;
 
@@ -88,12 +89,13 @@ where
     let last_plus_one = last.map(|i| i + 1);
     let after_some = after.is_some();
     let before_some = before.is_some();
-    let nodes = f(after, before, first_plus_one, last_plus_one).await?;
+    let (nodes, total_count) = f(after, before, first_plus_one, last_plus_one).await?;
     Ok(Connection::build_connection(
         nodes,
         after_some,
         before_some,
         first,
         last,
+        total_count,
     ))
 }

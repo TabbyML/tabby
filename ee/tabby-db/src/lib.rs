@@ -115,6 +115,18 @@ impl DbConn {
 
         format!(r#"SELECT {} FROM ({}) {}"#, fields, source, clause)
     }
+
+    pub async fn count_rows(&self, table: &'static str) -> Result<usize> {
+        let rows = self
+            .conn
+            .call(move |c| {
+                let i: usize =
+                    c.query_row(&format!("SELECT COUNT() FROM {table}"), [], |r| r.get(0))?;
+                Ok(i)
+            })
+            .await?;
+        Ok(rows)
+    }
 }
 
 /// db read/write operations for `registration_token` table

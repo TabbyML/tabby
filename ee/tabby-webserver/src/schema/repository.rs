@@ -63,7 +63,7 @@ pub trait RepositoryService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<Repository>>;
+    ) -> Result<(Vec<Repository>, usize)>;
 
     async fn create_repository(&self, name: String, git_url: String)
         -> Result<ID, RepositoryError>;

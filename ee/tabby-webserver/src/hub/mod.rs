@@ -141,7 +141,7 @@ impl Hub for Arc<HubImpl> {
             .list_repositories(None, None, None, None)
             .await
             .map_err(|e| e.to_string())
-            .map(|v| {
+            .map(|(v, _)| {
                 v.into_iter()
                     .map(|r| RepositoryConfig::new_named(r.name, r.git_url))
                     .collect()
