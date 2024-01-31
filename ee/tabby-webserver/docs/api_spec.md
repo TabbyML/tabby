@@ -181,9 +181,9 @@ curl --request GET \
 Redirect to oauth provider for signin
 
 
-### GitHub
+### OAuth callback
 
-**URL:** `/oauth/callback/github`
+**URL:** `/oauth/callback/{provider}`
 
 **Method:** `GET`
 
@@ -191,7 +191,7 @@ Redirect to oauth provider for signin
 
 ```shell
 curl --request GET \
-  --url http://localhost:8080/oauth_callback/github?code=1234567890
+  --url http://localhost:8080/oauth/callback/github?code=1234567890
 ```
 
 **Response example:**
@@ -202,23 +202,7 @@ The request will redirect to `/auth/signin` with refresh token & access token at
 http://localhost:8080/auth/signin?refresh_token=321bc1bbb043456dae1a7abc0c447875&access_token=eyJ0eXAi......1NiJ9.eyJleHAi......bWluIjp0cnVlfQ.GvHSMUfc...S5BnwY
 ```
 
-### Google
-
-**URL:** `/oauth/callback/google`
-
-**Method:** `GET`
-
-**Request example:**
-
-```shell
-curl --request GET \
-  --url http://localhost:9090/oauth_callback/google?code=4%2F0AfJohXmJC_bdPrLp5......lZY9gTxq2eg&scope=email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&authuser=1&prompt=consent
+When an error occurs, the request will redirect to `/auth/signin` with error message & provider attached.
 ```
-
-**Response example:**
-
-The request will redirect to `/auth/signin` with refresh token & access token attached.
-
-```
-http://localhost:8080/auth/signin?refresh_token=321bc1bbb043456dae1a7abc0c447875&access_token=eyJ0eXAi......1NiJ9.eyJleHAi......bWluIjp0cnVlfQ.GvHSMUfc...S5BnwY
+http://localhost:8080/auth/signin?error_msg=...&provider=github 
 ```
