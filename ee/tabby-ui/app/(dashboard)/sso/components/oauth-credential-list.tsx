@@ -10,7 +10,7 @@ import {
   OAuthCredentialQuery,
   OAuthProvider
 } from '@/lib/gql/generates/graphql'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const oauthCredential = graphql(/* GraphQL */ `
@@ -53,8 +53,11 @@ const OauthCredentialList = () => {
           <div className="border-4 border-dashed py-8 flex flex-col items-center gap-4 rounded-lg">
             <div>No Data</div>
             <div className="flex justify-center">
-              <Link href="/sso/new">
-                <Button>Create</Button>
+              <Link
+                href="/sso/new"
+                className={buttonVariants({ variant: 'default' })}
+              >
+                Create
               </Link>
             </div>
           </div>
@@ -67,7 +70,14 @@ const OauthCredentialList = () => {
     <div>
       <CardTitle className="flex justify-between items-center mb-6">
         <span>OAuth Credentials</span>
-        {credentialList.length < 2 && <Button>Create</Button>}
+        {credentialList.length < 2 && (
+          <Link
+            href="/sso/new"
+            className={buttonVariants({ variant: 'default' })}
+          >
+            Create
+          </Link>
+        )}
       </CardTitle>
       <div className="flex flex-col gap-4">
         {credentialList.map(credential => {
@@ -90,8 +100,11 @@ const OauthCredentialCard = ({
       <CardHeader className="border-b">
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl">{data?.provider}</CardTitle>
-          <Link href={`/sso/detail/${data?.provider.toLowerCase()}`}>
-            <Button variant="secondary">View</Button>
+          <Link
+            href={`/sso/detail/${data?.provider.toLowerCase()}`}
+            className={buttonVariants({ variant: 'secondary' })}
+          >
+            View
           </Link>
         </div>
       </CardHeader>
