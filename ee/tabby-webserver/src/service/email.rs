@@ -91,6 +91,7 @@ impl EmailService for EmailServiceImpl {
             smtp_server.clone(),
         )
         .await?;
+        // TODO: make from address being configurable in EmailSettings.
         *self.from.write().await = smtp_username.clone();
         let smtp_password = match smtp_password {
             Some(pass) => pass,
