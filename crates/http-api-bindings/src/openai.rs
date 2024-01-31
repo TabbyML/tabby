@@ -54,10 +54,9 @@ impl OpenAIEngine {
     }
 
     async fn generate_impl(&self, prompt: &str, options: TextGenerationOptions) -> Result<String> {
+        // OpenAI's API usually handles stop words in an O(n) manner, so we just use a single stop word here.
+        // FIXME(meng): consider improving this for some external vendors, e.g vLLM.
         let stop = vec!["\n\n".to_owned()];
-
-        // create a request
-
 
         let request = Request {
             model: self.model_name.to_owned(),
