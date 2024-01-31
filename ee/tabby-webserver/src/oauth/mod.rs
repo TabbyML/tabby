@@ -8,6 +8,8 @@ use axum::{
     response::Redirect,
     routing, Json, Router,
 };
+
+use lazy_static::lazy_static;
 use serde::Deserialize;
 use tracing::error;
 
@@ -97,7 +99,7 @@ struct GithubOAuthQueryParam {
 async fn github_oauth_handler(
     State(state): State<OAuthState>,
     Query(param): Query<GithubOAuthQueryParam>,
-) -> Result<Redirect, StatusCode> {
+) -> Redirect {
     match_auth_result(state.oauth(param.code, OAuthProvider::Github).await)
 }
 
@@ -115,28 +117,46 @@ struct GoogleOAuthQueryParam {
 async fn google_oauth_handler(
     State(state): State<OAuthState>,
     Query(param): Query<GoogleOAuthQueryParam>,
-) -> Result<Redirect, StatusCode> {
+) -> Redirect {
     if !param.error.is_empty() {
-        return Err(StatusCode::BAD_REQUEST);
+        return make_error_redirect(&param.error);
     }
     match_auth_result(state.oauth(param.code, OAuthProvider::Google).await)
 }
 
-fn match_auth_result(result: Result<OAuthResponse, OAuthError>) -> Result<Redirect, StatusCode> {
+lazy_static! {
+    static ref OAUTH_REDIRECT_URL: String = std::env::var("OAUTH_REDIRECT_URI").unwrap_or_default();
+}
+
+fn match_auth_result(result: Result<OAuthResponse, OAuthError>) -> Redirect {
     match result {
         Ok(resp) => {
             let uri = format!(
-                "/auth/signin?refresh_token={}&access_token={}",
-                resp.refresh_token, resp.access_token,
+                "{}/auth/signin?refresh_token={}&access_token={}",
+                OAUTH_REDIRECT_URL.as_str(),
+                resp.refresh_token,
+                resp.access_token,
             );
-            Ok(Redirect::temporary(&uri))
+            Redirect::temporary(&uri)
         }
-        Err(OAuthError::InvalidVerificationCode) => Err(StatusCode::BAD_REQUEST),
-        Err(OAuthError::CredentialNotActive) => Err(StatusCode::NOT_FOUND),
-        Err(OAuthError::UserNotInvited) => Err(StatusCode::UNAUTHORIZED),
+        Err(OAuthError::InvalidVerificationCode) => make_error_redirect("Invalid oauth code"),
+        Err(OAuthError::CredentialNotActive) => make_error_redirect("OAuth is not enabled"),
+        Err(OAuthError::UserNotInvited) => {
+            make_error_redirect("User is not invited, please contact your admin for help")
+        }
         Err(e) => {
             error!("Failed to authenticate: {:?}", e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            make_error_redirect("Unknown error")
         }
     }
+}
+
+fn make_error_redirect(message: &str) -> Redirect {
+    let uri = reqwest::Url::parse_with_params(
+        format!("{}/auth/signin", OAUTH_REDIRECT_URL.as_str()).as_str(),
+        &[("error_message", message)],
+    )
+    .unwrap()
+    .to_string();
+    Redirect::temporary(&uri)
 }
