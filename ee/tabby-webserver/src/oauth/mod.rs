@@ -100,7 +100,10 @@ async fn github_oauth_handler(
     State(state): State<OAuthState>,
     Query(param): Query<GithubOAuthQueryParam>,
 ) -> Redirect {
-    match_auth_result(state.oauth(param.code, OAuthProvider::Github).await)
+    match_auth_result(
+        OAuthProvider::Github,
+        state.oauth(param.code, OAuthProvider::Github).await,
+    )
 }
 
 #[derive(Deserialize)]
@@ -119,16 +122,22 @@ async fn google_oauth_handler(
     Query(param): Query<GoogleOAuthQueryParam>,
 ) -> Redirect {
     if !param.error.is_empty() {
-        return make_error_redirect(&param.error);
+        return make_error_redirect(OAuthProvider::Google, &param.error);
     }
-    match_auth_result(state.oauth(param.code, OAuthProvider::Google).await)
+    match_auth_result(
+        OAuthProvider::Google,
+        state.oauth(param.code, OAuthProvider::Google).await,
+    )
 }
 
 lazy_static! {
     static ref OAUTH_REDIRECT_URL: String = std::env::var("OAUTH_REDIRECT_URI").unwrap_or_default();
 }
 
-fn match_auth_result(result: Result<OAuthResponse, OAuthError>) -> Redirect {
+fn match_auth_result(
+    provider: OAuthProvider,
+    result: Result<OAuthResponse, OAuthError>,
+) -> Redirect {
     match result {
         Ok(resp) => {
             let uri = format!(
@@ -139,22 +148,33 @@ fn match_auth_result(result: Result<OAuthResponse, OAuthError>) -> Redirect {
             );
             Redirect::temporary(&uri)
         }
-        Err(OAuthError::InvalidVerificationCode) => make_error_redirect("Invalid oauth code"),
-        Err(OAuthError::CredentialNotActive) => make_error_redirect("OAuth is not enabled"),
-        Err(OAuthError::UserNotInvited) => {
-            make_error_redirect("User is not invited, please contact your admin for help")
+        Err(OAuthError::InvalidVerificationCode) => {
+            make_error_redirect(provider, "Invalid oauth code")
         }
+        Err(OAuthError::CredentialNotActive) => {
+            make_error_redirect(provider, "OAuth is not enabled")
+        }
+        Err(OAuthError::UserNotInvited) => make_error_redirect(
+            provider,
+            "User is not invited, please contact your admin for help",
+        ),
         Err(e) => {
             error!("Failed to authenticate: {:?}", e);
-            make_error_redirect("Unknown error")
+            make_error_redirect(provider, "Unknown error")
         }
     }
 }
 
-fn make_error_redirect(message: &str) -> Redirect {
+fn make_error_redirect(provider: OAuthProvider, message: &str) -> Redirect {
     let uri = reqwest::Url::parse_with_params(
         format!("{}/auth/signin", OAUTH_REDIRECT_URL.as_str()).as_str(),
-        &[("error_message", message)],
+        &[
+            ("error_message", message),
+            (
+                "provider",
+                serde_json::to_string(&provider).unwrap().as_str(),
+            ),
+        ],
     )
     .unwrap()
     .to_string();
