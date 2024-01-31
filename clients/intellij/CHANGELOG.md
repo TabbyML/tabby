@@ -1,3 +1,17 @@
+## 1.3.0
+
+### Features:
+
+- Removed the completion request timeout limit. Now, a warning status bar icon will be displayed when the completion request takes too long.
+- Enabled the experimental feature of stripping auto-closing characters in the prompt suffix by default.
+- Enabled the experimental feature of syntax-based post-processing by default.
+- Added support for logging completion dismiss events.
+
+### Fixes:
+
+- Fixed a bug caused `Check Connection` never ends when endpoint config left blank.
+- Fixed health checking to be compatible with Tabby server version 0.2.0 or earlier.
+
 ## 1.2.0
 
 ### Features:
