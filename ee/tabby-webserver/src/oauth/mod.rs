@@ -10,7 +10,7 @@ use axum::{
 };
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use tracing::error;
+use tracing::{error, info};
 
 use crate::{
     oauth::{github::GithubClient, google::GoogleClient},
@@ -130,7 +130,7 @@ async fn google_oauth_handler(
 }
 
 lazy_static! {
-    static ref OAUTH_REDIRECT_URL: String = std::env::var("OAUTH_REDIRECT_URI").unwrap_or_default();
+    static ref OAUTH_REDIRECT_URL: String = std::env::var("OAUTH_REDIRECT_URL").unwrap_or_default();
 }
 
 fn match_auth_result(
@@ -165,17 +165,13 @@ fn match_auth_result(
 }
 
 fn make_error_redirect(provider: OAuthProvider, message: &str) -> Redirect {
-    let uri = reqwest::Url::parse_with_params(
-        format!("{}/auth/signin", OAUTH_REDIRECT_URL.as_str()).as_str(),
-        &[
-            ("error_message", message),
-            (
-                "provider",
-                serde_json::to_string(&provider).unwrap().as_str(),
-            ),
-        ],
-    )
-    .unwrap()
-    .to_string();
+    let query = querystring::stringify(vec![
+        ("error_message", message),
+        (
+            "provider",
+            serde_json::to_string(&provider).unwrap().as_str(),
+        ),
+    ]);
+    let uri = format!("{}/auth/signin?{}", OAUTH_REDIRECT_URL.as_str(), query);
     Redirect::temporary(&uri)
 }
