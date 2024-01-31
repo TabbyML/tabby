@@ -156,7 +156,7 @@ fn create_assistant_message(string: String) -> tabby_common::api::event::Message
     }
 }
 
-fn convert_messages(input: &Vec<Message>) -> Vec<tabby_common::api::event::Message> {
+fn convert_messages(input: &[Message]) -> Vec<tabby_common::api::event::Message> {
     input
         .iter()
         .map(|m| tabby_common::api::event::Message {

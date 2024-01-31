@@ -50,10 +50,6 @@ impl FastChatEngine {
             client,
         }
     }
-
-    pub fn prompt_template() -> String {
-        "{prefix}<MID>{suffix}".to_owned()
-    }
 }
 
 #[async_trait]
@@ -77,7 +73,7 @@ impl TextGeneration for FastChatEngine {
             prompt: vec![tokens[0].to_owned()],
             max_tokens: options.max_decoding_length,
             temperature: options.sampling_temperature,
-            stop
+            stop,
         };
 
         // API Documentation: https://github.com/lm-sys/FastChat/blob/main/docs/openai_api.md
