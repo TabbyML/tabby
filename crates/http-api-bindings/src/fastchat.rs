@@ -11,6 +11,7 @@ struct Request {
     prompt: Vec<String>,
     max_tokens: usize,
     temperature: f32,
+    stop: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -58,12 +59,25 @@ impl FastChatEngine {
 #[async_trait]
 impl TextGeneration for FastChatEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
+        let stop = if let Some(language) = options.language {
+            language
+                .get_stop_words()
+                .iter()
+                .map(|x| x.to_string())
+                // openai compatible backend supports at most 4 stop sequence.
+                .take(4)
+                .collect()
+        } else {
+            vec![]
+        };
+
         let tokens: Vec<&str> = prompt.split("<MID>").collect();
         let request = Request {
             model: self.model_name.to_owned(),
             prompt: vec![tokens[0].to_owned()],
             max_tokens: options.max_decoding_length,
             temperature: options.sampling_temperature,
+            stop
         };
 
         // API Documentation: https://github.com/lm-sys/FastChat/blob/main/docs/openai_api.md

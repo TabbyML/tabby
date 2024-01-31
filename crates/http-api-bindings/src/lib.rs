@@ -20,12 +20,13 @@ pub fn create(model: &str) -> (Arc<dyn TextGeneration>, String) {
         let model_name = get_param(&params, "model_name");
         let api_endpoint = get_param(&params, "api_endpoint");
         let authorization = get_param(&params, "authorization");
+        let prompt_template = get_param(&params, "prompt_template");
         let engine = FastChatEngine::create(
             api_endpoint.as_str(),
             model_name.as_str(),
             authorization.as_str(),
         );
-        (Arc::new(engine), FastChatEngine::prompt_template())
+        (Arc::new(engine), prompt_template)
     } else {
         panic!("Only vertex_ai and fastchat are supported for http backend");
     }
