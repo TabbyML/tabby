@@ -5,10 +5,12 @@ mod services;
 mod download;
 mod serve;
 
+mod job;
 #[cfg(feature = "ee")]
 mod worker;
 
 use clap::{Parser, Subcommand};
+use job::get_repositories;
 use opentelemetry::{
     global,
     sdk::{propagation::TraceContextPropagator, trace, trace::Sampler, Resource},
@@ -65,9 +67,9 @@ pub enum Commands {
 
 #[derive(clap::Args)]
 pub struct JobArgs {
-    #[clap(long, requires = "address")]
+    #[clap(long, requires = "url")]
     token: Option<String>,
-    #[clap(long, requires = "port")]
+    #[clap(long, requires = "token")]
     url: Option<String>,
 }
 
@@ -142,12 +144,12 @@ async fn main() {
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
         #[cfg(feature = "ee")]
         Commands::JobSync(args) => {
-            let repositories = get_repositories(args.url, args.token, &config.repositories);
+            let repositories = get_repositories(args.url, args.token, &config.repositories).await;
             tabby_scheduler::job_sync(&repositories)
         }
         #[cfg(feature = "ee")]
         Commands::JobIndex(args) => {
-            let repositories = get_repositories(args.url, args.token, &config.repositories);
+            let repositories = get_repositories(args.url, args.token, &config.repositories).await;
             tabby_scheduler::job_index(&repositories)
         }
         #[cfg(feature = "ee")]
@@ -161,25 +163,6 @@ async fn main() {
     }
 
     opentelemetry::global::shutdown_tracer_provider();
-}
-
-fn get_repositories(
-    url: Option<String>,
-    token: Option<String>,
-    config: &Vec<RepositoryConfig>,
-) -> Vec<RepositoryConfig> {
-    match url.zip(token) {
-        Some((addr, token)) => {
-            let client =
-                tabby_webserver::public::create_client(&addr, &token, ConnectHubRequest::Job);
-            let client = futures::executor::block_on(client);
-            let repositories =
-                futures::executor::block_on(client.get_repositories(Context::current()))
-                    .expect("Must be able to load repositories");
-            repositories
-        }
-        None => config.to_vec(),
-    }
 }
 
 #[macro_export]

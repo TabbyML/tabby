@@ -44,10 +44,6 @@ struct ServerContext {
     code: Arc<dyn CodeSearch>,
 }
 
-fn to_cli_args(url: String, token: String) -> Arc<[String]> {
-    vec!["--token".to_string(), token, "--url".to_string(), url].into()
-}
-
 impl ServerContext {
     pub async fn new(
         logger: Arc<dyn RawEventLogger>,
@@ -55,9 +51,7 @@ impl ServerContext {
         url: String,
     ) -> Self {
         let db_conn = DbConn::new().await.unwrap();
-        let token = db_conn.read_registration_token().await;
-        let scheduler_args = token.map(|t| to_cli_args(url, t)).unwrap_or([].into());
-        run_cron(&db_conn, scheduler_args, false).await;
+        run_cron(&db_conn, url, false).await;
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
