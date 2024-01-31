@@ -10,7 +10,7 @@ pub async fn get_repositories(
         Some((addr, token)) => {
             let client =
                 tabby_webserver::public::create_client(&addr, &token, ConnectHubRequest::Job).await;
-            
+
             client
                 .get_repositories(Context::current())
                 .await
