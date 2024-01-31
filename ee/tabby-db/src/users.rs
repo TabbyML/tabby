@@ -123,17 +123,24 @@ impl DbConn {
             backwards,
         );
 
-        let users = sqlx::query_as(&query).fetch_all(&self.pool).await?;
+        let users = self
+            .conn
+            .call(move |c| {
+                let mut stmt = c.prepare(&query)?;
+                let user_iter = stmt.query_map([], UserDAO::from_row)?;
+                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
+            })
+            .await?;
 
         Ok(users)
     }
 
-    pub async fn verify_auth_token(&self, token: &str) -> bool {
+    pub async fn verify_auth_token(&self, token: &str) -> Result<String> {
         let token = token.to_owned();
         let id = query_scalar!("SELECT id FROM users WHERE auth_token = ?", token)
             .fetch_one(&self.pool)
             .await;
-        id.is_ok()
+        email?.map_err(Into::into)
     }
 
     pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
@@ -222,9 +229,9 @@ mod tests {
 
         let user = conn.get_user(id).await.unwrap().unwrap();
 
-        assert!(!conn.verify_auth_token("abcd").await);
+        assert!(conn.verify_auth_token("abcd").await.is_err());
 
-        assert!(conn.verify_auth_token(&user.auth_token).await);
+        assert!(conn.verify_auth_token(&user.auth_token).await.is_ok());
 
         conn.reset_user_auth_token_by_email(&user.email)
             .await

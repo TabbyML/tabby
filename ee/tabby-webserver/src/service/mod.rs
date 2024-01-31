@@ -21,13 +21,16 @@ use tabby_db::DbConn;
 use tracing::{info, warn};
 
 use self::{cron::run_cron, email::new_email_service};
-use crate::schema::{
-    auth::AuthenticationService,
-    email::EmailService,
-    job::JobService,
-    repository::RepositoryService,
-    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    ServiceLocator,
+use crate::{
+    public::USER_HEADER_FIELD_NAME,
+    schema::{
+        auth::AuthenticationService,
+        email::EmailService,
+        job::JobService,
+        repository::RepositoryService,
+        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+        ServiceLocator,
+    },
 };
 
 struct ServerContext {
@@ -60,41 +63,31 @@ impl ServerContext {
         }
     }
 
-    async fn authorize_request(&self, request: &Request<Body>) -> bool {
+    async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<String>) {
         let path = request.uri().path();
-        if path.starts_with("/v1/") || path.starts_with("/v1beta/") {
-            let token = {
-                let authorization = request
-                    .headers()
-                    .get("authorization")
-                    .map(HeaderValue::to_str)
-                    .and_then(Result::ok);
-
-                if let Some(authorization) = authorization {
-                    let split = authorization.split_once(' ');
-                    match split {
-                        // Found proper bearer
-                        Some(("Bearer", contents)) => Some(contents),
-                        _ => None,
-                    }
-                } else {
-                    None
-                }
-            };
-
-            if let Some(token) = token {
-                if self.db_conn.verify_access_token(token).await.is_err()
-                    && !self.db_conn.verify_auth_token(token).await
-                {
-                    return false;
-                }
-            } else {
-                // Admin system is initialized, but there's no valid token.
-                return false;
-            }
+        if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
+            return (true, None);
         }
+        let authorization = request
+            .headers()
+            .get("authorization")
+            .map(HeaderValue::to_str)
+            .and_then(Result::ok);
 
-        true
+        let token = authorization
+            .and_then(|s| s.split_once(' '))
+            .map(|(_bearer, token)| token);
+
+        let Some(token) = token else {
+            return (false, None);
+        };
+        if self.db_conn.verify_access_token(token).await.is_ok() {
+            return (true, None);
+        }
+        match self.db_conn.verify_auth_token(token).await {
+            Ok(email) => (true, Some(email)),
+            Err(_) => (false, None),
+        }
     }
 }
 
@@ -147,15 +140,23 @@ impl WorkerService for ServerContext {
 
     async fn dispatch_request(
         &self,
-        request: Request<Body>,
+        mut request: Request<Body>,
         next: Next<Body>,
     ) -> axum::response::Response {
-        if !self.authorize_request(&request).await {
+        let (auth, user) = self.authorize_request(&request).await;
+        if !auth {
             return axum::response::Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
                 .body(Body::empty())
                 .unwrap()
                 .into_response();
+        }
+
+        if let Some(user) = user {
+            request.headers_mut().append(
+                &USER_HEADER_FIELD_NAME,
+                HeaderValue::from_str(&user).expect("User must be valid header"),
+            );
         }
 
         let remote_addr = request
