@@ -121,9 +121,6 @@ on a GPU with CUDA or ROCm support or on Apple M1/M2 with Metal support. When ru
 the server, make sure to specify the device in the arguments using  `--device cuda`, `--device rocm` or
 `--device metal`. You can also try using a smaller model from the available [models](https://tabby.tabbyml.com/docs/models/). 
 
-By default, the timeout for automatically triggered completion requests is set to 4 seconds. 
-You can adjust this timeout value in the [config file](https://tabby.tabbyml.com/docs/extensions/configurations).
-
 ## Want to Deep Dive via Logs?
 
 If you cannot solve the issue using the previous steps, you may want to 

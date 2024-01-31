@@ -35,15 +35,6 @@ Header1 = "Value1" # list your custom headers here
 Header2 = "Value2" # values can be strings, numbers or booleans
 ```
 
-## Completion
-
-If you want to allocate more time to Tabby for completion requests, you can adjust the timeout configurations here.
-
-```toml
-[completion]
-timeout = 4000 # By default the timeout is 4 seconds.
-```
-
 ## Logs
 
 If you encounter any issues with the Tabby IDE extensions and need to report a bug, you can enable debug logs to help us investigate the issue.
