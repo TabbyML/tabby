@@ -1,6 +1,5 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use rusqlite::Row;
 use sqlx::{query, FromRow};
 
 use super::DbConn;
@@ -17,21 +16,6 @@ pub struct RefreshTokenDAO {
 }
 
 impl RefreshTokenDAO {
-    fn select(clause: &str) -> String {
-        r#"SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens WHERE "#.to_owned()
-            + clause
-    }
-
-    fn from_row(row: &Row<'_>) -> std::result::Result<RefreshTokenDAO, rusqlite::Error> {
-        Ok(RefreshTokenDAO {
-            id: row.get(0)?,
-            user_id: row.get(1)?,
-            token: row.get(2)?,
-            expires_at: row.get(3)?,
-            created_at: row.get(4)?,
-        })
-    }
-
     pub fn is_expired(&self) -> bool {
         let now = chrono::Utc::now();
         self.expires_at < now

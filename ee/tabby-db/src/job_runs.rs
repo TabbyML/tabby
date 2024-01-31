@@ -15,20 +15,6 @@ pub struct JobRunDAO {
     pub stderr: String,
 }
 
-impl JobRunDAO {
-    fn from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Self> {
-        Ok(Self {
-            id: row.get(0)?,
-            job_name: row.get(1)?,
-            start_time: row.get(2)?,
-            finish_time: row.get(3)?,
-            exit_code: row.get(4)?,
-            stdout: row.get(5)?,
-            stderr: row.get(6)?,
-        })
-    }
-}
-
 /// db read/write operations for `job_runs` table
 impl DbConn {
     pub async fn create_job_run(&self, run: JobRunDAO) -> Result<i32> {

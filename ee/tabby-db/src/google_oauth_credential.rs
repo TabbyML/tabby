@@ -15,18 +15,6 @@ pub struct GoogleOAuthCredentialDAO {
     pub updated_at: DateTime<Utc>,
 }
 
-impl GoogleOAuthCredentialDAO {
-    fn from_row(row: &rusqlite::Row<'_>) -> std::result::Result<Self, rusqlite::Error> {
-        Ok(Self {
-            client_id: row.get(0)?,
-            client_secret: row.get(1)?,
-            redirect_uri: row.get(2)?,
-            created_at: row.get(3)?,
-            updated_at: row.get(4)?,
-        })
-    }
-}
-
 /// db read/write operations for `google_oauth_credential` table
 impl DbConn {
     pub async fn update_google_oauth_credential(

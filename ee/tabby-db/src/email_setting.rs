@@ -12,16 +12,6 @@ pub struct EmailSettingDAO {
     pub smtp_server: String,
 }
 
-impl EmailSettingDAO {
-    fn new(smtp_username: String, smtp_password: String, smtp_server: String) -> Self {
-        Self {
-            smtp_username,
-            smtp_password,
-            smtp_server,
-        }
-    }
-}
-
 impl DbConn {
     pub async fn read_email_setting(&self) -> Result<Option<EmailSettingDAO>> {
         let setting = query_as!(

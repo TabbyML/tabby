@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use rusqlite::Row;
 use sqlx::{prelude::FromRow, query};
 
 use crate::DbConn;
@@ -9,16 +8,6 @@ pub struct RepositoryDAO {
     pub id: i32,
     pub name: String,
     pub git_url: String,
-}
-
-impl RepositoryDAO {
-    fn new(id: i32, name: String, git_url: String) -> Self {
-        Self { id, name, git_url }
-    }
-
-    fn from_row(row: &Row) -> Result<Self, rusqlite::Error> {
-        Ok(Self::new(row.get(0)?, row.get(1)?, row.get(2)?))
-    }
 }
 
 impl DbConn {

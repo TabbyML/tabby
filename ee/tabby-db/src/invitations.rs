@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use rusqlite::Row;
 use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
 
@@ -12,17 +11,6 @@ pub struct InvitationDAO {
     pub code: String,
 
     pub created_at: String,
-}
-
-impl InvitationDAO {
-    fn from_row(row: &Row<'_>) -> std::result::Result<Self, rusqlite::Error> {
-        Ok(Self {
-            id: row.get(0)?,
-            email: row.get(1)?,
-            code: row.get(2)?,
-            created_at: row.get(3)?,
-        })
-    }
 }
 
 /// db read/write operations for `invitations` table

@@ -1,11 +1,10 @@
 pub use email_setting::EmailSettingDAO;
-use futures::{stream::BoxStream, Stream, StreamExt};
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
 pub use google_oauth_credential::GoogleOAuthCredentialDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use repositories::RepositoryDAO;
-use sqlx::{query, query_as, query_scalar, Either, Pool, Sqlite, SqlitePool};
+use sqlx::{query, query_scalar, Pool, Sqlite, SqlitePool};
 pub use users::UserDAO;
 
 mod email_setting;
@@ -52,7 +51,7 @@ impl DbConn {
     /// Initialize database, create tables and insert first token if not exist
     async fn init_db(options: SqliteConnectOptions) -> Result<Self> {
         let pool = SqlitePool::connect_with(options).await?;
-        sqlx::migrate!("./migrations").run(&pool);
+        sqlx::migrate!("./migrations").run(&pool).await?;
 
         let token = uuid::Uuid::new_v4().to_string();
         query!(
@@ -62,8 +61,27 @@ impl DbConn {
         .execute(&pool)
         .await?;
 
-        let res = Self { pool };
-        Ok(res)
+        let conn = Self { pool };
+        conn.manual_users_active_migration().await?;
+        Ok(conn)
+    }
+
+    /// This migration is applied manually to make the transition between rusqlite and sqlx smooth,
+    /// since there is no way to conditionally alter a table with a pure SQLite script.
+    /// Once all users can reasonably be expected to have moved to the sqlx version,
+    /// we can remove this function.
+    async fn manual_users_active_migration(&self) -> Result<()> {
+        let active_exists =
+            sqlx::query("SELECT * FROM pragma_table_info('users') WHERE name='active'")
+                .fetch_optional(&self.pool)
+                .await?;
+
+        if active_exists.is_none() {
+            sqlx::query("ALTER TABLE users ADD COLUMN active BOOLEAN NOT NULL DEFAULT 1")
+                .execute(&self.pool)
+                .await?;
+        }
+        Ok(())
     }
 
     fn make_pagination_query(

@@ -40,7 +40,8 @@ impl DbConn {
             "DELETE FROM github_oauth_credential WHERE id = ?",
             GITHUB_OAUTH_CREDENTIAL_ROW_ID
         )
-        .execute(&self.pool);
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 

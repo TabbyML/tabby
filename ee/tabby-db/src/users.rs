@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use rusqlite::{params, OptionalExtension, Row};
 use sqlx::{query, query_scalar, FromRow};
 use uuid::Uuid;
 
@@ -27,19 +26,6 @@ impl UserDAO {
         r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active FROM users WHERE "#
             .to_owned()
             + clause
-    }
-
-    fn from_row(row: &Row<'_>) -> std::result::Result<UserDAO, rusqlite::Error> {
-        Ok(UserDAO {
-            id: row.get(0)?,
-            email: row.get(1)?,
-            password_encrypted: row.get(2)?,
-            is_admin: row.get(3)?,
-            created_at: row.get(4)?,
-            updated_at: row.get(5)?,
-            auth_token: row.get(6)?,
-            active: row.get(7)?,
-        })
     }
 }
 
@@ -75,13 +61,15 @@ impl DbConn {
     ) -> Result<i32> {
         let mut transaction = self.pool.begin().await?;
         if let Some(invitation_id) = invitation_id {
-            query!("DELETE FROM invitations WHERE id = ?", invitation_id).execute(&self.pool);
+            query!("DELETE FROM invitations WHERE id = ?", invitation_id)
+                .execute(&mut *transaction)
+                .await?;
         }
         let token = generate_auth_token();
         let res = query!("INSERT INTO users (email, password_encrypted, is_admin, auth_token) VALUES (?, ?, ?, ?)",
             email, password_encrypted, is_admin, token)
             .execute(&mut *transaction).await?;
-        transaction.commit();
+        transaction.commit().await?;
 
         Ok(res.last_insert_rowid() as i32)
     }

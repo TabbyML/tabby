@@ -1,4 +1,4 @@
-CREATE TABLE invitations (
+CREATE TABLE IF NOT EXISTS invitations (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
     email              VARCHAR(150) NOT NULL COLLATE NOCASE,
     code               VARCHAR(36) NOT NULL,
