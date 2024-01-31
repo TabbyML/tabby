@@ -31,7 +31,7 @@ use self::{
     repository::{RepositoryError, RepositoryService},
 };
 use crate::schema::{
-    auth::{OAuthCredential, OAuthProvider},
+    auth::{JWTPayload, OAuthCredential, OAuthProvider},
     repository::Repository,
 };
 
@@ -378,14 +378,20 @@ impl Mutation {
     }
 
     async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return Ok(ctx.locator.auth().create_invitation(email).await?);
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to create invitation",
-        ))
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin is able to create invitation",
+            ));
+        };
+        let (id, code) = ctx.locator.auth().create_invitation(email.clone()).await?;
+        ctx.locator.email_setting().send_mail(
+            email,
+            "You've been invited to join a Tabby workspace!".into(),
+            format!("Welcome to Tabby! You have been invited to join a Tabby instance, where you can tap into\
+                AI-driven code completions and chat assistants. Your invite code is {code}, use this at the link\
+                you were given to join the organization."),
+        ).await.ok();
+        Ok(id)
     }
 
     #[deprecated]

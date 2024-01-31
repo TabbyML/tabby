@@ -386,7 +386,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
-    async fn create_invitation(&self, email: String) -> Result<ID>;
+    async fn create_invitation(&self, email: String) -> Result<(ID, String)>;
     async fn delete_invitation(&self, id: ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;

@@ -292,8 +292,9 @@ impl AuthenticationService for DbConn {
         }
     }
 
-    async fn create_invitation(&self, email: String) -> Result<ID> {
-        Ok(ID::new(self.create_invitation(email).await?.to_string()))
+    async fn create_invitation(&self, email: String) -> Result<(ID, String)> {
+        let (id, code) = self.create_invitation(email).await?;
+        Ok((ID::new(id.to_string()), code))
     }
 
     async fn delete_invitation(&self, id: ID) -> Result<ID> {

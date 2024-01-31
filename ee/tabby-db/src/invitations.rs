@@ -87,18 +87,19 @@ impl DbConn {
         Ok(token?)
     }
 
-    pub async fn create_invitation(&self, email: String) -> Result<i32> {
+    pub async fn create_invitation(&self, email: String) -> Result<(i32, String)> {
         if self.get_user_by_email(&email).await?.is_some() {
             return Err(anyhow!("User already registered"));
         }
 
         let code = Uuid::new_v4().to_string();
+        let code_clone = code.clone();
         let res = self
             .conn
             .call(move |c| {
                 let mut stmt =
                     c.prepare(r#"INSERT INTO invitations (email, code) VALUES (?, ?)"#)?;
-                let rowid = stmt.insert((email, code))?;
+                let rowid = stmt.insert((email, code.clone()))?;
                 Ok(rowid)
             })
             .await;
@@ -112,7 +113,7 @@ impl DbConn {
                 }
             }
             Err(err) => Err(err.into()),
-            Ok(rowid) => Ok(rowid as i32),
+            Ok(rowid) => Ok((rowid as i32, code_clone)),
         }
     }
 
