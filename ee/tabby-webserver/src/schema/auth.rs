@@ -9,6 +9,7 @@ use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tabby_common::terminal::{HeaderFormat, InfoMessage};
+use tabby_db::InvitationDAO;
 use thiserror::Error;
 use tracing::{error, warn};
 use uuid::Uuid;
@@ -386,7 +387,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
-    async fn create_invitation(&self, email: String) -> Result<ID>;
+    async fn create_invitation(&self, email: String) -> Result<InvitationDAO>;
     async fn delete_invitation(&self, id: ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;

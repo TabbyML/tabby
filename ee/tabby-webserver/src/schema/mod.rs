@@ -22,7 +22,7 @@ use juniper_axum::{
     FromAuth,
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-use tracing::error;
+use tracing::{error, warn};
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
@@ -31,7 +31,7 @@ use self::{
     repository::{RepositoryError, RepositoryService},
 };
 use crate::schema::{
-    auth::{OAuthCredential, OAuthProvider},
+    auth::{JWTPayload, OAuthCredential, OAuthProvider},
     repository::Repository,
 };
 
@@ -42,7 +42,7 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn RawEventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
-    fn email_setting(&self) -> Arc<dyn EmailService>;
+    fn email(&self) -> Arc<dyn EmailService>;
 }
 
 pub struct Context {
@@ -259,7 +259,7 @@ impl Query {
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
-        let val = ctx.locator.email_setting().get_email_setting().await?;
+        let val = ctx.locator.email().get_email_setting().await?;
         Ok(val)
     }
 
@@ -378,14 +378,23 @@ impl Mutation {
     }
 
     async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return Ok(ctx.locator.auth().create_invitation(email).await?);
-            }
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin is able to create invitation",
+            ));
+        };
+        let invitation = ctx.locator.auth().create_invitation(email.clone()).await?;
+        let email_sent = ctx
+            .locator
+            .email()
+            .send_invitation_email(email, invitation.code)
+            .await;
+        if let Err(e) = email_sent {
+            warn!(
+                "Failed to send invitation email, please check your SMTP settings are correct: {e}"
+            );
         }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to create invitation",
-        ))
+        Ok(ID::new(invitation.id.to_string()))
     }
 
     #[deprecated]
@@ -472,14 +481,14 @@ impl Mutation {
         smtp_server: String,
     ) -> Result<bool> {
         ctx.locator
-            .email_setting()
+            .email()
             .update_email_setting(smtp_username, smtp_password, smtp_server)
             .await?;
         Ok(true)
     }
 
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
-        ctx.locator.email_setting().delete_email_setting().await?;
+        ctx.locator.email().delete_email_setting().await?;
         Ok(true)
     }
 }
