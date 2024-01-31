@@ -3373,7 +3373,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a78046161564f5e7cd9008aff3b2990b3850dc8e0349119b98e8f251e099f24d"
 dependencies = [
  "bitflags 2.4.0",
- "chrono",
  "fallible-iterator",
  "fallible-streaming-iterator",
  "hashlink",
@@ -4353,7 +4352,6 @@ dependencies = [
  "futures",
  "include_dir",
  "lazy_static",
- "rusqlite",
  "rusqlite_migration",
  "sqlx",
  "tabby-common",
