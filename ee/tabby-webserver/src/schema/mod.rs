@@ -22,7 +22,7 @@ use juniper_axum::{
     FromAuth,
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-use tracing::error;
+use tracing::{error, warn};
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
@@ -384,11 +384,16 @@ impl Mutation {
             ));
         };
         let invitation = ctx.locator.auth().create_invitation(email.clone()).await?;
-        ctx.locator
+        let email_sent = ctx
+            .locator
             .email()
             .send_invitation_email(email, invitation.code)
-            .await
-            .ok();
+            .await;
+        if let Err(e) = email_sent {
+            warn!(
+                "Failed to send invitation email, please check your SMTP settings are correct: {e}"
+            );
+        }
         Ok(ID::new(invitation.id.to_string()))
     }
 
