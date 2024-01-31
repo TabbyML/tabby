@@ -1,2 +1,0 @@
-cargo run serve --device experimental-http \
-  --model '{"kind": "fastchat", "model_name": "codellama/CodeLlama-70b-Instruct-hf", "api_endpoint": "http://52.70.126.191:30001/v1/completions", "prompt_template": "{prefix}"}'
