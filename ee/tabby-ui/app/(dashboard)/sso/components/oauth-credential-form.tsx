@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -23,6 +24,7 @@ import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { CopyButton } from '@/components/copy-button'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation updateOauthCredential(
@@ -43,7 +45,7 @@ export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
 const formSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
-  redirectUri: z.string(),
+  // redirectUri: z.string(),
   provider: z.nativeEnum(OAuthProvider)
 })
 
@@ -88,15 +90,11 @@ export default function OAuthCredentialForm({
     form
   })
 
-  React.useEffect(() => {
-    if (providerValue) {
-      form.setValue(
-        'redirectUri',
-        `${
-          process.env.NEXT_PUBLIC_TABBY_SERVER_URL
-        }/oauth/callback/${providerValue.toLowerCase()}`
-      )
-    }
+  const oauthRedirectUri = React.useMemo(() => {
+    if (!providerValue) return 'select provider first'
+
+    return `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL
+      }/oauth/callback/${providerValue.toLowerCase()}`
   }, [providerValue])
 
   return (
@@ -117,7 +115,7 @@ export default function OAuthCredentialForm({
           <FormField
             control={form.control}
             name="provider"
-            // disabled={!isNew}
+            disabled={!isNew}
             render={({ field: { onChange, ...rest } }) => (
               <FormItem>
                 <FormLabel>Provider</FormLabel>
@@ -184,20 +182,14 @@ export default function OAuthCredentialForm({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="redirectUri"
-            disabled
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Redirect URI</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormItem>
+            <FormDescription>Use this to create your oauth application</FormDescription>
+            <FormLabel>Authorization callback URL</FormLabel>
+            <div className='flex items-center gap-4'>
+              <span>{oauthRedirectUri}</span>
+              {!!providerValue && <CopyButton value={oauthRedirectUri} />}
+            </div>
+          </FormItem>
           <Button type="submit" className="mt-1" disabled={isSubmitting}>
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
