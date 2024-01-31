@@ -8,6 +8,7 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedSender},
     time::{self},
 };
+use tracing::error;
 
 lazy_static! {
     static ref WRITER: UnboundedSender<String> = {
@@ -99,7 +100,9 @@ struct EventService;
 
 impl RawEventLogger for EventService {
     fn log(&self, content: String) {
-        WRITER.send(content).unwrap();
+        if let Err(err) = WRITER.send(content) {
+            error!("Failed to write event to file: {}", err);
+        }
     }
 }
 
