@@ -92,11 +92,13 @@ impl ModelRegistry {
 
 pub fn parse_model_id(model_id: &str) -> (&str, &str) {
     let parts: Vec<_> = model_id.split('/').collect();
-    if parts.len() != 2 {
+    if parts.len() == 1 {
+        ("TabbyML", parts[0])
+    } else if parts.len() == 2 {
+        (parts[0], parts[1])
+    } else {
         panic!("Invalid model id {}", model_id);
     }
-
-    (parts[0], parts[1])
 }
 
 pub static GGML_MODEL_RELATIVE_PATH: &str = "ggml/q8_0.v2.gguf";

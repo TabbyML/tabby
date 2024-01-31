@@ -15,6 +15,7 @@
 * Fixed an issue with cached permanent redirection in certain browsers (e.g., Chrome) when the `--webserver` flag is disabled.
 * Introduced the `TABBY_MODEL_CACHE_ROOT` environment variable to individually override the model cache directory.
 * The `/v1beta/chat/completions` API endpoint is now compatible with OpenAI's chat completion API.
+* Models from our official registry can now be referred to without the TabbyML prefix. Therefore, for the model TabbyML/CodeLlama-7B, you can simply refer to it as CodeLlama-7B everywhere.
 
 # v0.7.0 (12/15/2023)
 
