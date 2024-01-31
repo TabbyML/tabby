@@ -8,7 +8,7 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::error;
 
 fn to_cli_args(url: String, token: String) -> Vec<String> {
-    vec!["--token".to_string(), token, "--url".to_string(), url].into()
+    vec!["--token".to_string(), token, "--url".to_string(), url]
 }
 
 async fn new_job_scheduler(jobs: Vec<Job>) -> anyhow::Result<JobScheduler> {

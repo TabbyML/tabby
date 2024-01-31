@@ -10,11 +10,11 @@ pub async fn get_repositories(
         Some((addr, token)) => {
             let client =
                 tabby_webserver::public::create_client(&addr, &token, ConnectHubRequest::Job).await;
-            let repositories = client
+            
+            client
                 .get_repositories(Context::current())
                 .await
-                .expect("Must be able to load repositories");
-            repositories
+                .expect("Must be able to load repositories")
         }
         None => config.to_vec(),
     }
