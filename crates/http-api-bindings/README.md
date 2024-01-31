@@ -11,9 +11,9 @@ export AUTHORIZATION="Bearer $(gcloud auth print-access-token)"
 cargo run serve --device experimental-http --model "{\"kind\": \"vertex-ai\", \"api_endpoint\": \"$API_ENDPOINT\", \"authorization\": \"$AUTHORIZATION\"}"
 ```
 
-### FastChat
+### OpenAI
 
 ```bash
 cargo run serve --device experimental-http \
-  --model '{"kind": "fastchat", "model_name": "codellama/CodeLlama-70b-Instruct-hf", "api_endpoint": "http://host/v1/completions", "prompt_template": "{prefix}"}'
+  --model '{"kind": "openai", "model_name": "codellama/CodeLlama-70b-Instruct-hf", "api_endpoint": "http://host/v1/completions", "prompt_template": "{prefix}"}'
 ```

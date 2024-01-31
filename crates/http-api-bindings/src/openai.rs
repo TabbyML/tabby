@@ -26,13 +26,13 @@ struct Prediction {
     text: String,
 }
 
-pub struct FastChatEngine {
+pub struct OpenAIEngine {
     client: reqwest::Client,
     api_endpoint: String,
     model_name: String,
 }
 
-impl FastChatEngine {
+impl OpenAIEngine {
     pub fn create(api_endpoint: &str, model_name: &str, authorization: Option<String>) -> Self {
         let mut headers = reqwest::header::HeaderMap::new();
         if let Some(authorization) = authorization {
@@ -87,7 +87,7 @@ impl FastChatEngine {
 }
 
 #[async_trait]
-impl TextGeneration for FastChatEngine {
+impl TextGeneration for OpenAIEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
         match self.generate_impl(prompt, options).await {
             Ok(output) => output,
