@@ -42,8 +42,8 @@ impl DbConn {
                 .await?
             }
         };
-        query!("INSERT INTO email_setting VALUES (:id, :user, :pass, :server)
-                ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server",
+        query!("INSERT INTO email_setting VALUES ($1, $2, $3, $4)
+                ON CONFLICT(id) DO UPDATE SET smtp_username = $2, smtp_password = $3, smtp_server = $4",
             EMAIL_CREDENTIAL_ROW_ID,
             smtp_username,
             smtp_password,

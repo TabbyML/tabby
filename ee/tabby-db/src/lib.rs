@@ -38,19 +38,27 @@ pub struct DbConn {
 impl DbConn {
     #[cfg(any(test, feature = "testutils"))]
     pub async fn new_in_memory() -> Result<Self> {
-        let options = SqliteConnectOptions::new().filename("sqlite::memory:");
-        DbConn::init_db(options).await
+        use std::str::FromStr;
+
+        use sqlx::sqlite::SqlitePoolOptions;
+
+        let options = SqliteConnectOptions::from_str("sqlite::memory:")?;
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await?;
+        DbConn::init_db(pool).await
     }
 
     pub async fn new() -> Result<Self> {
         tokio::fs::create_dir_all(path::db_file().parent().unwrap()).await?;
         let options = SqliteConnectOptions::new().filename(path::db_file());
-        Self::init_db(options).await
+        let pool = SqlitePool::connect_with(options).await?;
+        Self::init_db(pool).await
     }
 
     /// Initialize database, create tables and insert first token if not exist
-    async fn init_db(options: SqliteConnectOptions) -> Result<Self> {
-        let pool = SqlitePool::connect_with(options).await?;
+    async fn init_db(pool: SqlitePool) -> Result<Self> {
         sqlx::migrate!("./migrations").run(&pool).await?;
 
         let token = uuid::Uuid::new_v4().to_string();
