@@ -57,7 +57,7 @@ impl FastChatEngine {
         let stop = vec!["\n\n".to_owned()];
 
         // create a request
-        
+
 
         let request = Request {
             model: self.model_name.to_owned(),
@@ -66,7 +66,6 @@ impl FastChatEngine {
             temperature: options.sampling_temperature,
             stop,
         };
-        println!("prompt, {:?}", &prompt);
 
         // API Documentation: https://github.com/lm-sys/FastChat/blob/main/docs/openai_api.md
         let resp = self
@@ -83,7 +82,6 @@ impl FastChatEngine {
 
         let resp: Response = resp.json().await.expect("Failed to parse response");
 
-        println!("resp\n{}", &resp.choices[0].text);
         Ok(resp.choices[0].text.clone())
     }
 }
