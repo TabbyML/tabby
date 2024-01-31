@@ -1576,6 +1576,7 @@ dependencies = [
 name = "http-api-bindings"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "futures",
  "reqwest",
@@ -1583,6 +1584,7 @@ dependencies = [
  "serde_json",
  "tabby-inference",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -1739,25 +1741,6 @@ dependencies = [
  "thread_local",
  "walkdir",
  "winapi-util",
-]
-
-[[package]]
-name = "include_dir"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18762faeff7122e89e0857b02f7ce6fcc0d101d5e9ad2ad7846cc01d61b7f19e"
-dependencies = [
- "include_dir_macros",
-]
-
-[[package]]
-name = "include_dir_macros"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b139284b5cf57ecfa712bcc66950bb635b31aff41c188e8a4cfc758eca374a3f"
-dependencies = [
- "proc-macro2",
- "quote",
 ]
 
 [[package]]
@@ -3048,6 +3031,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "querystring"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9318ead08c799aad12a55a3e78b82e0b6167271ffd1f627b758891282f739187"
+
+[[package]]
 name = "quote"
 version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4305,8 +4294,6 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "chrono",
- "include_dir",
- "lazy_static",
  "sqlx",
  "tabby-common",
  "tokio",
@@ -4391,6 +4378,7 @@ dependencies = [
  "lettre",
  "mime_guess",
  "pin-project",
+ "querystring",
  "reqwest",
  "rust-embed 8.0.0",
  "serde",
