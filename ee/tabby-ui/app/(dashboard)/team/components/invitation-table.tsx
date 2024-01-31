@@ -19,6 +19,9 @@ import {
 import { CopyButton } from '@/components/copy-button'
 
 import CreateInvitationForm from './create-invitation-form'
+import { ListInvitationsQuery } from '@/lib/gql/generates/graphql'
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
+import { toast } from 'sonner'
 
 const listInvitations = graphql(/* GraphQL */ `
   query ListInvitations(
@@ -58,28 +61,91 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
   }
 `)
 
+
+const PAGE_SIZE = 5
 export default function InvitationTable() {
   const [queryVariables, setQueryVariables] =
-    React.useState<QueryVariables<typeof listInvitations>>()
-  const [{ data }, reexecuteQuery] = useQuery({
+    React.useState<QueryVariables<typeof listInvitations>>({
+      last: PAGE_SIZE,
+    })
+  const [invatation, setInvatation] = React.useState<ListInvitationsQuery['invitationsNext']>()
+  const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listInvitations,
     variables: queryVariables
   })
-  const invitations = data?.invitationsNext?.edges
+
+  const updateQueryVariables = (v: typeof queryVariables) => {
+    setQueryVariables({
+      ...v,
+      // urql performs a shallow comparison on variables, adding a random value ensures that a request will be fired
+      // @ts-ignore
+      randomValue: Math.random()
+    })
+  }
+
   const [origin, setOrigin] = useState('')
   useEffect(() => {
     setOrigin(new URL(window.location.href).origin)
   }, [])
 
-  const deleteInvitation = useMutation(deleteInvitationMutation, {
-    onCompleted() {
-      reexecuteQuery()
+  useEffect(() => {
+    const _invitations = data?.invitationsNext
+    if (_invitations?.edges?.length) {
+      setInvatation({
+        edges: _invitations.edges.reverse(),
+        pageInfo: _invitations.pageInfo
+      })
     }
-  })
+  }, [data])
+
+  const deleteInvitation = useMutation(deleteInvitationMutation)
+
+  const handleInvitationCreated = () => {
+    toast.success('Invitation created')
+    updateQueryVariables({ last: PAGE_SIZE })
+    // if (queryVariables?.after || queryVariables.before) {
+    //   updateQueryVariables({ last: PAGE_SIZE })
+    // } else {
+    //   reexecuteQuery()
+    // }
+  }
+
+  const handleFetchPrevPage = () => {
+    if (fetching) return
+    updateQueryVariables({
+      first: PAGE_SIZE,
+      after: pageInfo?.endCursor
+    })
+  }
+
+  const handleFetchNextPage = () => {
+    if (fetching) return
+    updateQueryVariables({
+      last: PAGE_SIZE,
+      before: pageInfo?.startCursor
+    })
+  }
+
+  const handleDeleteInvatation = (id: string) => {
+    deleteInvitation({ id }).then(() => {
+      // due to the `last` direction
+      // hasNextPage means that current page is not the first page
+      // if there is only one record in current page, while redirect to the first page
+      if (pageInfo?.hasNextPage && invatation?.edges?.length !== 1) {
+        reexecuteQuery()
+      } else {
+        updateQueryVariables({ last: PAGE_SIZE })
+      }
+    })
+  }
+
+  const invitations = invatation?.edges
+  const pageInfo = invatation?.pageInfo
 
   return (
     <div>
-      <Table className="border-b">
+      <CreateInvitationForm onCreated={handleInvitationCreated} />
+      <Table className="border-b mt-4">
         {!!invitations?.length && (
           <TableHeader>
             <TableRow>
@@ -102,7 +168,7 @@ export default function InvitationTable() {
                     <Button
                       size="icon"
                       variant="hover-destructive"
-                      onClick={() => deleteInvitation(x.node)}
+                      onClick={() => handleDeleteInvatation(x.node.id)}
                     >
                       <IconTrash />
                     </Button>
@@ -113,9 +179,24 @@ export default function InvitationTable() {
           })}
         </TableBody>
       </Table>
-      <div className="mt-4 flex items-start justify-between">
-        <CreateInvitationForm onCreated={() => reexecuteQuery()} />
-      </div>
+      {(pageInfo?.hasNextPage || pageInfo?.hasPreviousPage) && (
+        <Pagination className="my-4">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                disabled={!pageInfo?.hasNextPage}
+                onClick={handleFetchPrevPage}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                disabled={!pageInfo?.hasPreviousPage}
+                onClick={handleFetchNextPage}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   )
 }
