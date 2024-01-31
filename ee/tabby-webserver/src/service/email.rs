@@ -37,6 +37,23 @@ impl EmailServiceImpl {
     async fn shutdown_smtp_connection(&self) {
         *self.smtp_server.write().await = None;
     }
+
+    async fn send_mail(&self, to: String, subject: String, message: String) -> Result<()> {
+        let smtp_server = self.smtp_server.read().await;
+        let Some(smtp_server) = &*smtp_server else {
+            return Err(anyhow!("email settings have not been populated"));
+        };
+        let from = self.from.read().await;
+        let address_from = to_address(from.clone())?;
+        let address_to = to_address(to)?;
+        let msg = MessageBuilder::new()
+            .subject(subject)
+            .from(Mailbox::new(Some("Tabby".into()), address_from))
+            .to(Mailbox::new(None, address_to))
+            .body(message)?;
+        smtp_server.send(&msg)?;
+        Ok(())
+    }
 }
 
 pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
@@ -98,21 +115,15 @@ impl EmailService for EmailServiceImpl {
         Ok(())
     }
 
-    async fn send_mail(&self, to: String, subject: String, message: String) -> Result<()> {
-        let smtp_server = self.smtp_server.read().await;
-        let Some(smtp_server) = &*smtp_server else {
-            return Err(anyhow!("email settings have not been populated"));
-        };
-        let from = self.from.read().await;
-        let address_from = to_address(from.clone())?;
-        let address_to = to_address(to)?;
-        let msg = MessageBuilder::new()
-            .subject(subject)
-            .from(Mailbox::new(Some("Tabby".into()), address_from))
-            .to(Mailbox::new(None, address_to))
-            .body(message)?;
-        smtp_server.send(&msg)?;
-        Ok(())
+    async fn send_invitation_email(&self, email: String, code: String) -> Result<()> {
+        // TODO: Include invitation link
+        self.send_mail(
+            email,
+            "You've been invited to join a Tabby workspace!".into(),
+            format!("Welcome to Tabby! You have been invited to join a Tabby instance, where you can tap into\
+                AI-driven code completions and chat assistants. Your invite code is {code}, use this at the link\
+                you were given to join the organization."),
+        ).await
     }
 }
 
