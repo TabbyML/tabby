@@ -1,12 +1,14 @@
 'use client'
 
+import { Skeleton } from './ui/skeleton'
+
 export const ListSkeleton = () => {
   return (
-    <ul className="space-y-3">
-      <li className="h-4 w-full rounded-full bg-gray-200 dark:bg-gray-700"></li>
-      <li className="h-4 w-full rounded-full bg-gray-200 dark:bg-gray-700"></li>
-      <li className="h-4 w-full rounded-full bg-gray-200 dark:bg-gray-700"></li>
-      <li className="h-4 w-full rounded-full bg-gray-200 dark:bg-gray-700"></li>
-    </ul>
+    <div className="space-y-3">
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-full" />
+    </div>
   )
 }

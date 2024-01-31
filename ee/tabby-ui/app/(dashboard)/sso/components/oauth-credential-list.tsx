@@ -12,6 +12,7 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const oauthCredential = graphql(/* GraphQL */ `
   query OAuthCredential($provider: OAuthProvider!) {
@@ -48,7 +49,10 @@ const OauthCredentialList = () => {
           OAuth Credentials
         </CardTitle>
         {isLoading ? (
-          <div>loading...</div>
+          <div className="grid grid-cols-2 gap-8">
+            <Skeleton className="rounded-xl h-10" />
+            <Skeleton className="rounded-xl h-10" />
+          </div>
         ) : (
           <div className="border-4 border-dashed py-8 flex flex-col items-center gap-4 rounded-lg">
             <div>No Data</div>
@@ -79,7 +83,7 @@ const OauthCredentialList = () => {
           </Link>
         )}
       </CardTitle>
-      <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-8">
         {credentialList.map(credential => {
           return (
             <OauthCredentialCard key={credential.provider} data={credential} />
@@ -97,9 +101,11 @@ const OauthCredentialCard = ({
 }) => {
   return (
     <Card>
-      <CardHeader className="border-b">
+      <CardHeader className="border-b p-4">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-xl">{data?.provider}</CardTitle>
+          <CardTitle className="text-xl">
+            {data?.provider?.toLocaleLowerCase()}
+          </CardTitle>
           <Link
             href={`/sso/detail/${data?.provider.toLowerCase()}`}
             className={buttonVariants({ variant: 'secondary' })}
@@ -108,12 +114,12 @@ const OauthCredentialCard = ({
           </Link>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex border-b py-4">
+      <CardContent className="text-sm p-4">
+        <div className="flex border-b py-2">
           <span className="w-[100px]">Type</span>
           <span>OAuth 2.0</span>
         </div>
-        <div className="flex py-4">
+        <div className="flex py-3">
           <span className="w-[100px]">Client ID</span>
           <span>{data?.clientId}</span>
         </div>

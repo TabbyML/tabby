@@ -45,7 +45,6 @@ export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
 const formSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
-  // redirectUri: z.string(),
   provider: z.nativeEnum(OAuthProvider)
 })
 
@@ -71,7 +70,7 @@ export default function OAuthCredentialForm({
       provider
     }
   }, [])
-  const isNew = !provider
+  const isNew = !defaultValues
 
   const form = useForm<OAuthCredentialFormValues>({
     resolver: zodResolver(formSchema),
@@ -93,8 +92,9 @@ export default function OAuthCredentialForm({
   const oauthRedirectUri = React.useMemo(() => {
     if (!providerValue) return 'select provider first'
 
-    return `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL
-      }/oauth/callback/${providerValue.toLowerCase()}`
+    return `${
+      process.env.NEXT_PUBLIC_TABBY_SERVER_URL
+    }/oauth/callback/${providerValue.toLowerCase()}`
   }, [providerValue])
 
   return (
@@ -115,7 +115,6 @@ export default function OAuthCredentialForm({
           <FormField
             control={form.control}
             name="provider"
-            disabled={!isNew}
             render={({ field: { onChange, ...rest } }) => (
               <FormItem>
                 <FormLabel>Provider</FormLabel>
@@ -123,13 +122,14 @@ export default function OAuthCredentialForm({
                   <RadioGroup
                     className="flex gap-6"
                     orientation="horizontal"
-                    {...rest}
                     onValueChange={onChange}
+                    {...rest}
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem
                         value={OAuthProvider.Github}
                         id="r_github"
+                        disabled={!isNew}
                       />
                       <Label className="cursor-pointer" htmlFor="r_github">
                         Github
@@ -139,6 +139,7 @@ export default function OAuthCredentialForm({
                       <RadioGroupItem
                         value={OAuthProvider.Google}
                         id="r_google"
+                        disabled={!isNew}
                       />
                       <Label className="cursor-pointer" htmlFor="r_google">
                         Google
@@ -183,18 +184,27 @@ export default function OAuthCredentialForm({
             )}
           />
           <FormItem>
-            <FormDescription>Use this to create your oauth application</FormDescription>
+            <FormDescription>
+              Use this to create your oauth application
+            </FormDescription>
             <FormLabel>Authorization callback URL</FormLabel>
-            <div className='flex items-center gap-4'>
-              <span>{oauthRedirectUri}</span>
-              {!!providerValue && <CopyButton value={oauthRedirectUri} />}
+            <div>
+              <div
+                className="items-center gap-4 border rounded-lg p-2 inline-flex"
+                onClick={e => e.stopPropagation()}
+              >
+                <span className="text-sm">{oauthRedirectUri}</span>
+                {!!providerValue && (
+                  <CopyButton type="button" value={oauthRedirectUri} />
+                )}
+              </div>
             </div>
           </FormItem>
           <Button type="submit" className="mt-1" disabled={isSubmitting}>
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Submit
+            {isNew ? 'Submit' : 'Update'}
           </Button>
         </form>
         <FormMessage className="text-center" />

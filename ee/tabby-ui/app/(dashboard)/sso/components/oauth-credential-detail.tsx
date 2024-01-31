@@ -5,6 +5,7 @@ import { isNil, pickBy } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { OAuthProvider } from '@/lib/gql/generates/graphql'
+import { ListSkeleton } from '@/components/skeleton'
 
 import OAuthCredentialForm from './oauth-credential-form'
 import { oauthCredential } from './oauth-credential-list'
@@ -32,7 +33,9 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
   return (
     <div>
       {fetching ? (
-        <div>loading</div>
+        <div>
+          <ListSkeleton />
+        </div>
       ) : (
         <OAuthCredentialForm
           provider={provider}
