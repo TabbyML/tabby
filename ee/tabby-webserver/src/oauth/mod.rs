@@ -10,7 +10,7 @@ use axum::{
 };
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use tracing::{error, info};
+use tracing::error;
 
 use crate::{
     oauth::{github::GithubClient, google::GoogleClient},
