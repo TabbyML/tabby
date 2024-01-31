@@ -133,7 +133,7 @@ impl DbConn {
         let id = query_scalar!("SELECT id FROM users WHERE auth_token = ?", token)
             .fetch_one(&self.pool)
             .await;
-        matches!(id, Ok(_))
+        id.is_ok()
     }
 
     pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {

@@ -4352,14 +4352,12 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "chrono",
- "futures",
  "include_dir",
  "lazy_static",
  "rusqlite_migration",
  "sqlx",
  "tabby-common",
  "tokio",
- "tokio-rusqlite",
  "uuid 1.6.1",
 ]
 
