@@ -88,6 +88,7 @@ pub enum Device {
 
     #[cfg(feature = "experimental-http")]
     #[strum(serialize = "experimental_http")]
+    #[clap(hide = true)]
     ExperimentalHttp,
 }
 

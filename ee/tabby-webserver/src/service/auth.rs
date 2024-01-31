@@ -13,7 +13,7 @@ use validator::{Validate, ValidationError};
 
 use super::graphql_pagination_to_filter;
 use crate::{
-    oauth::{self, OAuthClient},
+    oauth,
     schema::auth::{
         generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
         JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenError,

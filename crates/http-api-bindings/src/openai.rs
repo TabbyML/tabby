@@ -1,9 +1,11 @@
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
+use tracing::warn;
 
 #[derive(Serialize)]
 struct Request {
@@ -11,6 +13,7 @@ struct Request {
     prompt: Vec<String>,
     max_tokens: usize,
     temperature: f32,
+    stop: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -23,19 +26,19 @@ struct Prediction {
     text: String,
 }
 
-pub struct FastChatEngine {
+pub struct OpenAIEngine {
     client: reqwest::Client,
     api_endpoint: String,
     model_name: String,
 }
 
-impl FastChatEngine {
-    pub fn create(api_endpoint: &str, model_name: &str, authorization: &str) -> Self {
+impl OpenAIEngine {
+    pub fn create(api_endpoint: &str, model_name: &str, authorization: Option<String>) -> Self {
         let mut headers = reqwest::header::HeaderMap::new();
-        if !authorization.is_empty() {
+        if let Some(authorization) = authorization {
             headers.insert(
                 "Authorization",
-                header::HeaderValue::from_str(authorization)
+                header::HeaderValue::from_str(&authorization)
                     .expect("Failed to create authorization header"),
             );
         }
@@ -50,20 +53,17 @@ impl FastChatEngine {
         }
     }
 
-    pub fn prompt_template() -> String {
-        "{prefix}<MID>{suffix}".to_owned()
-    }
-}
+    async fn generate_impl(&self, prompt: &str, options: TextGenerationOptions) -> Result<String> {
+        // OpenAI's API usually handles stop words in an O(n) manner, so we just use a single stop word here.
+        // FIXME(meng): consider improving this for some external vendors, e.g vLLM.
+        let stop = vec!["\n\n".to_owned()];
 
-#[async_trait]
-impl TextGeneration for FastChatEngine {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        let tokens: Vec<&str> = prompt.split("<MID>").collect();
         let request = Request {
             model: self.model_name.to_owned(),
-            prompt: vec![tokens[0].to_owned()],
+            prompt: vec![prompt.to_string()],
             max_tokens: options.max_decoding_length,
             temperature: options.sampling_temperature,
+            stop,
         };
 
         // API Documentation: https://github.com/lm-sys/FastChat/blob/main/docs/openai_api.md
@@ -72,18 +72,29 @@ impl TextGeneration for FastChatEngine {
             .post(&self.api_endpoint)
             .json(&request)
             .send()
-            .await
-            .expect("Failed to making completion request");
+            .await?;
 
         if resp.status() != 200 {
             let err: Value = resp.json().await.expect("Failed to parse response");
-            println!("Request failed: {}", err);
-            std::process::exit(1);
+            return Err(anyhow!("Request failed: {}", err));
         }
 
         let resp: Response = resp.json().await.expect("Failed to parse response");
 
-        resp.choices[0].text.clone()
+        Ok(resp.choices[0].text.clone())
+    }
+}
+
+#[async_trait]
+impl TextGeneration for OpenAIEngine {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
+        match self.generate_impl(prompt, options).await {
+            Ok(output) => output,
+            Err(err) => {
+                warn!("Failed to generate completion: `{}`", err);
+                String::new()
+            }
+        }
     }
 
     async fn generate_stream(
