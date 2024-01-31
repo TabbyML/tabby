@@ -25,7 +25,7 @@ pub fn create(model: &str) -> (Arc<dyn TextGeneration>, String) {
             OpenAIEngine::create(api_endpoint.as_str(), model_name.as_str(), authorization);
         (Arc::new(engine), prompt_template)
     } else {
-        panic!("Only vertex_ai and fastchat are supported for http backend");
+        panic!("Only vertex_ai and openai are supported for http backend");
     }
 }
 
