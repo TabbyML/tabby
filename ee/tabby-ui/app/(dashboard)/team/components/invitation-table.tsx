@@ -2,12 +2,21 @@
 
 import React, { useEffect, useState } from 'react'
 import moment from 'moment'
+import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
+import { ListInvitationsQuery } from '@/lib/gql/generates/graphql'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious
+} from '@/components/ui/pagination'
 import {
   Table,
   TableBody,
@@ -19,9 +28,6 @@ import {
 import { CopyButton } from '@/components/copy-button'
 
 import CreateInvitationForm from './create-invitation-form'
-import { ListInvitationsQuery } from '@/lib/gql/generates/graphql'
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
-import { toast } from 'sonner'
 
 const listInvitations = graphql(/* GraphQL */ `
   query ListInvitations(
@@ -61,14 +67,15 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
   }
 `)
 
-
 const PAGE_SIZE = 5
 export default function InvitationTable() {
-  const [queryVariables, setQueryVariables] =
-    React.useState<QueryVariables<typeof listInvitations>>({
-      last: PAGE_SIZE,
-    })
-  const [invatation, setInvatation] = React.useState<ListInvitationsQuery['invitationsNext']>()
+  const [queryVariables, setQueryVariables] = React.useState<
+    QueryVariables<typeof listInvitations>
+  >({
+    last: PAGE_SIZE
+  })
+  const [invatation, setInvatation] =
+    React.useState<ListInvitationsQuery['invitationsNext']>()
   const [{ data, fetching }, reexecuteQuery] = useQuery({
     query: listInvitations,
     variables: queryVariables
@@ -145,7 +152,7 @@ export default function InvitationTable() {
   return (
     <div>
       <CreateInvitationForm onCreated={handleInvitationCreated} />
-      <Table className="border-b mt-4">
+      <Table className="mt-4 border-b">
         {!!invitations?.length && (
           <TableHeader>
             <TableRow>
