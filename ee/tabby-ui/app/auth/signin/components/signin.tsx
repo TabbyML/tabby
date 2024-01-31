@@ -1,8 +1,13 @@
 'use client'
 
+import fetcher from '@/lib/tabby/fetcher'
 import UserSignInForm from './user-signin-form'
+import useSWRImmutable from 'swr/immutable'
 
 export default function Signin() {
+
+  const { data } = useSWRImmutable('/oauth/providers', fetcher)
+
   return (
     <div className="w-[350px] space-y-6">
       <div className="flex flex-col space-y-2 text-center">
@@ -12,6 +17,9 @@ export default function Signin() {
         </p>
       </div>
       <UserSignInForm />
+      
+      {/* todo third party login */}
+      <a href={`http://localhost:8080/oauth/signin?provider=github`}>Signin with github</a>
     </div>
   )
 }

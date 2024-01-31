@@ -94,7 +94,7 @@ export default function OAuthCredentialForm({
         'redirectUri',
         `${
           process.env.NEXT_PUBLIC_TABBY_SERVER_URL
-        }/oauth_callback/${providerValue.toLowerCase()}`
+        }/oauth/callback/${providerValue.toLowerCase()}`
       )
     }
   }, [providerValue])
@@ -117,7 +117,7 @@ export default function OAuthCredentialForm({
           <FormField
             control={form.control}
             name="provider"
-            disabled={!isNew}
+            // disabled={!isNew}
             render={({ field: { onChange, ...rest } }) => (
               <FormItem>
                 <FormLabel>Provider</FormLabel>

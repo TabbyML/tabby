@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { pick } from 'lodash-es'
+import { isNil, pickBy } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { OAuthProvider } from '@/lib/gql/generates/graphql'
@@ -24,6 +24,11 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
 
   const credential = data?.oauthCredential
 
+  const defaultValues = React.useMemo(() => {
+    if (!credential) return undefined
+    return pickBy(credential, v => !isNil(v))
+  }, [credential])
+
   return (
     <div>
       {fetching ? (
@@ -31,16 +36,7 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
       ) : (
         <OAuthCredentialForm
           provider={provider}
-          defaultValues={
-            credential
-              ? pick(credential, [
-                  'clientId',
-                  'provider',
-                  'clientSecret',
-                  'redirectUri'
-                ])
-              : undefined
-          }
+          defaultValues={defaultValues}
         />
       )}
     </div>
