@@ -87,13 +87,14 @@ impl DbConn {
         Ok(token?)
     }
 
-    pub async fn create_invitation(&self, email: String) -> Result<(i32, String)> {
+    pub async fn create_invitation(&self, email: String) -> Result<InvitationDAO> {
         if self.get_user_by_email(&email).await?.is_some() {
             return Err(anyhow!("User already registered"));
         }
 
         let code = Uuid::new_v4().to_string();
         let code_clone = code.clone();
+        let email_clone = email.clone();
         let res = self
             .conn
             .call(move |c| {
@@ -113,7 +114,12 @@ impl DbConn {
                 }
             }
             Err(err) => Err(err.into()),
-            Ok(rowid) => Ok((rowid as i32, code_clone)),
+            Ok(rowid) => Ok(InvitationDAO {
+                id: rowid as i32,
+                email: email_clone,
+                code: code_clone,
+                created_at: "".into(),
+            }),
         }
     }
 

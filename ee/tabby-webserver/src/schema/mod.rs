@@ -42,7 +42,7 @@ pub trait ServiceLocator: Send + Sync {
     fn logger(&self) -> Arc<dyn RawEventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
-    fn email_setting(&self) -> Arc<dyn EmailService>;
+    fn email(&self) -> Arc<dyn EmailService>;
 }
 
 pub struct Context {
@@ -259,7 +259,7 @@ impl Query {
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
-        let val = ctx.locator.email_setting().get_email_setting().await?;
+        let val = ctx.locator.email().get_email_setting().await?;
         Ok(val)
     }
 
@@ -383,15 +383,13 @@ impl Mutation {
                 "Only admin is able to create invitation",
             ));
         };
-        let (id, code) = ctx.locator.auth().create_invitation(email.clone()).await?;
-        ctx.locator.email_setting().send_mail(
-            email,
-            "You've been invited to join a Tabby workspace!".into(),
-            format!("Welcome to Tabby! You have been invited to join a Tabby instance, where you can tap into\
-                AI-driven code completions and chat assistants. Your invite code is {code}, use this at the link\
-                you were given to join the organization."),
-        ).await.ok();
-        Ok(id)
+        let invitation = ctx.locator.auth().create_invitation(email.clone()).await?;
+        ctx.locator
+            .email()
+            .send_invitation_email(email, invitation.code)
+            .await
+            .ok();
+        Ok(ID::new(invitation.id.to_string()))
     }
 
     #[deprecated]
@@ -478,14 +476,14 @@ impl Mutation {
         smtp_server: String,
     ) -> Result<bool> {
         ctx.locator
-            .email_setting()
+            .email()
             .update_email_setting(smtp_username, smtp_password, smtp_server)
             .await?;
         Ok(true)
     }
 
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
-        ctx.locator.email_setting().delete_email_setting().await?;
+        ctx.locator.email().delete_email_setting().await?;
         Ok(true)
     }
 }

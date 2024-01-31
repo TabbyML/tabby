@@ -19,4 +19,15 @@ pub trait EmailService: Send + Sync {
     ) -> Result<()>;
     async fn delete_email_setting(&self) -> Result<()>;
     async fn send_mail(&self, to: String, subject: String, body: String) -> Result<()>;
+
+    async fn send_invitation_email(&self, email: String, code: String) -> Result<()> {
+        // TODO: Include invitation link
+        self.send_mail(
+            email,
+            "You've been invited to join a Tabby workspace!".into(),
+            format!("Welcome to Tabby! You have been invited to join a Tabby instance, where you can tap into\
+                AI-driven code completions and chat assistants. Your invite code is {code}, use this at the link\
+                you were given to join the organization."),
+        ).await
+    }
 }

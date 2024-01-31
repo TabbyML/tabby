@@ -8,7 +8,7 @@ use argon2::{
 };
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::DbConn;
+use tabby_db::{DbConn, InvitationDAO};
 use validator::{Validate, ValidationError};
 
 use super::graphql_pagination_to_filter;
@@ -292,9 +292,9 @@ impl AuthenticationService for DbConn {
         }
     }
 
-    async fn create_invitation(&self, email: String) -> Result<(ID, String)> {
-        let (id, code) = self.create_invitation(email).await?;
-        Ok((ID::new(id.to_string()), code))
+    async fn create_invitation(&self, email: String) -> Result<InvitationDAO> {
+        let invitation = self.create_invitation(email).await?;
+        Ok(invitation)
     }
 
     async fn delete_invitation(&self, id: ID) -> Result<ID> {
