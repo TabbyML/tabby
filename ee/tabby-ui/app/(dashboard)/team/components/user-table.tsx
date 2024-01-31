@@ -146,14 +146,16 @@ export default function UsersTable() {
                     <Badge variant="secondary">MEMBER</Badge>
                   )}
                 </TableCell>
-                <TableCell className="flex justify-end">
+                <TableCell className="text-end">
                   <DropdownMenu>
-                    <DropdownMenuTrigger>
-                      {x.node.isAdmin ? null : (
-                        <Button size="icon" variant="ghost">
-                          <IconMore />
-                        </Button>
-                      )}
+                    <DropdownMenuTrigger asChild>
+                      <div className="h-8">
+                        {x.node.isAdmin ? null : (
+                          <Button size="icon" variant="ghost">
+                            <IconMore />
+                          </Button>
+                        )}
+                      </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent collisionPadding={{ right: 16 }}>
                       {x.node.active && (
