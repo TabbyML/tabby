@@ -4,7 +4,7 @@ version = "0.8.0-rc.0"
 edition = "2021"
 
 [features]
-default = ["ee"]
+default = ["ee", "experimental-http"]
 ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
 rocm = ["llama-cpp-bindings/rocm"]

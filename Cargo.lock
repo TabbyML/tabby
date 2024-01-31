@@ -1457,6 +1457,7 @@ dependencies = [
 name = "http-api-bindings"
 version = "0.8.0-rc.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "futures",
  "reqwest",
@@ -1464,6 +1465,7 @@ dependencies = [
  "serde_json",
  "tabby-inference",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
