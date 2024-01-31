@@ -1096,18 +1096,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
 
 [[package]]
-name = "fallible-iterator"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
-
-[[package]]
-name = "fallible-streaming-iterator"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
-
-[[package]]
 name = "fastdivide"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1588,7 +1576,6 @@ dependencies = [
 name = "http-api-bindings"
 version = "0.7.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "futures",
  "reqwest",
@@ -1596,7 +1583,6 @@ dependencies = [
  "serde_json",
  "tabby-inference",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -3062,12 +3048,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "querystring"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9318ead08c799aad12a55a3e78b82e0b6167271ffd1f627b758891282f739187"
-
-[[package]]
 name = "quote"
 version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3364,33 +3344,6 @@ dependencies = [
  "spki",
  "subtle",
  "zeroize",
-]
-
-[[package]]
-name = "rusqlite"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a78046161564f5e7cd9008aff3b2990b3850dc8e0349119b98e8f251e099f24d"
-dependencies = [
- "bitflags 2.4.0",
- "fallible-iterator",
- "fallible-streaming-iterator",
- "hashlink",
- "libsqlite3-sys",
- "smallvec",
-]
-
-[[package]]
-name = "rusqlite_migration"
-version = "1.1.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5767f8cb28e54d1ed745f072b72c6e68bfa6179fabb4cd15bdb8575858e301d"
-dependencies = [
- "include_dir",
- "log",
- "rusqlite",
- "tokio",
- "tokio-rusqlite",
 ]
 
 [[package]]
@@ -4354,7 +4307,6 @@ dependencies = [
  "chrono",
  "include_dir",
  "lazy_static",
- "rusqlite_migration",
  "sqlx",
  "tabby-common",
  "tokio",
@@ -4439,7 +4391,6 @@ dependencies = [
  "lettre",
  "mime_guess",
  "pin-project",
- "querystring",
  "reqwest",
  "rust-embed 8.0.0",
  "serde",
@@ -4826,17 +4777,6 @@ checksum = "7f57eb36ecbe0fc510036adff84824dd3c24bb781e21bfa67b69d556aa85214f"
 dependencies = [
  "pin-project",
  "rand 0.8.5",
- "tokio",
-]
-
-[[package]]
-name = "tokio-rusqlite"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc785c98d0c872455381e59be1f33a8f3a6b4e852544212e37601cc2ccb21d39"
-dependencies = [
- "crossbeam-channel",
- "rusqlite",
  "tokio",
 ]
 

@@ -29,9 +29,9 @@ impl DbConn {
             let client_secret = client_secret.to_string();
             query!(
                 r#"INSERT INTO google_oauth_credential (id, client_id, client_secret, redirect_uri)
-                                VALUES (:id, :cid, :secret, :redirect) ON CONFLICT(id) DO UPDATE
-                                SET client_id = :cid, client_secret = :secret, redirect_uri = :redirect, updated_at = datetime('now')
-                                WHERE id = :id"#,
+                                VALUES ($1, $2, $3, $4) ON CONFLICT(id) DO UPDATE
+                                SET client_id = $2, client_secret = $3, redirect_uri = $4, updated_at = datetime('now')
+                                WHERE id = $1"#,
                 GOOGLE_OAUTH_CREDENTIAL_ROW_ID,
                 client_id,
                 client_secret,
@@ -40,7 +40,7 @@ impl DbConn {
             Ok(())
         } else {
             let rows = query!(
-                "UPDATE google_oauth_credential SET redirect_uri = :redirect, updated_at = datetime('now') WHERE id = :id",
+                "UPDATE google_oauth_credential SET redirect_uri = $2, updated_at = datetime('now') WHERE id = $1",
                 GOOGLE_OAUTH_CREDENTIAL_ROW_ID,
                 redirect_uri
             ).execute(&self.pool).await?.rows_affected();

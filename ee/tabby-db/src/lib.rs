@@ -18,17 +18,7 @@ mod repositories;
 mod users;
 
 use anyhow::Result;
-use include_dir::{include_dir, Dir};
-use lazy_static::lazy_static;
-use rusqlite_migration::AsyncMigrations;
 use sqlx::sqlite::SqliteConnectOptions;
-
-static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
-
-lazy_static! {
-    static ref MIGRATIONS: AsyncMigrations =
-        AsyncMigrations::from_directory(&MIGRATIONS_DIR).unwrap();
-}
 
 #[derive(Clone)]
 pub struct DbConn {
@@ -162,13 +152,7 @@ impl DbConn {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
-
-    #[tokio::test]
-    async fn migrations_test() {
-        assert!(MIGRATIONS.validate().await.is_ok());
-    }
 
     #[tokio::test]
     async fn test_token() {

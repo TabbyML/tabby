@@ -25,13 +25,15 @@ impl DbConn {
         let client_secret = client_secret.to_string();
         query!(
             r#"INSERT INTO github_oauth_credential (id, client_id, client_secret)
-                                VALUES (:id, :cid, :secret) ON CONFLICT(id) DO UPDATE
-                                SET client_id = :cid, client_secret = :secret, updated_at = datetime('now')
-                                WHERE id = :id"#,
+                                VALUES ($1, $2, $3) ON CONFLICT(id) DO UPDATE
+                                SET client_id = $2, client_secret = $3, updated_at = datetime('now')
+                                WHERE id = $1"#,
             GITHUB_OAUTH_CREDENTIAL_ROW_ID,
             client_id,
             client_secret
-        ).execute(&self.pool).await?;
+        )
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 
@@ -46,7 +48,8 @@ impl DbConn {
     }
 
     pub async fn read_github_oauth_credential(&self) -> Result<Option<GithubOAuthCredentialDAO>> {
-        let token = sqlx::query_as(r#"SELECT client_id, client_secret, created_at, updated_at FROM github_oauth_credential WHERE id = ?"#)
+        let token = sqlx::query_as("SELECT client_id, client_secret, created_at, updated_at FROM github_oauth_credential WHERE id = ?")
+            .bind(GITHUB_OAUTH_CREDENTIAL_ROW_ID)
             .fetch_optional(&self.pool).await?;
         Ok(token)
     }

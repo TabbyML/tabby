@@ -40,9 +40,9 @@ impl DbConn {
 
     pub async fn replace_refresh_token(&self, old: &str, new: &str) -> Result<()> {
         let res = query!(
-            "UPDATE refresh_tokens SET token = ? WHERE token = ?",
-            old,
-            new
+            "UPDATE refresh_tokens SET token = $1 WHERE token = $2",
+            new,
+            old
         )
         .execute(&self.pool)
         .await?;
