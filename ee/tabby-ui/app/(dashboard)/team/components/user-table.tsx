@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
+import type { ListUsersNextQuery } from '@/lib/gql/generates/graphql'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
 import type { ArrayElementType } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
@@ -72,17 +73,29 @@ export default function UsersTable() {
   const [queryVariables, setQueryVariables] = React.useState<
     QueryVariables<typeof listUsers>
   >({ first: PAGE_SIZE })
-  const [{ data }, reexecuteQuery] = useQuery({
+  const [{ data, error }, reexecuteQuery] = useQuery({
     query: listUsers,
     variables: queryVariables
   })
-  const users = data?.usersNext?.edges
-  const pageInfo = data?.usersNext?.pageInfo
+  const [users, setUsers] = React.useState<ListUsersNextQuery['usersNext']>()
+
+  React.useEffect(() => {
+    const _users = data?.usersNext
+    if (_users?.edges?.length) {
+      setUsers(_users)
+    }
+  }, [data])
+
+  React.useEffect(() => {
+    if (error?.message) {
+      toast.error(error.message)
+    }
+  }, [error])
 
   const updateUserActive = useMutation(updateUserActiveMutation)
 
   const onUpdateUserActive = (
-    node: ArrayElementType<typeof users>['node'],
+    node: ArrayElementType<ListUsersNextQuery['usersNext']['edges']>['node'],
     active: boolean
   ) => {
     updateUserActive({ id: node.id, active }).then(response => {
@@ -99,8 +112,10 @@ export default function UsersTable() {
     })
   }
 
+  const pageInfo = users?.pageInfo
+
   return (
-    !!users?.length && (
+    !!users?.edges?.length && (
       <>
         <Table className="border-b">
           <TableHeader>
@@ -113,7 +128,7 @@ export default function UsersTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map(x => (
+            {users.edges.map(x => (
               <TableRow key={x.node.id}>
                 <TableCell>{x.node.email}</TableCell>
                 <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
@@ -164,32 +179,34 @@ export default function UsersTable() {
             ))}
           </TableBody>
         </Table>
-        <Pagination className="my-4">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                disabled={!pageInfo?.hasPreviousPage}
-                onClick={e =>
-                  setQueryVariables({
-                    last: PAGE_SIZE,
-                    before: pageInfo?.startCursor
-                  })
-                }
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext
-                disabled={!pageInfo?.hasNextPage}
-                onClick={e =>
-                  setQueryVariables({
-                    first: PAGE_SIZE,
-                    after: pageInfo?.endCursor
-                  })
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        {(pageInfo?.hasNextPage || pageInfo?.hasPreviousPage) && (
+          <Pagination className="my-4">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  disabled={!pageInfo?.hasPreviousPage}
+                  onClick={e =>
+                    setQueryVariables({
+                      last: PAGE_SIZE,
+                      before: pageInfo?.startCursor
+                    })
+                  }
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  disabled={!pageInfo?.hasNextPage}
+                  onClick={e =>
+                    setQueryVariables({
+                      first: PAGE_SIZE,
+                      after: pageInfo?.endCursor
+                    })
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </>
     )
   )
