@@ -13,7 +13,6 @@ pub mod public {
     pub static USER_HEADER_FIELD_NAME: HeaderName = HeaderName::from_static("x-tabby-user");
 
     use axum::http::HeaderName;
-    pub use tarpc::context::Context;
 
     pub use super::{
         handler::attach_webserver,
