@@ -84,7 +84,7 @@ export const defaultAgentConfig: AgentConfig = {
       },
     },
     calculateReplaceRange: {
-      experimentalSyntax: true,
+      experimentalSyntax: false,
     },
   },
   logs: {
