@@ -1,3 +1,11 @@
+## 1.3.2
+
+### Fixes:
+
+- Disabled experimental features by default:
+  - Stripping auto-closing characters in prompt suffix.
+  - Syntax-based code completion scope limit.
+
 ## 1.3.1
 
 ### Fixes:
