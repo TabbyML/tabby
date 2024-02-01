@@ -10,7 +10,7 @@ mod job;
 mod worker;
 
 use clap::{Parser, Subcommand};
-use job::get_repositories;
+use job::{start_index_job, start_sync_job, JobArgs};
 use opentelemetry::{
     global,
     sdk::{propagation::TraceContextPropagator, trace, trace::Sampler, Resource},
@@ -62,14 +62,6 @@ pub enum Commands {
     #[cfg(feature = "ee")]
     #[clap(name = "job::index")]
     JobIndex(JobArgs),
-}
-
-#[derive(clap::Args)]
-pub struct JobArgs {
-    #[clap(long, requires = "url")]
-    token: Option<String>,
-    #[clap(long, requires = "token")]
-    url: Option<String>,
 }
 
 #[derive(clap::Args)]
@@ -142,15 +134,9 @@ async fn main() {
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
         #[cfg(feature = "ee")]
-        Commands::JobSync(args) => {
-            let repositories = get_repositories(args.url, args.token, &config.repositories).await;
-            tabby_scheduler::job_sync(&repositories)
-        }
+        Commands::JobSync(args) => start_sync_job(args, &config).await,
         #[cfg(feature = "ee")]
-        Commands::JobIndex(args) => {
-            let repositories = get_repositories(args.url, args.token, &config.repositories).await;
-            tabby_scheduler::job_index(&repositories)
-        }
+        Commands::JobIndex(args) => start_index_job(args, &config).await,
         #[cfg(feature = "ee")]
         Commands::WorkerCompletion(ref args) => {
             worker::main(tabby_webserver::public::WorkerKind::Completion, args).await

@@ -1,4 +1,4 @@
-use tabby_common::config::RepositoryConfig;
+use tabby_common::config::{Config, RepositoryConfig};
 use tabby_webserver::public::{ConnectHubRequest, Context};
 
 pub async fn get_repositories(
@@ -18,4 +18,22 @@ pub async fn get_repositories(
         }
         None => config.to_vec(),
     }
+}
+
+pub async fn start_sync_job(args: JobArgs, config: &Config) {
+    let repositories = get_repositories(args.url, args.token, &config.repositories).await;
+    tabby_scheduler::job_sync(&repositories)
+}
+
+pub async fn start_index_job(args: JobArgs, config: &Config) {
+    let repositories = get_repositories(args.url, args.token, &config.repositories).await;
+    tabby_scheduler::job_index(&repositories)
+}
+
+#[derive(clap::Args)]
+pub struct JobArgs {
+    #[clap(long, requires = "url")]
+    pub token: Option<String>,
+    #[clap(long, requires = "token")]
+    pub url: Option<String>,
 }

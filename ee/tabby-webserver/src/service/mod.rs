@@ -48,10 +48,10 @@ impl ServerContext {
     pub async fn new(
         logger: Arc<dyn RawEventLogger>,
         code: Arc<dyn CodeSearch>,
-        url: String,
+        port: u16,
     ) -> Self {
         let db_conn = DbConn::new().await.unwrap();
-        run_cron(&db_conn, url, false).await;
+        run_cron(&db_conn, format!("http://localhost:{}", port), false).await;
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -230,9 +230,9 @@ impl ServiceLocator for Arc<ServerContext> {
 pub async fn create_service_locator(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
-    url: String,
+    port: u16,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(Arc::new(ServerContext::new(logger, code, url).await))
+    Arc::new(Arc::new(ServerContext::new(logger, code, port).await))
 }
 
 pub fn graphql_pagination_to_filter(
