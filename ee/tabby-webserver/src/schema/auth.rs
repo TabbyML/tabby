@@ -233,7 +233,7 @@ impl RefreshTokenResponse {
 
 #[derive(Debug, GraphQLObject)]
 pub struct VerifyTokenResponse {
-    claims: JWTPayload,
+    pub claims: JWTPayload,
 }
 
 impl VerifyTokenResponse {
