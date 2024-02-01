@@ -79,6 +79,7 @@ impl ServerContext {
             .map(|(_bearer, token)| token);
 
         let Some(token) = token else {
+            // Admin system is initialized, but there is no valid token.
             return (false, None);
         };
         if self.db_conn.verify_access_token(token).await.is_ok() {
