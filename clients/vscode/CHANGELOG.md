@@ -1,3 +1,9 @@
+## 1.3.1
+
+### Fixes:
+
+- Disabled experimental feature of syntax-based replace range calculation by default.
+
 ## 1.3.0
 
 ### Features:

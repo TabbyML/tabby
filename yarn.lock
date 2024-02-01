@@ -3951,6 +3951,30 @@ tabby-agent@1.3.0:
     vscode-languageserver-textdocument "^1.0.11"
     web-tree-sitter "^0.20.8"
 
+tabby-agent@1.3.1:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/tabby-agent/-/tabby-agent-1.3.1.tgz#4fea58d5bdf6b29deec8bdad903e7c00757508ea"
+  integrity sha512-pTmjYe8XS9vrcGJO+isuL7LxpLXRwETeXzK+lHoE1cSIqsinB37uRiqCf8OjwQGZ0YHBtVZBetsTmicg4aL+Rw==
+  dependencies:
+    chokidar "^3.5.3"
+    deep-equal "^2.2.1"
+    deepmerge-ts "^5.1.0"
+    dot-prop "^8.0.2"
+    fast-levenshtein "^3.0.0"
+    file-stream-rotator "^1.0.0"
+    fs-extra "^11.1.1"
+    jwt-decode "^3.1.2"
+    lru-cache "^9.1.1"
+    object-hash "^3.0.0"
+    openapi-fetch "^0.7.6"
+    pino "^8.14.1"
+    stats-logscale "^1.0.7"
+    toml "^3.0.0"
+    uuid "^9.0.0"
+    vscode-languageserver "^9.0.1"
+    vscode-languageserver-textdocument "^1.0.11"
+    web-tree-sitter "^0.20.8"
+
 tar-fs@^2.0.0, tar-fs@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/tar-fs/-/tar-fs-2.1.1.tgz#489a15ab85f1f0befabb370b7de4f9eb5cbe8784"
