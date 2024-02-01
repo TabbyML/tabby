@@ -55,7 +55,7 @@ impl DbConn {
         Ok(token)
     }
 
-    pub async fn create_invitation(&self, email: String) -> Result<i32> {
+    pub async fn create_invitation(&self, email: String) -> Result<InvitationDAO> {
         if self.get_user_by_email(&email).await?.is_some() {
             return Err(anyhow!("User already registered"));
         }
@@ -76,8 +76,8 @@ impl DbConn {
             Err(err) => Err(err.into()),
             Ok(res) => Ok(InvitationDAO {
                 id: res.last_insert_rowid() as i32,
-                email: email_clone,
-                code: code_clone,
+                email,
+                code,
                 created_at: "".into(),
             }),
         }

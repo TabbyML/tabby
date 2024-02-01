@@ -1576,6 +1576,7 @@ dependencies = [
 name = "http-api-bindings"
 version = "0.7.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "futures",
  "reqwest",
@@ -1583,6 +1584,7 @@ dependencies = [
  "serde_json",
  "tabby-inference",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -3029,6 +3031,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "querystring"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9318ead08c799aad12a55a3e78b82e0b6167271ffd1f627b758891282f739187"
+
+[[package]]
 name = "quote"
 version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4370,6 +4378,7 @@ dependencies = [
  "lettre",
  "mime_guess",
  "pin-project",
+ "querystring",
  "reqwest",
  "rust-embed 8.0.0",
  "serde",
