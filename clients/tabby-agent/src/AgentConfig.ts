@@ -63,7 +63,7 @@ export const defaultAgentConfig: AgentConfig = {
   },
   completion: {
     prompt: {
-      experimentalStripAutoClosingCharacters: true,
+      experimentalStripAutoClosingCharacters: false,
       maxPrefixLines: 20,
       maxSuffixLines: 20,
       clipboard: {
@@ -78,9 +78,9 @@ export const defaultAgentConfig: AgentConfig = {
   },
   postprocess: {
     limitScope: {
-      experimentalSyntax: true,
+      experimentalSyntax: false,
       indentation: {
-        experimentalKeepBlockScopeWhenCompletingLine: true,
+        experimentalKeepBlockScopeWhenCompletingLine: false,
       },
     },
     calculateReplaceRange: {
