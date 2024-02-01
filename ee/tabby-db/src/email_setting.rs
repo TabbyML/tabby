@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusqlite::{named_params, OptionalExtension};
+use sqlx::{query, query_as, query_scalar};
 
 use crate::DbConn;
 
@@ -12,30 +12,16 @@ pub struct EmailSettingDAO {
     pub smtp_server: String,
 }
 
-impl EmailSettingDAO {
-    fn new(smtp_username: String, smtp_password: String, smtp_server: String) -> Self {
-        Self {
-            smtp_username,
-            smtp_password,
-            smtp_server,
-        }
-    }
-}
-
 impl DbConn {
     pub async fn read_email_setting(&self) -> Result<Option<EmailSettingDAO>> {
-        let res = self
-            .conn
-            .call(|c| {
-                Ok(c.query_row(
-                    "SELECT smtp_username, smtp_password, smtp_server FROM email_setting WHERE id=?",
-                    [EMAIL_CREDENTIAL_ROW_ID],
-                    |row| Ok(EmailSettingDAO::new(row.get(0)?, row.get(1)?, row.get(2)?)),
-                )
-                .optional())
-            })
-            .await?;
-        Ok(res?)
+        let setting = query_as!(
+            EmailSettingDAO,
+            "SELECT smtp_username, smtp_password, smtp_server FROM email_setting WHERE id=?",
+            EMAIL_CREDENTIAL_ROW_ID
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(setting)
     }
 
     pub async fn update_email_setting(
@@ -44,42 +30,36 @@ impl DbConn {
         smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<()> {
-        Ok(self
-            .conn
-            .call(move |c| {
-                let transaction = c.transaction()?;
-                 let smtp_password = match smtp_password {
-                    Some(pass) => pass,
-                    None => {
-                        transaction.query_row("SELECT smtp_password FROM email_setting WHERE id = ?", [EMAIL_CREDENTIAL_ROW_ID], |r| r.get(0))?
-                    }
-                };
-                transaction.execute("INSERT INTO email_setting VALUES (:id, :user, :pass, :server)
-                        ON CONFLICT(id) DO UPDATE SET smtp_username = :user, smtp_password = :pass, smtp_server = :server",
-                        named_params! {
-                            ":id": EMAIL_CREDENTIAL_ROW_ID,
-                            ":user": smtp_username,
-                            ":pass": smtp_password,
-                            ":server": smtp_server,
-                        }
-                )?;
-                transaction.commit()?;
-                Ok(())
-            })
-            .await?)
+        let mut transaction = self.pool.begin().await?;
+        let smtp_password = match smtp_password {
+            Some(pass) => pass,
+            None => {
+                query_scalar!(
+                    "SELECT smtp_password FROM email_setting WHERE id = ?",
+                    EMAIL_CREDENTIAL_ROW_ID
+                )
+                .fetch_one(&mut *transaction)
+                .await?
+            }
+        };
+        query!("INSERT INTO email_setting VALUES ($1, $2, $3, $4)
+                ON CONFLICT(id) DO UPDATE SET smtp_username = $2, smtp_password = $3, smtp_server = $4",
+            EMAIL_CREDENTIAL_ROW_ID,
+            smtp_username,
+            smtp_password,
+            smtp_server).execute(&mut *transaction).await?;
+        transaction.commit().await?;
+        Ok(())
     }
 
     pub async fn delete_email_setting(&self) -> Result<()> {
-        Ok(self
-            .conn
-            .call(move |c| {
-                c.execute(
-                    "DELETE FROM email_setting WHERE id = ?",
-                    [EMAIL_CREDENTIAL_ROW_ID],
-                )?;
-                Ok(())
-            })
-            .await?)
+        query!(
+            "DELETE FROM email_setting WHERE id = ?",
+            EMAIL_CREDENTIAL_ROW_ID
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }
 

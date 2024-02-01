@@ -1,11 +1,12 @@
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use rusqlite::{params, OptionalExtension, Row};
+use sqlx::{query, query_scalar, FromRow};
 use uuid::Uuid;
 
 use super::DbConn;
 
 #[allow(unused)]
+#[derive(FromRow)]
 pub struct UserDAO {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -25,19 +26,6 @@ impl UserDAO {
         r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active FROM users WHERE "#
             .to_owned()
             + clause
-    }
-
-    fn from_row(row: &Row<'_>) -> std::result::Result<UserDAO, rusqlite::Error> {
-        Ok(UserDAO {
-            id: row.get(0)?,
-            email: row.get(1)?,
-            password_encrypted: row.get(2)?,
-            is_admin: row.get(3)?,
-            created_at: row.get(4)?,
-            updated_at: row.get(5)?,
-            auth_token: row.get(6)?,
-            active: row.get(7)?,
-        })
     }
 }
 
@@ -71,71 +59,42 @@ impl DbConn {
         is_admin: bool,
         invitation_id: Option<i32>,
     ) -> Result<i32> {
-        let res = self
-            .conn
-            .call(move |c| {
-                let tx = c.transaction()?;
+        let mut transaction = self.pool.begin().await?;
+        if let Some(invitation_id) = invitation_id {
+            query!("DELETE FROM invitations WHERE id = ?", invitation_id)
+                .execute(&mut *transaction)
+                .await?;
+        }
+        let token = generate_auth_token();
+        let res = query!("INSERT INTO users (email, password_encrypted, is_admin, auth_token) VALUES (?, ?, ?, ?)",
+            email, password_encrypted, is_admin, token)
+            .execute(&mut *transaction).await?;
+        transaction.commit().await?;
 
-                if let Some(invitation_id) = invitation_id {
-                    tx.execute("DELETE FROM invitations WHERE id = ?", params![invitation_id])?;
-                }
-
-                let id = {
-                    let mut stmt = tx.prepare(
-                        r#"INSERT INTO users (email, password_encrypted, is_admin, auth_token) VALUES (?, ?, ?, ?)"#,
-                    )?;
-                    stmt.insert((email, password_encrypted, is_admin, generate_auth_token()))?
-                };
-
-                tx.commit()?;
-                Ok(id)
-            })
-            .await?;
-
-        Ok(res as i32)
+        Ok(res.last_insert_rowid() as i32)
     }
 
     pub async fn get_user(&self, id: i32) -> Result<Option<UserDAO>> {
-        let user = self
-            .conn
-            .call(move |c| {
-                Ok(c.query_row(
-                    UserDAO::select("id = ?").as_str(),
-                    params![id],
-                    UserDAO::from_row,
-                )
-                .optional())
-            })
+        let user = sqlx::query_as(&UserDAO::select("id = ?"))
+            .bind(id)
+            .fetch_optional(&self.pool)
             .await?;
 
-        Ok(user?)
+        Ok(user)
     }
 
     pub async fn get_user_by_email(&self, email: &str) -> Result<Option<UserDAO>> {
-        let email = email.to_owned();
-        let user = self
-            .conn
-            .call(move |c| {
-                Ok(c.query_row(
-                    UserDAO::select("email = ?").as_str(),
-                    params![email],
-                    UserDAO::from_row,
-                )
-                .optional())
-            })
+        let user = sqlx::query_as(&UserDAO::select("email = ?"))
+            .bind(email)
+            .fetch_optional(&self.pool)
             .await?;
 
-        Ok(user?)
+        Ok(user)
     }
 
     pub async fn list_admin_users(&self) -> Result<Vec<UserDAO>> {
-        let users = self
-            .conn
-            .call(move |c| {
-                let mut stmt = c.prepare(&UserDAO::select("is_admin"))?;
-                let user_iter = stmt.query_map([], UserDAO::from_row)?;
-                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
-            })
+        let users = sqlx::query_as(&UserDAO::select("is_admin"))
+            .fetch_all(&self.pool)
             .await?;
 
         Ok(users)
@@ -164,60 +123,46 @@ impl DbConn {
             backwards,
         );
 
-        let users = self
-            .conn
-            .call(move |c| {
-                let mut stmt = c.prepare(&query)?;
-                let user_iter = stmt.query_map([], UserDAO::from_row)?;
-                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
-            })
-            .await?;
+        let users = sqlx::query_as(&query).fetch_all(&self.pool).await?;
 
         Ok(users)
     }
 
     pub async fn verify_auth_token(&self, token: &str) -> bool {
         let token = token.to_owned();
-        let id: Result<Result<i32, _>, _> = self
-            .conn
-            .call(move |c| {
-                Ok(c.query_row(
-                    r#"SELECT id FROM users WHERE auth_token = ?"#,
-                    params![token],
-                    |row| row.get(0),
-                ))
-            })
+        let id = query_scalar!("SELECT id FROM users WHERE auth_token = ?", token)
+            .fetch_one(&self.pool)
             .await;
-        matches!(id, Ok(Ok(_)))
+        id.is_ok()
     }
 
     pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
         let email = email.to_owned();
         let updated_at = chrono::Utc::now();
-        self.conn
-            .call(move |c| {
-                let mut stmt = c.prepare(
-                    r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE email = ?"#,
-                )?;
-                stmt.execute((generate_auth_token(), updated_at, email))?;
-                Ok(())
-            })
-            .await?;
+        let token = generate_auth_token();
+        query!(
+            r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE email = ?"#,
+            token,
+            updated_at,
+            email
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(())
     }
 
     pub async fn update_user_active(&self, id: i32, active: bool) -> Result<()> {
-        let changed = self
-            .conn
-            .call(move |c| {
-                let changed = c.execute(
-                    "UPDATE users SET active=? WHERE id=? AND active=?",
-                    (active, id, !active),
-                )?;
-                Ok(changed)
-            })
-            .await?;
+        let not_active = !active;
+        let changed = query!(
+            "UPDATE users SET active = ? WHERE id = ? AND active = ?",
+            active,
+            id,
+            not_active
+        )
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
         if changed != 1 {
             Err(anyhow!("user active status was not changed"))
         } else {
