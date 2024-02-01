@@ -24,9 +24,12 @@ use crate::services::completion::{CompletionRequest, CompletionResponse, Complet
 #[instrument(skip(state, request))]
 pub async fn completions(
     State(state): State<Arc<CompletionService>>,
+    TypedHeader(MaybeUser(user)): TypedHeader<MaybeUser>,
     Json(mut request): Json<CompletionRequest>,
-    TypedHeader(user): TypedHeader<MaybeUser>,
 ) -> Result<Json<CompletionResponse>, StatusCode> {
+    if let Some(user) = user {
+        request.user.replace(user);
+    }
     match state.generate(&request).await {
         Ok(resp) => Ok(Json(resp)),
         Err(err) => {
@@ -37,7 +40,7 @@ pub async fn completions(
 }
 
 #[derive(Debug)]
-struct MaybeUser(Option<String>);
+pub struct MaybeUser(Option<String>);
 
 impl Header for MaybeUser {
     fn name() -> &'static axum::http::HeaderName {
