@@ -2556,10 +2556,10 @@
   dependencies:
     isomorphic-fetch "^3.0.0"
 
-"@urql/core@>=4.1.0", "@urql/core@^4.2.0":
-  version "4.2.2"
-  resolved "https://registry.yarnpkg.com/@urql/core/-/core-4.2.2.tgz#c2b009373cb9084bbfa8ebc0177c854a76235b84"
-  integrity sha512-TP1kheq9bnrEdnVbJqh0g0ZY/wfdpPeAzjiiDK+Tm+Pbi0O1Xdu6+fUJ/wJo5QpHZzkIyya4/AecG63e6scFqQ==
+"@urql/core@>=4.1.0", "@urql/core@>=4.2.0", "@urql/core@^4.2.0", "@urql/core@^4.2.3":
+  version "4.2.3"
+  resolved "https://registry.yarnpkg.com/@urql/core/-/core-4.2.3.tgz#f956e8a33c4bd055c0c5151491843dd46d737f0f"
+  integrity sha512-DJ9q9+lcs5JL8DcU2J3NqsgeXYJva+1+Qt8HU94kzTPqVOIRRA7ouvy4ksUfPY+B5G2PQ+vLh+JJGyZCNXv0cg==
   dependencies:
     "@0no-co/graphql.web" "^1.0.1"
     wonka "^6.3.2"
@@ -2570,6 +2570,15 @@
   integrity sha512-snOlt7p5kYq0KnPDuXkKe2qW3/BucQZOElvTeo3svLQuk9JiNJVnm6ffQ6QGiGO+G3AtMrctnno1+X44fLtDuQ==
   dependencies:
     "@urql/core" ">=4.1.0"
+    wonka "^6.3.2"
+
+"@urql/exchange-graphcache@^6.4.0":
+  version "6.4.0"
+  resolved "https://registry.yarnpkg.com/@urql/exchange-graphcache/-/exchange-graphcache-6.4.0.tgz#5a3808625cab54f81d249320610564cf48e24398"
+  integrity sha512-VgcPdDNR3hSJDuf+mj0OZWzOzQccA8vT8xphxtO1MoJlgv1A4VhjLd75pjVvGz29ZHN90jEbdyBKJz6GShT7qA==
+  dependencies:
+    "@0no-co/graphql.web" "^1.0.1"
+    "@urql/core" ">=4.2.0"
     wonka "^6.3.2"
 
 "@vercel/analytics@^1.0.0":

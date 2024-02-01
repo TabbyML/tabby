@@ -3,11 +3,14 @@
 import React, { useEffect, useState } from 'react'
 import moment from 'moment'
 import { toast } from 'sonner'
-import { useQuery } from 'urql'
+import { useClient, useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import { ListInvitationsQuery } from '@/lib/gql/generates/graphql'
-import { QueryVariables, useMutation } from '@/lib/tabby/gql'
+import {
+  InvitationEdge,
+  ListInvitationsQueryVariables
+} from '@/lib/gql/generates/graphql'
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
 import {
@@ -29,7 +32,7 @@ import { CopyButton } from '@/components/copy-button'
 
 import CreateInvitationForm from './create-invitation-form'
 
-const listInvitations = graphql(/* GraphQL */ `
+export const listInvitations = graphql(/* GraphQL */ `
   query ListInvitations(
     $after: String
     $before: String
@@ -69,25 +72,54 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
 
 const PAGE_SIZE = 5
 export default function InvitationTable() {
-  const [queryVariables, setQueryVariables] = React.useState<
-    QueryVariables<typeof listInvitations>
-  >({
-    last: PAGE_SIZE
-  })
-  const [invatation, setInvatation] =
-    React.useState<ListInvitationsQuery['invitationsNext']>()
-  const [{ data, fetching }, reexecuteQuery] = useQuery({
+  const client = useClient()
+  const [{ data, fetching }] = useQuery({
     query: listInvitations,
-    variables: queryVariables
+    variables: { first: PAGE_SIZE }
   })
+  // if a new invitation was created, fetching all records and navigating to the last page
+  const [fetchingLastPage, setFetchingLastPage] = React.useState(false)
 
-  const updateQueryVariables = (v: typeof queryVariables) => {
-    setQueryVariables({
-      ...v,
-      // urql performs a shallow comparison on variables, adding a random value ensures that a request will be fired
-      // @ts-ignore
-      randomValue: Math.random()
-    })
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const edges = data?.invitationsNext?.edges
+  const pageInfo = data?.invitationsNext?.pageInfo
+  const pageNum = Math.ceil((edges?.length || 0) / PAGE_SIZE)
+
+  const currentPageInvits = React.useMemo(() => {
+    return edges?.slice?.(
+      (currentPage - 1) * PAGE_SIZE,
+      currentPage * PAGE_SIZE
+    )
+  }, [currentPage, edges])
+
+  const hasNextPage = pageInfo?.hasNextPage || currentPage < pageNum
+  const hasPrevPage = currentPage > 1
+
+  const fetchInvitations = (variables: ListInvitationsQueryVariables) => {
+    return client.query(listInvitations, variables).toPromise()
+  }
+
+  const processQuerySequentially = async (cursor?: string): Promise<number> => {
+    const res = await fetchInvitations({ first: PAGE_SIZE, after: cursor })
+    let count = res?.data?.invitationsNext?.edges?.length || 0
+    const _pageInfo = res?.data?.invitationsNext?.pageInfo
+    if (_pageInfo?.hasNextPage && _pageInfo?.endCursor) {
+      // cacheExchange will merge the edges
+      count = await processQuerySequentially(_pageInfo.endCursor)
+    }
+    return count
+  }
+
+  const fetchAllRecord = async () => {
+    try {
+      setFetchingLastPage(true)
+      const count = processQuerySequentially(pageInfo?.endCursor ?? undefined)
+      return count
+    } catch (e) {
+      return 0
+    } finally {
+      setFetchingLastPage(false)
+    }
   }
 
   const [origin, setOrigin] = useState('')
@@ -95,65 +127,61 @@ export default function InvitationTable() {
     setOrigin(new URL(window.location.href).origin)
   }, [])
 
-  useEffect(() => {
-    const _invitations = data?.invitationsNext
-    if (_invitations?.edges?.length) {
-      setInvatation({
-        edges: _invitations.edges.reverse(),
-        pageInfo: _invitations.pageInfo
-      })
-    }
-  }, [data])
-
   const deleteInvitation = useMutation(deleteInvitationMutation)
 
-  const handleInvitationCreated = () => {
-    toast.success('Invitation created')
-    updateQueryVariables({ last: PAGE_SIZE })
-    // if (queryVariables?.after || queryVariables.before) {
-    //   updateQueryVariables({ last: PAGE_SIZE })
-    // } else {
-    //   reexecuteQuery()
-    // }
+  const getPageNumber = (count?: number) => {
+    return Math.ceil((count || 0) / PAGE_SIZE)
   }
 
-  const handleFetchPrevPage = () => {
-    if (fetching) return
-    updateQueryVariables({
-      first: PAGE_SIZE,
-      after: pageInfo?.endCursor
+  const handleInvitationCreated = async () => {
+    toast.success('Invitation created')
+    fetchAllRecord().then(count => {
+      setCurrentPage(getPageNumber(count))
     })
+  }
+
+  const handleNavToPrevPage = () => {
+    if (currentPage <= 1) return
+    if (fetchingLastPage || fetching) return
+    setCurrentPage(p => p - 1)
   }
 
   const handleFetchNextPage = () => {
-    if (fetching) return
-    updateQueryVariables({
-      last: PAGE_SIZE,
-      before: pageInfo?.startCursor
-    })
+    if (!hasNextPage) return
+    if (fetchingLastPage || fetching) return
+
+    fetchInvitations({ first: PAGE_SIZE, after: pageInfo?.endCursor }).then(
+      data => {
+        if (data?.data?.invitationsNext?.edges?.length) {
+          setCurrentPage(p => p + 1)
+        }
+      }
+    )
   }
 
-  const handleDeleteInvatation = (id: string) => {
-    deleteInvitation({ id }).then(() => {
-      // due to the `last` direction
-      // hasNextPage means that current page is not the first page
-      // if there is only one record in current page, while redirect to the first page
-      if (pageInfo?.hasNextPage && invatation?.edges?.length !== 1) {
-        reexecuteQuery()
-      } else {
-        updateQueryVariables({ last: PAGE_SIZE })
+  const handleDeleteInvatation = (node: InvitationEdge['node']) => {
+    deleteInvitation({ id: node.id }).then(res => {
+      if (res?.error) {
+        toast.error(res.error.message)
+        return
+      }
+      if (res?.data?.deleteInvitationNext) {
+        toast.success(`${node.email} deleted`)
       }
     })
   }
 
-  const invitations = invatation?.edges
-  const pageInfo = invatation?.pageInfo
+  React.useEffect(() => {
+    if (pageNum < currentPage && currentPage > 1) {
+      setCurrentPage(pageNum)
+    }
+  }, [pageNum, currentPage])
 
   return (
     <div>
       <CreateInvitationForm onCreated={handleInvitationCreated} />
-      <Table className="mt-4 border-b">
-        {!!invitations?.length && (
+      <Table className="border-b mt-4">
+        {!!currentPageInvits?.length && (
           <TableHeader>
             <TableRow>
               <TableHead className="w-[25%]">Invitee</TableHead>
@@ -163,7 +191,7 @@ export default function InvitationTable() {
           </TableHeader>
         )}
         <TableBody>
-          {invitations?.map(x => {
+          {currentPageInvits?.map(x => {
             const link = `${origin}/auth/signup?invitationCode=${x.node.code}`
             return (
               <TableRow key={x.node.id}>
@@ -175,7 +203,7 @@ export default function InvitationTable() {
                     <Button
                       size="icon"
                       variant="hover-destructive"
-                      onClick={() => handleDeleteInvatation(x.node.id)}
+                      onClick={() => handleDeleteInvatation(x.node)}
                     >
                       <IconTrash />
                     </Button>
@@ -186,18 +214,18 @@ export default function InvitationTable() {
           })}
         </TableBody>
       </Table>
-      {(pageInfo?.hasNextPage || pageInfo?.hasPreviousPage) && (
+      {(hasNextPage || hasPrevPage) && (
         <Pagination className="my-4">
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
-                disabled={!pageInfo?.hasNextPage}
-                onClick={handleFetchPrevPage}
+                disabled={!hasPrevPage}
+                onClick={handleNavToPrevPage}
               />
             </PaginationItem>
             <PaginationItem>
               <PaginationNext
-                disabled={!pageInfo?.hasPreviousPage}
+                disabled={!hasNextPage}
                 onClick={handleFetchNextPage}
               />
             </PaginationItem>

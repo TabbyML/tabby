@@ -1,11 +1,12 @@
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { authExchange } from '@urql/exchange-auth'
+import { cacheExchange } from '@urql/exchange-graphcache'
+import { relayPagination } from '@urql/exchange-graphcache/extras'
 import { jwtDecode } from 'jwt-decode'
 import { isNil } from 'lodash-es'
 import { FieldValues, UseFormReturn } from 'react-hook-form'
 import {
   AnyVariables,
-  cacheExchange,
   Client,
   CombinedError,
   fetchExchange,
@@ -13,6 +14,9 @@ import {
   useMutation as useUrqlMutation
 } from 'urql'
 
+import { listInvitations } from '@/app/(dashboard)/team/components/invitation-table'
+
+import { ListInvitationsQueryVariables } from '../gql/generates/graphql'
 import {
   clearAuthToken,
   getAuthToken,
@@ -89,7 +93,42 @@ const client = new Client({
   url: `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`,
   requestPolicy: 'cache-and-network',
   exchanges: [
-    cacheExchange,
+    cacheExchange({
+      resolvers: {
+        Query: {
+          invitationsNext: relayPagination()
+        }
+      },
+      updates: {
+        Mutation: {
+          deleteInvitationNext(result, args, cache, info) {
+            if (result.deleteInvitationNext) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'invitationsNext')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listInvitations,
+                      variables:
+                        field.arguments as ListInvitationsQueryVariables
+                    },
+                    data => {
+                      if (data?.invitationsNext?.edges) {
+                        data.invitationsNext.edges =
+                          data.invitationsNext.edges.filter(
+                            e => e.node.id !== args.id
+                          )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          }
+        }
+      }
+    }),
     authExchange(async utils => {
       const authData = getAuthToken()
       let accessToken = authData?.accessToken
