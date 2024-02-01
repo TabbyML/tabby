@@ -270,8 +270,7 @@ impl Query {
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
         check_admin(ctx.claims.as_ref())?;
-        let Some(mut credentials) =
-            ctx.locator.auth().read_oauth_credential(provider).await?
+        let Some(mut credentials) = ctx.locator.auth().read_oauth_credential(provider).await?
         else {
             return Ok(None);
         };
