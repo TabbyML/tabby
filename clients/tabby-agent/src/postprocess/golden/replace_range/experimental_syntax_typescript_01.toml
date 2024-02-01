@@ -1,0 +1,23 @@
+description = 'Replace range experimental: syntax javascript: bad case 01'
+
+[config.limitScope]
+experimentalSyntax = true
+[config.calculateReplaceRange]
+experimentalSyntax = true
+
+[context]
+filepath = 'print.ts'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+function print(obj: any) {
+  console.log("Obj: ├", obj);┤")
+}
+'''
+
+[expected]
+text = '''
+function print(obj: any) {
+  console.log("Obj: ├", obj);┤")╣
+}
+'''
