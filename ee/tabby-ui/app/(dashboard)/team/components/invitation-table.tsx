@@ -180,7 +180,7 @@ export default function InvitationTable() {
   return (
     <div>
       <CreateInvitationForm onCreated={handleInvitationCreated} />
-      <Table className="border-b mt-4">
+      <Table className="mt-4 border-b">
         {!!currentPageInvits?.length && (
           <TableHeader>
             <TableRow>
