@@ -44,7 +44,7 @@ pub struct CompletionRequest {
 
     /// A unique identifier representing your end-user, which can help Tabby to monitor & generating
     /// reports.
-    user: Option<String>,
+    pub(crate) user: Option<String>,
 
     debug_options: Option<DebugOptions>,
 
