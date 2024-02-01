@@ -123,24 +123,16 @@ impl DbConn {
             backwards,
         );
 
-        let users = self
-            .conn
-            .call(move |c| {
-                let mut stmt = c.prepare(&query)?;
-                let user_iter = stmt.query_map([], UserDAO::from_row)?;
-                Ok(user_iter.filter_map(|x| x.ok()).collect::<Vec<_>>())
-            })
-            .await?;
-
+        let users = sqlx::query_as(&query).fetch_all(&self.pool).await?;
         Ok(users)
     }
 
     pub async fn verify_auth_token(&self, token: &str) -> Result<String> {
         let token = token.to_owned();
-        let id = query_scalar!("SELECT id FROM users WHERE auth_token = ?", token)
+        let email = query_scalar!("SELECT email FROM users WHERE auth_token = ?", token)
             .fetch_one(&self.pool)
             .await;
-        email?.map_err(Into::into)
+        email.map_err(Into::into)
     }
 
     pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
