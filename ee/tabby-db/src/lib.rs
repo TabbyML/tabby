@@ -117,15 +117,10 @@ impl DbConn {
     }
 
     pub async fn count_rows(&self, table: &'static str) -> Result<usize> {
-        let rows = self
-            .conn
-            .call(move |c| {
-                let i: usize =
-                    c.query_row(&format!("SELECT COUNT() FROM {table}"), [], |r| r.get(0))?;
-                Ok(i)
-            })
+        let rows: i64 = sqlx::query_scalar(&format!("SELECT COUNT() FROM {table}"))
+            .fetch_one(&self.pool)
             .await?;
-        Ok(rows)
+        Ok(rows as usize)
     }
 }
 
