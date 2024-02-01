@@ -1,4 +1,4 @@
-description = 'Replace range experimental: syntax rust: bad case 01'
+description = 'Replace range experimental: syntax rust: case 01 (ref)'
 
 [config.limitScope]
 experimentalSyntax = true
