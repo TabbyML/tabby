@@ -15,7 +15,7 @@ use super::graphql_pagination_to_filter;
 use crate::{
     oauth,
     schema::auth::{
-        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
+        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
         JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenError,
         RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse,
         User, VerifyTokenResponse,
@@ -329,7 +329,7 @@ impl AuthenticationService for DbConn {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<InvitationNext>> {
+    ) -> Result<Vec<Invitation>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         Ok(self
             .list_invitations_with_filter(limit, skip_id, backwards)

@@ -8,9 +8,8 @@ pub mod worker;
 use std::{num::ParseIntError, sync::Arc};
 
 use auth::{
-    validate_jwt, AuthenticationService, Invitation, InvitationNext, RefreshTokenError,
-    RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
-    VerifyTokenResponse,
+    validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
+    RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
 };
 use job::{JobRun, JobService};
 use juniper::{
@@ -118,25 +117,6 @@ impl Query {
         Ok(ctx.locator.auth().is_admin_initialized().await?)
     }
 
-    #[deprecated]
-    async fn invitations(ctx: &Context) -> Result<Vec<Invitation>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return Ok(ctx
-                    .locator
-                    .auth()
-                    .list_invitations(None, None, None, None)
-                    .await?
-                    .into_iter()
-                    .map(|x| x.into())
-                    .collect());
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to query invitations",
-        ))
-    }
-
     async fn me(ctx: &Context) -> Result<User> {
         if let Some(claims) = &ctx.claims {
             let user = ctx.locator.auth().get_user_by_email(&claims.sub).await?;
@@ -200,7 +180,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<InvitationNext>> {
+    ) -> FieldResult<Connection<Invitation>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return relay::query_async(
