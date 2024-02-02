@@ -11,6 +11,7 @@ import {
   ListInvitationsQueryVariables
 } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
+import { listInvitations } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
 import {
@@ -31,7 +32,6 @@ import {
 import { CopyButton } from '@/components/copy-button'
 
 import CreateInvitationForm from './create-invitation-form'
-import { listInvitations } from '@/lib/tabby/query'
 
 const deleteInvitationMutation = graphql(/* GraphQL */ `
   mutation DeleteInvitation($id: ID!) {

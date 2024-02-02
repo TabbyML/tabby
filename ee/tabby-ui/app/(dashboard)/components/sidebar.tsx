@@ -9,13 +9,12 @@ import { cva } from 'class-variance-authority'
 
 import { useSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
-import { IconGear, IconHome, IconNetwork } from '@/components/ui/icons'
-
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+  CollapsibleTrigger
+} from '@/components/ui/collapsible'
+import { IconGear, IconHome, IconNetwork } from '@/components/ui/icons'
 
 export interface SidebarProps {
   children: React.ReactNode
@@ -57,18 +56,21 @@ export default function Sidebar({ children, className }: SidebarProps) {
                     <IconNetwork /> Cluster Information
                   </SidebarButton>
                   <Collapsible defaultOpen={true}>
-                    <CollapsibleTrigger className='w-full'>
-                      <span className={linkVariants()}><IconGear />Settings</span>
+                    <CollapsibleTrigger className="w-full">
+                      <span className={linkVariants()}>
+                        <IconGear />
+                        Settings
+                      </span>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className='py-2 flex flex-col gap-2'>
+                    <CollapsibleContent className="flex flex-col gap-2 py-2">
                       <SidebarButton href="/settings/general">
-                        <span className='w-4' /> General
+                        <span className="w-4" /> General
                       </SidebarButton>
                       <SidebarButton href="/settings/mail">
-                        <span className='w-4' /> Mail Delivery
+                        <span className="w-4" /> Mail Delivery
                       </SidebarButton>
                       <SidebarButton href="/settings/team">
-                        <span className='w-4' /> Team Management
+                        <span className="w-4" /> Team Management
                       </SidebarButton>
                     </CollapsibleContent>
                   </Collapsible>
