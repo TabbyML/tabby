@@ -1,5 +1,6 @@
 use std::net::IpAddr;
 
+use anyhow::Result;
 use async_trait::async_trait;
 use axum::{headers::Header, http::HeaderName};
 use hyper::Request;
@@ -11,6 +12,7 @@ use tabby_common::{
     },
     config::RepositoryConfig,
 };
+use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
 
 use super::websocket::WebSocketTransport;
@@ -166,5 +168,17 @@ impl Header for ConnectHubRequest {
 
     fn encode<E: Extend<axum::http::HeaderValue>>(&self, _values: &mut E) {
         todo!()
+    }
+}
+
+#[async_trait]
+pub trait RepositoryAccess {
+    async fn get_repositories(&self) -> Result<Vec<RepositoryConfig>>;
+}
+
+#[async_trait]
+impl RepositoryAccess for HubClient {
+    async fn get_repositories(&self) -> Result<Vec<RepositoryConfig>> {
+        Ok(self.get_repositories(Context::current()).await?)
     }
 }

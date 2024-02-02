@@ -1,5 +1,5 @@
 use tabby_common::config::{Config, RepositoryConfig};
-use tabby_webserver::public::{ConnectHubRequest, Context};
+use tabby_webserver::public::{ConnectHubRequest, RepositoryAccess};
 
 pub async fn get_repositories(
     url: Option<String>,
@@ -11,8 +11,7 @@ pub async fn get_repositories(
             let client =
                 tabby_webserver::public::create_client(&addr, &token, ConnectHubRequest::Job).await;
 
-            client
-                .get_repositories(Context::current())
+            RepositoryAccess::get_repositories(&client)
                 .await
                 .expect("Must be able to load repositories")
         }
