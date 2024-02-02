@@ -12,6 +12,7 @@ import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 import { dropDuplicated } from "./dropDuplicated";
 import { dropBlank } from "./dropBlank";
 import { calculateReplaceRange } from "./calculateReplaceRange";
+import { removeDuplicatedLineSuffix } from "./removeDuplicatedLineSuffix";
 
 export async function preCacheProcess(
   context: CompletionContext,
@@ -23,7 +24,8 @@ export async function preCacheProcess(
     .then(applyFilter(removeLineEndsWithRepetition(), context))
     .then(applyFilter(dropDuplicated(), context))
     .then(applyFilter(trimSpace(), context))
-    .then(applyFilter(dropBlank(), context));
+    .then(applyFilter(dropBlank(), context))
+    .then(applyFilter(removeDuplicatedLineSuffix(), context));
 }
 
 export async function postCacheProcess(
@@ -40,5 +42,6 @@ export async function postCacheProcess(
     .then(applyFilter(dropDuplicated(), context))
     .then(applyFilter(trimSpace(), context))
     .then(applyFilter(dropBlank(), context))
+    .then(applyFilter(removeDuplicatedLineSuffix(), context))
     .then(applyChoiceFilter(calculateReplaceRange(config["calculateReplaceRange"]), context));
 }
