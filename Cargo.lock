@@ -3901,6 +3901,7 @@ dependencies = [
  "tracing",
  "tracing-test",
  "tree-sitter-c",
+ "tree-sitter-c-sharp",
  "tree-sitter-cpp",
  "tree-sitter-go",
  "tree-sitter-java",
@@ -4715,6 +4716,16 @@ dependencies = [
 name = "tree-sitter-c"
 version = "0.20.6"
 source = "git+https://github.com/tree-sitter/tree-sitter-c/?rev=212a80f#212a80f86452bb1316324fa0db730cf52f29e05a"
+dependencies = [
+ "cc",
+ "tree-sitter",
+]
+
+[[package]]
+name = "tree-sitter-c-sharp"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9ab3dc608f34924fa9e10533a95f62dbc14b6de0ddd7107722eba66fe19ae31"
 dependencies = [
  "cc",
  "tree-sitter",
