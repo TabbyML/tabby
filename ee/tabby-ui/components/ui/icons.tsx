@@ -918,5 +918,7 @@ export {
   IconDirectoryExpandSolid,
   IconChat,
   IconCode,
-  IconBackpack
+  IconBackpack,
+  IconGear,
+  IconMore
 }
