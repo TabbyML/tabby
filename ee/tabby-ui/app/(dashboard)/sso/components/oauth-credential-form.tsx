@@ -200,7 +200,7 @@ export default function OAuthCredentialForm({
             {oauthRedirectUri ? (
               <div>
                 <div
-                  className="items-center gap-4 border rounded-lg p-2 inline-flex"
+                  className="inline-flex items-center gap-4 rounded-lg border p-2"
                   onClick={e => e.stopPropagation()}
                 >
                   <span className="text-sm">{oauthRedirectUri}</span>
@@ -210,7 +210,7 @@ export default function OAuthCredentialForm({
                 </div>
               </div>
             ) : (
-              <div className="text-muted-foreground text-sm">
+              <div className="text-sm text-muted-foreground">
                 Please select a provider
               </div>
             )}

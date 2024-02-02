@@ -41,28 +41,28 @@ export default function Signin() {
       </div>
 
       {!!data?.length && (
-        <div className="relative flex py-5 items-center w-[350px] mt-10">
-          <div className="flex-grow border-t "></div>
-          <span className="flex-shrink mx-4 text-sm text-muted-foreground">
+        <div className="relative mt-10 flex w-[350px] items-center py-5">
+          <div className="grow border-t "></div>
+          <span className="mx-4 shrink text-sm text-muted-foreground">
             Or Signin with
           </span>
-          <div className="flex-grow border-t "></div>
+          <div className="grow border-t "></div>
         </div>
       )}
-      <div className="flex items-center gap-6 mx-auto">
+      <div className="mx-auto flex items-center gap-6">
         {data?.includes('github') && (
           <a href={`http://localhost:8080/oauth/signin?provider=github`}>
-            <IconGithub className="w-8 h-8" />
+            <IconGithub className="h-8 w-8" />
           </a>
         )}
         {data?.includes('google') && (
           <a href={`http://localhost:8080/oauth/signin?provider=google`}>
-            <IconGoogle className="w-8 h-8" />
+            <IconGoogle className="h-8 w-8" />
           </a>
         )}
       </div>
       {!!errorMessage && (
-        <div className="text-destructive mt-4">{errorMessage}</div>
+        <div className="mt-4 text-destructive">{errorMessage}</div>
       )}
     </>
   )
