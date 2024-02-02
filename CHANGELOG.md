@@ -1,4 +1,12 @@
-# v0.8.0 [Unreleased]
+# v0.9.0 [Unreleased]
+
+## Features
+
+## Fixes and Improvements
+
+* The `user` field in the `~/tabby/events` log is now populated for users who authenticate via the `--webserver` feature.
+
+# v0.8.0
 
 ## Notice
 
@@ -7,11 +15,11 @@
 ## Features
 
 * Introducing a preview release of the `Source Code Browser`, featuring visualization of code snippets utilized for code completion in RAG.
+* Added a Windows CPU binary distribution.
+* Added a Linux ROCm (AMD GPU) binary distribution.
 
 ## Fixes and Improvements
 
-* Added a Windows CPU binary distribution.
-* Added a Linux ROCm (AMD GPU) binary distribution.
 * Fixed an issue with cached permanent redirection in certain browsers (e.g., Chrome) when the `--webserver` flag is disabled.
 * Introduced the `TABBY_MODEL_CACHE_ROOT` environment variable to individually override the model cache directory.
 * The `/v1beta/chat/completions` API endpoint is now compatible with OpenAI's chat completion API.
