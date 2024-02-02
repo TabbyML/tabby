@@ -5,10 +5,6 @@ export const typeList: Record<string, string[][]> = {
       "jsx_element",
       "jsx_self_closing_element",
 
-      // exclude sentence level nodes for now
-      // "expression_statement",
-      // "lexical_declaration",
-
       "for_statement",
       "for_in_statement",
       "if_statement",
@@ -34,6 +30,7 @@ export const typeList: Record<string, string[][]> = {
       "export_statement",
       "module",
     ],
+    ["expression_statement", "lexical_declaration"],
   ],
 
   // https://github.com/tree-sitter/tree-sitter-python/blob/master/src/node-types.json

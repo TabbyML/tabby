@@ -22,7 +22,6 @@ export class TabbyStatusBarItem {
   private item = window.createStatusBarItem(StatusBarAlignment.Right);
   private extensionContext: ExtensionContext;
   private completionProvider: TabbyCompletionProvider;
-  private completionResponseWarningShown = false;
 
   private subStatusForReady = [
     {
@@ -158,23 +157,11 @@ export class TabbyStatusBarItem {
       console.debug("RumiCode agent issuesUpdated", { event });
       const status = agent().getStatus();
       this.fsmService.send(status);
-      const showCompletionResponseWarnings =
-        !this.completionResponseWarningShown &&
-        !this.extensionContext.globalState
-          .get<string[]>("notifications.muted", [])
-          .includes("completionResponseTimeIssues");
       if (event.issues.includes("connectionFailed")) {
-        // Only show this notification when user modifies the settings, do not show it when initializing
-        // FIXME: refactor this use a flag marks the event is trigger by modifying settings or initializing
+        // Do not show it when initializing
         if (status !== "notInitialized") {
           notifications.showInformationWhenDisconnected();
         }
-      } else if (showCompletionResponseWarnings && event.issues.includes("highCompletionTimeoutRate")) {
-        this.completionResponseWarningShown = true;
-        notifications.showInformationWhenHighCompletionTimeoutRate();
-      } else if (showCompletionResponseWarnings && event.issues.includes("slowCompletionResponseTime")) {
-        this.completionResponseWarningShown = true;
-        notifications.showInformationWhenSlowCompletionResponseTime();
       }
     });
   }

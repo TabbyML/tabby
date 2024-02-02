@@ -1,4 +1,4 @@
-description = 'Replace range experimental: syntax javascript: bad case 01'
+description = 'Replace range experimental: syntax javascript: case 01'
 
 [config.limitScope]
 experimentalSyntax = true
@@ -25,4 +25,3 @@ stream.on('data', (data) => {├
   console.log(data.toString());
 });┤})╣
 '''
-notEqual = true # FIXME: fix bad case

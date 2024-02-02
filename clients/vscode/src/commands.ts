@@ -213,7 +213,7 @@ const acceptInlineCompletionNextWord = (completionProvider: TabbyCompletionProvi
   return {
     command: "rumicode.inlineCompletion.acceptNextWord",
     callback: () => {
-      completionProvider.postEvent("accept_word");
+      completionProvider.handleEvent("accept_word");
       commands.executeCommand("editor.action.inlineSuggest.acceptNextWord");
     },
   };
@@ -223,9 +223,19 @@ const acceptInlineCompletionNextLine = (completionProvider: TabbyCompletionProvi
   return {
     command: "rumicode.inlineCompletion.acceptNextLine",
     callback: () => {
-      completionProvider.postEvent("accept_line");
+      completionProvider.handleEvent("accept_line");
       // FIXME: this command move cursor to next line, but we want to move cursor to the end of current line
       commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
+    },
+  };
+};
+
+const dismissInlineCompletion = (completionProvider: TabbyCompletionProvider): Command => {
+  return {
+    command: "tabby.inlineCompletion.dismiss",
+    callback: () => {
+      completionProvider.handleEvent("dismiss");
+      commands.executeCommand("editor.action.inlineSuggest.hide");
     },
   };
 };
@@ -284,6 +294,7 @@ export const tabbyCommands = (
     acceptInlineCompletion,
     acceptInlineCompletionNextWord(completionProvider),
     acceptInlineCompletionNextLine(completionProvider),
+    dismissInlineCompletion(completionProvider),
     openOnlineHelp,
     muteNotifications(context, statusBarItem),
     resetMutedNotifications(context, statusBarItem),

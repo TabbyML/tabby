@@ -21,7 +21,7 @@ export function getIndentationLevel(line: string, indentation?: string) {
   if (indentation === undefined) {
     return line.match(/^[ \t]*/)?.[0]?.length ?? 0;
   } else if (indentation === "\t") {
-    return line.match(/^\t*/g)?.[0].length ?? 0;
+    return line.match(/^\t*/)?.[0].length ?? 0;
   } else if (indentation.match(/^ *$/)) {
     const spaces = line.match(/^ */)?.[0].length ?? 0;
     return spaces / indentation.length;
@@ -48,51 +48,140 @@ export function isBlockClosingLine(lines: string[], index: number): boolean {
 }
 
 // Auto-closing chars
+type AutoClosingCharPosition = "open" | "close" | "openOrClose";
+type AutoClosingCharPattern = { chars: string; reg: RegExp };
+type AutoClosingPairDifferent = { open: AutoClosingCharPattern; close: AutoClosingCharPattern };
+type AutoClosingPairSame = { openOrClose: AutoClosingCharPattern };
+type AutoClosingPair = AutoClosingPairDifferent | AutoClosingPairSame;
 
-export const autoClosingPairs = [
-  ["(", ")"],
-  ["[", "]"],
-  ["{", "}"],
-  ["'", "'"],
-  ['"', '"'],
-  ["`", "`"],
+// FIXME: use syntax parser instead
+export const autoClosingPairs: AutoClosingPair[] = [
+  {
+    open: {
+      chars: "(",
+      reg: /\(/,
+    },
+    close: {
+      chars: ")",
+      reg: /\)/,
+    },
+  },
+  {
+    open: {
+      chars: "[",
+      reg: /\[/,
+    },
+    close: {
+      chars: "]",
+      reg: /\]/,
+    },
+  },
+  {
+    open: {
+      chars: "{",
+      reg: /\{/,
+    },
+    close: {
+      chars: "}",
+      reg: /\}/,
+    },
+  },
+  {
+    open: {
+      chars: "<",
+      reg: /<(?=\w)/,
+    },
+    close: {
+      chars: "/>",
+      reg: /\/>/,
+    },
+  },
+  {
+    open: {
+      chars: "<",
+      reg: /<(?=[/\w])/,
+    },
+    close: {
+      chars: ">",
+      reg: />/,
+    },
+  },
+  {
+    openOrClose: {
+      chars: '"',
+      reg: /"/,
+    },
+  },
+  {
+    openOrClose: {
+      chars: "'",
+      reg: /'/,
+    },
+  },
+  {
+    openOrClose: {
+      chars: "`",
+      reg: /`/,
+    },
+  },
 ];
 
-export const autoClosingPairOpenings = autoClosingPairs.map((pair) => pair[0]);
-export const autoClosingPairClosings = autoClosingPairs.map((pair) => pair[1]);
+export const regOnlyAutoClosingCloseChars = /^([)\]}>"'`]|(\/>))*$/g;
 
 // FIXME: This function is not good enough, it can not handle escaped characters.
-export function findUnpairedAutoClosingChars(input: string): string {
+export function findUnpairedAutoClosingChars(input: string): string[] {
   const stack: string[] = [];
-
-  for (const char of input) {
-    [
-      ["(", ")"],
-      ["[", "]"],
-      ["{", "}"],
-    ].forEach((pair) => {
-      if (char === pair[1]) {
-        if (stack.length > 0 && stack[stack.length - 1] === pair[0]) {
+  let index = 0;
+  while (index < input.length) {
+    const remain = input.slice(index);
+    let nextFound: {
+      index: number;
+      found: { pair: AutoClosingPair; pos: AutoClosingCharPosition; pattern: AutoClosingCharPattern } | undefined;
+    } = {
+      index: remain.length,
+      found: undefined,
+    };
+    autoClosingPairs.forEach((pair) => {
+      Object.entries(pair).forEach(([pos, pattern]) => {
+        const match = remain.match(pattern.reg);
+        if (match && match.index !== undefined && match.index < nextFound.index) {
+          nextFound = {
+            index: match.index,
+            found: { pair, pos: pos as AutoClosingCharPosition, pattern },
+          };
+        }
+      });
+    });
+    if (!nextFound.found) {
+      break;
+    }
+    switch (nextFound.found.pos) {
+      case "openOrClose": {
+        const chars = nextFound.found.pattern.chars;
+        if (stack.length > 0 && stack.includes(chars)) {
+          stack.splice(stack.lastIndexOf(chars), stack.length - stack.lastIndexOf(chars));
+        } else {
+          stack.push(chars);
+        }
+        break;
+      }
+      case "open": {
+        stack.push(nextFound.found.pattern.chars);
+        break;
+      }
+      case "close": {
+        const pair = nextFound.found.pair;
+        if (stack.length > 0 && "open" in pair && stack[stack.length - 1] === pair.open.chars) {
           stack.pop();
         } else {
-          stack.push(char);
+          stack.push(nextFound.found.pattern.chars);
         }
+        break;
       }
-    });
-    if ("([{".includes(char)) {
-      stack.push(char);
     }
-    ["'", '"', "`"].forEach((quote) => {
-      if (char === quote) {
-        if (stack.length > 0 && stack.includes(quote)) {
-          stack.splice(stack.lastIndexOf(quote), stack.length - stack.lastIndexOf(quote));
-        } else {
-          stack.push(char);
-        }
-      }
-    });
+    index += nextFound.index + nextFound.found.pattern.chars.length;
   }
-  return stack.join("");
+  return stack;
 }
 
 // Using string levenshtein distance is not good, because variable name may create a large distance.

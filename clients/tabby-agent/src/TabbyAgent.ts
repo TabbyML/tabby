@@ -110,12 +110,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     }
 
-    if (oldConfig.completion.timeout !== this.config.completion.timeout) {
-      this.completionProviderStats.updateConfigByRequestTimeout(this.config.completion.timeout);
-      this.popIssue("slowCompletionResponseTime");
-      this.popIssue("highCompletionTimeoutRate");
-    }
-
     const event: AgentEvent = { event: "configUpdated", config: this.config };
     this.logger.debug({ event }, "Config updated");
     super.emit("configUpdated", event);
@@ -210,19 +204,24 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return abortSignalFromAnyOf([AbortSignal.timeout(timeout), options?.signal]);
   }
 
-  private async healthCheck(options?: AbortSignalOption): Promise<void> {
+  private async healthCheck(options?: { signal?: AbortSignal; method?: "GET" | "POST" }): Promise<void> {
     const requestId = uuid();
     const requestPath = "/v1/health";
     const requestUrl = this.config.server.endpoint + requestPath;
     const requestOptions = {
-      signal: this.createAbortSignal(options),
+      signal: this.createAbortSignal({ signal: options?.signal }),
     };
     try {
       if (!this.api) {
         throw new Error("http client not initialized");
       }
       this.logger.debug({ requestId, requestOptions, url: requestUrl }, "Health check request");
-      const response = await this.api.GET(requestPath, requestOptions);
+      let response;
+      if (options?.method === "POST") {
+        response = await this.api.POST(requestPath, requestOptions);
+      } else {
+        response = await this.api.GET(requestPath, requestOptions);
+      }
       if (response.error || !response.response.ok) {
         throw new HttpError(response.response);
       }
@@ -241,7 +240,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     } catch (error) {
       this.serverHealthState = undefined;
-      if (error instanceof HttpError && [401, 403, 405].includes(error.status)) {
+      if (error instanceof HttpError && error.status == 405 && options?.method !== "POST") {
+        return await this.healthCheck({ method: "POST" });
+      } else if (error instanceof HttpError && [401, 403].includes(error.status)) {
         this.logger.debug({ requestId, error }, "Health check error: unauthorized");
         this.changeStatus("unauthorized");
       } else {
@@ -502,10 +503,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
                 segments,
                 user: this.auth?.user,
               },
-              signal: this.createAbortSignal({
-                signal,
-                timeout: this.config.completion.timeout,
-              }),
+              signal: this.createAbortSignal({ signal }),
             };
             this.logger.debug(
               { requestId, requestOptions, url: this.config.server.endpoint + requestPath },

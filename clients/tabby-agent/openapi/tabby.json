@@ -4,7 +4,7 @@
     "title": "Tabby Server",
     "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)\n[![Join Slack](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)\n\nInstall following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).\n* [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=RumiCode.rumicode), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/rumicode)\n* [VIM Extension](https://github.com/TabbyML/tabby/tree/main/clients/vim)\n* [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij) – Install from the [marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)\n",
     "license": { "name": "Apache 2.0", "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE" },
-    "version": "0.5.5"
+    "version": "0.7.0"
   },
   "servers": [{ "url": "/", "description": "Server" }],
   "paths": {
@@ -22,7 +22,8 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompletionResponse" } } }
           },
           "400": { "description": "Bad Request" }
-        }
+        },
+        "security": [{ "token": [] }]
       }
     },
     "/v1/events": {
@@ -33,7 +34,8 @@
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LogEventRequest" } } },
           "required": true
         },
-        "responses": { "200": { "description": "Success" }, "400": { "description": "Bad Request" } }
+        "responses": { "200": { "description": "Success" }, "400": { "description": "Bad Request" } },
+        "security": [{ "token": [] }]
       }
     },
     "/v1/health": {
@@ -45,7 +47,27 @@
             "description": "Success",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthState" } } }
           }
-        }
+        },
+        "security": [{ "token": [] }]
+      }
+    },
+    "/v1beta/chat/completions": {
+      "post": {
+        "tags": ["v1beta"],
+        "operationId": "chat_completions",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatCompletionRequest" } } },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": { "text/event-stream": { "schema": { "$ref": "#/components/schemas/ChatCompletionChunk" } } }
+          },
+          "405": { "description": "When chat model is not specified, the endpoint returns 405 Method Not Allowed" },
+          "422": { "description": "When the prompt is malformed, the endpoint returns 422 Unprocessable Entity" }
+        },
+        "security": [{ "token": [] }]
       }
     },
     "/v1beta/search": {
@@ -73,12 +95,56 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SearchResponse" } } }
           },
           "501": { "description": "When code search is not enabled, the endpoint will returns 501 Not Implemented" }
-        }
+        },
+        "security": [{ "token": [] }]
       }
     }
   },
   "components": {
     "schemas": {
+      "ChatCompletionChoice": {
+        "type": "object",
+        "required": ["index", "delta"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 0.0 },
+          "logprobs": { "type": "string", "nullable": true },
+          "finish_reason": { "type": "string", "nullable": true },
+          "delta": { "$ref": "#/components/schemas/ChatCompletionDelta" }
+        }
+      },
+      "ChatCompletionChunk": {
+        "type": "object",
+        "required": ["id", "created", "system_fingerprint", "object", "model", "choices"],
+        "properties": {
+          "id": { "type": "string" },
+          "created": { "type": "integer", "format": "int64", "minimum": 0.0 },
+          "system_fingerprint": { "type": "string" },
+          "object": { "type": "string" },
+          "model": { "type": "string" },
+          "choices": { "type": "array", "items": { "$ref": "#/components/schemas/ChatCompletionChoice" } }
+        }
+      },
+      "ChatCompletionDelta": {
+        "type": "object",
+        "required": ["content"],
+        "properties": { "content": { "type": "string" } }
+      },
+      "ChatCompletionRequest": {
+        "type": "object",
+        "required": ["messages"],
+        "properties": {
+          "messages": { "type": "array", "items": { "$ref": "#/components/schemas/Message" } },
+          "temperature": { "type": "number", "format": "float", "nullable": true },
+          "seed": { "type": "integer", "format": "int64", "nullable": true, "minimum": 0.0 }
+        },
+        "example": {
+          "messages": [
+            { "role": "user", "content": "What is tail recursion?" },
+            { "role": "assistant", "content": "It's a kind of optimization in compiler?" },
+            { "role": "user", "content": "Could you share more details?" }
+          ]
+        }
+      },
       "Choice": {
         "type": "object",
         "required": ["index", "text"],
@@ -102,7 +168,20 @@
             "description": "A unique identifier representing your end-user, which can help Tabby to monitor & generating\nreports.",
             "nullable": true
           },
-          "debug_options": { "allOf": [{ "$ref": "#/components/schemas/DebugOptions" }], "nullable": true }
+          "debug_options": { "allOf": [{ "$ref": "#/components/schemas/DebugOptions" }], "nullable": true },
+          "temperature": {
+            "type": "number",
+            "format": "float",
+            "description": "The temperature parameter for the model, used to tune variance and \"creativity\" of the model output",
+            "nullable": true
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The seed used for randomly selecting tokens",
+            "nullable": true,
+            "minimum": 0.0
+          }
         },
         "example": {
           "language": "python",
@@ -117,7 +196,7 @@
           "choices": { "type": "array", "items": { "$ref": "#/components/schemas/Choice" } },
           "debug_data": { "allOf": [{ "$ref": "#/components/schemas/DebugData" }], "nullable": true }
         },
-        "example": { "choices": [{ "index": 0, "text": "string" }], "id": "string" }
+        "example": { "id": "string", "choices": [{ "index": 0, "text": "string" }] }
       },
       "DebugData": {
         "type": "object",
@@ -144,9 +223,9 @@
       },
       "HealthState": {
         "type": "object",
-        "required": ["model", "device", "arch", "cpu_info", "cpu_count", "cuda_devices", "version"],
+        "required": ["device", "arch", "cpu_info", "cpu_count", "cuda_devices", "version"],
         "properties": {
-          "model": { "type": "string" },
+          "model": { "type": "string", "nullable": true },
           "chat_model": { "type": "string", "nullable": true },
           "device": { "type": "string" },
           "arch": { "type": "string" },
@@ -181,10 +260,21 @@
         "type": "object",
         "required": ["type", "completion_id", "choice_index"],
         "properties": {
-          "type": { "type": "string", "description": "Event type, should be `view` or `select`.", "example": "view" },
+          "type": {
+            "type": "string",
+            "description": "Event type, should be `view`, `select` or `dismiss`.",
+            "example": "view"
+          },
           "completion_id": { "type": "string" },
-          "choice_index": { "type": "integer", "format": "int32", "minimum": 0.0 }
+          "choice_index": { "type": "integer", "format": "int32", "minimum": 0.0 },
+          "view_id": { "type": "string", "nullable": true },
+          "elapsed": { "type": "integer", "format": "int32", "nullable": true, "minimum": 0.0 }
         }
+      },
+      "Message": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": { "role": { "type": "string" }, "content": { "type": "string" } }
       },
       "SearchResponse": {
         "type": "object",
@@ -202,6 +292,11 @@
           "suffix": {
             "type": "string",
             "description": "Content that appears after the cursor in the editor window.",
+            "nullable": true
+          },
+          "clipboard": {
+            "type": "string",
+            "description": "Clipboard content when requesting code completion.",
             "nullable": true
           }
         }
@@ -225,6 +320,7 @@
           "git_describe": { "type": "string" }
         }
       }
-    }
+    },
+    "securitySchemes": { "token": { "type": "http", "scheme": "bearer", "bearerFormat": "token" } }
   }
 }

@@ -186,6 +186,11 @@
         "command": "rumicode.inlineCompletion.acceptNextLine",
         "key": "tab",
         "when": "config.rumicode.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorTabMovesFocus"
+      },
+      {
+        "command": "tabby.inlineCompletion.dismiss",
+        "key": "escape",
+        "when": "inlineSuggestionVisible"
       }
     ]
   },

@@ -3,6 +3,7 @@ import { defineConfig } from "tsup";
 import { copy } from "esbuild-plugin-copy";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
 import { dependencies } from "./package.json";
+import dedent from "dedent";
 
 function markSideEffects(value: boolean, packages: string[]): Plugin {
   return {
@@ -80,6 +81,15 @@ export default async () => [
     treeshake: "smallest",
     minify: true,
     sourcemap: true,
+    banner: {
+      js: dedent`
+        /**
+         * Tabby Agent
+         * https://github.com/tabbyml/tabby/tree/main/clients/tabby-agent
+         * Copyright (c) 2023-2024 TabbyML, Inc.
+         * Licensed under the Apache License 2.0.
+         */`,
+    },
     esbuildPlugins: [
       copy({
         assets: [

@@ -12,6 +12,11 @@ export interface paths {
   };
   "/v1/health": {
     get: operations["health"];
+    // back compatible for Tabby server 0.2.x and earlier
+    post: operations["health"];
+  };
+  "/v1beta/chat/completions": {
+    post: operations["chat_completions"];
   };
   "/v1beta/search": {
     get: operations["search"];
@@ -22,6 +27,49 @@ export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
+    ChatCompletionChoice: {
+      index: number;
+      logprobs?: string | null;
+      finish_reason?: string | null;
+      delta: components["schemas"]["ChatCompletionDelta"];
+    };
+    ChatCompletionChunk: {
+      id: string;
+      /** Format: int64 */
+      created: number;
+      system_fingerprint: string;
+      object: string;
+      model: string;
+      choices: components["schemas"]["ChatCompletionChoice"][];
+    };
+    ChatCompletionDelta: {
+      content: string;
+    };
+    /**
+     * @example {
+     *   "messages": [
+     *     {
+     *       "role": "user",
+     *       "content": "What is tail recursion?"
+     *     },
+     *     {
+     *       "role": "assistant",
+     *       "content": "It's a kind of optimization in compiler?"
+     *     },
+     *     {
+     *       "role": "user",
+     *       "content": "Could you share more details?"
+     *     }
+     *   ]
+     * }
+     */
+    ChatCompletionRequest: {
+      messages: components["schemas"]["Message"][];
+      /** Format: float */
+      temperature?: number | null;
+      /** Format: int64 */
+      seed?: number | null;
+    };
     Choice: {
       /** Format: int32 */
       index: number;
@@ -50,16 +98,26 @@ export interface components {
        */
       user?: string | null;
       debug_options?: components["schemas"]["DebugOptions"] | null;
+      /**
+       * Format: float
+       * @description The temperature parameter for the model, used to tune variance and "creativity" of the model output
+       */
+      temperature?: number | null;
+      /**
+       * Format: int64
+       * @description The seed used for randomly selecting tokens
+       */
+      seed?: number | null;
     };
     /**
      * @example {
+     *   "id": "string",
      *   "choices": [
      *     {
      *       "index": 0,
      *       "text": "string"
      *     }
-     *   ],
-     *   "id": "string"
+     *   ]
      * }
      */
     CompletionResponse: {
@@ -86,7 +144,7 @@ export interface components {
       disable_retrieval_augmented_code_completion?: boolean;
     };
     HealthState: {
-      model: string;
+      model?: string | null;
       chat_model?: string | null;
       device: string;
       arch: string;
@@ -112,13 +170,20 @@ export interface components {
     };
     LogEventRequest: {
       /**
-       * @description Event type, should be `view` or `select`.
+       * @description Event type, should be `view`, `select` or `dismiss`.
        * @example view
        */
       type: string;
       completion_id: string;
       /** Format: int32 */
       choice_index: number;
+      view_id?: string | null;
+      /** Format: int32 */
+      elapsed?: number | null;
+    };
+    Message: {
+      role: string;
+      content: string;
     };
     SearchResponse: {
       num_hits: number;
@@ -129,6 +194,8 @@ export interface components {
       prefix: string;
       /** @description Content that appears after the cursor in the editor window. */
       suffix?: string | null;
+      /** @description Clipboard content when requesting code completion. */
+      clipboard?: string | null;
     };
     Snippet: {
       filepath: string;
@@ -203,6 +270,29 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HealthState"];
         };
+      };
+    };
+  };
+  chat_completions: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChatCompletionRequest"];
+      };
+    };
+    responses: {
+      /** @description Success */
+      200: {
+        content: {
+          "text/event-stream": components["schemas"]["ChatCompletionChunk"];
+        };
+      };
+      /** @description When chat model is not specified, the endpoint returns 405 Method Not Allowed */
+      405: {
+        content: never;
+      };
+      /** @description When the prompt is malformed, the endpoint returns 422 Unprocessable Entity */
+      422: {
+        content: never;
       };
     };
   };

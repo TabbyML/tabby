@@ -1,4 +1,4 @@
-import { splitLines, autoClosingPairClosings } from "./utils";
+import { splitLines, regOnlyAutoClosingCloseChars } from "./utils";
 import hashObject from "object-hash";
 
 export type CompletionRequest = {
@@ -37,10 +37,7 @@ export type CompletionResponse = {
 };
 
 function isAtLineEndExcludingAutoClosedChar(suffix: string) {
-  return suffix
-    .trimEnd()
-    .split("")
-    .every((char) => autoClosingPairClosings.includes(char));
+  return suffix.trimEnd().match(regOnlyAutoClosingCloseChars);
 }
 
 export class CompletionContext {

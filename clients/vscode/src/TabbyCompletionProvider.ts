@@ -27,6 +27,12 @@ const getContextRetrieverStrategy = (): ContextStrategy =>
 const createContextMixer = (context: ExtensionContext) =>
   new ContextMixer(new DefaultContextStrategyFactory(getContextRetrieverStrategy(), context));
 
+type DisplayedCompletion = {
+  id: string;
+  completion: CompletionResponse;
+  displayedAt: number;
+};
+
 export class TabbyCompletionProvider extends EventEmitter implements InlineCompletionItemProvider {
   #context: ExtensionContext;
   private triggerMode: "automatic" | "manual" | "disabled" = "automatic";
@@ -41,6 +47,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
   private loading: boolean = false;
   private latestCompletions: CompletionResponse | null = null;
   private contextMixer?: ContextMixer;
+  private displayedCompletion: DisplayedCompletion | null = null;
 
   public constructor(context: ExtensionContext) {
     super();
@@ -73,8 +80,23 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
   ): Promise<InlineCompletionItem[] | null> {
     console.debug("Call provideInlineCompletionItems.");
 
+    if (this.displayedCompletion) {
+      // auto dismiss by new completion
+      this.handleEvent("dismiss");
+    }
+
     if (context.triggerKind === InlineCompletionTriggerKind.Automatic && this.triggerMode === "manual") {
       console.debug("Skip automatic trigger when triggerMode is manual.");
+      return null;
+    }
+
+    // Skip when trigger automatically and text selected
+    if (
+      context.triggerKind === InlineCompletionTriggerKind.Automatic &&
+      window.activeTextEditor &&
+      !window.activeTextEditor.selection.isEmpty
+    ) {
+      console.debug("Text selected, skipping.");
       return null;
     }
 
@@ -151,10 +173,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
 
       // Assume only one choice is provided, do not support multiple choices for now
       if (result.choices.length > 0) {
-        this.latestCompletions = result;
         const choice = result.choices[0]!;
-
-        this.postEvent("show");
+        this.handleEvent("show", result);
 
         return [
           new InlineCompletionItem(
@@ -168,7 +188,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
               command: "rumicode.applyCallback",
               arguments: [
                 () => {
-                  this.postEvent("accept");
+                  this.handleEvent("accept");
                 },
               ],
             },
@@ -189,32 +209,65 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     return null;
   }
 
-  public postEvent(event: "show" | "accept" | "accept_word" | "accept_line") {
-    const completion = this.latestCompletions;
-    if (completion && completion.choices.length > 0) {
-      let postBody: LogEventRequest = {
-        type: event === "show" ? "view" : "select",
+  public handleEvent(
+    event: "show" | "accept" | "dismiss" | "accept_word" | "accept_line",
+    completion?: CompletionResponse,
+  ) {
+    if (event === "show" && completion) {
+      const cmplId = completion.id.replace("cmpl-", "");
+      const timestamp = Date.now();
+      this.displayedCompletion = {
+        id: `view-${cmplId}-at-${timestamp}`,
+        completion,
+        displayedAt: timestamp,
+      };
+      this.postEvent(event, this.displayedCompletion);
+    } else if (this.displayedCompletion) {
+      this.postEvent(event, this.displayedCompletion);
+      this.displayedCompletion = null;
+    }
+  }
+
+  private postEvent(
+    event: "show" | "accept" | "dismiss" | "accept_word" | "accept_line",
+    displayedCompletion: DisplayedCompletion,
+  ) {
+    const { id, completion, displayedAt } = displayedCompletion;
+    const elapsed = Date.now() - displayedAt;
+    let eventData: { type: string; select_kind?: "line"; elapsed?: number };
+    switch (event) {
+      case "show":
+        eventData = { type: "view" };
+        break;
+      case "accept":
+        eventData = { type: "select", elapsed };
+        break;
+      case "dismiss":
+        eventData = { type: "dismiss", elapsed };
+        break;
+      case "accept_word":
+        // select_kind should be "word" but not supported by Tabby Server yet, use "line" instead
+        eventData = { type: "select", select_kind: "line", elapsed };
+        break;
+      case "accept_line":
+        eventData = { type: "select", select_kind: "line", elapsed };
+        break;
+      default:
+        // unknown event type, should be unreachable
+        return;
+    }
+    try {
+      const postBody: LogEventRequest = {
+        ...eventData,
         completion_id: completion.id,
         // Assume only one choice is provided for now
         choice_index: completion.choices[0]!.index,
+        view_id: id,
       };
-      switch (event) {
-        case "accept_word":
-          // select_kind should be "word" but not supported by Tabby Server yet, use "line" instead
-          postBody = { ...postBody, select_kind: "line" };
-          break;
-        case "accept_line":
-          postBody = { ...postBody, select_kind: "line" };
-          break;
-        default:
-          break;
-      }
       console.debug(`Post event ${event}`, { postBody });
-      try {
-        agent().postEvent(postBody);
-      } catch (error: any) {
-        console.debug("Error when posting event", { error });
-      }
+      agent().postEvent(postBody);
+    } catch (error: any) {
+      console.debug("Error when posting event", { error });
     }
   }
 
@@ -275,12 +328,10 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       // Add all the cells in the notebook as context
       const notebook = window.activeNotebookEditor.notebook;
       const current = window.activeNotebookEditor.selection.start;
-      const prefix = this.buildNotebookContext(notebook, new NotebookRange(0, current), document.languageId);
-      const suffix = this.buildNotebookContext(
-        notebook,
-        new NotebookRange(current + 1, notebook.cellCount),
-        document.languageId,
-      );
+      const prefix = this.buildNotebookContext(notebook, new NotebookRange(0, current), document.languageId) + "\n\n";
+      const suffix =
+        "\n\n" +
+        this.buildNotebookContext(notebook, new NotebookRange(current + 1, notebook.cellCount), document.languageId);
       return { prefix, suffix };
     }
     return { prefix: "", suffix: "" };
@@ -300,13 +351,13 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       .getCells(range)
       .map((cell) => {
         if (cell.document.languageId === languageId) {
-          return cell.document.getText() + "\n\n";
+          return cell.document.getText();
         } else if (Object.keys(this.notebookLanguageComments).includes(languageId)) {
-          return this.notebookLanguageComments[languageId]!(cell.document.getText()) + "\n\n";
+          return this.notebookLanguageComments[languageId]!(cell.document.getText());
         } else {
           return "";
         }
       })
-      .join("");
+      .join("\n\n");
   }
 }

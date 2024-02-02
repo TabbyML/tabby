@@ -1,7 +1,7 @@
 import { LRUCache } from "lru-cache";
 import { CompletionContext, CompletionResponse } from "./CompletionContext";
 import { rootLogger } from "./logger";
-import { splitLines, autoClosingPairOpenings, autoClosingPairClosings, findUnpairedAutoClosingChars } from "./utils";
+import { splitLines, autoClosingPairs, findUnpairedAutoClosingChars } from "./utils";
 
 type CompletionCacheKey = CompletionContext;
 type CompletionCacheValue = CompletionResponse;
@@ -173,27 +173,37 @@ export class CompletionCache {
     return result;
   }
 
+  // FIXME: add unit tests
   // "function(" => ["function()"]
   // "call([" => ["call([]", "call([])" ]
   // "function(arg" => ["function(arg)" ]
   private generateAutoClosedPrefixes(prefix: string): string[] {
     const result: string[] = [];
     const unpaired = findUnpairedAutoClosingChars(prefix);
-    for (
-      let checkIndex = 0, autoClosing = "";
-      checkIndex < this.options.prebuildCache.autoClosingPairCheck.max;
-      checkIndex++
-    ) {
-      if (unpaired.length > checkIndex) {
-        const found = autoClosingPairOpenings.indexOf(unpaired[unpaired.length - 1 - checkIndex]);
-        if (found < 0) {
-          break;
-        }
-        autoClosing = autoClosing + autoClosingPairClosings[found];
-        result.push(prefix + autoClosing);
-      } else {
-        break;
-      }
+    let checkIndex = 0;
+    let autoClosing = "";
+    while (checkIndex < unpaired.length && checkIndex < this.options.prebuildCache.autoClosingPairCheck.max) {
+      autoClosingPairs
+        .filter((pair) => {
+          let pattern;
+          if ("open" in pair) {
+            pattern = pair.open;
+          } else {
+            pattern = pair.openOrClose;
+          }
+          return pattern.chars === unpaired[unpaired.length - 1 - checkIndex];
+        })
+        .forEach((pair) => {
+          let pattern;
+          if ("close" in pair) {
+            pattern = pair.close;
+          } else {
+            pattern = pair.openOrClose;
+          }
+          autoClosing += pattern.chars;
+          result.push(prefix + autoClosing);
+        });
+      checkIndex++;
     }
     return result;
   }

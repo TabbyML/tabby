@@ -1,4 +1,4 @@
-# Tabby agent
+# Tabby Agent
 
 The Tabby Agent is an agent used for communication with the Tabby server. It is based on Node.js v18 and implements several common features to enhance code completion, including caching, debouncing, and post-processing.
 
