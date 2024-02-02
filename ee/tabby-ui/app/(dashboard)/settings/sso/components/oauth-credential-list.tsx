@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { compact } from 'lodash-es'
+import { compact, find } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -13,6 +13,9 @@ import {
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+
+import { PROVIDER_METAS } from './constant'
+import { SSOHeader } from './sso-header'
 
 export const oauthCredential = graphql(/* GraphQL */ `
   query OAuthCredential($provider: OAuthProvider!) {
@@ -27,7 +30,7 @@ export const oauthCredential = graphql(/* GraphQL */ `
   }
 `)
 
-const OauthCredentialList = () => {
+const OAuthCredentialList = () => {
   const [{ data: githubData, fetching: fetchingGithub }] = useQuery({
     query: oauthCredential,
     variables: { provider: OAuthProvider.Github }
@@ -45,20 +48,18 @@ const OauthCredentialList = () => {
   if (!credentialList?.length) {
     return (
       <div>
-        <CardTitle className="mb-6 flex items-center justify-between">
-          OAuth Credentials
-        </CardTitle>
+        <SSOHeader />
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-8">
-            <Skeleton className="h-[180px] rounded-xl" />
-            <Skeleton className="h-[180px] rounded-xl" />
+          <div className="flex flex-col gap-8">
+            <Skeleton className="h-[180px] w-full rounded-xl" />
+            <Skeleton className="h-[180px] w-full rounded-xl" />
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4 rounded-lg border-4 border-dashed py-8">
             <div>No Data</div>
             <div className="flex justify-center">
               <Link
-                href="/sso/new"
+                href="/settings/sso/new"
                 className={buttonVariants({ variant: 'default' })}
               >
                 Create
@@ -72,18 +73,19 @@ const OauthCredentialList = () => {
 
   return (
     <div>
-      <CardTitle className="mb-6 flex items-center justify-between">
-        <span>OAuth Credentials</span>
-        {credentialList.length < 2 && (
-          <Link
-            href="/sso/new"
-            className={buttonVariants({ variant: 'default' })}
-          >
-            Create
-          </Link>
-        )}
-      </CardTitle>
-      <div className="grid grid-cols-2 gap-8">
+      <SSOHeader
+        extra={
+          credentialList.length < 2 ? (
+            <Link
+              href="/settings/sso/new"
+              className={buttonVariants({ variant: 'default' })}
+            >
+              Create
+            </Link>
+          ) : null
+        }
+      />
+      <div className="flex flex-col gap-8">
         {credentialList.map(credential => {
           return (
             <OauthCredentialCard key={credential.provider} data={credential} />
@@ -99,6 +101,9 @@ const OauthCredentialCard = ({
 }: {
   data: OAuthCredentialQuery['oauthCredential']
 }) => {
+  const meta = React.useMemo(() => {
+    return find(PROVIDER_METAS, { enum: data?.provider })?.meta
+  }, [data])
   return (
     <Card>
       <CardHeader className="border-b p-4">
@@ -107,7 +112,7 @@ const OauthCredentialCard = ({
             {data?.provider?.toLocaleLowerCase()}
           </CardTitle>
           <Link
-            href={`/sso/detail/${data?.provider.toLowerCase()}`}
+            href={`/settings/sso/detail/${data?.provider.toLowerCase()}`}
             className={buttonVariants({ variant: 'secondary' })}
           >
             View
@@ -120,12 +125,12 @@ const OauthCredentialCard = ({
           <span>OAuth 2.0</span>
         </div>
         <div className="flex py-3">
-          <span className="w-[100px] shrink-0">Client ID</span>
-          <span className="truncate">{data?.clientId}</span>
+          <span className="w-[100px] shrink-0">Domain</span>
+          <span className="truncate">{meta?.domain}</span>
         </div>
       </CardContent>
     </Card>
   )
 }
 
-export { OauthCredentialList }
+export { OAuthCredentialList as OauthCredentialList }

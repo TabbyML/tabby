@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { isEmpty } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -52,6 +54,7 @@ export type OAuthCredentialFormValues = z.infer<typeof formSchema>
 
 interface OAuthCredentialFormProps
   extends React.HTMLAttributes<HTMLDivElement> {
+  isNew?: boolean
   provider?: OAuthProvider
   defaultValues?: Partial<OAuthCredentialFormValues> | undefined
   onSuccess?: (formValues: OAuthCredentialFormValues) => void
@@ -59,24 +62,26 @@ interface OAuthCredentialFormProps
 
 export default function OAuthCredentialForm({
   className,
+  isNew,
   provider,
   defaultValues,
   onSuccess,
   ...props
 }: OAuthCredentialFormProps) {
+  const router = useRouter()
   const formatedDefaultValues = React.useMemo(() => {
     return {
-      ...(defaultValues || {}),
-      provider
+      provider: OAuthProvider.Github,
+      ...(defaultValues || {})
     }
   }, [])
-  const isNew = !defaultValues
 
   const form = useForm<OAuthCredentialFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: formatedDefaultValues
   })
   const providerValue = form.watch('provider')
+  const isDirty = !isEmpty(form.formState.dirtyFields)
 
   const { isSubmitting } = form.formState
 
@@ -101,7 +106,10 @@ export default function OAuthCredentialForm({
     form
   })
 
-  const onSubmit = (values: OAuthCredentialFormValues) => {
+  const onSubmit = async (values: OAuthCredentialFormValues) => {
+    // todo request api to check if there is aleardy has a credencial
+    // if aleardy have, set Form Error
+
     // add redirect uri automatically
     updateOauthCredential({ ...values, redirectUri: oauthRedirectUri })
   }
@@ -110,6 +118,7 @@ export default function OAuthCredentialForm({
     <div className={cn('grid gap-6', className)} {...props}>
       <Form {...form}>
         <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <SubTitle className="mt-2">Basic information</SubTitle>
           <FormItem>
             <FormLabel>Type</FormLabel>
             <RadioGroup defaultValue="oauth">
@@ -160,6 +169,29 @@ export default function OAuthCredentialForm({
               </FormItem>
             )}
           />
+
+          <div>
+            <SubTitle>Identity provider information</SubTitle>
+            <FormDescription>
+              The information is provided by your identity provider.
+            </FormDescription>
+          </div>
+          <FormItem>
+            <div className="rounded-lg border px-3 py-2 flex flex-col gap-2">
+              <div className="text-muted-foreground text-sm">
+                Create your SSO application with the following information
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="font-medium text-sm">
+                  Authorization redirect URL
+                </div>
+                <span className="text-sm">{oauthRedirectUri}</span>
+                {!!providerValue && (
+                  <CopyButton type="button" value={oauthRedirectUri} />
+                )}
+              </div>
+            </div>
+          </FormItem>
           <FormField
             control={form.control}
             name="clientId"
@@ -170,7 +202,7 @@ export default function OAuthCredentialForm({
                   <Input
                     placeholder=""
                     autoCapitalize="none"
-                    autoComplete="email"
+                    autoComplete="off"
                     autoCorrect="off"
                     {...field}
                   />
@@ -186,44 +218,59 @@ export default function OAuthCredentialForm({
               <FormItem>
                 <FormLabel>Client Secret</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input
+                    {...field}
+                    placeholder={isNew ? undefined : 'sensitive - write only'}
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    autoCorrect="off"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormItem>
-            <FormDescription>
-              Use this to create your oauth application
-            </FormDescription>
-            <FormLabel>Authorization callback URL</FormLabel>
-            {oauthRedirectUri ? (
-              <div>
-                <div
-                  className="inline-flex items-center gap-4 rounded-lg border p-2"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <span className="text-sm">{oauthRedirectUri}</span>
-                  {!!providerValue && (
-                    <CopyButton type="button" value={oauthRedirectUri} />
-                  )}
-                </div>
-              </div>
+          <div className="flex gap-4 justify-end mt-1">
+            {isNew ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={e => router.replace('/settings/sso')}
+              >
+                Cancel
+              </Button>
             ) : (
-              <div className="text-sm text-muted-foreground">
-                Please select a provider
-              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={e => form.reset()}
+                disabled={isSubmitting || !isDirty}
+              >
+                Discard changes
+              </Button>
             )}
-          </FormItem>
-          <Button type="submit" className="mt-1" disabled={isSubmitting}>
-            {isSubmitting && (
-              <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            {isNew ? 'Submit' : 'Update'}
-          </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || (!isNew && !isDirty)}
+            >
+              {isSubmitting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {isNew ? 'Create' : 'Update'}
+            </Button>
+          </div>
         </form>
         <FormMessage className="text-center" />
       </Form>
     </div>
+  )
+}
+
+function SubTitle({
+  className,
+  ...rest
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('font-semibold text-xl mt-4', className)} {...rest} />
   )
 }

@@ -33,7 +33,7 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
   }, [credential])
 
   const onSubmitSuccess = () => {
-    router.push('/sso')
+    router.push('/settings/sso')
   }
 
   return (
