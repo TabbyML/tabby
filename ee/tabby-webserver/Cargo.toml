@@ -5,6 +5,9 @@ edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
 
+[features]
+prod-db = ['tabby-db/prod-db']
+
 [dependencies]
 anyhow.workspace = true
 argon2 = "0.5.1"

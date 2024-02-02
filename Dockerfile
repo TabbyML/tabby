@@ -38,7 +38,7 @@ COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features cuda --release --package tabby && \
+    cargo build --features cuda,prod-db --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
 FROM ${BASE_CUDA_RUN_CONTAINER} as runtime

@@ -7,5 +7,12 @@ fn tabby_ee_root() -> PathBuf {
 }
 
 pub fn db_file() -> PathBuf {
-    tabby_ee_root().join("db.sqlite")
+    #[cfg(feature = "prod-db")]
+    {
+        tabby_ee_root().join("db.sqlite")
+    }
+    #[cfg(not(feature = "prod-db"))]
+    {
+        tabby_ee_root().join("dev-db.sqlite")
+    }
 }
