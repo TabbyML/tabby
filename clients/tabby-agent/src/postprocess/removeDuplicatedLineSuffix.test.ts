@@ -11,7 +11,7 @@ describe("postprocess", () => {
           console.log(ok);
         } 
         `,
-        language: "javascript",
+        language: "typescript",
       };
       const completion = inline`├ boolean }) => {┤`;
 
