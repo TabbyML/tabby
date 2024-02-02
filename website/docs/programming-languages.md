@@ -31,12 +31,12 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Kotlin](https://www.kotlinlang.org/)
 * [C/C++](https://cplusplus.com/), since v0.8.0
 * [PHP](https://www.php.net/): Since v0.8.0
+* [C#](https://learn.microsoft.com/en-us/dotnet/csharp/): Since v0.9.0
 
 ## Languages Missing Certain Support
 
 | Language | Stop Words (time to contribute: <5 min) | Repository Context (time to contribute: <1 hr) |
 | :------: | :-------------------------------------: | :--------------------------------------------: |
-|    C#    |                    🚫                    |                       🚫                        |
 |   CSS    |                    🚫                    |                       🚫                        |
 | Haskell  |                    🚫                    |                       🚫                        |
 |  Julia   |                    🚫                    |                       🚫                        |
