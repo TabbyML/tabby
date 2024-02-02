@@ -80,6 +80,8 @@ export default function OAuthCredentialForm({
     }
   }, [])
 
+  const [oauthRedirectUri, setOAuthRedirectUri] = React.useState<string>('')
+
   const form = useForm<OAuthCredentialFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: formatedDefaultValues
@@ -89,15 +91,16 @@ export default function OAuthCredentialForm({
 
   const { isSubmitting } = form.formState
 
-  const oauthRedirectUri = React.useMemo(() => {
-    if (!providerValue) return ''
-
-    let origin = window.location.origin
-    if (process.env.NODE_ENV !== 'production') {
-      origin = `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}` ?? origin
+  React.useEffect(() => {
+    if (providerValue) {
+      // FIXME  use public origin
+      let origin = window.location.origin
+      if (process.env.NODE_ENV !== 'production') {
+        origin = `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}` ?? origin
+      }
+      const uri = `${origin}/oauth/callback/${providerValue.toLowerCase()}`
+      setOAuthRedirectUri(uri)
     }
-
-    return `${origin}/oauth/callback/${providerValue.toLowerCase()}`
   }, [providerValue])
 
   const updateOauthCredential = useMutation(updateOauthCredentialMutation, {
