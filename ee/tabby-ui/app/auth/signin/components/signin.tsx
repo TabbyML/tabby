@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import useSWRImmutable from 'swr/immutable'
 
-import { saveAuthToken } from '@/lib/tabby/auth'
+import { useSignIn } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
 import { IconGithub, IconGoogle } from '@/components/ui/icons'
 
@@ -16,15 +16,18 @@ export default function Signin() {
   const accessToken = searchParams.get('access_token')
   const refreshToken = searchParams.get('refresh_token')
 
+  const shouldAutoSignin = !!accessToken && !!refreshToken
+
+  const signin = useSignIn()
   const { data }: { data?: string[] } = useSWRImmutable(
-    '/oauth/providers',
+    shouldAutoSignin ? null : '/oauth/providers',
     fetcher
   )
 
   useEffect(() => {
     if (errorMessage) return
     if (accessToken && refreshToken) {
-      saveAuthToken({ accessToken, refreshToken })
+      signin({ accessToken, refreshToken })
     }
   }, [searchParams])
 
