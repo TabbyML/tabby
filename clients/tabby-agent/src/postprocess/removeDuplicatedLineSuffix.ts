@@ -2,7 +2,7 @@ import { CompletionContext } from "../CompletionContext";
 import { PostprocessFilter } from "./base";
 
 // remove the newline suffix if last char is \n
-function trimSuffixNewline(input: string): string {
+function trimEndingNewline(input: string): string {
   return input.endsWith("\n") ? input.slice(0, -1) : input;
 }
 
@@ -29,7 +29,7 @@ export function removeDuplicatedLineSuffix(): PostprocessFilter {
   return (input: string, context: CompletionContext) => {
     // this filter is only for single line completions
     if (input.includes("\n")) return input;
-    const currentLineSuffix = trimSuffixNewline(context.currentLineSuffix);
+    const currentLineSuffix = trimEndingNewline(context.currentLineSuffix);
     return trimSimilarEndingChar(currentLineSuffix, input);
   };
 }
