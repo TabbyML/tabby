@@ -40,7 +40,7 @@ dependencies = [
 
 [[package]]
 name = "aim-downloader"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "async-stream",
  "clap",
@@ -1455,7 +1455,7 @@ dependencies = [
 
 [[package]]
 name = "http-api-bindings"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1813,7 +1813,7 @@ dependencies = [
 
 [[package]]
 name = "juniper-axum"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "axum",
  "juniper",
@@ -1958,7 +1958,7 @@ checksum = "da2479e8c062e40bf0066ffa0bc823de0a9368974af99c9f6df941d2c231e03f"
 
 [[package]]
 name = "llama-cpp-bindings"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -3766,7 +3766,7 @@ dependencies = [
 
 [[package]]
 name = "tabby"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "assert-json-diff",
@@ -3819,7 +3819,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-common"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3841,7 +3841,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-db"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -3858,7 +3858,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-download"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "aim-downloader",
  "anyhow",
@@ -3870,7 +3870,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-inference"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -3883,7 +3883,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-scheduler"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "cargo-lock",
@@ -3916,7 +3916,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-webserver"
-version = "0.8.0-rc.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "argon2",
