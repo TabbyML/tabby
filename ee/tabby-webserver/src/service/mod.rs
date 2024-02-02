@@ -21,13 +21,16 @@ use tabby_db::DbConn;
 use tracing::{info, warn};
 
 use self::{cron::run_cron, email::new_email_service};
-use crate::schema::{
-    auth::AuthenticationService,
-    email::EmailService,
-    job::JobService,
-    repository::RepositoryService,
-    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    ServiceLocator,
+use crate::{
+    public::USER_HEADER_FIELD_NAME,
+    schema::{
+        auth::AuthenticationService,
+        email::EmailService,
+        job::JobService,
+        repository::RepositoryService,
+        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+        ServiceLocator,
+    },
 };
 
 struct ServerContext {
@@ -42,9 +45,18 @@ struct ServerContext {
 }
 
 impl ServerContext {
-    pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
+    pub async fn new(
+        logger: Arc<dyn RawEventLogger>,
+        code: Arc<dyn CodeSearch>,
+        local_listen_port: u16,
+    ) -> Self {
         let db_conn = DbConn::new().await.unwrap();
-        run_cron(&db_conn, false).await;
+        run_cron(
+            &db_conn,
+            format!("http://localhost:{}", local_listen_port),
+            false,
+        )
+        .await;
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -60,41 +72,32 @@ impl ServerContext {
         }
     }
 
-    async fn authorize_request(&self, request: &Request<Body>) -> bool {
+    async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<String>) {
         let path = request.uri().path();
-        if path.starts_with("/v1/") || path.starts_with("/v1beta/") {
-            let token = {
-                let authorization = request
-                    .headers()
-                    .get("authorization")
-                    .map(HeaderValue::to_str)
-                    .and_then(Result::ok);
-
-                if let Some(authorization) = authorization {
-                    let split = authorization.split_once(' ');
-                    match split {
-                        // Found proper bearer
-                        Some(("Bearer", contents)) => Some(contents),
-                        _ => None,
-                    }
-                } else {
-                    None
-                }
-            };
-
-            if let Some(token) = token {
-                if self.db_conn.verify_access_token(token).await.is_err()
-                    && !self.db_conn.verify_auth_token(token).await
-                {
-                    return false;
-                }
-            } else {
-                // Admin system is initialized, but there's no valid token.
-                return false;
-            }
+        if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
+            return (true, None);
         }
+        let authorization = request
+            .headers()
+            .get("authorization")
+            .map(HeaderValue::to_str)
+            .and_then(Result::ok);
 
-        true
+        let token = authorization
+            .and_then(|s| s.split_once(' '))
+            .map(|(_bearer, token)| token);
+
+        let Some(token) = token else {
+            // Admin system is initialized, but there is no valid token.
+            return (false, None);
+        };
+        if let Ok(jwt) = self.db_conn.verify_access_token(token).await {
+            return (true, Some(jwt.claims.sub));
+        }
+        match self.db_conn.verify_auth_token(token).await {
+            Ok(email) => (true, Some(email)),
+            Err(_) => (false, None),
+        }
     }
 }
 
@@ -147,15 +150,23 @@ impl WorkerService for ServerContext {
 
     async fn dispatch_request(
         &self,
-        request: Request<Body>,
+        mut request: Request<Body>,
         next: Next<Body>,
     ) -> axum::response::Response {
-        if !self.authorize_request(&request).await {
+        let (auth, user) = self.authorize_request(&request).await;
+        if !auth {
             return axum::response::Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
                 .body(Body::empty())
                 .unwrap()
                 .into_response();
+        }
+
+        if let Some(user) = user {
+            request.headers_mut().append(
+                &USER_HEADER_FIELD_NAME,
+                HeaderValue::from_str(&user).expect("User must be valid header"),
+            );
         }
 
         let remote_addr = request
@@ -216,7 +227,7 @@ impl ServiceLocator for Arc<ServerContext> {
         Arc::new(self.db_conn.clone())
     }
 
-    fn email_setting(&self) -> Arc<dyn EmailService> {
+    fn email(&self) -> Arc<dyn EmailService> {
         self.mail_service.clone()
     }
 }
@@ -224,8 +235,11 @@ impl ServiceLocator for Arc<ServerContext> {
 pub async fn create_service_locator(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
+    local_listen_port: u16,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(Arc::new(ServerContext::new(logger, code).await))
+    Arc::new(Arc::new(
+        ServerContext::new(logger, code, local_listen_port).await,
+    ))
 }
 
 pub fn graphql_pagination_to_filter(

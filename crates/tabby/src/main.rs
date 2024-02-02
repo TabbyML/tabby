@@ -5,10 +5,12 @@ mod services;
 mod download;
 mod serve;
 
+mod job;
 #[cfg(feature = "ee")]
 mod worker;
 
 use clap::{Parser, Subcommand};
+use job::{start_index_job, start_sync_job, JobArgs};
 use opentelemetry::{
     global,
     sdk::{propagation::TraceContextPropagator, trace, trace::Sampler, Resource},
@@ -54,12 +56,12 @@ pub enum Commands {
     /// Execute the repository sync job.
     #[cfg(feature = "ee")]
     #[clap(name = "job::sync")]
-    JobSync,
+    JobSync(JobArgs),
 
     /// Execute the index job.
     #[cfg(feature = "ee")]
     #[clap(name = "job::index")]
-    JobIndex,
+    JobIndex(JobArgs),
 }
 
 #[derive(clap::Args)]
@@ -125,22 +127,22 @@ async fn main() {
 
     let config = Config::load().unwrap_or_default();
 
-    match &cli.command {
-        Commands::Serve(args) => serve::main(&config, args).await,
-        Commands::Download(args) => download::main(args).await,
-        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now, &config)
+    match cli.command {
+        Commands::Serve(ref args) => serve::main(&config, args).await,
+        Commands::Download(ref args) => download::main(args).await,
+        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now, config.repositories)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
         #[cfg(feature = "ee")]
-        Commands::JobSync => tabby_scheduler::job_sync(&config),
+        Commands::JobSync(args) => start_sync_job(args, &config).await,
         #[cfg(feature = "ee")]
-        Commands::JobIndex => tabby_scheduler::job_index(&config),
+        Commands::JobIndex(args) => start_index_job(args, &config).await,
         #[cfg(feature = "ee")]
-        Commands::WorkerCompletion(args) => {
+        Commands::WorkerCompletion(ref args) => {
             worker::main(tabby_webserver::public::WorkerKind::Completion, args).await
         }
         #[cfg(feature = "ee")]
-        Commands::WorkerChat(args) => {
+        Commands::WorkerChat(ref args) => {
             worker::main(tabby_webserver::public::WorkerKind::Chat, args).await
         }
     }

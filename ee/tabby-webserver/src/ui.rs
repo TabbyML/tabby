@@ -15,8 +15,19 @@ where
     T: Into<String>,
 {
     fn into_response(self) -> Response {
+        let make_404_response = || {
+            Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(boxed(Full::from(WebAssets::get("404.html").unwrap().data)))
+                .unwrap_or_else(|_| panic!("Invalid response"))
+        };
+
         let path = self.0.into();
-        match WebAssets::get(path.as_str()) {
+        let Ok(decoded_path) = urlencoding::decode(&path) else {
+            return make_404_response();
+        };
+
+        match WebAssets::get(decoded_path.as_ref()) {
             Some(content) => {
                 let body = boxed(Full::from(content.data));
                 let mime = mime_guess::from_path(path).first_or_octet_stream();
@@ -25,10 +36,7 @@ where
                     .body(body)
                     .unwrap_or_else(|_| panic!("Invalid response"))
             }
-            None => Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(boxed(Full::from(WebAssets::get("404.html").unwrap().data)))
-                .unwrap_or_else(|_| panic!("Invalid response")),
+            None => make_404_response(),
         }
     }
 }

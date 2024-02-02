@@ -26,10 +26,25 @@ where
         }
     }
 
-    pub fn build_connection(nodes: Vec<Node>, first: Option<usize>, last: Option<usize>) -> Self {
-        let has_next_page = first.map_or(false, |first| nodes.len() > first);
-        let has_previous_page = last.map_or(false, |last| nodes.len() > last);
+    pub fn build_connection(
+        nodes: Vec<Node>,
+        after: bool,
+        before: bool,
+        first: Option<usize>,
+        last: Option<usize>,
+    ) -> Self {
+        let selected_count = first.or(last).unwrap_or(nodes.len());
         let len = nodes.len();
+        let has_next_page = if last.is_some() {
+            before
+        } else {
+            selected_count < len
+        };
+        let has_previous_page = if last.is_some() {
+            selected_count < len
+        } else {
+            after
+        };
 
         let edges: Vec<_> = if let Some(last) = last {
             nodes

@@ -1,3 +1,32 @@
+## 1.3.2
+
+### Fixes:
+
+- Disabled experimental features by default:
+  - Stripping auto-closing characters in prompt suffix.
+  - Syntax-based code completion scope limit.
+
+## 1.3.1
+
+### Fixes:
+
+- Disabled experimental feature of syntax-based replace range calculation by default.
+
+## 1.3.0
+
+### Features:
+
+- Removed the completion request timeout limit. Now, a warning status bar icon will be displayed when the completion requests take too long.
+- Enabled experimental feature of stripping auto-closing characters in prompt suffix by default.
+- Enabled experimental feature of syntax-based post-processing by default.
+- Added support for logging completion dismiss events.
+
+### Fixes:
+
+- Fixed an issue where completion was triggered when the text selection was not empty.
+- Fixed a bug that caused the completion not to show in non-last cells of a notebook.
+- Fixed health checking to be compatibility with Tabby server version 0.2.0 or earlier.
+
 ## 1.2.0
 
 ### Features:

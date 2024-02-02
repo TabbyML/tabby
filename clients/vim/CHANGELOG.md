@@ -1,3 +1,25 @@
+## 1.3.2
+
+### Fixes:
+
+- Disabled experimental features by default:
+  - Stripping auto-closing characters in prompt suffix.
+  - Syntax-based code completion scope limit.
+  - Syntax-based replace range calculation.
+
+## 1.3.0
+
+### Features:
+
+- Removed the completion request timeout limit.
+- Enabled the experimental feature of stripping auto-closing characters in the prompt suffix by default.
+- Enabled the experimental feature of syntax-based post-processing by default.
+- Added support for logging completion dismiss events.
+
+### Fixes:
+
+- Fixed health checking to be compatible with Tabby server version 0.2.0 or earlier.
+
 ## 1.2.0
 
 ### Features:

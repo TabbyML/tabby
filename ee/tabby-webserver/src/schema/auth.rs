@@ -9,13 +9,14 @@ use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tabby_common::terminal::{HeaderFormat, InfoMessage};
+use tabby_db::InvitationDAO;
 use thiserror::Error;
 use tracing::{error, warn};
 use uuid::Uuid;
 use validator::ValidationErrors;
 
 use super::from_validation_errors;
-use crate::{oauth::OAuthClient, schema::Context};
+use crate::schema::Context;
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -136,6 +137,9 @@ pub enum TokenAuthError {
     #[error("Password is not valid")]
     InvalidPassword,
 
+    #[error("User is disabled")]
+    UserDisabled,
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 
@@ -159,6 +163,9 @@ pub enum OAuthError {
 
     #[error("The user is not invited to access the system")]
     UserNotInvited,
+
+    #[error("User is disabled")]
+    UserDisabled,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -186,6 +193,9 @@ pub enum RefreshTokenError {
 
     #[error("User not found")]
     UserNotFound,
+
+    #[error("User is disabled")]
+    UserDisabled,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -223,7 +233,7 @@ impl RefreshTokenResponse {
 
 #[derive(Debug, GraphQLObject)]
 pub struct VerifyTokenResponse {
-    claims: JWTPayload,
+    pub claims: JWTPayload,
 }
 
 impl VerifyTokenResponse {
@@ -333,7 +343,8 @@ impl relay::NodeType for InvitationNext {
     }
 }
 
-#[derive(GraphQLEnum, Clone)]
+#[derive(GraphQLEnum, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum OAuthProvider {
     Github,
@@ -344,6 +355,9 @@ pub enum OAuthProvider {
 pub struct OAuthCredential {
     pub provider: OAuthProvider,
     pub client_id: String,
+
+    /// Won't be passed to client side.
+    pub client_secret: Option<String>,
     pub redirect_uri: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -373,7 +387,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
-    async fn create_invitation(&self, email: String) -> Result<ID>;
+    async fn create_invitation(&self, email: String) -> Result<InvitationDAO>;
     async fn delete_invitation(&self, id: ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
@@ -397,7 +411,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn oauth(
         &self,
         code: String,
-        client: OAuthClient,
+        provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError>;
 
     async fn read_oauth_credential(

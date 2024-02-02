@@ -1,0 +1,41 @@
+description = 'Replace range: jsx tags: case 02'
+
+[config]
+# use default config
+
+[context]
+filepath = 'app.jsx'
+language = 'javascriptreact'
+# indentation = '  ' # not specified
+text = '''
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+const message = <div>Hello world!</div>
+root.render(
+  <React.StrictMode>
+    <App message={message} />
+  </├React.StrictMode>┤>
+);
+
+'''
+
+[expected]
+text = '''
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+const message = <div>Hello world!</div>
+root.render(
+  <React.StrictMode>
+    <App message={message} />
+  </├React.StrictMode>┤>╣
+);
+
+'''

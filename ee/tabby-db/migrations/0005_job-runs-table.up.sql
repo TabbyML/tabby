@@ -1,4 +1,4 @@
-CREATE TABLE job_runs (
+CREATE TABLE IF NOT EXISTS job_runs (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     job        VARCHAR(255) NOT NULL,
     start_ts   TIMESTAMP NOT NULL,

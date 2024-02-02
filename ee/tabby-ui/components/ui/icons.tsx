@@ -204,6 +204,23 @@ function IconChevronRight({
     </svg>
   )
 }
+function IconChevronLeft({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  )
+}
 
 function IconChevronDown({ className, ...props }: React.ComponentProps<'svg'>) {
   return (
@@ -825,6 +842,25 @@ function IconBackpack({ className, ...props }: React.ComponentProps<'svg'>) {
   )
 }
 
+function IconMore({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+      <circle cx="5" cy="12" r="1" />
+    </svg>
+  )
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -862,11 +898,13 @@ export {
   IconNetwork,
   IconRotate,
   IconChevronRight,
+  IconChevronLeft,
   IconChevronDown,
   IconFile,
   IconDirectorySolid,
   IconDirectoryExpandSolid,
   IconChat,
   IconCode,
-  IconBackpack
+  IconBackpack,
+  IconMore
 }

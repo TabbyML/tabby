@@ -3,7 +3,7 @@ use std::{fs, io::IsTerminal};
 use anyhow::Result;
 use kdam::BarExt;
 use tabby_common::{
-    config::Config,
+    config::RepositoryConfig,
     index::{register_tokenizers, CodeSearchSchema},
     path::index_dir,
     SourceFile,
@@ -17,7 +17,7 @@ static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 static MAX_BODY_LINES_THRESHOLD: usize = 15;
 
-pub fn index_repositories(_config: &Config) -> Result<()> {
+pub fn index_repositories(_config: &Vec<RepositoryConfig>) -> Result<()> {
     let code = CodeSearchSchema::new();
 
     fs::create_dir_all(index_dir())?;

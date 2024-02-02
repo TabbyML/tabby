@@ -1,6 +1,6 @@
 {
   "name": "intellij-tabby",
-  "version": "1.2.0",
+  "version": "1.3.2",
   "description": "IntelliJ plugin for Tabby AI coding assistant.",
   "repository": "https://github.com/TabbyML/tabby",
   "scripts": {
@@ -10,6 +10,6 @@
   "devDependencies": {
     "cpy-cli": "^4.2.0",
     "rimraf": "^5.0.1",
-    "tabby-agent": "1.3.0"
+    "tabby-agent": "1.3.3"
   }
 }

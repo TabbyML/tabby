@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use argon2::{
@@ -8,12 +8,12 @@ use argon2::{
 };
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::DbConn;
+use tabby_db::{DbConn, InvitationDAO};
 use validator::{Validate, ValidationError};
 
 use super::graphql_pagination_to_filter;
 use crate::{
-    oauth::OAuthClient,
+    oauth,
     schema::auth::{
         generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, InvitationNext,
         JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenError,
@@ -220,6 +220,10 @@ impl AuthenticationService for DbConn {
             return Err(TokenAuthError::UserNotFound);
         };
 
+        if !user.active {
+            return Err(TokenAuthError::UserDisabled);
+        }
+
         if !password_verify(&input.password, &user.password_encrypted) {
             return Err(TokenAuthError::InvalidPassword);
         }
@@ -249,6 +253,10 @@ impl AuthenticationService for DbConn {
         let Some(user) = self.get_user(refresh_token.user_id).await? else {
             return Err(RefreshTokenError::UserNotFound);
         };
+
+        if !user.active {
+            return Err(RefreshTokenError::UserDisabled);
+        }
 
         let new_token = generate_refresh_token();
         self.replace_refresh_token(&token, &new_token).await?;
@@ -284,8 +292,9 @@ impl AuthenticationService for DbConn {
         }
     }
 
-    async fn create_invitation(&self, email: String) -> Result<ID> {
-        Ok(ID::new(self.create_invitation(email).await?.to_string()))
+    async fn create_invitation(&self, email: String) -> Result<InvitationDAO> {
+        let invitation = self.create_invitation(email).await?;
+        Ok(invitation)
     }
 
     async fn delete_invitation(&self, id: ID) -> Result<ID> {
@@ -333,26 +342,14 @@ impl AuthenticationService for DbConn {
     async fn oauth(
         &self,
         code: String,
-        client: OAuthClient,
+        provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError> {
-        let email = match client {
-            OAuthClient::Github(client) => {
-                let credential = self
-                    .read_github_oauth_credential()
-                    .await?
-                    .ok_or(OAuthError::CredentialNotActive)?;
-                client.fetch_user_email(code, credential).await?
-            }
-            OAuthClient::Google(client) => {
-                let credential = self
-                    .read_google_oauth_credential()
-                    .await?
-                    .ok_or(OAuthError::CredentialNotActive)?;
-                client.fetch_user_email(code, credential).await?
-            }
-        };
-
+        let client = oauth::new_oauth_client(provider, Arc::new(self.clone()));
+        let email = client.fetch_user_email(code).await?;
         let user = if let Some(user) = self.get_user_by_email(&email).await? {
+            if !user.active {
+                return Err(OAuthError::UserDisabled);
+            }
             user
         } else {
             let Some(invitation) = self.get_invitation_by_email(&email).await? else {
@@ -443,7 +440,9 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+
     use assert_matches::assert_matches;
+    use juniper_axum::relay::{self, Connection};
 
     use super::*;
 
@@ -613,5 +612,71 @@ mod tests {
         assert!(!conn.is_admin_initialized().await.unwrap());
         tabby_db::testutils::create_user(&conn).await;
         assert!(conn.is_admin_initialized().await.unwrap());
+    }
+
+    async fn list_users(
+        db: &DbConn,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Connection<User> {
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                Ok(db.list_users(after, before, first, last).await.unwrap())
+            },
+        )
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_pagination() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        conn.create_user("a@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+        conn.create_user("b@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+        conn.create_user("c@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+
+        let users = list_users(&conn, None, None, None, None).await;
+
+        assert!(!users.page_info.has_next_page);
+        assert!(!users.page_info.has_previous_page);
+
+        let users = list_users(&conn, Some("1".into()), None, None, None).await;
+
+        assert!(!users.page_info.has_next_page);
+        assert!(users.page_info.has_previous_page);
+
+        let users = list_users(&conn, None, None, Some(2), None).await;
+
+        assert!(users.page_info.has_next_page);
+        assert!(!users.page_info.has_previous_page);
+
+        let users = list_users(&conn, None, Some("2".into()), None, Some(1)).await;
+
+        assert!(users.page_info.has_next_page);
+        assert!(!users.page_info.has_previous_page);
+
+        let users = list_users(&conn, Some("3".into()), None, None, None).await;
+        assert!(!users.page_info.has_next_page);
+        assert!(users.page_info.has_previous_page);
+
+        let users = list_users(&conn, None, None, Some(3), None).await;
+        assert!(!users.page_info.has_next_page);
+        assert!(!users.page_info.has_previous_page);
+
+        let users = list_users(&conn, Some("1".into()), None, Some(2), None).await;
+        assert!(!users.page_info.has_next_page);
+        assert!(users.page_info.has_previous_page);
     }
 }

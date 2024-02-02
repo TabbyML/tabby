@@ -7,15 +7,15 @@ mod utils;
 
 use anyhow::Result;
 use job_scheduler::{Job, JobScheduler};
-use tabby_common::config::Config;
+use tabby_common::config::RepositoryConfig;
 use tracing::{error, info};
 
-pub async fn scheduler(now: bool, config: &Config) -> Result<()> {
+pub async fn scheduler(now: bool, access: Vec<RepositoryConfig>) -> Result<()> {
     let mut scheduler = JobScheduler::new();
 
-    let job1 = || job_sync(config);
+    let job1 = || job_sync(&access);
 
-    let job2 = || job_index(config);
+    let job2 = || job_index(&access);
 
     if now {
         job1();
@@ -39,25 +39,26 @@ pub async fn scheduler(now: bool, config: &Config) -> Result<()> {
     Ok(())
 }
 
-pub fn job_index(config: &Config) {
+pub fn job_index(repositories: &Vec<RepositoryConfig>) {
     println!("Indexing repositories...");
-    let ret = index::index_repositories(config);
+    let ret = index::index_repositories(repositories);
     if let Err(err) = ret {
         error!("Failed to index repositories, err: '{}'", err);
     }
     println!();
 }
 
-pub fn job_sync(config: &Config) {
+pub fn job_sync(repositories: &Vec<RepositoryConfig>) {
     println!("Syncing repositories...");
-    let ret = repository::sync_repositories(config);
+    let repositories = repositories;
+    let ret = repository::sync_repositories(repositories);
     if let Err(err) = ret {
         error!("Failed to sync repositories, err: '{}'", err);
         return;
     }
 
     println!("Building dataset...");
-    let ret = dataset::create_dataset(config);
+    let ret = dataset::create_dataset(repositories);
     if let Err(err) = ret {
         error!("Failed to build dataset, err: '{}'", err);
     }

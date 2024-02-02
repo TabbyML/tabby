@@ -15,7 +15,7 @@ use kdam::BarExt;
 use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
-    config::{Config, RepositoryConfig},
+    config::RepositoryConfig,
     path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
@@ -88,7 +88,7 @@ fn is_source_code(entry: &DirEntry) -> bool {
     }
 }
 
-pub fn create_dataset(config: &Config) -> Result<()> {
+pub fn create_dataset(config: &Vec<RepositoryConfig>) -> Result<()> {
     fs::remove_dir_all(dataset_dir()).ok();
     fs::create_dir_all(dataset_dir())?;
     let mut writer = FileRotate::new(
@@ -101,7 +101,7 @@ pub fn create_dataset(config: &Config) -> Result<()> {
     );
 
     let mut deps = DependencyFile::default();
-    for repository in config.repositories.as_slice() {
+    for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
         repository.create_dataset(&mut writer)?;
     }

@@ -22,10 +22,10 @@ constexpr size_t N_CTX = 4096;   // # max kv history.
 struct Request {
   Request(size_t request_id, std::vector<llama_token> input_token_ids, float temperature, uint64_t seed) :
     id(request_id),
-    tokens(input_token_ids.begin(), input_token_ids.end()),
     temperature(temperature),
-    seed(seed) {
-    }
+    seed(seed),
+    tokens(input_token_ids.begin(), input_token_ids.end()) {
+  }
 
   uint32_t id = -1;
   llama_seq_id seq_id = -1;

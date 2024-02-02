@@ -1,9 +1,12 @@
 pub mod api;
 mod websocket;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+};
 
-use api::{Hub, RegisterWorkerRequest};
+use api::{ConnectHubRequest, Hub};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     response::IntoResponse,
@@ -16,14 +19,14 @@ use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
 use websocket::WebSocketTransport;
 
-use crate::schema::{worker::Worker, ServiceLocator};
+use crate::schema::ServiceLocator;
 
 pub(crate) async fn ws_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<dyn ServiceLocator>>,
     AuthBearer(token): AuthBearer,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    TypedHeader(request): TypedHeader<RegisterWorkerRequest>,
+    TypedHeader(request): TypedHeader<ConnectHubRequest>,
 ) -> impl IntoResponse {
     let unauthorized = axum::response::Response::builder()
         .status(StatusCode::UNAUTHORIZED)
@@ -43,28 +46,26 @@ pub(crate) async fn ws_handler(
         return unauthorized;
     }
 
-    let addr = format!("http://{}:{}", addr.ip(), request.port);
-
-    let worker = Worker {
-        name: request.name,
-        kind: request.kind,
-        addr,
-        device: request.device,
-        arch: request.arch,
-        cpu_info: request.cpu_info,
-        cpu_count: request.cpu_count,
-        cuda_devices: request.cuda_devices,
-    };
-
-    ws.on_upgrade(move |socket| handle_socket(state, socket, worker))
+    ws.on_upgrade(move |socket| handle_socket(state, socket, addr.ip(), request))
         .into_response()
 }
 
-async fn handle_socket(state: Arc<dyn ServiceLocator>, socket: WebSocket, worker: Worker) {
+async fn handle_socket(
+    state: Arc<dyn ServiceLocator>,
+    socket: WebSocket,
+    addr: IpAddr,
+    req: ConnectHubRequest,
+) {
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
-    let imp = Arc::new(HubImpl::new(state.clone(), worker.addr.clone()));
-    state.worker().register_worker(worker).await.unwrap();
+    if let ConnectHubRequest::Worker(worker) = req {
+        state
+            .worker()
+            .register_worker(worker.into_worker(addr))
+            .await
+            .unwrap();
+    };
+    let imp = Arc::new(HubImpl::new(state.clone(), addr.to_string()));
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
