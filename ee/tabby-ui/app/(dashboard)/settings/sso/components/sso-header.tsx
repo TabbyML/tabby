@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { IconExternalLink } from '@/components/ui/icons'
 
 export const SSOHeader = ({
   extra,
@@ -13,8 +14,9 @@ export const SSOHeader = ({
         Single Sign-On (SSO) is an authentication method that enables users to
         authenticate with multiple applications and websites via a single set of
         credentials.
-        <a className="ml-2 cursor-pointer text-primary hover:underline">
+        <a className="ml-2 cursor-pointer text-primary hover:underline inline-flex flex-row items-center">
           Learn more
+          <IconExternalLink />
         </a>
       </div>
       <div className="shrink-0">{extra}</div>

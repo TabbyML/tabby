@@ -3,6 +3,8 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 
+import { OAuthProvider } from '@/lib/gql/generates/graphql'
+
 import OAuthCredentialForm from './oauth-credential-form'
 import { SSOHeader } from './sso-header'
 
@@ -18,7 +20,11 @@ const NewOAuthCredential: React.FC<NewOAuthCredentialProps> = () => {
   return (
     <>
       <SSOHeader />
-      <OAuthCredentialForm isNew onSuccess={onSuccess} />
+      <OAuthCredentialForm
+        provider={OAuthProvider.Github}
+        isNew
+        onSuccess={onSuccess}
+      />
     </>
   )
 }

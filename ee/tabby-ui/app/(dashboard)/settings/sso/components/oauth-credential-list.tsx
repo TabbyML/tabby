@@ -109,7 +109,7 @@ const OauthCredentialCard = ({
       <CardHeader className="border-b p-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl">
-            {data?.provider?.toLocaleLowerCase()}
+            {meta?.displayName || data?.provider}
           </CardTitle>
           <Link
             href={`/settings/sso/detail/${data?.provider.toLowerCase()}`}

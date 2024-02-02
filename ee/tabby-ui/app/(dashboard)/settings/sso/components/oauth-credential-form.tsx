@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { isEmpty } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { useClient } from 'urql'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
@@ -27,6 +28,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CopyButton } from '@/components/copy-button'
+
+import { oauthCredential } from './oauth-credential-list'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation updateOauthCredential(
@@ -69,10 +72,11 @@ export default function OAuthCredentialForm({
   ...props
 }: OAuthCredentialFormProps) {
   const router = useRouter()
+  const client = useClient()
   const formatedDefaultValues = React.useMemo(() => {
     return {
-      provider: OAuthProvider.Github,
-      ...(defaultValues || {})
+      ...(defaultValues || {}),
+      provider
     }
   }, [])
 
@@ -107,11 +111,18 @@ export default function OAuthCredentialForm({
   })
 
   const onSubmit = async (values: OAuthCredentialFormValues) => {
-    // todo request api to check if there is aleardy has a credencial
-    // if aleardy have, set Form Error
+    client.query(oauthCredential, { provider: values.provider }).then(res => {
+      if (res?.data?.oauthCredential) {
+        // if aleardy have, set Form Error
+        form.setError('provider', {
+          message: 'Provider already exists. Please choose another one'
+        })
+        return
+      }
 
-    // add redirect uri automatically
-    updateOauthCredential({ ...values, redirectUri: oauthRedirectUri })
+      // add redirect uri automatically
+      updateOauthCredential({ ...values, redirectUri: oauthRedirectUri })
+    })
   }
 
   return (

@@ -5,20 +5,23 @@ export const PROVIDER_METAS: Array<{
   enum: OAuthProvider
   meta: {
     domain: string
+    displayName: string
   }
 }> = [
   {
     name: 'github',
     enum: OAuthProvider.Github,
     meta: {
-      domain: 'github.com'
+      domain: 'github.com',
+      displayName: 'Github'
     }
   },
   {
     name: 'google',
     enum: OAuthProvider.Google,
     meta: {
-      domain: 'google.com'
+      domain: 'google.com',
+      displayName: 'Google'
     }
   }
 ]
