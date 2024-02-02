@@ -191,12 +191,12 @@ export default function OAuthCredentialForm({
             </FormDescription>
           </div>
           <FormItem>
-            <div className="rounded-lg border px-3 py-2 flex flex-col gap-2">
-              <div className="text-muted-foreground text-sm">
+            <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
+              <div className="text-sm text-muted-foreground">
                 Create your SSO application with the following information
               </div>
               <div className="flex items-center gap-4">
-                <div className="font-medium text-sm">
+                <div className="text-sm font-medium">
                   Authorization redirect URL
                 </div>
                 <span className="text-sm">{oauthRedirectUri}</span>
@@ -244,7 +244,7 @@ export default function OAuthCredentialForm({
               </FormItem>
             )}
           />
-          <div className="flex gap-4 justify-end mt-1">
+          <div className="mt-1 flex justify-end gap-4">
             {isNew ? (
               <Button
                 type="button"
@@ -285,6 +285,6 @@ function SubTitle({
   ...rest
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('font-semibold text-xl mt-4', className)} {...rest} />
+    <div className={cn('mt-4 text-xl font-semibold', className)} {...rest} />
   )
 }
