@@ -9,14 +9,13 @@ import { cva } from 'class-variance-authority'
 
 import { useSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
-import { IconGear, IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
+import { IconGear, IconHome, IconNetwork } from '@/components/ui/icons'
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Button } from '@/components/ui/button'
 
 export interface SidebarProps {
   children: React.ReactNode
