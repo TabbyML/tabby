@@ -99,21 +99,25 @@ export default function InvitationTable() {
     return client.query(listInvitations, variables).toPromise()
   }
 
-  const processQuerySequentially = async (cursor?: string): Promise<number> => {
+  const fetchInvitationsSequentially = async (
+    cursor?: string
+  ): Promise<number> => {
     const res = await fetchInvitations({ first: PAGE_SIZE, after: cursor })
     let count = res?.data?.invitationsNext?.edges?.length || 0
     const _pageInfo = res?.data?.invitationsNext?.pageInfo
     if (_pageInfo?.hasNextPage && _pageInfo?.endCursor) {
       // cacheExchange will merge the edges
-      count = await processQuerySequentially(_pageInfo.endCursor)
+      count = await fetchInvitationsSequentially(_pageInfo.endCursor)
     }
     return count
   }
 
-  const fetchAllRecord = async () => {
+  const fetchAllRecords = async () => {
     try {
       setFetchingLastPage(true)
-      const count = processQuerySequentially(pageInfo?.endCursor ?? undefined)
+      const count = fetchInvitationsSequentially(
+        pageInfo?.endCursor ?? undefined
+      )
       return count
     } catch (e) {
       return 0
@@ -129,13 +133,9 @@ export default function InvitationTable() {
 
   const deleteInvitation = useMutation(deleteInvitationMutation)
 
-  const getPageNumber = (count?: number) => {
-    return Math.ceil((count || 0) / PAGE_SIZE)
-  }
-
   const handleInvitationCreated = async () => {
     toast.success('Invitation created')
-    fetchAllRecord().then(count => {
+    fetchAllRecords().then(count => {
       setCurrentPage(getPageNumber(count))
     })
   }
@@ -234,4 +234,8 @@ export default function InvitationTable() {
       )}
     </div>
   )
+}
+
+function getPageNumber(count?: number) {
+  return Math.ceil((count || 0) / PAGE_SIZE)
 }
