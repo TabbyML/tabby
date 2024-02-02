@@ -68,7 +68,7 @@ const updateUserActiveMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 20
 export default function UsersTable() {
   const [queryVariables, setQueryVariables] = React.useState<
     QueryVariables<typeof listUsers>

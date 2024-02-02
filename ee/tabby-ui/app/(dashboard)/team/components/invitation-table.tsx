@@ -70,7 +70,7 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 20
 export default function InvitationTable() {
   const client = useClient()
   const [{ data, fetching }] = useQuery({
