@@ -166,7 +166,7 @@ fn match_auth_result(
 
 fn make_error_redirect(provider: OAuthProvider, message: &str) -> Redirect {
     let query = querystring::stringify(vec![
-        ("error_message", urlencoding::encode(&message).as_ref()),
+        ("error_message", urlencoding::encode(message).as_ref()),
         (
             "provider",
             serde_json::to_string(&provider).unwrap().as_str(),
