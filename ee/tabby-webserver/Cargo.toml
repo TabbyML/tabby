@@ -37,6 +37,7 @@ tower = { version = "0.4", features = ["util"] }
 tower-http = { version = "0.4.0", features = ["fs", "trace"] }
 tracing.workspace = true
 unicase = "2.7.0"
+urlencoding = "2.1.3"
 uuid.workspace = true
 validator = { version = "0.16.1", features = ["derive"] }
 
