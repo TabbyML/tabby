@@ -79,7 +79,19 @@ export default function OAuthCredentialForm({
   const providerValue = form.watch('provider')
 
   const { isSubmitting } = form.formState
-  const onSubmit = useMutation(updateOauthCredentialMutation, {
+
+  const oauthRedirectUri = React.useMemo(() => {
+    if (!providerValue) return ''
+
+    let origin = window.location.origin
+    if (process.env.NODE_ENV !== 'production') {
+      origin = `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}` ?? origin
+    }
+
+    return `${origin}/oauth/callback/${providerValue.toLowerCase()}`
+  }, [providerValue])
+
+  const updateOauthCredential = useMutation(updateOauthCredentialMutation, {
     onCompleted(values) {
       if (values?.updateOauthCredential) {
         toast.success(`success`)
@@ -89,13 +101,10 @@ export default function OAuthCredentialForm({
     form
   })
 
-  const oauthRedirectUri = React.useMemo(() => {
-    if (!providerValue) return 'select provider first'
-
-    return `${
-      process.env.NEXT_PUBLIC_TABBY_SERVER_URL
-    }/oauth/callback/${providerValue.toLowerCase()}`
-  }, [providerValue])
+  const onSubmit = (values: OAuthCredentialFormValues) => {
+    // add redirect uri automatically
+    updateOauthCredential({ ...values, redirectUri: oauthRedirectUri })
+  }
 
   return (
     <div className={cn('grid gap-6', className)} {...props}>
@@ -188,17 +197,23 @@ export default function OAuthCredentialForm({
               Use this to create your oauth application
             </FormDescription>
             <FormLabel>Authorization callback URL</FormLabel>
-            <div>
-              <div
-                className="items-center gap-4 border rounded-lg p-2 inline-flex"
-                onClick={e => e.stopPropagation()}
-              >
-                <span className="text-sm">{oauthRedirectUri}</span>
-                {!!providerValue && (
-                  <CopyButton type="button" value={oauthRedirectUri} />
-                )}
+            {oauthRedirectUri ? (
+              <div>
+                <div
+                  className="items-center gap-4 border rounded-lg p-2 inline-flex"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <span className="text-sm">{oauthRedirectUri}</span>
+                  {!!providerValue && (
+                    <CopyButton type="button" value={oauthRedirectUri} />
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-muted-foreground text-sm">
+                Please select a provider
+              </div>
+            )}
           </FormItem>
           <Button type="submit" className="mt-1" disabled={isSubmitting}>
             {isSubmitting && (

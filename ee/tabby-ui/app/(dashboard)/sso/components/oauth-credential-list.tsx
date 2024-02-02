@@ -50,8 +50,8 @@ const OauthCredentialList = () => {
         </CardTitle>
         {isLoading ? (
           <div className="grid grid-cols-2 gap-8">
-            <Skeleton className="rounded-xl h-10" />
-            <Skeleton className="rounded-xl h-10" />
+            <Skeleton className="rounded-xl h-[180px]" />
+            <Skeleton className="rounded-xl h-[180px]" />
           </div>
         ) : (
           <div className="border-4 border-dashed py-8 flex flex-col items-center gap-4 rounded-lg">
@@ -120,8 +120,8 @@ const OauthCredentialCard = ({
           <span>OAuth 2.0</span>
         </div>
         <div className="flex py-3">
-          <span className="w-[100px]">Client ID</span>
-          <span>{data?.clientId}</span>
+          <span className="w-[100px] shrink-0">Client ID</span>
+          <span className="truncate">{data?.clientId}</span>
         </div>
       </CardContent>
     </Card>

@@ -11,7 +11,7 @@ type Params = {
   provider: string
 }
 
-export const PROVIDER_PARAMS_TO_ENUM = [
+const PROVIDER_PARAMS = [
   {
     name: 'github',
     enum: OAuthProvider.Github
@@ -23,13 +23,13 @@ export const PROVIDER_PARAMS_TO_ENUM = [
 ]
 
 export function generateStaticParams() {
-  return PROVIDER_PARAMS_TO_ENUM.map(item => ({ provider: item.name }))
+  return PROVIDER_PARAMS.map(item => ({ provider: item.name }))
 }
 
 const OAuthCredentialDetailPage: NextPage<{ params: Params }> = ({
   params
 }) => {
-  const provider = find(PROVIDER_PARAMS_TO_ENUM, {
+  const provider = find(PROVIDER_PARAMS, {
     name: params.provider
   })!.enum
 

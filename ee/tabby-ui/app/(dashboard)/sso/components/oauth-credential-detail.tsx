@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { isNil, pickBy } from 'lodash-es'
 import { useQuery } from 'urql'
 
@@ -18,6 +19,7 @@ interface OAuthCredentialDetailProps
 const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
   provider
 }) => {
+  const router = useRouter()
   const [{ data, fetching }] = useQuery({
     query: oauthCredential,
     variables: { provider }
@@ -30,6 +32,10 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
     return pickBy(credential, v => !isNil(v))
   }, [credential])
 
+  const onSubmitSuccess = () => {
+    router.push('/sso')
+  }
+
   return (
     <div>
       {fetching ? (
@@ -40,6 +46,7 @@ const OAuthCredentialDetail: React.FC<OAuthCredentialDetailProps> = ({
         <OAuthCredentialForm
           provider={provider}
           defaultValues={defaultValues}
+          onSuccess={onSubmitSuccess}
         />
       )}
     </div>
