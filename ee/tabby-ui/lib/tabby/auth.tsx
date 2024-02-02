@@ -141,7 +141,10 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   children
 }) => {
   const initialized = React.useRef(false)
-  const [authToken] = useLocalStorage<AuthData | undefined>(AUTH_TOKEN_KEY, undefined)
+  const [authToken] = useLocalStorage<AuthData | undefined>(
+    AUTH_TOKEN_KEY,
+    undefined
+  )
   const [authState, dispatch] = React.useReducer(authReducerDeduped, {
     status: 'loading',
     data: undefined
@@ -225,7 +228,10 @@ export function useAuthStore() {
 
 function useSignIn(): (params: AuthData) => Promise<boolean> {
   const { dispatch } = useAuthStore()
-  const [authToken, setAuthToken] = useLocalStorage<AuthData | undefined>(AUTH_TOKEN_KEY, undefined)
+  const [authToken, setAuthToken] = useLocalStorage<AuthData | undefined>(
+    AUTH_TOKEN_KEY,
+    undefined
+  )
   return async data => {
     setAuthToken({
       accessToken: data.accessToken,
@@ -242,7 +248,10 @@ function useSignIn(): (params: AuthData) => Promise<boolean> {
 
 function useSignOut(): () => Promise<void> {
   const { dispatch } = useAuthStore()
-  const [authToken, setAuthToken] = useLocalStorage<AuthData | undefined>(AUTH_TOKEN_KEY, undefined)
+  const [authToken, setAuthToken] = useLocalStorage<AuthData | undefined>(
+    AUTH_TOKEN_KEY,
+    undefined
+  )
   return async () => {
     setAuthToken(undefined)
     dispatch({ type: AuthActionType.SignOut })
