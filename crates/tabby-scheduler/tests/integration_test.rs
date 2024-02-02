@@ -23,7 +23,7 @@ mod tests {
             server: ServerConfig::default(),
         };
 
-        let res = tabby_scheduler::scheduler(true, &config).await;
+        let res = tabby_scheduler::scheduler(true, config.repositories).await;
         res.expect("Failed to run scheduler");
     }
 }

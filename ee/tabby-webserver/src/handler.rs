@@ -27,12 +27,13 @@ pub async fn attach_webserver(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
     config: &Config,
+    local_listen_port: u16,
 ) -> (Router, Router) {
     let repository_cache = Arc::new(RepositoryCache::new_initialized(
         config.repositories.clone(),
     ));
     repository_cache.start_reload_job().await;
-    let ctx = create_service_locator(logger, code).await;
+    let ctx = create_service_locator(logger, code, local_listen_port).await;
     let schema = Arc::new(create_schema());
     let rs = Arc::new(repository_cache);
 

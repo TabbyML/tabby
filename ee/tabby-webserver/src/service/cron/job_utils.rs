@@ -1,15 +1,27 @@
-use std::process::Stdio;
+use std::{future::Future, process::Stdio, sync::Arc};
 
 use tabby_db::{DbConn, JobRunDAO};
 use tokio::{io::AsyncBufReadExt, process::Child};
 use tokio_cron_scheduler::Job;
 use tracing::error;
 
-pub async fn run_job(db_conn: DbConn, job_name: String, schedule: &str) -> anyhow::Result<Job> {
+pub async fn run_job<F, Fut>(
+    db_conn: DbConn,
+    job_name: String,
+    args: Arc<F>,
+    schedule: &str,
+) -> anyhow::Result<Job>
+where
+    F: Fn() -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = Vec<String>> + Send,
+{
     let job = Job::new_async(schedule, move |_, _| {
         let job_name = job_name.clone();
         let db_conn = db_conn.clone();
+        let args = args.clone();
         Box::pin(async move {
+            let args = args.clone();
+            let args = args().await;
             // create job run record
             let mut run = JobRunDAO {
                 job_name: job_name.clone(),
@@ -31,6 +43,7 @@ pub async fn run_job(db_conn: DbConn, job_name: String, schedule: &str) -> anyho
             let exe = std::env::current_exe().unwrap();
             let mut child = tokio::process::Command::new(exe)
                 .arg(&format!("job::{}", &job_name))
+                .args(&*args)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
