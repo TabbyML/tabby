@@ -14,8 +14,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@/components/ui/collapsible'
-import { IconArrowDown, IconArrowRight, IconChevronDown, IconChevronRight, IconGear, IconHome, IconNetwork } from '@/components/ui/icons'
-import { useRef } from 'react'
+import {
+  IconChevronRight,
+  IconGear,
+  IconHome,
+  IconNetwork
+} from '@/components/ui/icons'
 
 export interface SidebarProps {
   children: React.ReactNode
@@ -56,7 +60,14 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   <SidebarButton href="/cluster">
                     <IconNetwork /> Cluster Information
                   </SidebarButton>
-                  <SidebarCollapsible title={<><IconGear />Settings</>}>
+                  <SidebarCollapsible
+                    title={
+                      <>
+                        <IconGear />
+                        Settings
+                      </>
+                    }
+                  >
                     <SidebarButton href="/settings/general">
                       General
                     </SidebarButton>
@@ -74,7 +85,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
         </div>
       </div>
       <div className="flex flex-1 flex-col overflow-auto">{children}</div>
-    </div >
+    </div>
   )
 }
 
@@ -114,15 +125,20 @@ interface SidebarCollapsibleProps {
 }
 
 function SidebarCollapsible({ title, children }: SidebarCollapsibleProps) {
-  return <Collapsible defaultOpen={true} className='[&_svg.ml-auto]:data-[state=open]:rotate-90'>
-    <CollapsibleTrigger className="w-full">
-      <span className={linkVariants()}>
-        {title}
-        <IconChevronRight className='ml-auto' />
-      </span>
-    </CollapsibleTrigger>
-    <CollapsibleContent className="flex flex-col gap-1 py-1 ml-7">
-      {children}
-    </CollapsibleContent>
-  </Collapsible>
+  return (
+    <Collapsible
+      defaultOpen={true}
+      className="[&_svg.ml-auto]:data-[state=open]:rotate-90"
+    >
+      <CollapsibleTrigger className="w-full">
+        <span className={linkVariants()}>
+          {title}
+          <IconChevronRight className="ml-auto" />
+        </span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="ml-7 flex flex-col gap-1 py-1">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  )
 }
