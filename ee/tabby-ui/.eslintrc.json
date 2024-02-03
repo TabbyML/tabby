@@ -6,20 +6,44 @@
     "prettier",
     "plugin:tailwindcss/recommended"
   ],
-  "plugins": ["tailwindcss", "unused-imports"],
+  "plugins": [
+    "tailwindcss",
+    "unused-imports"
+  ],
   "rules": {
     "unused-imports/no-unused-imports": "error",
-    "tailwindcss/no-custom-classname": "off"
+    "tailwindcss/no-custom-classname": "off",
+    "import/no-restricted-paths": [
+      "error",
+      {
+        "zones": [
+          {
+            "target": "./lib",
+            "from": "./app"
+          },
+          {
+            "target": "./components",
+            "from": "./app"
+          }
+        ]
+      }
+    ]
   },
   "settings": {
     "tailwindcss": {
-      "callees": ["cn", "cva"],
+      "callees": [
+        "cn",
+        "cva"
+      ],
       "config": "tailwind.config.js"
     }
   },
   "overrides": [
     {
-      "files": ["*.ts", "*.tsx"],
+      "files": [
+        "*.ts",
+        "*.tsx"
+      ],
       "parser": "@typescript-eslint/parser"
     }
   ]

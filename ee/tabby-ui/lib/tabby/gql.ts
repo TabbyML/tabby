@@ -14,8 +14,6 @@ import {
   useMutation as useUrqlMutation
 } from 'urql'
 
-import { listInvitations } from '@/app/(dashboard)/team/components/invitation-table'
-
 import { ListInvitationsQueryVariables } from '../gql/generates/graphql'
 import {
   clearAuthToken,
@@ -23,6 +21,7 @@ import {
   refreshTokenMutation,
   saveAuthToken
 } from './auth'
+import { listInvitations } from './query'
 
 interface ValidationError {
   path: string

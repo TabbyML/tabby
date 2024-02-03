@@ -9,7 +9,17 @@ import { cva } from 'class-variance-authority'
 
 import { useSession } from '@/lib/tabby/auth'
 import { cn } from '@/lib/utils'
-import { IconHome, IconNetwork, IconUsers } from '@/components/ui/icons'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@/components/ui/collapsible'
+import {
+  IconChevronRight,
+  IconGear,
+  IconHome,
+  IconNetwork
+} from '@/components/ui/icons'
 
 export interface SidebarProps {
   children: React.ReactNode
@@ -21,9 +31,9 @@ export default function Sidebar({ children, className }: SidebarProps) {
   const isAdmin = session?.isAdmin || false
   return (
     <div
-      className={cn('grid overflow-hidden lg:grid-cols-[280px_1fr]', className)}
+      className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
     >
-      <div className="hidden border-r lg:block">
+      <div className="hidden border-r md:block">
         <div className="flex h-full flex-col gap-2">
           <div className="h-[12px]"></div>
           <div className="flex-1">
@@ -50,9 +60,23 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   <SidebarButton href="/cluster">
                     <IconNetwork /> Cluster Information
                   </SidebarButton>
-                  <SidebarButton href="/team">
-                    <IconUsers /> Team Management
-                  </SidebarButton>
+                  <SidebarCollapsible
+                    title={
+                      <>
+                        <IconGear />
+                        Settings
+                      </>
+                    }
+                  >
+                    <SidebarButton href="/settings/general">
+                      General
+                    </SidebarButton>
+                    <SidebarButton href="/settings/team">Members</SidebarButton>
+                    <SidebarButton href="/settings/sso">SSO</SidebarButton>
+                    <SidebarButton href="/settings/mail">
+                      Mail Delivery
+                    </SidebarButton>
+                  </SidebarCollapsible>
                 </>
               )}
             </nav>
@@ -91,5 +115,29 @@ function SidebarButton({ href, children }: SidebarButtonProps) {
     <Link className={linkVariants({ state })} href={href}>
       {children}
     </Link>
+  )
+}
+
+interface SidebarCollapsibleProps {
+  title: React.ReactNode
+  children: React.ReactNode
+}
+
+function SidebarCollapsible({ title, children }: SidebarCollapsibleProps) {
+  return (
+    <Collapsible
+      defaultOpen={true}
+      className="[&_svg.ml-auto]:data-[state=open]:rotate-90"
+    >
+      <CollapsibleTrigger className="w-full">
+        <span className={linkVariants()}>
+          {title}
+          <IconChevronRight className="ml-auto" />
+        </span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="ml-7 flex flex-col gap-1 py-1">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
