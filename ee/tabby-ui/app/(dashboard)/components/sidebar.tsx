@@ -14,7 +14,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@/components/ui/collapsible'
-import { IconGear, IconHome, IconNetwork } from '@/components/ui/icons'
+import { IconArrowDown, IconArrowRight, IconChevronDown, IconChevronRight, IconGear, IconHome, IconNetwork } from '@/components/ui/icons'
+import { useRef } from 'react'
 
 export interface SidebarProps {
   children: React.ReactNode
@@ -26,9 +27,9 @@ export default function Sidebar({ children, className }: SidebarProps) {
   const isAdmin = session?.isAdmin || false
   return (
     <div
-      className={cn('grid overflow-hidden lg:grid-cols-[280px_1fr]', className)}
+      className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
     >
-      <div className="hidden border-r lg:block">
+      <div className="hidden border-r md:block">
         <div className="flex h-full flex-col gap-2">
           <div className="h-[12px]"></div>
           <div className="flex-1">
@@ -55,25 +56,17 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   <SidebarButton href="/cluster">
                     <IconNetwork /> Cluster Information
                   </SidebarButton>
-                  <Collapsible defaultOpen={true}>
-                    <CollapsibleTrigger className="w-full">
-                      <span className={linkVariants()}>
-                        <IconGear />
-                        Settings
-                      </span>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="flex flex-col gap-2 py-2">
-                      <SidebarButton href="/settings/general">
-                        <span className="w-4" /> General
-                      </SidebarButton>
-                      <SidebarButton href="/settings/mail">
-                        <span className="w-4" /> Mail Delivery
-                      </SidebarButton>
-                      <SidebarButton href="/settings/team">
-                        <span className="w-4" /> Team Management
-                      </SidebarButton>
-                    </CollapsibleContent>
-                  </Collapsible>
+                  <SidebarCollapsible title={<><IconGear />Settings</>}>
+                    <SidebarButton href="/settings/general">
+                      General
+                    </SidebarButton>
+                    <SidebarButton href="/settings/mail">
+                      Mail Delivery
+                    </SidebarButton>
+                    <SidebarButton href="/settings/team">
+                      Team Management
+                    </SidebarButton>
+                  </SidebarCollapsible>
                 </>
               )}
             </nav>
@@ -81,7 +74,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
         </div>
       </div>
       <div className="flex flex-1 flex-col overflow-auto">{children}</div>
-    </div>
+    </div >
   )
 }
 
@@ -113,4 +106,23 @@ function SidebarButton({ href, children }: SidebarButtonProps) {
       {children}
     </Link>
   )
+}
+
+interface SidebarCollapsibleProps {
+  title: React.ReactNode
+  children: React.ReactNode
+}
+
+function SidebarCollapsible({ title, children }: SidebarCollapsibleProps) {
+  return <Collapsible defaultOpen={true} className='[&_svg.ml-auto]:data-[state=open]:rotate-90'>
+    <CollapsibleTrigger className="w-full">
+      <span className={linkVariants()}>
+        {title}
+        <IconChevronRight className='ml-auto' />
+      </span>
+    </CollapsibleTrigger>
+    <CollapsibleContent className="flex flex-col gap-1 py-1 ml-7">
+      {children}
+    </CollapsibleContent>
+  </Collapsible>
 }
