@@ -71,11 +71,14 @@ export default function Sidebar({ children, className }: SidebarProps) {
                     <SidebarButton href="/settings/general">
                       General
                     </SidebarButton>
+                    <SidebarButton href="/settings/team">
+                      Members
+                    </SidebarButton>
+                    <SidebarButton href="/settings/sso">
+                      SSO
+                    </SidebarButton>
                     <SidebarButton href="/settings/mail">
                       Mail Delivery
-                    </SidebarButton>
-                    <SidebarButton href="/settings/team">
-                      Team Management
                     </SidebarButton>
                   </SidebarCollapsible>
                 </>
