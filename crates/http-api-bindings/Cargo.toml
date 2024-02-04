@@ -4,10 +4,11 @@ version = "0.8.0"
 edition = "2021"
 
 [dependencies]
-anyhow.workspace = true
+async-stream.workspace = true
 async-trait.workspace = true
 futures.workspace = true
 reqwest = { workspace = true, features = ["json"] }
+reqwest-eventsource.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tabby-inference = { version = "0.8.0", path = "../tabby-inference" }

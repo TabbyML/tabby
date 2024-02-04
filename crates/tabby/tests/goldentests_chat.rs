@@ -1,6 +1,8 @@
-use std::{io::BufRead, path::PathBuf};
+use std::path::PathBuf;
 
+use futures::StreamExt;
 use lazy_static::lazy_static;
+use reqwest_eventsource::{Event, EventSource};
 use serde::Deserialize;
 use serde_json::json;
 use serial_test::serial;
@@ -83,23 +85,25 @@ async fn wait_for_server(gpu_device: Option<&str>) {
 }
 
 async fn golden_test(body: serde_json::Value) -> String {
-    let bytes = CLIENT
-        .post("http://localhost:9090/v1beta/chat/completions")
-        .json(&body)
-        .send()
-        .await
-        .unwrap()
-        .bytes()
-        .await
-        .unwrap();
+    let mut es = EventSource::new(
+        CLIENT
+            .post("http://localhost:9090/v1beta/chat/completions")
+            .json(&body),
+    )
+    .unwrap();
 
     let mut actual = "".to_owned();
-    for x in bytes.lines() {
-        let content = x.unwrap();
-        if content.starts_with("data:") {
-            let content = content.strip_prefix("data:").unwrap();
-            let x: ChatCompletionChunk = serde_json::from_str(content).unwrap();
-            actual += &x.choices[0].delta.content;
+    while let Some(event) = es.next().await {
+        match event {
+            Ok(Event::Open) => {}
+            Ok(Event::Message(message)) => {
+                let x: ChatCompletionChunk = serde_json::from_str(&message.data).unwrap();
+                actual += &x.choices[0].delta.content;
+            }
+            Err(_) => {
+                // StreamEnd
+                break;
+            }
         }
     }
 

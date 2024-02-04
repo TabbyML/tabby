@@ -70,6 +70,7 @@ assert-json-diff = "2.0.2"
 insta = { version = "1.34.0", features = ["yaml", "redactions"] }
 reqwest.workspace = true
 serde-jsonlines = "0.5.0"
+reqwest-eventsource = { workspace = true }
 
 [package.metadata.cargo-machete]
 ignored = ["openssl"]
