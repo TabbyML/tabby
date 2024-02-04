@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+
 
 use dashmap::DashMap;
 use tabby_common::languages::Language;
@@ -39,10 +39,7 @@ impl StopConditionFactory {
         }
     }
 
-    fn get_trie<'a>(
-        &'a self,
-        language: &'static Language,
-    ) -> Option<CachedTrie<'a>> {
+    fn get_trie<'a>(&'a self, language: &'static Language) -> Option<CachedTrie<'a>> {
         let stop_words = language.get_stop_words();
         if stop_words.is_empty() {
             None
@@ -121,6 +118,6 @@ mod tests {
             "\n\n  ".to_owned(),
             "\nvoid".to_owned(),
         ]);
-        assert!(trie.common_prefix_search(&text).len() > 0);
+        assert!(!trie.common_prefix_search(&text).is_empty());
     }
 }
