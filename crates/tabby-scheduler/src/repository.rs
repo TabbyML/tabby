@@ -2,7 +2,7 @@ use std::{collections::HashSet, fs, process::Command};
 
 use anyhow::{anyhow, Result};
 use tabby_common::{config::RepositoryConfig, path::repositories_dir};
-use tracing::warn;
+use tracing::{info, warn};
 
 trait RepositoryExt {
     fn sync(&self) -> Result<()>;
@@ -52,6 +52,8 @@ pub fn sync_repositories(repositories: &[RepositoryConfig]) -> Result<()> {
         }
     }
 
+    // Ensure repositories_dir exist.
+    std::fs::create_dir_all(repositories_dir())?;
     for file in fs::read_dir(repositories_dir())?.filter_map(Result::ok) {
         let metadata = file.metadata()?;
         let filename = file.file_name();
