@@ -1,9 +1,11 @@
+use std::borrow::Borrow;
+
 use dashmap::DashMap;
-use regex::Regex;
 use tabby_common::languages::Language;
+use trie_rs::{Trie, TrieBuilder};
 
 pub struct StopConditionFactory {
-    stop_regex_cache: DashMap<String, Regex>,
+    stop_regex_cache: DashMap<String, Trie<u8>>,
 }
 
 fn reverse<T>(s: T) -> String
@@ -21,6 +23,8 @@ impl Default for StopConditionFactory {
     }
 }
 
+type CachedTrie<'a> = dashmap::mapref::one::Ref<'a, String, Trie<u8>>;
+
 impl StopConditionFactory {
     pub fn create(
         &self,
@@ -35,7 +39,10 @@ impl StopConditionFactory {
         }
     }
 
-    fn get_re(&self, language: &'static Language) -> Option<Regex> {
+    fn get_re<'a>(
+        &'a self,
+        language: &'static Language,
+    ) -> Option<CachedTrie<'a>> {
         let stop_words = language.get_stop_words();
         if stop_words.is_empty() {
             None
@@ -44,34 +51,32 @@ impl StopConditionFactory {
             let mut re = self.stop_regex_cache.get(&hashkey);
             if re.is_none() {
                 self.stop_regex_cache
-                    .insert(hashkey.clone(), create_stop_regex(stop_words));
+                    .insert(hashkey.clone(), create_stop_trie(stop_words));
                 re = self.stop_regex_cache.get(&hashkey);
             }
-            re.map(|x| x.value().clone())
+
+            re
         }
     }
 }
 
-fn create_stop_regex(stop_words: Vec<String>) -> Regex {
-    // (?m) enables multi-line matching mode.
-    // \A means absolute begins of string.
-    let reversed_stop_words: Vec<_> = stop_words
-        .iter()
-        .map(|x| regex::escape(&reverse(x)))
-        .collect();
-    let regex_string = r"(?m)\A".to_owned() + "((" + &reversed_stop_words.join(")|(") + "))";
-    Regex::new(&regex_string).expect("Failed to create regex")
+fn create_stop_trie(stop_words: Vec<String>) -> Trie<u8> {
+    let mut builder = TrieBuilder::new();
+    for word in stop_words {
+        builder.push(reverse(word))
+    }
+    builder.build()
 }
 
-pub struct StopCondition {
-    stop_re: Option<Regex>,
+pub struct StopCondition<'a> {
+    stop_re: Option<CachedTrie<'a>>,
     max_decoding_length: usize,
     reversed_text: String,
     num_decoded: usize,
 }
 
-impl StopCondition {
-    pub fn new(stop_re: Option<Regex>, max_decoding_length: usize, text: &str) -> Self {
+impl<'a> StopCondition<'a> {
+    pub fn new(stop_re: Option<CachedTrie<'a>>, max_decoding_length: usize, text: &str) -> Self {
         Self {
             stop_re,
             max_decoding_length,
@@ -85,8 +90,10 @@ impl StopCondition {
             self.reversed_text = reverse(new_text) + &self.reversed_text;
 
             if let Some(re) = &self.stop_re {
-                if let Some(m) = re.find_at(&self.reversed_text, 0) {
-                    return (true, m.len());
+                let matches = re.common_prefix_search(&self.reversed_text);
+                let matched_length = matches.into_iter().map(|x| x.len()).max();
+                if let Some(matched_length) = matched_length {
+                    return (true, matched_length);
                 } else {
                     return (false, 0);
                 };
@@ -103,14 +110,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_it_works() {
+    fn test_trie_works() {
         let text = reverse("void write_u32(std::uint32_t val) const {\n        write_raw(&val, sizeof(val));\n    }\n\n    ~llama_file() {\n        if (fp) {\n            std::fclose(fp);\n        }\n    }\n};\n\nvoid");
-        assert!(!create_stop_regex(vec!["\n\n".to_owned(), "\n\n  ".to_owned()]).is_match(&text));
-        assert!(create_stop_regex(vec![
+
+        let trie = create_stop_trie(vec!["\n\n".to_owned(), "\n\n  ".to_owned()]);
+        assert!(trie.common_prefix_search(&text).is_empty());
+
+        let trie = create_stop_trie(vec![
             "\n\n".to_owned(),
             "\n\n  ".to_owned(),
-            "\nvoid".to_owned()
-        ])
-        .is_match(&text));
+            "\nvoid".to_owned(),
+        ]);
+        assert!(trie.common_prefix_search(&text).len() > 0);
     }
 }
