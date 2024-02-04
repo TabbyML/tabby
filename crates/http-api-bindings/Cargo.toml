@@ -4,7 +4,7 @@ version = "0.8.0"
 edition = "2021"
 
 [dependencies]
-anyhow.workspace = true
+async-stream.workspace = true
 async-trait.workspace = true
 futures.workspace = true
 reqwest = { workspace = true, features = ["json"] }

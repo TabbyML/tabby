@@ -1602,7 +1602,7 @@ dependencies = [
 name = "http-api-bindings"
 version = "0.8.0"
 dependencies = [
- "anyhow",
+ "async-stream",
  "async-trait",
  "futures",
  "reqwest",

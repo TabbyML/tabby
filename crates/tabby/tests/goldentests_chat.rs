@@ -1,8 +1,7 @@
-use std::{io::BufRead, path::PathBuf};
+use std::path::PathBuf;
 
 use futures::StreamExt;
 use lazy_static::lazy_static;
-use reqwest::RequestBuilder;
 use reqwest_eventsource::{Event, EventSource};
 use serde::Deserialize;
 use serde_json::json;
@@ -103,7 +102,7 @@ async fn golden_test(body: serde_json::Value) -> String {
             }
             Err(_) => {
                 // StreamEnd
-                break
+                break;
             }
         }
     }

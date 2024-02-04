@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use axum::{
-    body::StreamBody, extract::State, http::HeaderValue, response::{IntoResponse, Response}, Json
+    body::StreamBody,
+    extract::State,
+    http::HeaderValue,
+    response::{IntoResponse, Response},
+    Json,
 };
 use futures::StreamExt;
 use tracing::instrument;
@@ -41,7 +45,10 @@ pub async fn chat_completions(
         Ok(s) => Ok(format!("data: {s}\n\n")),
         Err(e) => Err(anyhow::Error::from(e)),
     });
-    let resp = StreamBody::new(s).into_response();
-    resp.headers_mut().append("Content-Type", HeaderValue::from_str("text/event-stream").unwrap());
+    let mut resp = StreamBody::new(s).into_response();
+    resp.headers_mut().append(
+        "Content-Type",
+        HeaderValue::from_str("text/event-stream").unwrap(),
+    );
     resp
 }
