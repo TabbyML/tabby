@@ -88,7 +88,7 @@ fn is_source_code(entry: &DirEntry) -> bool {
     }
 }
 
-pub fn create_dataset(config: &Vec<RepositoryConfig>) -> Result<()> {
+pub fn create_dataset(config: &[RepositoryConfig]) -> Result<()> {
     fs::remove_dir_all(dataset_dir()).ok();
     fs::create_dir_all(dataset_dir())?;
     let mut writer = FileRotate::new(

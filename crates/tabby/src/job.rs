@@ -4,7 +4,7 @@ use tabby_webserver::public::{ConnectHubRequest, RepositoryAccess};
 pub async fn get_repositories(
     url: Option<String>,
     token: Option<String>,
-    config: &Vec<RepositoryConfig>,
+    config: &[RepositoryConfig],
 ) -> Vec<RepositoryConfig> {
     match url.zip(token) {
         Some((addr, token)) => {

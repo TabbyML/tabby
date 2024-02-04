@@ -68,25 +68,28 @@ impl TextGenerationStream for OpenAIEngine {
         let es = EventSource::new(self.client.post(&self.api_endpoint).json(&request));
         // API Documentation: https://github.com/lm-sys/FastChat/blob/main/docs/openai_api.md
         let s = stream! {
-        let Ok(es) = es else {
-            warn!("Failed to access api_endpoint: {}", &self.api_endpoint);
-            return;
-        };
+            let Ok(es) = es else {
+                warn!("Failed to access api_endpoint: {}", &self.api_endpoint);
+                return;
+            };
 
             for await event in es {
-            match event {
-                Ok(Event::Open) => {}
-                Ok(Event::Message(message)) => {
-                    let x: Response = serde_json::from_str(&message.data).unwrap();
-                    yield x.choices[0].text.clone();
-                }
-                Err(Error::StreamEnded) => {
-                    break;
-                },
-                Err(err) => {
-                    warn!("Failed to start streaming: {}", err);
-                }
-            };
+                match event {
+                    Ok(Event::Open) => {}
+                    Ok(Event::Message(message)) => {
+                        let Ok(x) = serde_json::from_str::<Response>(&message.data) else {
+                            warn!("Invalid response payload: {}", message.data);
+                            break;
+                        };
+                        yield x.choices[0].text.clone();
+                    }
+                    Err(Error::StreamEnded) => {
+                        break;
+                    },
+                    Err(err) => {
+                        warn!("Failed to start streaming: {}", err);
+                    }
+                };
             }
         };
 

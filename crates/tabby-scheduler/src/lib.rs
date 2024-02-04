@@ -39,7 +39,7 @@ pub async fn scheduler(now: bool, access: Vec<RepositoryConfig>) -> Result<()> {
     Ok(())
 }
 
-pub fn job_index(repositories: &Vec<RepositoryConfig>) {
+pub fn job_index(repositories: &[RepositoryConfig]) {
     println!("Indexing repositories...");
     let ret = index::index_repositories(repositories);
     if let Err(err) = ret {
@@ -48,9 +48,8 @@ pub fn job_index(repositories: &Vec<RepositoryConfig>) {
     println!();
 }
 
-pub fn job_sync(repositories: &Vec<RepositoryConfig>) {
+pub fn job_sync(repositories: &[RepositoryConfig]) {
     println!("Syncing repositories...");
-    let repositories = repositories;
     let ret = repository::sync_repositories(repositories);
     if let Err(err) = ret {
         error!("Failed to sync repositories, err: '{}'", err);
