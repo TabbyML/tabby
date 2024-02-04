@@ -17,7 +17,7 @@ static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 static MAX_BODY_LINES_THRESHOLD: usize = 15;
 
-pub fn index_repositories(_config: &Vec<RepositoryConfig>) -> Result<()> {
+pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
     let code = CodeSearchSchema::new();
 
     fs::create_dir_all(index_dir())?;

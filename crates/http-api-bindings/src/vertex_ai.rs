@@ -3,7 +3,7 @@ use futures::stream::BoxStream;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tabby_inference::{helpers, TextGeneration, TextGenerationOptions, TextGenerationStream};
+use tabby_inference::{helpers, TextGenerationOptions, TextGenerationStream};
 
 #[derive(Serialize)]
 struct Request {

@@ -39,7 +39,7 @@ impl RepositoryExt for RepositoryConfig {
     }
 }
 
-pub fn sync_repositories(repositories: &Vec<RepositoryConfig>) -> Result<()> {
+pub fn sync_repositories(repositories: &[RepositoryConfig]) -> Result<()> {
     let mut names = HashSet::new();
     for repository in repositories {
         names.insert(repository.name());
