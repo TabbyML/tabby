@@ -40,6 +40,9 @@ impl RepositoryExt for RepositoryConfig {
 }
 
 pub fn sync_repositories(repositories: &[RepositoryConfig]) -> Result<()> {
+    // Ensure repositories_dir exist.
+    std::fs::create_dir_all(repositories_dir())?;
+
     let mut names = HashSet::new();
     for repository in repositories {
         names.insert(repository.name());
