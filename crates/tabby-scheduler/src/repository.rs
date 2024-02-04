@@ -2,7 +2,7 @@ use std::{collections::HashSet, fs, process::Command};
 
 use anyhow::{anyhow, Result};
 use tabby_common::{config::RepositoryConfig, path::repositories_dir};
-use tracing::{info, warn};
+use tracing::{warn};
 
 trait RepositoryExt {
     fn sync(&self) -> Result<()>;
