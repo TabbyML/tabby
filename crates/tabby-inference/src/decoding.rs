@@ -5,7 +5,7 @@ use tabby_common::languages::Language;
 use trie_rs::{Trie, TrieBuilder};
 
 pub struct StopConditionFactory {
-    stop_regex_cache: DashMap<String, Trie<u8>>,
+    stop_trie_cache: DashMap<String, Trie<u8>>,
 }
 
 fn reverse<T>(s: T) -> String
@@ -18,7 +18,7 @@ where
 impl Default for StopConditionFactory {
     fn default() -> Self {
         Self {
-            stop_regex_cache: DashMap::new(),
+            stop_trie_cache: DashMap::new(),
         }
     }
 }
@@ -33,13 +33,13 @@ impl StopConditionFactory {
         language: Option<&'static Language>,
     ) -> StopCondition {
         if let Some(language) = language {
-            StopCondition::new(self.get_re(language), max_decoding_length, text)
+            StopCondition::new(self.get_trie(language), max_decoding_length, text)
         } else {
             StopCondition::new(None, max_decoding_length, text)
         }
     }
 
-    fn get_re<'a>(
+    fn get_trie<'a>(
         &'a self,
         language: &'static Language,
     ) -> Option<CachedTrie<'a>> {
@@ -48,14 +48,14 @@ impl StopConditionFactory {
             None
         } else {
             let hashkey = language.get_hashkey();
-            let mut re = self.stop_regex_cache.get(&hashkey);
-            if re.is_none() {
-                self.stop_regex_cache
+            let mut trie = self.stop_trie_cache.get(&hashkey);
+            if trie.is_none() {
+                self.stop_trie_cache
                     .insert(hashkey.clone(), create_stop_trie(stop_words));
-                re = self.stop_regex_cache.get(&hashkey);
+                trie = self.stop_trie_cache.get(&hashkey);
             }
 
-            re
+            trie
         }
     }
 }
@@ -69,16 +69,16 @@ fn create_stop_trie(stop_words: Vec<String>) -> Trie<u8> {
 }
 
 pub struct StopCondition<'a> {
-    stop_re: Option<CachedTrie<'a>>,
+    stop_trie: Option<CachedTrie<'a>>,
     max_decoding_length: usize,
     reversed_text: String,
     num_decoded: usize,
 }
 
 impl<'a> StopCondition<'a> {
-    pub fn new(stop_re: Option<CachedTrie<'a>>, max_decoding_length: usize, text: &str) -> Self {
+    pub fn new(stop_trie: Option<CachedTrie<'a>>, max_decoding_length: usize, text: &str) -> Self {
         Self {
-            stop_re,
+            stop_trie,
             max_decoding_length,
             reversed_text: reverse(text),
             num_decoded: 0,
@@ -89,7 +89,7 @@ impl<'a> StopCondition<'a> {
         if !new_text.is_empty() {
             self.reversed_text = reverse(new_text) + &self.reversed_text;
 
-            if let Some(re) = &self.stop_re {
+            if let Some(re) = &self.stop_trie {
                 let matches = re.common_prefix_search(&self.reversed_text);
                 let matched_length = matches.into_iter().map(|x| x.len()).max();
                 if let Some(matched_length) = matched_length {
