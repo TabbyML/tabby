@@ -8,9 +8,7 @@ use derive_builder::Builder;
 use ffi::create_engine;
 use futures::stream::BoxStream;
 use llama::LlamaService;
-use tabby_inference::{
-    decoding::StopConditionFactory, helpers, TextGeneration, TextGenerationOptions,
-};
+use tabby_inference::{TextGenerationOptions, TextGenerationStream};
 
 #[cxx::bridge(namespace = "llama")]
 mod ffi {
@@ -55,7 +53,6 @@ pub struct LlamaTextGenerationOptions {
 
 pub struct LlamaTextGeneration {
     service: LlamaService,
-    stop_condition_factory: StopConditionFactory,
 }
 
 impl LlamaTextGeneration {
@@ -67,40 +64,13 @@ impl LlamaTextGeneration {
 
         Self {
             service: LlamaService::new(engine),
-            stop_condition_factory: StopConditionFactory::default(),
         }
     }
 }
 
 #[async_trait]
-impl TextGeneration for LlamaTextGeneration {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        let language = options.language;
-        let s = self.generate_stream(prompt, options).await;
-        let text = helpers::stream_to_string(s).await;
-
-        let Some(language) = language else {
-            return text;
-        };
-
-        let Some(trimmed) = self.stop_condition_factory.trim_stop_words(language, &text) else {
-            return text;
-        };
-
-        trimmed
-    }
-
-    async fn generate_stream(
-        &self,
-        prompt: &str,
-        options: TextGenerationOptions,
-    ) -> BoxStream<String> {
-        let stop_condition = self.stop_condition_factory.create(
-            prompt,
-            options.max_decoding_length,
-            options.language,
-        );
-
+impl TextGenerationStream for LlamaTextGeneration {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
         let mut rx = self
             .service
             .add_request(
@@ -108,7 +78,6 @@ impl TextGeneration for LlamaTextGeneration {
                 options.max_input_length,
                 options.sampling_temperature,
                 options.seed,
-                stop_condition,
             )
             .await;
 

@@ -1,7 +1,6 @@
 use std::{collections::HashMap, thread::JoinHandle};
 
 use cxx::UniquePtr;
-use tabby_inference::decoding::StopCondition;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 use crate::ffi;
@@ -13,12 +12,10 @@ struct LlamaInitRequest {
     seed: u64,
 
     tx: Sender<String>,
-    stop_condition: StopCondition,
 }
 
 struct LlamaRunningRequest {
     tx: Sender<String>,
-    stop_condition: StopCondition,
 }
 
 struct LlamaServiceImpl {
@@ -62,7 +59,6 @@ impl LlamaServiceImpl {
             seed,
             tx,
             max_input_length,
-            stop_condition,
         }) = self.next_request().await
         {
             // Drop canceled requests.
@@ -71,8 +67,7 @@ impl LlamaServiceImpl {
             }
 
             let request_id = self.alloc_request_id();
-            self.requests
-                .insert(request_id, LlamaRunningRequest { tx, stop_condition });
+            self.requests.insert(request_id, LlamaRunningRequest { tx });
             self.engine.as_mut().unwrap().add_request(
                 request_id,
                 &prompt,
@@ -90,21 +85,14 @@ impl LlamaServiceImpl {
         };
 
         for ffi::StepOutput { request_id, text } in result {
-            let mut stopped: bool;
-            let LlamaRunningRequest { tx, stop_condition } =
-                self.requests.get_mut(&request_id).unwrap();
+            let LlamaRunningRequest { tx } = self.requests.get_mut(&request_id).unwrap();
 
-            if tx.is_closed() || text.is_empty() {
+            let stopped = if tx.is_closed() || text.is_empty() {
                 // Cancelled by client side or hit eos.
-                stopped = true;
+                true
             } else {
-                stopped = stop_condition.should_stop(&text);
-
-                match tx.send(text).await {
-                    Ok(_) => (),
-                    Err(_) => stopped = true,
-                }
-            }
+                tx.send(text).await.is_err()
+            };
 
             if stopped {
                 self.requests.remove(&request_id);
@@ -153,7 +141,6 @@ impl LlamaService {
         max_input_length: usize,
         temperature: f32,
         seed: u64,
-        stop_condition: StopCondition,
     ) -> Receiver<String> {
         let (tx, rx) = channel(8);
         self.tx
@@ -163,7 +150,6 @@ impl LlamaService {
                 seed,
                 tx,
                 max_input_length,
-                stop_condition,
             })
             .await
             .expect("Failed to add request");
