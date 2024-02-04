@@ -11,5 +11,5 @@ async-trait = { workspace = true }
 dashmap = "5.5.3"
 derive_builder = "0.12.0"
 futures = { workspace = true }
-regex.workspace = true
 tabby-common = { path = "../tabby-common" }
+trie-rs = "0.1.1"
