@@ -40,6 +40,9 @@ impl RepositoryExt for RepositoryConfig {
 }
 
 pub fn sync_repositories(repositories: &[RepositoryConfig]) -> Result<()> {
+    // Ensure repositories_dir exist.
+    std::fs::create_dir_all(repositories_dir())?;
+
     let mut names = HashSet::new();
     for repository in repositories {
         names.insert(repository.name());
@@ -52,8 +55,6 @@ pub fn sync_repositories(repositories: &[RepositoryConfig]) -> Result<()> {
         }
     }
 
-    // Ensure repositories_dir exist.
-    std::fs::create_dir_all(repositories_dir())?;
     for file in fs::read_dir(repositories_dir())?.filter_map(Result::ok) {
         let metadata = file.metadata()?;
         let filename = file.file_name();
