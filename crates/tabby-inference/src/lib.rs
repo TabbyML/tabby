@@ -47,7 +47,7 @@ pub trait TextGeneration: Sync + Send {
         &self,
         prompt: &str,
         options: TextGenerationOptions,
-    ) -> BoxStream<String>;
+    ) -> BoxStream<(bool, String)>;
 }
 
 pub fn make_text_generation(imp: impl TextGenerationStream) -> impl TextGeneration {
