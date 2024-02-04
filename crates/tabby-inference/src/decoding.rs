@@ -1,5 +1,3 @@
-
-
 use dashmap::DashMap;
 use tabby_common::languages::Language;
 use trie_rs::{Trie, TrieBuilder};
