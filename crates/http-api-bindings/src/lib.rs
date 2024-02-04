@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use openai::OpenAIEngine;
 use serde_json::Value;
-use tabby_inference::TextGeneration;
+use tabby_inference::{make_text_generation, TextGeneration};
 use vertex_ai::VertexAIEngine;
 
 pub fn create(model: &str) -> (Arc<dyn TextGeneration>, String) {
@@ -14,15 +14,21 @@ pub fn create(model: &str) -> (Arc<dyn TextGeneration>, String) {
     if kind == "vertex-ai" {
         let api_endpoint = get_param(&params, "api_endpoint");
         let authorization = get_param(&params, "authorization");
-        let engine = VertexAIEngine::create(api_endpoint.as_str(), authorization.as_str());
+        let engine = make_text_generation(VertexAIEngine::create(
+            api_endpoint.as_str(),
+            authorization.as_str(),
+        ));
         (Arc::new(engine), VertexAIEngine::prompt_template())
     } else if kind == "openai" {
         let model_name = get_param(&params, "model_name");
         let api_endpoint = get_param(&params, "api_endpoint");
         let authorization = get_optional_param(&params, "authorization");
         let prompt_template = get_param(&params, "prompt_template");
-        let engine =
-            OpenAIEngine::create(api_endpoint.as_str(), model_name.as_str(), authorization);
+        let engine = make_text_generation(OpenAIEngine::create(
+            api_endpoint.as_str(),
+            model_name.as_str(),
+            authorization,
+        ));
         (Arc::new(engine), prompt_template)
     } else {
         panic!("Only vertex_ai and openai are supported for http backend");

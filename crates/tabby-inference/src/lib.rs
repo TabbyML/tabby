@@ -1,9 +1,11 @@
 //! Lays out the abstract definition of a text generation model, and utilities for encodings.
-pub mod decoding;
+mod decoding;
+mod imp;
 
 use async_trait::async_trait;
 use derive_builder::Builder;
 use futures::stream::BoxStream;
+use imp::TextGenerationImpl;
 use tabby_common::languages::Language;
 
 #[derive(Builder, Debug)]
@@ -34,29 +36,27 @@ impl TextGenerationOptions {
 }
 
 #[async_trait]
+pub trait TextGenerationStream: Sync + Send {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String>;
+}
+
+#[async_trait]
 pub trait TextGeneration: Sync + Send {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String;
     async fn generate_stream(
         &self,
         prompt: &str,
         options: TextGenerationOptions,
-    ) -> BoxStream<String>;
+    ) -> BoxStream<(bool, String)>;
+}
+
+pub fn make_text_generation(imp: impl TextGenerationStream) -> impl TextGeneration {
+    TextGenerationImpl::new(imp)
 }
 
 pub mod helpers {
     use async_stream::stream;
-    use futures::{pin_mut, stream::BoxStream, Stream, StreamExt};
-
-    pub async fn stream_to_string(s: impl Stream<Item = String>) -> String {
-        pin_mut!(s);
-
-        let mut text = "".to_owned();
-        while let Some(value) = s.next().await {
-            text += &value;
-        }
-
-        text
-    }
+    use futures::stream::BoxStream;
 
     pub async fn string_to_stream(s: String) -> BoxStream<'static, String> {
         let stream = stream! {

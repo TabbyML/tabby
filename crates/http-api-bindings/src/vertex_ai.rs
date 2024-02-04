@@ -3,7 +3,7 @@ use futures::stream::BoxStream;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
+use tabby_inference::{helpers, TextGeneration, TextGenerationOptions, TextGenerationStream};
 
 #[derive(Serialize)]
 struct Request {
@@ -61,10 +61,8 @@ impl VertexAIEngine {
     pub fn prompt_template() -> String {
         "{prefix}<MID>{suffix}".to_owned()
     }
-}
 
-#[async_trait]
-impl TextGeneration for VertexAIEngine {
+    // FIXME(meng): migrate to streaming implementation
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
         let stop_sequences = if let Some(language) = options.language {
             language
@@ -112,12 +110,11 @@ impl TextGeneration for VertexAIEngine {
 
         resp.predictions[0].content.clone()
     }
+}
 
-    async fn generate_stream(
-        &self,
-        prompt: &str,
-        options: TextGenerationOptions,
-    ) -> BoxStream<String> {
+#[async_trait]
+impl TextGenerationStream for VertexAIEngine {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
         helpers::string_to_stream(self.generate(prompt, options).await).await
     }
 }
