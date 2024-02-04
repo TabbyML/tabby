@@ -13,6 +13,9 @@ trait ConfigExt {
 
 impl ConfigExt for Config {
     fn sync_repositories(&self) -> Result<()> {
+        // Ensure repositories_dir exist.
+        fs::create_dir_all(repositories_dir())?;
+
         let mut names = HashSet::new();
         for repository in self.repositories.iter() {
             names.insert(repository.name());
