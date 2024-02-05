@@ -130,7 +130,6 @@ export default function OAuthCredentialForm({
   const updateOauthCredential = useMutation(updateOauthCredentialMutation, {
     onCompleted(values) {
       if (values?.updateOauthCredential) {
-        toast.success(`success`)
         onSuccess?.(form.getValues())
       }
     },
