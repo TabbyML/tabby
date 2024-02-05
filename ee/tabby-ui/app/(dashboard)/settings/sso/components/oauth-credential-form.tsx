@@ -13,7 +13,18 @@ import { graphql } from '@/lib/gql/generates'
 import { OAuthProvider } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -44,6 +55,12 @@ export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
       clientSecret: $clientSecret
       redirectUri: $redirectUri
     )
+  }
+`)
+
+export const deleteOauthCredentialMutation = graphql(/* GraphQL */ `
+  mutation deleteOauthCredential($provider: OAuthProvider!) {
+    deleteOauthCredential(provider: $provider)
   }
 `)
 
@@ -81,6 +98,8 @@ export default function OAuthCredentialForm({
   }, [])
 
   const [oauthRedirectUri, setOAuthRedirectUri] = React.useState<string>('')
+  const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
+  const [isDeleting, setIsDeleting] = React.useState(false)
 
   const form = useForm<OAuthCredentialFormValues>({
     resolver: zodResolver(formSchema),
@@ -103,6 +122,10 @@ export default function OAuthCredentialForm({
     }
   }, [providerValue])
 
+  const navigateToSSOSettings = () => {
+    router.replace('/settings/sso')
+  }
+
   const updateOauthCredential = useMutation(updateOauthCredentialMutation, {
     onCompleted(values) {
       if (values?.updateOauthCredential) {
@@ -112,6 +135,8 @@ export default function OAuthCredentialForm({
     },
     form
   })
+
+  const deleteOAuthCredential = useMutation(deleteOauthCredentialMutation)
 
   const onSubmit = async (values: OAuthCredentialFormValues) => {
     client.query(oauthCredential, { provider: values.provider }).then(res => {
@@ -125,6 +150,21 @@ export default function OAuthCredentialForm({
 
       // add redirect uri automatically
       updateOauthCredential({ ...values, redirectUri: oauthRedirectUri })
+    })
+  }
+
+  const onDelete: React.MouseEventHandler<HTMLButtonElement> = e => {
+    e.preventDefault()
+    setIsDeleting(true)
+    deleteOAuthCredential({ provider: providerValue }).then(res => {
+      if (res?.data?.deleteOauthCredential) {
+        navigateToSSOSettings()
+      } else {
+        setIsDeleting(false)
+        if (res?.error) {
+          toast.error(res?.error?.message)
+        }
+      }
     })
   }
 
@@ -164,7 +204,7 @@ export default function OAuthCredentialForm({
                         disabled={!isNew}
                       />
                       <Label className="cursor-pointer" htmlFor="r_github">
-                        Github
+                        GitHub
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -245,11 +285,44 @@ export default function OAuthCredentialForm({
             )}
           />
           <div className="mt-1 flex justify-end gap-4">
+            {!isNew && (
+              <AlertDialog
+                open={deleteAlertVisible}
+                onOpenChange={setDeleteAlertVisible}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button variant="hover-destructive">Delete</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete
+                      current credential
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className={buttonVariants({ variant: 'destructive' })}
+                      onClick={onDelete}
+                    >
+                      {isDeleting && (
+                        <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Yes, delete credential
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             {isNew ? (
               <Button
                 type="button"
                 variant="ghost"
-                onClick={e => router.replace('/settings/sso')}
+                onClick={navigateToSSOSettings}
               >
                 Cancel
               </Button>

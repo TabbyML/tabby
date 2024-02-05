@@ -17,6 +17,7 @@ type Mutation {
   updateRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
   deleteInvitation(id: ID!): ID!
   updateOauthCredential(provider: OAuthProvider!, clientId: String!, clientSecret: String!, redirectUri: String): Boolean!
+  deleteOauthCredential(provider: OAuthProvider!): Boolean!
   updateEmailSetting(smtpUsername: String!, smtpPassword: String, smtpServer: String!): Boolean!
   deleteEmailSetting: Boolean!
 }
