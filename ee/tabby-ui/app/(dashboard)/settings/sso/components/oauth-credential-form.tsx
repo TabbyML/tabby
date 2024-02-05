@@ -235,14 +235,15 @@ export default function OAuthCredentialForm({
               <div className="text-sm text-muted-foreground">
                 Create your SSO application with the following information
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between">
                 <div className="text-sm font-medium">
                   Authorization callback URL
                 </div>
-                <span className="text-sm">{oauthRedirectUri}</span>
-                {!!providerValue && (
-                  <CopyButton type="button" value={oauthRedirectUri} />
-                )}
+                <span className="flex text-sm items-center">{oauthRedirectUri}
+                  {!!providerValue && (
+                    <CopyButton type="button" value={oauthRedirectUri} />
+                  )}
+                </span>
               </div>
             </div>
           </FormItem>
@@ -318,22 +319,13 @@ export default function OAuthCredentialForm({
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            {isNew ? (
+            {isNew && (
               <Button
                 type="button"
                 variant="ghost"
                 onClick={navigateToSSOSettings}
               >
                 Cancel
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={e => form.reset()}
-                disabled={isSubmitting || !isDirty}
-              >
-                Discard changes
               </Button>
             )}
             <Button
