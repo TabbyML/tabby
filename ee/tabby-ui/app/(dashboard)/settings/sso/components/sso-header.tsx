@@ -14,10 +14,10 @@ export const SSOHeader = ({
         Single Sign-On (SSO) is an authentication method that enables users to
         authenticate with multiple applications and websites via a single set of
         credentials.
-        <a className="ml-2 inline-flex cursor-pointer flex-row items-center text-primary hover:underline">
+        {false && <a className="ml-2 inline-flex cursor-pointer flex-row items-center text-primary hover:underline">
           Learn more
           <IconExternalLink />
-        </a>
+        </a>}
       </div>
       <div className="shrink-0 h-8">{extra}</div>
     </div>

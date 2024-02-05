@@ -41,6 +41,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CopyButton } from '@/components/copy-button'
 
 import { oauthCredential } from './oauth-credential-list'
+import { Separator } from '@/components/ui/separator'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation updateOauthCredential(
@@ -224,13 +225,7 @@ export default function OAuthCredentialForm({
             )}
           />
 
-          <div>
-            <SubTitle>Identity provider information</SubTitle>
-            <FormDescription>
-              The information is provided by your identity provider.
-            </FormDescription>
-          </div>
-          <FormItem>
+          <FormItem className='mt-4'>
             <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
               <div className="text-sm text-muted-foreground">
                 Create your SSO application with the following information
@@ -247,6 +242,13 @@ export default function OAuthCredentialForm({
               </div>
             </div>
           </FormItem>
+
+          <div>
+            <SubTitle>OAuth provider information</SubTitle>
+            <FormDescription>
+              The information is provided by your oauth provider.
+            </FormDescription>
+          </div>
           <FormField
             control={form.control}
             name="clientId"
