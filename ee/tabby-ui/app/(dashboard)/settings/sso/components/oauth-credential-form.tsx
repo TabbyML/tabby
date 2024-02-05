@@ -246,7 +246,7 @@ export default function OAuthCredentialForm({
           <div>
             <SubTitle>OAuth provider information</SubTitle>
             <FormDescription>
-              The information is provided by your oauth provider.
+              The information is provided by your identity provider.
             </FormDescription>
           </div>
           <FormField
