@@ -248,7 +248,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         throw std::runtime_error(string_format("llama_decode failed with code: %d", ret));
       }
 
-      const auto eos_id = llama_token_eos(llama_get_model(ctx));
+      const llama_token eos_id = llama_token_eos(llama_get_model(ctx));
       for (auto& request : requests_) {
         if ((request.i_batch < i) || (request.i_batch >= (i + n_tokens))) {
           continue;
@@ -257,7 +257,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
         compute_softmax_inplace(logits, n_vocab, request.temperature);
-        auto next_token = weighted_random(logits, n_vocab, request.seed);
+        const llama_token next_token = weighted_random(logits, n_vocab, request.seed);
         request.n_past += request.tokens.size();
 
         request.tokens.clear();
