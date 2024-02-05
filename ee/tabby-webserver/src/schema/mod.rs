@@ -305,7 +305,7 @@ impl Mutation {
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
         ctx.locator
             .auth()
-            .update_user_active(DbConn::to_rowid(&*id)?, active)
+            .update_user_active(DbConn::to_rowid(&id)?, active)
             .await?;
         Ok(true)
     }
