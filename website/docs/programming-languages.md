@@ -29,8 +29,8 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Ruby](https://www.ruby-lang.org/)
 * [Java](https://www.java.com/)
 * [Kotlin](https://www.kotlinlang.org/)
-* [C/C++](https://cplusplus.com/), since v0.8.0
-* [PHP](https://www.php.net/): Since v0.8.0
+* [C/C++](https://cplusplus.com/)
+* [PHP](https://www.php.net/)
 * [C#](https://learn.microsoft.com/en-us/dotnet/csharp/): Since v0.9.0
 
 ## Languages Missing Certain Support
