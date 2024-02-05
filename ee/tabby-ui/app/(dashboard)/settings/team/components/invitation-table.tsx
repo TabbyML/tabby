@@ -35,7 +35,7 @@ import CreateInvitationForm from './create-invitation-form'
 
 const deleteInvitationMutation = graphql(/* GraphQL */ `
   mutation DeleteInvitation($id: ID!) {
-    deleteInvitationNext(id: $id)
+    deleteInvitation(id: $id)
   }
 `)
 
@@ -50,8 +50,8 @@ export default function InvitationTable() {
   const [fetchingLastPage, setFetchingLastPage] = React.useState(false)
 
   const [currentPage, setCurrentPage] = React.useState(1)
-  const edges = data?.invitationsNext?.edges
-  const pageInfo = data?.invitationsNext?.pageInfo
+  const edges = data?.invitations?.edges
+  const pageInfo = data?.invitations?.pageInfo
   const pageNum = Math.ceil((edges?.length || 0) / PAGE_SIZE)
 
   const currentPageInvits = React.useMemo(() => {
@@ -72,8 +72,8 @@ export default function InvitationTable() {
     cursor?: string
   ): Promise<number> => {
     const res = await fetchInvitations({ first: PAGE_SIZE, after: cursor })
-    let count = res?.data?.invitationsNext?.edges?.length || 0
-    const _pageInfo = res?.data?.invitationsNext?.pageInfo
+    let count = res?.data?.invitations?.edges?.length || 0
+    const _pageInfo = res?.data?.invitations?.pageInfo
     if (_pageInfo?.hasNextPage && _pageInfo?.endCursor) {
       // cacheExchange will merge the edges
       count = await fetchInvitationsSequentially(_pageInfo.endCursor)
@@ -121,7 +121,7 @@ export default function InvitationTable() {
 
     fetchInvitations({ first: PAGE_SIZE, after: pageInfo?.endCursor }).then(
       data => {
-        if (data?.data?.invitationsNext?.edges?.length) {
+        if (data?.data?.invitations?.edges?.length) {
           setCurrentPage(p => p + 1)
         }
       }
@@ -134,7 +134,7 @@ export default function InvitationTable() {
         toast.error(res.error.message)
         return
       }
-      if (res?.data?.deleteInvitationNext) {
+      if (res?.data?.deleteInvitation) {
         toast.success(`${node.email} deleted`)
       }
     })

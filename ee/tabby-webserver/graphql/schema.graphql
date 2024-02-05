@@ -12,11 +12,10 @@ type Mutation {
   verifyToken(token: String!): VerifyTokenResponse!
   refreshToken(refreshToken: String!): RefreshTokenResponse!
   createInvitation(email: String!): ID!
-  deleteInvitation(id: Int!): Int! @deprecated
   createRepository(name: String!, gitUrl: String!): ID!
   deleteRepository(id: ID!): Boolean!
   updateRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
-  deleteInvitationNext(id: ID!): ID!
+  deleteInvitation(id: ID!): ID!
   updateOauthCredential(provider: OAuthProvider!, clientId: String!, clientSecret: String!, redirectUri: String): Boolean!
   updateEmailSetting(smtpUsername: String!, smtpPassword: String, smtpServer: String!): Boolean!
   deleteEmailSetting: Boolean!
@@ -55,11 +54,9 @@ type Query {
   workers: [Worker!]!
   registrationToken: String!
   isAdminInitialized: Boolean!
-  invitations: [Invitation!]! @deprecated
   me: User!
-  users: [User!]! @deprecated
-  usersNext(after: String, before: String, first: Int, last: Int): UserConnection!
-  invitationsNext(after: String, before: String, first: Int, last: Int): InvitationConnection!
+  users(after: String, before: String, first: Int, last: Int): UserConnection!
+  invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(after: String, before: String, first: Int, last: Int): JobRunConnection!
   emailSetting: EmailSetting
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
@@ -92,13 +89,6 @@ type RepositoryConnection {
   pageInfo: PageInfo!
 }
 
-type InvitationNext {
-  id: ID!
-  email: String!
-  code: String!
-  createdAt: String!
-}
-
 type UserConnection {
   edges: [UserEdge!]!
   pageInfo: PageInfo!
@@ -107,6 +97,8 @@ type UserConnection {
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
+  "Won't be passed to client side."
+  clientSecret: String
   redirectUri: String
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
@@ -117,7 +109,7 @@ type VerifyTokenResponse {
 }
 
 type Invitation {
-  id: Int!
+  id: ID!
   email: String!
   code: String!
   createdAt: String!
@@ -154,7 +146,7 @@ type Worker {
 }
 
 type InvitationEdge {
-  node: InvitationNext!
+  node: Invitation!
   cursor: String!
 }
 

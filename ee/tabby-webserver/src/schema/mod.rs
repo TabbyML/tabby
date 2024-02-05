@@ -126,21 +126,7 @@ impl Query {
         }
     }
 
-    #[deprecated]
-    async fn users(ctx: &Context) -> Result<Vec<User>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return Ok(ctx
-                    .locator
-                    .auth()
-                    .list_users(None, None, None, None)
-                    .await?);
-            }
-        }
-        Err(CoreError::Unauthorized("Only admin is able to query users"))
-    }
-
-    async fn users_next(
+    async fn users(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
@@ -174,7 +160,7 @@ impl Query {
         )))
     }
 
-    async fn invitations_next(
+    async fn invitations(
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
@@ -377,23 +363,6 @@ impl Mutation {
         Ok(ID::new(invitation.id.to_string()))
     }
 
-    #[deprecated]
-    async fn delete_invitation(ctx: &Context, id: i32) -> Result<i32> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                let id = ctx
-                    .locator
-                    .auth()
-                    .delete_invitation(ID::new(id.to_string()))
-                    .await?;
-                return Ok(id.parse::<i32>().unwrap());
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to delete invitation",
-        ))
-    }
-
     async fn create_repository(
         ctx: &Context,
         name: String,
@@ -422,7 +391,7 @@ impl Mutation {
             .await?)
     }
 
-    async fn delete_invitation_next(ctx: &Context, id: ID) -> Result<ID> {
+    async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
                 return Ok(ctx.locator.auth().delete_invitation(id).await?);
