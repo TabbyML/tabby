@@ -1,6 +1,7 @@
 pub use email_setting::EmailSettingDAO;
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
 pub use google_oauth_credential::GoogleOAuthCredentialDAO;
+use hash_ids::HashIds;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use repositories::RepositoryDAO;
@@ -18,7 +19,16 @@ mod repositories;
 mod users;
 
 use anyhow::Result;
+use lazy_static::lazy_static;
 use sqlx::sqlite::SqliteConnectOptions;
+
+lazy_static! {
+    static ref HASHER: HashIds = HashIds::builder().with_salt("tabby-id-serializer").finish();
+}
+
+#[derive(thiserror::Error, Debug)]
+#[error("Invalid ID")]
+pub struct InvalidIDError;
 
 #[derive(Clone)]
 pub struct DbConn {
@@ -26,6 +36,18 @@ pub struct DbConn {
 }
 
 impl DbConn {
+    pub fn to_id(rowid: i32) -> String {
+        HASHER.encode(&[rowid as u64])
+    }
+
+    pub fn to_rowid(id: &str) -> Result<i32, InvalidIDError> {
+        HASHER
+            .decode(id)
+            .first()
+            .map(|i| *i as i32)
+            .ok_or(InvalidIDError)
+    }
+
     #[cfg(any(test, feature = "testutils"))]
     pub async fn new_in_memory() -> Result<Self> {
         use std::str::FromStr;

@@ -21,6 +21,7 @@ use juniper_axum::{
     FromAuth,
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tabby_db::{DbConn, InvalidIDError};
 use tracing::{error, warn};
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
@@ -29,12 +30,9 @@ use self::{
     email::{EmailService, EmailSetting},
     repository::{RepositoryError, RepositoryService},
 };
-use crate::{
-    schema::{
-        auth::{JWTPayload, OAuthCredential, OAuthProvider},
-        repository::Repository,
-    },
-    to_id, to_rowid, InvalidIDError,
+use crate::schema::{
+    auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    repository::Repository,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -307,7 +305,7 @@ impl Mutation {
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
         ctx.locator
             .auth()
-            .update_user_active(to_rowid(id)?, active)
+            .update_user_active(DbConn::to_rowid(&*id)?, active)
             .await?;
         Ok(true)
     }
@@ -361,7 +359,7 @@ impl Mutation {
                 "Failed to send invitation email, please check your SMTP settings are correct: {e}"
             );
         }
-        Ok(to_id(invitation.id))
+        Ok(ID::new(DbConn::to_id(invitation.id)))
     }
 
     async fn create_repository(

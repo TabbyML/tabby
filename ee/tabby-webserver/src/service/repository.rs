@@ -5,9 +5,8 @@ use tabby_db::DbConn;
 use validator::Validate;
 
 use super::graphql_pagination_to_filter;
-use crate::{
-    schema::repository::{CreateRepositoryInput, Repository, RepositoryError, RepositoryService},
-    to_id, to_rowid,
+use crate::schema::repository::{
+    CreateRepositoryInput, Repository, RepositoryError, RepositoryService,
 };
 
 #[async_trait]
@@ -36,15 +35,15 @@ impl RepositoryService for DbConn {
         Ok(self
             .create_repository(input.name, input.git_url)
             .await
-            .map(to_id)?)
+            .map(|id| ID::new(DbConn::to_id(id)))?)
     }
 
     async fn delete_repository(&self, id: ID) -> Result<bool> {
-        self.delete_repository(to_rowid(id)?).await
+        self.delete_repository(DbConn::to_rowid(&id)?).await
     }
 
     async fn update_repository(&self, id: ID, name: String, git_url: String) -> Result<bool> {
-        self.update_repository(to_rowid(id)?, name, git_url)
+        self.update_repository(DbConn::to_rowid(&id)?, name, git_url)
             .await
             .map(|_| true)
     }

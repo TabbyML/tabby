@@ -20,7 +20,6 @@ use crate::{
         RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse,
         User, VerifyTokenResponse,
     },
-    to_id, to_rowid,
 };
 
 /// Input parameters for register mutation
@@ -299,8 +298,8 @@ impl AuthenticationService for DbConn {
     }
 
     async fn delete_invitation(&self, id: ID) -> Result<ID> {
-        let id = to_rowid(id)?;
-        Ok(to_id(self.delete_invitation(id).await?))
+        let id = DbConn::to_rowid(&id)?;
+        Ok(ID::new(DbConn::to_id(self.delete_invitation(id).await?)))
     }
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
@@ -570,7 +569,7 @@ mod tests {
 
         // Used invitation should have been deleted,  following delete attempt should fail.
         assert!(conn
-            .delete_invitation(invitation.id.parse::<i32>().unwrap())
+            .delete_invitation(DbConn::to_rowid(&invitation.id).unwrap())
             .await
             .is_err());
     }

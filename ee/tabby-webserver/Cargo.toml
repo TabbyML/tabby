@@ -16,7 +16,6 @@ axum = { workspace = true, features = ["ws", "headers"] }
 bincode = "1.3.3"
 chrono = { workspace = true, features = ["serde"] }
 futures.workspace = true
-hash-ids = "0.2.1"
 hyper = { workspace = true, features=["client"]}
 jsonwebtoken = "9.1.0"
 juniper.workspace = true
