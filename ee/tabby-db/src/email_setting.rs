@@ -10,13 +10,16 @@ pub struct EmailSettingDAO {
     pub smtp_username: String,
     pub smtp_password: String,
     pub smtp_server: String,
+    pub from_address: Option<String>,
+    pub encryption: String,
+    pub auth_method: String,
 }
 
 impl DbConn {
     pub async fn read_email_setting(&self) -> Result<Option<EmailSettingDAO>> {
         let setting = query_as!(
             EmailSettingDAO,
-            "SELECT smtp_username, smtp_password, smtp_server FROM email_setting WHERE id=?",
+            "SELECT smtp_username, smtp_password, smtp_server, from_address, encryption, auth_method FROM email_setting WHERE id=?",
             EMAIL_CREDENTIAL_ROW_ID
         )
         .fetch_optional(&self.pool)
