@@ -16,6 +16,7 @@ mod job_runs;
 mod path;
 mod refresh_tokens;
 mod repositories;
+mod server_setting;
 mod users;
 
 use anyhow::Result;
