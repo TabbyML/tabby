@@ -35,15 +35,15 @@ impl RepositoryService for DbConn {
         Ok(self
             .create_repository(input.name, input.git_url)
             .await
-            .map(|i| ID::new(i.to_string()))?)
+            .map(|id| ID::new(DbConn::to_id(id)))?)
     }
 
     async fn delete_repository(&self, id: ID) -> Result<bool> {
-        self.delete_repository(id.parse()?).await
+        self.delete_repository(DbConn::to_rowid(&id)?).await
     }
 
     async fn update_repository(&self, id: ID, name: String, git_url: String) -> Result<bool> {
-        self.update_repository(id.parse()?, name, git_url)
+        self.update_repository(DbConn::to_rowid(&id)?, name, git_url)
             .await
             .map(|_| true)
     }

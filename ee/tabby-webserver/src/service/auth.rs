@@ -298,8 +298,8 @@ impl AuthenticationService for DbConn {
     }
 
     async fn delete_invitation(&self, id: ID) -> Result<ID> {
-        let id = id.parse::<i32>()?;
-        Ok(ID::new(self.delete_invitation(id).await?.to_string()))
+        let id = DbConn::to_rowid(&id)?;
+        Ok(ID::new(DbConn::to_id(self.delete_invitation(id).await?)))
     }
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
@@ -569,7 +569,7 @@ mod tests {
 
         // Used invitation should have been deleted,  following delete attempt should fail.
         assert!(conn
-            .delete_invitation(invitation.id.parse::<i32>().unwrap())
+            .delete_invitation(DbConn::to_rowid(&invitation.id).unwrap())
             .await
             .is_err());
     }
