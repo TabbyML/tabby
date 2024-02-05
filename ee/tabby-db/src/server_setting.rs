@@ -16,8 +16,7 @@ impl ServerSettingDAO {
     pub fn security_allowed_register_domain_list(&self) -> impl IntoIterator<Item = &str> {
         self.security_allowed_register_domain_list
             .iter()
-            .map(|s| s.split(","))
-            .flatten()
+            .flat_map(|s| s.split(','))
             .filter(|s| !s.is_empty())
     }
 }
