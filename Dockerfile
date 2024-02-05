@@ -41,6 +41,11 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --features cuda,prod-db --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/root/workspace/target \
+    cargo build --features prod-db --release --package tabby && \
+    cp target/release/tabby /opt/tabby/bin/tabby-cpu
+
 FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
 
 RUN apt-get update && \
