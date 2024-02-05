@@ -63,10 +63,7 @@ impl GithubClient {
         code: String,
         credential: OAuthCredential,
     ) -> Result<GithubOAuthResponse> {
-        let Some(client_secret) = credential.client_secret else {
-            return Err(anyhow::anyhow!("Missing client secret"));
-        };
-
+        let client_secret = credential.client_secret;
         let params = [
             ("client_id", credential.client_id.as_str()),
             ("client_secret", client_secret.as_str()),
