@@ -98,8 +98,7 @@ type UserConnection {
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
-  "Won't be passed to client side."
-  clientSecret: String
+  clientSecret: String!
   redirectUri: String
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
