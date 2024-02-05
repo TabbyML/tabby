@@ -64,9 +64,7 @@ impl GoogleClient {
         code: String,
         credential: OAuthCredential,
     ) -> Result<GoogleOAuthResponse> {
-        let Some(client_secret) = credential.client_secret else {
-            return Err(anyhow::anyhow!("Missing client secret"));
-        };
+        let client_secret = credential.client_secret;
 
         let Some(redirect_uri) = credential.redirect_uri else {
             return Err(anyhow::anyhow!("Missing redirect uri"));
