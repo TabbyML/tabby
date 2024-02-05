@@ -6,6 +6,8 @@ on:
     tags:
       - 'v*'
       - 'nightly'
+    tags-ignore:
+      - '*-dev'
   pull_request:
     branches: [ "main" ]
     paths:
