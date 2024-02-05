@@ -259,8 +259,7 @@ impl Query {
     ) -> Result<Option<OAuthCredential>> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                let Some(credentials) =
-                    ctx.locator.auth().read_oauth_credential(provider).await?
+                let Some(credentials) = ctx.locator.auth().read_oauth_credential(provider).await?
                 else {
                     return Ok(None);
                 };
