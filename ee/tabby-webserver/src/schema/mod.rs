@@ -424,10 +424,7 @@ impl Mutation {
     async fn delete_oauth_credential(ctx: &Context, provider: OAuthProvider) -> Result<bool> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                ctx.locator
-                    .auth()
-                    .delete_oauth_credential(provider)
-                    .await?;
+                ctx.locator.auth().delete_oauth_credential(provider).await?;
                 return Ok(true);
             }
         }
