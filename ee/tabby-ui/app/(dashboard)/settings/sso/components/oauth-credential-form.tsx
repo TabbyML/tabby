@@ -301,8 +301,7 @@ export default function OAuthCredentialForm({
                       Are you absolutely sure?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete
-                      current credential
+                      This action cannot be undone. It will permanently delete the current credential.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -314,7 +313,7 @@ export default function OAuthCredentialForm({
                       {isDeleting && (
                         <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      Yes, delete credential
+                      Yes, delete it
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
