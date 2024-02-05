@@ -10,7 +10,7 @@ use crate::schema::{
     job,
 };
 
-impl From<InvitationDAO> for auth::InvitationNext {
+impl From<InvitationDAO> for auth::Invitation {
     fn from(val: InvitationDAO) -> Self {
         Self {
             id: juniper::ID::new(val.id.to_string()),

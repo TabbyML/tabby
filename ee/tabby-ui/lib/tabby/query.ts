@@ -7,12 +7,7 @@ export const listInvitations = graphql(/* GraphQL */ `
     $first: Int
     $last: Int
   ) {
-    invitationsNext(
-      after: $after
-      before: $before
-      first: $first
-      last: $last
-    ) {
+    invitations(after: $after, before: $before, first: $first, last: $last) {
       edges {
         node {
           id

@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import type { ListUsersNextQuery } from '@/lib/gql/generates/graphql'
+import type { ListUsersQuery } from '@/lib/gql/generates/graphql'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
 import type { ArrayElementType } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
@@ -35,13 +35,8 @@ import {
 } from '@/components/ui/table'
 
 const listUsers = graphql(/* GraphQL */ `
-  query ListUsersNext(
-    $after: String
-    $before: String
-    $first: Int
-    $last: Int
-  ) {
-    usersNext(after: $after, before: $before, first: $first, last: $last) {
+  query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
+    users(after: $after, before: $before, first: $first, last: $last) {
       edges {
         node {
           id
@@ -77,10 +72,10 @@ export default function UsersTable() {
     query: listUsers,
     variables: queryVariables
   })
-  const [users, setUsers] = React.useState<ListUsersNextQuery['usersNext']>()
+  const [users, setUsers] = React.useState<ListUsersQuery['users']>()
 
   React.useEffect(() => {
-    const _users = data?.usersNext
+    const _users = data?.users
     if (_users?.edges?.length) {
       setUsers(_users)
     }
@@ -95,7 +90,7 @@ export default function UsersTable() {
   const updateUserActive = useMutation(updateUserActiveMutation)
 
   const onUpdateUserActive = (
-    node: ArrayElementType<ListUsersNextQuery['usersNext']['edges']>['node'],
+    node: ArrayElementType<ListUsersQuery['users']['edges']>['node'],
     active: boolean
   ) => {
     updateUserActive({ id: node.id, active }).then(response => {

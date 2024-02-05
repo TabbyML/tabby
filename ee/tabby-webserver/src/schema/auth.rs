@@ -296,30 +296,9 @@ impl relay::NodeType for User {
     }
 }
 
-#[deprecated]
-#[derive(Debug, Default, Serialize, Deserialize, GraphQLObject)]
-pub struct Invitation {
-    pub id: i32,
-    pub email: String,
-    pub code: String,
-
-    pub created_at: String,
-}
-
-impl From<InvitationNext> for Invitation {
-    fn from(value: InvitationNext) -> Self {
-        Self {
-            id: value.id.parse::<i32>().unwrap(),
-            email: value.email,
-            code: value.code,
-            created_at: value.created_at,
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
 #[graphql(context = Context)]
-pub struct InvitationNext {
+pub struct Invitation {
     pub id: juniper::ID,
     pub email: String,
     pub code: String,
@@ -327,7 +306,7 @@ pub struct InvitationNext {
     pub created_at: String,
 }
 
-impl relay::NodeType for InvitationNext {
+impl relay::NodeType for Invitation {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -406,7 +385,7 @@ pub trait AuthenticationService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<InvitationNext>>;
+    ) -> Result<Vec<Invitation>>;
 
     async fn oauth(
         &self,

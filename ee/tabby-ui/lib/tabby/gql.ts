@@ -95,16 +95,16 @@ const client = new Client({
     cacheExchange({
       resolvers: {
         Query: {
-          invitationsNext: relayPagination()
+          invitations: relayPagination()
         }
       },
       updates: {
         Mutation: {
-          deleteInvitationNext(result, args, cache, info) {
-            if (result.deleteInvitationNext) {
+          deleteInvitation(result, args, cache, info) {
+            if (result.deleteInvitation) {
               cache
                 .inspectFields('Query')
-                .filter(field => field.fieldName === 'invitationsNext')
+                .filter(field => field.fieldName === 'invitations')
                 .forEach(field => {
                   cache.updateQuery(
                     {
@@ -113,11 +113,10 @@ const client = new Client({
                         field.arguments as ListInvitationsQueryVariables
                     },
                     data => {
-                      if (data?.invitationsNext?.edges) {
-                        data.invitationsNext.edges =
-                          data.invitationsNext.edges.filter(
-                            e => e.node.id !== args.id
-                          )
+                      if (data?.invitations?.edges) {
+                        data.invitations.edges = data.invitations.edges.filter(
+                          e => e.node.id !== args.id
+                        )
                       }
                       return data
                     }
