@@ -4,16 +4,19 @@ use tabby_db::{
 };
 
 use super::{email::EmailSetting, repository::Repository};
-use crate::schema::{
-    auth,
-    auth::{OAuthCredential, OAuthProvider},
-    job,
+use crate::{
+    schema::{
+        auth,
+        auth::{OAuthCredential, OAuthProvider},
+        job,
+    },
+    to_id,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
     fn from(val: InvitationDAO) -> Self {
         Self {
-            id: juniper::ID::new(val.id.to_string()),
+            id: to_id(val.id),
             email: val.email,
             code: val.code,
             created_at: val.created_at,
@@ -24,7 +27,7 @@ impl From<InvitationDAO> for auth::Invitation {
 impl From<JobRunDAO> for job::JobRun {
     fn from(run: JobRunDAO) -> Self {
         Self {
-            id: juniper::ID::new(run.id.to_string()),
+            id: to_id(run.id),
             job_name: run.job_name,
             start_time: run.start_time,
             finish_time: run.finish_time,
@@ -38,7 +41,7 @@ impl From<JobRunDAO> for job::JobRun {
 impl From<UserDAO> for auth::User {
     fn from(val: UserDAO) -> Self {
         auth::User {
-            id: juniper::ID::new(val.id.to_string()),
+            id: to_id(val.id),
             email: val.email,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
@@ -77,7 +80,7 @@ impl From<GoogleOAuthCredentialDAO> for OAuthCredential {
 impl From<RepositoryDAO> for Repository {
     fn from(value: RepositoryDAO) -> Self {
         Repository {
-            id: juniper::ID::new(value.id.to_string()),
+            id: to_id(value.id),
             name: value.name,
             git_url: value.git_url,
         }

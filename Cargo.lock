@@ -1455,6 +1455,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-ids"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9289cbc8064a1c2f505c92d4d17f7fe5050d487728c19cee7936bd204069bc9d"
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4424,6 +4430,7 @@ dependencies = [
  "bincode",
  "chrono",
  "futures",
+ "hash-ids",
  "hyper",
  "jsonwebtoken",
  "juniper",

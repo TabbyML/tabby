@@ -29,9 +29,12 @@ use self::{
     email::{EmailService, EmailSetting},
     repository::{RepositoryError, RepositoryService},
 };
-use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider},
-    repository::Repository,
+use crate::{
+    schema::{
+        auth::{JWTPayload, OAuthCredential, OAuthProvider},
+        repository::Repository,
+    },
+    to_id, to_rowid, InvalidIDError,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -67,7 +70,7 @@ pub enum CoreError {
     Other(#[from] anyhow::Error),
 
     #[error("Malformed ID input")]
-    InvalidIDError(#[from] ParseIntError),
+    InvalidID(#[from] InvalidIDError),
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
@@ -304,7 +307,7 @@ impl Mutation {
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
         ctx.locator
             .auth()
-            .update_user_active(id.parse()?, active)
+            .update_user_active(to_rowid(id)?, active)
             .await?;
         Ok(true)
     }
@@ -358,7 +361,7 @@ impl Mutation {
                 "Failed to send invitation email, please check your SMTP settings are correct: {e}"
             );
         }
-        Ok(ID::new(invitation.id.to_string()))
+        Ok(to_id(invitation.id))
     }
 
     async fn create_repository(
