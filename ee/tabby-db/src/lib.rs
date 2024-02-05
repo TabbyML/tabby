@@ -42,7 +42,7 @@ impl DbConn {
 
     pub async fn new() -> Result<Self> {
         tokio::fs::create_dir_all(path::db_file().parent().unwrap()).await?;
-        let options = SqliteConnectOptions::new().filename(path::db_file());
+        let options = SqliteConnectOptions::new().filename(path::db_file()).create_if_missing(true);
         let pool = SqlitePool::connect_with(options).await?;
         Self::init_db(pool).await
     }
