@@ -5,9 +5,9 @@ use crate::DbConn;
 
 #[derive(Debug, PartialEq, FromRow)]
 pub struct ServerSettingDAO {
-    pub security_disable_clientside_telemetry: bool,
-    pub network_external_url: String,
     security_allowed_register_domain_list: Option<String>,
+    pub security_disable_client_side_telemetry: bool,
+    pub network_external_url: String,
 }
 
 const SERVER_SETTING_ROW_ID: i32 = 1;
@@ -24,7 +24,7 @@ impl ServerSettingDAO {
 impl DbConn {
     pub async fn read_server_setting(&self) -> Result<ServerSettingDAO> {
         let mut transaction = self.pool.begin().await?;
-        let setting: Option<ServerSettingDAO> = sqlx::query_as("SELECT security_disable_clientside_telemetry, network_external_url, security_allowed_register_domain_list FROM server_setting WHERE id = ?;")
+        let setting: Option<ServerSettingDAO> = sqlx::query_as("SELECT security_disable_client_side_telemetry, network_external_url, security_allowed_register_domain_list FROM server_setting WHERE id = ?;")
             .bind(SERVER_SETTING_ROW_ID)
             .fetch_optional(&mut *transaction)
             .await?;
