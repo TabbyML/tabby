@@ -1,22 +1,31 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import useSWRImmutable from 'swr/immutable'
 
 import { useSignIn } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
-import { IconGithub, IconGoogle } from '@/components/ui/icons'
+import { IconGithub, IconGoogle, IconSpinner } from '@/components/ui/icons'
 
 import UserSignInForm from './user-signin-form'
 
 export default function Signin() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const errorMessage = searchParams.get('error_message')
   const accessToken = searchParams.get('access_token')
   const refreshToken = searchParams.get('refresh_token')
 
   const shouldAutoSignin = !!accessToken && !!refreshToken
+  const displayLoading = shouldAutoSignin && !errorMessage
+
+  const serverOrigin = useMemo(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      return `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}` ?? ''
+    }
+    return ''
+  }, [])
 
   const signin = useSignIn()
   const { data }: { data?: string[] } = useSWRImmutable(
@@ -30,6 +39,14 @@ export default function Signin() {
       signin({ accessToken, refreshToken })
     }
   }, [searchParams])
+
+  if (displayLoading) {
+    return (
+      <div className="flex items-center">
+        <IconSpinner className="w-12 h-12" />
+      </div>
+    )
+  }
 
   return (
     <>
@@ -54,12 +71,12 @@ export default function Signin() {
       )}
       <div className="mx-auto flex items-center gap-6">
         {data?.includes('github') && (
-          <a href={`http://localhost:8080/oauth/signin?provider=github`}>
+          <a href={`${serverOrigin}/oauth/signin?provider=github`}>
             <IconGithub className="h-8 w-8" />
           </a>
         )}
         {data?.includes('google') && (
-          <a href={`http://localhost:8080/oauth/signin?provider=google`}>
+          <a href={`${serverOrigin}/oauth/signin?provider=google`}>
             <IconGoogle className="h-8 w-8" />
           </a>
         )}

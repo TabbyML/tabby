@@ -41,7 +41,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CopyButton } from '@/components/copy-button'
 
 import { oauthCredential } from './oauth-credential-list'
-import { Separator } from '@/components/ui/separator'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation updateOauthCredential(
@@ -139,18 +138,20 @@ export default function OAuthCredentialForm({
   const deleteOAuthCredential = useMutation(deleteOauthCredentialMutation)
 
   const onSubmit = async (values: OAuthCredentialFormValues) => {
-    client.query(oauthCredential, { provider: values.provider }).then(res => {
-      if (res?.data?.oauthCredential) {
-        // if aleardy have, set Form Error
+    if (isNew) {
+      const hasExistingProvider = await client
+        .query(oauthCredential, { provider: values.provider })
+        .then(res => !!res?.data?.oauthCredential)
+      if (hasExistingProvider) {
         form.setError('provider', {
           message: 'Provider already exists. Please choose another one'
         })
         return
       }
+    }
 
-      // add redirect uri automatically
-      updateOauthCredential({ ...values, redirectUri: oauthRedirectUri })
-    })
+    // add redirect uri automatically
+    updateOauthCredential({ ...values, redirectUri: oauthRedirectUri })
   }
 
   const onDelete: React.MouseEventHandler<HTMLButtonElement> = e => {
@@ -224,7 +225,7 @@ export default function OAuthCredentialForm({
             )}
           />
 
-          <FormItem className='mt-4'>
+          <FormItem className="mt-4">
             <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
               <div className="text-sm text-muted-foreground">
                 Create your SSO application with the following information
@@ -233,7 +234,8 @@ export default function OAuthCredentialForm({
                 <div className="text-sm font-medium">
                   Authorization callback URL
                 </div>
-                <span className="flex text-sm items-center">{oauthRedirectUri}
+                <span className="flex text-sm items-center">
+                  {oauthRedirectUri}
                   {!!providerValue && (
                     <CopyButton type="button" value={oauthRedirectUri} />
                   )}
@@ -280,6 +282,7 @@ export default function OAuthCredentialForm({
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
+                    type="password"
                   />
                 </FormControl>
                 <FormMessage />
@@ -301,7 +304,8 @@ export default function OAuthCredentialForm({
                       Are you absolutely sure?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. It will permanently delete the current credential.
+                      This action cannot be undone. It will permanently delete
+                      the current credential.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
