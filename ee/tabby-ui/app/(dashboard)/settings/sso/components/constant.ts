@@ -13,7 +13,7 @@ export const PROVIDER_METAS: Array<{
     enum: OAuthProvider.Github,
     meta: {
       domain: 'github.com',
-      displayName: 'Github'
+      displayName: 'GitHub'
     }
   },
   {

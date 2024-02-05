@@ -197,7 +197,7 @@ export default function OAuthCredentialForm({
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-sm font-medium">
-                  Authorization redirect URL
+                  Authorization callback URL
                 </div>
                 <span className="text-sm">{oauthRedirectUri}</span>
                 {!!providerValue && (
@@ -211,7 +211,7 @@ export default function OAuthCredentialForm({
             name="clientId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Client ID</FormLabel>
+                <FormLabel required>Client ID</FormLabel>
                 <FormControl>
                   <Input
                     placeholder=""
@@ -230,11 +230,11 @@ export default function OAuthCredentialForm({
             name="clientSecret"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Client Secret</FormLabel>
+                <FormLabel required>Client Secret</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
-                    placeholder={isNew ? undefined : 'sensitive - write only'}
+                    placeholder={isNew ? undefined : '*****'}
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
