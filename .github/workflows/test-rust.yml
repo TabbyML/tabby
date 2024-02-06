@@ -33,7 +33,7 @@ jobs:
           submodules: recursive
 
       - name: Service shouldn't depends on juniper::ID
-        run: ! grep "juniper::ID" -r ./ee/tabby-webserver/src/service
+        run:  bash -c '! grep "juniper::ID" -r ./ee/tabby-webserver/src/service'
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
