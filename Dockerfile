@@ -43,7 +43,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features prod-db --release --package tabby && \
+    cargo build --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/tabby-cpu
 
 FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
