@@ -6,8 +6,7 @@ import useSWRImmutable from 'swr/immutable'
 
 import { useSignIn } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
-import { IconGithub, IconGoogle } from '@/components/ui/icons'
-import { Progress } from '@/components/ui/progress'
+import { IconGithub, IconGoogle, IconSpinner } from '@/components/ui/icons'
 
 import UserSignInForm from './user-signin-form'
 
@@ -51,7 +50,7 @@ export default function Signin() {
   }, [progress])
 
   if (displayLoading) {
-    return <Progress value={progress} className="w-[128px]" />
+    return <IconSpinner className="h-8 w-8 animate-spin" />
   }
 
   return (
