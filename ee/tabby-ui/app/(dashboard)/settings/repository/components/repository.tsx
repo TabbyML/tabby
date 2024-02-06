@@ -10,14 +10,13 @@ import RepositoryTable from './repository-table'
 export default function Repository() {
   return (
     <>
-      <RepositoryHeader
-        extra={
-          <Link href="/settings/repository/new" className={buttonVariants()}>
-            Add Git Repo
-          </Link>
-        }
-      />
+      <RepositoryHeader />
       <RepositoryTable />
+      <div className="mt-4 flex justify-end">
+        <Link href="/settings/repository/new" className={buttonVariants()}>
+          Create
+        </Link>
+      </div>
     </>
   )
 }

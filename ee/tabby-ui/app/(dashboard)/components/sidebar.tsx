@@ -19,6 +19,7 @@ import {
   IconChevronRight,
   IconGear,
   IconHome,
+  IconLightingBolt,
   IconNetwork
 } from '@/components/ui/icons'
 
@@ -73,12 +74,21 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       General
                     </SidebarButton>
                     <SidebarButton href="/settings/team">Members</SidebarButton>
+                  </SidebarCollapsible>
+                  <SidebarCollapsible
+                    title={
+                      <>
+                        <IconLightingBolt />
+                        Integrations
+                      </>
+                    }
+                  >
+                    <SidebarButton href="/settings/repository">
+                      Git Repositories
+                    </SidebarButton>
                     <SidebarButton href="/settings/sso">SSO</SidebarButton>
                     <SidebarButton href="/settings/mail">
                       Mail Delivery
-                    </SidebarButton>
-                    <SidebarButton href="/settings/repository">
-                      Repository
                     </SidebarButton>
                   </SidebarCollapsible>
                 </>
@@ -129,12 +139,17 @@ function SidebarButton({ href, children }: SidebarButtonProps) {
 interface SidebarCollapsibleProps {
   title: React.ReactNode
   children: React.ReactNode
+  defaultOpen?: boolean
 }
 
-function SidebarCollapsible({ title, children }: SidebarCollapsibleProps) {
+function SidebarCollapsible({
+  title,
+  children,
+  defaultOpen = true
+}: SidebarCollapsibleProps) {
   return (
     <Collapsible
-      defaultOpen={true}
+      defaultOpen={defaultOpen}
       className="[&_svg.ml-auto]:data-[state=open]:rotate-90"
     >
       <CollapsibleTrigger className="w-full">
@@ -143,7 +158,7 @@ function SidebarCollapsible({ title, children }: SidebarCollapsibleProps) {
           <IconChevronRight className="ml-auto" />
         </span>
       </CollapsibleTrigger>
-      <CollapsibleContent className="ml-7 flex flex-col gap-1 py-1">
+      <CollapsibleContent className="ml-7 flex flex-col gap-1 data-[state=open]:py-1">
         {children}
       </CollapsibleContent>
     </Collapsible>

@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 import { OauthCredentialList } from './components/oauth-credential-list'
 
 export const metadata: Metadata = {
-  title: 'SSO Management'
+  title: 'SSO'
 }
 
 export default function IndexPage() {

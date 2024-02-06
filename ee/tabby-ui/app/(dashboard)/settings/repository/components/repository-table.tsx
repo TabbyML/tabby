@@ -103,9 +103,6 @@ export default function RepositoryTable() {
         toast.error(res.error.message)
         return
       }
-      if (res?.data?.deleteRepository) {
-        toast.success(`${node.name} deleted`)
-      }
     })
   }
 

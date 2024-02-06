@@ -73,18 +73,7 @@ const OAuthCredentialList = () => {
 
   return (
     <div>
-      <SSOHeader
-        extra={
-          credentialList.length < 2 ? (
-            <Link
-              href="/settings/sso/new"
-              className={buttonVariants({ variant: 'default' })}
-            >
-              Create
-            </Link>
-          ) : null
-        }
-      />
+      <SSOHeader />
       <div className="flex flex-col gap-8">
         {credentialList.map(credential => {
           return (
@@ -92,6 +81,16 @@ const OAuthCredentialList = () => {
           )
         })}
       </div>
+      {credentialList.length < 2 && (
+        <div className="mt-4 flex justify-end">
+          <Link
+            href="/settings/sso/new"
+            className={buttonVariants({ variant: 'default' })}
+          >
+            Create
+          </Link>
+        </div>
+      )}
     </div>
   )
 }
