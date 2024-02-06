@@ -5,19 +5,17 @@ mod services;
 mod download;
 mod serve;
 
-mod job;
 #[cfg(feature = "ee")]
 mod worker;
 
 use clap::{Parser, Subcommand};
-use job::{start_index_job, start_sync_job, JobArgs};
 use opentelemetry::{
     global,
     sdk::{propagation::TraceContextPropagator, trace, trace::Sampler, Resource},
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
-use tabby_common::config::Config;
+use tabby_common::config::{Config, ConfigRepositoryAccess};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]
@@ -45,23 +43,13 @@ pub enum Commands {
 
     /// Run completion model as worker
     #[cfg(feature = "ee")]
-    #[clap(name = "worker::completion")]
+    #[clap(name = "worker::completion", hide = true)]
     WorkerCompletion(worker::WorkerArgs),
 
     /// Run chat model as worker
     #[cfg(feature = "ee")]
-    #[clap(name = "worker::chat")]
+    #[clap(name = "worker::chat", hide = true)]
     WorkerChat(worker::WorkerArgs),
-
-    /// Execute the repository sync job.
-    #[cfg(feature = "ee")]
-    #[clap(name = "job::sync")]
-    JobSync(JobArgs),
-
-    /// Execute the index job.
-    #[cfg(feature = "ee")]
-    #[clap(name = "job::index")]
-    JobIndex(JobArgs),
 }
 
 #[derive(clap::Args)]
@@ -69,6 +57,16 @@ pub struct SchedulerArgs {
     /// If true, runs scheduler jobs immediately.
     #[clap(long, default_value_t = false)]
     now: bool,
+
+    /// URL to register this worker.
+    #[cfg(feature = "ee")]
+    #[clap(long)]
+    url: Option<String>,
+
+    /// Server token to register this worker to.
+    #[cfg(feature = "ee")]
+    #[clap(long)]
+    token: Option<String>,
 }
 
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
@@ -130,13 +128,27 @@ async fn main() {
     match cli.command {
         Commands::Serve(ref args) => serve::main(&config, args).await,
         Commands::Download(ref args) => download::main(args).await,
-        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now, config.repositories)
-            .await
-            .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
         #[cfg(feature = "ee")]
-        Commands::JobSync(args) => start_sync_job(args, &config).await,
-        #[cfg(feature = "ee")]
-        Commands::JobIndex(args) => start_index_job(args, &config).await,
+        Commands::Scheduler(SchedulerArgs {
+            now,
+            url: Some(url),
+            token: Some(token),
+        }) => {
+            let client = tabby_webserver::public::create_client(
+                &url,
+                &token,
+                tabby_webserver::public::ConnectHubRequest::Scheduler,
+            )
+            .await;
+            tabby_scheduler::scheduler(now, client)
+                .await
+                .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err))
+        }
+        Commands::Scheduler(SchedulerArgs { now, .. }) => {
+            tabby_scheduler::scheduler(now, ConfigRepositoryAccess)
+                .await
+                .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err))
+        }
         #[cfg(feature = "ee")]
         Commands::WorkerCompletion(ref args) => {
             worker::main(tabby_webserver::public::WorkerKind::Completion, args).await

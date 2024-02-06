@@ -5,41 +5,57 @@ mod index;
 mod repository;
 mod utils;
 
+use std::sync::Arc;
+
 use anyhow::Result;
-use job_scheduler::{Job, JobScheduler};
-use tabby_common::config::RepositoryConfig;
-use tracing::{error, info};
+use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tokio_cron_scheduler::{Job, JobScheduler};
+use tracing::{error, info, warn};
 
-pub async fn scheduler(now: bool, access: Vec<RepositoryConfig>) -> Result<()> {
-    let mut scheduler = JobScheduler::new();
-
-    let job1 = || job_sync(&access);
-
-    let job2 = || job_index(&access);
-
+pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) -> Result<()> {
     if now {
-        job1();
-        job2();
+        let repositories = access.list_repositories().await?;
+        job_sync(&repositories);
+        job_index(&repositories);
     } else {
+        let access = Arc::new(access);
+        let scheduler = JobScheduler::new().await?;
         // Every 5 minutes.
-        scheduler.add(Job::new("0 1/5 * * * * *".parse().unwrap(), job1));
+        let access_clone = access.clone();
+        scheduler
+            .add(Job::new_async("0 1/5 * * * * *", move |_, _| {
+                let access = access_clone.clone();
+                Box::pin(async move {
+                    match access.list_repositories().await {
+                        Ok(repositories) => job_sync(&repositories),
+                        Err(err) => warn!("Failed to list_repositories: {}", err),
+                    }
+                })
+            })?)
+            .await?;
 
         // Every 5 hours.
-        scheduler.add(Job::new("0 0 1/5 * * * *".parse().unwrap(), job2));
+        let access_clone = access.clone();
+        scheduler
+            .add(Job::new_async("0 0 1/5 * * * *", move |_, _| {
+                let access = access_clone.clone();
+                Box::pin(async move {
+                    match access.list_repositories().await {
+                        Ok(repositories) => job_index(&repositories),
+                        Err(err) => warn!("Failed to list_repositories: {}", err),
+                    }
+                })
+            })?)
+            .await?;
 
         info!("Scheduler activated...");
-        loop {
-            scheduler.tick();
-            let duration = scheduler.time_till_next_job();
-            info!("Sleep {:?} for next job ...", duration);
-            std::thread::sleep(duration);
-        }
+        scheduler.start().await?;
     }
 
     Ok(())
 }
 
-pub fn job_index(repositories: &[RepositoryConfig]) {
+fn job_index(repositories: &[RepositoryConfig]) {
     println!("Indexing repositories...");
     let ret = index::index_repositories(repositories);
     if let Err(err) = ret {
@@ -48,7 +64,7 @@ pub fn job_index(repositories: &[RepositoryConfig]) {
     println!();
 }
 
-pub fn job_sync(repositories: &[RepositoryConfig]) {
+fn job_sync(repositories: &[RepositoryConfig]) {
     println!("Syncing repositories...");
     let ret = repository::sync_repositories(repositories);
     if let Err(err) = ret {

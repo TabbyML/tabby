@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-job_scheduler = "1.2.1"
 tabby-common = { path = "../tabby-common" }
 tantivy = { workspace = true }
 tracing = { workspace = true }
@@ -28,6 +27,7 @@ kdam = { version = "0.5.0" }
 requirements = "0.3.0"
 serdeconv.workspace = true
 cargo-lock = { version = "9.0.0", features = ["dependency-tree"] }
+tokio-cron-scheduler = { workspace = true }
 
 [dev-dependencies]
 temp_testdir = "0.2"
@@ -35,3 +35,4 @@ tabby-common = { path = "../tabby-common", features = [ "testutils" ] }
 tracing-test = "0.1"
 tokio = { workspace = true, features = ["rt", "macros"] }
 serde_json = { workspace = true }
+async-trait = { workspace = true }

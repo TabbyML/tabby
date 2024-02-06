@@ -672,23 +672,12 @@ dependencies = [
 
 [[package]]
 name = "cron"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab00a636277f7ea5d8dd92ac7a5099fc9a46e5327bba84d3640b41ae127eada9"
-dependencies = [
- "chrono",
- "error-chain",
- "nom 4.1.1",
-]
-
-[[package]]
-name = "cron"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ff76b51e4c068c52bfd2866e1567bee7c567ae8f24ada09fd4307019e25eab7"
 dependencies = [
  "chrono",
- "nom 7.1.3",
+ "nom",
  "once_cell",
 ]
 
@@ -1070,15 +1059,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "error-chain"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9435d864e017c3c6afeac1654189b06cdb491cf2ff73dbf0d73b0f292f42ff8"
-dependencies = [
- "backtrace",
-]
-
-[[package]]
 name = "etcetera"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1102,7 +1082,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74fef4569247a5f429d9156b9d0a2599914385dd189c539334c625d8099d90ab"
 dependencies = [
  "futures-core",
- "nom 7.1.3",
+ "nom",
  "pin-project-lite",
 ]
 
@@ -1889,17 +1869,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
 
 [[package]]
-name = "job_scheduler"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51f368c9c76dde2282714ae32dc274b79c27527a0c06c816f6dda048904d0d7c"
-dependencies = [
- "chrono",
- "cron 0.6.1",
- "uuid 0.8.2",
-]
-
-[[package]]
 name = "jobserver"
 version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2034,7 +2003,7 @@ dependencies = [
  "idna 0.5.0",
  "mime",
  "native-tls",
- "nom 7.1.3",
+ "nom",
  "quoted_printable",
  "socket2 0.5.5",
  "tokio",
@@ -2428,15 +2397,6 @@ dependencies = [
  "bitflags 2.4.0",
  "cfg-if",
  "libc",
-]
-
-[[package]]
-name = "nom"
-version = "4.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c349f68f25f596b9f44cf0e7c69752a5c633b0550c3ff849518bfba0233774a"
-dependencies = [
- "memchr",
 ]
 
 [[package]]
@@ -3331,7 +3291,7 @@ dependencies = [
  "futures-core",
  "futures-timer",
  "mime",
- "nom 7.1.3",
+ "nom",
  "pin-project-lite",
  "reqwest",
  "thiserror",
@@ -3919,7 +3879,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce81b7bd7c4493975347ef60d8c7e8b742d4694f4c49f93e0a12ea263938176c"
 dependencies = [
  "itertools 0.12.0",
- "nom 7.1.3",
+ "nom",
  "unicode_categories",
 ]
 
@@ -4392,10 +4352,10 @@ name = "tabby-scheduler"
 version = "0.9.0-dev"
 dependencies = [
  "anyhow",
+ "async-trait",
  "cargo-lock",
  "file-rotate",
  "ignore",
- "job_scheduler",
  "kdam",
  "lazy_static",
  "requirements",
@@ -4406,6 +4366,7 @@ dependencies = [
  "tantivy",
  "temp_testdir",
  "tokio",
+ "tokio-cron-scheduler",
  "tracing",
  "tracing-test",
  "tree-sitter-c",
@@ -4569,7 +4530,7 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d39c5a03100ac10c96e0c8b07538e2ab8b17da56434ab348309b31f23fada77"
 dependencies = [
- "nom 7.1.3",
+ "nom",
 ]
 
 [[package]]
@@ -4782,7 +4743,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de2c1fd54a857b29c6cd1846f31903d0ae8e28175615c14a277aed45c58d8e27"
 dependencies = [
  "chrono",
- "cron 0.12.0",
+ "cron",
  "num-derive",
  "num-traits",
  "tokio",
@@ -5519,9 +5480,6 @@ name = "uuid"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-dependencies = [
- "getrandom 0.2.11",
-]
 
 [[package]]
 name = "uuid"

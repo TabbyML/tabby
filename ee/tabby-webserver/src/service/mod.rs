@@ -11,26 +11,26 @@ use std::{net::SocketAddr, num::ParseIntError, sync::Arc};
 use anyhow::Result;
 use async_trait::async_trait;
 use axum::{
-    http::{HeaderValue, Request},
+    http::{HeaderName, HeaderValue, Request},
     middleware::Next,
     response::IntoResponse,
 };
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tabby_common::{
+    api::{code::CodeSearch, event::RawEventLogger},
+    constants::USER_HEADER_FIELD_NAME,
+};
 use tabby_db::DbConn;
 use tracing::{info, warn};
 
 use self::{cron::run_cron, email::new_email_service};
-use crate::{
-    public::USER_HEADER_FIELD_NAME,
-    schema::{
-        auth::AuthenticationService,
-        email::EmailService,
-        job::JobService,
-        repository::RepositoryService,
-        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-        ServiceLocator,
-    },
+use crate::schema::{
+    auth::AuthenticationService,
+    email::EmailService,
+    job::JobService,
+    repository::RepositoryService,
+    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+    ServiceLocator,
 };
 
 struct ServerContext {
@@ -45,18 +45,9 @@ struct ServerContext {
 }
 
 impl ServerContext {
-    pub async fn new(
-        logger: Arc<dyn RawEventLogger>,
-        code: Arc<dyn CodeSearch>,
-        local_listen_port: u16,
-    ) -> Self {
+    pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         let db_conn = DbConn::new().await.unwrap();
-        run_cron(
-            &db_conn,
-            format!("http://localhost:{}", local_listen_port),
-            false,
-        )
-        .await;
+        run_cron(&db_conn).await;
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -164,7 +155,7 @@ impl WorkerService for ServerContext {
 
         if let Some(user) = user {
             request.headers_mut().append(
-                &USER_HEADER_FIELD_NAME,
+                HeaderName::from_static(USER_HEADER_FIELD_NAME),
                 HeaderValue::from_str(&user).expect("User must be valid header"),
             );
         }
@@ -235,11 +226,8 @@ impl ServiceLocator for Arc<ServerContext> {
 pub async fn create_service_locator(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
-    local_listen_port: u16,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(Arc::new(
-        ServerContext::new(logger, code, local_listen_port).await,
-    ))
+    Arc::new(Arc::new(ServerContext::new(logger, code).await))
 }
 
 pub fn graphql_pagination_to_filter(

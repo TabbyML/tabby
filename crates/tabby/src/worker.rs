@@ -23,15 +23,15 @@ pub struct WorkerArgs {
     #[clap(long)]
     url: String,
 
+    /// Server token to register this worker to.
+    #[clap(long)]
+    token: String,
+
     #[clap(long, default_value = "0.0.0.0")]
     host: IpAddr,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,
-
-    /// Server token to register this worker to.
-    #[clap(long)]
-    token: String,
 
     /// Model id
     #[clap(long, help_heading=Some("Model Options"))]

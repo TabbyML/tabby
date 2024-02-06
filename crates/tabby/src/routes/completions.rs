@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use axum::{extract::State, headers::Header, Json, TypedHeader};
+use axum::{extract::State, headers::Header, http::HeaderName, Json, TypedHeader};
 use hyper::StatusCode;
-use tabby_webserver::public::USER_HEADER_FIELD_NAME;
+use tabby_common::constants::USER_HEADER_FIELD_NAME;
 use tracing::{instrument, warn};
 
 use crate::services::completion::{CompletionRequest, CompletionResponse, CompletionService};
@@ -42,9 +42,11 @@ pub async fn completions(
 #[derive(Debug)]
 pub struct MaybeUser(Option<String>);
 
+pub static USER_HEADER: HeaderName = HeaderName::from_static(USER_HEADER_FIELD_NAME);
+
 impl Header for MaybeUser {
     fn name() -> &'static axum::http::HeaderName {
-        &USER_HEADER_FIELD_NAME
+        &USER_HEADER
     }
 
     fn decode<'i, I>(values: &mut I) -> Result<Self, axum::headers::Error>
