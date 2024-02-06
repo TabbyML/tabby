@@ -92,7 +92,10 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
                         }
 
                         if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {
-                            info!("Next time for scheduler job is {:?}", next_tick.with_timezone(&chrono::Local));
+                            info!(
+                                "Next time for scheduler job is {:?}",
+                                next_tick.with_timezone(&chrono::Local)
+                            );
                         }
                     })
                 },
