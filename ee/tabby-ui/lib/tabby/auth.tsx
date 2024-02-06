@@ -12,7 +12,7 @@ interface AuthData {
   refreshToken: string
 }
 
-function isSameAuthData(lhs: AuthData | null, rhs: AuthData | null) {
+function isSameAuthData(lhs: AuthData | undefined, rhs: AuthData | undefined) {
   return (
     lhs?.accessToken === rhs?.accessToken &&
     lhs?.refreshToken === rhs?.refreshToken
@@ -26,14 +26,14 @@ type AuthState =
     }
   | {
       status: 'loading' | 'unauthenticated'
-      data: null
+      data: undefined
     }
 
 function isSameAuthState(lhs: AuthState, rhs: AuthState) {
   return lhs.status == rhs.status && isSameAuthData(lhs.data, rhs.data)
 }
 
-enum AuthActionType {
+export enum AuthActionType {
   SignIn,
   SignOut,
   Refresh
@@ -57,17 +57,17 @@ type AuthActions = SignInAction | SignOutAction | RefreshAction
 
 const AUTH_TOKEN_KEY = '_tabby_auth'
 
-const getAuthToken = (): AuthData | null => {
+const getAuthToken = (): AuthData | undefined => {
   if (isClientSide()) {
     let tokenData = localStorage.getItem(AUTH_TOKEN_KEY)
-    if (!tokenData) return null
+    if (!tokenData) return undefined
     try {
       return JSON.parse(tokenData)
     } catch (e) {
-      return null
+      return undefined
     }
   }
-  return null
+  return undefined
 }
 const saveAuthToken = (authData: AuthData) => {
   localStorage.setItem(AUTH_TOKEN_KEY, JSON.stringify(authData))
@@ -97,7 +97,7 @@ function authReducer(state: AuthState, action: AuthActions): AuthState {
     case AuthActionType.SignOut:
       return {
         status: 'unauthenticated',
-        data: null
+        data: undefined
       }
   }
 }
@@ -140,14 +140,31 @@ export const refreshTokenMutation = graphql(/* GraphQL */ `
 const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   children
 }) => {
-  const [authToken] = useLocalStorage<AuthData | null>(AUTH_TOKEN_KEY, null)
+  const initialized = React.useRef(false)
+  const [authToken] = useLocalStorage<AuthData | undefined>(
+    AUTH_TOKEN_KEY,
+    undefined
+  )
   const [authState, dispatch] = React.useReducer(authReducerDeduped, {
     status: 'loading',
-    data: null
+    data: undefined
   })
+
   React.useEffect(() => {
+    initialized.current = true
     if (authToken?.accessToken && authToken?.refreshToken) {
-      dispatch({ type: AuthActionType.Refresh, data: authToken })
+      dispatch({ type: AuthActionType.SignIn, data: authToken })
+    } else {
+      dispatch({ type: AuthActionType.SignOut })
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (!initialized.current) return
+
+    // After being mounted, listen for changes in the access token
+    if (authToken?.accessToken && authToken?.refreshToken) {
+      dispatch({ type: AuthActionType.SignIn, data: authToken })
     } else {
       dispatch({ type: AuthActionType.SignOut })
     }
@@ -199,7 +216,7 @@ class AuthProviderIsMissing extends Error {
   }
 }
 
-function useAuthStore() {
+export function useAuthStore() {
   const context = React.useContext(AuthContext)
 
   if (!context) {
@@ -211,8 +228,12 @@ function useAuthStore() {
 
 function useSignIn(): (params: AuthData) => Promise<boolean> {
   const { dispatch } = useAuthStore()
+  const [authToken, setAuthToken] = useLocalStorage<AuthData | undefined>(
+    AUTH_TOKEN_KEY,
+    undefined
+  )
   return async data => {
-    saveAuthToken({
+    setAuthToken({
       accessToken: data.accessToken,
       refreshToken: data.refreshToken
     })
@@ -227,8 +248,12 @@ function useSignIn(): (params: AuthData) => Promise<boolean> {
 
 function useSignOut(): () => Promise<void> {
   const { dispatch } = useAuthStore()
+  const [authToken, setAuthToken] = useLocalStorage<AuthData | undefined>(
+    AUTH_TOKEN_KEY,
+    undefined
+  )
   return async () => {
-    clearAuthToken()
+    setAuthToken(undefined)
     dispatch({ type: AuthActionType.SignOut })
   }
 }

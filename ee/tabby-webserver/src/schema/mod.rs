@@ -422,6 +422,18 @@ impl Mutation {
         ))
     }
 
+    async fn delete_oauth_credential(ctx: &Context, provider: OAuthProvider) -> Result<bool> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                ctx.locator.auth().delete_oauth_credential(provider).await?;
+                return Ok(true);
+            }
+        }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to delete oauth credential",
+        ))
+    }
+
     async fn update_email_setting(
         ctx: &Context,
         smtp_username: String,

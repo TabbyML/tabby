@@ -4,6 +4,7 @@ import { find, omit } from 'lodash-es'
 import { useDebounce } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 import { IconDirectorySolid, IconFile } from '@/components/ui/icons'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 
 import { TFileTreeNode } from './file-tree'
@@ -44,7 +45,7 @@ const DirectoryPanel: React.FC<DirectoryPanelProps> = ({
   return (
     <div className={cn('text-base', className)}>
       {loading || !initialized ? (
-        <Skeleton />
+        <FileTreeSkeleton />
       ) : fileTreeData?.length ? (
         <Table>
           <TableBody>
@@ -103,12 +104,13 @@ const DirectoryPanel: React.FC<DirectoryPanelProps> = ({
   )
 }
 
-function Skeleton() {
+function FileTreeSkeleton() {
   return (
-    <ul className="duration-600 animate-pulse space-y-3 p-2">
-      <li className="h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
-      <li className="h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
-      <li className="h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
+    <ul className="space-y-3 p-2">
+      <Skeleton />
+      <Skeleton />
+      <Skeleton />
+      <Skeleton />
     </ul>
   )
 }

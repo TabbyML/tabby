@@ -16,6 +16,7 @@ import {
   IconFile,
   IconSpinner
 } from '@/components/ui/icons'
+import { Skeleton } from '@/components/ui/skeleton'
 
 import { TFileMap } from './source-code-browser'
 import { resolveFileNameFromPath, resolveRepoNameFromPath } from './utils'
@@ -374,13 +375,13 @@ function mapToFileTree(fileMap: TFileMap | undefined): TFileTreeNode[] {
 
 function FileTreeSkeleton() {
   return (
-    <ul className="duration-600 animate-pulse space-y-3 p-2">
-      <li className="h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
-      <li className="ml-4 h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
-      <li className="ml-4 h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
-      <li className="h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
-      <li className="ml-4 h-4 rounded-md bg-gray-200 dark:bg-gray-700"></li>
-    </ul>
+    <div className="space-y-3 p-2">
+      <Skeleton />
+      <Skeleton className="ml-4" />
+      <Skeleton className="ml-4" />
+      <Skeleton />
+      <Skeleton className="ml-4" />
+    </div>
   )
 }
 
