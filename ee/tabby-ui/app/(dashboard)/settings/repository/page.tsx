@@ -1,15 +1,15 @@
 import { Metadata } from 'next'
 
-import { OauthCredentialList } from './components/oauth-credential-list'
+import Repository from './components/repository'
 
 export const metadata: Metadata = {
-  title: 'SSO'
+  title: 'Git Repositories'
 }
 
 export default function IndexPage() {
   return (
     <div className="p-6">
-      <OauthCredentialList />
+      <Repository />
     </div>
   )
 }

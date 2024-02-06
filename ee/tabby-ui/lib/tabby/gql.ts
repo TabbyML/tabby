@@ -14,14 +14,17 @@ import {
   useMutation as useUrqlMutation
 } from 'urql'
 
-import { ListInvitationsQueryVariables } from '../gql/generates/graphql'
+import {
+  ListInvitationsQueryVariables,
+  RepositoriesQueryVariables
+} from '../gql/generates/graphql'
 import {
   clearAuthToken,
   getAuthToken,
   refreshTokenMutation,
   saveAuthToken
 } from './auth'
-import { listInvitations } from './query'
+import { listInvitations, listRepositories } from './query'
 
 interface ValidationError {
   path: string
@@ -95,7 +98,8 @@ const client = new Client({
     cacheExchange({
       resolvers: {
         Query: {
-          invitations: relayPagination()
+          invitations: relayPagination(),
+          repositories: relayPagination()
         }
       },
       updates: {
@@ -117,6 +121,30 @@ const client = new Client({
                         data.invitations.edges = data.invitations.edges.filter(
                           e => e.node.id !== args.id
                         )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          deleteRepository(result, args, cache, info) {
+            if (result.deleteRepository) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'repositories')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listRepositories,
+                      variables: field.arguments as RepositoriesQueryVariables
+                    },
+                    data => {
+                      if (data?.repositories?.edges) {
+                        data.repositories.edges =
+                          data.repositories.edges.filter(
+                            e => e.node.id !== args.id
+                          )
                       }
                       return data
                     }

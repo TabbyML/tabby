@@ -1,13 +1,7 @@
 import { cn } from '@/lib/utils'
 import { IconExternalLink } from '@/components/ui/icons'
 
-export const SSOHeader = ({
-  extra,
-  className
-}: {
-  extra?: React.ReactNode
-  className?: string
-}) => {
+export const SSOHeader = ({ className }: { className?: string }) => {
   return (
     <div className={cn('min-h-8 mb-4 flex items-center gap-4', className)}>
       <div className="flex-1 text-sm text-muted-foreground">
@@ -21,7 +15,6 @@ export const SSOHeader = ({
           </a>
         )}
       </div>
-      <div className="h-8 shrink-0">{extra}</div>
     </div>
   )
 }

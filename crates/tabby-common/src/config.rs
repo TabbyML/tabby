@@ -67,7 +67,7 @@ impl Config {
 }
 
 lazy_static! {
-    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("[a-zA-Z][a-zA-Z0-9-]+").unwrap();
+    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][a-zA-Z0-9-]+$").unwrap();
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -161,7 +161,7 @@ impl RepositoryAccess for ConfigRepositoryAccess {
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, RepositoryConfig};
+    use super::{Config, RepositoryConfig, REPOSITORY_NAME_REGEX};
 
     #[test]
     fn it_parses_empty_config() {
@@ -192,5 +192,10 @@ mod tests {
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
         };
         assert_eq!(repo.name(), "https_github.com_TabbyML_tabby.git");
+    }
+
+    #[test]
+    fn test_repository_name_regex() {
+        assert!(!REPOSITORY_NAME_REGEX.is_match("3tabby"));
     }
 }
