@@ -8,9 +8,13 @@ use super::{from_validation_errors, Context};
 
 #[derive(Validate)]
 pub struct CreateRepositoryInput {
-    #[validate(regex = "tabby_common::config::REPOSITORY_NAME_REGEX")]
+    #[validate(regex(
+        code = "name",
+        path = "tabby_common::config::REPOSITORY_NAME_REGEX",
+        message = "Invalid repository name"
+    ))]
     pub name: String,
-    #[validate(url)]
+    #[validate(url(code = "gitUrl", message = "Invalid Git URL"))]
     pub git_url: String,
 }
 
