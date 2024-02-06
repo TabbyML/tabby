@@ -10,7 +10,7 @@ use tabby_common::{
         code::{CodeSearch, CodeSearchError, SearchResponse},
         event::RawEventLogger,
     },
-    config::RepositoryConfig,
+    config::{RepositoryAccess, RepositoryConfig},
 };
 use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
@@ -172,13 +172,8 @@ impl Header for ConnectHubRequest {
 }
 
 #[async_trait]
-pub trait RepositoryAccess {
-    async fn get_repositories(&self) -> Result<Vec<RepositoryConfig>>;
-}
-
-#[async_trait]
 impl RepositoryAccess for HubClient {
-    async fn get_repositories(&self) -> Result<Vec<RepositoryConfig>> {
+    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
         Ok(self.get_repositories(Context::current()).await?)
     }
 }

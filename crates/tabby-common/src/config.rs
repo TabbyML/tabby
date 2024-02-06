@@ -1,6 +1,7 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use filenamify::filenamify;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -129,6 +130,20 @@ impl Default for ServerConfig {
         Self {
             completion_timeout: 30,
         }
+    }
+}
+
+#[async_trait]
+pub trait RepositoryAccess: Send + Sync {
+    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>>;
+}
+
+pub struct ConfigRepositoryAccess;
+
+#[async_trait]
+impl RepositoryAccess for ConfigRepositoryAccess {
+    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
+        Ok(Config::load()?.repositories)
     }
 }
 
