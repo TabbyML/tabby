@@ -31,6 +31,7 @@ import {
 import { CopyButton } from '@/components/copy-button'
 
 import CreateRepositoryForm from './create-repository-form'
+import { CardHeader, CardTitle } from '@/components/ui/card'
 
 const deleteRepositoryMutation = graphql(/* GraphQL */ `
   mutation deleteRepository($id: ID!) {
@@ -138,63 +139,68 @@ export default function RepositoryTable() {
 
   return (
     <div>
-      <Table className="mt-4 border-b">
-        {!!currentPageRepos?.length && (
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[25%]">Name</TableHead>
-              <TableHead className="w-[45%]">Git Url</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-        )}
-        <TableBody>
-          {currentPageRepos?.map(x => {
-            return (
-              <TableRow key={x.node.id}>
-                <TableCell>{x.node.name}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    {x.node.gitUrl}
-                    <CopyButton value={x.node.gitUrl} />
-                  </div>
-                </TableCell>
-                <TableCell className="flex justify-end">
-                  <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="hover-destructive"
-                      onClick={() => handleDeleteRepository(x.node)}
-                    >
-                      <IconTrash />
-                    </Button>
-                  </div>
-                </TableCell>
+      <CardHeader>
+        <CardTitle>Repositories</CardTitle>
+      </CardHeader>
+      <div className='p-4'>
+        <Table className="border-b">
+          {!!currentPageRepos?.length && (
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[25%]">Name</TableHead>
+                <TableHead className="w-[45%]">Git Url</TableHead>
+                <TableHead></TableHead>
               </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
-      {(hasNextPage || hasPrevPage) && (
-        <Pagination className="my-4">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                disabled={!hasPrevPage}
-                onClick={handleNavToPrevPage}
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext
-                disabled={!hasNextPage}
-                onClick={handleFetchNextPage}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+            </TableHeader>
+          )}
+          <TableBody>
+            {currentPageRepos?.map(x => {
+              return (
+                <TableRow key={x.node.id}>
+                  <TableCell>{x.node.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {x.node.gitUrl}
+                      <CopyButton value={x.node.gitUrl} />
+                    </div>
+                  </TableCell>
+                  <TableCell className="flex justify-end">
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="hover-destructive"
+                        onClick={() => handleDeleteRepository(x.node)}
+                      >
+                        <IconTrash />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+        {(hasNextPage || hasPrevPage) && (
+          <Pagination className="my-4">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  disabled={!hasPrevPage}
+                  onClick={handleNavToPrevPage}
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  disabled={!hasNextPage}
+                  onClick={handleFetchNextPage}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
 
-      <CreateRepositoryForm onCreated={handleRepositoryCreated} />
+        <CreateRepositoryForm onCreated={handleRepositoryCreated} />
+      </div>
     </div>
   )
 }
