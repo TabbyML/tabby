@@ -6,6 +6,13 @@
 
 * The `user` field in the `~/tabby/events` log is now populated for users who authenticate via the `--webserver` feature.
 
+# v0.8.1
+
+## Fixes and Improvements
+
+* Ensure `~/.tabby/repositories` exists for tabby scheduler jobs: https://github.com/TabbyML/tabby/pull/1375
+* Add cpu only binary `tabby-cpu` to docker distribution.
+
 # v0.8.0
 
 ## Notice
