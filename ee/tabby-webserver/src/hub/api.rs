@@ -111,7 +111,7 @@ impl CodeSearch for HubClient {
 
 #[derive(Serialize, Deserialize)]
 pub enum ConnectHubRequest {
-    Job,
+    Scheduler,
     Worker(RegisterWorkerRequest),
 }
 

@@ -137,7 +137,7 @@ async fn main() {
             let client = tabby_webserver::public::create_client(
                 &url,
                 &token,
-                tabby_webserver::public::ConnectHubRequest::Job,
+                tabby_webserver::public::ConnectHubRequest::Scheduler,
             )
             .await;
             tabby_scheduler::scheduler(now, client)

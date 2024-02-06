@@ -11,26 +11,26 @@ use std::{net::SocketAddr, num::ParseIntError, sync::Arc};
 use anyhow::Result;
 use async_trait::async_trait;
 use axum::{
-    http::{HeaderValue, Request},
+    http::{HeaderName, HeaderValue, Request},
     middleware::Next,
     response::IntoResponse,
 };
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
-use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
+use tabby_common::{
+    api::{code::CodeSearch, event::RawEventLogger},
+    constants::USER_HEADER_FIELD_NAME,
+};
 use tabby_db::DbConn;
 use tracing::{info, warn};
 
 use self::{cron::run_cron, email::new_email_service};
-use crate::{
-    public::USER_HEADER_FIELD_NAME,
-    schema::{
-        auth::AuthenticationService,
-        email::EmailService,
-        job::JobService,
-        repository::RepositoryService,
-        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-        ServiceLocator,
-    },
+use crate::schema::{
+    auth::AuthenticationService,
+    email::EmailService,
+    job::JobService,
+    repository::RepositoryService,
+    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+    ServiceLocator,
 };
 
 struct ServerContext {
@@ -164,7 +164,7 @@ impl WorkerService for ServerContext {
 
         if let Some(user) = user {
             request.headers_mut().append(
-                &USER_HEADER_FIELD_NAME,
+                HeaderName::from_static(USER_HEADER_FIELD_NAME),
                 HeaderValue::from_str(&user).expect("User must be valid header"),
             );
         }
