@@ -26,9 +26,10 @@ impl From<JobRunDAO> for job::JobRun {
     fn from(run: JobRunDAO) -> Self {
         Self {
             id: ID::new(DbConn::to_id(run.id)),
-            job_name: run.job_name,
-            start_time: run.start_time,
-            finish_time: run.finish_time,
+            job: run.job,
+            created_at: run.created_at,
+            updated_at: run.updated_at,
+            finished_at: run.finished_at,
             exit_code: run.exit_code,
             stdout: run.stdout,
             stderr: run.stderr,
