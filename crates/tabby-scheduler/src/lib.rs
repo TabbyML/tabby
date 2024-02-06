@@ -31,7 +31,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
         // Every 10 minutes
         scheduler
             .add(Job::new_async(
-                "* 1/10 * * * *",
+                "0 1/10 * * * *",
                 move |uuid, mut scheduler| {
                     let access = access.clone();
                     let args = args.clone();
