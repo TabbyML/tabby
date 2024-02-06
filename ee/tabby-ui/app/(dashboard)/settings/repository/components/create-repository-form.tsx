@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -13,6 +14,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -40,7 +42,7 @@ export default function CreateRepositoryForm({
   const { isSubmitting } = form.formState
   const createRepository = useMutation(createRepositoryMutation, {
     onCompleted() {
-      form.reset({ name: '', gitUrl: '' })
+      form.reset({ name: undefined, gitUrl: undefined })
       onCreated()
     },
     form
@@ -50,7 +52,7 @@ export default function CreateRepositoryForm({
     <Form {...form}>
       <div className="flex flex-col items-start gap-2">
         <form
-          className="flex w-full items-center gap-2"
+          className="flex flex-col w-full gap-4"
           onSubmit={form.handleSubmit(createRepository)}
         >
           <FormField
@@ -58,6 +60,7 @@ export default function CreateRepositoryForm({
             name="name"
             render={({ field }) => (
               <FormItem>
+                <FormLabel>Name</FormLabel>
                 <FormControl>
                   <Input
                     autoCapitalize="none"
@@ -66,6 +69,7 @@ export default function CreateRepositoryForm({
                     {...field}
                   />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -74,17 +78,26 @@ export default function CreateRepositoryForm({
             name="gitUrl"
             render={({ field }) => (
               <FormItem>
+                <FormLabel>Git URL</FormLabel>
                 <FormControl>
                   <Input autoCapitalize="none" autoCorrect="off" {...field} />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={isSubmitting}>
-            Add Git Repository
-          </Button>
+          <FormMessage className="text-center" />
+          <div className="flex justify-end gap-4">
+            <Link href="/settings/repository">
+              <Button type="button" variant="ghost" disabled={isSubmitting}>
+                Cancel
+              </Button>
+            </Link>
+            <Button type="submit" disabled={isSubmitting}>
+              Add Git Repo
+            </Button>
+          </div>
         </form>
-        <FormMessage className="text-center" />
       </div>
     </Form>
   )

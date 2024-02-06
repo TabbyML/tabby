@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { useClient, useQuery } from 'urql'
 
@@ -11,7 +12,8 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { CardHeader, CardTitle } from '@/components/ui/card'
 import { IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
@@ -28,10 +30,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { CopyButton } from '@/components/copy-button'
-
-import CreateRepositoryForm from './create-repository-form'
-import { CardHeader, CardTitle } from '@/components/ui/card'
+import { ListSkeleton } from '@/components/skeleton'
 
 const deleteRepositoryMutation = graphql(/* GraphQL */ `
   mutation deleteRepository($id: ID!) {
@@ -42,13 +41,11 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
 const PAGE_SIZE = 20
 export default function RepositoryTable() {
   const client = useClient()
-  const [{ data, fetching }] = useQuery({
+  const [initialized, setInitialized] = React.useState(false)
+  const [{ data, error, fetching }] = useQuery({
     query: listRepositories,
     variables: { first: PAGE_SIZE }
   })
-  // if a new repo was created, fetching all records and navigating to the last page
-  const [fetchingLastPage, setFetchingLastPage] = React.useState(false)
-
   const [currentPage, setCurrentPage] = React.useState(1)
   const edges = data?.repositories?.edges
   const pageInfo = data?.repositories?.pageInfo
@@ -63,6 +60,7 @@ export default function RepositoryTable() {
 
   const hasNextPage = pageInfo?.hasNextPage || currentPage < pageNum
   const hasPrevPage = currentPage > 1
+  const showPagination = !!currentPageRepos?.length && (hasNextPage || hasPrevPage)
 
   const fetchRepositories = (variables: RepositoriesQueryVariables) => {
     return client.query(listRepositories, variables).toPromise()
@@ -79,36 +77,17 @@ export default function RepositoryTable() {
     return count
   }
 
-  const fetchAllRecords = async () => {
-    try {
-      setFetchingLastPage(true)
-      const count = fetchRecordsSequentially(pageInfo?.endCursor ?? undefined)
-      return count
-    } catch (e) {
-      return 0
-    } finally {
-      setFetchingLastPage(false)
-    }
-  }
-
   const deleteRepository = useMutation(deleteRepositoryMutation)
-
-  const handleRepositoryCreated = async () => {
-    toast.success('Repository created')
-    fetchAllRecords().then(count => {
-      setCurrentPage(getPageNumber(count))
-    })
-  }
 
   const handleNavToPrevPage = () => {
     if (currentPage <= 1) return
-    if (fetchingLastPage || fetching) return
+    if (fetching) return
     setCurrentPage(p => p - 1)
   }
 
   const handleFetchNextPage = () => {
     if (!hasNextPage) return
-    if (fetchingLastPage || fetching) return
+    if (fetching) return
 
     fetchRepositories({ first: PAGE_SIZE, after: pageInfo?.endCursor }).then(
       data => {
@@ -137,74 +116,85 @@ export default function RepositoryTable() {
     }
   }, [pageNum, currentPage])
 
+  React.useEffect(() => {
+    if (initialized) return
+    setInitialized(true)
+  }, [data, error])
+
   return (
     <div>
       <CardHeader>
-        <CardTitle>Repositories</CardTitle>
+        <CardTitle className="flex justify-between">
+          <span>Repositories</span>
+          <Link href="/settings/repository/new" className={buttonVariants()}>
+            Add Git Repo
+          </Link>
+        </CardTitle>
       </CardHeader>
-      <div className='p-4'>
-        <Table className="border-b">
-          {!!currentPageRepos?.length && (
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[25%]">Name</TableHead>
-                <TableHead className="w-[45%]">Git Url</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-          )}
-          <TableBody>
-            {currentPageRepos?.map(x => {
-              return (
-                <TableRow key={x.node.id}>
-                  <TableCell>{x.node.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {x.node.gitUrl}
-                      <CopyButton value={x.node.gitUrl} />
-                    </div>
-                  </TableCell>
-                  <TableCell className="flex justify-end">
-                    <div className="flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="hover-destructive"
-                        onClick={() => handleDeleteRepository(x.node)}
-                      >
-                        <IconTrash />
-                      </Button>
-                    </div>
-                  </TableCell>
+      <div className="p-4">
+        {initialized ? (
+          <>
+            <Table className="border-b">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[25%]">Name</TableHead>
+                  <TableHead className="w-[45%]">Git URL</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-        {(hasNextPage || hasPrevPage) && (
-          <Pagination className="my-4">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  disabled={!hasPrevPage}
-                  onClick={handleNavToPrevPage}
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext
-                  disabled={!hasNextPage}
-                  onClick={handleFetchNextPage}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+              </TableHeader>
+              <TableBody>
+                {!currentPageRepos?.length && currentPage === 1 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className='h-[100px] text-center'>No Data</TableCell>
+                  </TableRow>
+                ) : (
+                  <>
+                    {currentPageRepos?.map(x => {
+                      return (
+                        <TableRow key={x.node.id}>
+                          <TableCell>{x.node.name}</TableCell>
+                          <TableCell>{x.node.gitUrl}</TableCell>
+                          <TableCell className="flex justify-end">
+                            <div className="flex gap-1">
+                              <Button
+                                size="icon"
+                                variant="hover-destructive"
+                                onClick={() => handleDeleteRepository(x.node)}
+                              >
+                                <IconTrash />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </>
+                )}
+              </TableBody>
+            </Table>
+            {showPagination && (
+              <Pagination className="my-4">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      disabled={!hasPrevPage}
+                      onClick={handleNavToPrevPage}
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      disabled={!hasNextPage}
+                      onClick={handleFetchNextPage}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
+        ) : (
+          <ListSkeleton />
         )}
-
-        <CreateRepositoryForm onCreated={handleRepositoryCreated} />
       </div>
     </div>
   )
-}
-
-function getPageNumber(count?: number) {
-  return Math.ceil((count || 0) / PAGE_SIZE)
 }
