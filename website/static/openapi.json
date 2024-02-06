@@ -2,12 +2,12 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Tabby Server",
-    "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)\n[![Join Slack](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)\n\nInstall following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).\n* [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)\n* [VIM Extension](https://github.com/TabbyML/tabby/tree/main/clients/vim)\n* [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij) – Install from the [marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)\n",
+    "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)\n[![Join Slack](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)\n\nInstall following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).\n* [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)\n* [VIM Extension](https://github.com/TabbyML/tabby/tree/main/clients/vim)\n* [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij) – Install from the [marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)\n",
     "license": {
       "name": "Apache 2.0",
       "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE"
     },
-    "version": "0.6.0"
+    "version": "0.8.3"
   },
   "servers": [
     {
@@ -46,7 +46,12 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ]
       }
     },
     "/v1/events": {
@@ -72,7 +77,12 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ]
       }
     },
     "/v1/health": {
@@ -92,13 +102,78 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ]
       }
     }
   },
   "components": {
     "schemas": {
+      "ChatCompletionChoice": {
+        "type": "object",
+        "required": [
+          "index",
+          "delta"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "logprobs": {
+            "type": "string",
+            "nullable": true
+          },
+          "finish_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "delta": {
+            "$ref": "#/components/schemas/ChatCompletionDelta"
+          }
+        }
+      },
       "ChatCompletionChunk": {
+        "type": "object",
+        "required": [
+          "id",
+          "created",
+          "system_fingerprint",
+          "object",
+          "model",
+          "choices"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "created": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "system_fingerprint": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatCompletionChoice"
+            }
+          }
+        }
+      },
+      "ChatCompletionDelta": {
         "type": "object",
         "required": [
           "content"
@@ -120,6 +195,17 @@
             "items": {
               "$ref": "#/components/schemas/Message"
             }
+          },
+          "temperature": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "minimum": 0
           }
         },
         "example": {
@@ -177,6 +263,19 @@
             "type": "string",
             "description": "A unique identifier representing your end-user, which can help Tabby to monitor & generating\nreports.",
             "nullable": true
+          },
+          "temperature": {
+            "type": "number",
+            "format": "float",
+            "description": "The temperature parameter for the model, used to tune variance and \"creativity\" of the model output",
+            "nullable": true
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The seed used for randomly selecting tokens",
+            "nullable": true,
+            "minimum": 0
           }
         },
         "example": {
@@ -320,7 +419,7 @@
         "properties": {
           "type": {
             "type": "string",
-            "description": "Event type, should be `view` or `select`.",
+            "description": "Event type, should be `view`, `select` or `dismiss`.",
             "example": "view"
           },
           "completion_id": {
@@ -329,6 +428,16 @@
           "choice_index": {
             "type": "integer",
             "format": "int32",
+            "minimum": 0
+          },
+          "view_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "elapsed": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
             "minimum": 0
           }
         }
@@ -381,6 +490,11 @@
             "type": "string",
             "description": "Content that appears after the cursor in the editor window.",
             "nullable": true
+          },
+          "clipboard": {
+            "type": "string",
+            "description": "Clipboard content when requesting code completion.",
+            "nullable": true
           }
         }
       },
@@ -426,6 +540,13 @@
             "type": "string"
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "token": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "token"
       }
     }
   }
