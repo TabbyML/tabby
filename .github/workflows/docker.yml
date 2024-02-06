@@ -3,15 +3,15 @@ name: Create and publish docker image
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 20 */1 * *'
+    - cron: "0 20 */1 * *"
   push:
     tags:
-      - 'v*'
-      - '!*-dev'
+      - "v*"
+      - "!*-dev"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }} 
-  
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
 
@@ -27,6 +27,10 @@ jobs:
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
+
+    strategy:
+      matrix:
+        device-type: [cpu, cuda, rocm]
 
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -88,9 +92,9 @@ jobs:
           # generate Docker tags based on the following events/attributes
           tags: |
             type=raw,value={{branch}}-{{sha}},enable=${{ startsWith(github.ref, 'refs/heads') }}
-            type=schedule,pattern=nightly
-            type=schedule,pattern={{date 'YYYYMMDD'}}
-            type=semver,pattern={{version}}
+            type=schedule,pattern=nightly-${{ matrix.device-type }}
+            type=schedule,pattern={{date 'YYYYMMDD'}}-${{ matrix.device-type }}
+            type=semver,pattern={{version}}-${{ matrix.device-type }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
@@ -113,4 +117,3 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: tabbyml/tabby
-
