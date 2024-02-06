@@ -6,7 +6,7 @@
 
 * The `user` field in the `~/tabby/events` log is now populated for users who authenticate via the `--webserver` feature.
 
-# v0.8.1
+# v0.8.3
 
 ## Fixes and Improvements
 
