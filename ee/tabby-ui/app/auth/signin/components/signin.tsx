@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useSWRImmutable from 'swr/immutable'
 
 import { useSignIn } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
-import { IconGithub, IconGoogle, IconSpinner } from '@/components/ui/icons'
+import { IconGithub, IconGoogle } from '@/components/ui/icons'
+import { Progress } from '@/components/ui/progress'
 
 import UserSignInForm from './user-signin-form'
 
@@ -16,6 +17,7 @@ export default function Signin() {
   const errorMessage = searchParams.get('error_message')
   const accessToken = searchParams.get('access_token')
   const refreshToken = searchParams.get('refresh_token')
+  const [progress, setProgress] = useState(13)
 
   const shouldAutoSignin = !!accessToken && !!refreshToken
   const displayLoading = shouldAutoSignin && !errorMessage
@@ -36,16 +38,20 @@ export default function Signin() {
   useEffect(() => {
     if (errorMessage) return
     if (accessToken && refreshToken) {
-      signin({ accessToken, refreshToken })
+      signin({ accessToken, refreshToken }).then(() => setProgress(100))
     }
   }, [searchParams])
 
+  useEffect(() => {
+    if (progress === 100) {
+      setTimeout(() => {
+        router.replace('/')
+      }, 200)
+    }
+  }, [progress])
+
   if (displayLoading) {
-    return (
-      <div className="flex items-center">
-        <IconSpinner className="w-12 h-12" />
-      </div>
-    )
+    return <Progress value={progress} className="w-[50%] lg:w-[20%]" />
   }
 
   return (
