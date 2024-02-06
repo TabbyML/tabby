@@ -76,6 +76,9 @@ export default function Sidebar({ children, className }: SidebarProps) {
                     <SidebarButton href="/settings/mail">
                       Mail Delivery
                     </SidebarButton>
+                    <SidebarButton href="/settings/repository">
+                      Repository
+                    </SidebarButton>
                   </SidebarCollapsible>
                 </>
               )}
