@@ -40,19 +40,32 @@ class EditorListener : EditorFactoryListener {
     editor.document.addDocumentListener(object : DocumentListener {
       override fun documentChanged(event: DocumentEvent) {
         logger.debug("DocumentListener: documentChanged $event")
-        if (editorManager.selectedTextEditor == editor) {
-          if (settings.completionTriggerMode == ApplicationSettingsState.TriggerMode.AUTOMATIC) {
-            completionProvider.ongoingCompletion.value.let {
-              if (it != null && it.editor == editor && it.offset == editor.caretModel.primaryCaret.offset) {
-                // keep ongoing completion
-                logger.debug("Keep ongoing completion.")
-              } else {
-                invokeLater {
-                  completionProvider.provideCompletion(editor, editor.caretModel.primaryCaret.offset)
+        try {
+          val currentEditor = editorManager.selectedTextEditor
+          val project = editor.project
+          // 显式检查 project 是否为 null
+          if (project != null && currentEditor != null && currentEditor == editor && !project.isDisposed) {
+            if (settings.completionTriggerMode == ApplicationSettingsState.TriggerMode.AUTOMATIC) {
+              completionProvider.ongoingCompletion.value.let {
+                if (it != null && it.editor == editor && it.offset == editor.caretModel.primaryCaret.offset) {
+                  // 保持进行中的补全
+                  logger.debug("Keep ongoing completion.")
+                } else {
+                  invokeLater {
+                    try {
+                      if (!project.isDisposed) {
+                        completionProvider.provideCompletion(editor, editor.caretModel.primaryCaret.offset)
+                      }
+                    } catch (e: Exception) {
+                      logger.debug("Error providing completion: ${e.message}")
+                    }
+                  }
                 }
               }
             }
           }
+        } catch (e: Exception) {
+          logger.debug("Error in documentChanged: ${e.message}")
         }
       }
     })
