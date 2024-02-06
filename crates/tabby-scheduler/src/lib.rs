@@ -31,7 +31,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
         // Every 10 minutes
         scheduler
             .add(Job::new_async(
-                "* 1/10 * * * * *",
+                "0 1/10 * * * *",
                 move |uuid, mut scheduler| {
                     let access = access.clone();
                     let args = args.clone();
@@ -92,7 +92,10 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
                         }
 
                         if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {
-                            info!("Next time for scheduler job is {:?}", next_tick);
+                            info!(
+                                "Next time for scheduler job is {:?}",
+                                next_tick.with_timezone(&chrono::Local)
+                            );
                         }
                     })
                 },
