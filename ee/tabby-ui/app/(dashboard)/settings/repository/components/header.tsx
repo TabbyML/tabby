@@ -8,7 +8,8 @@ export const RepositoryHeader = ({ className }: { className?: string }) => {
     <div className={cn('min-h-8 mb-4 flex items-center gap-4', className)}>
       <div className="flex-1 text-sm text-muted-foreground">
         Tabby supports connecting to Git repositories and uses these
-        repositories as a context to enhance performance of large language model.
+        repositories as a context to enhance performance of large language
+        model.
         <Link
           target="_blank"
           className="ml-2 inline-flex cursor-pointer flex-row items-center text-primary hover:underline"
