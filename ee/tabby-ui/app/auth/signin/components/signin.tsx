@@ -51,7 +51,7 @@ export default function Signin() {
   }, [progress])
 
   if (displayLoading) {
-    return <Progress value={progress} className="w-[50%] lg:w-[20%]" />
+    return <Progress value={progress} className="w-[128px]" />
   }
 
   return (
