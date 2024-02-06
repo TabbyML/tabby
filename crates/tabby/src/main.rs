@@ -45,22 +45,22 @@ pub enum Commands {
 
     /// Run completion model as worker
     #[cfg(feature = "ee")]
-    #[clap(name = "worker::completion")]
+    #[clap(name = "worker::completion", hide=true)]
     WorkerCompletion(worker::WorkerArgs),
 
     /// Run chat model as worker
     #[cfg(feature = "ee")]
-    #[clap(name = "worker::chat")]
+    #[clap(name = "worker::chat", hide=true)]
     WorkerChat(worker::WorkerArgs),
 
     /// Execute the repository sync job.
     #[cfg(feature = "ee")]
-    #[clap(name = "job::sync")]
+    #[clap(name = "job::sync", hide=true)]
     JobSync(JobArgs),
 
     /// Execute the index job.
     #[cfg(feature = "ee")]
-    #[clap(name = "job::index")]
+    #[clap(name = "job::index", hide=true)]
     JobIndex(JobArgs),
 }
 
