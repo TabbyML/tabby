@@ -228,13 +228,13 @@ export default function OAuthCredentialForm({
           <FormItem className="mt-4">
             <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
               <div className="text-sm text-muted-foreground">
-                Create your SSO application with the following information
+                Create your OAuth2 application with the following information
               </div>
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium">
                   Authorization callback URL
                 </div>
-                <span className="flex text-sm items-center">
+                <span className="flex items-center text-sm">
                   {oauthRedirectUri}
                   {!!providerValue && (
                     <CopyButton type="button" value={oauthRedirectUri} />
