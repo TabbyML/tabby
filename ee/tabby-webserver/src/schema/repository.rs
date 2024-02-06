@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
+use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue};
 use juniper_axum::relay::NodeType;
 use validator::{Validate, ValidationErrors};
 
@@ -65,8 +65,11 @@ pub trait RepositoryService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<Repository>>;
 
-    async fn create_repository(&self, name: String, git_url: String)
-        -> Result<ID, RepositoryError>;
-    async fn delete_repository(&self, id: ID) -> Result<bool>;
-    async fn update_repository(&self, id: ID, name: String, git_url: String) -> Result<bool>;
+    async fn create_repository(
+        &self,
+        name: String,
+        git_url: String,
+    ) -> Result<i32, RepositoryError>;
+    async fn delete_repository(&self, id: i32) -> Result<bool>;
+    async fn update_repository(&self, id: i32, name: String, git_url: String) -> Result<bool>;
 }

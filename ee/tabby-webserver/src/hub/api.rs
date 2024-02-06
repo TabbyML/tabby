@@ -32,15 +32,18 @@ pub trait Hub {
         offset: usize,
     ) -> SearchResponse;
 
-    async fn get_repositories() -> Vec<RepositoryConfig>;
+    async fn list_repositories() -> Vec<RepositoryConfig>;
+    async fn create_job_run(name: String) -> i32;
+    async fn update_job_output(id: i32, stdout: String, stderr: String);
+    async fn complete_job_run(id: i32, exit_code: i32);
 }
 
-pub fn tracing_context() -> tarpc::context::Context {
+fn tracing_context() -> tarpc::context::Context {
     tarpc::context::current()
 }
 
-pub async fn create_client(addr: &str, token: &str, request: ConnectHubRequest) -> HubClient {
-    let request = Request::builder()
+fn build_client_request(addr: &str, token: &str, request: ConnectHubRequest) -> Request<()> {
+    Request::builder()
         .uri(format!("ws://{}/hub", addr))
         .header("Host", addr)
         .header("Connection", "Upgrade")
@@ -54,23 +57,33 @@ pub async fn create_client(addr: &str, token: &str, request: ConnectHubRequest) 
             serde_json::to_string(&request).unwrap(),
         )
         .body(())
-        .unwrap();
-
-    let (socket, _) = connect_async(request).await.unwrap();
-    HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn()
+        .unwrap()
 }
 
-impl RawEventLogger for HubClient {
+#[derive(Clone)]
+pub struct WorkerClient(HubClient);
+
+pub async fn create_worker_client(
+    addr: &str,
+    token: &str,
+    request: RegisterWorkerRequest,
+) -> WorkerClient {
+    let request = build_client_request(addr, token, ConnectHubRequest::Worker(request));
+    let (socket, _) = connect_async(request).await.unwrap();
+    WorkerClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
+}
+
+impl RawEventLogger for WorkerClient {
     fn log(&self, content: String) {
         let context = tarpc::context::current();
-        let client = self.clone();
+        let client = self.0.clone();
 
         tokio::spawn(async move { client.log_event(context, content).await });
     }
 }
 
 #[async_trait]
-impl CodeSearch for HubClient {
+impl CodeSearch for WorkerClient {
     async fn search(
         &self,
         q: &str,
@@ -78,6 +91,7 @@ impl CodeSearch for HubClient {
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError> {
         match self
+            .0
             .search(tracing_context(), q.to_owned(), limit, offset)
             .await
         {
@@ -94,6 +108,7 @@ impl CodeSearch for HubClient {
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError> {
         match self
+            .0
             .search_in_language(
                 tracing_context(),
                 language.to_owned(),
@@ -171,9 +186,33 @@ impl Header for ConnectHubRequest {
     }
 }
 
+#[derive(Clone)]
+pub struct SchedulerClient(HubClient);
+
+pub async fn create_scheduler_client(addr: &str, token: &str) -> SchedulerClient {
+    let request = build_client_request(addr, token, ConnectHubRequest::Scheduler);
+    let (socket, _) = connect_async(request).await.unwrap();
+    SchedulerClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
+}
+
 #[async_trait]
-impl RepositoryAccess for HubClient {
+impl RepositoryAccess for SchedulerClient {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
-        Ok(self.get_repositories(Context::current()).await?)
+        Ok(self.0.list_repositories(Context::current()).await?)
+    }
+    async fn create_job_run(&self, name: String) -> Result<i32> {
+        Ok(self.0.create_job_run(tracing_context(), name).await?)
+    }
+    async fn update_job_output(&self, id: i32, stdout: String, stderr: String) -> Result<()> {
+        Ok(self
+            .0
+            .update_job_output(tracing_context(), id, stdout, stderr)
+            .await?)
+    }
+    async fn complete_job_run(&self, id: i32, exit_code: i32) -> Result<()> {
+        Ok(self
+            .0
+            .complete_job_run(tracing_context(), id, exit_code)
+            .await?)
     }
 }

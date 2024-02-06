@@ -371,10 +371,15 @@ impl Mutation {
             .repository()
             .create_repository(name, git_url)
             .await
+            .map(|x| ID::new(DbConn::to_id(x)))
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
-        Ok(ctx.locator.repository().delete_repository(id).await?)
+        Ok(ctx
+            .locator
+            .repository()
+            .delete_repository(DbConn::to_rowid(&id)?)
+            .await?)
     }
 
     async fn update_repository(
@@ -386,14 +391,19 @@ impl Mutation {
         Ok(ctx
             .locator
             .repository()
-            .update_repository(id, name, git_url)
+            .update_repository(DbConn::to_rowid(&id)?, name, git_url)
             .await?)
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ctx.locator.auth().delete_invitation(id).await?);
+                return Ok(ID::new(DbConn::to_id(
+                    ctx.locator
+                        .auth()
+                        .delete_invitation(DbConn::to_rowid(&id)?)
+                        .await?,
+                )));
             }
         }
         Err(CoreError::Unauthorized(

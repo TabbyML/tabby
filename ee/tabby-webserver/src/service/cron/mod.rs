@@ -1,5 +1,4 @@
 mod db;
-mod job_utils;
 
 use tabby_db::DbConn;
 use tokio_cron_scheduler::{Job, JobScheduler};

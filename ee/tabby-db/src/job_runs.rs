@@ -7,25 +7,21 @@ use super::DbConn;
 #[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {
     pub id: i32,
-    pub job_name: String,
-    pub start_time: DateTime<Utc>,
-    pub finish_time: Option<DateTime<Utc>>,
+    pub job: String,
     pub exit_code: Option<i32>,
     pub stdout: String,
     pub stderr: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub finished_at: Option<DateTime<Utc>>,
 }
 
 /// db read/write operations for `job_runs` table
 impl DbConn {
-    pub async fn create_job_run(&self, run: JobRunDAO) -> Result<i32> {
+    pub async fn create_job_run(&self, job: String) -> Result<i32> {
         let rowid = query!(
-            r#"INSERT INTO job_runs (job, start_ts, end_ts, exit_code, stdout, stderr) VALUES (?, ?, ?, ?, ?, ?)"#,
-                run.job_name,
-                run.start_time,
-                run.finish_time,
-                run.exit_code,
-                run.stdout,
-                run.stderr,
+            r#"INSERT INTO job_runs (job, start_ts, stdout, stderr) VALUES (?, DATETIME('now'), '', '')"#,
+            job,
         ).execute(&self.pool).await?.last_insert_rowid();
 
         Ok(rowid as i32)
@@ -49,12 +45,11 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_job_status(&self, run: JobRunDAO) -> Result<()> {
+    pub async fn update_job_status(&self, job_id: i32, exit_code: i32) -> Result<()> {
         query!(
-            r#"UPDATE job_runs SET end_ts = ?, exit_code = ?, updated_at = datetime('now') WHERE id = ?"#,
-            run.finish_time,
-            run.exit_code,
-            run.id
+            r#"UPDATE job_runs SET end_ts = datetime('now'), exit_code = ?, updated_at = datetime('now') WHERE id = ?"#,
+            exit_code,
+            job_id,
         ).execute(&self.pool).await?;
         Ok(())
     }
@@ -70,11 +65,12 @@ impl DbConn {
             &[
                 "id",
                 "job",
-                "start_ts",
-                "end_ts",
                 "exit_code",
                 "stdout",
                 "stderr",
+                "created_at",
+                "updated_at",
+                "end_ts",
             ],
             limit,
             skip_id,
@@ -93,40 +89,10 @@ mod tests {
     #[tokio::test]
     async fn test_create_job_run() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let run = JobRunDAO {
-            id: 0,
-            job_name: "test".to_string(),
-            start_time: chrono::Utc::now(),
-            finish_time: None,
-            exit_code: None,
-            stdout: "stdout".to_string(),
-            stderr: "stderr".to_string(),
-        };
-        let id = db.create_job_run(run).await.unwrap();
+        let id = db.create_job_run("test".to_string()).await.unwrap();
         assert_eq!(id, 1);
 
-        let run = JobRunDAO {
-            id: 0,
-            job_name: "test".to_string(),
-            start_time: chrono::Utc::now(),
-            finish_time: Some(chrono::Utc::now()),
-            exit_code: None,
-            stdout: "stdout".to_string(),
-            stderr: "stderr".to_string(),
-        };
-        let id = db.create_job_run(run).await.unwrap();
+        let id = db.create_job_run("test".to_string()).await.unwrap();
         assert_eq!(id, 2);
-
-        let run = JobRunDAO {
-            id: 0,
-            job_name: "test".to_string(),
-            start_time: chrono::Utc::now(),
-            finish_time: Some(chrono::Utc::now()),
-            exit_code: Some(0),
-            stdout: "stdout".to_string(),
-            stderr: "stderr".to_string(),
-        };
-        let id = db.create_job_run(run).await.unwrap();
-        assert_eq!(id, 3);
     }
 }

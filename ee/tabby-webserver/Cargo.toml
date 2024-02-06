@@ -46,5 +46,5 @@ validator = { version = "0.16.1", features = ["derive"] }
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-tokio = { workspace = true, features = ["macros", "process"] }
+tokio = { workspace = true, features = ["macros"] }
 tabby-db = { path = "../../ee/tabby-db", features = ["testutils"] }

@@ -35,7 +35,7 @@ mod tests {
             )],
         };
 
-        let res = tabby_scheduler::scheduler(true, config).await;
+        let res = tabby_scheduler::scheduler(true, config, &[]).await;
         res.expect("Failed to run scheduler");
     }
 }

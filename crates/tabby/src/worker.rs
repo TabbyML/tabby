@@ -3,7 +3,7 @@ use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 use axum::{routing, Router};
 use clap::Args;
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
-use tabby_webserver::public::{ConnectHubRequest, HubClient, RegisterWorkerRequest, WorkerKind};
+use tabby_webserver::public::{RegisterWorkerRequest, WorkerClient, WorkerKind};
 use tracing::info;
 
 use crate::{
@@ -82,7 +82,7 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
     let logger = code.clone();
 
     let app = match kind {
-        WorkerKind::Completion => make_completion_route(code, logger.clone(), args).await,
+        WorkerKind::Completion => make_completion_route(code, logger, args).await,
         WorkerKind::Chat => make_chat_route(logger.clone(), args).await,
     };
 
@@ -90,7 +90,7 @@ pub async fn main(kind: WorkerKind, args: &WorkerArgs) {
 }
 
 struct WorkerContext {
-    client: HubClient,
+    client: WorkerClient,
 }
 
 impl WorkerContext {
@@ -99,10 +99,10 @@ impl WorkerContext {
         let cuda_devices = read_cuda_devices().unwrap_or_default();
 
         Self {
-            client: tabby_webserver::public::create_client(
+            client: tabby_webserver::public::create_worker_client(
                 &args.url,
                 &args.token,
-                ConnectHubRequest::Worker(RegisterWorkerRequest {
+                RegisterWorkerRequest {
                     kind,
                     port: args.port,
                     name: args.model.to_owned(),
@@ -111,7 +111,7 @@ impl WorkerContext {
                     cpu_info,
                     cpu_count: cpu_count as i32,
                     cuda_devices,
-                }),
+                },
             )
             .await,
         }
