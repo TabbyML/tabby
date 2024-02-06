@@ -4,7 +4,7 @@ ARG ROCM_VERSION=5.7.1
 # Target the ROCM build image
 ARG BASE_ROCM_DEV_CONTAINER=rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete
 # Target the ROCM runtime image
-ARG BASE_ROCM_RUN_CONTAINER=rocm/rocm-terminal:${ROCM_VERSION}
+ARG BASE_ROCM_RUN_CONTAINER=rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}
 
 FROM ${BASE_ROCM_DEV_CONTAINER} AS build
 
@@ -43,13 +43,14 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime
 
-USER root
-
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
     openssh-client \
     ca-certificates \
+    libssl3 \
+    rocblas \
+    hipblas \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -66,7 +67,5 @@ COPY --from=build /opt/tabby /opt/tabby
 
 ENV PATH="$PATH:/opt/tabby/bin"
 ENV TABBY_ROOT=/data
-
-USER rocm-user
 
 ENTRYPOINT ["/opt/tabby/bin/tabby"]
