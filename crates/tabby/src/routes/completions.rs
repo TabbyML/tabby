@@ -1,11 +1,6 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    headers::Header,
-    http::{HeaderName},
-    Json, TypedHeader,
-};
+use axum::{extract::State, headers::Header, http::HeaderName, Json, TypedHeader};
 use hyper::StatusCode;
 use tabby_common::constants::USER_HEADER_FIELD_NAME;
 use tracing::{instrument, warn};

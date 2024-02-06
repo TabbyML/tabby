@@ -10,8 +10,6 @@ mod ui;
 
 pub mod public {
 
-    
-
     pub use super::{
         handler::attach_webserver,
         /* used by tabby workers (consumer of /hub api) */

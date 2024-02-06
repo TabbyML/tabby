@@ -13,14 +13,13 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info, warn};
 
 pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) -> Result<()> {
-    let access = Arc::new(access);
-    let scheduler = JobScheduler::new().await?;
-
     if now {
         let repositories = access.list_repositories().await?;
         job_sync(&repositories);
         job_index(&repositories);
     } else {
+        let access = Arc::new(access);
+        let scheduler = JobScheduler::new().await?;
         // Every 5 minutes.
         let access_clone = access.clone();
         scheduler
