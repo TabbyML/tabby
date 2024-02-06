@@ -134,12 +134,7 @@ async fn main() {
             url: Some(url),
             token: Some(token),
         }) => {
-            let client = tabby_webserver::public::create_client(
-                &url,
-                &token,
-                tabby_webserver::public::ConnectHubRequest::Scheduler,
-            )
-            .await;
+            let client = tabby_webserver::public::create_scheduler_client(&url, &token).await;
             tabby_scheduler::scheduler(now, client)
                 .await
                 .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err))

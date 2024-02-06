@@ -134,7 +134,7 @@ impl Hub for Arc<HubImpl> {
             }
         }
     }
-    async fn get_repositories(self, _context: tarpc::context::Context) -> Vec<RepositoryConfig> {
+    async fn list_repositories(self, _context: tarpc::context::Context) -> Vec<RepositoryConfig> {
         let result = self
             .ctx
             .repository()
