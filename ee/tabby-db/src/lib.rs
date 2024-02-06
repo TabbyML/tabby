@@ -24,7 +24,7 @@ use lazy_static::lazy_static;
 use sqlx::sqlite::SqliteConnectOptions;
 
 lazy_static! {
-    static ref HASHER: HashIds = HashIds::builder().with_salt("tabby-id-serializer").finish();
+    static ref HASHER: HashIds = HashIds::builder().with_salt("tabby-id-serializer").with_min_length(6).finish();
 }
 
 #[derive(thiserror::Error, Debug)]
