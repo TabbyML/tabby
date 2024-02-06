@@ -58,9 +58,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
                             let mut stdout = stdout.lines();
                             while let Ok(Some(line)) = stdout.next_line().await {
                                 println!("{line}");
-                                let _ = access
-                                    .update_job_output(job_id, line + "\n", "".to_owned())
-                                    .await;
+                                let _ = access.update_job_stdout(job_id, line + "\n").await;
                             }
                         });
                     }
@@ -74,9 +72,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(
                             let mut stdout = stderr.lines();
                             while let Ok(Some(line)) = stdout.next_line().await {
                                 eprintln!("{line}");
-                                let _ = access
-                                    .update_job_output(job_id, "".to_owned(), line + "\n")
-                                    .await;
+                                let _ = access.update_job_stderr(job_id, line + "\n").await;
                             }
                         });
                     }
