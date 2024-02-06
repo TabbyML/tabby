@@ -94,7 +94,7 @@ export default function CreateRepositoryForm({
               </Button>
             </Link>
             <Button type="submit" disabled={isSubmitting}>
-              Add Git Repo
+              Create
             </Button>
           </div>
         </form>

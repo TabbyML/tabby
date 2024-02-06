@@ -60,7 +60,8 @@ export default function RepositoryTable() {
 
   const hasNextPage = pageInfo?.hasNextPage || currentPage < pageNum
   const hasPrevPage = currentPage > 1
-  const showPagination = !!currentPageRepos?.length && (hasNextPage || hasPrevPage)
+  const showPagination =
+    !!currentPageRepos?.length && (hasNextPage || hasPrevPage)
 
   const fetchRepositories = (variables: RepositoriesQueryVariables) => {
     return client.query(listRepositories, variables).toPromise()
@@ -118,7 +119,9 @@ export default function RepositoryTable() {
 
   React.useEffect(() => {
     if (initialized) return
-    setInitialized(true)
+    if (data || error) {
+      setInitialized(true)
+    }
   }, [data, error])
 
   return (
@@ -145,7 +148,9 @@ export default function RepositoryTable() {
               <TableBody>
                 {!currentPageRepos?.length && currentPage === 1 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className='h-[100px] text-center'>No Data</TableCell>
+                    <TableCell colSpan={3} className="h-[100px] text-center">
+                      No Data
+                    </TableCell>
                   </TableRow>
                 ) : (
                   <>
