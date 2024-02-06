@@ -123,7 +123,7 @@ impl CodeSearch for WorkerClient {
 
 #[derive(Serialize, Deserialize)]
 pub enum ConnectHubRequest {
-    Scheduler,
+    Job,
     Worker(RegisterWorkerRequest),
 }
 
@@ -184,16 +184,16 @@ impl Header for ConnectHubRequest {
 }
 
 #[derive(Clone)]
-pub struct SchedulerClient(HubClient);
+pub struct JobClient(HubClient);
 
-pub async fn create_scheduler_client(addr: &str, token: &str) -> SchedulerClient {
-    let request = build_client_request(addr, token, ConnectHubRequest::Scheduler);
+pub async fn create_scheduler_client(addr: &str, token: &str) -> JobClient {
+    let request = build_client_request(addr, token, ConnectHubRequest::Job);
     let (socket, _) = connect_async(request).await.unwrap();
-    SchedulerClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
+    JobClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
 }
 
 #[async_trait]
-impl RepositoryAccess for SchedulerClient {
+impl RepositoryAccess for JobClient {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
         Ok(self.0.list_repositories(Context::current()).await?)
     }

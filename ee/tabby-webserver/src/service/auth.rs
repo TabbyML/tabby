@@ -7,7 +7,6 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
-use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
 use validator::{Validate, ValidationError};
 
@@ -297,9 +296,8 @@ impl AuthenticationService for DbConn {
         Ok(invitation)
     }
 
-    async fn delete_invitation(&self, id: ID) -> Result<ID> {
-        let id = DbConn::to_rowid(&id)?;
-        Ok(ID::new(DbConn::to_id(self.delete_invitation(id).await?)))
+    async fn delete_invitation(&self, id: i32) -> Result<i32> {
+        Ok(self.delete_invitation(id).await?)
     }
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()> {

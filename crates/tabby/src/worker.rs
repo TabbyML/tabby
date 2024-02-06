@@ -2,10 +2,7 @@ use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 
 use axum::{routing, Router};
 use clap::Args;
-use tabby_common::api::{
-    code::CodeSearch,
-    event::{EventLogger},
-};
+use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tabby_webserver::public::{RegisterWorkerRequest, WorkerClient, WorkerKind};
 use tracing::info;
 
