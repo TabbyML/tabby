@@ -126,7 +126,7 @@ impl CodeSearch for WorkerClient {
 
 #[derive(Serialize, Deserialize)]
 pub enum ConnectHubRequest {
-    Job,
+    Scheduler,
     Worker(RegisterWorkerRequest),
 }
 
@@ -187,17 +187,32 @@ impl Header for ConnectHubRequest {
 }
 
 #[derive(Clone)]
-pub struct JobClient(HubClient);
+pub struct SchedulerClient(HubClient);
 
-pub async fn create_scheduler_client(addr: &str, token: &str) -> JobClient {
-    let request = build_client_request(addr, token, ConnectHubRequest::Job);
+pub async fn create_scheduler_client(addr: &str, token: &str) -> SchedulerClient {
+    let request = build_client_request(addr, token, ConnectHubRequest::Scheduler);
     let (socket, _) = connect_async(request).await.unwrap();
-    JobClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
+    SchedulerClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
 }
 
 #[async_trait]
-impl RepositoryAccess for JobClient {
+impl RepositoryAccess for SchedulerClient {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
         Ok(self.0.list_repositories(Context::current()).await?)
+    }
+    async fn create_job_run(&self, name: String) -> Result<i32> {
+        Ok(self.0.create_job_run(tracing_context(), name).await?)
+    }
+    async fn update_job_output(&self, id: i32, stdout: String, stderr: String) -> Result<()> {
+        Ok(self
+            .0
+            .update_job_output(tracing_context(), id, stdout, stderr)
+            .await?)
+    }
+    async fn complete_job_run(&self, id: i32, exit_code: i32) -> Result<()> {
+        Ok(self
+            .0
+            .complete_job_run(tracing_context(), id, exit_code)
+            .await?)
     }
 }

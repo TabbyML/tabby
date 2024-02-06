@@ -28,6 +28,7 @@ requirements = "0.3.0"
 serdeconv.workspace = true
 cargo-lock = { version = "9.0.0", features = ["dependency-tree"] }
 tokio-cron-scheduler = { workspace = true }
+tokio = { workspace = true, features = ["process"] }
 
 [dev-dependencies]
 temp_testdir = "0.2"

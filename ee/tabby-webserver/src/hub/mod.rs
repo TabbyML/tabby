@@ -12,7 +12,6 @@ use axum::{
     response::IntoResponse,
     TypedHeader,
 };
-use futures::TryFutureExt;
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
 use tabby_common::{api::code::SearchResponse, config::RepositoryConfig};
@@ -59,24 +58,28 @@ async fn handle_socket(
 ) {
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
-    if let ConnectHubRequest::Worker(worker) = req {
-        state
-            .worker()
-            .register_worker(worker.into_worker(addr))
-            .await
-            .unwrap();
+    let addr = match req {
+        ConnectHubRequest::Scheduler => None,
+        ConnectHubRequest::Worker(worker) => {
+            state
+                .worker()
+                .register_worker(worker.into_worker(addr))
+                .await
+                .unwrap();
+            Some(addr.to_string())
+        }
     };
-    let imp = Arc::new(HubImpl::new(state.clone(), addr.to_string()));
+    let imp = Arc::new(HubImpl::new(state.clone(), addr));
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
 struct HubImpl {
     ctx: Arc<dyn ServiceLocator>,
-    worker_addr: String,
+    worker_addr: Option<String>,
 }
 
 impl HubImpl {
-    fn new(ctx: Arc<dyn ServiceLocator>, worker_addr: String) -> Self {
+    fn new(ctx: Arc<dyn ServiceLocator>, worker_addr: Option<String>) -> Self {
         Self { ctx, worker_addr }
     }
 }
@@ -84,11 +87,11 @@ impl HubImpl {
 impl Drop for HubImpl {
     fn drop(&mut self) {
         let ctx = self.ctx.clone();
-        let worker_addr = self.worker_addr.clone();
-
-        tokio::spawn(async move {
-            ctx.worker().unregister_worker(worker_addr.as_str()).await;
-        });
+        if let Some(worker_addr) = self.worker_addr.clone() {
+            tokio::spawn(async move {
+                ctx.worker().unregister_worker(worker_addr.as_str()).await;
+            });
+        }
     }
 }
 
@@ -160,7 +163,7 @@ impl Hub for Arc<HubImpl> {
             .await
             .unwrap_or_else(|e| {
                 warn!("Failed to create job run: {e}");
-                -1
+                0
             })
     }
 
