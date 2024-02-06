@@ -33,6 +33,9 @@ pub trait Hub {
     ) -> SearchResponse;
 
     async fn list_repositories() -> Vec<RepositoryConfig>;
+    async fn create_job_run(name: String) -> i32;
+    async fn update_job_output(id: i32, stdout: String, stderr: String);
+    async fn complete_job_run(id: i32, exit_code: i32);
 }
 
 fn tracing_context() -> tarpc::context::Context {

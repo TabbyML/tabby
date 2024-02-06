@@ -12,6 +12,7 @@ use axum::{
     response::IntoResponse,
     TypedHeader,
 };
+use futures::TryFutureExt;
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
 use tabby_common::{api::code::SearchResponse, config::RepositoryConfig};
@@ -150,5 +151,34 @@ impl Hub for Arc<HubImpl> {
             warn!("Failed to fetch repositories: {e}");
             vec![]
         })
+    }
+
+    async fn create_job_run(self, _context: tarpc::context::Context, name: String) -> i32 {
+        self.ctx
+            .job()
+            .create_job_run(name)
+            .await
+            .unwrap_or_else(|e| {
+                warn!("Failed to create job run: {e}");
+                -1
+            })
+    }
+
+    async fn update_job_output(
+        self,
+        _context: tarpc::context::Context,
+        id: i32,
+        stdout: String,
+        stderr: String,
+    ) {
+        if let Err(err) = self.ctx.job().update_job_output(id, stdout, stderr).await {
+            warn!("Failed to update job output: {err}");
+        }
+    }
+
+    async fn complete_job_run(self, _context: tarpc::context::Context, id: i32, exit_code: i32) {
+        if let Err(err) = self.ctx.job().complete_job_run(id, exit_code).await {
+            warn!("Failed to complete job run: {err}");
+        }
     }
 }
