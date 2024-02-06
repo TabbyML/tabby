@@ -31,17 +31,17 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             binary: aarch64-apple-darwin
-          - os: ubuntu-latest
+          - os: dimerun-k3-ubuntu2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014
             container: quay.io/pypa/manylinux2014_x86_64
             build_args: --features static-ssl
-          - os: ubuntu-latest
+          - os: dimerun-k3-ubuntu2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
             build_args: --features static-ssl --features cuda
-          - os: ubuntu-latest
+          - os: dimerun-k3-ubuntu2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda122
             container: sameli/manylinux2014_x86_64_cuda_12.2
@@ -62,7 +62,7 @@ jobs:
             ext: .exe
             build_args: --features cuda
             windows_cuda: '12.2.0'
-          - os: ubuntu-latest
+          - os: dimerun-k3-ubuntu2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-rocm57
             container: ghcr.io/cromefire/hipblas-manylinux/2014/5.7:latest
