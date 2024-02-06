@@ -60,7 +60,7 @@ export default function CreateRepositoryForm({
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel required>Name</FormLabel>
                 <FormControl>
                   <Input
                     autoCapitalize="none"
@@ -78,7 +78,7 @@ export default function CreateRepositoryForm({
             name="gitUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Git URL</FormLabel>
+                <FormLabel required>Git URL</FormLabel>
                 <FormControl>
                   <Input autoCapitalize="none" autoCorrect="off" {...field} />
                 </FormControl>

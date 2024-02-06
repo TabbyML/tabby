@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import RepositoryForm from '../../components/create-repository-form'
+import { RepositoryHeader } from '../../components/header'
 
 export const NewRepository = () => {
   const router = useRouter()
@@ -14,13 +15,9 @@ export const NewRepository = () => {
   }
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex items-center gap-4 min-h-8">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Git Repository
-        </div>
-      </div>
+    <>
+      <RepositoryHeader />
       <RepositoryForm onCreated={onCreated} />
-    </div>
+    </>
   )
 }

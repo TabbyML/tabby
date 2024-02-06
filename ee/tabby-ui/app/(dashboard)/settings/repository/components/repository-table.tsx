@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import { useClient, useQuery } from 'urql'
 
@@ -12,8 +11,7 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
 import {
   Pagination,
@@ -126,80 +124,70 @@ export default function RepositoryTable() {
 
   return (
     <div>
-      <CardHeader>
-        <CardTitle className="flex justify-between">
-          <span>Repositories</span>
-          <Link href="/settings/repository/new" className={buttonVariants()}>
-            Add Git Repo
-          </Link>
-        </CardTitle>
-      </CardHeader>
-      <div className="p-4">
-        {initialized ? (
-          <>
-            <Table className="border-b">
-              <TableHeader>
+      {initialized ? (
+        <>
+          <Table className="border-b">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[25%]">Name</TableHead>
+                <TableHead className="w-[45%]">Git URL</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {!currentPageRepos?.length && currentPage === 1 ? (
                 <TableRow>
-                  <TableHead className="w-[25%]">Name</TableHead>
-                  <TableHead className="w-[45%]">Git URL</TableHead>
-                  <TableHead></TableHead>
+                  <TableCell colSpan={3} className="h-[100px] text-center">
+                    No Data
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!currentPageRepos?.length && currentPage === 1 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="h-[100px] text-center">
-                      No Data
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  <>
-                    {currentPageRepos?.map(x => {
-                      return (
-                        <TableRow key={x.node.id}>
-                          <TableCell>{x.node.name}</TableCell>
-                          <TableCell>{x.node.gitUrl}</TableCell>
-                          <TableCell className="flex justify-end">
-                            <div className="flex gap-1">
-                              <Button
-                                size="icon"
-                                variant="hover-destructive"
-                                onClick={() => handleDeleteRepository(x.node)}
-                              >
-                                <IconTrash />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </>
-                )}
-              </TableBody>
-            </Table>
-            {showPagination && (
-              <Pagination className="my-4">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      disabled={!hasPrevPage}
-                      onClick={handleNavToPrevPage}
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext
-                      disabled={!hasNextPage}
-                      onClick={handleFetchNextPage}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
-          </>
-        ) : (
-          <ListSkeleton />
-        )}
-      </div>
+              ) : (
+                <>
+                  {currentPageRepos?.map(x => {
+                    return (
+                      <TableRow key={x.node.id}>
+                        <TableCell>{x.node.name}</TableCell>
+                        <TableCell>{x.node.gitUrl}</TableCell>
+                        <TableCell className="flex justify-end">
+                          <div className="flex gap-1">
+                            <Button
+                              size="icon"
+                              variant="hover-destructive"
+                              onClick={() => handleDeleteRepository(x.node)}
+                            >
+                              <IconTrash />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </>
+              )}
+            </TableBody>
+          </Table>
+          {showPagination && (
+            <Pagination className="my-4">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    disabled={!hasPrevPage}
+                    onClick={handleNavToPrevPage}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    disabled={!hasNextPage}
+                    onClick={handleFetchNextPage}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </>
+      ) : (
+        <ListSkeleton />
+      )}
     </div>
   )
 }

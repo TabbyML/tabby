@@ -7,5 +7,9 @@ export const metadata: Metadata = {
 }
 
 export default function IndexPage() {
-  return <NewRepository />
+  return (
+    <div className="p-6">
+      <NewRepository />
+    </div>
+  )
 }

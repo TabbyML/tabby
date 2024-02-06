@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -113,7 +114,11 @@ const linkVariants = cva(
 
 function SidebarButton({ href, children }: SidebarButtonProps) {
   const pathname = usePathname()
-  const state = pathname == href ? 'selected' : 'not-selected'
+  const isSelected = React.useMemo(() => {
+    return href === '/' ? href === pathname : pathname?.startsWith(href)
+  }, [pathname, href])
+
+  const state = isSelected ? 'selected' : 'not-selected'
   return (
     <Link className={linkVariants({ state })} href={href}>
       {children}
