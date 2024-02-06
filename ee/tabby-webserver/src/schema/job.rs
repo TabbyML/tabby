@@ -40,7 +40,8 @@ impl relay::NodeType for JobRun {
 #[async_trait]
 pub trait JobService: Send + Sync {
     async fn create_job_run(&self, name: String) -> Result<i32>;
-    async fn update_job_output(&self, id: i32, stdout: String, stderr: String) -> Result<()>;
+    async fn update_job_stdout(&self, id: i32, stdout: String) -> Result<()>;
+    async fn update_job_stderr(&self, id: i32, stderr: String) -> Result<()>;
     async fn complete_job_run(&self, id: i32, exit_code: i32) -> Result<()>;
 
     async fn list_job_runs(

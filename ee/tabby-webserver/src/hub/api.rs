@@ -34,7 +34,8 @@ pub trait Hub {
 
     async fn list_repositories() -> Vec<RepositoryConfig>;
     async fn create_job_run(name: String) -> i32;
-    async fn update_job_output(id: i32, stdout: String, stderr: String);
+    async fn update_job_stdout(id: i32, stdout: String);
+    async fn update_job_stderr(id: i32, stderr: String);
     async fn complete_job_run(id: i32, exit_code: i32);
 }
 
@@ -203,10 +204,16 @@ impl RepositoryAccess for SchedulerClient {
     async fn create_job_run(&self, name: String) -> Result<i32> {
         Ok(self.0.create_job_run(tracing_context(), name).await?)
     }
-    async fn update_job_output(&self, id: i32, stdout: String, stderr: String) -> Result<()> {
+    async fn update_job_stdout(&self, id: i32, stdout: String) -> Result<()> {
         Ok(self
             .0
-            .update_job_output(tracing_context(), id, stdout, stderr)
+            .update_job_stdout(tracing_context(), id, stdout)
+            .await?)
+    }
+    async fn update_job_stderr(&self, id: i32, stderr: String) -> Result<()> {
+        Ok(self
+            .0
+            .update_job_stderr(tracing_context(), id, stderr)
             .await?)
     }
     async fn complete_job_run(&self, id: i32, exit_code: i32) -> Result<()> {

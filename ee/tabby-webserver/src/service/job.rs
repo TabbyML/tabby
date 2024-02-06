@@ -11,8 +11,12 @@ impl JobService for DbConn {
         self.create_job_run(name).await
     }
 
-    async fn update_job_output(&self, id: i32, stdout: String, stderr: String) -> Result<()> {
+    async fn update_job_stdout(&self, id: i32, stdout: String) -> Result<()> {
         self.update_job_stdout(id, stdout).await?;
+        Ok(())
+    }
+
+    async fn update_job_stderr(&self, id: i32, stderr: String) -> Result<()> {
         self.update_job_stderr(id, stderr).await?;
         Ok(())
     }
