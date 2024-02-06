@@ -1,12 +1,12 @@
 ARG UBUNTU_VERSION=22.04
 # This needs to generally match the container host's environment.
-ARG CUDA_VERSION=11.7.1
-# Target the CUDA build image
-ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
-# Target the CUDA runtime image
-ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
+ARG ROCM_VERSION=5.7.1
+# Target the ROCM build image
+ARG BASE_ROCM_DEV_CONTAINER=rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete
+# Target the ROCM runtime image
+ARG BASE_ROCM_RUN_CONTAINER=rocm/rocm-terminal:${ROCM_VERSION}
 
-FROM ${BASE_CUDA_DEV_CONTAINER} as build
+FROM ${BASE_ROCM_DEV_CONTAINER} AS build
 
 # Rust toolchain version
 ARG RUST_TOOLCHAIN=stable
@@ -14,13 +14,13 @@ ARG RUST_TOOLCHAIN=stable
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        curl \
-        pkg-config \
-        libssl-dev \
-        protobuf-compiler \
-        git \
-        cmake \
-        && \
+    curl \
+    pkg-config \
+    libssl-dev \
+    protobuf-compiler \
+    git \
+    cmake \
+    && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -38,22 +38,19 @@ COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features cuda,prod-db --release --package tabby && \
+    cargo build --features rocm,prod-db --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/root/workspace/target \
-    cargo build --features prod-db --release --package tabby && \
-    cp target/release/tabby /opt/tabby/bin/tabby-cpu
+FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime
 
-FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
+USER root
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        git \
-        openssh-client \
-        ca-certificates \
-        && \
+    git \
+    openssh-client \
+    ca-certificates \
+    && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -65,17 +62,11 @@ RUN git config --system --add safe.directory "*"
 # https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 ARG TARGETARCH
 
-# AMD64 only:
-# Make link to libnvidia-ml.so (NVML) library
-# so that we could get GPU stats.
-RUN if [ "$TARGETARCH" = "amd64" ]; then  \
-    ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
-        /usr/lib/x86_64-linux-gnu/libnvidia-ml.so; \
-    fi
-
 COPY --from=build /opt/tabby /opt/tabby
 
 ENV PATH="$PATH:/opt/tabby/bin"
 ENV TABBY_ROOT=/data
+
+USER rocm-user
 
 ENTRYPOINT ["/opt/tabby/bin/tabby"]
