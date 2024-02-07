@@ -36,7 +36,7 @@ jobs:
         run: bash -c '! grep "juniper::ID" -r ./ee/tabby-webserver/src/service --exclude-./ee/tabby-webserver/src/service/dao.rs'
 
       - name: Only service can depend on tabby_db
-        run: bash -c '! grep "tabby_db::" -r ./ee/tabby-webserver/src --exclude-dir ./ee/tabby-webserver/src/service'
+        run: bash -c '! grep "tabby_db::" -R ./ee/tabby-webserver/src --exclude-dir ./ee/tabby-webserver/src/service'
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
