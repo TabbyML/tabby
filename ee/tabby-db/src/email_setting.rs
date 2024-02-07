@@ -32,6 +32,9 @@ impl DbConn {
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
+        from_address: Option<String>,
+        encryption: String,
+        auth_method: String,
     ) -> Result<()> {
         let mut transaction = self.pool.begin().await?;
         let smtp_password = match smtp_password {
@@ -45,12 +48,15 @@ impl DbConn {
                 .await?
             }
         };
-        query!("INSERT INTO email_setting (id, smtp_username, smtp_password, smtp_server) VALUES ($1, $2, $3, $4)
-                ON CONFLICT(id) DO UPDATE SET smtp_username = $2, smtp_password = $3, smtp_server = $4",
+        query!("INSERT INTO email_setting (id, smtp_username, smtp_password, smtp_server, from_address, encryption, auth_method) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT(id) DO UPDATE SET smtp_username = $2, smtp_password = $3, smtp_server = $4, from_address = $5, encryption = $6, auth_method = $7",
             EMAIL_CREDENTIAL_ROW_ID,
             smtp_username,
             smtp_password,
-            smtp_server).execute(&mut *transaction).await?;
+            smtp_server,
+            from_address,
+            encryption,
+            auth_method).execute(&mut *transaction).await?;
         transaction.commit().await?;
         Ok(())
     }
@@ -78,9 +84,16 @@ mod tests {
         assert_eq!(conn.read_email_setting().await.unwrap(), None);
 
         // Test insertion
-        conn.update_email_setting("user".into(), Some("pass".into()), "server".into())
-            .await
-            .unwrap();
+        conn.update_email_setting(
+            "user".into(),
+            Some("pass".into()),
+            "server".into(),
+            None,
+            "STARTTLS".into(),
+            "".into(),
+        )
+        .await
+        .unwrap();
 
         let creds = conn.read_email_setting().await.unwrap().unwrap();
         assert_eq!(creds.smtp_username, "user");
@@ -88,9 +101,17 @@ mod tests {
         assert_eq!(creds.smtp_server, "server");
 
         // Test update without password
-        conn.update_email_setting("user2".into(), None, "server2".into())
-            .await
-            .unwrap();
+
+        conn.update_email_setting(
+            "user2".into(),
+            None,
+            "server2".into(),
+            None,
+            "STARTTLS".into(),
+            "".into(),
+        )
+        .await
+        .unwrap();
 
         let creds = conn.read_email_setting().await.unwrap().unwrap();
         assert_eq!(creds.smtp_username, "user2");
