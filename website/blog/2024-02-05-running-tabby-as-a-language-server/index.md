@@ -80,6 +80,6 @@ For more examples of connecting Tabby to other editors, refer to the [Tabby Agen
 
 In the previous examples, Tabby completions are displayed in the dropdown completion list. However, this method may not be very convenient for displaying multi-line code completions. As most LSP clients do not yet support [inline completion](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocument_inlineCompletion), you may want to create a plugin for an editor that provides inline completion. To demonstrate how to communicate with Tabby via LSP, we have provided an example project [here](https://github.com/tabbyml/tabby/tree/main/clients/example-vscode-lsp).
 
-Please note that language server support is still in its early stages, and your feedback will be invaluable in making it even better. If you have any ideas or suggestions, feel free to create an issue or join our Slack community.
+Please note that language server support is still in its early stages, and your feedback will be invaluable in making it even better. If you have any ideas or suggestions, feel free to create an issue or join our [Slack community](https://links.tabbyml.com/join-slack).
 
 Happy coding with Tabby! 🐱💻
