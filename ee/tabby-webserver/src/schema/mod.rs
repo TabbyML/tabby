@@ -1,5 +1,4 @@
 pub mod auth;
-mod dao;
 pub mod email;
 pub mod job;
 pub mod repository;
@@ -21,7 +20,6 @@ use juniper_axum::{
     FromAuth,
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-use tabby_db::{DbConn, InvalidIDError};
 use tracing::{error, warn};
 use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
@@ -30,9 +28,12 @@ use self::{
     email::{EmailService, EmailSetting},
     repository::{RepositoryError, RepositoryService},
 };
-use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider},
-    repository::Repository,
+use crate::{
+    schema::{
+        auth::{JWTPayload, OAuthCredential, OAuthProvider},
+        repository::Repository,
+    },
+    service::{IntoID, IntoRowid},
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -66,9 +67,6 @@ pub enum CoreError {
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
-
-    #[error("Malformed ID input")]
-    InvalidID(#[from] InvalidIDError),
 }
 
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
@@ -305,7 +303,7 @@ impl Mutation {
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
         ctx.locator
             .auth()
-            .update_user_active(DbConn::to_rowid(&id)?, active)
+            .update_user_active(id.into_rowid()?, active)
             .await?;
         Ok(true)
     }
@@ -359,7 +357,7 @@ impl Mutation {
                 "Failed to send invitation email, please check your SMTP settings are correct: {e}"
             );
         }
-        Ok(ID::new(DbConn::to_id(invitation.id)))
+        Ok(invitation.id)
     }
 
     async fn create_repository(
@@ -371,14 +369,14 @@ impl Mutation {
             .repository()
             .create_repository(name, git_url)
             .await
-            .map(|x| ID::new(DbConn::to_id(x)))
+            .map(|x| x.into_id())
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
         Ok(ctx
             .locator
             .repository()
-            .delete_repository(DbConn::to_rowid(&id)?)
+            .delete_repository(id.into_rowid()?)
             .await?)
     }
 
@@ -391,19 +389,19 @@ impl Mutation {
         Ok(ctx
             .locator
             .repository()
-            .update_repository(DbConn::to_rowid(&id)?, name, git_url)
+            .update_repository(id.into_rowid()?, name, git_url)
             .await?)
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ID::new(DbConn::to_id(
-                    ctx.locator
-                        .auth()
-                        .delete_invitation(DbConn::to_rowid(&id)?)
-                        .await?,
-                )));
+                return Ok(ctx
+                    .locator
+                    .auth()
+                    .delete_invitation(id.into_rowid()?)
+                    .await?
+                    .into_id());
             }
         }
         Err(CoreError::Unauthorized(

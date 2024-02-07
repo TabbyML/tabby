@@ -1,4 +1,6 @@
 mod auth;
+mod cron;
+mod dao;
 mod email;
 mod job;
 mod proxy;
@@ -244,5 +246,25 @@ pub fn graphql_pagination_to_filter(
             Ok((Some(last), before, true))
         }
         _ => Ok((None, None, false)),
+    }
+}
+
+pub trait IntoRowid {
+    fn into_rowid(self) -> anyhow::Result<i32>;
+}
+
+impl IntoRowid for juniper::ID {
+    fn into_rowid(self) -> anyhow::Result<i32> {
+        DbConn::to_rowid(&self).map_err(|_| anyhow::anyhow!("Malformed ID input"))
+    }
+}
+
+pub trait IntoID {
+    fn into_id(self) -> juniper::ID;
+}
+
+impl IntoID for i32 {
+    fn into_id(self) -> juniper::ID {
+        juniper::ID::new(DbConn::to_id(self))
     }
 }

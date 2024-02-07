@@ -4,11 +4,11 @@ use tabby_db::{
     JobRunDAO, RepositoryDAO, UserDAO,
 };
 
-use super::{email::EmailSetting, repository::Repository};
 use crate::schema::{
-    auth,
-    auth::{OAuthCredential, OAuthProvider},
+    auth::{self, OAuthCredential, OAuthProvider},
+    email::EmailSetting,
     job,
+    repository::Repository,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
