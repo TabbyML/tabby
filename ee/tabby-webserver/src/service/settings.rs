@@ -26,7 +26,7 @@ impl SettingService for DbConn {
 
     async fn update_server_setting(&self, setting: ServerSetting) -> Result<()> {
         let allowed_domains = setting.security_allowed_register_domain_list.join(",");
-        let allowed_domains = (allowed_domains.len() > 0).then_some(allowed_domains);
+        let allowed_domains = (!allowed_domains.is_empty()).then_some(allowed_domains);
         self.update_server_setting(ServerSettingDAO::new(
             allowed_domains,
             setting.security_disable_client_side_telemetry,
