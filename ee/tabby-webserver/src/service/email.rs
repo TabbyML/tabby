@@ -45,7 +45,6 @@ impl EmailServiceImpl {
         username: String,
         password: String,
         server: &str,
-        // TODO: Figure out how to map String encryption method -> lettre encryption settings
         encryption: String,
         auth_method: String,
     ) -> Result<()> {
@@ -139,7 +138,6 @@ impl EmailService for EmailServiceImpl {
                 setting.auth_method.clone(),
             )
             .await?;
-        // TODO: make from address being configurable in EmailSettings.
         *self.from.write().await = setting.smtp_username.clone();
         let smtp_password = match smtp_password {
             Some(pass) => pass,
