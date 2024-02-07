@@ -4,6 +4,7 @@ mod email;
 mod job;
 mod proxy;
 mod repository;
+mod settings;
 mod worker;
 
 use std::{net::SocketAddr, num::ParseIntError, sync::Arc};
@@ -30,6 +31,7 @@ use crate::schema::{
     email::EmailService,
     job::JobService,
     repository::RepositoryService,
+    settings::SettingService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
     ServiceLocator,
 };
@@ -220,6 +222,10 @@ impl ServiceLocator for Arc<ServerContext> {
 
     fn email(&self) -> Arc<dyn EmailService> {
         self.mail_service.clone()
+    }
+
+    fn setting(&self) -> Arc<dyn SettingService> {
+        Arc::new(self.db_conn.clone())
     }
 }
 

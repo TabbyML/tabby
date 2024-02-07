@@ -2,6 +2,7 @@ pub mod auth;
 pub mod email;
 pub mod job;
 pub mod repository;
+pub mod settings;
 pub mod worker;
 
 use std::sync::Arc;
@@ -27,6 +28,7 @@ use worker::{Worker, WorkerService};
 use self::{
     email::{EmailService, EmailSetting},
     repository::{RepositoryError, RepositoryService},
+    settings::{ServerSetting, SettingService},
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
@@ -41,6 +43,7 @@ pub trait ServiceLocator: Send + Sync {
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
     fn email(&self) -> Arc<dyn EmailService>;
+    fn setting(&self) -> Arc<dyn SettingService>;
 }
 
 pub struct Context {
@@ -225,6 +228,11 @@ impl Query {
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
         let val = ctx.locator.email().get_email_setting().await?;
+        Ok(val)
+    }
+
+    async fn server_setting(ctx: &Context) -> Result<ServerSetting> {
+        let val = ctx.locator.setting().read_server_setting().await?;
         Ok(val)
     }
 
@@ -438,6 +446,23 @@ impl Mutation {
         ctx.locator
             .email()
             .update_email_setting(smtp_username, smtp_password, smtp_server)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_server_setting(
+        ctx: &Context,
+        security_allowed_register_domain_list: Vec<String>,
+        security_disable_client_side_telemetry: bool,
+        network_external_url: String,
+    ) -> Result<bool> {
+        ctx.locator
+            .setting()
+            .update_server_setting(ServerSetting {
+                security_allowed_register_domain_list,
+                security_disable_client_side_telemetry,
+                network_external_url,
+            })
             .await?;
         Ok(true)
     }
