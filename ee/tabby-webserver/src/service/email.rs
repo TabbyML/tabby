@@ -85,12 +85,13 @@ impl EmailService for EmailServiceImpl {
         smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<()> {
-        self.update_email_setting(
-            smtp_username.clone(),
-            smtp_password.clone(),
-            smtp_server.clone(),
-        )
-        .await?;
+        self.db
+            .update_email_setting(
+                smtp_username.clone(),
+                smtp_password.clone(),
+                smtp_server.clone(),
+            )
+            .await?;
         // TODO: make from address being configurable in EmailSettings.
         *self.from.write().await = smtp_username.clone();
         let smtp_password = match smtp_password {
