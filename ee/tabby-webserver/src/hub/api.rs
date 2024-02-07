@@ -201,25 +201,4 @@ impl RepositoryAccess for SchedulerClient {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
         Ok(self.0.list_repositories(Context::current()).await?)
     }
-    async fn create_job_run(&self, name: String) -> Result<i32> {
-        Ok(self.0.create_job_run(tracing_context(), name).await?)
-    }
-    async fn update_job_stdout(&self, id: i32, stdout: String) -> Result<()> {
-        Ok(self
-            .0
-            .update_job_stdout(tracing_context(), id, stdout)
-            .await?)
-    }
-    async fn update_job_stderr(&self, id: i32, stderr: String) -> Result<()> {
-        Ok(self
-            .0
-            .update_job_stderr(tracing_context(), id, stderr)
-            .await?)
-    }
-    async fn complete_job_run(&self, id: i32, exit_code: i32) -> Result<()> {
-        Ok(self
-            .0
-            .complete_job_run(tracing_context(), id, exit_code)
-            .await?)
-    }
 }

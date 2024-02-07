@@ -4354,7 +4354,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "cargo-lock",
- "chrono",
  "file-rotate",
  "ignore",
  "kdam",

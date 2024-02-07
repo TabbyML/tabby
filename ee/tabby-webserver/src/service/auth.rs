@@ -271,6 +271,11 @@ impl AuthenticationService for DbConn {
         Ok(resp)
     }
 
+    async fn delete_expired_token(&self) -> Result<()> {
+        self.delete_expired_token().await?;
+        Ok(())
+    }
+
     async fn verify_access_token(&self, access_token: &str) -> Result<VerifyTokenResponse> {
         let claims = validate_jwt(access_token)?;
         let resp = VerifyTokenResponse::new(claims);

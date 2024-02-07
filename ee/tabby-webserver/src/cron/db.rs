@@ -1,16 +1,19 @@
 //! db maintenance jobs
 
+use std::sync::Arc;
+
 use anyhow::Result;
-use tabby_db::DbConn;
 use tokio_cron_scheduler::Job;
 use tracing::error;
 
-pub async fn refresh_token_job(db_conn: DbConn) -> Result<Job> {
+use crate::schema::auth::AuthenticationService;
+
+pub async fn refresh_token_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
     // job is run every 2 hours
     let job = Job::new_async("0 0 1/2 * * * *", move |_, _| {
-        let db_conn = db_conn.clone();
+        let auth = auth.clone();
         Box::pin(async move {
-            let res = db_conn.delete_expired_token().await;
+            let res = auth.delete_expired_token().await;
             if let Err(e) = res {
                 error!("failed to delete expired token: {}", e);
             }

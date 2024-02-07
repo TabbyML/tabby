@@ -1,5 +1,4 @@
 mod auth;
-mod cron;
 mod email;
 mod job;
 mod proxy;
@@ -23,7 +22,7 @@ use tabby_common::{
 use tabby_db::DbConn;
 use tracing::{info, warn};
 
-use self::{cron::run_cron, email::new_email_service};
+use self::email::new_email_service;
 use crate::schema::{
     auth::AuthenticationService,
     email::EmailService,
@@ -47,7 +46,6 @@ struct ServerContext {
 impl ServerContext {
     pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         let db_conn = DbConn::new().await.unwrap();
-        run_cron(&db_conn).await;
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
