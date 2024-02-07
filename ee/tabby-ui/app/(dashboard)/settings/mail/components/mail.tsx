@@ -31,7 +31,7 @@ export const Mail = () => {
       <MailDeliveryHeader />
       {initialized ? (
         <div>
-          <div className="pb-4 mb-8 border-b">
+          <div className="mb-8 border-b pb-4">
             <MailForm isNew={isNew} />
           </div>
           <MailTestingForm onSendTest={onSendTest} />

@@ -127,7 +127,7 @@ export const MailForm: React.FC<MailFormProps> = ({
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
-                    className="min-w-max w-80"
+                    className="w-80 min-w-max"
                     {...field}
                   />
                 </FormControl>
@@ -146,7 +146,7 @@ export const MailForm: React.FC<MailFormProps> = ({
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
-                    className="min-w-max w-80"
+                    className="w-80 min-w-max"
                     {...field}
                   />
                 </FormControl>
@@ -162,7 +162,7 @@ export const MailForm: React.FC<MailFormProps> = ({
                 <FormLabel>Authentication Method</FormLabel>
                 <FormControl>
                   <Select {...field}>
-                    <SelectTrigger className="min-w-max w-80">
+                    <SelectTrigger className="w-80 min-w-max">
                       <SelectValue placeholder="Select a method" />
                     </SelectTrigger>
                     <SelectContent>
@@ -189,7 +189,7 @@ export const MailForm: React.FC<MailFormProps> = ({
                       autoCapitalize="none"
                       autoComplete="off"
                       autoCorrect="off"
-                      className="min-w-max w-80"
+                      className="w-80 min-w-max"
                       {...field}
                     />
                   </FormControl>
@@ -224,7 +224,7 @@ export const MailForm: React.FC<MailFormProps> = ({
                 <FormLabel>Encryption</FormLabel>
                 <FormControl>
                   <Select {...field}>
-                    <SelectTrigger className="min-w-max w-80">
+                    <SelectTrigger className="w-80 min-w-max">
                       <SelectValue placeholder="Select a method" />
                     </SelectTrigger>
                     <SelectContent>
@@ -239,7 +239,7 @@ export const MailForm: React.FC<MailFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="flex items-center gap-4 mt-2">
+          <div className="mt-2 flex items-center gap-4">
             {!isNew && (
               <AlertDialog
                 open={deleteAlertVisible}
