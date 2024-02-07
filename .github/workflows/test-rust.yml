@@ -33,7 +33,7 @@ jobs:
           submodules: recursive
 
       - name: Service shouldn't depends on juniper::ID
-        run: bash -c '! grep "juniper::ID" -r ./ee/tabby-webserver/src/service'
+        run: bash -c '! grep "juniper::ID" -r ./ee/tabby-webserver/src/service --exclude ./ee/tabby-webserver/src/service/dao.rs'
 
       - name: Only service could depends on tabby_db
         run: bash -c '! grep "tabby_db::" -r ./ee/tabby-webserver/src --exclude-dir ./ee/tabby-webserver/src/service'

@@ -94,3 +94,23 @@ impl From<EmailSettingDAO> for EmailSetting {
         }
     }
 }
+
+pub trait IntoRowid {
+    fn into_rowid(self) -> anyhow::Result<i32>;
+}
+
+impl IntoRowid for juniper::ID {
+    fn into_rowid(self) -> anyhow::Result<i32> {
+        DbConn::to_rowid(&self).map_err(|_| anyhow::anyhow!("Malformed ID input"))
+    }
+}
+
+pub trait IntoID {
+    fn into_id(self) -> juniper::ID;
+}
+
+impl IntoID for i32 {
+    fn into_id(self) -> juniper::ID {
+        juniper::ID::new(DbConn::to_id(self))
+    }
+}
