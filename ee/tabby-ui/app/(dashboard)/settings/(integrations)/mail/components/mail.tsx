@@ -35,7 +35,10 @@ export const Mail = () => {
       {initialized ? (
         <div>
           <div className="mb-8 border-b pb-4">
-            <MailForm defaultValues={data?.emailSetting} isNew={isNew} />
+            <MailForm
+              defaultValues={data?.emailSetting ?? undefined}
+              isNew={isNew}
+            />
           </div>
           <MailTestingForm onSendTest={onSendTest} />
         </div>

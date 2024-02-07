@@ -58,18 +58,20 @@ const deleteEmailSettingMutation = graphql(/* GraphQL */ `
   }
 `)
 
-interface MailFormProps {
-  isNew?: boolean
-  defaultValues?: any
-  onSuccess?: () => void
-  onDelete?: () => void
-}
-
 const formSchema = z.object({
   smtpUsername: z.string(),
   smtpPassword: z.string(),
   smtpServer: z.string()
 })
+
+type MailFormValues = z.infer<typeof formSchema>
+
+interface MailFormProps {
+  isNew?: boolean
+  defaultValues?: Partial<MailFormValues>
+  onSuccess?: () => void
+  onDelete?: () => void
+}
 
 export const MailForm: React.FC<MailFormProps> = ({
   isNew,
@@ -85,7 +87,7 @@ export const MailForm: React.FC<MailFormProps> = ({
     }
   }, [propsDefaultValues])
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<MailFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
   })
