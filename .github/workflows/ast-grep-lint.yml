@@ -4,7 +4,7 @@ on: [push]
 jobs:
   sg-lint:
     runs-on: ubuntu-latest
-    name: Run ast-grep lint
+    name: ast-grep-lint
     steps:
       - name: Checkout
         uses: actions/checkout@v4

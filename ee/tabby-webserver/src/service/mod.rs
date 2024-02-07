@@ -1,5 +1,4 @@
 mod auth;
-mod cron;
 mod dao;
 mod email;
 mod job;
