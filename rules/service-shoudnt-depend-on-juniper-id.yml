@@ -1,0 +1,10 @@
+id: service-shoudnt-depend-on-juniper-id
+message: Don't use juniper::ID in services.
+severity: error
+language: rust
+files:
+- ./ee/tabby-webserver/src/service/**
+ignores:
+- ./ee/tabby-webserver/src/service/dao.rs
+rule:
+  pattern: juniper::ID

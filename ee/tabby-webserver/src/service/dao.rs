@@ -4,11 +4,11 @@ use tabby_db::{
     JobRunDAO, RepositoryDAO, UserDAO,
 };
 
-use super::{email::EmailSetting, repository::Repository};
 use crate::schema::{
-    auth,
-    auth::{OAuthCredential, OAuthProvider},
+    auth::{self, OAuthCredential, OAuthProvider},
+    email::EmailSetting,
     job,
+    repository::Repository,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -92,5 +92,25 @@ impl From<EmailSettingDAO> for EmailSetting {
             smtp_username: value.smtp_username,
             smtp_server: value.smtp_server,
         }
+    }
+}
+
+pub trait IntoRowid {
+    fn into_rowid(self) -> anyhow::Result<i32>;
+}
+
+impl IntoRowid for juniper::ID {
+    fn into_rowid(self) -> anyhow::Result<i32> {
+        DbConn::to_rowid(&self).map_err(|_| anyhow::anyhow!("Malformed ID input"))
+    }
+}
+
+pub trait IntoID {
+    fn into_id(self) -> juniper::ID;
+}
+
+impl IntoID for i32 {
+    fn into_id(self) -> juniper::ID {
+        juniper::ID::new(DbConn::to_id(self))
     }
 }

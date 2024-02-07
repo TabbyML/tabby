@@ -1,4 +1,5 @@
 mod auth;
+mod dao;
 mod email;
 mod job;
 mod proxy;
@@ -14,6 +15,7 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
+pub use dao::{IntoID, IntoRowid};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tabby_common::{
     api::{code::CodeSearch, event::RawEventLogger},
