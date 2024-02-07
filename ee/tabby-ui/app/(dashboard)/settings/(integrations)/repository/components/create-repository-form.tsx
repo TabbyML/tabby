@@ -63,6 +63,7 @@ export default function CreateRepositoryForm({
                 <FormLabel required>Name</FormLabel>
                 <FormControl>
                   <Input
+                    placeholder="e.g. tabby"
                     autoCapitalize="none"
                     autoCorrect="off"
                     autoComplete="off"
@@ -80,7 +81,12 @@ export default function CreateRepositoryForm({
               <FormItem>
                 <FormLabel required>Git URL</FormLabel>
                 <FormControl>
-                  <Input autoCapitalize="none" autoCorrect="off" {...field} />
+                  <Input
+                    placeholder="e.g. https://github.com/tabbyML/tabby"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

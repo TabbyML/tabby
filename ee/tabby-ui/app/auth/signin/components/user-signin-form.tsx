@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
+import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { useSession, useSignIn } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
@@ -78,7 +79,7 @@ export default function UserSignInForm({
                 <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder=""
+                    placeholder={PLACEHOLDER_EMAIL_FORM}
                     type="email"
                     autoCapitalize="none"
                     autoComplete="email"

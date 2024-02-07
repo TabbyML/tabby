@@ -22,10 +22,10 @@ const OAuthCredentialDetailPage: NextPage<{ params: Params }> = ({
   })!.enum
 
   return (
-    <div className="p-6">
+    <>
       <SSOHeader />
       <OAuthCredentialDetail provider={provider} />
-    </div>
+    </>
   )
 }
 

@@ -7,9 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function MailPage() {
-  return (
-    <div className="p-6">
-      <Mail />
-    </div>
-  )
+  return <Mail />
 }

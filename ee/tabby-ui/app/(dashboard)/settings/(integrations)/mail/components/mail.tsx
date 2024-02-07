@@ -4,6 +4,7 @@ import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { useIsQueryInitialized } from '@/lib/tabby/gql'
+import { ListSkeleton } from '@/components/skeleton'
 
 import { MailDeliveryHeader } from './header'
 import { MailForm } from './mail-form'
@@ -24,7 +25,9 @@ export const Mail = () => {
 
   const isNew = !data?.emailSetting
 
-  const onSendTest = async () => {}
+  const onSendTest = async () => {
+    // todo
+  }
 
   return (
     <>
@@ -32,11 +35,13 @@ export const Mail = () => {
       {initialized ? (
         <div>
           <div className="mb-8 border-b pb-4">
-            <MailForm isNew={isNew} />
+            <MailForm defaultValues={data?.emailSetting} isNew={isNew} />
           </div>
           <MailTestingForm onSendTest={onSendTest} />
         </div>
-      ) : null}
+      ) : (
+        <ListSkeleton />
+      )}
     </>
   )
 }

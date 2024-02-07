@@ -75,17 +75,29 @@ const formSchema = z.object({
 export const MailForm: React.FC<MailFormProps> = ({
   isNew,
   onSuccess,
-  onDelete
+  onDelete,
+  defaultValues: propsDefaultValues
 }) => {
+  const defaultValues = React.useMemo(() => {
+    return {
+      method: 'PLAIN',
+      encryption: 'STARTTLS',
+      ...(propsDefaultValues || {})
+    }
+  }, [propsDefaultValues])
+
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema)
+    resolver: zodResolver(formSchema),
+    defaultValues
   })
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
 
   const updateEmailSetting = useMutation(updateEmailSettingMutation, {
     onCompleted(data) {
-      // todo
+      if (data?.updateEmailSetting) {
+        onSuccess?.()
+      }
     }
   })
 
@@ -124,6 +136,7 @@ export const MailForm: React.FC<MailFormProps> = ({
                 <FormLabel required>SMTP Server</FormLabel>
                 <FormControl>
                   <Input
+                    placeholder="smtp.gmail.com:587"
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
@@ -143,8 +156,10 @@ export const MailForm: React.FC<MailFormProps> = ({
                 <FormLabel required>From</FormLabel>
                 <FormControl>
                   <Input
+                    placeholder="from@gmail.com"
+                    type="email"
                     autoCapitalize="none"
-                    autoComplete="off"
+                    autoComplete="email"
                     autoCorrect="off"
                     className="w-80 min-w-max"
                     {...field}
@@ -161,15 +176,18 @@ export const MailForm: React.FC<MailFormProps> = ({
               <FormItem>
                 <FormLabel>Authentication Method</FormLabel>
                 <FormControl>
-                  <Select {...field}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <SelectTrigger className="w-80 min-w-max">
                       <SelectValue placeholder="Select a method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="None">None</SelectItem>
-                        <SelectItem value="PLAIN">PLAIN</SelectItem>
-                      </SelectGroup>
+                      <SelectItem value="None">None</SelectItem>
+                      <SelectItem value="PLAIN">PLAIN</SelectItem>
+                      <SelectItem value="LOGIN">LOGIN</SelectItem>
+                      <SelectItem value="CRAM-MD5">CRAM-MD5</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>
@@ -186,8 +204,10 @@ export const MailForm: React.FC<MailFormProps> = ({
                   <FormLabel required>SMTP Username</FormLabel>
                   <FormControl>
                     <Input
+                      type="email"
+                      placeholder="support@yourcompany.com"
                       autoCapitalize="none"
-                      autoComplete="off"
+                      autoComplete="email"
                       autoCorrect="off"
                       className="w-80 min-w-max"
                       {...field}
@@ -205,6 +225,7 @@ export const MailForm: React.FC<MailFormProps> = ({
                   <FormLabel required>SMTP Password</FormLabel>
                   <FormControl>
                     <Input
+                      type="password"
                       autoCapitalize="none"
                       autoComplete="off"
                       autoCorrect="off"
@@ -223,15 +244,17 @@ export const MailForm: React.FC<MailFormProps> = ({
               <FormItem>
                 <FormLabel>Encryption</FormLabel>
                 <FormControl>
-                  <Select {...field}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <SelectTrigger className="w-80 min-w-max">
-                      <SelectValue placeholder="Select a method" />
+                      <SelectValue placeholder="Select an encryption" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="None">None</SelectItem>
-                        <SelectItem value="PLAIN">PLAIN</SelectItem>
-                      </SelectGroup>
+                      <SelectItem value="None">None</SelectItem>
+                      <SelectItem value="SSL/TSL">SSL/TSL</SelectItem>
+                      <SelectItem value="STARTTLS">STARTTLS</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>

@@ -7,9 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function IndexPage() {
-  return (
-    <div className="p-6">
-      <OauthCredentialList />
-    </div>
-  )
+  return <OauthCredentialList />
 }

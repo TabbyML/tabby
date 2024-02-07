@@ -4,6 +4,7 @@ import React from 'react'
 import { toast } from 'sonner'
 import { useClient, useQuery } from 'urql'
 
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import {
   RepositoriesQueryVariables,
@@ -36,7 +37,7 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function RepositoryTable() {
   const client = useClient()
   const [{ data, error, fetching }] = useQuery({
