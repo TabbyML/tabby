@@ -1,0 +1,10 @@
+id: only-service-can-depend-tabby-db
+message: Only service can depend on tabby-db
+severity: error
+language: rust
+files:
+- ./ee/tabby-webserver/src/**
+ignores:
+- ./ee/tabby-webserver/src/service/**
+rule:
+  pattern: tabby_db
