@@ -14,7 +14,7 @@ def download_model():
 
     subprocess.run(
         [
-            "/opt/tabby/bin/tabby",
+            "/opt/tabby/bin/tabby-cpu",
             "download",
             "--model",
             MODEL_ID,
