@@ -15,7 +15,7 @@ export const GeneralFormSection: React.FC<GeneralFormSectionProps> = ({
 }) => {
   return (
     <div className={cn('lg:flex', className)} {...props}>
-      <div className="text-left lg:w-1/4">
+      <div className="text-left lg:w-1/5">
         <h1 className="text-2xl font-bold">{title}</h1>
       </div>
       <div className="flex-1 lg:px-4">
