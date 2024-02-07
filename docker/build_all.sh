@@ -42,4 +42,4 @@ build()
     fi
 }
 
-build Dockerfile ubuntu20.04-cuda11.2
+build Dockerfile ubuntu20.04-cuda12.2

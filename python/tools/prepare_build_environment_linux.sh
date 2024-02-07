@@ -20,17 +20,15 @@ if [ "$CIBW_ARCHS" == "aarch64" ]; then
 
 else
 
-    # Install CUDA 11.2, see:
-    # * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.2.2/centos7-x86_64/base/Dockerfile
-    # * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.2.2/centos7-x86_64/devel/Dockerfile
+    # Install CUDA 12.2:
     yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
     yum install --setopt=obsoletes=0 -y \
-        cuda-nvcc-11-2-11.2.152-1 \
-        cuda-cudart-devel-11-2-11.2.152-1 \
-        libcurand-devel-11-2-10.2.3.152-1 \
-        libcudnn8-devel-8.1.1.33-1.cuda11.2 \
-        libcublas-devel-11-2-11.4.1.1043-1
-    ln -s cuda-11.2 /usr/local/cuda
+        cuda-nvcc-12-2-12.2.140-1 \
+        cuda-cudart-devel-12-2-12.2.140-1 \
+        libcurand-devel-12-2-10.3.3.141-1 \
+        libcudnn8-devel-8.9.7.29-1.cuda12.2 \
+        libcublas-devel-12-2-12.2.5.6-1
+    ln -s cuda-12.2 /usr/local/cuda
 
     ONEAPI_VERSION=2023.2.0
     yum-config-manager --add-repo https://yum.repos.intel.com/oneapi

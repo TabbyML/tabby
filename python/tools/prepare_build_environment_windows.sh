@@ -3,15 +3,17 @@
 set -e
 set -x
 
-CUDA_ROOT="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.2"
-curl -L -nv -o cuda.exe https://developer.download.nvidia.com/compute/cuda/11.2.2/local_installers/cuda_11.2.2_461.33_win10.exe
-./cuda.exe -s nvcc_11.2 cudart_11.2 cublas_dev_11.2 curand_dev_11.2
+CUDA_ROOT="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.2"
+curl -L -nv -o cuda.exe https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda_12.2.2_537.13_windows.exe
+./cuda.exe -s nvcc_12.2 cudart_12.2 cublas_dev_12.2 curand_dev_12.2
 rm cuda.exe
 
-curl -L -nv -o cudnn.zip https://developer.download.nvidia.com/compute/redist/cudnn/v8.1.1/cudnn-11.2-windows-x64-v8.1.1.33.zip
-unzip cudnn.zip && rm cudnn.zip
-cp -r cuda/* "$CUDA_ROOT"
-rm -r cuda/
+CUDNN_ROOT="C:/Program Files/NVIDIA/CUDNN/v8.8"
+curl -L -nv -o cudnn.exe https://developer.download.nvidia.com/compute/redist/cudnn/v8.8.0/local_installers/12.0/cudnn_8.8.0.121_windows.exe
+./cudnn.exe -s
+sleep 10
+cp -r "$CUDNN_ROOT"/* "$CUDA_ROOT"
+rm cudnn.exe
 
 # See https://github.com/oneapi-src/oneapi-ci for installer URLs
 curl -L -nv -o webimage.exe https://registrationcenter-download.intel.com/akdlm/irc_nas/19078/w_BaseKit_p_2023.0.0.25940_offline.exe
