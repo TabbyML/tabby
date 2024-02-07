@@ -65,13 +65,18 @@ impl DbConn {
         Ok(setting)
     }
 
-    pub async fn update_server_setting(&self, setting: ServerSettingDAO) -> Result<()> {
+    pub async fn update_server_setting(
+        &self,
+        security_allowed_register_domain_list: Option<String>,
+        security_disable_client_side_telemetry: bool,
+        network_external_url: String,
+    ) -> Result<()> {
         query!("INSERT INTO server_setting (id, security_allowed_register_domain_list, security_disable_client_side_telemetry, network_external_url) VALUES ($1, $2, $3, $4)
                 ON CONFLICT(id) DO UPDATE SET security_allowed_register_domain_list = $2, security_disable_client_side_telemetry = $3, network_external_url = $3",
             SERVER_SETTING_ROW_ID,
-            setting.security_allowed_register_domain_list,
-            setting.security_disable_client_side_telemetry,
-            setting.network_external_url,
+            security_allowed_register_domain_list,
+            security_disable_client_side_telemetry,
+            network_external_url,
         ).execute(&self.pool).await?;
         Ok(())
     }
