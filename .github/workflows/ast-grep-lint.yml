@@ -1,3 +1,4 @@
+name: ast-grep lint
 on: [push]
 
 jobs:
