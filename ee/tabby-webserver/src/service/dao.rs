@@ -92,8 +92,13 @@ impl From<RepositoryDAO> for Repository {
 impl From<EmailSettingDAO> for EmailSetting {
     fn from(value: EmailSettingDAO) -> Self {
         EmailSetting {
+            from_address: value
+                .from_address
+                .unwrap_or_else(|| value.smtp_username.clone()),
             smtp_username: value.smtp_username,
             smtp_server: value.smtp_server,
+            encryption: value.encryption,
+            auth_method: value.auth_method,
         }
     }
 }

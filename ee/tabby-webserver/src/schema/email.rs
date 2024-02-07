@@ -1,11 +1,16 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use juniper::GraphQLObject;
+use validator::Validate;
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Validate)]
 pub struct EmailSetting {
     pub smtp_username: String,
+    #[validate(url)]
     pub smtp_server: String,
+    pub from_address: String,
+    pub encryption: String,
+    pub auth_method: String,
 }
 
 #[async_trait]

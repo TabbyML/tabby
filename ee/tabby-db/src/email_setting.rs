@@ -32,7 +32,7 @@ impl DbConn {
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
-        from_address: Option<String>,
+        from_address: String,
         encryption: String,
         auth_method: String,
     ) -> Result<()> {
@@ -88,7 +88,7 @@ mod tests {
             "user".into(),
             Some("pass".into()),
             "server".into(),
-            None,
+            "user".into(),
             "STARTTLS".into(),
             "".into(),
         )
@@ -106,7 +106,7 @@ mod tests {
             "user2".into(),
             None,
             "server2".into(),
-            None,
+            "user2".into(),
             "STARTTLS".into(),
             "".into(),
         )

@@ -10,6 +10,7 @@ use lettre::{
 };
 use tabby_db::DbConn;
 use tokio::sync::RwLock;
+use validator::Validate;
 
 use crate::schema::email::{EmailService, EmailSetting};
 
@@ -119,18 +120,27 @@ impl EmailService for EmailServiceImpl {
         encryption: String,
         auth_method: String,
     ) -> Result<()> {
+        let setting = EmailSetting {
+            from_address: from_address.unwrap_or_else(|| smtp_username.clone()),
+            smtp_username,
+            smtp_server,
+            encryption,
+            auth_method,
+        };
+        setting.validate()?;
+
         self.db
             .update_email_setting(
-                smtp_username.clone(),
+                setting.smtp_username.clone(),
                 smtp_password.clone(),
-                smtp_server.clone(),
-                from_address.clone(),
-                encryption.clone(),
-                auth_method.clone(),
+                setting.smtp_server.clone(),
+                setting.from_address.clone(),
+                setting.encryption.clone(),
+                setting.auth_method.clone(),
             )
             .await?;
         // TODO: make from address being configurable in EmailSettings.
-        *self.from.write().await = smtp_username.clone();
+        *self.from.write().await = setting.smtp_username.clone();
         let smtp_password = match smtp_password {
             Some(pass) => pass,
             None => {
@@ -143,11 +153,11 @@ impl EmailService for EmailServiceImpl {
         };
         // When the SMTP credentials are updated, reinitialize the SMTP server connection
         self.reset_smtp_connection(
-            smtp_username,
-            smtp_password,
-            &smtp_server,
-            encryption,
-            auth_method,
+            setting.smtp_username,
+            smtp_password.clone(),
+            &setting.smtp_server,
+            setting.encryption,
+            setting.auth_method,
         )
         .await?;
         Ok(())
