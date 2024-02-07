@@ -2,12 +2,12 @@
 
 import React from 'react'
 
+import { Separator } from '@/components/ui/separator'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { GeneralFormSection } from './form-section'
 import { GeneralNetworkForm } from './network-form'
 import { GeneralSecurityForm } from './security-form'
-import { Separator } from '@/components/ui/separator'
 
 export default function General() {
   // todo usequery
@@ -30,7 +30,7 @@ export default function General() {
         {/* todo pass defualtValues from useQuery */}
         <GeneralNetworkForm />
       </GeneralFormSection>
-      <Separator className='mb-8' />
+      <Separator className="mb-8" />
       <GeneralFormSection title="Security">
         {/* todo pass defualtValues from useQuery */}
         <GeneralSecurityForm />
