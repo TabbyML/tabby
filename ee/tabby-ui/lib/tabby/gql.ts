@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { authExchange } from '@urql/exchange-auth'
 import { cacheExchange } from '@urql/exchange-graphcache'
@@ -86,6 +87,26 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
       }
     }
   }
+}
+
+function useIsQueryInitialized({
+  data,
+  error
+}: {
+  data?: any
+  error?: CombinedError
+}) {
+  const [initialized, setInitialized] = useState(false)
+
+  useEffect(() => {
+    if (initialized) return
+
+    if (!isNil(data) || !isNil(error)) {
+      setInitialized(true)
+    }
+  }, [data, error])
+
+  return [initialized, setInitialized]
 }
 
 const isTokenExpired = (exp: number) => {
@@ -258,4 +279,4 @@ export type {
   QueryVariables,
   QueryResponseData
 }
-export { useMutation, client }
+export { client, useMutation, useIsQueryInitialized }

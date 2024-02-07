@@ -1,9 +1,13 @@
 'use client'
 
-import { graphql } from '@/lib/gql/generates'
 import { useQuery } from 'urql'
-import { MailForm } from './mail-form'
 
+import { graphql } from '@/lib/gql/generates'
+import { useIsQueryInitialized } from '@/lib/tabby/gql'
+
+import { MailDeliveryHeader } from './header'
+import { MailForm } from './mail-form'
+import MailTestingForm from './mail-testing-form'
 
 const emailSetting = graphql(/* GraphQL */ `
   query emailSetting {
@@ -15,13 +19,24 @@ const emailSetting = graphql(/* GraphQL */ `
 `)
 
 export const Mail = () => {
+  const [{ data, error }] = useQuery({ query: emailSetting })
+  const [initialized] = useIsQueryInitialized({ data, error })
 
-  const [{ data, fetching }] = useQuery({ query: emailSetting })
+  const isNew = !data?.emailSetting
 
+  const onSendTest = async () => {}
 
   return (
-    <div>
-      <MailForm />
-    </div>
+    <>
+      <MailDeliveryHeader />
+      {initialized ? (
+        <div>
+          <div className="pb-4 mb-8 border-b">
+            <MailForm isNew={isNew} />
+          </div>
+          <MailTestingForm onSendTest={onSendTest} />
+        </div>
+      ) : null}
+    </>
   )
 }

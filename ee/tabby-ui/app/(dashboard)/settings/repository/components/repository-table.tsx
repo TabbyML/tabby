@@ -9,7 +9,7 @@ import {
   RepositoriesQueryVariables,
   RepositoryEdge
 } from '@/lib/gql/generates/graphql'
-import { useMutation } from '@/lib/tabby/gql'
+import { useIsQueryInitialized, useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
@@ -39,11 +39,12 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
 const PAGE_SIZE = 20
 export default function RepositoryTable() {
   const client = useClient()
-  const [initialized, setInitialized] = React.useState(false)
   const [{ data, error, fetching }] = useQuery({
     query: listRepositories,
     variables: { first: PAGE_SIZE }
   })
+  const [initialized] = useIsQueryInitialized({ data, error })
+
   const [currentPage, setCurrentPage] = React.useState(1)
   const edges = data?.repositories?.edges
   const pageInfo = data?.repositories?.pageInfo
@@ -111,13 +112,6 @@ export default function RepositoryTable() {
       setCurrentPage(pageNum)
     }
   }, [pageNum, currentPage])
-
-  React.useEffect(() => {
-    if (initialized) return
-    if (data || error) {
-      setInitialized(true)
-    }
-  }, [data, error])
 
   return (
     <div>
