@@ -136,18 +136,6 @@ impl Default for ServerConfig {
 #[async_trait]
 pub trait RepositoryAccess: Send + Sync {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>>;
-    async fn create_job_run(&self, _name: String) -> Result<i32> {
-        Ok(0)
-    }
-    async fn update_job_stdout(&self, _id: i32, _stdout: String) -> Result<()> {
-        Ok(())
-    }
-    async fn update_job_stderr(&self, _id: i32, _stderr: String) -> Result<()> {
-        Ok(())
-    }
-    async fn complete_job_run(&self, _id: i32, _exit_code: i32) -> Result<()> {
-        Ok(())
-    }
 }
 
 pub struct ConfigRepositoryAccess;

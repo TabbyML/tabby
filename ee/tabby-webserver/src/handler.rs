@@ -1,4 +1,4 @@
-use std::{process::Stdio, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     extract::State,
@@ -14,7 +14,7 @@ use tabby_common::{
 };
 
 use crate::{
-    hub, oauth,
+    cron, hub, oauth,
     repositories::{self, RepositoryCache},
     schema::{create_schema, Schema, ServiceLocator},
     service::create_service_locator,
@@ -29,11 +29,14 @@ pub async fn attach_webserver(
     config: &Config,
     local_port: u16,
 ) -> (Router, Router) {
+    let ctx = create_service_locator(logger, code).await;
+    cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
+
     let repository_cache = Arc::new(RepositoryCache::new_initialized(
         config.repositories.clone(),
     ));
     repository_cache.start_reload_job().await;
-    let ctx = create_service_locator(logger, code).await;
+
     let schema = Arc::new(create_schema());
     let rs = Arc::new(repository_cache);
 
@@ -59,17 +62,6 @@ pub async fn attach_webserver(
         .route("/graphiql", routing::get(graphiql("/graphql", None)))
         .fallback(ui::handler);
 
-    tokio::spawn(async move {
-        loop {
-            // Give some time for server being ready.
-            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-            start_scheduler_job(
-                local_port,
-                ctx.worker().read_registration_token().await.unwrap(),
-            )
-            .await;
-        }
-    });
     (api, ui)
 }
 
@@ -79,21 +71,4 @@ async fn distributed_tabby_layer(
     next: Next<Body>,
 ) -> axum::response::Response {
     ws.worker().dispatch_request(request, next).await
-}
-
-async fn start_scheduler_job(local_port: u16, registeration_token: String) {
-    let exe = std::env::current_exe().unwrap();
-    let mut child = tokio::process::Command::new(exe)
-        .arg("scheduler")
-        .arg("--url")
-        .arg(format!("localhost:{local_port}"))
-        .arg("--token")
-        .arg(registeration_token)
-        .stdin(Stdio::null())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .kill_on_drop(true)
-        .spawn()
-        .unwrap();
-    let _ = child.wait().await;
 }

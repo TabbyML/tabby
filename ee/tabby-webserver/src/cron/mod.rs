@@ -1,8 +1,12 @@
 mod db;
+mod scheduler;
 
-use tabby_db::DbConn;
+use std::sync::Arc;
+
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::error;
+
+use crate::schema::{auth::AuthenticationService, job::JobService, worker::WorkerService};
 
 async fn new_job_scheduler(jobs: Vec<Job>) -> anyhow::Result<JobScheduler> {
     let scheduler = JobScheduler::new().await?;
@@ -13,15 +17,25 @@ async fn new_job_scheduler(jobs: Vec<Job>) -> anyhow::Result<JobScheduler> {
     Ok(scheduler)
 }
 
-pub async fn run_cron(db_conn: &DbConn) {
-    let db_conn = db_conn.clone();
+pub async fn run_cron(
+    auth: Arc<dyn AuthenticationService>,
+    job: Arc<dyn JobService>,
+    worker: Arc<dyn WorkerService>,
+    local_port: u16,
+) {
     let mut jobs = vec![];
 
-    let Ok(job1) = db::refresh_token_job(db_conn.clone()).await else {
+    let Ok(job1) = db::refresh_token_job(auth).await else {
         error!("failed to create db job");
         return;
     };
     jobs.push(job1);
+
+    let Ok(job2) = scheduler::scheduler_job(job, worker, local_port).await else {
+        error!("failed to create scheduler job");
+        return;
+    };
+    jobs.push(job2);
 
     if new_job_scheduler(jobs).await.is_err() {
         error!("failed to start job scheduler");
