@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use juniper::GraphQLObject;
-use validator::{validate_url, Validate, ValidationError};
+use validator::{Validate, ValidationError};
 
 #[async_trait]
 pub trait SettingService: Send + Sync {
@@ -26,9 +26,30 @@ pub struct ServerSettingValidation<'a> {
 
 fn validate_urls(urls: &Vec<&str>) -> Result<(), ValidationError> {
     for url in urls {
-        if !validate_url(*url) {
+        if !validate_domain(*url) {
             return Err(ValidationError::new("invalid_url"));
         }
     }
     Ok(())
+}
+
+fn validate_domain(s: &str) -> bool {
+    let Some(dot) = s.find('.') else { return false };
+    let (site_name, tld) = s.split_at(dot);
+    if !(0..=63).contains(&site_name.len())
+        || site_name.starts_with("-")
+        || site_name.ends_with("-")
+    {
+        return false;
+    }
+    let valid_site = site_name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-');
+    let alphabetic_domains = tld
+        .split('.')
+        .flat_map(|s| s.chars())
+        .all(|c| c.is_ascii_alphabetic());
+    let domains_length = tld.split('.').all(|d| d.len() >= 2);
+
+    valid_site && alphabetic_domains && domains_length
 }
