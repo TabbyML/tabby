@@ -96,6 +96,7 @@ function useIsQueryInitialized({
   data?: any
   error?: CombinedError
 }) {
+  // todo urql do cache data, considering passing default `initialized` with data & stale
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
