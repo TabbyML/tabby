@@ -5,7 +5,7 @@ authors: [icycodes]
 tags: [editor integration]
 ---
 
-Excited to share that [Tabby Agent](https://github.com/tabbyml/tabby/tree/main/clients/tabby-agent/) now supports running as a [language server](https://microsoft.github.io/language-server-protocol/) 🎉. This new feature provides a uniform protocol to easily integrate Tabby into different text editors. Let's dive deeper together to unfold the stories behind!
+Excited to share that [Tabby Agent](https://github.com/tabbyml/tabby/tree/main/clients/tabby-agent/) now available on [npm](https://www.npmjs.com/package/tabby-agent) and supports running as a [language server](https://microsoft.github.io/language-server-protocol/) 🎉. This new feature provides a uniform protocol to easily integrate Tabby into different text editors. Let's dive deeper together to unfold the stories behind!
 
 ## What is Tabby Agent
 
@@ -42,6 +42,15 @@ To run Tabby as a language server, follow these steps:
     ```
     Follow the instructions displayed in the console. Once the installation is complete, the Tabby agent will start listening for requests on `StdIO`. If there are no error messages, you can assume that the Tabby Agent script is running correctly. You can stop it by pressing `Ctrl+C`.
     ![npx-run-tabby-agent](./npx-run-tabby-agent.gif)
+
+    Alternatively, you can install `tabby-agent` as a global package and run it by using the following command:
+    ```bash
+    # Install tabby-agent as a global package
+    npm install --global tabby-agent
+    # Run the agent as a language server
+    tabby-agent --lsp --stdio
+    # Press `Ctrl+C` to stop the agent
+    ```
 4. You can configure the agent's settings by editing the config file located at `~/.tabby-client/agent/config.toml`. If your Tabby server uses a different port or requires authentication, modify these settings accordingly:
     ```toml
     [server]
