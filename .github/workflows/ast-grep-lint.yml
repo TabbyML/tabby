@@ -10,4 +10,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: ast-grep lint step
-        uses: ast-grep-gh-action/action@latest
+        uses: ast-grep/action@v1.4
