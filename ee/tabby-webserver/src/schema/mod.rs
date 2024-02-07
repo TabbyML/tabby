@@ -452,6 +452,9 @@ impl Mutation {
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
+        from_address: Option<String>,
+        encryption: String,
+        auth_method: String,
     ) -> Result<bool> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(
@@ -460,7 +463,14 @@ impl Mutation {
         };
         ctx.locator
             .email()
-            .update_email_setting(smtp_username, smtp_password, smtp_server)
+            .update_email_setting(
+                smtp_username,
+                smtp_password,
+                smtp_server,
+                from_address,
+                encryption,
+                auth_method,
+            )
             .await?;
         Ok(true)
     }

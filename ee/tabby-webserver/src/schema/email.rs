@@ -16,6 +16,9 @@ pub trait EmailService: Send + Sync {
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
+        from_address: Option<String>,
+        encryption: String,
+        auth_method: String,
     ) -> Result<()>;
     async fn delete_email_setting(&self) -> Result<()>;
 
