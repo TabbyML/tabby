@@ -1,28 +1,29 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use juniper::ID;
 use tabby_db::DbConn;
 
-use super::graphql_pagination_to_filter;
+use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::job::{JobRun, JobService};
 
 #[async_trait]
 impl JobService for DbConn {
-    async fn create_job_run(&self, name: String) -> Result<i32> {
-        self.create_job_run(name).await
+    async fn create_job_run(&self, name: String) -> Result<ID> {
+        self.create_job_run(name).await.map(|x| x.as_id())
     }
 
-    async fn update_job_stdout(&self, id: i32, stdout: String) -> Result<()> {
-        self.update_job_stdout(id, stdout).await?;
+    async fn update_job_stdout(&self, id: &ID, stdout: String) -> Result<()> {
+        self.update_job_stdout(id.as_rowid()?, stdout).await?;
         Ok(())
     }
 
-    async fn update_job_stderr(&self, id: i32, stderr: String) -> Result<()> {
-        self.update_job_stderr(id, stderr).await?;
+    async fn update_job_stderr(&self, id: &ID, stderr: String) -> Result<()> {
+        self.update_job_stderr(id.as_rowid()?, stderr).await?;
         Ok(())
     }
 
-    async fn complete_job_run(&self, id: i32, exit_code: i32) -> Result<()> {
-        self.update_job_status(id, exit_code).await?;
+    async fn complete_job_run(&self, id: &ID, exit_code: i32) -> Result<()> {
+        self.update_job_status(id.as_rowid()?, exit_code).await?;
         Ok(())
     }
 
@@ -52,13 +53,13 @@ mod tests {
         let svc: Box<dyn JobService> = Box::new(DbConn::new_in_memory().await.unwrap());
 
         let id = svc.create_job_run("test-job".to_owned()).await.unwrap();
-        svc.update_job_stdout(id, "stdout".to_owned())
+        svc.update_job_stdout(&id, "stdout".to_owned())
             .await
             .unwrap();
-        svc.update_job_stderr(id, "stderr".to_owned())
+        svc.update_job_stderr(&id, "stderr".to_owned())
             .await
             .unwrap();
-        svc.complete_job_run(id, 0).await.unwrap();
+        svc.complete_job_run(&id, 0).await.unwrap();
 
         let job = svc.list_job_runs(None, None, None, None).await.unwrap();
         let job = job.first().unwrap();

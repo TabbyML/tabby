@@ -7,10 +7,11 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
+use juniper::ID;
 use tabby_db::DbConn;
 use validator::{Validate, ValidationError};
 
-use super::graphql_pagination_to_filter;
+use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
     oauth,
     schema::auth::{
@@ -301,8 +302,8 @@ impl AuthenticationService for DbConn {
         Ok(invitation.into())
     }
 
-    async fn delete_invitation(&self, id: i32) -> Result<i32> {
-        Ok(self.delete_invitation(id).await?)
+    async fn delete_invitation(&self, id: &ID) -> Result<ID> {
+        Ok(self.delete_invitation(id.as_rowid()?).await?.as_id())
     }
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
@@ -419,8 +420,8 @@ impl AuthenticationService for DbConn {
         }
     }
 
-    async fn update_user_active(&self, id: i32, active: bool) -> Result<()> {
-        self.update_user_active(id, active).await
+    async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
+        self.update_user_active(id.as_rowid()?, active).await
     }
 }
 

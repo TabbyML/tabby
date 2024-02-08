@@ -4,7 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
-use juniper::{FieldError, GraphQLEnum, GraphQLObject, IntoFieldError, ScalarValue};
+use juniper::{FieldError, GraphQLEnum, GraphQLObject, IntoFieldError, ScalarValue, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -360,7 +360,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
-    async fn delete_invitation(&self, id: i32) -> Result<i32>;
+    async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
 
@@ -400,7 +400,7 @@ pub trait AuthenticationService: Send + Sync {
     ) -> Result<()>;
 
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
-    async fn update_user_active(&self, id: i32, active: bool) -> Result<()>;
+    async fn update_user_active(&self, id: &ID, active: bool) -> Result<()>;
 }
 
 #[cfg(test)]

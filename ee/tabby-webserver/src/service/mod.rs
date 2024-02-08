@@ -15,7 +15,7 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-pub use dao::{AsID, AsRowid};
+pub(in crate::service) use dao::{AsID, AsRowid};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use tabby_common::{
     api::{code::CodeSearch, event::RawEventLogger},

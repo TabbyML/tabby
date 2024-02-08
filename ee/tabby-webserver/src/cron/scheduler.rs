@@ -26,10 +26,7 @@ pub async fn scheduler_job(
 
             info!("Running scheduler job...");
             let exe = std::env::current_exe().unwrap();
-            let job_id = job
-                .create_job_run("scheduler".to_owned())
-                .await
-                .unwrap_or_default();
+            let job_id = job.create_job_run("scheduler".to_owned()).await.unwrap();
 
             let mut child = tokio::process::Command::new(exe)
                 .arg("scheduler")
@@ -46,13 +43,14 @@ pub async fn scheduler_job(
             {
                 // Pipe stdout
                 let job = job.clone();
+                let job_id = job_id.clone();
                 let stdout = child.stdout.take().unwrap();
                 tokio::spawn(async move {
                     let stdout = tokio::io::BufReader::new(stdout);
                     let mut stdout = stdout.lines();
                     while let Ok(Some(line)) = stdout.next_line().await {
                         println!("{line}");
-                        let _ = job.update_job_stdout(job_id, line + "\n").await;
+                        let _ = job.update_job_stdout(&job_id, line + "\n").await;
                     }
                 });
             }
@@ -61,19 +59,20 @@ pub async fn scheduler_job(
                 // Pipe stderr
                 let stderr = child.stderr.take().unwrap();
                 let job = job.clone();
+                let job_id = job_id.clone();
                 tokio::spawn(async move {
                     let stderr = tokio::io::BufReader::new(stderr);
                     let mut stdout = stderr.lines();
                     while let Ok(Some(line)) = stdout.next_line().await {
                         eprintln!("{line}");
-                        let _ = job.update_job_stderr(job_id, line + "\n").await;
+                        let _ = job.update_job_stderr(&job_id, line + "\n").await;
                     }
                 });
             }
             if let Some(exit_code) = child.wait().await.ok().and_then(|s| s.code()) {
-                let _ = job.complete_job_run(job_id, exit_code).await;
+                let _ = job.complete_job_run(&job_id, exit_code).await;
             } else {
-                let _ = job.complete_job_run(job_id, -1).await;
+                let _ = job.complete_job_run(&job_id, -1).await;
             }
 
             if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {
