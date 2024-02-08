@@ -4,9 +4,12 @@ import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isEmpty } from 'lodash-es'
 import { useForm } from 'react-hook-form'
-import { graphql } from '@/lib/gql/generates'
+import { toast } from 'sonner'
+import { useQuery } from 'urql'
 import * as z from 'zod'
 
+import { graphql } from '@/lib/gql/generates'
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -18,9 +21,6 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { useMutation } from '@/lib/tabby/gql'
-import { useQuery } from 'urql'
-import { toast } from 'sonner'
 
 const updateNetworkSettingMutation = graphql(/* GraphQL */ `
   mutation updateNetworkSettingMutation($input: NetworkSettingInput!) {
@@ -51,16 +51,15 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
   onSuccess,
   defaultValues: propsDefaultValues
 }) => {
-
   const defaultValues = React.useMemo(() => {
     return {
-      ...(propsDefaultValues || {}),
+      ...(propsDefaultValues || {})
     }
   }, [propsDefaultValues])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues,
+    defaultValues
   })
 
   const isDirty = !isEmpty(form.formState.dirtyFields)
@@ -73,7 +72,7 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
         form.reset(form.getValues())
       }
     }
-  });
+  })
 
   const onSubmit = async () => {
     await updateNetworkSetting({
@@ -126,7 +125,11 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 export const GeneralNetworkForm = () => {
   const [{ data: data }] = useQuery({ query: networkSetting })
   const onSuccess = () => {
-    toast.success("Network configuration is updated");
+    toast.success('Network configuration is updated')
   }
-  return data && <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
+  return (
+    data && (
+      <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
+    )
+  )
 }

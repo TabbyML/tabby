@@ -4,8 +4,12 @@ import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { compact, isEmpty } from 'lodash-es'
 import { useFieldArray, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { useQuery } from 'urql'
 import * as z from 'zod'
 
+import { graphql } from '@/lib/gql/generates'
+import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -20,10 +24,6 @@ import {
 } from '@/components/ui/form'
 import { IconTrash } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
-import { graphql } from '@/lib/gql/generates'
-import { toast } from 'sonner'
-import { useQuery } from 'urql'
-import { useMutation } from '@/lib/tabby/gql'
 
 const updateSecuritySettingMutation = graphql(/* GraphQL */ `
   mutation updateSecuritySetting($input: SecuritySettingInput!) {
@@ -56,7 +56,7 @@ const formSchema = z.object({
 type SecurityFormValues = z.infer<typeof formSchema>
 
 interface SecurityFormProps {
-  defaultValues?: SecurityFormValues,
+  defaultValues?: SecurityFormValues
   onSuccess?: () => void
 }
 
@@ -66,7 +66,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
 }) => {
   const defaultValues = React.useMemo(() => {
     return {
-      ...(propsDefaultValues || {}),
+      ...(propsDefaultValues || {})
     }
   }, [propsDefaultValues])
 
@@ -107,15 +107,20 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
         form.reset(form.getValues())
       }
     }
-  });
+  })
 
-  const onSubmit = async ({ allowedRegisterDomainList, ...values }: SecurityFormValues) => {
+  const onSubmit = async ({
+    allowedRegisterDomainList,
+    ...values
+  }: SecurityFormValues) => {
     await updateSecuritySetting({
       input: {
-        allowedRegisterDomainList: buildListValuesFromField(allowedRegisterDomainList),
-        ...values,
+        allowedRegisterDomainList: buildListValuesFromField(
+          allowedRegisterDomainList
+        ),
+        ...values
       }
-    });
+    })
   }
 
   return (
@@ -207,9 +212,9 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
 }
 
 function buildListFieldFromValues(list: string[] | undefined) {
-  const domains = list?.map(item => ({ value: item }));
+  const domains = list?.map(item => ({ value: item }))
   if (!domains || domains.length === 0) {
-    return [{ value: "" }]
+    return [{ value: '' }]
   } else {
     return domains
   }
@@ -217,17 +222,21 @@ function buildListFieldFromValues(list: string[] | undefined) {
 
 function buildListValuesFromField(fieldListValue?: Array<{ value: string }>) {
   const list = compact(fieldListValue?.map(item => item.value))
-  return list;
+  return list
 }
 
 export const GeneralSecurityForm = () => {
   const [{ data }] = useQuery({ query: securitySetting })
   const onSuccess = () => {
-    toast.success("Network configuration is updated");
+    toast.success('Network configuration is updated')
   }
   const defaultValues = data && {
     ...data.securitySetting,
-    allowedRegisterDomainList: buildListFieldFromValues(data.securitySetting.allowedRegisterDomainList),
-  };
-  return data && <SecurityForm defaultValues={defaultValues} onSuccess={onSuccess} />
+    allowedRegisterDomainList: buildListFieldFromValues(
+      data.securitySetting.allowedRegisterDomainList
+    )
+  }
+  return (
+    data && <SecurityForm defaultValues={defaultValues} onSuccess={onSuccess} />
+  )
 }
