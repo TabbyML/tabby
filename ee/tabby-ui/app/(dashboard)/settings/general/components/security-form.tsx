@@ -20,12 +20,31 @@ import {
 } from '@/components/ui/form'
 import { IconTrash } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
+import { graphql } from '@/lib/gql/generates'
+import { toast } from 'sonner'
+import { useQuery } from 'urql'
+import { useMutation } from '@/lib/tabby/gql'
+
+const updateSecuritySettingMutation = graphql(/* GraphQL */ `
+  mutation updateSecuritySetting($input: SecuritySettingInput!) {
+    updateSecuritySetting(input: $input)
+  }
+`)
+
+export const securitySetting = graphql(/* GraphQL */ `
+  query SecuritySetting {
+    securitySetting {
+      allowedRegisterDomainList
+      disableClientSideTelemetry
+    }
+  }
+`)
 
 const formSchema = z.object({
-  disableTelemetry: z.boolean(),
+  disableClientSideTelemetry: z.boolean(),
   // https://github.com/shadcn-ui/ui/issues/384
   // https://github.com/shadcn-ui/ui/blob/main/apps/www/app/examples/forms/profile-form.tsx
-  domainList: z
+  allowedRegisterDomainList: z
     .array(
       z.object({
         value: z.string()
@@ -37,24 +56,17 @@ const formSchema = z.object({
 type SecurityFormValues = z.infer<typeof formSchema>
 
 interface SecurityFormProps {
-  defaultValues?: Omit<Partial<SecurityFormValues>, 'domainList'> & {
-    domainList?: string[]
-  }
+  defaultValues?: SecurityFormValues,
   onSuccess?: () => void
 }
 
-export const GeneralSecurityForm: React.FC<SecurityFormProps> = ({
+const SecurityForm: React.FC<SecurityFormProps> = ({
   onSuccess,
   defaultValues: propsDefaultValues
 }) => {
   const defaultValues = React.useMemo(() => {
-    const _defaultValues: SecurityFormProps['defaultValues'] =
-      propsDefaultValues ?? {}
-    const { domainList, ...values } = _defaultValues
     return {
-      disableTelemetry: false,
-      ...values,
-      domainList: buildListFieldFromValues(domainList) ?? [{ value: '' }]
+      ...(propsDefaultValues || {}),
     }
   }, [propsDefaultValues])
 
@@ -65,7 +77,7 @@ export const GeneralSecurityForm: React.FC<SecurityFormProps> = ({
 
   const { fields, append, remove, update } = useFieldArray({
     control: form.control,
-    name: 'domainList'
+    name: 'allowedRegisterDomainList'
   })
 
   const isDirty = !isEmpty(form.formState.dirtyFields)
@@ -87,13 +99,23 @@ export const GeneralSecurityForm: React.FC<SecurityFormProps> = ({
     }
   }
 
-  const onSubmit = ({ domainList, ...values }: SecurityFormValues) => {
-    const formattedValues = {
-      // format domainList before submit, Array<{ value: string }> => Array<string>
-      domainList: buildListValuesFromField(domainList),
-      ...values
+  const updateSecuritySetting = useMutation(updateSecuritySettingMutation, {
+    form,
+    onCompleted(values) {
+      if (values?.updateSecuritySetting) {
+        onSuccess?.()
+        form.reset(form.getValues())
+      }
     }
-    // todo submit values
+  });
+
+  const onSubmit = async ({ allowedRegisterDomainList, ...values }: SecurityFormValues) => {
+    await updateSecuritySetting({
+      input: {
+        allowedRegisterDomainList: buildListValuesFromField(allowedRegisterDomainList),
+        ...values,
+      }
+    });
   }
 
   return (
@@ -105,7 +127,7 @@ export const GeneralSecurityForm: React.FC<SecurityFormProps> = ({
         >
           <FormField
             control={form.control}
-            name="disableTelemetry"
+            name="disableClientSideTelemetry"
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
@@ -131,7 +153,7 @@ export const GeneralSecurityForm: React.FC<SecurityFormProps> = ({
               <FormField
                 control={form.control}
                 key={field.id}
-                name={`domainList.${index}.value`}
+                name={`allowedRegisterDomainList.${index}.value`}
                 render={({ field: itemField }) => (
                   <FormItem>
                     <FormLabel className={cn(index !== 0 && 'sr-only')}>
@@ -185,10 +207,27 @@ export const GeneralSecurityForm: React.FC<SecurityFormProps> = ({
 }
 
 function buildListFieldFromValues(list: string[] | undefined) {
-  return list?.map(item => ({ value: item }))
+  const domains = list?.map(item => ({ value: item }));
+  if (!domains || domains.length === 0) {
+    return [{ value: "" }]
+  } else {
+    return domains
+  }
 }
 
 function buildListValuesFromField(fieldListValue?: Array<{ value: string }>) {
   const list = compact(fieldListValue?.map(item => item.value))
-  return list.length ? list : undefined
+  return list;
+}
+
+export const GeneralSecurityForm = () => {
+  const [{ data }] = useQuery({ query: securitySetting })
+  const onSuccess = () => {
+    toast.success("Network configuration is updated");
+  }
+  const defaultValues = data && {
+    ...data.securitySetting,
+    allowedRegisterDomainList: buildListFieldFromValues(data.securitySetting.allowedRegisterDomainList),
+  };
+  return data && <SecurityForm defaultValues={defaultValues} onSuccess={onSuccess} />
 }
