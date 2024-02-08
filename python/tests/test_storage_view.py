@@ -47,6 +47,17 @@ def test_storageview_cpu(dtype, name):
     assert test_utils.array_equal(x, y)
 
 
+def test_storageview_to_device():
+    x = np.ones(10, dtype="float32")
+    cx = ctranslate2.StorageView.from_array(x)
+
+    assert cx.device == "cpu"
+    assert cx.dtype == ctranslate2.DataType.float32
+
+    cpu_x = cx.to_device(ctranslate2.Device.cpu)
+    assert test_utils.array_equal(x, np.array(cpu_x))
+
+
 @test_utils.require_cuda
 def test_storageview_cuda():
     import torch
@@ -72,6 +83,21 @@ def test_storageview_cuda():
 
     y = torch.as_tensor(s, device="cuda")
     _assert_same_array(s.__cuda_array_interface__, y.__cuda_array_interface__)
+
+
+@test_utils.require_cuda
+def test_storageview_cuda_to_device():
+    x = np.ones(10, dtype="float32")
+    # convert to cuda tensor
+    cuda_x = ctranslate2.StorageView.from_array(x).to_device(ctranslate2.Device.cuda)
+    assert cuda_x.device == "cuda"
+
+    # modify original tensor and convert back
+    x *= 2
+    cpu_x = np.array(cuda_x.to_device(ctranslate2.Device.cpu))
+
+    assert cpu_x.dtype == x.dtype
+    assert x.sum() == 2 * cpu_x.sum()
 
 
 def test_storageview_conversion():

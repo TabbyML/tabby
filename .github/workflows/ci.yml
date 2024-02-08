@@ -175,7 +175,7 @@ jobs:
         name: Set up QEMU
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.15.0
+        uses: pypa/cibuildwheel@v2.16.5
         with:
           package-dir: python
           output-dir: python/wheelhouse
