@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject};
-use tabby_common::{enum_conversion::DatabaseSerializable, enum_mapping};
+use tabby_db::conversions::DatabaseSerializable;
 use validator::validate_url;
 
 #[derive(GraphQLEnum, Clone, Debug)]
@@ -11,26 +11,12 @@ pub enum Encryption {
     None,
 }
 
-enum_mapping!(
-    Encryption:
-    StartTls => "starttls",
-    SslTls => "ssltls",
-    None => "none",
-);
-
 #[derive(GraphQLEnum, Clone, Debug)]
 pub enum AuthMethod {
     Plain,
     Login,
     XOAuth2,
 }
-
-enum_mapping!(
-    AuthMethod:
-    Plain => "plain",
-    Login => "login",
-    XOAuth2 => "xoauth2",
-);
 
 #[derive(GraphQLObject)]
 pub struct EmailSetting {

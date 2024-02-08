@@ -7,7 +7,7 @@ use tabby_db::{
 
 use crate::schema::{
     auth::{self, OAuthCredential, OAuthProvider},
-    email::EmailSetting,
+    email::{AuthMethod, EmailSetting, Encryption},
     job,
     repository::Repository,
     setting::ServerSetting,

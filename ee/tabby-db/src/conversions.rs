@@ -1,14 +1,12 @@
-use anyhow::Result;
-
 pub trait DatabaseSerializable: Sized {
     fn as_db_str(&self) -> &'static str;
-    fn from_db_str(s: &str) -> Result<Self>;
+    fn from_db_str(s: &str) -> anyhow::Result<Self>;
 }
 
 #[macro_export]
 macro_rules! enum_mapping {
     ($name:ty: $($variant:ident => $val:literal),+ $(,)?) => {
-        impl tabby_common::enum_conversion::DatabaseSerializable for $name {
+        impl tabby_db::conversions::DatabaseSerializable for $name {
             fn as_db_str(&self) -> &'static str {
                 match self {
                     $(
@@ -17,7 +15,7 @@ macro_rules! enum_mapping {
                 }
             }
 
-            fn from_db_str(s: &str) -> Result<Self> {
+            fn from_db_str(s: &str) -> anyhow::Result<Self> {
                 match s {
                     $(
                         $val => Ok(<$name>::$variant),

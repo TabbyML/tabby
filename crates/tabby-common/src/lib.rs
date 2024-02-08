@@ -3,7 +3,6 @@
 pub mod api;
 pub mod config;
 pub mod constants;
-pub mod enum_conversion;
 pub mod index;
 pub mod languages;
 pub mod path;
