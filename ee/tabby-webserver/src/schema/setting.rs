@@ -11,7 +11,7 @@ pub trait SettingService: Send + Sync {
     async fn update_server_setting(&self, setting: ServerSetting) -> Result<()>;
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Debug, PartialEq)]
 pub struct ServerSetting {
     pub security_allowed_register_domain_list: Vec<String>,
     pub security_disable_client_side_telemetry: bool,

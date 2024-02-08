@@ -33,3 +33,44 @@ impl SettingService for DbConn {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_read_server_setting() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let server_setting = SettingService::read_server_setting(&db).await.unwrap();
+
+        assert_eq!(
+            server_setting,
+            ServerSetting {
+                security_allowed_register_domain_list: vec![],
+                security_disable_client_side_telemetry: false,
+                network_external_url: "http://localhost:8080".into(),
+            }
+        );
+
+        SettingService::update_server_setting(
+            &db,
+            ServerSetting {
+                security_allowed_register_domain_list: vec!["example.com".into()],
+                security_disable_client_side_telemetry: true,
+                network_external_url: "http://localhost:9090".into(),
+            },
+        )
+        .await
+        .unwrap();
+
+        let server_setting = SettingService::read_server_setting(&db).await.unwrap();
+        assert_eq!(
+            server_setting,
+            ServerSetting {
+                security_allowed_register_domain_list: vec!["example.com".into()],
+                security_disable_client_side_telemetry: true,
+                network_external_url: "http://localhost:9090".into(),
+            }
+        );
+    }
+}
