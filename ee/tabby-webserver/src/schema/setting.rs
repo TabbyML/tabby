@@ -34,7 +34,7 @@ pub struct NetworkSetting {
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct NetworkSettingInput {
-    #[validate(url)]
+    #[validate(url(code="externalUrl", message="URL is malformed"))]
     pub external_url: String,
 }
 
@@ -42,14 +42,14 @@ fn validate_unique_domains(domains: &[String]) -> Result<(), ValidationError> {
     let unique: HashSet<_> = domains.iter().collect();
     if unique.len() != domains.len() {
         let collision = domains.iter().find(|s| unique.contains(s)).unwrap();
-        let mut err = ValidationError::new("securityAllowedRegisterDomainList");
+        let mut err = ValidationError::new("allowedRegisterDomainList");
         err.message = Some(format!("Duplicate domain: {collision}").into());
         return Err(err);
     }
     for domain in domains {
         let email = format!("noreply@{domain}");
         if !validate_email(email) {
-            let mut err = ValidationError::new("securityAllowedRegisterDomainList");
+            let mut err = ValidationError::new("allowedRegisterDomainList");
             err.message = Some(format!("Invalid domain name: {domain}").into());
             return Err(err);
         }

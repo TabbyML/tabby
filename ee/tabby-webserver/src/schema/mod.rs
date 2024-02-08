@@ -22,7 +22,7 @@ use juniper_axum::{
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::{error, warn};
-use validator::ValidationErrors;
+use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
@@ -70,6 +70,9 @@ pub enum CoreError {
     #[error("Invalid ID Error")]
     InvalidIDError,
 
+    #[error("Invalid input parameters")]
+    InvalidInput(#[from] ValidationErrors),
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
@@ -79,7 +82,8 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
         match self {
             Self::Unauthorized(msg) => {
                 FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
-            }
+            },
+            Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
     }
@@ -483,6 +487,7 @@ impl Mutation {
                 "Only admin can access server settings",
             ));
         };
+        input.validate()?;
         ctx.locator.setting().update_security_setting(input).await?;
         Ok(true)
     }
@@ -493,6 +498,7 @@ impl Mutation {
                 "Only admin can access server settings",
             ));
         };
+        input.validate()?;
         ctx.locator.setting().update_network_setting(input).await?;
         Ok(true)
     }
