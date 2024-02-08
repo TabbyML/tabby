@@ -13,6 +13,8 @@ pub struct JobRunDAO {
     pub stderr: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+
+    #[sqlx(rename = "end_ts")]
     pub finished_at: Option<DateTime<Utc>>,
 }
 

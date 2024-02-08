@@ -42,3 +42,29 @@ impl JobService for DbConn {
             .collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_job_service() {
+        let svc: Box<dyn JobService> = Box::new(DbConn::new_in_memory().await.unwrap());
+
+        let id = svc.create_job_run("test-job".to_owned()).await.unwrap();
+        svc.update_job_stdout(id, "stdout".to_owned())
+            .await
+            .unwrap();
+        svc.update_job_stderr(id, "stderr".to_owned())
+            .await
+            .unwrap();
+        svc.complete_job_run(id, 0).await.unwrap();
+
+        let job = svc.list_job_runs(None, None, None, None).await.unwrap();
+        let job = job.first().unwrap();
+        assert_eq!(job.job, "test-job");
+        assert_eq!(job.stdout, "stdout");
+        assert_eq!(job.stderr, "stderr");
+        assert_eq!(job.exit_code, Some(0));
+    }
+}
