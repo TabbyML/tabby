@@ -1,3 +1,3 @@
 ALTER TABLE email_setting ADD COLUMN from_address VARCHAR(255);
-ALTER TABLE email_setting ADD COLUMN encryption VARCHAR(255) NOT NULL DEFAULT 'SSL/TLS';
-ALTER TABLE email_setting ADD COLUMN auth_method VARCHAR(255) NOT NULL DEFAULT 'PLAIN';
+ALTER TABLE email_setting ADD COLUMN encryption VARCHAR(255) NOT NULL DEFAULT 'ssltls';
+ALTER TABLE email_setting ADD COLUMN auth_method VARCHAR(255) NOT NULL DEFAULT 'plain';
