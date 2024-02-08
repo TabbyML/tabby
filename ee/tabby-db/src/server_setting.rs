@@ -53,6 +53,32 @@ impl DbConn {
         Ok(setting)
     }
 
+    pub async fn update_security_setting(
+        &self,
+        allowed_register_domain_list: Option<String>,
+        disable_client_side_telemetry: bool,
+    ) -> Result<()> {
+        query!("INSERT INTO server_setting (id, security_allowed_register_domain_list, security_disable_client_side_telemetry) VALUES ($1, $2, $3)
+                ON CONFLICT(id) DO UPDATE SET security_allowed_register_domain_list = $2, security_disable_client_side_telemetry = $3",
+            SERVER_SETTING_ROW_ID,
+            allowed_register_domain_list,
+            disable_client_side_telemetry,
+        ).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn update_network_setting(&self, external_url: String) -> Result<()> {
+        query!(
+            "INSERT INTO server_setting (id, network_external_url) VALUES ($1, $2)
+                ON CONFLICT(id) DO UPDATE SET network_external_url = $2",
+            SERVER_SETTING_ROW_ID,
+            external_url
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     pub async fn update_server_setting(
         &self,
         security_allowed_register_domain_list: Option<String>,

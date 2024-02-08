@@ -28,7 +28,7 @@ use worker::{Worker, WorkerService};
 use self::{
     email::{EmailService, EmailSetting},
     repository::{RepositoryError, RepositoryService},
-    setting::{ServerSetting, SettingService},
+    setting::{NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService},
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
@@ -236,13 +236,23 @@ impl Query {
         Ok(val)
     }
 
-    async fn server_setting(ctx: &Context) -> Result<ServerSetting> {
+    async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(
                 "Only admin can access server settings",
             ));
         };
-        let val = ctx.locator.setting().read_server_setting().await?;
+        let val = ctx.locator.setting().read_network_setting().await?;
+        Ok(val)
+    }
+
+    async fn security_setting(ctx: &Context) -> Result<SecuritySetting> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access server settings",
+            ));
+        };
+        let val = ctx.locator.setting().read_security_setting().await?;
         Ok(val)
     }
 
@@ -465,11 +475,9 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn update_server_setting(
+    async fn update_security_setting(
         ctx: &Context,
-        security_allowed_register_domain_list: Vec<String>,
-        security_disable_client_side_telemetry: bool,
-        network_external_url: String,
+        input: SecuritySettingInput,
     ) -> Result<bool> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(
@@ -478,11 +486,23 @@ impl Mutation {
         };
         ctx.locator
             .setting()
-            .update_server_setting(ServerSetting {
-                security_allowed_register_domain_list,
-                security_disable_client_side_telemetry,
-                network_external_url,
-            })
+            .update_security_setting(input)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_network_setting(
+        ctx: &Context,
+        input: NetworkSettingInput,
+    ) -> Result<bool> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access server settings",
+            ));
+        };
+        ctx.locator
+            .setting()
+            .update_network_setting(input)
             .await?;
         Ok(true)
     }
