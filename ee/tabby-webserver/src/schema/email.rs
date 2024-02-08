@@ -1,8 +1,8 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject};
-use serde::Serialize;
-use validator::{validate_url, ValidationError};
+use serde::{Deserialize, Serialize};
+use validator::validate_url;
 
 #[derive(GraphQLEnum, Clone, Debug)]
 pub enum Encryption {
@@ -49,16 +49,6 @@ pub struct EmailSetting {
     pub auth_method: AuthMethod,
 }
 
-fn validation_error<T: Serialize>(
-    msg: &'static str,
-    field: &'static str,
-    value: &T,
-) -> ValidationError {
-    let mut err = ValidationError::new(msg);
-    err.add_param(field.into(), value);
-    err
-}
-
 impl EmailSetting {
     pub fn new_validate(
         smtp_username: String,
@@ -66,13 +56,9 @@ impl EmailSetting {
         from_address: Option<String>,
         encryption: String,
         auth_method: String,
-    ) -> Result<Self, ValidationError> {
+    ) -> Result<Self> {
         if !validate_url(&smtp_server) {
-            return Err(validation_error(
-                "Invalid server URL",
-                "smtp_server",
-                &smtp_server,
-            ));
+            return Err(anyhow!("Invalid smtp server address"));
         }
 
         let encryption = Self::convert_encryption(&encryption)?;
@@ -88,31 +74,21 @@ impl EmailSetting {
         })
     }
 
-    pub fn convert_encryption(encryption: &str) -> Result<Encryption, ValidationError> {
+    pub fn convert_encryption(encryption: &str) -> Result<Encryption> {
         Ok(match &*encryption.to_lowercase() {
             "starttls" => Encryption::StartTls,
-            "ssltls" => Encryption::SslTls,
+            "ssltls" | "ssl/tls" => Encryption::SslTls,
             "none" => Encryption::None,
-            _ => {
-                return Err(validation_error(
-                    "Invalid encryption",
-                    "encryption",
-                    &encryption,
-                ))
-            }
+            _ => return Err(anyhow!("Invalid encryption setting")),
         })
     }
 
-    pub fn convert_auth_method(auth_method: &str) -> Result<AuthMethod, ValidationError> {
+    pub fn convert_auth_method(auth_method: &str) -> Result<AuthMethod> {
         Ok(match &*auth_method.to_lowercase() {
             "plain" => AuthMethod::Plain,
             "login" => AuthMethod::Login,
             "xoauth2" => AuthMethod::XOAuth2,
-            _ => {
-                let mut err = ValidationError::new("Invalid authentication method");
-                err.add_param("auth_method".into(), &auth_method);
-                return Err(err);
-            }
+            _ => return Err(anyhow!("Invalid authentication method")),
         })
     }
 }

@@ -4,7 +4,6 @@ use tabby_db::{
     EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO,
     RepositoryDAO, ServerSettingDAO, UserDAO,
 };
-use validator::ValidationError;
 
 use crate::schema::{
     auth::{self, OAuthCredential, OAuthProvider},
@@ -91,7 +90,7 @@ impl From<RepositoryDAO> for Repository {
 }
 
 impl TryFrom<EmailSettingDAO> for EmailSetting {
-    type Error = ValidationError;
+    type Error = anyhow::Error;
 
     fn try_from(value: EmailSettingDAO) -> Result<Self, Self::Error> {
         EmailSetting::new_validate(

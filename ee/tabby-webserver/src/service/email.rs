@@ -10,6 +10,7 @@ use lettre::{
 };
 use tabby_db::DbConn;
 use tokio::sync::RwLock;
+use tracing::warn;
 
 use crate::schema::email::{AuthMethod, EmailService, EmailSetting, Encryption};
 
@@ -109,7 +110,14 @@ impl EmailService for EmailServiceImpl {
         let Some(creds) = creds else {
             return Ok(None);
         };
-        Ok(Some(creds.try_into()?))
+        let creds = creds.try_into();
+        let Ok(creds) = creds else {
+            warn!(
+                "Email settings are corrupt, please inspect or reset them with deleteEmailSetting"
+            );
+            return Ok(None);
+        };
+        Ok(Some(creds))
     }
 
     async fn update_email_setting(
