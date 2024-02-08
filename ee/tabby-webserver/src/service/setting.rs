@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use tabby_db::DbConn;
 use validator::Validate;
 
-use crate::schema::settings::{ServerSetting, ServerSettingInput, SettingService};
+use crate::schema::setting::{ServerSetting, ServerSettingInput, SettingService};
 
 #[async_trait]
 impl SettingService for DbConn {

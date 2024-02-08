@@ -20,25 +20,25 @@ pub struct ServerSetting {
 
 #[derive(Validate)]
 pub struct ServerSettingInput<'a> {
-    #[validate(custom = "validate_urls")]
+    #[validate(custom = "validate_unique_domains")]
     pub security_allowed_register_domain_list: Vec<&'a str>,
     #[validate(url)]
     pub network_external_url: &'a str,
 }
 
-fn validate_urls(domains: &Vec<&str>) -> Result<(), ValidationError> {
+fn validate_unique_domains(domains: &Vec<&str>) -> Result<(), ValidationError> {
     let unique: HashSet<_> = domains.iter().collect();
     if unique.len() != domains.len() {
         let collision = domains.iter().find(|s| unique.contains(s)).unwrap();
-        let mut err = ValidationError::new("Duplicate domain: {collision}");
-        err.add_param("domain".into(), collision);
+        let mut err = ValidationError::new("securityAllowedRegisterDomainList");
+        err.message = Some(format!("Duplicate domain: {collision}").into());
         return Err(err);
     }
     for domain in domains {
         let email = format!("noreply@{domain}");
         if !validate_email(email) {
-            let mut err = ValidationError::new("Invalid domain");
-            err.add_param("domain".into(), domain);
+            let mut err = ValidationError::new("securityAllowedRegisterDomainList");
+            err.message = Some(format!("Invalid domain name: {domain}").into());
             return Err(err);
         }
     }
@@ -47,16 +47,16 @@ fn validate_urls(domains: &Vec<&str>) -> Result<(), ValidationError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::schema::settings::validate_urls;
+    use crate::schema::setting::validate_unique_domains;
 
     #[test]
     fn test_validate_urls() {
-        assert!(validate_urls(&vec!["example.com"]).is_ok());
+        assert!(validate_unique_domains(&vec!["example.com"]).is_ok());
 
-        assert!(validate_urls(&vec!["example"]).is_err());
+        assert!(validate_unique_domains(&vec!["https://example.com"]).is_err());
 
-        assert!(validate_urls(&vec!["domain.withmultipleparts.com"]).is_ok());
+        assert!(validate_unique_domains(&vec!["domain.withmultipleparts.com"]).is_ok());
 
-        assert!(validate_urls(&vec!["example.com", "example.com"]).is_err());
+        assert!(validate_unique_domains(&vec!["example.com", "example.com"]).is_err());
     }
 }

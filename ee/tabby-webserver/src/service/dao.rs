@@ -10,7 +10,7 @@ use crate::schema::{
     email::EmailSetting,
     job,
     repository::Repository,
-    settings::ServerSetting,
+    setting::ServerSetting,
     CoreError,
 };
 

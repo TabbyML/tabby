@@ -72,7 +72,7 @@ impl DbConn {
         network_external_url: String,
     ) -> Result<()> {
         query!("INSERT INTO server_setting (id, security_allowed_register_domain_list, security_disable_client_side_telemetry, network_external_url) VALUES ($1, $2, $3, $4)
-                ON CONFLICT(id) DO UPDATE SET security_allowed_register_domain_list = $2, security_disable_client_side_telemetry = $3, network_external_url = $3",
+                ON CONFLICT(id) DO UPDATE SET security_allowed_register_domain_list = $2, security_disable_client_side_telemetry = $3, network_external_url = $4",
             SERVER_SETTING_ROW_ID,
             security_allowed_register_domain_list,
             security_disable_client_side_telemetry,
@@ -90,6 +90,7 @@ mod tests {
     async fn test_read_server_setting() {
         let db = DbConn::new_in_memory().await.unwrap();
         let server_setting = db.read_server_setting().await.unwrap();
+
         assert_eq!(
             server_setting,
             ServerSettingDAO {
@@ -106,6 +107,8 @@ mod tests {
         )
         .await
         .unwrap();
+
+        let server_setting = db.read_server_setting().await.unwrap();
         assert_eq!(
             server_setting,
             ServerSettingDAO {

@@ -2,7 +2,7 @@ pub mod auth;
 pub mod email;
 pub mod job;
 pub mod repository;
-pub mod settings;
+pub mod setting;
 pub mod worker;
 
 use std::sync::Arc;
@@ -28,7 +28,7 @@ use worker::{Worker, WorkerService};
 use self::{
     email::{EmailService, EmailSetting},
     repository::{RepositoryError, RepositoryService},
-    settings::{ServerSetting, SettingService},
+    setting::{ServerSetting, SettingService},
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
@@ -227,11 +227,21 @@ impl Query {
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access server settings",
+            ));
+        };
         let val = ctx.locator.email().get_email_setting().await?;
         Ok(val)
     }
 
     async fn server_setting(ctx: &Context) -> Result<ServerSetting> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access server settings",
+            ));
+        };
         let val = ctx.locator.setting().read_server_setting().await?;
         Ok(val)
     }
@@ -443,6 +453,11 @@ impl Mutation {
         smtp_password: Option<String>,
         smtp_server: String,
     ) -> Result<bool> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access server settings",
+            ));
+        };
         ctx.locator
             .email()
             .update_email_setting(smtp_username, smtp_password, smtp_server)
@@ -456,6 +471,11 @@ impl Mutation {
         security_disable_client_side_telemetry: bool,
         network_external_url: String,
     ) -> Result<bool> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access server settings",
+            ));
+        };
         ctx.locator
             .setting()
             .update_server_setting(ServerSetting {

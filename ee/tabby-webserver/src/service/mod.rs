@@ -4,7 +4,7 @@ mod email;
 mod job;
 mod proxy;
 mod repository;
-mod settings;
+mod setting;
 mod worker;
 
 use std::{net::SocketAddr, num::ParseIntError, sync::Arc};
@@ -31,7 +31,7 @@ use crate::schema::{
     email::EmailService,
     job::JobService,
     repository::RepositoryService,
-    settings::SettingService,
+    setting::SettingService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
     ServiceLocator,
 };
