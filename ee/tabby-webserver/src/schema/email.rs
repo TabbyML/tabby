@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject};
-use serde::{Deserialize, Serialize};
+use tabby_common::{enum_conversion::DatabaseSerializable, enum_mapping};
 use validator::validate_url;
 
 #[derive(GraphQLEnum, Clone, Debug)]
@@ -11,16 +11,12 @@ pub enum Encryption {
     None,
 }
 
-impl ToString for Encryption {
-    fn to_string(&self) -> String {
-        match self {
-            Encryption::StartTls => "STARTTLS",
-            Encryption::SslTls => "SSLTLS",
-            Encryption::None => "NONE",
-        }
-        .into()
-    }
-}
+enum_mapping!(
+    Encryption:
+    StartTls => "starttls",
+    SslTls => "ssltls",
+    None => "none",
+);
 
 #[derive(GraphQLEnum, Clone, Debug)]
 pub enum AuthMethod {
@@ -29,16 +25,12 @@ pub enum AuthMethod {
     XOAuth2,
 }
 
-impl ToString for AuthMethod {
-    fn to_string(&self) -> String {
-        match self {
-            AuthMethod::Plain => "PLAIN",
-            AuthMethod::Login => "LOGIN",
-            AuthMethod::XOAuth2 => "XOAUTH2",
-        }
-        .into()
-    }
-}
+enum_mapping!(
+    AuthMethod:
+    Plain => "plain",
+    Login => "login",
+    XOAuth2 => "xoauth2",
+);
 
 #[derive(GraphQLObject)]
 pub struct EmailSetting {
@@ -61,8 +53,8 @@ impl EmailSetting {
             return Err(anyhow!("Invalid smtp server address"));
         }
 
-        let encryption = Self::convert_encryption(&encryption)?;
-        let auth_method = Self::convert_auth_method(&auth_method)?;
+        let encryption = Encryption::from_db_str(&encryption)?;
+        let auth_method = AuthMethod::from_db_str(&auth_method)?;
 
         let from_address = from_address.unwrap_or_else(|| smtp_username.clone());
         Ok(EmailSetting {
@@ -71,24 +63,6 @@ impl EmailSetting {
             from_address,
             encryption,
             auth_method,
-        })
-    }
-
-    pub fn convert_encryption(encryption: &str) -> Result<Encryption> {
-        Ok(match &*encryption.to_lowercase() {
-            "starttls" => Encryption::StartTls,
-            "ssltls" | "ssl/tls" => Encryption::SslTls,
-            "none" => Encryption::None,
-            _ => return Err(anyhow!("Invalid encryption setting")),
-        })
-    }
-
-    pub fn convert_auth_method(auth_method: &str) -> Result<AuthMethod> {
-        Ok(match &*auth_method.to_lowercase() {
-            "plain" => AuthMethod::Plain,
-            "login" => AuthMethod::Login,
-            "xoauth2" => AuthMethod::XOAuth2,
-            _ => return Err(anyhow!("Invalid authentication method")),
         })
     }
 }
