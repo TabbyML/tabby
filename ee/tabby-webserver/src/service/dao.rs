@@ -2,7 +2,7 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO,
-    RepositoryDAO, UserDAO, ServerSettingDAO,
+    RepositoryDAO, ServerSettingDAO, UserDAO,
 };
 
 use crate::schema::{
