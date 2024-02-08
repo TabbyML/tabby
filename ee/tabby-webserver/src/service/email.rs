@@ -198,7 +198,7 @@ mod tests {
             .update_email_setting(
                 "test@example.com".into(),
                 Some("test".into()),
-                "example.com".into(),
+                "smtp://example.com".into(),
                 None,
                 Encryption::SslTls,
                 AuthMethod::Plain,
