@@ -3,6 +3,13 @@ name: Test Rust
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
+      - 'ee/**'
+      - '!ee/tabby-ui/**'
+      - '.github/workflows/test-rust.yml'
 
   pull_request:
     branches: [ "main" ]
