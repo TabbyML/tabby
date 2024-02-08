@@ -113,7 +113,7 @@ impl From<ServerSettingDAO> for SecuritySetting {
 impl From<ServerSettingDAO> for NetworkSetting {
     fn from(value: ServerSettingDAO) -> Self {
         Self {
-            external_url: value.network_external_url
+            external_url: value.network_external_url,
         }
     }
 }

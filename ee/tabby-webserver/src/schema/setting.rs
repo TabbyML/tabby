@@ -63,12 +63,15 @@ mod tests {
 
     #[test]
     fn test_validate_urls() {
-        assert!(validate_unique_domains(&vec!["example.com".to_owned()]).is_ok());
+        assert!(validate_unique_domains(&["example.com".to_owned()]).is_ok());
 
-        assert!(validate_unique_domains(&vec!["https://example.com".to_owned()]).is_err());
+        assert!(validate_unique_domains(&["https://example.com".to_owned()]).is_err());
 
-        assert!(validate_unique_domains(&vec!["domain.withmultipleparts.com".to_owned()]).is_ok());
+        assert!(validate_unique_domains(&["domain.withmultipleparts.com".to_owned()]).is_ok());
 
-        assert!(validate_unique_domains(&vec!["example.com".to_owned(), "example.com".to_owned()]).is_err());
+        assert!(
+            validate_unique_domains(&["example.com".to_owned(), "example.com".to_owned()])
+                .is_err()
+        );
     }
 }

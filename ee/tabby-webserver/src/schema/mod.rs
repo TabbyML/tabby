@@ -28,7 +28,9 @@ use worker::{Worker, WorkerService};
 use self::{
     email::{EmailService, EmailSetting},
     repository::{RepositoryError, RepositoryService},
-    setting::{NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService},
+    setting::{
+        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+    },
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
@@ -475,35 +477,23 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn update_security_setting(
-        ctx: &Context,
-        input: SecuritySettingInput,
-    ) -> Result<bool> {
+    async fn update_security_setting(ctx: &Context, input: SecuritySettingInput) -> Result<bool> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(
                 "Only admin can access server settings",
             ));
         };
-        ctx.locator
-            .setting()
-            .update_security_setting(input)
-            .await?;
+        ctx.locator.setting().update_security_setting(input).await?;
         Ok(true)
     }
 
-    async fn update_network_setting(
-        ctx: &Context,
-        input: NetworkSettingInput,
-    ) -> Result<bool> {
+    async fn update_network_setting(ctx: &Context, input: NetworkSettingInput) -> Result<bool> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(
                 "Only admin can access server settings",
             ));
         };
-        ctx.locator
-            .setting()
-            .update_network_setting(input)
-            .await?;
+        ctx.locator.setting().update_network_setting(input).await?;
         Ok(true)
     }
 

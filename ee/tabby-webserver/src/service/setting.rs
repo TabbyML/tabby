@@ -21,11 +21,8 @@ impl SettingService for DbConn {
             Some(input.allowed_register_domain_list.join(","))
         };
 
-        self.update_security_setting(
-            domains,
-            input.disable_client_side_telemetry,
-        )
-        .await
+        self.update_security_setting(domains, input.disable_client_side_telemetry)
+            .await
     }
 
     async fn read_network_setting(&self) -> Result<NetworkSetting> {
