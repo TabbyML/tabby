@@ -66,19 +66,24 @@ mod tests {
     #[tokio::test]
     async fn test_worker_group() {
         let wg = WorkerGroup::default();
+        assert_eq!(wg.select().await, None);
 
         let worker1 = make_worker("http://127.0.0.1:8080");
         let worker2 = make_worker("http://127.0.0.2:8080");
 
         // Register success.
         assert!(wg.register(worker1.clone()).await.is_some());
+        assert!(wg.select().await.is_some());
 
         // Register failed, as > 1 workers requires enterprise license.
-        assert!(wg.register(worker2).await.is_none());
+        assert!(wg.register(worker2.clone()).await.is_none());
 
         let workers = wg.list().await;
         assert_eq!(workers.len(), 1);
         assert_eq!(workers[0].addr, worker1.addr);
+
+        assert!(wg.unregister(&worker1.addr).await);
+        assert!(!wg.unregister(&worker2.addr).await);
     }
 
     fn make_worker(addr: &str) -> Worker {
