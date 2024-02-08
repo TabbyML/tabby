@@ -28,12 +28,9 @@ use self::{
     email::{EmailService, EmailSetting},
     repository::{RepositoryError, RepositoryService},
 };
-use crate::{
-    schema::{
-        auth::{JWTPayload, OAuthCredential, OAuthProvider},
-        repository::Repository,
-    },
-    service::{AsID, AsRowid},
+use crate::schema::{
+    auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    repository::Repository,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -304,10 +301,7 @@ impl Mutation {
     }
 
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
-        ctx.locator
-            .auth()
-            .update_user_active(id.as_rowid()?, active)
-            .await?;
+        ctx.locator.auth().update_user_active(&id, active).await?;
         Ok(true)
     }
 
@@ -372,15 +366,10 @@ impl Mutation {
             .repository()
             .create_repository(name, git_url)
             .await
-            .map(|x| x.as_id())
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
-        Ok(ctx
-            .locator
-            .repository()
-            .delete_repository(id.as_rowid()?)
-            .await?)
+        Ok(ctx.locator.repository().delete_repository(&id).await?)
     }
 
     async fn update_repository(
@@ -392,19 +381,14 @@ impl Mutation {
         Ok(ctx
             .locator
             .repository()
-            .update_repository(id.as_rowid()?, name, git_url)
+            .update_repository(&id, name, git_url)
             .await?)
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
         if let Some(claims) = &ctx.claims {
             if claims.is_admin {
-                return Ok(ctx
-                    .locator
-                    .auth()
-                    .delete_invitation(id.as_rowid()?)
-                    .await?
-                    .as_id());
+                return Ok(ctx.locator.auth().delete_invitation(&id).await?);
             }
         }
         Err(CoreError::Unauthorized(

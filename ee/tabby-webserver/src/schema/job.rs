@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use juniper::GraphQLObject;
+use juniper::{GraphQLObject, ID};
 use juniper_axum::relay;
 
 use crate::schema::Context;
@@ -39,10 +39,10 @@ impl relay::NodeType for JobRun {
 
 #[async_trait]
 pub trait JobService: Send + Sync {
-    async fn create_job_run(&self, name: String) -> Result<i32>;
-    async fn update_job_stdout(&self, id: i32, stdout: String) -> Result<()>;
-    async fn update_job_stderr(&self, id: i32, stderr: String) -> Result<()>;
-    async fn complete_job_run(&self, id: i32, exit_code: i32) -> Result<()>;
+    async fn create_job_run(&self, name: String) -> Result<ID>;
+    async fn update_job_stdout(&self, id: &ID, stdout: String) -> Result<()>;
+    async fn update_job_stderr(&self, id: &ID, stderr: String) -> Result<()>;
+    async fn complete_job_run(&self, id: &ID, exit_code: i32) -> Result<()>;
 
     async fn list_job_runs(
         &self,
