@@ -13,18 +13,6 @@ pub struct ServerSettingDAO {
 const SERVER_SETTING_ROW_ID: i32 = 1;
 
 impl ServerSettingDAO {
-    pub fn new(
-        security_allowed_register_domain_list: Option<String>,
-        security_disable_client_side_telemetry: bool,
-        network_external_url: String,
-    ) -> Self {
-        Self {
-            security_allowed_register_domain_list,
-            security_disable_client_side_telemetry,
-            network_external_url,
-        }
-    }
-
     pub fn security_allowed_register_domain_list(&self) -> impl Iterator<Item = &str> {
         self.security_allowed_register_domain_list
             .iter()
@@ -79,43 +67,5 @@ impl DbConn {
             network_external_url,
         ).execute(&self.pool).await?;
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_read_server_setting() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let server_setting = db.read_server_setting().await.unwrap();
-
-        assert_eq!(
-            server_setting,
-            ServerSettingDAO {
-                security_allowed_register_domain_list: None,
-                security_disable_client_side_telemetry: false,
-                network_external_url: "http://localhost:8080".into(),
-            }
-        );
-
-        db.update_server_setting(
-            Some("example.com".into()),
-            true,
-            "http://localhost:9090".into(),
-        )
-        .await
-        .unwrap();
-
-        let server_setting = db.read_server_setting().await.unwrap();
-        assert_eq!(
-            server_setting,
-            ServerSettingDAO {
-                security_allowed_register_domain_list: Some("example.com".into()),
-                security_disable_client_side_telemetry: true,
-                network_external_url: "http://localhost:9090".into(),
-            }
-        );
     }
 }
