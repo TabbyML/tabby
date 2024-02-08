@@ -155,33 +155,4 @@ impl Hub for Arc<HubImpl> {
             vec![]
         })
     }
-
-    async fn create_job_run(self, _context: tarpc::context::Context, name: String) -> i32 {
-        self.ctx
-            .job()
-            .create_job_run(name)
-            .await
-            .unwrap_or_else(|e| {
-                warn!("Failed to create job run: {e}");
-                0
-            })
-    }
-
-    async fn update_job_stdout(self, _context: tarpc::context::Context, id: i32, stdout: String) {
-        if let Err(err) = self.ctx.job().update_job_stdout(id, stdout).await {
-            warn!("Failed to update job output: {err}");
-        }
-    }
-
-    async fn update_job_stderr(self, _context: tarpc::context::Context, id: i32, stderr: String) {
-        if let Err(err) = self.ctx.job().update_job_stderr(id, stderr).await {
-            warn!("Failed to update job output: {err}");
-        }
-    }
-
-    async fn complete_job_run(self, _context: tarpc::context::Context, id: i32, exit_code: i32) {
-        if let Err(err) = self.ctx.job().complete_job_run(id, exit_code).await {
-            warn!("Failed to complete job run: {err}");
-        }
-    }
 }
