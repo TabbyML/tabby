@@ -1,3 +1,8 @@
+type TokenAuthResponse {
+  accessToken: String!
+  refreshToken: String!
+}
+
 enum WorkerKind {
   COMPLETION
   CHAT
@@ -19,6 +24,8 @@ type Mutation {
   updateOauthCredential(provider: OAuthProvider!, clientId: String!, clientSecret: String!, redirectUri: String): Boolean!
   deleteOauthCredential(provider: OAuthProvider!): Boolean!
   updateEmailSetting(smtpUsername: String!, smtpPassword: String, smtpServer: String!): Boolean!
+  updateSecuritySetting(input: SecuritySettingInput!): Boolean!
+  updateNetworkSetting(input: NetworkSettingInput!): Boolean!
   deleteEmailSetting: Boolean!
 }
 
@@ -43,9 +50,10 @@ type JWTPayload {
 
 type JobRun {
   id: ID!
-  jobName: String!
-  startTime: DateTimeUtc!
-  finishTime: DateTimeUtc
+  job: String!
+  createdAt: DateTimeUtc!
+  updatedAt: DateTimeUtc!
+  finishedAt: DateTimeUtc
   exitCode: Int
   stdout: String!
   stderr: String!
@@ -60,8 +68,14 @@ type Query {
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(after: String, before: String, first: Int, last: Int): JobRunConnection!
   emailSetting: EmailSetting
+  networkSetting: NetworkSetting!
+  securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
+}
+
+input NetworkSettingInput {
+  externalUrl: String!
 }
 
 type UserEdge {
@@ -88,6 +102,16 @@ type RegisterResponse {
 type RepositoryConnection {
   edges: [RepositoryEdge!]!
   pageInfo: PageInfo!
+}
+
+input SecuritySettingInput {
+  allowedRegisterDomainList: [String!]!
+  disableClientSideTelemetry: Boolean!
+}
+
+type SecuritySetting {
+  allowedRegisterDomainList: [String!]!
+  disableClientSideTelemetry: Boolean!
 }
 
 type UserConnection {
@@ -129,11 +153,6 @@ type User {
   active: Boolean!
 }
 
-type TokenAuthResponse {
-  accessToken: String!
-  refreshToken: String!
-}
-
 type Worker {
   kind: WorkerKind!
   name: String!
@@ -160,6 +179,10 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type NetworkSetting {
+  externalUrl: String!
 }
 
 type JobRunEdge {
