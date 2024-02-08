@@ -2,7 +2,6 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tabby_db::DbConn;
 
-
 use crate::schema::setting::{
     NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
 };
