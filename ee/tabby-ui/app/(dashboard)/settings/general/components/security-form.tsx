@@ -81,7 +81,7 @@ export const GeneralSecurityForm: React.FC<SecurityFormProps> = ({
   const handleDomainListKeyDown: React.KeyboardEventHandler<
     HTMLInputElement
   > = e => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
       e.preventDefault()
       append({ value: '' })
     }
