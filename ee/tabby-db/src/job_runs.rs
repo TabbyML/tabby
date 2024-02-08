@@ -7,12 +7,15 @@ use super::DbConn;
 #[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {
     pub id: i32,
-    pub job: String,
+    #[sqlx(rename = "job")]
+    pub name: String,
     pub exit_code: Option<i32>,
     pub stdout: String,
     pub stderr: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+
+    #[sqlx(rename = "end_ts")]
     pub finished_at: Option<DateTime<Utc>>,
 }
 
@@ -79,20 +82,5 @@ impl DbConn {
 
         let runs = sqlx::query_as(&query).fetch_all(&self.pool).await?;
         Ok(runs)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_create_job_run() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let id = db.create_job_run("test".to_string()).await.unwrap();
-        assert_eq!(id, 1);
-
-        let id = db.create_job_run("test".to_string()).await.unwrap();
-        assert_eq!(id, 2);
     }
 }
