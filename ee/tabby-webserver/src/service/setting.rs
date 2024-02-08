@@ -3,34 +3,35 @@ use async_trait::async_trait;
 use tabby_db::DbConn;
 use validator::Validate;
 
-use crate::schema::setting::{ServerSetting, ServerSettingInput, SettingService};
+use crate::schema::setting::{
+    NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+};
 
 #[async_trait]
 impl SettingService for DbConn {
-    async fn read_server_setting(&self) -> Result<ServerSetting> {
-        let setting = self.read_server_setting().await?;
-        Ok(setting.into())
+    async fn read_security_setting(&self) -> Result<SecuritySetting> {
+        Ok(self.read_server_setting().await?.into())
     }
 
-    async fn update_server_setting(&self, setting: ServerSetting) -> Result<()> {
-        ServerSettingInput {
-            security_allowed_register_domain_list: setting
-                .security_allowed_register_domain_list
-                .iter()
-                .map(|s| &**s)
-                .collect(),
-            network_external_url: &setting.network_external_url,
-        }
-        .validate()?;
-        let allowed_domains = setting.security_allowed_register_domain_list.join(",");
-        let allowed_domains = (!allowed_domains.is_empty()).then_some(allowed_domains);
-        self.update_server_setting(
-            allowed_domains,
-            setting.security_disable_client_side_telemetry,
-            setting.network_external_url,
-        )
-        .await?;
-        Ok(())
+    async fn update_security_setting(&self, input: SecuritySettingInput) -> Result<()> {
+        input.validate()?;
+        let domains = if input.allowed_register_domain_list.is_empty() {
+            None
+        } else {
+            Some(input.allowed_register_domain_list.join(","))
+        };
+
+        self.update_security_setting(domains, input.disable_client_side_telemetry)
+            .await
+    }
+
+    async fn read_network_setting(&self) -> Result<NetworkSetting> {
+        Ok(self.read_server_setting().await?.into())
+    }
+
+    async fn update_network_setting(&self, input: NetworkSettingInput) -> Result<()> {
+        input.validate()?;
+        self.update_network_setting(input.external_url).await
     }
 }
 
@@ -39,37 +40,60 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_read_server_setting() {
+    async fn test_security_setting() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let server_setting = SettingService::read_server_setting(&db).await.unwrap();
 
         assert_eq!(
-            server_setting,
-            ServerSetting {
-                security_allowed_register_domain_list: vec![],
-                security_disable_client_side_telemetry: false,
-                network_external_url: "http://localhost:8080".into(),
+            SettingService::read_security_setting(&db).await.unwrap(),
+            SecuritySetting {
+                allowed_register_domain_list: vec![],
+                disable_client_side_telemetry: false,
             }
         );
 
-        SettingService::update_server_setting(
+        SettingService::update_security_setting(
             &db,
-            ServerSetting {
-                security_allowed_register_domain_list: vec!["example.com".into()],
-                security_disable_client_side_telemetry: true,
-                network_external_url: "http://localhost:9090".into(),
+            SecuritySettingInput {
+                allowed_register_domain_list: vec!["example.com".into()],
+                disable_client_side_telemetry: true,
             },
         )
         .await
         .unwrap();
 
-        let server_setting = SettingService::read_server_setting(&db).await.unwrap();
         assert_eq!(
-            server_setting,
-            ServerSetting {
-                security_allowed_register_domain_list: vec!["example.com".into()],
-                security_disable_client_side_telemetry: true,
-                network_external_url: "http://localhost:9090".into(),
+            SettingService::read_security_setting(&db).await.unwrap(),
+            SecuritySetting {
+                allowed_register_domain_list: vec!["example.com".into()],
+                disable_client_side_telemetry: true,
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_network_setting() {
+        let db = DbConn::new_in_memory().await.unwrap();
+
+        assert_eq!(
+            SettingService::read_network_setting(&db).await.unwrap(),
+            NetworkSetting {
+                external_url: "http://localhost:8080".into(),
+            }
+        );
+
+        SettingService::update_network_setting(
+            &db,
+            NetworkSettingInput {
+                external_url: "http://localhost:8081".into(),
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            SettingService::read_network_setting(&db).await.unwrap(),
+            NetworkSetting {
+                external_url: "http://localhost:8081".into(),
             }
         );
     }
