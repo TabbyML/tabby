@@ -499,6 +499,11 @@ impl Mutation {
     }
 
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access email settings",
+            ));
+        };
         ctx.locator.email().delete_email_setting().await?;
         Ok(true)
     }
