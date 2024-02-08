@@ -1,6 +1,9 @@
 name: Test Rust
 
 on:
+  push:
+    branches: [ "main "]
+
   pull_request:
     branches: [ "main" ]
     paths:
@@ -22,6 +25,7 @@ env:
 
 jobs:
   tests:
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
