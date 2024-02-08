@@ -1,8 +1,8 @@
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO,
-    RepositoryDAO, ServerSettingDAO, UserDAO,
+    enum_mapping, EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO,
+    InvitationDAO, JobRunDAO, RepositoryDAO, UserDAO,
 };
 
 use crate::schema::{
@@ -10,7 +10,6 @@ use crate::schema::{
     email::{AuthMethod, EmailSetting, Encryption},
     job,
     repository::Repository,
-    setting::ServerSetting,
     CoreError,
 };
 
