@@ -4,6 +4,7 @@ pub use google_oauth_credential::GoogleOAuthCredentialDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use repositories::RepositoryDAO;
+pub use server_setting::ServerSettingDAO;
 use sqlx::{query, query_scalar, Pool, Sqlite, SqlitePool};
 pub use users::UserDAO;
 
