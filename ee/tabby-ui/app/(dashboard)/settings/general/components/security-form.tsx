@@ -78,6 +78,15 @@ export const GeneralSecurityForm: React.FC<SecurityFormProps> = ({
     }
   }
 
+  const handleDomainListKeyDown: React.KeyboardEventHandler<
+    HTMLInputElement
+  > = e => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      append({ value: '' })
+    }
+  }
+
   const onSubmit = ({ domainList, ...values }: SecurityFormValues) => {
     const formattedValues = {
       // format domainList before submit, Array<{ value: string }> => Array<string>
@@ -133,7 +142,11 @@ export const GeneralSecurityForm: React.FC<SecurityFormProps> = ({
                     </FormDescription>
                     <div className="flex items-center gap-2">
                       <FormControl>
-                        <Input placeholder="e.g. tabbyml.com" {...itemField} />
+                        <Input
+                          placeholder="e.g. tabbyml.com"
+                          {...itemField}
+                          onKeyDown={handleDomainListKeyDown}
+                        />
                       </FormControl>
                       <Button
                         variant="hover-destructive"
