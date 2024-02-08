@@ -125,12 +125,10 @@ impl EmailService for EmailServiceImpl {
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
-        from_address: Option<String>,
+        from_address: String,
         encryption: Encryption,
         auth_method: AuthMethod,
     ) -> Result<()> {
-        let from_address = from_address.unwrap_or_else(|| smtp_username.clone());
-
         self.db
             .update_email_setting(
                 smtp_username.clone(),
@@ -207,7 +205,7 @@ mod tests {
                 "test@example.com".into(),
                 Some("test".into()),
                 "smtp://example.com".into(),
-                None,
+                "test@example.com".into(),
                 Encryption::SslTls,
                 AuthMethod::Plain,
             )

@@ -453,7 +453,7 @@ impl Mutation {
         smtp_username: String,
         smtp_password: Option<String>,
         smtp_server: String,
-        from_address: Option<String>,
+        from_address: String,
         encryption: Encryption,
         auth_method: AuthMethod,
     ) -> Result<bool> {
