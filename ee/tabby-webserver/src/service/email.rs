@@ -112,9 +112,8 @@ impl EmailService for EmailServiceImpl {
         };
         let creds = creds.try_into();
         let Ok(creds) = creds else {
-            warn!(
-                "Email settings are corrupt, please inspect or reset them with deleteEmailSetting"
-            );
+            self.db.delete_email_setting().await?;
+            warn!("Email settings are corrupt, and have been deleted. Please reset them.");
             return Ok(None);
         };
         Ok(Some(creds))

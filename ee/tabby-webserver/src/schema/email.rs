@@ -31,7 +31,7 @@ impl EmailSetting {
     pub fn new_validate(
         smtp_username: String,
         smtp_server: String,
-        from_address: Option<String>,
+        from_address: String,
         encryption: String,
         auth_method: String,
     ) -> Result<Self> {
@@ -42,7 +42,6 @@ impl EmailSetting {
         let encryption = Encryption::from_db_str(&encryption)?;
         let auth_method = AuthMethod::from_db_str(&auth_method)?;
 
-        let from_address = from_address.unwrap_or_else(|| smtp_username.clone());
         Ok(EmailSetting {
             smtp_username,
             smtp_server,

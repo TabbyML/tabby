@@ -10,7 +10,7 @@ pub struct EmailSettingDAO {
     pub smtp_username: String,
     pub smtp_password: String,
     pub smtp_server: String,
-    pub from_address: Option<String>,
+    pub from_address: String,
     pub encryption: String,
     pub auth_method: String,
 }
