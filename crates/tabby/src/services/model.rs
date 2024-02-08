@@ -18,12 +18,12 @@ pub async fn load_text_generation(
 ) -> (Arc<dyn TextGeneration>, PromptInfo) {
     #[cfg(feature = "experimental-http")]
     if device == &Device::ExperimentalHttp {
-        let (engine, prompt_template) = http_api_bindings::create(model_id);
+        let (engine, prompt_template, chat_template) = http_api_bindings::create(model_id);
         return (
             engine,
             PromptInfo {
-                prompt_template: Some(prompt_template),
-                chat_template: None,
+                prompt_template,
+                chat_template,
             },
         );
     }
