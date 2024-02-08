@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject};
-use tabby_db::conversions::DatabaseSerializable;
+use tabby_db::DatabaseSerializable;
 use validator::validate_url;
 
 #[derive(GraphQLEnum, Clone, Debug)]

@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! enum_mapping {
     ($name:ty: $($variant:ident => $val:literal),+ $(,)?) => {
-        impl tabby_db::conversions::DatabaseSerializable for $name {
+        impl tabby_db::DatabaseSerializable for $name {
             fn as_db_str(&self) -> &'static str {
                 match self {
                     $(

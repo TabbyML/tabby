@@ -8,7 +8,7 @@ use lettre::{
     },
     Address, SmtpTransport, Transport,
 };
-use tabby_db::{conversions::DatabaseSerializable, DbConn};
+use tabby_db::{DatabaseSerializable, DbConn};
 use tokio::sync::RwLock;
 use tracing::warn;
 
