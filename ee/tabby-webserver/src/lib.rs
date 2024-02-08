@@ -3,7 +3,6 @@
 mod cron;
 mod handler;
 mod hub;
-pub(crate) mod macros;
 mod oauth;
 mod repositories;
 mod schema;

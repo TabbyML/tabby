@@ -1,7 +1,8 @@
+use anyhow::anyhow;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    enum_mapping, EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO,
+    DbEnum, EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO,
     InvitationDAO, JobRunDAO, RepositoryDAO, UserDAO,
 };
 
@@ -143,5 +144,43 @@ pub trait AsID {
 impl AsID for i32 {
     fn as_id(&self) -> juniper::ID {
         juniper::ID::new(HASHER.encode(&[*self as u64]))
+    }
+}
+
+impl DbEnum for Encryption {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            Encryption::StartTls => "starttls",
+            Encryption::SslTls => "ssltls",
+            Encryption::None => "none",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "starttls" => Ok(Encryption::StartTls),
+            "ssltls" => Ok(Encryption::SslTls),
+            "none" => Ok(Encryption::None),
+            _ => Err(anyhow!("{s} is not a valid value for Encryption")),
+        }
+    }
+}
+
+impl DbEnum for AuthMethod {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            AuthMethod::Plain => "plain",
+            AuthMethod::Login => "login",
+            AuthMethod::XOAuth2 => "xoauth2",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "plain" => Ok(AuthMethod::Plain),
+            "login" => Ok(AuthMethod::Login),
+            "xoauth2" => Ok(AuthMethod::XOAuth2),
+            _ => Err(anyhow!("{s} is not a valid value for AuthMethod")),
+        }
     }
 }

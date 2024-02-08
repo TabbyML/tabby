@@ -22,9 +22,9 @@ mod users;
 use anyhow::Result;
 use sqlx::sqlite::SqliteConnectOptions;
 
-pub trait DatabaseSerializable: Sized {
-    fn as_db_str(&self) -> &'static str;
-    fn from_db_str(s: &str) -> anyhow::Result<Self>;
+pub trait DbEnum: Sized {
+    fn as_enum_str(&self) -> &'static str;
+    fn from_enum_str(s: &str) -> anyhow::Result<Self>;
 }
 
 #[derive(Clone)]

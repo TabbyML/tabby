@@ -8,7 +8,7 @@ use lettre::{
     },
     Address, SmtpTransport, Transport,
 };
-use tabby_db::{DatabaseSerializable, DbConn};
+use tabby_db::{DbConn, DbEnum};
 use tokio::sync::RwLock;
 use tracing::warn;
 
@@ -88,8 +88,8 @@ pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
     };
     // Optionally initialize the SMTP connection when the service is created
     if let Some(creds) = creds {
-        let encryption = Encryption::from_db_str(&creds.encryption)?;
-        let auth_method = AuthMethod::from_db_str(&creds.auth_method)?;
+        let encryption = Encryption::from_enum_str(&creds.encryption)?;
+        let auth_method = AuthMethod::from_enum_str(&creds.auth_method)?;
         service
             .reset_smtp_connection(
                 creds.smtp_username,
@@ -134,8 +134,8 @@ impl EmailService for EmailServiceImpl {
                 smtp_password.clone(),
                 smtp_server.clone(),
                 from_address.clone(),
-                encryption.as_db_str().into(),
-                auth_method.as_db_str().into(),
+                encryption.as_enum_str().into(),
+                auth_method.as_enum_str().into(),
             )
             .await?;
         *self.from.write().await = smtp_username.clone();

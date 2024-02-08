@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject};
-use tabby_db::DatabaseSerializable;
+use tabby_db::DbEnum;
 use validator::validate_url;
 
 #[derive(GraphQLEnum, Clone, Debug)]
@@ -39,8 +39,8 @@ impl EmailSetting {
             return Err(anyhow!("Invalid smtp server address"));
         }
 
-        let encryption = Encryption::from_db_str(&encryption)?;
-        let auth_method = AuthMethod::from_db_str(&auth_method)?;
+        let encryption = Encryption::from_enum_str(&encryption)?;
+        let auth_method = AuthMethod::from_enum_str(&auth_method)?;
 
         Ok(EmailSetting {
             smtp_username,
