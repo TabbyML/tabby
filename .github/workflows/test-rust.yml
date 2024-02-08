@@ -27,7 +27,6 @@ jobs:
       SCCACHE_GHA_ENABLED: true
       RUSTC_WRAPPER: sccache
       CARGO_INCREMENTAL: 0
-      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v3
         with:
@@ -62,8 +61,43 @@ jobs:
       - name: Run unit tests
         run: cargo test --bin tabby --lib
 
+  coverage:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      SCCACHE_GHA_ENABLED: true
+      RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+        with:
+          version: "v0.4.0"
+
+      - name: Cargo registry cache
+        uses: actions/cache@v3
+        with:
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-${{ runner.os }}-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - run: bash ./ci/prepare_build_environment.sh
 
       - name: Generate code coverage
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
