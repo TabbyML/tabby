@@ -1,7 +1,8 @@
-use juniper::ID;
+use hash_ids::HashIds;
+use lazy_static::lazy_static;
 use tabby_db::{
-    DbConn, EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO,
-    JobRunDAO, RepositoryDAO, UserDAO,
+    EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO,
+    RepositoryDAO, UserDAO,
 };
 
 use crate::schema::{
@@ -9,12 +10,13 @@ use crate::schema::{
     email::EmailSetting,
     job,
     repository::Repository,
+    CoreError,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
     fn from(val: InvitationDAO) -> Self {
         Self {
-            id: ID::new(DbConn::to_id(val.id)),
+            id: val.id.as_id(),
             email: val.email,
             code: val.code,
             created_at: val.created_at,
@@ -25,7 +27,7 @@ impl From<InvitationDAO> for auth::Invitation {
 impl From<JobRunDAO> for job::JobRun {
     fn from(run: JobRunDAO) -> Self {
         Self {
-            id: ID::new(DbConn::to_id(run.id)),
+            id: run.id.as_id(),
             job: run.job,
             created_at: run.created_at,
             updated_at: run.updated_at,
@@ -40,7 +42,7 @@ impl From<JobRunDAO> for job::JobRun {
 impl From<UserDAO> for auth::User {
     fn from(val: UserDAO) -> Self {
         auth::User {
-            id: ID::new(DbConn::to_id(val.id)),
+            id: val.id.as_id(),
             email: val.email,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
@@ -79,7 +81,7 @@ impl From<GoogleOAuthCredentialDAO> for OAuthCredential {
 impl From<RepositoryDAO> for Repository {
     fn from(value: RepositoryDAO) -> Self {
         Repository {
-            id: ID::new(DbConn::to_id(value.id)),
+            id: value.id.as_id(),
             name: value.name,
             git_url: value.git_url,
         }
@@ -95,22 +97,33 @@ impl From<EmailSettingDAO> for EmailSetting {
     }
 }
 
-pub trait IntoRowid {
-    fn into_rowid(self) -> anyhow::Result<i32>;
+lazy_static! {
+    static ref HASHER: HashIds = HashIds::builder()
+        .with_salt("tabby-id-serializer")
+        .with_min_length(6)
+        .finish();
 }
 
-impl IntoRowid for juniper::ID {
-    fn into_rowid(self) -> anyhow::Result<i32> {
-        DbConn::to_rowid(&self).map_err(|_| anyhow::anyhow!("Malformed ID input"))
+pub trait AsRowid {
+    fn as_rowid(&self) -> std::result::Result<i32, CoreError>;
+}
+
+impl AsRowid for juniper::ID {
+    fn as_rowid(&self) -> std::result::Result<i32, CoreError> {
+        HASHER
+            .decode(self)
+            .first()
+            .map(|i| *i as i32)
+            .ok_or(CoreError::InvalidIDError)
     }
 }
 
-pub trait IntoID {
-    fn into_id(self) -> juniper::ID;
+pub trait AsID {
+    fn as_id(&self) -> juniper::ID;
 }
 
-impl IntoID for i32 {
-    fn into_id(self) -> juniper::ID {
-        juniper::ID::new(DbConn::to_id(self))
+impl AsID for i32 {
+    fn as_id(&self) -> juniper::ID {
+        juniper::ID::new(HASHER.encode(&[*self as u64]))
     }
 }

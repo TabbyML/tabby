@@ -448,6 +448,7 @@ mod tests {
     use juniper_axum::relay::{self, Connection};
 
     use super::*;
+    use crate::service::AsRowid;
 
     #[test]
     fn test_password_hash() {
@@ -572,7 +573,7 @@ mod tests {
 
         // Used invitation should have been deleted,  following delete attempt should fail.
         assert!(conn
-            .delete_invitation(DbConn::to_rowid(&invitation.id).unwrap())
+            .delete_invitation(invitation.id.as_rowid().unwrap())
             .await
             .is_err());
     }

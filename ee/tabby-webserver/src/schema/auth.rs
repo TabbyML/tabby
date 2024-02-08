@@ -120,12 +120,6 @@ impl TokenAuthResponse {
 }
 
 #[derive(Error, Debug)]
-pub enum CoreError {
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-}
-
-#[derive(Error, Debug)]
 pub enum TokenAuthError {
     #[error("Invalid input parameters")]
     InvalidInput(#[from] ValidationErrors),

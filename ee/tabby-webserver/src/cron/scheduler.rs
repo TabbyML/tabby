@@ -4,7 +4,7 @@ use tokio::io::AsyncBufReadExt;
 use tokio_cron_scheduler::Job;
 use tracing::{info, warn};
 
-use crate::schema::{job::JobService, worker::WorkerService, ServiceLocator};
+use crate::schema::{job::JobService, worker::WorkerService};
 
 pub async fn scheduler_job(
     job: Arc<dyn JobService>,
