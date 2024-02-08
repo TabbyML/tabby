@@ -1,22 +1,9 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use tabby_db::{DbConn, ServerSettingDAO};
+use tabby_db::DbConn;
 use validator::Validate;
 
-use crate::schema::settings::{ServerSetting, ServerSettingValidation, SettingService};
-
-impl From<ServerSettingDAO> for ServerSetting {
-    fn from(value: ServerSettingDAO) -> Self {
-        Self {
-            security_allowed_register_domain_list: value
-                .security_allowed_register_domain_list()
-                .map(|s| s.to_owned())
-                .collect(),
-            security_disable_client_side_telemetry: value.security_disable_client_side_telemetry,
-            network_external_url: value.network_external_url,
-        }
-    }
-}
+use crate::schema::settings::{ServerSetting, ServerSettingInput, SettingService};
 
 #[async_trait]
 impl SettingService for DbConn {
@@ -26,7 +13,7 @@ impl SettingService for DbConn {
     }
 
     async fn update_server_setting(&self, setting: ServerSetting) -> Result<()> {
-        ServerSettingValidation {
+        ServerSettingInput {
             security_allowed_register_domain_list: setting
                 .security_allowed_register_domain_list
                 .iter()

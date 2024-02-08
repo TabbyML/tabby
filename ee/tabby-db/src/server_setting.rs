@@ -81,3 +81,38 @@ impl DbConn {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_read_server_setting() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let server_setting = db.read_server_setting().await.unwrap();
+        assert_eq!(
+            server_setting,
+            ServerSettingDAO {
+                security_allowed_register_domain_list: None,
+                security_disable_client_side_telemetry: false,
+                network_external_url: "http://localhost:8080".into(),
+            }
+        );
+
+        db.update_server_setting(
+            Some("example.com".into()),
+            true,
+            "http://localhost:9090".into(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            server_setting,
+            ServerSettingDAO {
+                security_allowed_register_domain_list: Some("example.com".into()),
+                security_disable_client_side_telemetry: true,
+                network_external_url: "http://localhost:9090".into(),
+            }
+        );
+    }
+}

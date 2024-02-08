@@ -2,7 +2,7 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO,
-    RepositoryDAO, UserDAO,
+    RepositoryDAO, UserDAO, ServerSettingDAO,
 };
 
 use crate::schema::{
@@ -10,6 +10,7 @@ use crate::schema::{
     email::EmailSetting,
     job,
     repository::Repository,
+    settings::ServerSetting,
     CoreError,
 };
 
@@ -93,6 +94,19 @@ impl From<EmailSettingDAO> for EmailSetting {
         EmailSetting {
             smtp_username: value.smtp_username,
             smtp_server: value.smtp_server,
+        }
+    }
+}
+
+impl From<ServerSettingDAO> for ServerSetting {
+    fn from(value: ServerSettingDAO) -> Self {
+        Self {
+            security_allowed_register_domain_list: value
+                .security_allowed_register_domain_list()
+                .map(|s| s.to_owned())
+                .collect(),
+            security_disable_client_side_telemetry: value.security_disable_client_side_telemetry,
+            network_external_url: value.network_external_url,
         }
     }
 }

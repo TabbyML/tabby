@@ -1,7 +1,9 @@
+use std::collections::HashSet;
+
 use anyhow::Result;
 use async_trait::async_trait;
 use juniper::GraphQLObject;
-use validator::{Validate, ValidationError};
+use validator::{validate_email, Validate, ValidationError};
 
 #[async_trait]
 pub trait SettingService: Send + Sync {
@@ -17,39 +19,44 @@ pub struct ServerSetting {
 }
 
 #[derive(Validate)]
-pub struct ServerSettingValidation<'a> {
+pub struct ServerSettingInput<'a> {
     #[validate(custom = "validate_urls")]
     pub security_allowed_register_domain_list: Vec<&'a str>,
     #[validate(url)]
     pub network_external_url: &'a str,
 }
 
-fn validate_urls(urls: &Vec<&str>) -> Result<(), ValidationError> {
-    for url in urls {
-        if !validate_domain(*url) {
-            return Err(ValidationError::new("invalid_url"));
+fn validate_urls(domains: &Vec<&str>) -> Result<(), ValidationError> {
+    let unique: HashSet<_> = domains.iter().collect();
+    if unique.len() != domains.len() {
+        let collision = domains.iter().find(|s| unique.contains(s)).unwrap();
+        let mut err = ValidationError::new("Duplicate domain: {collision}");
+        err.add_param("domain".into(), collision);
+        return Err(err);
+    }
+    for domain in domains {
+        let email = format!("noreply@{domain}");
+        if !validate_email(email) {
+            let mut err = ValidationError::new("Invalid domain");
+            err.add_param("domain".into(), domain);
+            return Err(err);
         }
     }
     Ok(())
 }
 
-fn validate_domain(s: &str) -> bool {
-    let Some(dot) = s.find('.') else { return false };
-    let (site_name, tld) = s.split_at(dot);
-    if !(0..=63).contains(&site_name.len())
-        || site_name.starts_with("-")
-        || site_name.ends_with("-")
-    {
-        return false;
-    }
-    let valid_site = site_name
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '-');
-    let alphabetic_domains = tld
-        .split('.')
-        .flat_map(|s| s.chars())
-        .all(|c| c.is_ascii_alphabetic());
-    let domains_length = tld.split('.').all(|d| d.len() >= 2);
+#[cfg(test)]
+mod tests {
+    use crate::schema::settings::validate_urls;
 
-    valid_site && alphabetic_domains && domains_length
+    #[test]
+    fn test_validate_urls() {
+        assert!(validate_urls(&vec!["example.com"]).is_ok());
+
+        assert!(validate_urls(&vec!["example"]).is_err());
+
+        assert!(validate_urls(&vec!["domain.withmultipleparts.com"]).is_ok());
+
+        assert!(validate_urls(&vec!["example.com", "example.com"]).is_err());
+    }
 }
