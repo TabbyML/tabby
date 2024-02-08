@@ -26,12 +26,13 @@ use validator::ValidationErrors;
 use worker::{Worker, WorkerService};
 
 use self::{
-    email::{EmailService, EmailSetting},
+    email::{EmailService, EmailSetting, Encryption},
     repository::{RepositoryError, RepositoryService},
     setting::{ServerSetting, SettingService},
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    email::AuthMethod,
     repository::Repository,
 };
 
@@ -453,8 +454,8 @@ impl Mutation {
         smtp_password: Option<String>,
         smtp_server: String,
         from_address: Option<String>,
-        encryption: String,
-        auth_method: String,
+        encryption: Encryption,
+        auth_method: AuthMethod,
     ) -> Result<bool> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(

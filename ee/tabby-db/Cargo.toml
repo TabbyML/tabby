@@ -12,7 +12,7 @@ prod-db = []
 [dependencies]
 anyhow.workspace = true
 chrono = { workspace = true, features = ["serde"] }
-sqlx = { version = "0.7.3", features = ["sqlite", "chrono", "runtime-tokio"] }
+sqlx = { version = "0.7.3", features = ["sqlite", "chrono", "runtime-tokio", "macros"] }
 tabby-common = { path = "../../crates/tabby-common" }
 tokio = { workspace = true, features = ["fs"] }
 uuid.workspace = true

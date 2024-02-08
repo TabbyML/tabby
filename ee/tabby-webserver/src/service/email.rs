@@ -10,9 +10,8 @@ use lettre::{
 };
 use tabby_db::DbConn;
 use tokio::sync::RwLock;
-use validator::Validate;
 
-use crate::schema::email::{EmailService, EmailSetting};
+use crate::schema::email::{AuthMethod, EmailService, EmailSetting, Encryption};
 
 struct EmailServiceImpl {
     db: DbConn,
@@ -20,21 +19,19 @@ struct EmailServiceImpl {
     from: RwLock<String>,
 }
 
-fn auth_mechanism(s: &str) -> Result<Mechanism> {
-    match &*s.to_lowercase() {
-        "plain" => Ok(Mechanism::Plain),
-        "login" => Ok(Mechanism::Login),
-        "xoauth2" => Ok(Mechanism::Xoauth2),
-        _ => Err(anyhow!("Invalid authentication method {s}")),
+fn auth_mechanism(auth_method: AuthMethod) -> Mechanism {
+    match auth_method {
+        AuthMethod::Plain => Mechanism::Plain,
+        AuthMethod::Login => Mechanism::Login,
+        AuthMethod::XOAuth2 => Mechanism::Xoauth2,
     }
 }
 
-fn make_smtp_builder(address: &str, encryption: &str) -> Result<SmtpTransportBuilder> {
-    match &*encryption.to_lowercase() {
-        "starttls" => Ok(SmtpTransport::starttls_relay(address)?),
-        "ssl/tls" | "ssl" | "tls" => Ok(SmtpTransport::relay(address)?),
-        "none" => Ok(SmtpTransport::builder_dangerous(address)),
-        _ => Err(anyhow!("Invalid encryption method {encryption}")),
+fn make_smtp_builder(address: &str, encryption: Encryption) -> Result<SmtpTransportBuilder> {
+    match encryption {
+        Encryption::StartTls => Ok(SmtpTransport::starttls_relay(address)?),
+        Encryption::SslTls => Ok(SmtpTransport::relay(address)?),
+        Encryption::None => Ok(SmtpTransport::builder_dangerous(address)),
     }
 }
 
@@ -45,14 +42,14 @@ impl EmailServiceImpl {
         username: String,
         password: String,
         server: &str,
-        encryption: String,
-        auth_method: String,
+        encryption: Encryption,
+        auth_method: AuthMethod,
     ) -> Result<()> {
         let mut smtp_server = self.smtp_server.write().await;
         *smtp_server = Some(
-            make_smtp_builder(server, &encryption)?
+            make_smtp_builder(server, encryption)?
                 .credentials(Credentials::new(username, password))
-                .authentication(vec![auth_mechanism(&auth_method)?])
+                .authentication(vec![auth_mechanism(auth_method)])
                 .build(),
         );
         Ok(())
@@ -90,13 +87,15 @@ pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
     };
     // Optionally initialize the SMTP connection when the service is created
     if let Some(creds) = creds {
+        let encryption = EmailSetting::convert_encryption(&creds.encryption)?;
+        let auth_method = EmailSetting::convert_auth_method(&creds.auth_method)?;
         service
             .reset_smtp_connection(
                 creds.smtp_username,
                 creds.smtp_password,
                 &creds.smtp_server,
-                creds.encryption,
-                creds.auth_method,
+                encryption,
+                auth_method,
             )
             .await?;
     };
@@ -107,7 +106,10 @@ pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
 impl EmailService for EmailServiceImpl {
     async fn get_email_setting(&self) -> Result<Option<EmailSetting>> {
         let creds = self.db.read_email_setting().await?;
-        Ok(creds.map(Into::into))
+        let Some(creds) = creds else {
+            return Ok(None);
+        };
+        Ok(Some(creds.try_into()?))
     }
 
     async fn update_email_setting(
@@ -116,29 +118,22 @@ impl EmailService for EmailServiceImpl {
         smtp_password: Option<String>,
         smtp_server: String,
         from_address: Option<String>,
-        encryption: String,
-        auth_method: String,
+        encryption: Encryption,
+        auth_method: AuthMethod,
     ) -> Result<()> {
-        let setting = EmailSetting {
-            from_address: from_address.unwrap_or_else(|| smtp_username.clone()),
-            smtp_username,
-            smtp_server,
-            encryption,
-            auth_method,
-        };
-        setting.validate()?;
+        let from_address = from_address.unwrap_or_else(|| smtp_username.clone());
 
         self.db
             .update_email_setting(
-                setting.smtp_username.clone(),
+                smtp_username.clone(),
                 smtp_password.clone(),
-                setting.smtp_server.clone(),
-                setting.from_address.clone(),
-                setting.encryption.clone(),
-                setting.auth_method.clone(),
+                smtp_server.clone(),
+                from_address.clone(),
+                encryption.to_string(),
+                auth_method.to_string(),
             )
             .await?;
-        *self.from.write().await = setting.smtp_username.clone();
+        *self.from.write().await = smtp_username.clone();
         let smtp_password = match smtp_password {
             Some(pass) => pass,
             None => {
@@ -151,11 +146,11 @@ impl EmailService for EmailServiceImpl {
         };
         // When the SMTP credentials are updated, reinitialize the SMTP server connection
         self.reset_smtp_connection(
-            setting.smtp_username,
+            smtp_username,
             smtp_password.clone(),
-            &setting.smtp_server,
-            setting.encryption,
-            setting.auth_method,
+            &smtp_server,
+            encryption,
+            auth_method,
         )
         .await?;
         Ok(())
@@ -205,8 +200,8 @@ mod tests {
                 Some("test".into()),
                 "example.com".into(),
                 None,
-                "SSL".into(),
-                "PLAIN".into(),
+                Encryption::SslTls,
+                AuthMethod::Plain,
             )
             .await
             .unwrap();
