@@ -1,7 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use tabby_db::DbConn;
-use validator::Validate;
 
 use crate::schema::setting::{
     NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
@@ -14,7 +13,6 @@ impl SettingService for DbConn {
     }
 
     async fn update_security_setting(&self, input: SecuritySettingInput) -> Result<()> {
-        input.validate()?;
         let domains = if input.allowed_register_domain_list.is_empty() {
             None
         } else {
@@ -30,7 +28,6 @@ impl SettingService for DbConn {
     }
 
     async fn update_network_setting(&self, input: NetworkSettingInput) -> Result<()> {
-        input.validate()?;
         self.update_network_setting(input.external_url).await
     }
 }
