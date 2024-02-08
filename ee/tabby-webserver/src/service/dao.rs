@@ -28,7 +28,7 @@ impl From<JobRunDAO> for job::JobRun {
     fn from(run: JobRunDAO) -> Self {
         Self {
             id: run.id.as_id(),
-            job: run.job,
+            job: run.name,
             created_at: run.created_at,
             updated_at: run.updated_at,
             finished_at: run.finished_at,

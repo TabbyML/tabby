@@ -7,7 +7,8 @@ use super::DbConn;
 #[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {
     pub id: i32,
-    pub job: String,
+    #[sqlx(rename = "job")]
+    pub name: String,
     pub exit_code: Option<i32>,
     pub stdout: String,
     pub stderr: String,
