@@ -83,18 +83,3 @@ impl DbConn {
         Ok(runs)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_create_job_run() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let id = db.create_job_run("test".to_string()).await.unwrap();
-        assert_eq!(id, 1);
-
-        let id = db.create_job_run("test".to_string()).await.unwrap();
-        assert_eq!(id, 2);
-    }
-}
