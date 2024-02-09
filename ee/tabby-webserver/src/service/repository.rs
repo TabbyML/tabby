@@ -48,3 +48,36 @@ impl RepositoryService for DbConn {
             .map(|_| true)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tabby_db::DbConn;
+
+    use super::*;
+
+    #[tokio::test]
+    pub async fn test_duplicate_repository_error() {
+        let db = DbConn::new_in_memory().await.unwrap();
+
+        RepositoryService::create_repository(
+            &db,
+            "example".into(),
+            "https://github.com/example/example".into(),
+        )
+        .await
+        .unwrap();
+
+        let err = RepositoryService::create_repository(
+            &db,
+            "example".into(),
+            "https://github.com/example/example".into(),
+        )
+        .await
+        .unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "A repository with the same name or URL already exists"
+        );
+    }
+}
