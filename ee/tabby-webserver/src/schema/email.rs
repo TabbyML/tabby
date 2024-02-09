@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use juniper::{GraphQLEnum, GraphQLObject};
+use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject};
 use validator::Validate;
 
 #[derive(GraphQLEnum, Clone, Debug)]
@@ -26,7 +26,7 @@ pub struct EmailSetting {
     pub auth_method: AuthMethod,
 }
 
-#[derive(GraphQLObject, Validate)]
+#[derive(GraphQLInputObject, Validate)]
 pub struct EmailSettingInput {
     #[validate(email)]
     pub smtp_username: String,
@@ -34,6 +34,9 @@ pub struct EmailSettingInput {
     pub from_address: String,
     #[validate(url)]
     pub smtp_server: String,
+    pub encryption: Encryption,
+    pub auth_method: AuthMethod,
+    pub smtp_password: Option<String>,
 }
 
 #[async_trait]

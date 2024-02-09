@@ -26,7 +26,7 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    email::{EmailService, EmailSetting, Encryption},
+    email::{EmailService, EmailSetting, EmailSettingInput},
     repository::{RepositoryError, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
@@ -34,7 +34,6 @@ use self::{
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
-    email::AuthMethod,
     repository::Repository,
 };
 
@@ -464,15 +463,7 @@ impl Mutation {
         ))
     }
 
-    async fn update_email_setting(
-        ctx: &Context,
-        smtp_username: String,
-        smtp_password: Option<String>,
-        smtp_server: String,
-        from_address: String,
-        encryption: Encryption,
-        auth_method: AuthMethod,
-    ) -> Result<bool> {
+    async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(
                 "Only admin can access server settings",
@@ -481,12 +472,12 @@ impl Mutation {
         ctx.locator
             .email()
             .update_email_setting(
-                smtp_username,
-                smtp_password,
-                smtp_server,
-                from_address,
-                encryption,
-                auth_method,
+                input.smtp_username,
+                input.smtp_password,
+                input.smtp_server,
+                input.from_address,
+                input.encryption,
+                input.auth_method,
             )
             .await?;
         Ok(true)
