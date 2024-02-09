@@ -178,7 +178,7 @@ impl EmailService for EmailServiceImpl {
             email,
             "You've been invited to join a Tabby workspace!".into(),
             format!("Welcome to Tabby! You have been invited to join a Tabby instance, where you can tap into\
-                AI-driven code completions and chat assistants. Your invite code is {code}, go to {external_url} to join!"),
+                AI-driven code completions and chat assistants. Your invite code is {code}, go to {external_url}/auth/signup?invitationCode={code} to join!"),
         ).await
     }
 }
