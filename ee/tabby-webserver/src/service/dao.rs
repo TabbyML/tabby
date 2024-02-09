@@ -95,13 +95,20 @@ impl TryFrom<EmailSettingDAO> for EmailSetting {
     type Error = anyhow::Error;
 
     fn try_from(value: EmailSettingDAO) -> Result<Self, Self::Error> {
-        EmailSetting::new_validate(
-            value.smtp_username,
-            value.smtp_server,
-            value.from_address,
-            value.encryption,
-            value.auth_method,
-        )
+        if !validate_url(&value.smtp_server) {
+            return Err(anyhow!("Invalid smtp server address"));
+        }
+
+        let encryption = Encryption::from_enum_str(&value.encryption)?;
+        let auth_method = AuthMethod::from_enum_str(&value.auth_method)?;
+
+        Ok(EmailSetting {
+            smtp_username: value.smtp_username,
+            smtp_server: value.smtp_server,
+            from_address: value.from_address,
+            encryption,
+            auth_method,
+        })
     }
 }
 
@@ -191,30 +198,5 @@ impl DbEnum for AuthMethod {
             "xoauth2" => Ok(AuthMethod::XOAuth2),
             _ => Err(anyhow!("{s} is not a valid value for AuthMethod")),
         }
-    }
-}
-
-impl EmailSetting {
-    pub fn new_validate(
-        smtp_username: String,
-        smtp_server: String,
-        from_address: String,
-        encryption: String,
-        auth_method: String,
-    ) -> anyhow::Result<Self> {
-        if !validate_url(&smtp_server) {
-            return Err(anyhow!("Invalid smtp server address"));
-        }
-
-        let encryption = Encryption::from_enum_str(&encryption)?;
-        let auth_method = AuthMethod::from_enum_str(&auth_method)?;
-
-        Ok(EmailSetting {
-            smtp_username,
-            smtp_server,
-            from_address,
-            encryption,
-            auth_method,
-        })
     }
 }
