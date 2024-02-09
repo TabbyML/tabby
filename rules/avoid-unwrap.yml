@@ -1,4 +1,4 @@
-id: avoid-unwrap
+id: avoid-unwrap-if-possible
 message: Avoid unwrap, consider return Result with meaningful error message.
 severity: warning
 language: rust
