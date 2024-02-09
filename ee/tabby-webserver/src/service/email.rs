@@ -13,7 +13,10 @@ use tokio::sync::RwLock;
 use tracing::warn;
 use validator::Validate;
 
-use crate::schema::email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption};
+use crate::schema::{
+    email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
+    setting::SettingService,
+};
 
 struct EmailServiceImpl {
     db: DbConn,
@@ -176,13 +179,13 @@ impl EmailService for EmailServiceImpl {
     }
 
     async fn send_invitation_email(&self, email: String, code: String) -> Result<()> {
-        // TODO: Include invitation link
+        let network_setting = self.db.read_network_setting().await?;
+        let external_url = network_setting.external_url;
         self.send_mail(
             email,
             "You've been invited to join a Tabby workspace!".into(),
             format!("Welcome to Tabby! You have been invited to join a Tabby instance, where you can tap into\
-                AI-driven code completions and chat assistants. Your invite code is {code}, use this at the link\
-                you were given to join the organization."),
+                AI-driven code completions and chat assistants. Your invite code is {code}, go to {external_url} to join!"),
         ).await
     }
 }
