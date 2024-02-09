@@ -13,7 +13,7 @@ use tokio::sync::RwLock;
 use tracing::warn;
 
 use crate::schema::{
-    email::{AuthMethod, EmailService, EmailSetting, Encryption},
+    email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
     setting::SettingService,
 };
 
@@ -122,27 +122,19 @@ impl EmailService for EmailServiceImpl {
         Ok(Some(creds))
     }
 
-    async fn update_email_setting(
-        &self,
-        smtp_username: String,
-        smtp_password: Option<String>,
-        smtp_server: String,
-        from_address: String,
-        encryption: Encryption,
-        auth_method: AuthMethod,
-    ) -> Result<()> {
+    async fn update_email_setting(&self, input: EmailSettingInput) -> Result<()> {
         self.db
             .update_email_setting(
-                smtp_username.clone(),
-                smtp_password.clone(),
-                smtp_server.clone(),
-                from_address.clone(),
-                encryption.as_enum_str().into(),
-                auth_method.as_enum_str().into(),
+                input.smtp_username.clone(),
+                input.smtp_password.clone(),
+                input.smtp_server.clone(),
+                input.from_address.clone(),
+                input.encryption.as_enum_str().into(),
+                input.auth_method.as_enum_str().into(),
             )
             .await?;
-        *self.from.write().await = smtp_username.clone();
-        let smtp_password = match smtp_password {
+        *self.from.write().await = input.smtp_username.clone();
+        let smtp_password = match input.smtp_password {
             Some(pass) => pass,
             None => {
                 self.db
@@ -154,11 +146,11 @@ impl EmailService for EmailServiceImpl {
         };
         // When the SMTP credentials are updated, reinitialize the SMTP server connection
         self.reset_smtp_connection(
-            smtp_username,
+            input.smtp_username,
             smtp_password.clone(),
-            &smtp_server,
-            encryption,
-            auth_method,
+            &input.smtp_server,
+            input.encryption,
+            input.auth_method,
         )
         .await?;
         Ok(())
@@ -202,17 +194,16 @@ mod tests {
             smtp_server: Default::default(),
             from: Default::default(),
         };
-        service
-            .update_email_setting(
-                "test@example.com".into(),
-                Some("test".into()),
-                "smtp://example.com".into(),
-                "test@example.com".into(),
-                Encryption::SslTls,
-                AuthMethod::Plain,
-            )
-            .await
-            .unwrap();
+
+        let update_input = EmailSettingInput {
+            smtp_username: "test@example.com".into(),
+            from_address: "test".into(),
+            smtp_server: "smtp://example.com".into(),
+            encryption: Encryption::SslTls,
+            auth_method: AuthMethod::Plain,
+            smtp_password: None,
+        };
+        service.update_email_setting(update_input).await.unwrap();
         let setting = service.get_email_setting().await.unwrap().unwrap();
         assert_eq!(setting.smtp_username, "test@example.com");
     }

@@ -469,17 +469,8 @@ impl Mutation {
                 "Only admin can access server settings",
             ));
         };
-        ctx.locator
-            .email()
-            .update_email_setting(
-                input.smtp_username,
-                input.smtp_password,
-                input.smtp_server,
-                input.from_address,
-                input.encryption,
-                input.auth_method,
-            )
-            .await?;
+        input.validate()?;
+        ctx.locator.email().update_email_setting(input).await?;
         Ok(true)
     }
 
