@@ -8,17 +8,20 @@ use argon2::{
 };
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_db::DbConn;
+use tabby_db::{DbConn, InvitationDAO};
 use validator::{Validate, ValidationError};
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
     oauth,
-    schema::auth::{
-        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
-        JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenError,
-        RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse,
-        User, VerifyTokenResponse,
+    schema::{
+        auth::{
+            generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
+            JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
+            RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
+            TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
+        },
+        setting::SettingService,
     },
 };
 
@@ -153,24 +156,8 @@ impl AuthenticationService for DbConn {
         input.validate()?;
 
         let is_admin_initialized = self.is_admin_initialized().await?;
-        let invitation = if is_admin_initialized {
-            let err = Err(RegisterError::InvalidInvitationCode);
-            let Some(invitation_code) = invitation_code else {
-                return err;
-            };
-
-            let Some(invitation) = self.get_invitation_by_code(&invitation_code).await? else {
-                return err;
-            };
-
-            if invitation.email != input.email {
-                return err;
-            }
-
-            Some(invitation)
-        } else {
-            None
-        };
+        let invitation =
+            check_invitation(self, is_admin_initialized, invitation_code, &input.email).await?;
 
         // check if email exists
         if self.get_user_by_email(&input.email).await?.is_some() {
@@ -302,6 +289,17 @@ impl AuthenticationService for DbConn {
         Ok(invitation.into())
     }
 
+    async fn request_invitation(&self, email: String) -> Result<Invitation> {
+        if !self
+            .read_security_setting()
+            .await?
+            .can_register_without_invitation(&email)
+        {
+            return Err(anyhow!("Your email does not belong to this organization, please request an invitation from an administrator"));
+        }
+        AuthenticationService::create_invitation(self, email).await
+    }
+
     async fn delete_invitation(&self, id: &ID) -> Result<ID> {
         Ok(self.delete_invitation(id.as_rowid()?).await?.as_id())
     }
@@ -356,7 +354,7 @@ impl AuthenticationService for DbConn {
             }
             user
         } else {
-            let Some(invitation) = self.get_invitation_by_email(&email).await? else {
+            let Ok(invitation) = get_or_request_invitation(&self, &email).await else {
                 return Err(OAuthError::UserNotInvited);
             };
             // it's ok to set password to empty string here, because
@@ -364,7 +362,15 @@ impl AuthenticationService for DbConn {
             // 2. `password_verify` will always return false for empty password hash read from user table
             // so user created here is only able to login by github oauth, normal login won't work
             let id = self
-                .create_user_with_invitation(email, "".to_owned(), false, invitation.id)
+                .create_user_with_invitation(
+                    email,
+                    "".to_owned(),
+                    false,
+                    invitation
+                        .id
+                        .as_rowid()
+                        .expect("rowid must be valid since it came from db"),
+                )
                 .await?;
             self.get_user(id).await?.unwrap()
         };
@@ -423,6 +429,49 @@ impl AuthenticationService for DbConn {
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
         self.update_user_active(id.as_rowid()?, active).await
     }
+}
+
+async fn get_or_request_invitation(db: &DbConn, email: &str) -> Result<Invitation> {
+    let invite = db.get_invitation_by_email(email).await?;
+    if let Some(invite) = invite {
+        return Ok(invite.into());
+    }
+    db.request_invitation(email.to_string()).await
+}
+
+async fn check_invitation(
+    db: &DbConn,
+    is_admin_initialized: bool,
+    invitation_code: Option<String>,
+    email: &str,
+) -> Result<Option<InvitationDAO>, RegisterError> {
+    if !is_admin_initialized {
+        return Ok(None);
+    }
+
+    let network_setting = db.read_security_setting().await?;
+    let domain = email.split_once('@').unwrap_or_default().1.to_string();
+    if network_setting
+        .allowed_register_domain_list
+        .contains(&domain)
+    {
+        return Ok(None);
+    }
+
+    let err = Err(RegisterError::InvalidInvitationCode);
+    let Some(invitation_code) = invitation_code else {
+        return err;
+    };
+
+    let Some(invitation) = db.get_invitation_by_code(&invitation_code).await? else {
+        return err;
+    };
+
+    if invitation.email != email {
+        return err;
+    }
+
+    Ok(Some(invitation))
 }
 
 fn password_hash(raw: &str) -> password_hash::Result<String> {

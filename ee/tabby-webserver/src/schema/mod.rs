@@ -33,7 +33,7 @@ use self::{
     },
 };
 use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    auth::{JWTPayload, OAuthCredential, OAuthProvider, RequestInvitationInput},
     repository::Repository,
 };
 
@@ -320,6 +320,14 @@ impl Mutation {
         Err(CoreError::Unauthorized(
             "Only admin is able to reset registration token",
         ))
+    }
+
+    async fn request_invitation_email(
+        ctx: &Context,
+        email: RequestInvitationInput,
+    ) -> Result<Invitation> {
+        email.validate()?;
+        Ok(ctx.locator.auth().request_invitation(email.email).await?)
     }
 
     async fn reset_user_auth_token(ctx: &Context) -> Result<bool> {

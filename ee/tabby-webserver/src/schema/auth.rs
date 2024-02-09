@@ -4,7 +4,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
-use juniper::{FieldError, GraphQLEnum, GraphQLObject, IntoFieldError, ScalarValue, ID};
+use juniper::{
+    FieldError, GraphQLEnum, GraphQLInputObject, GraphQLObject, IntoFieldError, ScalarValue, ID,
+};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -12,7 +14,7 @@ use tabby_common::terminal::{HeaderFormat, InfoMessage};
 use thiserror::Error;
 use tracing::{error, warn};
 use uuid::Uuid;
-use validator::ValidationErrors;
+use validator::{Validate, ValidationErrors};
 
 use super::from_validation_errors;
 use crate::schema::Context;
@@ -289,6 +291,12 @@ impl relay::NodeType for User {
     }
 }
 
+#[derive(Validate, GraphQLInputObject)]
+pub struct RequestInvitationInput {
+    #[validate(email)]
+    pub email: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
 #[graphql(context = Context)]
 pub struct Invitation {
@@ -360,6 +368,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
+    async fn request_invitation(&self, email: String) -> Result<Invitation>;
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
