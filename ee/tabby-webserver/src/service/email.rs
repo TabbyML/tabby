@@ -2,18 +2,41 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use lettre::{
     message::{Mailbox, MessageBuilder},
-    transport::smtp::authentication::Credentials,
+    transport::smtp::{
+        authentication::{Credentials, Mechanism},
+        SmtpTransportBuilder,
+    },
     Address, SmtpTransport, Transport,
 };
-use tabby_db::DbConn;
+use tabby_db::{DbConn, DbEnum};
 use tokio::sync::RwLock;
+use tracing::warn;
 
-use crate::schema::email::{EmailService, EmailSetting};
+use crate::schema::{
+    email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
+    setting::SettingService,
+};
 
 struct EmailServiceImpl {
     db: DbConn,
     smtp_server: RwLock<Option<SmtpTransport>>,
     from: RwLock<String>,
+}
+
+fn auth_mechanism(auth_method: AuthMethod) -> Mechanism {
+    match auth_method {
+        AuthMethod::Plain => Mechanism::Plain,
+        AuthMethod::Login => Mechanism::Login,
+        AuthMethod::XOAuth2 => Mechanism::Xoauth2,
+    }
+}
+
+fn make_smtp_builder(address: &str, encryption: Encryption) -> Result<SmtpTransportBuilder> {
+    match encryption {
+        Encryption::StartTls => Ok(SmtpTransport::starttls_relay(address)?),
+        Encryption::SslTls => Ok(SmtpTransport::relay(address)?),
+        Encryption::None => Ok(SmtpTransport::builder_dangerous(address)),
+    }
 }
 
 impl EmailServiceImpl {
@@ -23,11 +46,14 @@ impl EmailServiceImpl {
         username: String,
         password: String,
         server: &str,
+        encryption: Encryption,
+        auth_method: AuthMethod,
     ) -> Result<()> {
         let mut smtp_server = self.smtp_server.write().await;
         *smtp_server = Some(
-            SmtpTransport::relay(server)?
+            make_smtp_builder(server, encryption)?
                 .credentials(Credentials::new(username, password))
+                .authentication(vec![auth_mechanism(auth_method)])
                 .build(),
         );
         Ok(())
@@ -65,8 +91,16 @@ pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
     };
     // Optionally initialize the SMTP connection when the service is created
     if let Some(creds) = creds {
+        let encryption = Encryption::from_enum_str(&creds.encryption)?;
+        let auth_method = AuthMethod::from_enum_str(&creds.auth_method)?;
         service
-            .reset_smtp_connection(creds.smtp_username, creds.smtp_password, &creds.smtp_server)
+            .reset_smtp_connection(
+                creds.smtp_username,
+                creds.smtp_password,
+                &creds.smtp_server,
+                encryption,
+                auth_method,
+            )
             .await?;
     };
     Ok(service)
@@ -76,24 +110,31 @@ pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
 impl EmailService for EmailServiceImpl {
     async fn get_email_setting(&self) -> Result<Option<EmailSetting>> {
         let creds = self.db.read_email_setting().await?;
-        Ok(creds.map(Into::into))
+        let Some(creds) = creds else {
+            return Ok(None);
+        };
+        let creds = creds.try_into();
+        let Ok(creds) = creds else {
+            self.db.delete_email_setting().await?;
+            warn!("Email settings are corrupt, and have been deleted. Please reset them.");
+            return Ok(None);
+        };
+        Ok(Some(creds))
     }
 
-    async fn update_email_setting(
-        &self,
-        smtp_username: String,
-        smtp_password: Option<String>,
-        smtp_server: String,
-    ) -> Result<()> {
-        self.update_email_setting(
-            smtp_username.clone(),
-            smtp_password.clone(),
-            smtp_server.clone(),
-        )
-        .await?;
-        // TODO: make from address being configurable in EmailSettings.
-        *self.from.write().await = smtp_username.clone();
-        let smtp_password = match smtp_password {
+    async fn update_email_setting(&self, input: EmailSettingInput) -> Result<()> {
+        self.db
+            .update_email_setting(
+                input.smtp_username.clone(),
+                input.smtp_password.clone(),
+                input.smtp_server.clone(),
+                input.from_address.clone(),
+                input.encryption.as_enum_str().into(),
+                input.auth_method.as_enum_str().into(),
+            )
+            .await?;
+        *self.from.write().await = input.smtp_username.clone();
+        let smtp_password = match input.smtp_password {
             Some(pass) => pass,
             None => {
                 self.db
@@ -104,8 +145,14 @@ impl EmailService for EmailServiceImpl {
             }
         };
         // When the SMTP credentials are updated, reinitialize the SMTP server connection
-        self.reset_smtp_connection(smtp_username, smtp_password, &smtp_server)
-            .await?;
+        self.reset_smtp_connection(
+            input.smtp_username,
+            smtp_password.clone(),
+            &input.smtp_server,
+            input.encryption,
+            input.auth_method,
+        )
+        .await?;
         Ok(())
     }
 
@@ -117,13 +164,13 @@ impl EmailService for EmailServiceImpl {
     }
 
     async fn send_invitation_email(&self, email: String, code: String) -> Result<()> {
-        // TODO: Include invitation link
+        let network_setting = self.db.read_network_setting().await?;
+        let external_url = network_setting.external_url;
         self.send_mail(
             email,
             "You've been invited to join a Tabby workspace!".into(),
             format!("Welcome to Tabby! You have been invited to join a Tabby instance, where you can tap into\
-                AI-driven code completions and chat assistants. Your invite code is {code}, use this at the link\
-                you were given to join the organization."),
+                AI-driven code completions and chat assistants. Your invite code is {code}, go to {external_url}/auth/signup?invitationCode={code} to join!"),
         ).await
     }
 }
@@ -133,4 +180,31 @@ fn to_address(email: String) -> Result<Address> {
         .split_once('@')
         .ok_or_else(|| anyhow!("address contains no @"))?;
     Ok(Address::new(user, domain)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_update_email_with_service() {
+        let db: DbConn = DbConn::new_in_memory().await.unwrap();
+        let service = EmailServiceImpl {
+            db,
+            smtp_server: Default::default(),
+            from: Default::default(),
+        };
+
+        let update_input = EmailSettingInput {
+            smtp_username: "test@example.com".into(),
+            from_address: "test".into(),
+            smtp_server: "smtp://example.com".into(),
+            encryption: Encryption::SslTls,
+            auth_method: AuthMethod::Plain,
+            smtp_password: Some("123456".to_owned()),
+        };
+        service.update_email_setting(update_input).await.unwrap();
+        let setting = service.get_email_setting().await.unwrap().unwrap();
+        assert_eq!(setting.smtp_username, "test@example.com");
+    }
 }

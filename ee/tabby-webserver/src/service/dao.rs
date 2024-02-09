@@ -1,13 +1,15 @@
+use anyhow::anyhow;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO,
-    RepositoryDAO, ServerSettingDAO, UserDAO,
+    DbEnum, EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO,
+    JobRunDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
 };
+use validator::validate_url;
 
 use crate::schema::{
     auth::{self, OAuthCredential, OAuthProvider},
-    email::EmailSetting,
+    email::{AuthMethod, EmailSetting, Encryption},
     job,
     repository::Repository,
     setting::{NetworkSetting, SecuritySetting},
@@ -89,12 +91,24 @@ impl From<RepositoryDAO> for Repository {
     }
 }
 
-impl From<EmailSettingDAO> for EmailSetting {
-    fn from(value: EmailSettingDAO) -> Self {
-        EmailSetting {
+impl TryFrom<EmailSettingDAO> for EmailSetting {
+    type Error = anyhow::Error;
+
+    fn try_from(value: EmailSettingDAO) -> Result<Self, Self::Error> {
+        if !validate_url(&value.smtp_server) {
+            return Err(anyhow!("Invalid smtp server address"));
+        }
+
+        let encryption = Encryption::from_enum_str(&value.encryption)?;
+        let auth_method = AuthMethod::from_enum_str(&value.auth_method)?;
+
+        Ok(EmailSetting {
             smtp_username: value.smtp_username,
             smtp_server: value.smtp_server,
-        }
+            from_address: value.from_address,
+            encryption,
+            auth_method,
+        })
     }
 }
 
@@ -146,5 +160,43 @@ pub trait AsID {
 impl AsID for i32 {
     fn as_id(&self) -> juniper::ID {
         juniper::ID::new(HASHER.encode(&[*self as u64]))
+    }
+}
+
+impl DbEnum for Encryption {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            Encryption::StartTls => "starttls",
+            Encryption::SslTls => "ssltls",
+            Encryption::None => "none",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "starttls" => Ok(Encryption::StartTls),
+            "ssltls" => Ok(Encryption::SslTls),
+            "none" => Ok(Encryption::None),
+            _ => Err(anyhow!("{s} is not a valid value for Encryption")),
+        }
+    }
+}
+
+impl DbEnum for AuthMethod {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            AuthMethod::Plain => "plain",
+            AuthMethod::Login => "login",
+            AuthMethod::XOAuth2 => "xoauth2",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "plain" => Ok(AuthMethod::Plain),
+            "login" => Ok(AuthMethod::Login),
+            "xoauth2" => Ok(AuthMethod::XOAuth2),
+            _ => Err(anyhow!("{s} is not a valid value for AuthMethod")),
+        }
     }
 }

@@ -26,7 +26,7 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    email::{EmailService, EmailSetting},
+    email::{EmailService, EmailSetting, EmailSettingInput},
     repository::{RepositoryError, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
@@ -463,21 +463,14 @@ impl Mutation {
         ))
     }
 
-    async fn update_email_setting(
-        ctx: &Context,
-        smtp_username: String,
-        smtp_password: Option<String>,
-        smtp_server: String,
-    ) -> Result<bool> {
+    async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(
                 "Only admin can access server settings",
             ));
         };
-        ctx.locator
-            .email()
-            .update_email_setting(smtp_username, smtp_password, smtp_server)
-            .await?;
+        input.validate()?;
+        ctx.locator.email().update_email_setting(input).await?;
         Ok(true)
     }
 
@@ -504,6 +497,11 @@ impl Mutation {
     }
 
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access email settings",
+            ));
+        };
         ctx.locator.email().delete_email_setting().await?;
         Ok(true)
     }

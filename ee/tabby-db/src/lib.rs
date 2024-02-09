@@ -22,6 +22,11 @@ mod users;
 use anyhow::Result;
 use sqlx::sqlite::SqliteConnectOptions;
 
+pub trait DbEnum: Sized {
+    fn as_enum_str(&self) -> &'static str;
+    fn from_enum_str(s: &str) -> anyhow::Result<Self>;
+}
+
 #[derive(Clone)]
 pub struct DbConn {
     pool: Pool<Sqlite>,
