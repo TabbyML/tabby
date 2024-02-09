@@ -1,8 +1,7 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLObject};
-use tabby_db::DbEnum;
-use validator::validate_url;
+use validator::Validate;
 
 #[derive(GraphQLEnum, Clone, Debug)]
 pub enum Encryption {
@@ -27,29 +26,14 @@ pub struct EmailSetting {
     pub auth_method: AuthMethod,
 }
 
-impl EmailSetting {
-    pub fn new_validate(
-        smtp_username: String,
-        smtp_server: String,
-        from_address: String,
-        encryption: String,
-        auth_method: String,
-    ) -> Result<Self> {
-        if !validate_url(&smtp_server) {
-            return Err(anyhow!("Invalid smtp server address"));
-        }
-
-        let encryption = Encryption::from_enum_str(&encryption)?;
-        let auth_method = AuthMethod::from_enum_str(&auth_method)?;
-
-        Ok(EmailSetting {
-            smtp_username,
-            smtp_server,
-            from_address,
-            encryption,
-            auth_method,
-        })
-    }
+#[derive(GraphQLObject, Validate)]
+pub struct EmailSettingInput {
+    #[validate(email)]
+    pub smtp_username: String,
+    #[validate(email)]
+    pub from_address: String,
+    #[validate(url)]
+    pub smtp_server: String,
 }
 
 #[async_trait]

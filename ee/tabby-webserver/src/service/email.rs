@@ -11,8 +11,9 @@ use lettre::{
 use tabby_db::{DbConn, DbEnum};
 use tokio::sync::RwLock;
 use tracing::warn;
+use validator::Validate;
 
-use crate::schema::email::{AuthMethod, EmailService, EmailSetting, Encryption};
+use crate::schema::email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption};
 
 struct EmailServiceImpl {
     db: DbConn,
@@ -128,17 +129,23 @@ impl EmailService for EmailServiceImpl {
         encryption: Encryption,
         auth_method: AuthMethod,
     ) -> Result<()> {
+        let input = EmailSettingInput {
+            smtp_username,
+            from_address,
+            smtp_server,
+        };
+        input.validate()?;
         self.db
             .update_email_setting(
-                smtp_username.clone(),
+                input.smtp_username.clone(),
                 smtp_password.clone(),
-                smtp_server.clone(),
-                from_address.clone(),
+                input.smtp_server.clone(),
+                input.from_address.clone(),
                 encryption.as_enum_str().into(),
                 auth_method.as_enum_str().into(),
             )
             .await?;
-        *self.from.write().await = smtp_username.clone();
+        *self.from.write().await = input.smtp_username.clone();
         let smtp_password = match smtp_password {
             Some(pass) => pass,
             None => {
@@ -151,9 +158,9 @@ impl EmailService for EmailServiceImpl {
         };
         // When the SMTP credentials are updated, reinitialize the SMTP server connection
         self.reset_smtp_connection(
-            smtp_username,
+            input.smtp_username,
             smtp_password.clone(),
-            &smtp_server,
+            &input.smtp_server,
             encryption,
             auth_method,
         )

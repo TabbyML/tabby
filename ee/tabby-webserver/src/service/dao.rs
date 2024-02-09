@@ -5,6 +5,7 @@ use tabby_db::{
     DbEnum, EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO,
     JobRunDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
 };
+use validator::validate_url;
 
 use crate::schema::{
     auth::{self, OAuthCredential, OAuthProvider},
@@ -183,5 +184,30 @@ impl DbEnum for AuthMethod {
             "xoauth2" => Ok(AuthMethod::XOAuth2),
             _ => Err(anyhow!("{s} is not a valid value for AuthMethod")),
         }
+    }
+}
+
+impl EmailSetting {
+    pub fn new_validate(
+        smtp_username: String,
+        smtp_server: String,
+        from_address: String,
+        encryption: String,
+        auth_method: String,
+    ) -> anyhow::Result<Self> {
+        if !validate_url(&smtp_server) {
+            return Err(anyhow!("Invalid smtp server address"));
+        }
+
+        let encryption = Encryption::from_enum_str(&encryption)?;
+        let auth_method = AuthMethod::from_enum_str(&auth_method)?;
+
+        Ok(EmailSetting {
+            smtp_username,
+            smtp_server,
+            from_address,
+            encryption,
+            auth_method,
+        })
     }
 }
