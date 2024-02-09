@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use sqlx::{query, query_as, query_scalar};
 
 use crate::DbConn;
@@ -39,14 +39,13 @@ impl DbConn {
         let mut transaction = self.pool.begin().await?;
         let smtp_password = match smtp_password {
             Some(pass) => pass,
-            None => {
-                query_scalar!(
-                    "SELECT smtp_password FROM email_setting WHERE id = ?",
-                    EMAIL_CREDENTIAL_ROW_ID
-                )
-                .fetch_one(&mut *transaction)
-                .await?
-            }
+            None => query_scalar!(
+                "SELECT smtp_password FROM email_setting WHERE id = ?",
+                EMAIL_CREDENTIAL_ROW_ID
+            )
+            .fetch_one(&mut *transaction)
+            .await
+            .map_err(|_| anyhow!("smtp_password is required to enable email sending"))?,
         };
         query!("INSERT INTO email_setting (id, smtp_username, smtp_password, smtp_server, from_address, encryption, auth_method) VALUES ($1, $2, $3, $4, $5, $6, $7)
                 ON CONFLICT(id) DO UPDATE SET smtp_username = $2, smtp_password = $3, smtp_server = $4, from_address = $5, encryption = $6, auth_method = $7",
