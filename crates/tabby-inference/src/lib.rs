@@ -28,10 +28,10 @@ pub struct TextGenerationOptions {
 
 impl TextGenerationOptions {
     pub fn default_seed() -> u64 {
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64
+        match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+            Ok(x) => x.as_millis() as u64,
+            Err(_) => 0,
+        }
     }
 }
 
