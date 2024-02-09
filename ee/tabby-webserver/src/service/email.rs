@@ -201,7 +201,7 @@ mod tests {
             smtp_server: "smtp://example.com".into(),
             encryption: Encryption::SslTls,
             auth_method: AuthMethod::Plain,
-            smtp_password: None,
+            smtp_password: Some("123456".to_owned()),
         };
         service.update_email_setting(update_input).await.unwrap();
         let setting = service.get_email_setting().await.unwrap().unwrap();
