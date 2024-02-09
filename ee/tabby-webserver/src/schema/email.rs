@@ -28,7 +28,6 @@ pub struct EmailSetting {
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct EmailSettingInput {
-    #[validate(email)]
     pub smtp_username: String,
     #[validate(email)]
     pub from_address: String,
