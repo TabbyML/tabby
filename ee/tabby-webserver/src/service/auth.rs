@@ -14,11 +14,15 @@ use validator::{Validate, ValidationError};
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
     oauth,
-    schema::auth::{
-        generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
-        JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenError,
-        RefreshTokenResponse, RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse,
-        User, VerifyTokenResponse,
+    schema::{
+        auth::{
+            generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
+            JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
+            RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
+            TokenAuthError, TokenAuthResponse, UpdateOAuthCredentialInput, User,
+            VerifyTokenResponse,
+        },
+        setting::SettingService,
     },
 };
 
@@ -387,28 +391,33 @@ impl AuthenticationService for DbConn {
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
         match provider {
-            OAuthProvider::Github => {
-                Ok(self.read_github_oauth_credential().await?.map(|x| x.into()))
-            }
-            OAuthProvider::Google => {
-                Ok(self.read_google_oauth_credential().await?.map(|x| x.into()))
-            }
+            OAuthProvider::Github => Ok(self
+                .read_github_oauth_credential()
+                .await?
+                .map(|val| val.into())),
+            OAuthProvider::Google => Ok(self
+                .read_google_oauth_credential()
+                .await?
+                .map(|val| val.into())),
         }
     }
 
-    async fn update_oauth_credential(
-        &self,
-        provider: OAuthProvider,
-        client_id: String,
-        client_secret: String,
-        redirect_uri: Option<String>,
-    ) -> Result<()> {
-        match provider {
+    async fn oauth_callback_url(&self, provider: OAuthProvider) -> Result<String> {
+        let external_url = self.read_network_setting().await?.external_url;
+        let url = match provider {
+            OAuthProvider::Github => external_url + "/oauth/callback/github",
+            OAuthProvider::Google => external_url + "/oauth/callback/google",
+        };
+        Ok(url)
+    }
+
+    async fn update_oauth_credential(&self, input: UpdateOAuthCredentialInput) -> Result<()> {
+        match input.provider {
             OAuthProvider::Github => Ok(self
-                .update_github_oauth_credential(&client_id, &client_secret)
+                .update_github_oauth_credential(&input.client_id, &input.client_secret)
                 .await?),
             OAuthProvider::Google => Ok(self
-                .update_google_oauth_credential(&client_id, &client_secret, redirect_uri.as_deref())
+                .update_google_oauth_credential(&input.client_id, &input.client_secret)
                 .await?),
         }
     }

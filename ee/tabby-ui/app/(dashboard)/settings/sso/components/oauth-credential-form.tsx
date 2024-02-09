@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { isEmpty } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { useClient } from 'urql'
+import { useClient, useQuery } from 'urql'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
@@ -43,24 +43,20 @@ import { CopyButton } from '@/components/copy-button'
 import { oauthCredential } from './oauth-credential-list'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
-  mutation updateOauthCredential(
-    $provider: OAuthProvider!
-    $clientId: String!
-    $clientSecret: String!
-    $redirectUri: String
-  ) {
-    updateOauthCredential(
-      provider: $provider
-      clientId: $clientId
-      clientSecret: $clientSecret
-      redirectUri: $redirectUri
-    )
+  mutation updateOauthCredential($input: UpdateOAuthCredentialInput!) {
+    updateOauthCredential(input: $input)
   }
 `)
 
 export const deleteOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation deleteOauthCredential($provider: OAuthProvider!) {
     deleteOauthCredential(provider: $provider)
+  }
+`)
+
+const oauthCallbackUrl = graphql(/* GraphQL */ `
+  query OAuthCallbackUrl($provider: OAuthProvider!) {
+    oauthCallbackUrl(provider: $provider)
   }
 `)
 
@@ -75,7 +71,7 @@ export type OAuthCredentialFormValues = z.infer<typeof formSchema>
 interface OAuthCredentialFormProps
   extends React.HTMLAttributes<HTMLDivElement> {
   isNew?: boolean
-  provider?: OAuthProvider
+  provider: OAuthProvider
   defaultValues?: Partial<OAuthCredentialFormValues> | undefined
   onSuccess?: (formValues: OAuthCredentialFormValues) => void
 }
@@ -97,7 +93,6 @@ export default function OAuthCredentialForm({
     }
   }, [])
 
-  const [oauthRedirectUri, setOAuthRedirectUri] = React.useState<string>('')
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
 
@@ -117,8 +112,6 @@ export default function OAuthCredentialForm({
       if (process.env.NODE_ENV !== 'production') {
         origin = `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}` ?? origin
       }
-      const uri = `${origin}/oauth/callback/${providerValue.toLowerCase()}`
-      setOAuthRedirectUri(uri)
     }
   }, [providerValue])
 
@@ -150,8 +143,7 @@ export default function OAuthCredentialForm({
       }
     }
 
-    // add redirect uri automatically
-    updateOauthCredential({ ...values, redirectUri: oauthRedirectUri })
+    updateOauthCredential({ input: values })
   }
 
   const onDelete: React.MouseEventHandler<HTMLButtonElement> = e => {
@@ -168,6 +160,11 @@ export default function OAuthCredentialForm({
       }
     })
   }
+
+  const [{ data: oauthRedirectUrlData }] = useQuery({
+    query: oauthCallbackUrl,
+    variables: { provider: providerValue }
+  })
 
   return (
     <div className={cn('grid gap-6', className)} {...props}>
@@ -225,24 +222,27 @@ export default function OAuthCredentialForm({
             )}
           />
 
-          <FormItem className="mt-4">
-            <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
-              <div className="text-sm text-muted-foreground">
-                Create your OAuth2 application with the following information
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">
-                  Authorization callback URL
+          {oauthRedirectUrlData && (
+            <FormItem className="mt-4">
+              <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
+                <div className="text-sm text-muted-foreground">
+                  Create your OAuth2 application with the following information
                 </div>
-                <span className="flex items-center text-sm">
-                  {oauthRedirectUri}
-                  {!!providerValue && (
-                    <CopyButton type="button" value={oauthRedirectUri} />
-                  )}
-                </span>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">
+                    Authorization callback URL
+                  </div>
+                  <span className="flex items-center text-sm">
+                    {oauthRedirectUrlData.oauthCallbackUrl}
+                    <CopyButton
+                      type="button"
+                      value={oauthRedirectUrlData.oauthCallbackUrl!}
+                    />
+                  </span>
+                </div>
               </div>
-            </div>
-          </FormItem>
+            </FormItem>
+          )}
 
           <div>
             <SubTitle>OAuth provider information</SubTitle>
@@ -290,6 +290,13 @@ export default function OAuthCredentialForm({
             )}
           />
           <div className="mt-1 flex justify-end gap-4">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={navigateToSSOSettings}
+            >
+              Cancel
+            </Button>
             {!isNew && (
               <AlertDialog
                 open={deleteAlertVisible}
@@ -322,15 +329,6 @@ export default function OAuthCredentialForm({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            )}
-            {isNew && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={navigateToSSOSettings}
-              >
-                Cancel
-              </Button>
             )}
             <Button
               type="submit"
