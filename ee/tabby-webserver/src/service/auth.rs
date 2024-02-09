@@ -652,12 +652,19 @@ mod tests {
             .await
             .unwrap();
 
-        let users = list_users(&conn, None, None, None, None).await;
+        let all_users = list_users(&conn, None, None, None, None).await;
 
-        assert!(!users.page_info.has_next_page);
-        assert!(!users.page_info.has_previous_page);
+        assert!(!all_users.page_info.has_next_page);
+        assert!(!all_users.page_info.has_previous_page);
 
-        let users = list_users(&conn, Some("1".into()), None, None, None).await;
+        let users = list_users(
+            &conn,
+            Some(all_users.edges[0].cursor.clone()),
+            None,
+            None,
+            None,
+        )
+        .await;
 
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
@@ -667,12 +674,26 @@ mod tests {
         assert!(users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
-        let users = list_users(&conn, None, Some("2".into()), None, Some(1)).await;
+        let users = list_users(
+            &conn,
+            None,
+            Some(all_users.edges[1].cursor.clone()),
+            None,
+            Some(1),
+        )
+        .await;
 
         assert!(users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
-        let users = list_users(&conn, Some("3".into()), None, None, None).await;
+        let users = list_users(
+            &conn,
+            Some(all_users.edges[2].cursor.clone()),
+            None,
+            None,
+            None,
+        )
+        .await;
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
 
@@ -680,7 +701,14 @@ mod tests {
         assert!(!users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
-        let users = list_users(&conn, Some("1".into()), None, Some(2), None).await;
+        let users = list_users(
+            &conn,
+            Some(all_users.edges[0].cursor.clone()),
+            None,
+            Some(2),
+            None,
+        )
+        .await;
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
     }
