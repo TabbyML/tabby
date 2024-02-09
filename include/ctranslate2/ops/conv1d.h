@@ -34,6 +34,10 @@ namespace ctranslate2 {
                    const StorageView& weight,
                    const StorageView* bias,
                    StorageView& output) const;
+
+      void compute_with_gemm(const StorageView& input, const StorageView& weight, StorageView& output) const;
+
+      void im2col(const StorageView& input, StorageView& output, dim_t kernel_size) const;
     };
 
   }
