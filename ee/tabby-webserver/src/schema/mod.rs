@@ -22,13 +22,15 @@ use juniper_axum::{
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::{error, warn};
-use validator::ValidationErrors;
+use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
     email::{EmailService, EmailSetting, Encryption},
     repository::{RepositoryError, RepositoryService},
-    setting::{ServerSetting, SettingService},
+    setting::{
+        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+    },
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
@@ -69,6 +71,9 @@ pub enum CoreError {
     #[error("Invalid ID Error")]
     InvalidIDError,
 
+    #[error("Invalid input parameters")]
+    InvalidInput(#[from] ValidationErrors),
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
@@ -79,6 +84,7 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
             Self::Unauthorized(msg) => {
                 FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
             }
+            Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
     }
@@ -237,13 +243,23 @@ impl Query {
         Ok(val)
     }
 
-    async fn server_setting(ctx: &Context) -> Result<ServerSetting> {
+    async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(
                 "Only admin can access server settings",
             ));
         };
-        let val = ctx.locator.setting().read_server_setting().await?;
+        let val = ctx.locator.setting().read_network_setting().await?;
+        Ok(val)
+    }
+
+    async fn security_setting(ctx: &Context) -> Result<SecuritySetting> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access server settings",
+            ));
+        };
+        let val = ctx.locator.setting().read_security_setting().await?;
         Ok(val)
     }
 
@@ -476,25 +492,25 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn update_server_setting(
-        ctx: &Context,
-        security_allowed_register_domain_list: Vec<String>,
-        security_disable_client_side_telemetry: bool,
-        network_external_url: String,
-    ) -> Result<bool> {
+    async fn update_security_setting(ctx: &Context, input: SecuritySettingInput) -> Result<bool> {
         let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
             return Err(CoreError::Unauthorized(
                 "Only admin can access server settings",
             ));
         };
-        ctx.locator
-            .setting()
-            .update_server_setting(ServerSetting {
-                security_allowed_register_domain_list,
-                security_disable_client_side_telemetry,
-                network_external_url,
-            })
-            .await?;
+        input.validate()?;
+        ctx.locator.setting().update_security_setting(input).await?;
+        Ok(true)
+    }
+
+    async fn update_network_setting(ctx: &Context, input: NetworkSettingInput) -> Result<bool> {
+        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
+            return Err(CoreError::Unauthorized(
+                "Only admin can access server settings",
+            ));
+        };
+        input.validate()?;
+        ctx.locator.setting().update_network_setting(input).await?;
         Ok(true)
     }
 

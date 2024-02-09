@@ -1,44 +1,62 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use juniper::GraphQLObject;
+use juniper::{GraphQLInputObject, GraphQLObject};
 use validator::{validate_email, Validate, ValidationError};
 
 #[async_trait]
 pub trait SettingService: Send + Sync {
-    async fn read_server_setting(&self) -> Result<ServerSetting>;
-    async fn update_server_setting(&self, setting: ServerSetting) -> Result<()>;
+    async fn read_security_setting(&self) -> Result<SecuritySetting>;
+    async fn update_security_setting(&self, input: SecuritySettingInput) -> Result<()>;
+
+    async fn read_network_setting(&self) -> Result<NetworkSetting>;
+    async fn update_network_setting(&self, input: NetworkSettingInput) -> Result<()>;
 }
 
 #[derive(GraphQLObject, Debug, PartialEq)]
-pub struct ServerSetting {
-    pub security_allowed_register_domain_list: Vec<String>,
-    pub security_disable_client_side_telemetry: bool,
-    pub network_external_url: String,
+pub struct SecuritySetting {
+    pub allowed_register_domain_list: Vec<String>,
+    pub disable_client_side_telemetry: bool,
 }
 
-#[derive(Validate)]
-pub struct ServerSettingInput<'a> {
+#[derive(GraphQLInputObject, Validate)]
+pub struct SecuritySettingInput {
     #[validate(custom = "validate_unique_domains")]
-    pub security_allowed_register_domain_list: Vec<&'a str>,
-    #[validate(url)]
-    pub network_external_url: &'a str,
+    pub allowed_register_domain_list: Vec<String>,
+    pub disable_client_side_telemetry: bool,
 }
 
-fn validate_unique_domains(domains: &Vec<&str>) -> Result<(), ValidationError> {
+#[derive(GraphQLObject, Debug, PartialEq)]
+pub struct NetworkSetting {
+    pub external_url: String,
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct NetworkSettingInput {
+    #[validate(url(code = "externalUrl", message = "URL is malformed"))]
+    pub external_url: String,
+}
+
+fn validate_unique_domains(domains: &[String]) -> Result<(), ValidationError> {
     let unique: HashSet<_> = domains.iter().collect();
     if unique.len() != domains.len() {
-        let collision = domains.iter().find(|s| unique.contains(s)).unwrap();
-        let mut err = ValidationError::new("securityAllowedRegisterDomainList");
-        err.message = Some(format!("Duplicate domain: {collision}").into());
+        let i = domains.iter().position(|s| unique.contains(s)).unwrap();
+        let err = ValidationError {
+            code: format!("allowedRegisterDomainList.{i}.value").into(),
+            message: Some("Duplicate domain".into()),
+            params: HashMap::default(),
+        };
         return Err(err);
     }
-    for domain in domains {
+    for (i, domain) in domains.iter().enumerate() {
         let email = format!("noreply@{domain}");
         if !validate_email(email) {
-            let mut err = ValidationError::new("securityAllowedRegisterDomainList");
-            err.message = Some(format!("Invalid domain name: {domain}").into());
+            let err = ValidationError {
+                code: format!("allowedRegisterDomainList.{i}.value").into(),
+                message: Some("Invalid domain".into()),
+                params: HashMap::default(),
+            };
             return Err(err);
         }
     }
@@ -51,12 +69,14 @@ mod tests {
 
     #[test]
     fn test_validate_urls() {
-        assert!(validate_unique_domains(&vec!["example.com"]).is_ok());
+        assert!(validate_unique_domains(&["example.com".to_owned()]).is_ok());
 
-        assert!(validate_unique_domains(&vec!["https://example.com"]).is_err());
+        assert!(validate_unique_domains(&["https://example.com".to_owned()]).is_err());
 
-        assert!(validate_unique_domains(&vec!["domain.withmultipleparts.com"]).is_ok());
+        assert!(validate_unique_domains(&["domain.withmultipleparts.com".to_owned()]).is_ok());
 
-        assert!(validate_unique_domains(&vec!["example.com", "example.com"]).is_err());
+        assert!(
+            validate_unique_domains(&["example.com".to_owned(), "example.com".to_owned()]).is_err()
+        );
     }
 }

@@ -12,7 +12,7 @@ use crate::schema::{
     email::{AuthMethod, EmailSetting, Encryption},
     job,
     repository::Repository,
-    setting::ServerSetting,
+    setting::{NetworkSetting, SecuritySetting},
     CoreError,
 };
 
@@ -105,15 +105,22 @@ impl TryFrom<EmailSettingDAO> for EmailSetting {
     }
 }
 
-impl From<ServerSettingDAO> for ServerSetting {
+impl From<ServerSettingDAO> for SecuritySetting {
     fn from(value: ServerSettingDAO) -> Self {
         Self {
-            security_allowed_register_domain_list: value
+            allowed_register_domain_list: value
                 .security_allowed_register_domain_list()
                 .map(|s| s.to_owned())
                 .collect(),
-            security_disable_client_side_telemetry: value.security_disable_client_side_telemetry,
-            network_external_url: value.network_external_url,
+            disable_client_side_telemetry: value.security_disable_client_side_telemetry,
+        }
+    }
+}
+
+impl From<ServerSettingDAO> for NetworkSetting {
+    fn from(value: ServerSettingDAO) -> Self {
+        Self {
+            external_url: value.network_external_url,
         }
     }
 }
