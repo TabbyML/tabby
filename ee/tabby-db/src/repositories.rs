@@ -43,9 +43,16 @@ impl DbConn {
             git_url
         )
         .execute(&self.pool)
-        .await?;
+        .await;
 
-        Ok(res.last_insert_rowid() as i32)
+        match res {
+            Ok(output) => Ok(output.last_insert_rowid() as i32),
+            Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => Err(anyhow!(
+                "A repository with the same name or URL already exists: {}",
+                db_err.message()
+            )),
+            Err(e) => Err(e.into()),
+        }
     }
 
     pub async fn update_repository(&self, id: i32, name: String, git_url: String) -> Result<()> {
