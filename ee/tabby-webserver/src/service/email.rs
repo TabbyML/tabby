@@ -13,7 +13,9 @@ use tokio::sync::RwLock;
 use tracing::warn;
 
 use crate::schema::{
-    email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
+    email::{
+        AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption, SendEmailError,
+    },
     setting::SettingService,
 };
 
@@ -64,20 +66,26 @@ impl EmailServiceImpl {
         *self.smtp_server.write().await = None;
     }
 
-    async fn send_mail(&self, to: String, subject: String, message: String) -> Result<()> {
+    async fn send_mail(
+        &self,
+        to: String,
+        subject: String,
+        message: String,
+    ) -> Result<(), SendEmailError> {
         let smtp_server = self.smtp_server.read().await;
         let Some(smtp_server) = &*smtp_server else {
-            return Err(anyhow!("email settings have not been populated"));
+            return Err(SendEmailError::NotEnabled);
         };
         let from = self.from.read().await;
         let address_from = to_address(from.clone())?;
         let address_to = to_address(to)?;
         let msg = MessageBuilder::new()
             .subject(subject)
-            .from(Mailbox::new(Some("Tabby".into()), address_from))
+            .from(Mailbox::new(None, address_from))
             .to(Mailbox::new(None, address_to))
-            .body(message)?;
-        smtp_server.send(&msg)?;
+            .body(message)
+            .map_err(anyhow::Error::msg)?;
+        smtp_server.send(&msg).map_err(anyhow::Error::msg)?;
         Ok(())
     }
 }
@@ -163,7 +171,11 @@ impl EmailService for EmailServiceImpl {
         Ok(())
     }
 
-    async fn send_invitation_email(&self, email: String, code: String) -> Result<()> {
+    async fn send_invitation_email(
+        &self,
+        email: String,
+        code: String,
+    ) -> Result<(), SendEmailError> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
         self.send_mail(
