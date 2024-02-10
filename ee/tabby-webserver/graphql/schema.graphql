@@ -23,7 +23,7 @@ type Mutation {
   deleteInvitation(id: ID!): ID!
   updateOauthCredential(input: UpdateOAuthCredentialInput!): Boolean!
   deleteOauthCredential(provider: OAuthProvider!): Boolean!
-  updateEmailSetting(smtpUsername: String!, smtpPassword: String, smtpServer: String!): Boolean!
+  updateEmailSetting(input: EmailSettingInput!): Boolean!
   updateSecuritySetting(input: SecuritySettingInput!): Boolean!
   updateNetworkSetting(input: NetworkSettingInput!): Boolean!
   deleteEmailSetting: Boolean!
@@ -79,6 +79,18 @@ input NetworkSettingInput {
   externalUrl: String!
 }
 
+enum Encryption {
+  START_TLS
+  SSL_TLS
+  NONE
+}
+
+enum AuthMethod {
+  NONE
+  PLAIN
+  LOGIN
+}
+
 type UserEdge {
   node: User!
   cursor: String!
@@ -103,6 +115,16 @@ type RegisterResponse {
 type RepositoryConnection {
   edges: [RepositoryEdge!]!
   pageInfo: PageInfo!
+}
+
+input EmailSettingInput {
+  smtpUsername: String!
+  fromAddress: String!
+  smtpServer: String!
+  smtpPort: Int!
+  encryption: Encryption!
+  authMethod: AuthMethod!
+  smtpPassword: String
 }
 
 input SecuritySettingInput {
@@ -148,6 +170,10 @@ type Invitation {
 type EmailSetting {
   smtpUsername: String!
   smtpServer: String!
+  smtpPort: Int!
+  fromAddress: String!
+  encryption: Encryption!
+  authMethod: AuthMethod!
 }
 
 type User {

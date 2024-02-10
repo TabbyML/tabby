@@ -1,0 +1,1 @@
+ALTER TABLE email_setting ADD COLUMN smtp_port INTEGER NOT NULL DEFAULT 25;

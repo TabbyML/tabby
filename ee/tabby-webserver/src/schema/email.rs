@@ -12,15 +12,16 @@ pub enum Encryption {
 
 #[derive(GraphQLEnum, Clone, Debug)]
 pub enum AuthMethod {
+    None,
     Plain,
     Login,
-    XOAuth2,
 }
 
 #[derive(GraphQLObject)]
 pub struct EmailSetting {
     pub smtp_username: String,
     pub smtp_server: String,
+    pub smtp_port: i32,
     pub from_address: String,
     pub encryption: Encryption,
     pub auth_method: AuthMethod,
@@ -29,10 +30,10 @@ pub struct EmailSetting {
 #[derive(GraphQLInputObject, Validate)]
 pub struct EmailSettingInput {
     pub smtp_username: String,
-    #[validate(email)]
+    #[validate(email(code = "fromAddress"))]
     pub from_address: String,
-    #[validate(url)]
     pub smtp_server: String,
+    pub smtp_port: i32,
     pub encryption: Encryption,
     pub auth_method: AuthMethod,
     pub smtp_password: Option<String>,

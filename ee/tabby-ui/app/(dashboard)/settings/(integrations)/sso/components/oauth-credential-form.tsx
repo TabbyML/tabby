@@ -258,7 +258,7 @@ export default function OAuthCredentialForm({
                 <FormLabel required>Client ID</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder=""
+                    placeholder="e.g. ae1542c44b154c10c859"
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
@@ -278,7 +278,11 @@ export default function OAuthCredentialForm({
                 <FormControl>
                   <Input
                     {...field}
-                    placeholder={isNew ? undefined : '*****'}
+                    placeholder={
+                      isNew
+                        ? 'e.g. e363c08d7e9ca4e66e723a53f38a21f6a54c1b83'
+                        : '*****'
+                    }
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
