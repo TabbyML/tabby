@@ -21,7 +21,7 @@ type Mutation {
   deleteRepository(id: ID!): Boolean!
   updateRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
   deleteInvitation(id: ID!): ID!
-  updateOauthCredential(provider: OAuthProvider!, clientId: String!, clientSecret: String!, redirectUri: String): Boolean!
+  updateOauthCredential(input: UpdateOAuthCredentialInput!): Boolean!
   deleteOauthCredential(provider: OAuthProvider!): Boolean!
   updateEmailSetting(smtpUsername: String!, smtpPassword: String, smtpServer: String!): Boolean!
   updateSecuritySetting(input: SecuritySettingInput!): Boolean!
@@ -72,6 +72,7 @@ type Query {
   securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
+  oauthCallbackUrl(provider: OAuthProvider!): String!
 }
 
 input NetworkSettingInput {
@@ -119,11 +120,16 @@ type UserConnection {
   pageInfo: PageInfo!
 }
 
+input UpdateOAuthCredentialInput {
+  provider: OAuthProvider!
+  clientId: String!
+  clientSecret: String!
+}
+
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
   clientSecret: String!
-  redirectUri: String
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
 }

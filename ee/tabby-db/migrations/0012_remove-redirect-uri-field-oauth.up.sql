@@ -1,0 +1,1 @@
+ALTER TABLE google_oauth_credential DROP COLUMN redirect_uri;

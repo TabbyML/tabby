@@ -26,6 +26,7 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
+    auth::UpdateOAuthCredentialInput,
     email::{EmailService, EmailSetting, EmailSettingInput},
     repository::{RepositoryError, RepositoryService},
     setting::{
@@ -303,6 +304,17 @@ impl Query {
             "Only admin is able to query oauth credential",
         ))
     }
+
+    async fn oauth_callback_url(ctx: &Context, provider: OAuthProvider) -> Result<String> {
+        if let Some(claims) = &ctx.claims {
+            if claims.is_admin {
+                return Ok(ctx.locator.auth().oauth_callback_url(provider).await?);
+            }
+        }
+        Err(CoreError::Unauthorized(
+            "Only admin is able to query oauth callback url",
+        ))
+    }
 }
 
 #[derive(Default)]
@@ -432,17 +444,12 @@ impl Mutation {
 
     async fn update_oauth_credential(
         ctx: &Context,
-        provider: OAuthProvider,
-        client_id: String,
-        client_secret: String,
-        redirect_uri: Option<String>,
+        input: UpdateOAuthCredentialInput,
     ) -> Result<bool> {
         if let Some(claims) = &ctx.claims {
+            input.validate()?;
             if claims.is_admin {
-                ctx.locator
-                    .auth()
-                    .update_oauth_credential(provider, client_id, client_secret, redirect_uri)
-                    .await?;
+                ctx.locator.auth().update_oauth_credential(input).await?;
                 return Ok(true);
             }
         }

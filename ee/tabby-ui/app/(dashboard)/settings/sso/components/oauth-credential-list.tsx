@@ -23,7 +23,6 @@ export const oauthCredential = graphql(/* GraphQL */ `
       provider
       clientId
       clientSecret
-      redirectUri
       createdAt
       updatedAt
     }
