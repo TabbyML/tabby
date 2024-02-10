@@ -17,12 +17,12 @@ bincode = "1.3.3"
 chrono = { workspace = true, features = ["serde"] }
 futures.workspace = true
 hash-ids = "0.2.1"
-hyper = { workspace = true, features=["client"]}
+hyper = { workspace = true, features = ["client"] }
 jsonwebtoken = "9.1.0"
 juniper.workspace = true
 juniper-axum = { path = "../../crates/juniper-axum" }
 lazy_static.workspace = true
-lettre = "0.11.3"
+lettre = { version = "0.11.3", features = ["tokio1", "tokio1-native-tls"] }
 mime_guess = "2.0.4"
 pin-project = "1.1.3"
 querystring = "1.1.0"

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use lettre::{
@@ -5,24 +7,22 @@ use lettre::{
     transport::smtp::{
         authentication::{Credentials, Mechanism},
         client::{Tls, TlsParameters},
-        SmtpTransportBuilder,
+        AsyncSmtpTransportBuilder,
     },
-    Address, SmtpTransport, Transport,
+    Address, AsyncSmtpTransport, AsyncTransport, Tokio1Executor, Transport,
 };
 use tabby_db::{DbConn, DbEnum};
 use tokio::sync::RwLock;
 use tracing::warn;
 
 use crate::schema::{
-    email::{
-        AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption, SendEmailError,
-    },
+    email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
     setting::SettingService,
 };
 
 struct EmailServiceImpl {
     db: DbConn,
-    smtp_server: RwLock<Option<SmtpTransport>>,
+    smtp_server: Arc<RwLock<Option<AsyncSmtpTransport<Tokio1Executor>>>>,
     from: RwLock<String>,
 }
 
@@ -38,17 +38,19 @@ fn make_smtp_builder(
     host: &str,
     port: u16,
     encryption: Encryption,
-) -> Result<SmtpTransportBuilder> {
+) -> Result<AsyncSmtpTransportBuilder> {
     let tls_parameters = TlsParameters::new(host.into())?;
 
     let builder = match encryption {
-        Encryption::StartTls => SmtpTransport::builder_dangerous(host)
+        Encryption::StartTls => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host)
             .port(port)
             .tls(Tls::Required(tls_parameters)),
-        Encryption::SslTls => SmtpTransport::builder_dangerous(host)
+        Encryption::SslTls => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host)
             .port(port)
             .tls(Tls::Wrapper(tls_parameters)),
-        Encryption::None => SmtpTransport::builder_dangerous(host).port(port),
+        Encryption::None => {
+            AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host).port(port)
+        }
     };
 
     Ok(builder)
@@ -62,6 +64,7 @@ impl EmailServiceImpl {
         password: String,
         host: &str,
         port: i32,
+        from_address: &str,
         encryption: Encryption,
         auth_method: AuthMethod,
     ) -> Result<()> {
@@ -72,6 +75,7 @@ impl EmailServiceImpl {
                 .authentication(auth_mechanism(auth_method))
                 .build(),
         );
+        *self.from.write().await = from_address.into();
         Ok(())
     }
 
@@ -80,26 +84,36 @@ impl EmailServiceImpl {
         *self.smtp_server.write().await = None;
     }
 
-    async fn send_mail(
+    async fn send_mail_in_background(
         &self,
         to: String,
         subject: String,
         message: String,
-    ) -> Result<(), SendEmailError> {
-        let smtp_server = self.smtp_server.read().await;
-        let Some(smtp_server) = &*smtp_server else {
-            return Err(SendEmailError::NotEnabled);
-        };
-        let from = self.from.read().await;
-        let address_from = to_address(from.clone())?;
+    ) -> Result<()> {
+        let smtp_server = self.smtp_server.clone();
+        let from = self.from.read().await.clone();
+        let address_from = to_address(from)?;
         let address_to = to_address(to)?;
         let msg = MessageBuilder::new()
             .subject(subject)
-            .from(Mailbox::new(None, address_from))
+            .from(Mailbox::new(Some("Tabby Server".to_owned()), address_from))
             .to(Mailbox::new(None, address_to))
             .body(message)
             .map_err(anyhow::Error::msg)?;
-        smtp_server.send(&msg).map_err(anyhow::Error::msg)?;
+
+        tokio::spawn(async move {
+            let Some(smtp_server) = &*(smtp_server.read().await) else {
+                // Not enabled.
+                return;
+            };
+            match smtp_server.send(msg).await.map_err(anyhow::Error::msg) {
+                Ok(_) => {}
+                Err(err) => {
+                    warn!("Failed to send mail due to {}", err);
+                }
+            };
+        });
+
         Ok(())
     }
 }
@@ -121,6 +135,7 @@ pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
                 setting.smtp_password,
                 &setting.smtp_server,
                 setting.smtp_port as i32,
+                &setting.from_address,
                 encryption,
                 auth_method,
             )
@@ -157,7 +172,6 @@ impl EmailService for EmailServiceImpl {
                 input.auth_method.as_enum_str().into(),
             )
             .await?;
-        *self.from.write().await = input.smtp_username.clone();
         let smtp_password = match input.smtp_password {
             Some(pass) => pass,
             None => {
@@ -174,6 +188,7 @@ impl EmailService for EmailServiceImpl {
             smtp_password.clone(),
             &input.smtp_server,
             input.smtp_port,
+            &input.from_address,
             input.encryption,
             input.auth_method,
         )
@@ -188,18 +203,13 @@ impl EmailService for EmailServiceImpl {
         Ok(())
     }
 
-    async fn send_invitation_email(
-        &self,
-        email: String,
-        code: String,
-    ) -> Result<(), SendEmailError> {
+    async fn send_invitation_email(&self, email: String, code: String) -> Result<()> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
-        self.send_mail(
+        self.send_mail_in_background(
             email,
             "You've been invited to join a Tabby workspace!".into(),
-            format!("Welcome to Tabby! You have been invited to join a Tabby instance, where you can tap into\
-                AI-driven code completions and chat assistants. Your invite code is {code}, go to {external_url}/auth/signup?invitationCode={code} to join!"),
+            format!("Welcome to Tabby! You have been invited to join a Tabby Server, where you can tap into AI-driven code completions and chat assistants.\n\nGo to {external_url}/auth/signup?invitationCode={code} to join!"),
         ).await
     }
 }
