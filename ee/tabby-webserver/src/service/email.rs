@@ -4,6 +4,7 @@ use lettre::{
     message::{Mailbox, MessageBuilder},
     transport::smtp::{
         authentication::{Credentials, Mechanism},
+        client::{Tls, TlsParameters},
         SmtpTransportBuilder,
     },
     Address, SmtpTransport, Transport,
@@ -25,20 +26,32 @@ struct EmailServiceImpl {
     from: RwLock<String>,
 }
 
-fn auth_mechanism(auth_method: AuthMethod) -> Mechanism {
+fn auth_mechanism(auth_method: AuthMethod) -> Vec<Mechanism> {
     match auth_method {
-        AuthMethod::Plain => Mechanism::Plain,
-        AuthMethod::Login => Mechanism::Login,
-        AuthMethod::XOAuth2 => Mechanism::Xoauth2,
+        AuthMethod::Plain => vec![Mechanism::Plain],
+        AuthMethod::Login => vec![Mechanism::Login],
+        AuthMethod::None => vec![],
     }
 }
 
-fn make_smtp_builder(address: &str, encryption: Encryption) -> Result<SmtpTransportBuilder> {
-    match encryption {
-        Encryption::StartTls => Ok(SmtpTransport::starttls_relay(address)?),
-        Encryption::SslTls => Ok(SmtpTransport::relay(address)?),
-        Encryption::None => Ok(SmtpTransport::builder_dangerous(address)),
-    }
+fn make_smtp_builder(
+    host: &str,
+    port: u16,
+    encryption: Encryption,
+) -> Result<SmtpTransportBuilder> {
+    let tls_parameters = TlsParameters::new(host.into())?;
+
+    let builder = match encryption {
+        Encryption::StartTls => SmtpTransport::builder_dangerous(host)
+            .port(port)
+            .tls(Tls::Required(tls_parameters)),
+        Encryption::SslTls => SmtpTransport::builder_dangerous(host)
+            .port(port)
+            .tls(Tls::Wrapper(tls_parameters)),
+        Encryption::None => SmtpTransport::builder_dangerous(host).port(port),
+    };
+
+    Ok(builder)
 }
 
 impl EmailServiceImpl {
@@ -47,15 +60,16 @@ impl EmailServiceImpl {
         &self,
         username: String,
         password: String,
-        server: &str,
+        host: &str,
+        port: i32,
         encryption: Encryption,
         auth_method: AuthMethod,
     ) -> Result<()> {
         let mut smtp_server = self.smtp_server.write().await;
         *smtp_server = Some(
-            make_smtp_builder(server, encryption)?
+            make_smtp_builder(host, port as u16, encryption)?
                 .credentials(Credentials::new(username, password))
-                .authentication(vec![auth_mechanism(auth_method)])
+                .authentication(auth_mechanism(auth_method))
                 .build(),
         );
         Ok(())
@@ -98,14 +112,15 @@ pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
         from: Default::default(),
     };
     // Optionally initialize the SMTP connection when the service is created
-    if let Some(creds) = creds {
-        let encryption = Encryption::from_enum_str(&creds.encryption)?;
-        let auth_method = AuthMethod::from_enum_str(&creds.auth_method)?;
+    if let Some(setting) = creds {
+        let encryption = Encryption::from_enum_str(&setting.encryption)?;
+        let auth_method = AuthMethod::from_enum_str(&setting.auth_method)?;
         service
             .reset_smtp_connection(
-                creds.smtp_username,
-                creds.smtp_password,
-                &creds.smtp_server,
+                setting.smtp_username,
+                setting.smtp_password,
+                &setting.smtp_server,
+                setting.smtp_port as i32,
                 encryption,
                 auth_method,
             )
@@ -136,6 +151,7 @@ impl EmailService for EmailServiceImpl {
                 input.smtp_username.clone(),
                 input.smtp_password.clone(),
                 input.smtp_server.clone(),
+                input.smtp_port,
                 input.from_address.clone(),
                 input.encryption.as_enum_str().into(),
                 input.auth_method.as_enum_str().into(),
@@ -157,6 +173,7 @@ impl EmailService for EmailServiceImpl {
             input.smtp_username,
             smtp_password.clone(),
             &input.smtp_server,
+            input.smtp_port,
             input.encryption,
             input.auth_method,
         )
@@ -165,7 +182,7 @@ impl EmailService for EmailServiceImpl {
     }
 
     async fn delete_email_setting(&self) -> Result<()> {
-        self.delete_email_setting().await?;
+        self.db.delete_email_setting().await?;
         // When the SMTP credentials are deleted, close the SMTP server connection
         self.shutdown_smtp_connection().await;
         Ok(())
@@ -211,6 +228,7 @@ mod tests {
             smtp_username: "test@example.com".into(),
             from_address: "test".into(),
             smtp_server: "smtp://example.com".into(),
+            smtp_port: 578,
             encryption: Encryption::SslTls,
             auth_method: AuthMethod::Plain,
             smtp_password: Some("123456".to_owned()),
@@ -218,5 +236,7 @@ mod tests {
         service.update_email_setting(update_input).await.unwrap();
         let setting = service.get_email_setting().await.unwrap().unwrap();
         assert_eq!(setting.smtp_username, "test@example.com");
+
+        service.delete_email_setting().await.unwrap();
     }
 }

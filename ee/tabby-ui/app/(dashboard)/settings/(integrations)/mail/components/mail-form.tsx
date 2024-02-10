@@ -2,11 +2,13 @@
 
 import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { isEmpty } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
+import { AuthMethod, Encryption } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import {
   AlertDialog,
@@ -28,7 +30,6 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -39,16 +40,8 @@ import {
 } from '@/components/ui/select'
 
 const updateEmailSettingMutation = graphql(/* GraphQL */ `
-  mutation updateEmailSetting(
-    $smtpUsername: String!
-    $smtpPassword: String
-    $smtpServer: String!
-  ) {
-    updateEmailSetting(
-      smtpUsername: $smtpUsername
-      smtpPassword: $smtpPassword
-      smtpServer: $smtpServer
-    )
+  mutation updateEmailSetting($input: EmailSettingInput!) {
+    updateEmailSetting(input: $input)
   }
 `)
 
@@ -61,7 +54,11 @@ const deleteEmailSettingMutation = graphql(/* GraphQL */ `
 const formSchema = z.object({
   smtpUsername: z.string(),
   smtpPassword: z.string(),
-  smtpServer: z.string()
+  smtpServer: z.string(),
+  smtpPort: z.coerce.number(),
+  fromAddress: z.string(),
+  encryption: z.nativeEnum(Encryption),
+  authMethod: z.nativeEnum(AuthMethod)
 })
 
 type MailFormValues = z.infer<typeof formSchema>
@@ -81,8 +78,8 @@ export const MailForm: React.FC<MailFormProps> = ({
 }) => {
   const defaultValues = React.useMemo(() => {
     return {
-      method: 'PLAIN',
-      encryption: 'STARTTLS',
+      encryption: Encryption.None,
+      authMethod: AuthMethod.None,
       ...(propsDefaultValues || {})
     }
   }, [propsDefaultValues])
@@ -91,35 +88,47 @@ export const MailForm: React.FC<MailFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues
   })
+  const isDirty = !isEmpty(form.formState.dirtyFields)
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
-  const [isDeleting, setIsDeleting] = React.useState(false)
 
   const updateEmailSetting = useMutation(updateEmailSettingMutation, {
     onCompleted(data) {
       if (data?.updateEmailSetting) {
         onSuccess?.()
+        toast.success('Email configuration is updated')
+
+        // clear dirty status
+        form.reset(defaultValues)
       }
     }
   })
 
-  const deleteEmailSetting = useMutation(deleteEmailSettingMutation)
+  const deleteEmailSetting = useMutation(deleteEmailSettingMutation, {
+    onCompleted(data) {
+      if (data?.deleteEmailSetting) {
+        onDelete?.()
+      }
+    },
+    onError(err) {
+      toast.error(err.message)
+    }
+  })
 
-  const handleDelete: React.MouseEventHandler<HTMLButtonElement> = e => {
+  const handleDelete: React.MouseEventHandler<HTMLButtonElement> = async e => {
     e.preventDefault()
-    setIsDeleting(true)
-    deleteEmailSetting()
-      .then(res => {
-        if (res?.data?.deleteEmailSetting) {
-          onDelete?.()
-        } else {
-          if (res?.error) {
-            toast.error(res?.error?.message)
-          }
-        }
-      })
-      .finally(() => {
-        setIsDeleting(false)
-      })
+    await deleteEmailSetting()
+  }
+
+  const onSubmit = async (input: MailFormValues) => {
+    await updateEmailSetting({
+      input: {
+        ...input,
+        smtpPassword:
+          input.smtpPassword !== propsDefaultValues?.smtpPassword
+            ? input.smtpPassword
+            : undefined
+      }
+    })
   }
 
   return (
@@ -127,31 +136,51 @@ export const MailForm: React.FC<MailFormProps> = ({
       <div className="flex flex-col items-start gap-4">
         <form
           className="flex flex-col items-start gap-4"
-          onSubmit={form.handleSubmit(updateEmailSetting)}
+          onSubmit={form.handleSubmit(onSubmit)}
         >
+          <div className="flex gap-8">
+            <FormField
+              control={form.control}
+              name="smtpServer"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>SMTP Server Host</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="smtp.gmail.com"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      className="w-80 min-w-max"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="smtpPort"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>SMTP Server Port</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="25"
+                      className="w-80 min-w-max"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <FormField
             control={form.control}
-            name="smtpServer"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>SMTP Server</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="smtp.gmail.com:587"
-                    autoCapitalize="none"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    className="w-80 min-w-max"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="from"
+            name="fromAddress"
             render={({ field }) => (
               <FormItem>
                 <FormLabel required>From</FormLabel>
@@ -172,10 +201,10 @@ export const MailForm: React.FC<MailFormProps> = ({
           />
           <FormField
             control={form.control}
-            name="method"
+            name="authMethod"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Authentication Method</FormLabel>
+                <FormLabel required>Authentication Method</FormLabel>
                 <FormControl>
                   <Select
                     onValueChange={field.onChange}
@@ -185,10 +214,9 @@ export const MailForm: React.FC<MailFormProps> = ({
                       <SelectValue placeholder="Select a method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="None">None</SelectItem>
-                      <SelectItem value="PLAIN">PLAIN</SelectItem>
-                      <SelectItem value="LOGIN">LOGIN</SelectItem>
-                      <SelectItem value="CRAM-MD5">CRAM-MD5</SelectItem>
+                      <SelectItem value={AuthMethod.None}>NONE</SelectItem>
+                      <SelectItem value={AuthMethod.Plain}>PLAIN</SelectItem>
+                      <SelectItem value={AuthMethod.Login}>LOGIN</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>
@@ -230,6 +258,7 @@ export const MailForm: React.FC<MailFormProps> = ({
                       autoCapitalize="none"
                       autoComplete="off"
                       autoCorrect="off"
+                      className="w-80 min-w-max"
                       {...field}
                     />
                   </FormControl>
@@ -243,7 +272,7 @@ export const MailForm: React.FC<MailFormProps> = ({
             name="encryption"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Encryption</FormLabel>
+                <FormLabel required>Encryption</FormLabel>
                 <FormControl>
                   <Select
                     onValueChange={field.onChange}
@@ -253,9 +282,11 @@ export const MailForm: React.FC<MailFormProps> = ({
                       <SelectValue placeholder="Select an encryption" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="None">None</SelectItem>
-                      <SelectItem value="SSL/TSL">SSL/TSL</SelectItem>
-                      <SelectItem value="STARTTLS">STARTTLS</SelectItem>
+                      <SelectItem value={Encryption.None}>NONE</SelectItem>
+                      <SelectItem value={Encryption.SslTls}>SSL/TLS</SelectItem>
+                      <SelectItem value={Encryption.StartTls}>
+                        STARTTLS
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>
@@ -263,7 +294,7 @@ export const MailForm: React.FC<MailFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="mt-2 flex items-center gap-4">
+          <div className="mt-4 flex items-center gap-4">
             {!isNew && (
               <AlertDialog
                 open={deleteAlertVisible}
@@ -288,16 +319,15 @@ export const MailForm: React.FC<MailFormProps> = ({
                       className={buttonVariants({ variant: 'destructive' })}
                       onClick={handleDelete}
                     >
-                      {isDeleting && (
-                        <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                      )}
                       Yes, delete it
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            <Button type="submit">{isNew ? 'Create' : 'Update'}</Button>
+            <Button type="submit" disabled={!isDirty}>
+              {isNew ? 'Create' : 'Update'}
+            </Button>
           </div>
         </form>
         <FormMessage className="text-center" />

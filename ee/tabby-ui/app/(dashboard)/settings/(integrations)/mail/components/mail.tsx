@@ -15,12 +15,16 @@ const emailSetting = graphql(/* GraphQL */ `
     emailSetting {
       smtpUsername
       smtpServer
+      fromAddress
+      encryption
+      authMethod
+      smtpPort
     }
   }
 `)
 
 export const Mail = () => {
-  const [{ data, error }] = useQuery({ query: emailSetting })
+  const [{ data, error }, reexecuteQuery] = useQuery({ query: emailSetting })
   const [initialized] = useIsQueryInitialized({ data, error })
 
   const isNew = !data?.emailSetting
@@ -29,6 +33,13 @@ export const Mail = () => {
     // todo
   }
 
+  const defaultValues = isNew
+    ? {}
+    : {
+        ...data.emailSetting,
+        smtpPassword: '********************************'
+      }
+
   return (
     <>
       <MailDeliveryHeader />
@@ -36,8 +47,10 @@ export const Mail = () => {
         <div>
           <div className="mb-8 border-b pb-4">
             <MailForm
-              defaultValues={data?.emailSetting ?? undefined}
+              defaultValues={defaultValues}
               isNew={isNew}
+              onSuccess={reexecuteQuery}
+              onDelete={reexecuteQuery}
             />
           </div>
           <MailTestingForm onSendTest={onSendTest} />

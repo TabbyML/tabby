@@ -86,9 +86,9 @@ enum Encryption {
 }
 
 enum AuthMethod {
+  NONE
   PLAIN
   LOGIN
-  XOAUTH2
 }
 
 type UserEdge {
@@ -121,6 +121,7 @@ input EmailSettingInput {
   smtpUsername: String!
   fromAddress: String!
   smtpServer: String!
+  smtpPort: Int!
   encryption: Encryption!
   authMethod: AuthMethod!
   smtpPassword: String
@@ -169,6 +170,7 @@ type Invitation {
 type EmailSetting {
   smtpUsername: String!
   smtpServer: String!
+  smtpPort: Int!
   fromAddress: String!
   encryption: Encryption!
   authMethod: AuthMethod!

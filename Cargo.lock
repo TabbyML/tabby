@@ -4416,6 +4416,7 @@ dependencies = [
  "tower-http 0.4.0",
  "tracing",
  "unicase",
+ "url",
  "urlencoding",
  "uuid 1.6.1",
  "validator",
