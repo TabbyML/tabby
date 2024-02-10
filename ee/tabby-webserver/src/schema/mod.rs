@@ -396,7 +396,7 @@ impl Mutation {
             .send_invitation_email(email, invitation.code)
             .await;
         match email_sent {
-            Ok(_) | Err(email::SendEmailError::NotEnabled) => {}
+            Ok(_) => {}
             Err(e) => {
                 warn!(
                 "Failed to send invitation email, please check your SMTP settings are correct: {e}"
