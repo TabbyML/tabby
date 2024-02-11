@@ -247,12 +247,16 @@ async fn api_router(
         )
     });
 
-    routers.push({
-        Router::new().route(
-            "/v1beta/server_setting",
-            routing::get(routes::setting),
-        )
-    });
+    let server_setting_router =
+        Router::new().route("/v1beta/server_setting", routing::get(routes::setting));
+
+    #[cfg(feature = "ee")]
+    if !args.webserver {
+        routers.push(server_setting_router)
+    }
+
+    #[cfg(not(feature = "ee"))]
+    routers.push(server_setting_router);
 
     let mut root = Router::new();
     for router in routers {

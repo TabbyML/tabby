@@ -4,14 +4,15 @@ use axum::{
     extract::State,
     http::Request,
     middleware::{from_fn_with_state, Next},
-    routing, Extension, Router,
+    routing, Extension, Json, Router,
 };
-use hyper::Body;
+use hyper::{Body, StatusCode};
 use juniper_axum::{graphiql, graphql, playground};
 use tabby_common::{
-    api::{code::CodeSearch, event::RawEventLogger},
+    api::{code::CodeSearch, event::RawEventLogger, server_setting::ServerSetting},
     config::Config,
 };
+use tracing::warn;
 
 use crate::{
     cron, hub, oauth,
@@ -52,6 +53,10 @@ pub async fn attach_webserver(
             "/hub",
             routing::get(hub::ws_handler).with_state(ctx.clone()),
         )
+        .route(
+            "/v1beta/server_setting",
+            routing::get(server_setting).with_state(ctx.clone()),
+        )
         .nest(
             "/repositories",
             repositories::routes(rs.clone(), ctx.auth()),
@@ -71,4 +76,20 @@ async fn distributed_tabby_layer(
     next: Next<Body>,
 ) -> axum::response::Response {
     ws.worker().dispatch_request(request, next).await
+}
+
+async fn server_setting(
+    State(locator): State<Arc<dyn ServiceLocator>>,
+) -> Result<Json<ServerSetting>, StatusCode> {
+    let setting = match locator.setting().read_security_setting().await {
+        Ok(x) => x,
+        Err(err) => {
+            warn!("Failed to read security setting {}", err);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    Ok(Json(ServerSetting {
+        disable_client_side_telemetry: setting.disable_client_side_telemetry,
+    }))
 }
