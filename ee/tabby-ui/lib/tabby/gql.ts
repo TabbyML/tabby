@@ -95,7 +95,7 @@ function useIsQueryInitialized({
 }: {
   data?: any
   error?: CombinedError
-}) {
+}): [boolean, React.Dispatch<React.SetStateAction<boolean>>] {
   // todo urql do cache data, considering passing default `initialized` with data & stale
   const [initialized, setInitialized] = useState(false)
 

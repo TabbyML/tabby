@@ -3,7 +3,7 @@
 import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isEmpty } from 'lodash-es'
-import { useForm } from 'react-hook-form'
+import { useForm, UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
@@ -70,12 +70,17 @@ interface MailFormProps {
   onDelete?: () => void
 }
 
-export const MailForm: React.FC<MailFormProps> = ({
-  isNew,
-  onSuccess,
-  onDelete,
-  defaultValues: propsDefaultValues
-}) => {
+interface MailFormRef {
+  form: UseFormReturn<MailFormValues>
+}
+
+const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
+  const {
+    isNew,
+    onSuccess,
+    onDelete,
+    defaultValues: propsDefaultValues
+  } = props
   const defaultValues = React.useMemo(() => {
     return {
       encryption: Encryption.None,
@@ -96,9 +101,6 @@ export const MailForm: React.FC<MailFormProps> = ({
       if (data?.updateEmailSetting) {
         onSuccess?.()
         toast.success('Email configuration is updated')
-
-        // clear dirty status
-        form.reset(defaultValues)
       }
     }
   })
@@ -130,6 +132,14 @@ export const MailForm: React.FC<MailFormProps> = ({
       }
     })
   }
+
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      form
+    }),
+    [form]
+  )
 
   return (
     <Form {...form}>
@@ -324,7 +334,7 @@ export const MailForm: React.FC<MailFormProps> = ({
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            <Button type="submit" disabled={!isDirty}>
+            <Button type="submit" disabled={!isNew && !isDirty}>
               {isNew ? 'Create' : 'Update'}
             </Button>
           </div>
@@ -333,4 +343,9 @@ export const MailForm: React.FC<MailFormProps> = ({
       </div>
     </Form>
   )
-}
+})
+
+MailForm.displayName = 'MailForm'
+
+export { MailForm }
+export type { MailFormRef }

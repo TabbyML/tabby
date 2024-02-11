@@ -1,13 +1,16 @@
 'use client'
 
-import { useQuery } from 'urql'
+import React from 'react'
+import { OperationResult } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
-import { useIsQueryInitialized } from '@/lib/tabby/gql'
+import { EmailSettingQuery } from '@/lib/gql/generates/graphql'
+import { client } from '@/lib/tabby/gql'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { MailDeliveryHeader } from './header'
 import { MailForm } from './mail-form'
+import type { MailFormRef } from './mail-form'
 import MailTestingForm from './mail-testing-form'
 
 const emailSetting = graphql(/* GraphQL */ `
@@ -23,22 +26,60 @@ const emailSetting = graphql(/* GraphQL */ `
   }
 `)
 
-export const Mail = () => {
-  const [{ data, error }, reexecuteQuery] = useQuery({ query: emailSetting })
-  const [initialized] = useIsQueryInitialized({ data, error })
+const ENCODE_PASSWORD = '********************************'
 
-  const isNew = !data?.emailSetting
+export const Mail = () => {
+  const [queryResult, setQueryResult] =
+    React.useState<OperationResult<EmailSettingQuery, any>>()
+  const [initialized, setInitialized] = React.useState(false)
+  const mailFormRef = React.useRef<MailFormRef>(null)
+
+  const queryEmailSettings = () => {
+    return client
+      .query(emailSetting, {})
+      .toPromise()
+      .then(res => {
+        setQueryResult(res)
+        setInitialized(true)
+        return res
+      })
+  }
+
+  const isNew = !queryResult?.data?.emailSetting
 
   const onSendTest = async () => {
     // todo
   }
 
+  const handleMailFormSuccess = () => {
+    queryEmailSettings().then(res => {
+      const newEmailSettings = res?.data?.emailSetting
+      if (newEmailSettings) {
+        // reset latest settings
+        mailFormRef.current?.form?.reset({
+          ...newEmailSettings,
+          smtpPassword: ENCODE_PASSWORD
+        })
+      }
+    })
+  }
+
+  const handleMailFormDelete = () => {
+    // MailForm re-render
+    setInitialized(false)
+    queryEmailSettings()
+  }
+
   const defaultValues = isNew
     ? {}
     : {
-        ...data.emailSetting,
-        smtpPassword: '********************************'
+        ...queryResult?.data?.emailSetting,
+        smtpPassword: ENCODE_PASSWORD
       }
+
+  React.useEffect(() => {
+    queryEmailSettings()
+  }, [])
 
   return (
     <>
@@ -49,8 +90,9 @@ export const Mail = () => {
             <MailForm
               defaultValues={defaultValues}
               isNew={isNew}
-              onSuccess={reexecuteQuery}
-              onDelete={reexecuteQuery}
+              onSuccess={handleMailFormSuccess}
+              onDelete={handleMailFormDelete}
+              ref={mailFormRef}
             />
           </div>
           <MailTestingForm onSendTest={onSendTest} />
