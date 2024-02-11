@@ -1,6 +1,4 @@
 use axum::Json;
-
-
 use tabby_common::api::server_setting::ServerSetting;
 use utoipa::ToSchema;
 
