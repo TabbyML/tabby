@@ -239,7 +239,7 @@ impl Query {
                 "Only admin can access server settings",
             ));
         };
-        let val = ctx.locator.email().get_email_setting().await?;
+        let val = ctx.locator.email().read_email_setting().await?;
         Ok(val)
     }
 

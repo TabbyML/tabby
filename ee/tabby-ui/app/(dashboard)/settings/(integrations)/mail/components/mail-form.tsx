@@ -233,10 +233,9 @@ export const MailForm: React.FC<MailFormProps> = ({
                   <FormLabel required>SMTP Username</FormLabel>
                   <FormControl>
                     <Input
-                      type="email"
+                      type="string"
                       placeholder="support@yourcompany.com"
                       autoCapitalize="none"
-                      autoComplete="email"
                       autoCorrect="off"
                       className="w-80 min-w-max"
                       {...field}
