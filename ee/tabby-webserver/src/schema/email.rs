@@ -18,7 +18,7 @@ pub enum AuthMethod {
     Login,
 }
 
-#[derive(GraphQLObject, Clone)]
+#[derive(GraphQLObject)]
 pub struct EmailSetting {
     pub smtp_username: String,
     pub smtp_server: String,
