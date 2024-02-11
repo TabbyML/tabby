@@ -1,6 +1,7 @@
 import React, { useContext } from 'react'
 import { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
+import filename2prism from 'filename2prism'
 import { useTheme } from 'next-themes'
 
 import { cn } from '@/lib/utils'
@@ -10,7 +11,6 @@ import { highlightTagExtension } from '@/components/codemirror/tag-range-highlig
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
 import { SourceCodeBrowserContext } from './source-code-browser'
-import filename2prism from 'filename2prism'
 
 interface SourceCodeEditorProps {
   className?: string
@@ -21,9 +21,13 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
     SourceCodeBrowserContext
   )
   const { theme } = useTheme()
-  const detectedLanguage = activePath ? filename2prism(activePath)[0] : undefined;
+  const detectedLanguage = activePath
+    ? filename2prism(activePath)[0]
+    : undefined
   const activeCodeContent = activePath ? codeMap?.[activePath] ?? '' : ''
-  const language = activePath ? fileMetaMap?.[activePath]?.language ?? detectedLanguage: '';
+  const language = activePath
+    ? fileMetaMap?.[activePath]?.language ?? detectedLanguage
+    : ''
   const tags = activePath ? fileMetaMap?.[activePath]?.tags : undefined
 
   const extensions = React.useMemo(() => {
