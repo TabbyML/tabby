@@ -45,20 +45,17 @@ export const Mail = () => {
       })
   }
 
-  React.useEffect(() => {
-    queryEmailSettings()
-  }, [])
-
   const isNew = !queryResult?.data?.emailSetting
 
   const onSendTest = async () => {
     // todo
   }
 
-  const onMailFormSuccess = () => {
+  const handleMailFormSuccess = () => {
     queryEmailSettings().then(res => {
       const newEmailSettings = res?.data?.emailSetting
       if (newEmailSettings) {
+        // reset latest settings
         mailFormRef.current?.form?.reset({
           ...newEmailSettings,
           smtpPassword: ENCODE_PASSWORD
@@ -67,7 +64,7 @@ export const Mail = () => {
     })
   }
 
-  const onDelete = () => {
+  const handleMailFormDelete = () => {
     // MailForm re-render
     setInitialized(false)
     queryEmailSettings()
@@ -80,6 +77,10 @@ export const Mail = () => {
         smtpPassword: ENCODE_PASSWORD
       }
 
+  React.useEffect(() => {
+    queryEmailSettings()
+  }, [])
+
   return (
     <>
       <MailDeliveryHeader />
@@ -89,8 +90,8 @@ export const Mail = () => {
             <MailForm
               defaultValues={defaultValues}
               isNew={isNew}
-              onSuccess={onMailFormSuccess}
-              onDelete={onDelete}
+              onSuccess={handleMailFormSuccess}
+              onDelete={handleMailFormDelete}
               ref={mailFormRef}
             />
           </div>
