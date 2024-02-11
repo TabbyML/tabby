@@ -188,9 +188,6 @@ impl RepositoryCache {
                     repo_name: repo.name_str().to_string(),
                     rel_path: basename.clone(),
                 };
-                if !self.contains_meta(&key) {
-                    continue;
-                }
                 DirEntryKind::File
             } else {
                 // Skip others.
@@ -233,10 +230,6 @@ impl RepositoryCache {
             return Some(meta.clone());
         }
         None
-    }
-
-    pub fn contains_meta(&self, key: &RepositoryKey) -> bool {
-        self.repositories().contains_key(key)
     }
 
     pub fn resolve_all(&self) -> Result<Response> {

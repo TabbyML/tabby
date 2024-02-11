@@ -51,6 +51,7 @@
     "compare-versions": "^6.1.0",
     "copy-to-clipboard": "^3.3.3",
     "downshift": "^8.2.2",
+    "filename2prism": "^3.0.0",
     "focus-trap-react": "^10.1.1",
     "graphql": "^16.8.1",
     "jwt-decode": "^4.0.0",

@@ -89,9 +89,6 @@ async fn resolve_path(
         };
     }
 
-    if !rs.contains_meta(&repo.dataset_key()) {
-        return Err(StatusCode::NOT_FOUND);
-    }
     match rs.resolve_file(root, &repo).await {
         Ok(resp) => Ok(resp),
         Err(err) => {
