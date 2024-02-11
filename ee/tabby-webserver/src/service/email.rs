@@ -9,7 +9,7 @@ use lettre::{
         client::{Tls, TlsParameters},
         AsyncSmtpTransportBuilder,
     },
-    Address, AsyncSmtpTransport, AsyncTransport, Tokio1Executor, Transport,
+    Address, AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
 };
 use tabby_db::{DbConn, DbEnum};
 use tokio::{sync::RwLock, task::JoinHandle};
@@ -77,12 +77,15 @@ impl EmailServiceImpl {
         auth_method: AuthMethod,
     ) -> Result<()> {
         let mut smtp_server = self.smtp_server.write().await;
-        *smtp_server = Some(
-            make_smtp_builder(host, port as u16, encryption)?
+
+        let mut builder = make_smtp_builder(host, port as u16, encryption)?;
+        let mechanism = auth_mechanism(auth_method);
+        if !mechanism.is_empty() {
+            builder = builder
                 .credentials(Credentials::new(username, password))
-                .authentication(auth_mechanism(auth_method))
-                .build(),
-        );
+                .authentication(mechanism);
+        }
+        *smtp_server = Some(builder.build());
         *self.from.write().await = from_address.into();
         Ok(())
     }
@@ -109,22 +112,16 @@ impl EmailServiceImpl {
             .body(message)
             .map_err(anyhow::Error::msg)?;
 
-        let handle = tokio::task::spawn(async move {
-            let Some(smtp_server) = &*(smtp_server.read().await) else {
-                // Not enabled.
-                return;
-            };
-            println!("send done {:?}", smtp_server);
-            println!("send done {:?}", &msg);
+        if let Some(smtp_server) = &*(smtp_server.read().await) {
+            // Not enabled.
             match smtp_server.send(msg).await.map_err(anyhow::Error::msg) {
                 Ok(_) => {}
                 Err(err) => {
                     warn!("Failed to send mail due to {}", err);
                 }
             };
-        });
-
-        Ok(handle)
+        }
+        Ok(tokio::spawn(async move {}))
     }
 }
 
@@ -230,9 +227,10 @@ fn to_address(email: String) -> Result<Address> {
 
 #[cfg(test)]
 mod tests {
-    use tokio::process::{Child, Command};
+    use std::time::Duration;
 
-    use crate::schema::email;
+    use serde::Deserialize;
+    use tokio::process::{Child, Command};
 
     use super::*;
 
@@ -247,7 +245,7 @@ mod tests {
             smtp_server: "smtp://example.com".into(),
             smtp_port: 578,
             encryption: Encryption::SslTls,
-            auth_method: AuthMethod::Plain,
+            auth_method: AuthMethod::None,
             smtp_password: Some("123456".to_owned()),
         };
         service.update_email_setting(update_input).await.unwrap();
@@ -259,27 +257,38 @@ mod tests {
 
     fn default_email_setting() -> EmailSetting {
         EmailSetting {
-            smtp_username: "fake_smtp".into(),
+            smtp_username: "tabby".into(),
             smtp_server: "127.0.0.1".into(),
             smtp_port: 1025,
-            from_address: "fake_smtp@localhost".into(),
+            from_address: "tabby@localhost".into(),
             encryption: Encryption::None,
             auth_method: AuthMethod::None,
         }
     }
 
-    struct ChildGuard(Child);
-    impl Drop for ChildGuard {
-        fn drop(&mut self) {
-            let _ = self.0.start_kill();
-        }
+    async fn start_smtp_server() -> Child {
+        let mut cmd = Command::new("mailtutan");
+        cmd.kill_on_drop(true);
+
+        let child = cmd
+            .spawn()
+            .expect("You need to run `cargo install mailtutan` before running this test");
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        child
     }
 
-    async fn start_smtp_server(setting: EmailSetting, smtp_password: String) -> ChildGuard {
-        let mut cmd = Command::new("mailtutan");
-        cmd.arg("--smtp-port").arg(setting.smtp_port.to_string());
+    #[derive(Deserialize)]
+    struct Mail {
+        sender: String,
+    }
 
-        ChildGuard(cmd.spawn().expect("Failed to start server"))
+    async fn read_mails() -> Vec<Mail> {
+        reqwest::get("http://localhost:1080/api/messages")
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap()
     }
 
     /*
@@ -289,7 +298,7 @@ mod tests {
     async fn test_send_email() {
         let email_setting = default_email_setting();
         let smtp_password = "fake";
-        // let _ = start_smtp_server(email_setting.clone(), smtp_password.into()).await;
+        let mut child = start_smtp_server().await;
 
         let db: DbConn = DbConn::new_in_memory().await.unwrap();
         db.update_email_setting(
@@ -297,7 +306,7 @@ mod tests {
             Some(smtp_password.into()),
             email_setting.smtp_server,
             email_setting.smtp_port,
-            email_setting.from_address,
+            email_setting.from_address.clone(),
             email_setting.encryption.as_enum_str().into(),
             email_setting.auth_method.as_enum_str().into(),
         )
@@ -307,9 +316,14 @@ mod tests {
         let service = new_email_service(db).await.unwrap();
 
         let handle = service
-            .send_invitation_email("abc@abc.com".into(), "12345".into())
-            .await.unwrap();
+            .send_invitation_email("user@localhost".into(), "12345".into())
+            .await
+            .unwrap();
 
         handle.await.unwrap();
+
+        let mails = read_mails().await;
+        assert!(mails[0].sender.contains(&email_setting.from_address));
+        child.kill().await.unwrap();
     }
 }
