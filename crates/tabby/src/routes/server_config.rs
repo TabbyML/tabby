@@ -1,6 +1,6 @@
 use axum::Json;
-use hyper::StatusCode;
-use serde::{Deserialize, Serialize};
+
+
 use tabby_common::api::server_setting::ServerSetting;
 use utoipa::ToSchema;
 
