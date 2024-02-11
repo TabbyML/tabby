@@ -48,7 +48,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::search),
+    paths(routes::log_event, routes::completions, routes::chat_completions, routes::health, routes::search, routes::setting),
     components(schemas(
         api::event::LogEventRequest,
         completion::CompletionRequest,
@@ -67,7 +67,8 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         health::Version,
         api::code::SearchResponse,
         api::code::Hit,
-        api::code::HitDocument
+        api::code::HitDocument,
+        api::server_setting::ServerSetting
     )),
     modifiers(&SecurityAddon),
 )]
@@ -243,6 +244,13 @@ async fn api_router(
         Router::new().route(
             "/v1beta/search",
             routing::get(routes::search).with_state(code),
+        )
+    });
+
+    routers.push({
+        Router::new().route(
+            "/v1beta/server_setting",
+            routing::get(routes::setting),
         )
     });
 
