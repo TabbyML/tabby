@@ -24,3 +24,11 @@ if [[ "$OSTYPE" == "linux"* ]]; then
     install_protobuf_centos
   fi
 fi
+
+
+install_mailtutan() {
+  # For local smtp test.
+  cargo install mailtutan
+}
+
+install_mailtutan
