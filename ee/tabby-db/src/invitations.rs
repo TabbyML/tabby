@@ -2,9 +2,8 @@ use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
 
-use crate::SQLXResultExt;
-
 use super::DbConn;
+use crate::SQLXResultExt;
 
 #[derive(FromRow)]
 pub struct InvitationDAO {

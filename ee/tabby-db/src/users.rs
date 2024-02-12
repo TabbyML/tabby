@@ -1,10 +1,10 @@
-use crate::SQLXResultExt;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_scalar, FromRow};
 use uuid::Uuid;
 
 use super::DbConn;
+use crate::SQLXResultExt;
 
 #[allow(unused)]
 #[derive(FromRow)]
