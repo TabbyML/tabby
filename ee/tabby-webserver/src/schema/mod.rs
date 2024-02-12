@@ -21,7 +21,7 @@ use juniper_axum::{
     FromAuth,
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-use tracing::{error, warn};
+use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
@@ -324,10 +324,14 @@ impl Mutation {
 
     async fn request_invitation_email(
         ctx: &Context,
-        email: RequestInvitationInput,
+        input: RequestInvitationInput,
     ) -> Result<Invitation> {
-        email.validate()?;
-        Ok(ctx.locator.auth().request_invitation(email.email).await?)
+        input.validate()?;
+        Ok(ctx
+            .locator
+            .auth()
+            .request_invitation(input, ctx.locator.email())
+            .await?)
     }
 
     async fn reset_user_auth_token(ctx: &Context) -> Result<bool> {
@@ -385,17 +389,11 @@ impl Mutation {
                 "Only admin is able to create invitation",
             ));
         };
-        let invitation = ctx.locator.auth().create_invitation(email.clone()).await?;
-        let email_sent = ctx
+        let invitation = ctx
             .locator
-            .email()
-            .send_invitation_email(email, invitation.code)
-            .await;
-        if let Err(e) = email_sent {
-            warn!(
-                "Failed to send invitation email, please check your SMTP settings are correct: {e}"
-            );
-        }
+            .auth()
+            .create_invitation(email.clone(), ctx.locator.email())
+            .await?;
         Ok(invitation.id)
     }
 

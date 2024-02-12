@@ -9,6 +9,7 @@ use argon2::{
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
+use tracing::warn;
 use validator::{Validate, ValidationError};
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
@@ -19,8 +20,9 @@ use crate::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
             RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
-            TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
+            RequestInvitationInput, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
         },
+        email::EmailService,
         setting::SettingService,
     },
 };
@@ -284,20 +286,38 @@ impl AuthenticationService for DbConn {
         }
     }
 
-    async fn create_invitation(&self, email: String) -> Result<Invitation> {
-        let invitation = self.create_invitation(email).await?;
+    async fn create_invitation(
+        &self,
+        email: String,
+        mail_service: Arc<dyn EmailService>,
+    ) -> Result<Invitation> {
+        let invitation = self.create_invitation(email.clone()).await?;
+        let email_sent = mail_service
+            .send_invitation_email(email, invitation.code.clone())
+            .await;
+        if let Err(e) = email_sent {
+            warn!(
+                "Failed to send invitation email, please check your SMTP settings are correct: {e}"
+            );
+        }
         Ok(invitation.into())
     }
 
-    async fn request_invitation(&self, email: String) -> Result<Invitation> {
+    async fn request_invitation(
+        &self,
+        input: RequestInvitationInput,
+        mail_service: Arc<dyn EmailService>,
+    ) -> Result<Invitation> {
         if !self
             .read_security_setting()
             .await?
-            .can_register_without_invitation(&email)
+            .can_request_invitation(&input.email)
         {
             return Err(anyhow!("Your email does not belong to this organization, please request an invitation from an administrator"));
         }
-        AuthenticationService::create_invitation(self, email).await
+        let invitation =
+            AuthenticationService::create_invitation(self, input.email, mail_service).await?;
+        Ok(invitation)
     }
 
     async fn delete_invitation(&self, id: &ID) -> Result<ID> {
@@ -348,37 +368,12 @@ impl AuthenticationService for DbConn {
     ) -> std::result::Result<OAuthResponse, OAuthError> {
         let client = oauth::new_oauth_client(provider, Arc::new(self.clone()));
         let email = client.fetch_user_email(code).await?;
-        let user = if let Some(user) = self.get_user_by_email(&email).await? {
-            if !user.active {
-                return Err(OAuthError::UserDisabled);
-            }
-            user
-        } else {
-            let Ok(invitation) = get_or_request_invitation(&self, &email).await else {
-                return Err(OAuthError::UserNotInvited);
-            };
-            // it's ok to set password to empty string here, because
-            // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
-            // 2. `password_verify` will always return false for empty password hash read from user table
-            // so user created here is only able to login by github oauth, normal login won't work
-            let id = self
-                .create_user_with_invitation(
-                    email,
-                    "".to_owned(),
-                    false,
-                    invitation
-                        .id
-                        .as_rowid()
-                        .expect("rowid must be valid since it came from db"),
-                )
-                .await?;
-            self.get_user(id).await?.unwrap()
-        };
+        let (user_id, is_admin) = get_or_create_oauth_user(self, &email).await?;
 
         let refresh_token = generate_refresh_token();
-        self.create_refresh_token(user.id, &refresh_token).await?;
+        self.create_refresh_token(user_id, &refresh_token).await?;
 
-        let access_token = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        let access_token = generate_jwt(JWTPayload::new(email.clone(), is_admin))
             .map_err(|_| OAuthError::Unknown)?;
 
         let resp = OAuthResponse {
@@ -431,12 +426,37 @@ impl AuthenticationService for DbConn {
     }
 }
 
-async fn get_or_request_invitation(db: &DbConn, email: &str) -> Result<Invitation> {
-    let invite = db.get_invitation_by_email(email).await?;
-    if let Some(invite) = invite {
-        return Ok(invite.into());
+async fn get_or_create_oauth_user(db: &DbConn, email: &str) -> Result<(i32, bool), OAuthError> {
+    if let Some(user) = db.get_user_by_email(email).await? {
+        if !user.active {
+            return Err(OAuthError::UserDisabled);
+        }
+        Ok((user.id, user.is_admin))
+    } else {
+        // it's ok to set password to empty string here, because
+        // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
+        // 2. `password_verify` will always return false for empty password hash read from user table
+        // so user created here is only able to login by github oauth, normal login won't work
+        if db
+            .read_security_setting()
+            .await?
+            .can_request_invitation(&email)
+        {
+            return Ok((
+                db.create_user(email.to_owned(), "".to_owned(), false)
+                    .await?,
+                false,
+            ));
+        }
+        let Some(invitation) = db.get_invitation_by_email(&email).await.ok().flatten() else {
+            return Err(OAuthError::UserNotInvited);
+        };
+        let id = db
+            .create_user_with_invitation(email.to_owned(), "".to_owned(), false, invitation.id)
+            .await?;
+        let user = db.get_user(id).await?.unwrap();
+        Ok((user.id, user.is_admin))
     }
-    db.request_invitation(email.to_string()).await
 }
 
 async fn check_invitation(
@@ -446,15 +466,6 @@ async fn check_invitation(
     email: &str,
 ) -> Result<Option<InvitationDAO>, RegisterError> {
     if !is_admin_initialized {
-        return Ok(None);
-    }
-
-    let network_setting = db.read_security_setting().await?;
-    let domain = email.split_once('@').unwrap_or_default().1.to_string();
-    if network_setting
-        .allowed_register_domain_list
-        .contains(&domain)
-    {
         return Ok(None);
     }
 
