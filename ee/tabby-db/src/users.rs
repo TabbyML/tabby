@@ -130,7 +130,7 @@ impl DbConn {
     pub async fn verify_auth_token(&self, token: &str) -> Result<String> {
         let token = token.to_owned();
         let email = query_scalar!(
-            "SELECT email FROM users WHERE auth_token = ? and active",
+            "SELECT email FROM users WHERE auth_token = ? AND active",
             token
         )
         .fetch_one(&self.pool)
