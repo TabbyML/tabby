@@ -131,9 +131,12 @@ impl DbConn {
 
     pub async fn verify_auth_token(&self, token: &str) -> Result<String> {
         let token = token.to_owned();
-        let email = query_scalar!("SELECT email FROM users WHERE auth_token = ?", token)
-            .fetch_one(&self.pool)
-            .await;
+        let email = query_scalar!(
+            "SELECT email FROM users WHERE auth_token = ? AND active",
+            token
+        )
+        .fetch_one(&self.pool)
+        .await;
         email.map_err(Into::into)
     }
 
@@ -233,6 +236,10 @@ mod tests {
         let new_user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.email, new_user.email);
         assert_ne!(user.auth_token, new_user.auth_token);
+
+        // Inactive user's auth token will be rejected.
+        conn.update_user_active(new_user.id, false).await.unwrap();
+        assert!(conn.verify_auth_token(&new_user.auth_token).await.is_err());
     }
 
     #[tokio::test]
