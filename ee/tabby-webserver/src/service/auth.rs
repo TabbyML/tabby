@@ -471,11 +471,11 @@ async fn get_or_create_oauth_user(db: &DbConn, email: &str) -> Result<(i32, bool
         // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
         // 2. `password_verify` will always return false for empty password hash read from user table
         // so user created here is only able to login by github oauth, normal login won't work
-        Ok((
+        return Ok((
             db.create_user(email.to_owned(), "".to_owned(), false)
                 .await?,
             false,
-        ))
+        ));
     } else {
         let Some(invitation) = db.get_invitation_by_email(email).await.ok().flatten() else {
             return Err(OAuthError::UserNotInvited);
@@ -749,6 +749,58 @@ mod tests {
         )
         .await
         .unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_request_invitation() {
+        let service = test_authentication_service().await;
+        service
+            .db
+            .update_security_setting(Some("example.com".into()), false)
+            .await
+            .unwrap();
+
+        assert!(service
+            .request_invitation(RequestInvitationInput {
+                email: "test@example.com".into()
+            })
+            .await
+            .is_ok());
+
+        assert!(service
+            .request_invitation(RequestInvitationInput {
+                email: "test@gmail.com".into()
+            })
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_or_create_oauth_user() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), "".into(), false)
+            .await
+            .unwrap();
+        service.db.update_user_active(id, false).await.unwrap();
+
+        assert!(get_or_create_oauth_user(&service.db, "test@example.com")
+            .await
+            .is_err());
+
+        service
+            .db
+            .update_security_setting(Some("example.com".into()), false)
+            .await
+            .unwrap();
+
+        assert!(get_or_create_oauth_user(&service.db, "example@example.com")
+            .await
+            .is_ok());
+        assert!(get_or_create_oauth_user(&service.db, "example@gmail.com")
+            .await
+            .is_err());
     }
 
     #[tokio::test]
