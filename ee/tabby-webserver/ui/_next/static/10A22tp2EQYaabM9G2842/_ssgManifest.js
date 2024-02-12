@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fsettings\u002Fsso\u002Fdetail\u002F[provider]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
