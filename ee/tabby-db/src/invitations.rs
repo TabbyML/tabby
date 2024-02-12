@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
-use sqlx::{prelude::FromRow, query, query_scalar};
+use chrono::{DateTime, Utc};
+use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
 
 use super::DbConn;
@@ -11,7 +12,7 @@ pub struct InvitationDAO {
     pub email: String,
     pub code: String,
 
-    pub created_at: String,
+    pub created_at: DateTime<Utc>,
 }
 
 /// db read/write operations for `invitations` table
@@ -61,25 +62,19 @@ impl DbConn {
             return Err(anyhow!("User already registered"));
         }
 
-        let mut transaction = self.pool.begin().await?;
         let code = Uuid::new_v4().to_string();
+        let created_at = chrono::offset::Utc::now();
         let res = query!(
-            "INSERT INTO invitations (email, code) VALUES (?, ?)",
+            "INSERT INTO invitations (email, code, created_at) VALUES (?, ?, ?)",
             email,
             code,
+            created_at
         )
-        .execute(&mut *transaction)
+        .execute(&self.pool)
         .await;
 
         let res = res.unique_error("Failed to create invitation, email already exists")?;
         let id = res.last_insert_rowid() as i32;
-
-        let created_at = query_scalar!("SELECT created_at FROM invitations WHERE id=?", id)
-            .fetch_one(&mut *transaction)
-            .await?
-            .expect("Invitation always present because it was just created")
-            .to_string();
-        transaction.commit().await?;
 
         Ok(InvitationDAO {
             id,
