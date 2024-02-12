@@ -16,7 +16,9 @@ use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::warn;
 
 use crate::schema::{
-    email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
+    email::{
+        AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption, SendEmailError,
+    },
     setting::SettingService,
 };
 
@@ -100,8 +102,14 @@ impl EmailServiceImpl {
         to: String,
         subject: String,
         message: String,
-    ) -> Result<JoinHandle<()>> {
+    ) -> Result<JoinHandle<()>, SendEmailError> {
         let smtp_server = self.smtp_server.clone();
+
+        // Check if the email service is actually configured.
+        if smtp_server.read().await.is_none() {
+            return Err(SendEmailError::NotConfigured);
+        }
+
         let from = self.from.read().await.clone();
         let address_from = to_address(from)?;
         let address_to = to_address(to)?;
@@ -112,16 +120,17 @@ impl EmailServiceImpl {
             .body(message)
             .map_err(anyhow::Error::msg)?;
 
-        if let Some(smtp_server) = &*(smtp_server.read().await) {
-            // Not enabled.
-            match smtp_server.send(msg).await.map_err(anyhow::Error::msg) {
-                Ok(_) => {}
-                Err(err) => {
-                    warn!("Failed to send mail due to {}", err);
-                }
-            };
-        }
-        Ok(tokio::spawn(async move {}))
+        Ok(tokio::spawn(async move {
+            if let Some(smtp_server) = &*(smtp_server.read().await) {
+                // Not enabled.
+                match smtp_server.send(msg).await.map_err(anyhow::Error::msg) {
+                    Ok(_) => {}
+                    Err(err) => {
+                        warn!("Failed to send mail due to {}", err);
+                    }
+                };
+            }
+        }))
     }
 }
 
@@ -207,7 +216,11 @@ impl EmailService for EmailServiceImpl {
         Ok(())
     }
 
-    async fn send_invitation_email(&self, email: String, code: String) -> Result<JoinHandle<()>> {
+    async fn send_invitation_email(
+        &self,
+        email: String,
+        code: String,
+    ) -> Result<JoinHandle<()>, SendEmailError> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
         self.send_email_in_background(
