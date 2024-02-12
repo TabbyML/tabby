@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 pub use email_setting::EmailSettingDAO;
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
 pub use google_oauth_credential::GoogleOAuthCredentialDAO;
@@ -5,7 +6,7 @@ pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
-use sqlx::{query, query_scalar, Pool, Sqlite, SqlitePool};
+use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
 pub use users::UserDAO;
 
 mod email_setting;
@@ -156,6 +157,22 @@ impl DbConn {
         }
 
         Ok(result)
+    }
+}
+
+pub trait SQLXResultExt {
+    fn unique_error(self, msg: &'static str) -> anyhow::Result<SqliteQueryResult>;
+}
+
+impl SQLXResultExt for Result<SqliteQueryResult, sqlx::Error> {
+    fn unique_error(self, msg: &'static str) -> anyhow::Result<SqliteQueryResult> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
+                Err(anyhow!("{msg}"))
+            }
+            Err(e) => Err(e.into()),
+        }
     }
 }
 
