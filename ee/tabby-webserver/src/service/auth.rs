@@ -20,9 +20,10 @@ use crate::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
             RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
-            TokenAuthError, TokenAuthResponse, UpdateOAuthCredentialInput, User,
-            VerifyTokenResponse, RequestInvitationInput
+            RequestInvitationInput, TokenAuthError, TokenAuthResponse, UpdateOAuthCredentialInput,
+            User, VerifyTokenResponse,
         },
+        email::EmailService,
         setting::SettingService,
     },
 };
@@ -64,6 +65,12 @@ struct RegisterInput {
         message = "Password must be at most 20 characters"
     ))]
     password2: String,
+}
+
+#[derive(Clone)]
+pub struct AuthenticationServiceImpl {
+    pub db: DbConn,
+    pub mail: Arc<dyn EmailService>,
 }
 
 impl std::fmt::Debug for RegisterInput {
@@ -142,7 +149,7 @@ impl std::fmt::Debug for TokenAuthInput {
 }
 
 #[async_trait]
-impl AuthenticationService for DbConn {
+impl AuthenticationService for AuthenticationServiceImpl {
     async fn register(
         &self,
         email: String,
@@ -158,11 +165,16 @@ impl AuthenticationService for DbConn {
         input.validate()?;
 
         let is_admin_initialized = self.is_admin_initialized().await?;
-        let invitation =
-            check_invitation(self, is_admin_initialized, invitation_code, &input.email).await?;
+        let invitation = check_invitation(
+            &self.db,
+            is_admin_initialized,
+            invitation_code,
+            &input.email,
+        )
+        .await?;
 
         // check if email exists
-        if self.get_user_by_email(&input.email).await?.is_some() {
+        if self.db.get_user_by_email(&input.email).await?.is_some() {
             return Err(RegisterError::DuplicateEmail);
         }
 
@@ -171,22 +183,24 @@ impl AuthenticationService for DbConn {
         };
 
         let id = if let Some(invitation) = invitation {
-            self.create_user_with_invitation(
-                input.email.clone(),
-                pwd_hash,
-                !is_admin_initialized,
-                invitation.id,
-            )
-            .await?
+            self.db
+                .create_user_with_invitation(
+                    input.email.clone(),
+                    pwd_hash,
+                    !is_admin_initialized,
+                    invitation.id,
+                )
+                .await?
         } else {
-            self.create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
+            self.db
+                .create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
                 .await?
         };
 
-        let user = self.get_user(id).await?.unwrap();
+        let user = self.db.get_user(id).await?.unwrap();
 
         let refresh_token = generate_refresh_token();
-        self.create_refresh_token(id, &refresh_token).await?;
+        self.db.create_refresh_token(id, &refresh_token).await?;
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
@@ -205,7 +219,7 @@ impl AuthenticationService for DbConn {
         let input = TokenAuthInput { email, password };
         input.validate()?;
 
-        let Some(user) = self.get_user_by_email(&input.email).await? else {
+        let Some(user) = self.db.get_user_by_email(&input.email).await? else {
             return Err(TokenAuthError::UserNotFound);
         };
 
@@ -218,7 +232,9 @@ impl AuthenticationService for DbConn {
         }
 
         let refresh_token = generate_refresh_token();
-        self.create_refresh_token(user.id, &refresh_token).await?;
+        self.db
+            .create_refresh_token(user.id, &refresh_token)
+            .await?;
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
@@ -233,13 +249,13 @@ impl AuthenticationService for DbConn {
         &self,
         token: String,
     ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError> {
-        let Some(refresh_token) = self.get_refresh_token(&token).await? else {
+        let Some(refresh_token) = self.db.get_refresh_token(&token).await? else {
             return Err(RefreshTokenError::InvalidRefreshToken);
         };
         if refresh_token.is_expired() {
             return Err(RefreshTokenError::ExpiredRefreshToken);
         }
-        let Some(user) = self.get_user(refresh_token.user_id).await? else {
+        let Some(user) = self.db.get_user(refresh_token.user_id).await? else {
             return Err(RefreshTokenError::UserNotFound);
         };
 
@@ -248,7 +264,7 @@ impl AuthenticationService for DbConn {
         }
 
         let new_token = generate_refresh_token();
-        self.replace_refresh_token(&token, &new_token).await?;
+        self.db.replace_refresh_token(&token, &new_token).await?;
 
         // refresh token update is done, generate new access token based on user info
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
@@ -273,12 +289,12 @@ impl AuthenticationService for DbConn {
     }
 
     async fn is_admin_initialized(&self) -> Result<bool> {
-        let admin = self.list_admin_users().await?;
+        let admin = self.db.list_admin_users().await?;
         Ok(!admin.is_empty())
     }
 
     async fn get_user_by_email(&self, email: &str) -> Result<User> {
-        let user = self.get_user_by_email(email).await?;
+        let user = self.db.get_user_by_email(email).await?;
         if let Some(user) = user {
             Ok(user.into())
         } else {
@@ -286,13 +302,10 @@ impl AuthenticationService for DbConn {
         }
     }
 
-    async fn create_invitation(
-        &self,
-        email: String,
-        mail_service: Arc<dyn EmailService>,
-    ) -> Result<Invitation> {
-        let invitation = self.create_invitation(email.clone()).await?;
-        let email_sent = mail_service
+    async fn create_invitation(&self, email: String) -> Result<Invitation> {
+        let invitation = self.db.create_invitation(email.clone()).await?;
+        let email_sent = self
+            .mail
             .send_invitation_email(email, invitation.code.clone())
             .await;
         if let Err(e) = email_sent {
@@ -303,29 +316,25 @@ impl AuthenticationService for DbConn {
         Ok(invitation.into())
     }
 
-    async fn request_invitation(
-        &self,
-        input: RequestInvitationInput,
-        mail_service: Arc<dyn EmailService>,
-    ) -> Result<Invitation> {
+    async fn request_invitation(&self, input: RequestInvitationInput) -> Result<Invitation> {
         if !self
+            .db
             .read_security_setting()
             .await?
             .can_request_invitation(&input.email)
         {
             return Err(anyhow!("Your email does not belong to this organization, please request an invitation from an administrator"));
         }
-        let invitation =
-            AuthenticationService::create_invitation(self, input.email, mail_service).await?;
+        let invitation = AuthenticationService::create_invitation(self, input.email).await?;
         Ok(invitation)
     }
 
     async fn delete_invitation(&self, id: &ID) -> Result<ID> {
-        Ok(self.delete_invitation(id.as_rowid()?).await?.as_id())
+        Ok(self.db.delete_invitation(id.as_rowid()?).await?.as_id())
     }
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
-        self.reset_user_auth_token_by_email(email).await
+        self.db.reset_user_auth_token_by_email(email).await
     }
 
     async fn list_users(
@@ -338,6 +347,7 @@ impl AuthenticationService for DbConn {
         let (skip_id, limit, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
 
         Ok(self
+            .db
             .list_users_with_filter(skip_id, limit, backwards)
             .await?
             .into_iter()
@@ -354,6 +364,7 @@ impl AuthenticationService for DbConn {
     ) -> Result<Vec<Invitation>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         Ok(self
+            .db
             .list_invitations_with_filter(limit, skip_id, backwards)
             .await?
             .into_iter()
@@ -368,10 +379,12 @@ impl AuthenticationService for DbConn {
     ) -> std::result::Result<OAuthResponse, OAuthError> {
         let client = oauth::new_oauth_client(provider, Arc::new(self.clone()));
         let email = client.fetch_user_email(code).await?;
-        let (user_id, is_admin) = get_or_create_oauth_user(self, &email).await?;
+        let (user_id, is_admin) = get_or_create_oauth_user(&self.db, &email).await?;
 
         let refresh_token = generate_refresh_token();
-        self.create_refresh_token(user_id, &refresh_token).await?;
+        self.db
+            .create_refresh_token(user_id, &refresh_token)
+            .await?;
 
         let access_token = generate_jwt(JWTPayload::new(email.clone(), is_admin))
             .map_err(|_| OAuthError::Unknown)?;
@@ -389,10 +402,12 @@ impl AuthenticationService for DbConn {
     ) -> Result<Option<OAuthCredential>> {
         match provider {
             OAuthProvider::Github => Ok(self
+                .db
                 .read_github_oauth_credential()
                 .await?
                 .map(|val| val.into())),
             OAuthProvider::Google => Ok(self
+                .db
                 .read_google_oauth_credential()
                 .await?
                 .map(|val| val.into())),
@@ -400,7 +415,7 @@ impl AuthenticationService for DbConn {
     }
 
     async fn oauth_callback_url(&self, provider: OAuthProvider) -> Result<String> {
-        let external_url = self.read_network_setting().await?.external_url;
+        let external_url = self.db.read_network_setting().await?.external_url;
         let url = match provider {
             OAuthProvider::Github => external_url + "/oauth/callback/github",
             OAuthProvider::Google => external_url + "/oauth/callback/google",
@@ -411,9 +426,11 @@ impl AuthenticationService for DbConn {
     async fn update_oauth_credential(&self, input: UpdateOAuthCredentialInput) -> Result<()> {
         match input.provider {
             OAuthProvider::Github => Ok(self
+                .db
                 .update_github_oauth_credential(&input.client_id, &input.client_secret)
                 .await?),
             OAuthProvider::Google => Ok(self
+                .db
                 .update_google_oauth_credential(&input.client_id, &input.client_secret)
                 .await?),
         }
@@ -421,13 +438,13 @@ impl AuthenticationService for DbConn {
 
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()> {
         match provider {
-            OAuthProvider::Github => self.delete_github_oauth_credential().await,
-            OAuthProvider::Google => self.delete_google_oauth_credential().await,
+            OAuthProvider::Github => self.db.delete_github_oauth_credential().await,
+            OAuthProvider::Google => self.db.delete_google_oauth_credential().await,
         }
     }
 
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
-        self.update_user_active(id.as_rowid()?, active).await
+        self.db.update_user_active(id.as_rowid()?, active).await
     }
 }
 
@@ -510,11 +527,19 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 #[cfg(test)]
 mod tests {
 
+    async fn test_authentication_service() -> AuthenticationServiceImpl {
+        let db = DbConn::new_in_memory().await.unwrap();
+        AuthenticationServiceImpl {
+            db: db.clone(),
+            mail: Arc::new(EmailServiceImpl::new(db)),
+        }
+    }
+
     use assert_matches::assert_matches;
     use juniper_axum::relay::{self, Connection};
 
     use super::*;
-    use crate::service::AsRowid;
+    use crate::service::email::EmailServiceImpl;
 
     #[test]
     fn test_password_hash() {
@@ -537,39 +562,42 @@ mod tests {
     static ADMIN_EMAIL: &str = "test@example.com";
     static ADMIN_PASSWORD: &str = "123456789$acR";
 
-    async fn register_admin_user(conn: &DbConn) -> RegisterResponse {
-        conn.register(
-            ADMIN_EMAIL.to_owned(),
-            ADMIN_PASSWORD.to_owned(),
-            ADMIN_PASSWORD.to_owned(),
-            None,
-        )
-        .await
-        .unwrap()
+    async fn register_admin_user(service: &AuthenticationServiceImpl) -> RegisterResponse {
+        service
+            .register(
+                ADMIN_EMAIL.to_owned(),
+                ADMIN_PASSWORD.to_owned(),
+                ADMIN_PASSWORD.to_owned(),
+                None,
+            )
+            .await
+            .unwrap()
     }
 
     #[tokio::test]
     async fn test_auth_token() {
-        let conn = DbConn::new_in_memory().await.unwrap();
+        let service = test_authentication_service().await;
         assert_matches!(
-            conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
+            service
+                .token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
                 .await,
             Err(TokenAuthError::UserNotFound)
         );
 
-        register_admin_user(&conn).await;
+        register_admin_user(&service).await;
 
         assert_matches!(
-            conn.token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
+            service
+                .token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
                 .await,
             Err(TokenAuthError::InvalidPassword)
         );
 
-        let resp1 = conn
+        let resp1 = service
             .token_auth(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned())
             .await
             .unwrap();
-        let resp2 = conn
+        let resp2 = service
             .token_auth(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned())
             .await
             .unwrap();
@@ -579,43 +607,48 @@ mod tests {
 
     #[tokio::test]
     async fn test_invitation_flow() {
-        let conn = DbConn::new_in_memory().await.unwrap();
+        let service = test_authentication_service().await;
 
-        assert!(!conn.is_admin_initialized().await.unwrap());
-        register_admin_user(&conn).await;
+        assert!(!service.is_admin_initialized().await.unwrap());
+        register_admin_user(&service).await;
 
         let email = "user@user.com";
         let password = "12345678dD^";
 
-        conn.create_invitation(email.to_owned()).await.unwrap();
-        let invitation = &conn.list_invitations(None, None, None, None).await.unwrap()[0];
+        service.create_invitation(email.to_owned()).await.unwrap();
+        let invitation = &service
+            .list_invitations(None, None, None, None)
+            .await
+            .unwrap()[0];
 
         // Admin initialized, registeration requires a invitation code;
         assert_matches!(
-            conn.register(
-                email.to_owned(),
-                password.to_owned(),
-                password.to_owned(),
-                None
-            )
-            .await,
+            service
+                .register(
+                    email.to_owned(),
+                    password.to_owned(),
+                    password.to_owned(),
+                    None
+                )
+                .await,
             Err(RegisterError::InvalidInvitationCode)
         );
 
         // Invalid invitation code won't work.
         assert_matches!(
-            conn.register(
-                email.to_owned(),
-                password.to_owned(),
-                password.to_owned(),
-                Some("abc".to_owned())
-            )
-            .await,
+            service
+                .register(
+                    email.to_owned(),
+                    password.to_owned(),
+                    password.to_owned(),
+                    Some("abc".to_owned())
+                )
+                .await,
             Err(RegisterError::InvalidInvitationCode)
         );
 
         // Register success.
-        assert!(conn
+        assert!(service
             .register(
                 email.to_owned(),
                 password.to_owned(),
@@ -627,18 +660,20 @@ mod tests {
 
         // Try register again with same email failed.
         assert_matches!(
-            conn.register(
-                email.to_owned(),
-                password.to_owned(),
-                password.to_owned(),
-                Some(invitation.code.clone())
-            )
-            .await,
+            service
+                .register(
+                    email.to_owned(),
+                    password.to_owned(),
+                    password.to_owned(),
+                    Some(invitation.code.clone())
+                )
+                .await,
             Err(RegisterError::InvalidInvitationCode)
         );
 
         // Used invitation should have been deleted,  following delete attempt should fail.
-        assert!(conn
+        assert!(service
+            .db
             .delete_invitation(invitation.id.as_rowid().unwrap())
             .await
             .is_err());
@@ -646,16 +681,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_token() {
-        let conn = DbConn::new_in_memory().await.unwrap();
-        let reg = register_admin_user(&conn).await;
+        let service = test_authentication_service().await;
+        let reg = register_admin_user(&service).await;
 
-        let resp1 = conn.refresh_token(reg.refresh_token.clone()).await.unwrap();
+        let resp1 = service
+            .refresh_token(reg.refresh_token.clone())
+            .await
+            .unwrap();
         // new access token should be valid
         assert!(validate_jwt(&resp1.access_token).is_ok());
         // refresh token should be renewed
         assert_ne!(reg.refresh_token, resp1.refresh_token);
 
-        let resp2 = conn
+        let resp2 = service
             .refresh_token(resp1.refresh_token.clone())
             .await
             .unwrap();
@@ -665,27 +703,27 @@ mod tests {
 
     #[tokio::test]
     async fn test_reset_user_auth_token() {
-        let conn = DbConn::new_in_memory().await.unwrap();
-        register_admin_user(&conn).await;
+        let service = test_authentication_service().await;
+        register_admin_user(&service).await;
 
-        let user = conn.get_user_by_email(ADMIN_EMAIL).await.unwrap().unwrap();
-        conn.reset_user_auth_token(&user.email).await.unwrap();
+        let user = service.get_user_by_email(ADMIN_EMAIL).await.unwrap();
+        service.reset_user_auth_token(&user.email).await.unwrap();
 
-        let user2 = conn.get_user_by_email(ADMIN_EMAIL).await.unwrap().unwrap();
+        let user2 = service.get_user_by_email(ADMIN_EMAIL).await.unwrap();
         assert_ne!(user.auth_token, user2.auth_token);
     }
 
     #[tokio::test]
     async fn test_is_admin_initialized() {
-        let conn = DbConn::new_in_memory().await.unwrap();
+        let service = test_authentication_service().await;
 
-        assert!(!conn.is_admin_initialized().await.unwrap());
-        tabby_db::testutils::create_user(&conn).await;
-        assert!(conn.is_admin_initialized().await.unwrap());
+        assert!(!service.is_admin_initialized().await.unwrap());
+        tabby_db::testutils::create_user(&service.db).await;
+        assert!(service.is_admin_initialized().await.unwrap());
     }
 
     async fn list_users(
-        db: &DbConn,
+        db: &AuthenticationServiceImpl,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -706,24 +744,30 @@ mod tests {
 
     #[tokio::test]
     async fn test_pagination() {
-        let conn = DbConn::new_in_memory().await.unwrap();
-        conn.create_user("a@example.com".into(), "pass".into(), false)
+        let service = test_authentication_service().await;
+        service
+            .db
+            .create_user("a@example.com".into(), "pass".into(), false)
             .await
             .unwrap();
-        conn.create_user("b@example.com".into(), "pass".into(), false)
+        service
+            .db
+            .create_user("b@example.com".into(), "pass".into(), false)
             .await
             .unwrap();
-        conn.create_user("c@example.com".into(), "pass".into(), false)
+        service
+            .db
+            .create_user("c@example.com".into(), "pass".into(), false)
             .await
             .unwrap();
 
-        let all_users = list_users(&conn, None, None, None, None).await;
+        let all_users = list_users(&service, None, None, None, None).await;
 
         assert!(!all_users.page_info.has_next_page);
         assert!(!all_users.page_info.has_previous_page);
 
         let users = list_users(
-            &conn,
+            &service,
             Some(all_users.edges[0].cursor.clone()),
             None,
             None,
@@ -734,13 +778,13 @@ mod tests {
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
 
-        let users = list_users(&conn, None, None, Some(2), None).await;
+        let users = list_users(&service, None, None, Some(2), None).await;
 
         assert!(users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
         let users = list_users(
-            &conn,
+            &service,
             None,
             Some(all_users.edges[1].cursor.clone()),
             None,
@@ -752,7 +796,7 @@ mod tests {
         assert!(!users.page_info.has_previous_page);
 
         let users = list_users(
-            &conn,
+            &service,
             Some(all_users.edges[2].cursor.clone()),
             None,
             None,
@@ -762,12 +806,12 @@ mod tests {
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
 
-        let users = list_users(&conn, None, None, Some(3), None).await;
+        let users = list_users(&service, None, None, Some(3), None).await;
         assert!(!users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
         let users = list_users(
-            &conn,
+            &service,
             Some(all_users.edges[0].cursor.clone()),
             None,
             Some(2),

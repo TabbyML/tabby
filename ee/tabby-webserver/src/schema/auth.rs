@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -16,7 +16,7 @@ use tracing::{error, warn};
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
-use super::{email::EmailService, from_validation_errors};
+use super::from_validation_errors;
 use crate::schema::Context;
 
 lazy_static! {
@@ -381,16 +381,8 @@ pub trait AuthenticationService: Send + Sync {
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
-    async fn create_invitation(
-        &self,
-        email: String,
-        mail_service: Arc<dyn EmailService>,
-    ) -> Result<Invitation>;
-    async fn request_invitation(
-        &self,
-        email: RequestInvitationInput,
-        mail_service: Arc<dyn EmailService>,
-    ) -> Result<Invitation>;
+    async fn create_invitation(&self, email: String) -> Result<Invitation>;
+    async fn request_invitation(&self, email: RequestInvitationInput) -> Result<Invitation>;
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;

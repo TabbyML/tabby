@@ -286,11 +286,7 @@ impl Mutation {
         input: RequestInvitationInput,
     ) -> Result<Invitation> {
         input.validate()?;
-        Ok(ctx
-            .locator
-            .auth()
-            .request_invitation(input, ctx.locator.email())
-            .await?)
+        Ok(ctx.locator.auth().request_invitation(input).await?)
     }
 
     async fn reset_user_auth_token(ctx: &Context) -> Result<bool> {
@@ -346,11 +342,6 @@ impl Mutation {
     async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
         check_admin(ctx)?;
         let invitation = ctx.locator.auth().create_invitation(email.clone()).await?;
-        let email_sent = ctx
-            .locator
-            .auth()
-            .create_invitation(email.clone(), ctx.locator.email())
-            .await?;
         Ok(invitation.id)
     }
 
