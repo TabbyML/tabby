@@ -129,9 +129,12 @@ impl DbConn {
 
     pub async fn verify_auth_token(&self, token: &str) -> Result<String> {
         let token = token.to_owned();
-        let email = query_scalar!("SELECT email FROM users WHERE auth_token = ? and active", token)
-            .fetch_one(&self.pool)
-            .await;
+        let email = query_scalar!(
+            "SELECT email FROM users WHERE auth_token = ? and active",
+            token
+        )
+        .fetch_one(&self.pool)
+        .await;
         email.map_err(Into::into)
     }
 
