@@ -293,7 +293,7 @@ impl relay::NodeType for User {
 
 #[derive(Validate, GraphQLInputObject)]
 pub struct RequestInvitationInput {
-    #[validate(email)]
+    #[validate(email(code = "email"))]
     pub email: String,
 }
 

@@ -42,8 +42,8 @@ struct ServerContext {
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
     db_conn: DbConn,
-    mail_service: Arc<dyn EmailService>,
-    auth_service: Arc<dyn AuthenticationService>,
+    mail: Arc<dyn EmailService>,
+    auth: Arc<dyn AuthenticationService>,
 
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -61,8 +61,8 @@ impl ServerContext {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
-            mail_service: mail.clone(),
-            auth_service: Arc::new(new_authentication_service(db_conn.clone(), mail)),
+            mail: mail.clone(),
+            auth: Arc::new(new_authentication_service(db_conn.clone(), mail)),
             db_conn,
             logger,
             code,
@@ -88,7 +88,7 @@ impl ServerContext {
             // Admin system is initialized, but there is no valid token.
             return (false, None);
         };
-        if let Ok(jwt) = self.auth_service.verify_access_token(token).await {
+        if let Ok(jwt) = self.auth.verify_access_token(token).await {
             return (true, Some(jwt.claims.sub));
         }
         match self.db_conn.verify_auth_token(token).await {
@@ -201,7 +201,7 @@ impl WorkerService for ServerContext {
 
 impl ServiceLocator for Arc<ServerContext> {
     fn auth(&self) -> Arc<dyn AuthenticationService> {
-        self.auth_service.clone()
+        self.auth.clone()
     }
 
     fn worker(&self) -> Arc<dyn WorkerService> {
@@ -225,7 +225,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn email(&self) -> Arc<dyn EmailService> {
-        self.mail_service.clone()
+        self.mail.clone()
     }
 
     fn setting(&self) -> Arc<dyn SettingService> {
