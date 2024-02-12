@@ -35,6 +35,7 @@ use self::{
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    email::SendEmailError,
     repository::Repository,
 };
 
@@ -396,7 +397,7 @@ impl Mutation {
             .send_invitation_email(email, invitation.code)
             .await;
         match email_sent {
-            Ok(_) => {}
+            Err(SendEmailError::NotConfigured) | Ok(_) => {}
             Err(e) => {
                 warn!(
                 "Failed to send invitation email, please check your SMTP settings are correct: {e}"
