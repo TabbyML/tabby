@@ -1331,6 +1331,8 @@ class LlamaLoader(ModelLoader):
         extra_ids = model.config.vocab_size - len(tokens)
         for i in range(extra_ids):
             tokens.append("<extra_id_%d>" % i)
+        if model.config.vocab_size < len(tokens):
+            tokens = tokens[: model.config.vocab_size]
 
         return tokens
 
