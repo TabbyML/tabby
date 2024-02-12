@@ -234,7 +234,7 @@ mod tests {
 
         // Inactive user's auth token will be rejected.
         conn.update_user_active(new_user.id, false).await.unwrap();
-        assert!(!conn.verify_auth_token(&new_user.auth_token).await.is_ok());
+        assert!(conn.verify_auth_token(&new_user.auth_token).await.is_err());
     }
 
     #[tokio::test]
