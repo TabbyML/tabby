@@ -34,7 +34,7 @@ use self::{
     },
 };
 use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    auth::{JWTPayload, OAuthCredential, OAuthProvider, RequestInvitationInput},
     email::SendEmailError,
     repository::Repository,
 };
@@ -280,6 +280,14 @@ impl Mutation {
         check_admin(ctx)?;
         let reg_token = ctx.locator.worker().reset_registration_token().await?;
         Ok(reg_token)
+    }
+
+    async fn request_invitation_email(
+        ctx: &Context,
+        input: RequestInvitationInput,
+    ) -> Result<Invitation> {
+        input.validate()?;
+        Ok(ctx.locator.auth().request_invitation(input).await?)
     }
 
     async fn reset_user_auth_token(ctx: &Context) -> Result<bool> {

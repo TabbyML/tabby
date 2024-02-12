@@ -20,6 +20,14 @@ pub struct SecuritySetting {
     pub disable_client_side_telemetry: bool,
 }
 
+impl SecuritySetting {
+    pub fn can_register_without_invitation(&self, email: &str) -> bool {
+        self.allowed_register_domain_list
+            .iter()
+            .any(|domain| email.ends_with(&format!("@{domain}")))
+    }
+}
+
 #[derive(GraphQLInputObject, Validate)]
 pub struct SecuritySettingInput {
     #[validate(custom = "validate_unique_domains")]

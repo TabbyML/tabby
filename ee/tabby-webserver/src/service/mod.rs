@@ -26,7 +26,7 @@ use tabby_common::{
 use tabby_db::DbConn;
 use tracing::{info, warn};
 
-use self::email::new_email_service;
+use self::{auth::new_authentication_service, email::new_email_service};
 use crate::schema::{
     auth::AuthenticationService,
     email::EmailService,
@@ -42,7 +42,8 @@ struct ServerContext {
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
     db_conn: DbConn,
-    mail_service: Arc<dyn EmailService>,
+    mail: Arc<dyn EmailService>,
+    auth: Arc<dyn AuthenticationService>,
 
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -51,15 +52,17 @@ struct ServerContext {
 impl ServerContext {
     pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
         let db_conn = DbConn::new().await.unwrap();
+        let mail = Arc::new(
+            new_email_service(db_conn.clone())
+                .await
+                .expect("failed to initialize mail service"),
+        );
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
-            mail_service: Arc::new(
-                new_email_service(db_conn.clone())
-                    .await
-                    .expect("failed to initialize mail service"),
-            ),
+            mail: mail.clone(),
+            auth: Arc::new(new_authentication_service(db_conn.clone(), mail)),
             db_conn,
             logger,
             code,
@@ -85,7 +88,7 @@ impl ServerContext {
             // Admin system is initialized, but there is no valid token.
             return (false, None);
         };
-        if let Ok(jwt) = self.db_conn.verify_access_token(token).await {
+        if let Ok(jwt) = self.auth.verify_access_token(token).await {
             return (true, Some(jwt.claims.sub));
         }
         match self.db_conn.verify_auth_token(token).await {
@@ -198,7 +201,7 @@ impl WorkerService for ServerContext {
 
 impl ServiceLocator for Arc<ServerContext> {
     fn auth(&self) -> Arc<dyn AuthenticationService> {
-        Arc::new(self.db_conn.clone())
+        self.auth.clone()
     }
 
     fn worker(&self) -> Arc<dyn WorkerService> {
@@ -222,7 +225,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn email(&self) -> Arc<dyn EmailService> {
-        self.mail_service.clone()
+        self.mail.clone()
     }
 
     fn setting(&self) -> Arc<dyn SettingService> {

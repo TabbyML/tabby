@@ -291,6 +291,12 @@ impl relay::NodeType for User {
     }
 }
 
+#[derive(Validate, GraphQLInputObject)]
+pub struct RequestInvitationInput {
+    #[validate(email(code = "email"))]
+    pub email: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
 #[graphql(context = Context)]
 pub struct Invitation {
@@ -376,6 +382,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
+    async fn request_invitation(&self, input: RequestInvitationInput) -> Result<Invitation>;
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
