@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use sqlx::{prelude::FromRow, query};
+use sqlx::{prelude::FromRow, query, query_scalar};
 use uuid::Uuid;
 
 use super::DbConn;
@@ -61,21 +61,31 @@ impl DbConn {
             return Err(anyhow!("User already registered"));
         }
 
+        let mut transaction = self.pool.begin().await?;
         let code = Uuid::new_v4().to_string();
         let res = query!(
             "INSERT INTO invitations (email, code) VALUES (?, ?)",
             email,
-            code
+            code,
         )
-        .execute(&self.pool)
+        .execute(&mut *transaction)
         .await;
 
         let res = res.unique_error("Failed to create invitation, email already exists")?;
+        let id = res.last_insert_rowid() as i32;
+
+        let created_at = query_scalar!("SELECT created_at FROM invitations WHERE id=?", id)
+            .fetch_one(&mut *transaction)
+            .await?
+            .expect("Invitation always present because it was just created")
+            .to_string();
+        transaction.commit().await?;
+
         Ok(InvitationDAO {
-            id: res.last_insert_rowid() as i32,
+            id,
             email,
             code,
-            created_at: "".into(),
+            created_at,
         })
     }
 
