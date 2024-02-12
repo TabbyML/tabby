@@ -321,7 +321,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .db
             .read_security_setting()
             .await?
-            .can_request_invitation(&input.email)
+            .can_register_without_invitation(&input.email)
         {
             return Err(anyhow!("Your email does not belong to this organization, please request an invitation from an administrator"));
         }
@@ -450,29 +450,30 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
 async fn get_or_create_oauth_user(db: &DbConn, email: &str) -> Result<(i32, bool), OAuthError> {
     if let Some(user) = db.get_user_by_email(email).await? {
-        if !user.active {
-            return Err(OAuthError::UserDisabled);
-        }
-        Ok((user.id, user.is_admin))
-    } else {
+        return user
+            .active
+            .then_some((user.id, user.is_admin))
+            .ok_or(OAuthError::UserDisabled);
+    }
+    if db
+        .read_security_setting()
+        .await?
+        .can_register_without_invitation(email)
+    {
         // it's ok to set password to empty string here, because
         // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
         // 2. `password_verify` will always return false for empty password hash read from user table
         // so user created here is only able to login by github oauth, normal login won't work
-        if db
-            .read_security_setting()
-            .await?
-            .can_request_invitation(&email)
-        {
-            return Ok((
-                db.create_user(email.to_owned(), "".to_owned(), false)
-                    .await?,
-                false,
-            ));
-        }
-        let Some(invitation) = db.get_invitation_by_email(&email).await.ok().flatten() else {
+        return Ok((
+            db.create_user(email.to_owned(), "".to_owned(), false)
+                .await?,
+            false,
+        ));
+    } else {
+        let Some(invitation) = db.get_invitation_by_email(email).await.ok().flatten() else {
             return Err(OAuthError::UserNotInvited);
         };
+        // safe to create with empty password for same reasons above
         let id = db
             .create_user_with_invitation(email.to_owned(), "".to_owned(), false, invitation.id)
             .await?;
@@ -488,6 +489,7 @@ async fn check_invitation(
     email: &str,
 ) -> Result<Option<InvitationDAO>, RegisterError> {
     if !is_admin_initialized {
+        // Creating the admin user, no invitation required
         return Ok(None);
     }
 

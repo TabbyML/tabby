@@ -21,7 +21,7 @@ pub struct SecuritySetting {
 }
 
 impl SecuritySetting {
-    pub fn can_request_invitation(&self, email: &str) -> bool {
+    pub fn can_register_without_invitation(&self, email: &str) -> bool {
         self.allowed_register_domain_list
             .iter()
             .any(|domain| email.ends_with(&format!("@{domain}")))
