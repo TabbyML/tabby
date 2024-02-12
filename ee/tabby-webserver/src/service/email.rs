@@ -20,7 +20,7 @@ use crate::schema::{
     setting::SettingService,
 };
 
-pub struct EmailServiceImpl {
+struct EmailServiceImpl {
     db: DbConn,
     smtp_server: Arc<RwLock<Option<AsyncSmtpTransport<Tokio1Executor>>>>,
     from: RwLock<String>,
@@ -57,7 +57,7 @@ fn make_smtp_builder(
 }
 
 impl EmailServiceImpl {
-    pub fn new(db: DbConn) -> Self {
+    fn new(db: DbConn) -> Self {
         Self {
             db,
             smtp_server: Default::default(),

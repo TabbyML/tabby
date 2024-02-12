@@ -68,9 +68,16 @@ struct RegisterInput {
 }
 
 #[derive(Clone)]
-pub struct AuthenticationServiceImpl {
-    pub db: DbConn,
-    pub mail: Arc<dyn EmailService>,
+struct AuthenticationServiceImpl {
+    db: DbConn,
+    mail: Arc<dyn EmailService>,
+}
+
+pub fn new_authentication_service(
+    db: DbConn,
+    mail: Arc<dyn EmailService>,
+) -> impl AuthenticationService {
+    AuthenticationServiceImpl { db, mail }
 }
 
 impl std::fmt::Debug for RegisterInput {
@@ -533,7 +540,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         AuthenticationServiceImpl {
             db: db.clone(),
-            mail: Arc::new(EmailServiceImpl::new(db)),
+            mail: Arc::new(new_email_service(db).await.unwrap()),
         }
     }
 
@@ -541,7 +548,7 @@ mod tests {
     use juniper_axum::relay::{self, Connection};
 
     use super::*;
-    use crate::service::email::EmailServiceImpl;
+    use crate::service::email::new_email_service;
 
     #[test]
     fn test_password_hash() {

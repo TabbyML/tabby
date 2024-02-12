@@ -26,7 +26,7 @@ use tabby_common::{
 use tabby_db::DbConn;
 use tracing::{info, warn};
 
-use self::{auth::AuthenticationServiceImpl, email::new_email_service};
+use self::{auth::new_authentication_service, email::new_email_service};
 use crate::schema::{
     auth::AuthenticationService,
     email::EmailService,
@@ -62,10 +62,7 @@ impl ServerContext {
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             mail_service: mail.clone(),
-            auth_service: Arc::new(AuthenticationServiceImpl {
-                db: db_conn.clone(),
-                mail,
-            }),
+            auth_service: Arc::new(new_authentication_service(db_conn.clone(), mail)),
             db_conn,
             logger,
             code,
