@@ -21,9 +21,9 @@ type Mutation {
   deleteRepository(id: ID!): Boolean!
   updateRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
   deleteInvitation(id: ID!): ID!
-  updateOauthCredential(provider: OAuthProvider!, clientId: String!, clientSecret: String!, redirectUri: String): Boolean!
+  updateOauthCredential(input: UpdateOAuthCredentialInput!): Boolean!
   deleteOauthCredential(provider: OAuthProvider!): Boolean!
-  updateEmailSetting(smtpUsername: String!, smtpPassword: String, smtpServer: String!): Boolean!
+  updateEmailSetting(input: EmailSettingInput!): Boolean!
   updateSecuritySetting(input: SecuritySettingInput!): Boolean!
   updateNetworkSetting(input: NetworkSettingInput!): Boolean!
   deleteEmailSetting: Boolean!
@@ -72,10 +72,23 @@ type Query {
   securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
+  oauthCallbackUrl(provider: OAuthProvider!): String!
 }
 
 input NetworkSettingInput {
   externalUrl: String!
+}
+
+enum Encryption {
+  START_TLS
+  SSL_TLS
+  NONE
+}
+
+enum AuthMethod {
+  NONE
+  PLAIN
+  LOGIN
 }
 
 type UserEdge {
@@ -104,6 +117,16 @@ type RepositoryConnection {
   pageInfo: PageInfo!
 }
 
+input EmailSettingInput {
+  smtpUsername: String!
+  fromAddress: String!
+  smtpServer: String!
+  smtpPort: Int!
+  encryption: Encryption!
+  authMethod: AuthMethod!
+  smtpPassword: String
+}
+
 input SecuritySettingInput {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
@@ -119,11 +142,16 @@ type UserConnection {
   pageInfo: PageInfo!
 }
 
+input UpdateOAuthCredentialInput {
+  provider: OAuthProvider!
+  clientId: String!
+  clientSecret: String!
+}
+
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
   clientSecret: String!
-  redirectUri: String
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
 }
@@ -142,6 +170,10 @@ type Invitation {
 type EmailSetting {
   smtpUsername: String!
   smtpServer: String!
+  smtpPort: Int!
+  fromAddress: String!
+  encryption: Encryption!
+  authMethod: AuthMethod!
 }
 
 type User {

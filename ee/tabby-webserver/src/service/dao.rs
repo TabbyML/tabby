@@ -1,13 +1,14 @@
+use anyhow::anyhow;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO, JobRunDAO,
-    RepositoryDAO, ServerSettingDAO, UserDAO,
+    DbEnum, EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO,
+    JobRunDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
 };
 
 use crate::schema::{
     auth::{self, OAuthCredential, OAuthProvider},
-    email::EmailSetting,
+    email::{AuthMethod, EmailSetting, Encryption},
     job,
     repository::Repository,
     setting::{NetworkSetting, SecuritySetting},
@@ -59,7 +60,6 @@ impl From<GithubOAuthCredentialDAO> for OAuthCredential {
             provider: OAuthProvider::Github,
             client_id: val.client_id,
             client_secret: val.client_secret,
-            redirect_uri: None,
             created_at: val.created_at,
             updated_at: val.updated_at,
         }
@@ -72,7 +72,6 @@ impl From<GoogleOAuthCredentialDAO> for OAuthCredential {
             provider: OAuthProvider::Google,
             client_id: val.client_id,
             client_secret: val.client_secret,
-            redirect_uri: Some(val.redirect_uri),
             created_at: val.created_at,
             updated_at: val.updated_at,
         }
@@ -89,12 +88,21 @@ impl From<RepositoryDAO> for Repository {
     }
 }
 
-impl From<EmailSettingDAO> for EmailSetting {
-    fn from(value: EmailSettingDAO) -> Self {
-        EmailSetting {
+impl TryFrom<EmailSettingDAO> for EmailSetting {
+    type Error = anyhow::Error;
+
+    fn try_from(value: EmailSettingDAO) -> Result<Self, Self::Error> {
+        let encryption = Encryption::from_enum_str(&value.encryption)?;
+        let auth_method = AuthMethod::from_enum_str(&value.auth_method)?;
+
+        Ok(EmailSetting {
             smtp_username: value.smtp_username,
             smtp_server: value.smtp_server,
-        }
+            smtp_port: value.smtp_port as i32,
+            from_address: value.from_address,
+            encryption,
+            auth_method,
+        })
     }
 }
 
@@ -146,5 +154,43 @@ pub trait AsID {
 impl AsID for i32 {
     fn as_id(&self) -> juniper::ID {
         juniper::ID::new(HASHER.encode(&[*self as u64]))
+    }
+}
+
+impl DbEnum for Encryption {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            Encryption::StartTls => "starttls",
+            Encryption::SslTls => "ssltls",
+            Encryption::None => "none",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "starttls" => Ok(Encryption::StartTls),
+            "ssltls" => Ok(Encryption::SslTls),
+            "none" => Ok(Encryption::None),
+            _ => Err(anyhow!("{s} is not a valid value for Encryption")),
+        }
+    }
+}
+
+impl DbEnum for AuthMethod {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            AuthMethod::None => "none",
+            AuthMethod::Plain => "plain",
+            AuthMethod::Login => "login",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "none" => Ok(AuthMethod::None),
+            "plain" => Ok(AuthMethod::Plain),
+            "login" => Ok(AuthMethod::Login),
+            _ => Err(anyhow!("{s} is not a valid value for AuthMethod")),
+        }
     }
 }

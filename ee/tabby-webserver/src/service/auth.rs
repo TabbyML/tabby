@@ -20,9 +20,9 @@ use crate::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
             RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
-            RequestInvitationInput, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
+            TokenAuthError, TokenAuthResponse, UpdateOAuthCredentialInput, User,
+            VerifyTokenResponse, RequestInvitationInput
         },
-        email::EmailService,
         setting::SettingService,
     },
 };
@@ -388,28 +388,33 @@ impl AuthenticationService for DbConn {
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
         match provider {
-            OAuthProvider::Github => {
-                Ok(self.read_github_oauth_credential().await?.map(|x| x.into()))
-            }
-            OAuthProvider::Google => {
-                Ok(self.read_google_oauth_credential().await?.map(|x| x.into()))
-            }
+            OAuthProvider::Github => Ok(self
+                .read_github_oauth_credential()
+                .await?
+                .map(|val| val.into())),
+            OAuthProvider::Google => Ok(self
+                .read_google_oauth_credential()
+                .await?
+                .map(|val| val.into())),
         }
     }
 
-    async fn update_oauth_credential(
-        &self,
-        provider: OAuthProvider,
-        client_id: String,
-        client_secret: String,
-        redirect_uri: Option<String>,
-    ) -> Result<()> {
-        match provider {
+    async fn oauth_callback_url(&self, provider: OAuthProvider) -> Result<String> {
+        let external_url = self.read_network_setting().await?.external_url;
+        let url = match provider {
+            OAuthProvider::Github => external_url + "/oauth/callback/github",
+            OAuthProvider::Google => external_url + "/oauth/callback/google",
+        };
+        Ok(url)
+    }
+
+    async fn update_oauth_credential(&self, input: UpdateOAuthCredentialInput) -> Result<()> {
+        match input.provider {
             OAuthProvider::Github => Ok(self
-                .update_github_oauth_credential(&client_id, &client_secret)
+                .update_github_oauth_credential(&input.client_id, &input.client_secret)
                 .await?),
             OAuthProvider::Google => Ok(self
-                .update_google_oauth_credential(&client_id, &client_secret, redirect_uri.as_deref())
+                .update_google_oauth_credential(&input.client_id, &input.client_secret)
                 .await?),
         }
     }
@@ -712,12 +717,19 @@ mod tests {
             .await
             .unwrap();
 
-        let users = list_users(&conn, None, None, None, None).await;
+        let all_users = list_users(&conn, None, None, None, None).await;
 
-        assert!(!users.page_info.has_next_page);
-        assert!(!users.page_info.has_previous_page);
+        assert!(!all_users.page_info.has_next_page);
+        assert!(!all_users.page_info.has_previous_page);
 
-        let users = list_users(&conn, Some("1".into()), None, None, None).await;
+        let users = list_users(
+            &conn,
+            Some(all_users.edges[0].cursor.clone()),
+            None,
+            None,
+            None,
+        )
+        .await;
 
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
@@ -727,12 +739,26 @@ mod tests {
         assert!(users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
-        let users = list_users(&conn, None, Some("2".into()), None, Some(1)).await;
+        let users = list_users(
+            &conn,
+            None,
+            Some(all_users.edges[1].cursor.clone()),
+            None,
+            Some(1),
+        )
+        .await;
 
         assert!(users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
-        let users = list_users(&conn, Some("3".into()), None, None, None).await;
+        let users = list_users(
+            &conn,
+            Some(all_users.edges[2].cursor.clone()),
+            None,
+            None,
+            None,
+        )
+        .await;
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
 
@@ -740,7 +766,14 @@ mod tests {
         assert!(!users.page_info.has_next_page);
         assert!(!users.page_info.has_previous_page);
 
-        let users = list_users(&conn, Some("1".into()), None, Some(2), None).await;
+        let users = list_users(
+            &conn,
+            Some(all_users.edges[0].cursor.clone()),
+            None,
+            Some(2),
+            None,
+        )
+        .await;
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
     }

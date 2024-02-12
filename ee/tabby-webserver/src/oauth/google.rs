@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use serde::Deserialize;
 
@@ -63,16 +63,11 @@ impl GoogleClient {
         &self,
         code: String,
         credential: OAuthCredential,
+        redirect_uri: String,
     ) -> Result<GoogleOAuthResponse> {
-        let client_secret = credential.client_secret;
-
-        let Some(redirect_uri) = credential.redirect_uri else {
-            return Err(anyhow::anyhow!("Missing redirect uri"));
-        };
-
         let params = [
             ("client_id", credential.client_id.as_str()),
-            ("client_secret", client_secret.as_str()),
+            ("client_secret", credential.client_secret.as_str()),
             ("code", code.as_str()),
             ("grant_type", "authorization_code"),
             ("redirect_uri", redirect_uri.as_str()),
@@ -95,7 +90,10 @@ impl GoogleClient {
 impl OAuthClient for GoogleClient {
     async fn fetch_user_email(&self, code: String) -> Result<String> {
         let credential = self.read_credential().await?;
-        let token_resp = self.exchange_access_token(code, credential).await?;
+        let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::Google).await?;
+        let token_resp = self
+            .exchange_access_token(code, credential, redirect_uri)
+            .await?;
         if token_resp.access_token.is_empty() {
             return Err(anyhow::anyhow!("Empty access token from Google OAuth"));
         }
@@ -120,10 +118,8 @@ impl OAuthClient for GoogleClient {
 
     async fn get_authorization_url(&self) -> Result<String> {
         let credential = self.read_credential().await?;
+        let redirect_uri = self.auth.oauth_callback_url(OAuthProvider::Google).await?;
         let mut url = reqwest::Url::parse("https://accounts.google.com/o/oauth2/v2/auth")?;
-        let redirect_uri = credential
-            .redirect_uri
-            .context("Google OAuth requires redirect_uri")?;
         let params = vec![
             ("client_id", credential.client_id.as_str()),
             ("redirect_uri", redirect_uri.as_str()),

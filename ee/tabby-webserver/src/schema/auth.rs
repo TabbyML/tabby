@@ -337,9 +337,23 @@ pub struct OAuthCredential {
     pub client_id: String,
 
     pub client_secret: String,
-    pub redirect_uri: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct UpdateOAuthCredentialInput {
+    pub provider: OAuthProvider,
+
+    #[validate(length(min = 1, code = "clientId", message = "Client ID cannot be empty"))]
+    pub client_id: String,
+
+    #[validate(length(
+        min = 1,
+        code = "clientSecret",
+        message = "Client secret cannot be empty"
+    ))]
+    pub client_secret: String,
 }
 
 #[async_trait]
@@ -403,18 +417,14 @@ pub trait AuthenticationService: Send + Sync {
         provider: OAuthProvider,
     ) -> std::result::Result<OAuthResponse, OAuthError>;
 
+    async fn oauth_callback_url(&self, provider: OAuthProvider) -> Result<String>;
+
     async fn read_oauth_credential(
         &self,
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>>;
 
-    async fn update_oauth_credential(
-        &self,
-        provider: OAuthProvider,
-        client_id: String,
-        client_secret: String,
-        redirect_uri: Option<String>,
-    ) -> Result<()>;
+    async fn update_oauth_credential(&self, input: UpdateOAuthCredentialInput) -> Result<()>;
 
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()>;

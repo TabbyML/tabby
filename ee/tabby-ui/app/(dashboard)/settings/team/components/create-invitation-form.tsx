@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
+import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
@@ -59,7 +60,8 @@ export default function CreateInvitationForm({
               <FormItem>
                 <FormControl>
                   <Input
-                    placeholder="Email"
+                    className="w-60"
+                    placeholder={PLACEHOLDER_EMAIL_FORM}
                     type="email"
                     autoCapitalize="none"
                     autoComplete="email"

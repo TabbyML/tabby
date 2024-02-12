@@ -26,8 +26,9 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    email::{EmailService, EmailSetting},
-    repository::{RepositoryError, RepositoryService},
+    auth::UpdateOAuthCredentialInput,
+    email::{EmailService, EmailSetting, EmailSettingInput},
+    repository::RepositoryService,
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
@@ -92,33 +93,29 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
 // To make our context usable by Juniper, we have to implement a marker trait.
 impl juniper::Context for Context {}
 
+fn check_admin(ctx: &Context) -> Result<(), CoreError> {
+    if let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims {
+        Ok(())
+    } else {
+        Err(CoreError::Unauthorized("You must be admin to do that"))
+    }
+}
+
 #[derive(Default)]
 pub struct Query;
 
 #[graphql_object(context = Context)]
 impl Query {
     async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                let workers = ctx.locator.worker().list_workers().await;
-                return Ok(workers);
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to read workers",
-        ))
+        check_admin(ctx)?;
+        let workers = ctx.locator.worker().list_workers().await;
+        return Ok(workers);
     }
 
     async fn registration_token(ctx: &Context) -> Result<String> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                let token = ctx.locator.worker().read_registration_token().await?;
-                return Ok(token);
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to read registration_token",
-        ))
+        check_admin(ctx)?;
+        let token = ctx.locator.worker().read_registration_token().await?;
+        return Ok(token);
     }
 
     async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
@@ -141,31 +138,25 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<User>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return relay::query_async(
-                    after,
-                    before,
-                    first,
-                    last,
-                    |after, before, first, last| async move {
-                        match ctx
-                            .locator
-                            .auth()
-                            .list_users(after, before, first, last)
-                            .await
-                        {
-                            Ok(users) => Ok(users),
-                            Err(err) => Err(FieldError::from(err)),
-                        }
-                    },
-                )
-                .await;
-            }
-        }
-        Err(FieldError::from(CoreError::Unauthorized(
-            "Only admin is able to query users",
-        )))
+        check_admin(ctx)?;
+        return relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                match ctx
+                    .locator
+                    .auth()
+                    .list_users(after, before, first, last)
+                    .await
+                {
+                    Ok(users) => Ok(users),
+                    Err(err) => Err(FieldError::from(err)),
+                }
+            },
+        )
+        .await;
     }
 
     async fn invitations(
@@ -175,31 +166,25 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<Invitation>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return relay::query_async(
-                    after,
-                    before,
-                    first,
-                    last,
-                    |after, before, first, last| async move {
-                        match ctx
-                            .locator
-                            .auth()
-                            .list_invitations(after, before, first, last)
-                            .await
-                        {
-                            Ok(invitations) => Ok(invitations),
-                            Err(err) => Err(FieldError::from(err)),
-                        }
-                    },
-                )
-                .await;
-            }
-        }
-        Err(FieldError::from(CoreError::Unauthorized(
-            "Only admin is able to query users",
-        )))
+        check_admin(ctx)?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                match ctx
+                    .locator
+                    .auth()
+                    .list_invitations(after, before, first, last)
+                    .await
+                {
+                    Ok(invitations) => Ok(invitations),
+                    Err(err) => Err(FieldError::from(err)),
+                }
+            },
+        )
+        .await
     }
 
     async fn job_runs(
@@ -209,55 +194,37 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<JobRun>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return relay::query_async(
-                    after,
-                    before,
-                    first,
-                    last,
-                    |after, before, first, last| async move {
-                        Ok(ctx
-                            .locator
-                            .job()
-                            .list_job_runs(after, before, first, last)
-                            .await?)
-                    },
-                )
-                .await;
-            }
-        }
-        Err(FieldError::from(CoreError::Unauthorized(
-            "Only admin is able to query job runs",
-        )))
+        check_admin(ctx)?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                Ok(ctx
+                    .locator
+                    .job()
+                    .list_job_runs(after, before, first, last)
+                    .await?)
+            },
+        )
+        .await
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
-        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
-            return Err(CoreError::Unauthorized(
-                "Only admin can access server settings",
-            ));
-        };
-        let val = ctx.locator.email().get_email_setting().await?;
+        check_admin(ctx)?;
+        let val = ctx.locator.email().read_email_setting().await?;
         Ok(val)
     }
 
     async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
-        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
-            return Err(CoreError::Unauthorized(
-                "Only admin can access server settings",
-            ));
-        };
+        check_admin(ctx)?;
         let val = ctx.locator.setting().read_network_setting().await?;
         Ok(val)
     }
 
     async fn security_setting(ctx: &Context) -> Result<SecuritySetting> {
-        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
-            return Err(CoreError::Unauthorized(
-                "Only admin can access server settings",
-            ));
-        };
+        check_admin(ctx)?;
         let val = ctx.locator.setting().read_security_setting().await?;
         Ok(val)
     }
@@ -290,18 +257,16 @@ impl Query {
         ctx: &Context,
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                let Some(credentials) = ctx.locator.auth().read_oauth_credential(provider).await?
-                else {
-                    return Ok(None);
-                };
-                return Ok(Some(credentials));
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to query oauth credential",
-        ))
+        check_admin(ctx)?;
+        let Some(credentials) = ctx.locator.auth().read_oauth_credential(provider).await? else {
+            return Ok(None);
+        };
+        Ok(Some(credentials))
+    }
+
+    async fn oauth_callback_url(ctx: &Context, provider: OAuthProvider) -> Result<String> {
+        check_admin(ctx)?;
+        Ok(ctx.locator.auth().oauth_callback_url(provider).await?)
     }
 }
 
@@ -311,15 +276,9 @@ pub struct Mutation;
 #[graphql_object(context = Context)]
 impl Mutation {
     async fn reset_registration_token(ctx: &Context) -> Result<String> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                let reg_token = ctx.locator.worker().reset_registration_token().await?;
-                return Ok(reg_token);
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to reset registration token",
-        ))
+        check_admin(ctx)?;
+        let reg_token = ctx.locator.worker().reset_registration_token().await?;
+        Ok(reg_token)
     }
 
     async fn request_invitation_email(
@@ -347,6 +306,7 @@ impl Mutation {
     }
 
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
+        check_admin(ctx)?;
         ctx.locator.auth().update_user_active(&id, active).await?;
         Ok(true)
     }
@@ -384,12 +344,9 @@ impl Mutation {
     }
 
     async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
-        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
-            return Err(CoreError::Unauthorized(
-                "Only admin is able to create invitation",
-            ));
-        };
-        let invitation = ctx
+        check_admin(ctx)?;
+        let invitation = ctx.locator.auth().create_invitation(email.clone()).await?;
+        let email_sent = ctx
             .locator
             .auth()
             .create_invitation(email.clone(), ctx.locator.email())
@@ -397,18 +354,18 @@ impl Mutation {
         Ok(invitation.id)
     }
 
-    async fn create_repository(
-        ctx: &Context,
-        name: String,
-        git_url: String,
-    ) -> Result<ID, RepositoryError> {
-        ctx.locator
+    async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
+        check_admin(ctx)?;
+        Ok(ctx
+            .locator
             .repository()
             .create_repository(name, git_url)
             .await
+            .map_err(anyhow::Error::from)?)
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx)?;
         Ok(ctx.locator.repository().delete_repository(&id).await?)
     }
 
@@ -418,6 +375,7 @@ impl Mutation {
         name: String,
         git_url: String,
     ) -> Result<bool> {
+        check_admin(ctx)?;
         Ok(ctx
             .locator
             .repository()
@@ -426,90 +384,49 @@ impl Mutation {
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                return Ok(ctx.locator.auth().delete_invitation(&id).await?);
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to delete invitation",
-        ))
+        check_admin(ctx)?;
+        Ok(ctx.locator.auth().delete_invitation(&id).await?)
     }
 
     async fn update_oauth_credential(
         ctx: &Context,
-        provider: OAuthProvider,
-        client_id: String,
-        client_secret: String,
-        redirect_uri: Option<String>,
+        input: UpdateOAuthCredentialInput,
     ) -> Result<bool> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                ctx.locator
-                    .auth()
-                    .update_oauth_credential(provider, client_id, client_secret, redirect_uri)
-                    .await?;
-                return Ok(true);
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to update oauth credential",
-        ))
+        check_admin(ctx)?;
+        input.validate()?;
+        ctx.locator.auth().update_oauth_credential(input).await?;
+        Ok(true)
     }
 
     async fn delete_oauth_credential(ctx: &Context, provider: OAuthProvider) -> Result<bool> {
-        if let Some(claims) = &ctx.claims {
-            if claims.is_admin {
-                ctx.locator.auth().delete_oauth_credential(provider).await?;
-                return Ok(true);
-            }
-        }
-        Err(CoreError::Unauthorized(
-            "Only admin is able to delete oauth credential",
-        ))
+        check_admin(ctx)?;
+        ctx.locator.auth().delete_oauth_credential(provider).await?;
+        Ok(true)
     }
 
-    async fn update_email_setting(
-        ctx: &Context,
-        smtp_username: String,
-        smtp_password: Option<String>,
-        smtp_server: String,
-    ) -> Result<bool> {
-        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
-            return Err(CoreError::Unauthorized(
-                "Only admin can access server settings",
-            ));
-        };
-        ctx.locator
-            .email()
-            .update_email_setting(smtp_username, smtp_password, smtp_server)
-            .await?;
+    async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
+        check_admin(ctx)?;
+        input.validate()?;
+        ctx.locator.email().update_email_setting(input).await?;
         Ok(true)
     }
 
     async fn update_security_setting(ctx: &Context, input: SecuritySettingInput) -> Result<bool> {
-        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
-            return Err(CoreError::Unauthorized(
-                "Only admin can access server settings",
-            ));
-        };
+        check_admin(ctx)?;
         input.validate()?;
         ctx.locator.setting().update_security_setting(input).await?;
         Ok(true)
     }
 
     async fn update_network_setting(ctx: &Context, input: NetworkSettingInput) -> Result<bool> {
-        let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims else {
-            return Err(CoreError::Unauthorized(
-                "Only admin can access server settings",
-            ));
-        };
+        check_admin(ctx)?;
         input.validate()?;
         ctx.locator.setting().update_network_setting(input).await?;
         Ok(true)
     }
 
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
+        check_admin(ctx)?;
         ctx.locator.email().delete_email_setting().await?;
         Ok(true)
     }

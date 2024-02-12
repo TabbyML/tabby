@@ -5,6 +5,7 @@ import moment from 'moment'
 import { toast } from 'sonner'
 import { useClient, useQuery } from 'urql'
 
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import {
   InvitationEdge,
@@ -39,7 +40,7 @@ const deleteInvitationMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function InvitationTable() {
   const client = useClient()
   const [{ data, fetching }] = useQuery({

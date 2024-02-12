@@ -7,7 +7,7 @@ mod repository;
 mod setting;
 mod worker;
 
-use std::{net::SocketAddr, num::ParseIntError, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -18,6 +18,7 @@ use axum::{
 };
 pub(in crate::service) use dao::{AsID, AsRowid};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
+use juniper::ID;
 use tabby_common::{
     api::{code::CodeSearch, event::RawEventLogger},
     constants::USER_HEADER_FIELD_NAME,
@@ -33,7 +34,7 @@ use crate::schema::{
     repository::RepositoryService,
     setting::SettingService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    ServiceLocator,
+    CoreError, ServiceLocator,
 };
 
 struct ServerContext {
@@ -241,14 +242,14 @@ pub fn graphql_pagination_to_filter(
     before: Option<String>,
     first: Option<usize>,
     last: Option<usize>,
-) -> Result<(Option<usize>, Option<i32>, bool), ParseIntError> {
+) -> Result<(Option<usize>, Option<i32>, bool), CoreError> {
     match (first, last) {
         (Some(first), None) => {
-            let after = after.map(|x| x.parse::<i32>()).transpose()?;
+            let after = after.map(|x| ID::new(x).as_rowid()).transpose()?;
             Ok((Some(first), after, false))
         }
         (None, Some(last)) => {
-            let before = before.map(|x| x.parse::<i32>()).transpose()?;
+            let before = before.map(|x| ID::new(x).as_rowid()).transpose()?;
             Ok((Some(last), before, true))
         }
         _ => Ok((None, None, false)),

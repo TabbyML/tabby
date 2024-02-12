@@ -5,6 +5,7 @@ import moment from 'moment'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import type { ListUsersQuery } from '@/lib/gql/generates/graphql'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
@@ -63,7 +64,7 @@ const updateUserActiveMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function UsersTable() {
   const [queryVariables, setQueryVariables] = React.useState<
     QueryVariables<typeof listUsers>
