@@ -471,11 +471,11 @@ async fn get_or_create_oauth_user(db: &DbConn, email: &str) -> Result<(i32, bool
         // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
         // 2. `password_verify` will always return false for empty password hash read from user table
         // so user created here is only able to login by github oauth, normal login won't work
-        return Ok((
+        Ok((
             db.create_user(email.to_owned(), "".to_owned(), false)
                 .await?,
             false,
-        ));
+        ))
     } else {
         let Some(invitation) = db.get_invitation_by_email(email).await.ok().flatten() else {
             return Err(OAuthError::UserNotInvited);
