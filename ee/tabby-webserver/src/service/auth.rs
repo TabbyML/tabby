@@ -431,7 +431,7 @@ impl AuthenticationService for DbConn {
 
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
         if id.as_rowid()? == 1 {
-            return Err(anyhow!("Cannot toggle the active status of the owner user"));
+            return Err(anyhow!("Cannot toggle the active status of the owner"));
         }
         self.update_user_active(id.as_rowid()?, active).await
     }
