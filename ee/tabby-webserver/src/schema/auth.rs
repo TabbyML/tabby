@@ -298,7 +298,7 @@ pub struct Invitation {
     pub email: String,
     pub code: String,
 
-    pub created_at: String,
+    pub created_at: DateTime<Utc>,
 }
 
 impl relay::NodeType for Invitation {

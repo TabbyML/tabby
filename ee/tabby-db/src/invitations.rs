@@ -1,8 +1,10 @@
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
 
 use super::DbConn;
+use crate::SQLXResultExt;
 
 #[derive(FromRow)]
 pub struct InvitationDAO {
@@ -10,7 +12,7 @@ pub struct InvitationDAO {
     pub email: String,
     pub code: String,
 
-    pub created_at: String,
+    pub created_at: DateTime<Utc>,
 }
 
 /// db read/write operations for `invitations` table
@@ -61,26 +63,25 @@ impl DbConn {
         }
 
         let code = Uuid::new_v4().to_string();
+        let created_at = chrono::offset::Utc::now();
         let res = query!(
-            "INSERT INTO invitations (email, code) VALUES (?, ?)",
+            "INSERT INTO invitations (email, code, created_at) VALUES (?, ?, ?)",
             email,
-            code
+            code,
+            created_at
         )
         .execute(&self.pool)
         .await;
 
-        match res {
-            Err(sqlx::Error::Database(db)) if db.constraint().is_some() => {
-                Err(anyhow!("Failed to create invitation, email already exists"))
-            }
-            Err(err) => Err(err.into()),
-            Ok(res) => Ok(InvitationDAO {
-                id: res.last_insert_rowid() as i32,
-                email,
-                code,
-                created_at: "".into(),
-            }),
-        }
+        let res = res.unique_error("Failed to create invitation, email already exists")?;
+        let id = res.last_insert_rowid() as i32;
+
+        Ok(InvitationDAO {
+            id,
+            email,
+            code,
+            created_at,
+        })
     }
 
     pub async fn delete_invitation(&self, id: i32) -> Result<i32> {
