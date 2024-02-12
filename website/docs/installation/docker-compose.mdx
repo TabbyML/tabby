@@ -18,7 +18,6 @@ services:
   tabby:
     restart: always
     image: tabbyml/tabby
-    entrypoint: /opt/tabby/bin/tabby-cpu
     command: serve --model TabbyML/StarCoder-1B --device cuda
     volumes:
       - "$HOME/.tabby:/data"
@@ -43,6 +42,7 @@ services:
   tabby:
     restart: always
     image: tabbyml/tabby
+    entrypoint: /opt/tabby/bin/tabby-cpu
     command: serve --model TabbyML/StarCoder-1B
     volumes:
       - "$HOME/.tabby:/data"
