@@ -28,7 +28,7 @@ use worker::{Worker, WorkerService};
 use self::{
     auth::UpdateOAuthCredentialInput,
     email::{EmailService, EmailSetting, EmailSettingInput},
-    repository::{RepositoryError, RepositoryService},
+    repository::RepositoryService,
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
@@ -351,18 +351,18 @@ impl Mutation {
         Ok(invitation.id)
     }
 
-    async fn create_repository(
-        ctx: &Context,
-        name: String,
-        git_url: String,
-    ) -> Result<ID, RepositoryError> {
-        ctx.locator
+    async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
+        check_admin(ctx)?;
+        Ok(ctx
+            .locator
             .repository()
             .create_repository(name, git_url)
             .await
+            .map_err(anyhow::Error::from)?)
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx)?;
         Ok(ctx.locator.repository().delete_repository(&id).await?)
     }
 
@@ -372,6 +372,7 @@ impl Mutation {
         name: String,
         git_url: String,
     ) -> Result<bool> {
+        check_admin(ctx)?;
         Ok(ctx
             .locator
             .repository()
