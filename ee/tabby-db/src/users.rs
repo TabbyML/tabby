@@ -1,3 +1,4 @@
+use crate::SQLXResultExt;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_scalar, FromRow};
@@ -68,7 +69,8 @@ impl DbConn {
         let token = generate_auth_token();
         let res = query!("INSERT INTO users (email, password_encrypted, is_admin, auth_token) VALUES (?, ?, ?, ?)",
             email, password_encrypted, is_admin, token)
-            .execute(&mut *transaction).await?;
+            .execute(&mut *transaction).await;
+        let res = res.unique_error("User already exists")?;
         transaction.commit().await?;
 
         Ok(res.last_insert_rowid() as i32)

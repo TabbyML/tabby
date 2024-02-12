@@ -2,6 +2,8 @@ use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
 
+use crate::SQLXResultExt;
+
 use super::DbConn;
 
 #[derive(FromRow)]
@@ -69,18 +71,13 @@ impl DbConn {
         .execute(&self.pool)
         .await;
 
-        match res {
-            Err(sqlx::Error::Database(db)) if db.constraint().is_some() => {
-                Err(anyhow!("Failed to create invitation, email already exists"))
-            }
-            Err(err) => Err(err.into()),
-            Ok(res) => Ok(InvitationDAO {
-                id: res.last_insert_rowid() as i32,
-                email,
-                code,
-                created_at: "".into(),
-            }),
-        }
+        let res = res.unique_error("Failed to create invitation, email already exists")?;
+        Ok(InvitationDAO {
+            id: res.last_insert_rowid() as i32,
+            email,
+            code,
+            created_at: "".into(),
+        })
     }
 
     pub async fn delete_invitation(&self, id: i32) -> Result<i32> {

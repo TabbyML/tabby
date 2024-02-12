@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query};
 
-use crate::DbConn;
+use crate::{DbConn, SQLXResultExt};
 
 #[derive(FromRow)]
 pub struct RepositoryDAO {
@@ -45,13 +45,8 @@ impl DbConn {
         .execute(&self.pool)
         .await;
 
-        match res {
-            Ok(output) => Ok(output.last_insert_rowid() as i32),
-            Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => Err(anyhow!(
-                "A repository with the same name or URL already exists",
-            )),
-            Err(e) => Err(e.into()),
-        }
+        res.unique_error("A repository with the same name or URL already exists")
+            .map(|output| output.last_insert_rowid() as i32)
     }
 
     pub async fn update_repository(&self, id: i32, name: String, git_url: String) -> Result<()> {
