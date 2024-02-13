@@ -14,6 +14,7 @@ use lettre::{
 use tabby_db::{DbConn, DbEnum};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::warn;
+mod templates;
 
 use crate::schema::{
     email::{
@@ -223,11 +224,9 @@ impl EmailService for EmailServiceImpl {
     ) -> Result<JoinHandle<()>, SendEmailError> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
-        self.send_email_in_background(
-            email,
-            "You've been invited to join a Tabby workspace!".into(),
-            format!("Welcome to Tabby! You have been invited to join a Tabby Server, where you can tap into AI-driven code completions and chat assistants.\n\nGo to {external_url}/auth/signup?invitationCode={code} to join!"),
-        ).await
+        let contents = templates::invitation_email(&external_url, &code);
+        self.send_email_in_background(email, contents.subject, contents.body)
+            .await
     }
 }
 
