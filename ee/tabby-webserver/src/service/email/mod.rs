@@ -224,8 +224,14 @@ impl EmailService for EmailServiceImpl {
     ) -> Result<JoinHandle<()>, SendEmailError> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
-        let contents = templates::invitation_email(&external_url, &code);
+        let contents = templates::invitation(&external_url, &code);
         self.send_email_in_background(email, contents.subject, contents.body)
+            .await
+    }
+
+    async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>, SendEmailError> {
+        let contents = templates::test();
+        self.send_email_in_background(to, contents.subject, contents.body)
             .await
     }
 }
@@ -242,6 +248,7 @@ mod tests {
     use std::time::Duration;
 
     use serde::Deserialize;
+    use serial_test::serial;
     use tokio::process::{Child, Command};
 
     use super::*;
@@ -289,28 +296,10 @@ mod tests {
         child
     }
 
-    #[derive(Deserialize)]
-    struct Mail {
-        sender: String,
-    }
-
-    async fn read_mails() -> Vec<Mail> {
-        reqwest::get("http://localhost:1080/api/messages")
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap()
-    }
-
-    /*
-     * Requires https://github.com/mailtutan/mailtutan
-     */
-    #[tokio::test]
-    async fn test_send_email() {
+    async fn setup_service() -> (impl EmailService, Child) {
         let email_setting = default_email_setting();
         let smtp_password = "fake";
-        let mut child = start_smtp_server().await;
+        let child = start_smtp_server().await;
 
         let db: DbConn = DbConn::new_in_memory().await.unwrap();
         db.update_email_setting(
@@ -326,6 +315,30 @@ mod tests {
         .unwrap();
 
         let service = new_email_service(db).await.unwrap();
+        (service, child)
+    }
+
+    #[derive(Deserialize, Debug)]
+    struct Mail {
+        sender: String,
+        subject: String,
+    }
+
+    async fn read_mails() -> Vec<Mail> {
+        let mails = reqwest::get("http://localhost:1080/api/messages")
+            .await
+            .unwrap();
+
+        mails.json().await.unwrap()
+    }
+
+    /*
+     * Requires https://github.com/mailtutan/mailtutan
+     */
+    #[tokio::test]
+    #[serial]
+    async fn test_send_email() {
+        let (service, _child) = setup_service().await;
 
         let handle = service
             .send_invitation_email("user@localhost".into(), "12345".into())
@@ -334,8 +347,31 @@ mod tests {
 
         handle.await.unwrap();
 
+        let handle = service
+            .send_test_email("user@localhost".into())
+            .await
+            .unwrap();
+
+        handle.await.unwrap();
+
         let mails = read_mails().await;
-        assert!(mails[0].sender.contains(&email_setting.from_address));
-        child.kill().await.unwrap();
+        let default_from = default_email_setting().from_address;
+        assert!(mails[0].sender.contains(&default_from));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_send_test_email() {
+        let (service, _child) = setup_service().await;
+
+        let handle = service
+            .send_test_email("user@localhost".into())
+            .await
+            .unwrap();
+
+        handle.await.unwrap();
+
+        let mails = read_mails().await;
+        assert_eq!(mails[0].subject, templates::test().subject);
     }
 }

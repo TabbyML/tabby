@@ -55,6 +55,7 @@ pub trait EmailService: Send + Sync {
     async fn read_email_setting(&self) -> Result<Option<EmailSetting>>;
     async fn update_email_setting(&self, input: EmailSettingInput) -> Result<()>;
     async fn delete_email_setting(&self) -> Result<()>;
+    async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>, SendEmailError>;
 
     async fn send_invitation_email(
         &self,

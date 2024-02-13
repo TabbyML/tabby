@@ -351,6 +351,15 @@ impl Mutation {
         Ok(invitation.id)
     }
 
+    async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
+        ctx.locator
+            .email()
+            .send_test_email(to)
+            .await
+            .map_err(anyhow::Error::from)?;
+        Ok(true)
+    }
+
     async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
         check_admin(ctx)?;
         Ok(ctx

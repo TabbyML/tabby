@@ -4,13 +4,10 @@ pub struct EmailContents {
 }
 
 fn format_email(template: &'static str, replacements: &[(&str, &str)]) -> EmailContents {
-    let mut lines = template.lines();
-    let mut subject = lines
-        .next()
-        .expect("Email must have subject line")
-        .to_string();
-    let body: Vec<&str> = lines.collect();
-    let mut body = body.join("\n");
+    let (subject, body) = template
+        .split_once("---")
+        .expect("Email template must have subject and body separated by ---");
+    let (mut subject, mut body) = (subject.to_string(), body.to_string());
     for (name, replacement) in replacements {
         body = body.replace(name, replacement);
         subject = subject.replace(name, replacement);
@@ -18,9 +15,27 @@ fn format_email(template: &'static str, replacements: &[(&str, &str)]) -> EmailC
     EmailContents { subject, body }
 }
 
-pub fn invitation_email(external_url: &str, code: &str) -> EmailContents {
-    format_email(
-        include_str!("../../../email_templates/invitation.html"),
-        &[("{external_url}", external_url), ("{code}", code)],
-    )
+macro_rules! template_email {
+    ($lit:ident: $($arg:ident),*) => {
+        {
+            let contents = include_str!(concat!(
+                "../../../email_templates/",
+                stringify!($lit),
+                ".html"
+            ));
+            format_email(contents, &[
+                $(
+                    (&format!("{{{{{}}}}}", stringify!($arg).to_uppercase()), $arg)
+                ),*
+            ])
+        }
+    };
+}
+
+pub fn invitation(external_url: &str, code: &str) -> EmailContents {
+    template_email!(invitation: external_url, code)
+}
+
+pub fn test() -> EmailContents {
+    template_email!(test: )
 }
