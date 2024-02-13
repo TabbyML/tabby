@@ -229,11 +229,10 @@ impl EmailService for EmailServiceImpl {
             .await
     }
 
-    async fn send_test_email(&self, to: String) -> Result<()> {
+    async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>, SendEmailError> {
         let contents = templates::test();
         self.send_email_in_background(to, contents.subject, contents.body)
-            .await?;
-        Ok(())
+            .await
     }
 }
 
@@ -249,6 +248,7 @@ mod tests {
     use std::time::Duration;
 
     use serde::Deserialize;
+    use serial_test_derive::serial;
     use tokio::process::{Child, Command};
 
     use super::*;
@@ -296,24 +296,25 @@ mod tests {
         child
     }
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Debug)]
     struct Mail {
         sender: String,
+        subject: String,
     }
 
     async fn read_mails() -> Vec<Mail> {
-        reqwest::get("http://localhost:1080/api/messages")
+        let mails = reqwest::get("http://localhost:1080/api/messages")
             .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap()
+            .unwrap();
+
+        mails.json().await.unwrap()
     }
 
     /*
      * Requires https://github.com/mailtutan/mailtutan
      */
     #[tokio::test]
+    #[serial]
     async fn test_send_email() {
         let email_setting = default_email_setting();
         let smtp_password = "fake";
@@ -341,8 +342,49 @@ mod tests {
 
         handle.await.unwrap();
 
+        let handle = service
+            .send_test_email("user@localhost".into())
+            .await
+            .unwrap();
+
+        handle.await.unwrap();
+
         let mails = read_mails().await;
         assert!(mails[0].sender.contains(&email_setting.from_address));
+        child.kill().await.unwrap();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_send_test_email() {
+        let email_setting = default_email_setting();
+        let smtp_password = "fake";
+        let mut child = start_smtp_server().await;
+
+        let db: DbConn = DbConn::new_in_memory().await.unwrap();
+        db.update_email_setting(
+            email_setting.smtp_username,
+            Some(smtp_password.into()),
+            email_setting.smtp_server,
+            email_setting.smtp_port,
+            email_setting.from_address.clone(),
+            email_setting.encryption.as_enum_str().into(),
+            email_setting.auth_method.as_enum_str().into(),
+        )
+        .await
+        .unwrap();
+
+        let service = new_email_service(db).await.unwrap();
+
+        let handle = service
+            .send_test_email("user@localhost".into())
+            .await
+            .unwrap();
+
+        handle.await.unwrap();
+
+        let mails = read_mails().await;
+        assert_eq!(mails[0].subject, templates::test().subject);
         child.kill().await.unwrap();
     }
 }

@@ -367,7 +367,11 @@ impl Mutation {
     }
 
     async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
-        ctx.locator.email().send_test_email(to).await?;
+        ctx.locator
+            .email()
+            .send_test_email(to)
+            .await
+            .map_err(anyhow::Error::from)?;
         Ok(true)
     }
 

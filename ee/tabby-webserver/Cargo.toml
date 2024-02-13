@@ -30,6 +30,8 @@ reqwest = { workspace = true, features = ["json"] }
 rust-embed = "8.0.0"
 serde.workspace = true
 serde_json.workspace = true
+serial_test = "3.0.0"
+serial_test_derive = "3.0.0"
 tabby-common = { path = "../../crates/tabby-common" }
 tabby-db = { path = "../../ee/tabby-db" }
 tarpc = { version = "0.33.0", features = ["serde-transport"] }
