@@ -25,7 +25,7 @@ macro_rules! template_email {
             ));
             format_email(contents, &[
                 $(
-                    (concat!("{", stringify!($arg), "}"), $arg)
+                    (&format!("{{{{{}}}}}", stringify!($arg).to_uppercase()), $arg)
                 ),*
             ])
         }
