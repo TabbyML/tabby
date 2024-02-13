@@ -413,7 +413,7 @@ pub struct UpdateOAuthCredentialInput {
         code = "clientSecret",
         message = "Client secret cannot be empty"
     ))]
-    pub client_secret: String,
+    pub client_secret: Option<String>,
 }
 
 #[async_trait]
