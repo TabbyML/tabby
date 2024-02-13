@@ -105,16 +105,6 @@ export default function OAuthCredentialForm({
 
   const { isSubmitting } = form.formState
 
-  React.useEffect(() => {
-    if (providerValue) {
-      // FIXME  use public origin
-      let origin = window.location.origin
-      if (process.env.NODE_ENV !== 'production') {
-        origin = `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}` ?? origin
-      }
-    }
-  }, [providerValue])
-
   const navigateToSSOSettings = () => {
     router.replace('/settings/sso')
   }

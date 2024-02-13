@@ -8,7 +8,7 @@ use axum::{
     response::Redirect,
     routing, Json, Router,
 };
-use lazy_static::lazy_static;
+
 use serde::Deserialize;
 use tracing::error;
 
@@ -129,10 +129,6 @@ async fn google_oauth_handler(
     )
 }
 
-lazy_static! {
-    static ref OAUTH_REDIRECT_URL: String = std::env::var("OAUTH_REDIRECT_URL").unwrap_or_default();
-}
-
 fn match_auth_result(
     provider: OAuthProvider,
     result: Result<OAuthResponse, OAuthError>,
@@ -140,10 +136,8 @@ fn match_auth_result(
     match result {
         Ok(resp) => {
             let uri = format!(
-                "{}/auth/signin?refresh_token={}&access_token={}",
-                OAUTH_REDIRECT_URL.as_str(),
-                resp.refresh_token,
-                resp.access_token,
+                "/auth/signin?refresh_token={}&access_token={}",
+                resp.refresh_token, resp.access_token,
             );
             Redirect::temporary(&uri)
         }
@@ -172,6 +166,6 @@ fn make_error_redirect(provider: OAuthProvider, message: &str) -> Redirect {
             serde_json::to_string(&provider).unwrap().as_str(),
         ),
     ]);
-    let uri = format!("{}/auth/signin?{}", OAUTH_REDIRECT_URL.as_str(), query);
+    let uri = format!("/auth/signin?{}", query);
     Redirect::temporary(&uri)
 }
