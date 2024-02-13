@@ -9,7 +9,8 @@ fn format_email(template: &'static str, replacements: &[(&str, &str)]) -> EmailC
         .next()
         .expect("Email must have subject line")
         .to_string();
-    let mut body: String = lines.collect();
+    let body: Vec<&str> = lines.collect();
+    let mut body = body.join("\n");
     for (name, replacement) in replacements {
         body = body.replace(name, replacement);
         subject = subject.replace(name, replacement);
