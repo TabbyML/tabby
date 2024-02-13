@@ -308,6 +308,12 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn update_user_role(ctx: &Context, id: ID, is_admin: bool) -> Result<bool> {
+        check_admin(ctx)?;
+        ctx.locator.auth().update_user_role(&id, is_admin).await?;
+        Ok(true)
+    }
+
     async fn register(
         ctx: &Context,
         email: String,

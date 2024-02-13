@@ -300,6 +300,14 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(!admin.is_empty())
     }
 
+    async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()> {
+        let id = id.as_rowid()?;
+        if id == 1 {
+            return Err(anyhow!("The owner's admin status may not be changed"));
+        }
+        self.db.update_user_role(id, is_admin).await
+    }
+
     async fn get_user_by_email(&self, email: &str) -> Result<User> {
         let user = self.db.get_user_by_email(email).await?;
         if let Some(user) = user {
