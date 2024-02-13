@@ -812,6 +812,32 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_update_role() {
+        let service = test_authentication_service().await;
+        let admin_id = service
+            .db
+            .create_user("admin@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
+
+        let user_id = service
+            .db
+            .create_user("user@example.com".into(), "".into(), false)
+            .await
+            .unwrap();
+
+        assert!(service
+            .update_user_role(&user_id.as_id(), true)
+            .await
+            .is_ok());
+
+        assert!(service
+            .update_user_role(&admin_id.as_id(), false)
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
     async fn test_pagination() {
         let service = test_authentication_service().await;
         service
