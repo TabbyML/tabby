@@ -3,8 +3,6 @@ import { OpenAIStream, StreamingTextResponse } from 'ai'
 
 import { useSession } from '../tabby/auth'
 
-const serverUrl = process.env.NEXT_PUBLIC_TABBY_SERVER_URL || ''
-
 export function usePatchFetch() {
   const { data } = useSession()
 
@@ -28,7 +26,7 @@ export function usePatchFetch() {
         headers['Authorization'] = `Bearer ${data?.accessToken}`
       }
 
-      const res = await fetch(`${serverUrl}/v1beta/chat/completions`, {
+      const res = await fetch(`/v1beta/chat/completions`, {
         ...options,
         method: 'POST',
         headers

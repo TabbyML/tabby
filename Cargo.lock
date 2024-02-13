@@ -3301,6 +3301,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "reverse-proxy-service"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7c5828ba3be8842e97b1c96b9df9449b326e5d252c5fb76d73605288b326b75"
+dependencies = [
+ "axum",
+ "http",
+ "hyper",
+ "log",
+ "regex",
+ "tower-service",
+]
+
+[[package]]
 name = "ring"
 version = "0.17.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4405,6 +4419,7 @@ dependencies = [
  "pin-project",
  "querystring",
  "reqwest",
+ "reverse-proxy-service",
  "rust-embed 8.0.0",
  "serde",
  "serde_json",
