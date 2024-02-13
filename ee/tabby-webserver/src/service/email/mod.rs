@@ -228,6 +228,11 @@ impl EmailService for EmailServiceImpl {
         self.send_email_in_background(email, contents.subject, contents.body)
             .await
     }
+
+    async fn send_test_email(&self, to: String, subject: String, body: String) -> Result<()> {
+        self.send_email_in_background(to, subject, body).await?;
+        Ok(())
+    }
 }
 
 fn to_address(email: String) -> Result<Address> {
