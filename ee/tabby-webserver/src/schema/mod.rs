@@ -366,16 +366,8 @@ impl Mutation {
         Ok(invitation.id)
     }
 
-    async fn send_test_email(
-        ctx: &Context,
-        to: String,
-        subject: String,
-        body: String,
-    ) -> Result<bool> {
-        ctx.locator
-            .email()
-            .send_test_email(to, subject, body)
-            .await?;
+    async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
+        ctx.locator.email().send_test_email(to).await?;
         Ok(true)
     }
 

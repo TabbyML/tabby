@@ -18,9 +18,22 @@ fn format_email(template: &'static str, replacements: &[(&str, &str)]) -> EmailC
     EmailContents { subject, body }
 }
 
-pub fn invitation_email(external_url: &str, code: &str) -> EmailContents {
-    format_email(
-        include_str!("../../../email_templates/invitation.html"),
-        &[("{external_url}", external_url), ("{code}", code)],
-    )
+macro_rules! template_email {
+    ($lit:ident: $($arg:ident),*) => {
+        pub fn $lit($($arg: &str),*) -> EmailContents {
+            let contents = include_str!(concat!(
+                "../../../email_templates/",
+                stringify!($lit),
+                ".html"
+            ));
+            format_email(contents, &[
+                $(
+                    (concat!("{", stringify!($arg), "}"), $arg)
+                ),*
+            ])
+        }
+    };
 }
+
+template_email!(invitation: external_url, code);
+template_email!(test: );

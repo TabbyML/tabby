@@ -224,13 +224,15 @@ impl EmailService for EmailServiceImpl {
     ) -> Result<JoinHandle<()>, SendEmailError> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
-        let contents = templates::invitation_email(&external_url, &code);
+        let contents = templates::invitation(&external_url, &code);
         self.send_email_in_background(email, contents.subject, contents.body)
             .await
     }
 
-    async fn send_test_email(&self, to: String, subject: String, body: String) -> Result<()> {
-        self.send_email_in_background(to, subject, body).await?;
+    async fn send_test_email(&self, to: String) -> Result<()> {
+        let contents = templates::test();
+        self.send_email_in_background(to, contents.subject, contents.body)
+            .await?;
         Ok(())
     }
 }
