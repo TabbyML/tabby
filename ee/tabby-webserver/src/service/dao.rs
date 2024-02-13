@@ -59,7 +59,6 @@ impl From<GithubOAuthCredentialDAO> for OAuthCredential {
         OAuthCredential {
             provider: OAuthProvider::Github,
             client_id: val.client_id,
-            client_secret: val.client_secret,
             created_at: val.created_at,
             updated_at: val.updated_at,
         }
@@ -71,7 +70,6 @@ impl From<GoogleOAuthCredentialDAO> for OAuthCredential {
         OAuthCredential {
             provider: OAuthProvider::Google,
             client_id: val.client_id,
-            client_secret: val.client_secret,
             created_at: val.created_at,
             updated_at: val.updated_at,
         }

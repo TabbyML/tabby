@@ -67,7 +67,6 @@ impl GoogleClient {
     ) -> Result<GoogleOAuthResponse> {
         let params = [
             ("client_id", credential.client_id.as_str()),
-            ("client_secret", credential.client_secret.as_str()),
             ("code", code.as_str()),
             ("grant_type", "authorization_code"),
             ("redirect_uri", redirect_uri.as_str()),
