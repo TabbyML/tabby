@@ -173,6 +173,24 @@ impl DbConn {
             Ok(())
         }
     }
+
+    pub async fn update_user_role(&self, id: i32, is_admin: bool) -> Result<()> {
+        let not_admin = !is_admin;
+        let changed = query!(
+            "UPDATE users SET is_admin = ? WHERE id = ? AND is_admin = ?",
+            is_admin,
+            id,
+            not_admin
+        )
+        .execute(&self.pool)
+        .await?
+        .rows_affected();
+        if changed != 1 {
+            Err(anyhow!("user admin status was not changed"))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 fn generate_auth_token() -> String {

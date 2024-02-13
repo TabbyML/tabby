@@ -420,6 +420,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()>;
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()>;
+    async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()>;
 }
 
 #[cfg(test)]

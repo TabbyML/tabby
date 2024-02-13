@@ -21,7 +21,7 @@ use juniper_axum::{
     FromAuth,
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-use tracing::{error, warn};
+use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
@@ -35,7 +35,6 @@ use self::{
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider, RequestInvitationInput},
-    email::SendEmailError,
     repository::Repository,
 };
 
@@ -308,6 +307,12 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn update_user_role(ctx: &Context, id: ID, is_admin: bool) -> Result<bool> {
+        check_admin(ctx)?;
+        ctx.locator.auth().update_user_role(&id, is_admin).await?;
+        Ok(true)
+    }
+
     async fn register(
         ctx: &Context,
         email: String,
@@ -343,21 +348,16 @@ impl Mutation {
     async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
         check_admin(ctx)?;
         let invitation = ctx.locator.auth().create_invitation(email.clone()).await?;
-        let email_sent = ctx
-            .locator
-            .email()
-            .send_invitation_email(email, invitation.code)
-            .await;
-        match email_sent {
-            Err(SendEmailError::NotConfigured) | Ok(_) => {}
-            Err(e) => {
-                warn!(
-                "Failed to send invitation email, please check your SMTP settings are correct: {e}"
-            );
-            }
-        };
-
         Ok(invitation.id)
+    }
+
+    async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
+        ctx.locator
+            .email()
+            .send_test_email(to)
+            .await
+            .map_err(anyhow::Error::from)?;
+        Ok(true)
     }
 
     async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
