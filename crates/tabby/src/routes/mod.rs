@@ -44,11 +44,11 @@ mod completions;
 mod events;
 mod health;
 mod search;
-mod server_config;
+mod server_setting;
 
 pub use chat::*;
 pub use completions::*;
 pub use events::*;
 pub use health::*;
 pub use search::*;
-pub use server_config::*;
+pub use server_setting::*;
