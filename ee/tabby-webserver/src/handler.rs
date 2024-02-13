@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-
 use axum::{
     extract::State,
     http::Request,
@@ -9,7 +8,6 @@ use axum::{
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::{graphiql, graphql, playground};
-
 use tabby_common::{
     api::{code::CodeSearch, event::RawEventLogger, server_setting::ServerSetting},
     config::Config,

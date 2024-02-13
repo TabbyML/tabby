@@ -4,7 +4,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-
 #[derive(rust_embed::RustEmbed)]
 #[folder = "./ui"]
 struct WebAssets;
