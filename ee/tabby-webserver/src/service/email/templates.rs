@@ -4,13 +4,10 @@ pub struct EmailContents {
 }
 
 fn format_email(template: &'static str, replacements: &[(&str, &str)]) -> EmailContents {
-    let mut lines = template.lines();
-    let mut subject = lines
-        .next()
-        .expect("Email must have subject line")
-        .to_string();
-    let body: Vec<&str> = lines.collect();
-    let mut body = body.join("\n");
+    let (subject, body) = template
+        .split_once("---")
+        .expect("Email template must have subject and body separated by ---");
+    let (mut subject, mut body) = (subject.to_string(), body.to_string());
     for (name, replacement) in replacements {
         body = body.replace(name, replacement);
         subject = subject.replace(name, replacement);
@@ -20,7 +17,7 @@ fn format_email(template: &'static str, replacements: &[(&str, &str)]) -> EmailC
 
 macro_rules! template_email {
     ($lit:ident: $($arg:ident),*) => {
-        pub fn $lit($($arg: &str),*) -> EmailContents {
+        {
             let contents = include_str!(concat!(
                 "../../../email_templates/",
                 stringify!($lit),
@@ -35,5 +32,10 @@ macro_rules! template_email {
     };
 }
 
-template_email!(invitation: external_url, code);
-template_email!(test: );
+pub fn invitation(external_url: &str, code: &str) -> EmailContents {
+    template_email!(invitation: external_url, code)
+}
+
+pub fn test() -> EmailContents {
+    template_email!(test: )
+}
