@@ -21,7 +21,7 @@ use juniper_axum::{
     FromAuth,
 };
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
-use tracing::{error, warn};
+use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
@@ -35,7 +35,6 @@ use self::{
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider, RequestInvitationInput},
-    email::SendEmailError,
     repository::Repository,
 };
 
@@ -349,20 +348,6 @@ impl Mutation {
     async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
         check_admin(ctx)?;
         let invitation = ctx.locator.auth().create_invitation(email.clone()).await?;
-        let email_sent = ctx
-            .locator
-            .email()
-            .send_invitation_email(email, invitation.code)
-            .await;
-        match email_sent {
-            Err(SendEmailError::NotConfigured) | Ok(_) => {}
-            Err(e) => {
-                warn!(
-                "Failed to send invitation email, please check your SMTP settings are correct: {e}"
-            );
-            }
-        };
-
         Ok(invitation.id)
     }
 
