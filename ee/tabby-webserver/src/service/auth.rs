@@ -300,6 +300,14 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(!admin.is_empty())
     }
 
+    async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()> {
+        let id = id.as_rowid()?;
+        if id == 1 {
+            return Err(anyhow!("The owner's admin status may not be changed"));
+        }
+        self.db.update_user_role(id, is_admin).await
+    }
+
     async fn get_user_by_email(&self, email: &str) -> Result<User> {
         let user = self.db.get_user_by_email(email).await?;
         if let Some(user) = user {
@@ -799,6 +807,32 @@ mod tests {
             .await
             .is_ok());
         assert!(get_or_create_oauth_user(&service.db, "example@gmail.com")
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_role() {
+        let service = test_authentication_service().await;
+        let admin_id = service
+            .db
+            .create_user("admin@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
+
+        let user_id = service
+            .db
+            .create_user("user@example.com".into(), "".into(), false)
+            .await
+            .unwrap();
+
+        assert!(service
+            .update_user_role(&user_id.as_id(), true)
+            .await
+            .is_ok());
+
+        assert!(service
+            .update_user_role(&admin_id.as_id(), false)
             .await
             .is_err());
     }
