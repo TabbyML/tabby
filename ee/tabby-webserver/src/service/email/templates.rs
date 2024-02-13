@@ -20,7 +20,7 @@ fn format_email(template: &'static str, replacements: &[(&str, &str)]) -> EmailC
 
 pub fn invitation_email(external_url: &str, code: &str) -> EmailContents {
     format_email(
-        include_str!("templates/invitation.html"),
+        include_str!("../../../email_templates/invitation.html"),
         &[("{external_url}", external_url), ("{code}", code)],
     )
 }
