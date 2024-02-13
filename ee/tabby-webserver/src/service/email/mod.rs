@@ -296,6 +296,28 @@ mod tests {
         child
     }
 
+    async fn setup_service() -> (impl EmailService, Child) {
+        let email_setting = default_email_setting();
+        let smtp_password = "fake";
+        let child = start_smtp_server().await;
+
+        let db: DbConn = DbConn::new_in_memory().await.unwrap();
+        db.update_email_setting(
+            email_setting.smtp_username,
+            Some(smtp_password.into()),
+            email_setting.smtp_server,
+            email_setting.smtp_port,
+            email_setting.from_address.clone(),
+            email_setting.encryption.as_enum_str().into(),
+            email_setting.auth_method.as_enum_str().into(),
+        )
+        .await
+        .unwrap();
+
+        let service = new_email_service(db).await.unwrap();
+        (service, child)
+    }
+
     #[derive(Deserialize, Debug)]
     struct Mail {
         sender: String,
@@ -316,24 +338,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_send_email() {
-        let email_setting = default_email_setting();
-        let smtp_password = "fake";
-        let mut child = start_smtp_server().await;
-
-        let db: DbConn = DbConn::new_in_memory().await.unwrap();
-        db.update_email_setting(
-            email_setting.smtp_username,
-            Some(smtp_password.into()),
-            email_setting.smtp_server,
-            email_setting.smtp_port,
-            email_setting.from_address.clone(),
-            email_setting.encryption.as_enum_str().into(),
-            email_setting.auth_method.as_enum_str().into(),
-        )
-        .await
-        .unwrap();
-
-        let service = new_email_service(db).await.unwrap();
+        let (service, _child) = setup_service().await;
 
         let handle = service
             .send_invitation_email("user@localhost".into(), "12345".into())
@@ -350,31 +355,14 @@ mod tests {
         handle.await.unwrap();
 
         let mails = read_mails().await;
-        assert!(mails[0].sender.contains(&email_setting.from_address));
-        child.kill().await.unwrap();
+        let default_from = default_email_setting().from_address;
+        assert!(mails[0].sender.contains(&default_from));
     }
 
     #[tokio::test]
     #[serial]
     async fn test_send_test_email() {
-        let email_setting = default_email_setting();
-        let smtp_password = "fake";
-        let mut child = start_smtp_server().await;
-
-        let db: DbConn = DbConn::new_in_memory().await.unwrap();
-        db.update_email_setting(
-            email_setting.smtp_username,
-            Some(smtp_password.into()),
-            email_setting.smtp_server,
-            email_setting.smtp_port,
-            email_setting.from_address.clone(),
-            email_setting.encryption.as_enum_str().into(),
-            email_setting.auth_method.as_enum_str().into(),
-        )
-        .await
-        .unwrap();
-
-        let service = new_email_service(db).await.unwrap();
+        let (service, _child) = setup_service().await;
 
         let handle = service
             .send_test_email("user@localhost".into())
@@ -385,6 +373,5 @@ mod tests {
 
         let mails = read_mails().await;
         assert_eq!(mails[0].subject, templates::test().subject);
-        child.kill().await.unwrap();
     }
 }
