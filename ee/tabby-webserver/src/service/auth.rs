@@ -23,7 +23,7 @@ use crate::{
             RequestInvitationInput, TokenAuthError, TokenAuthResponse, UpdateOAuthCredentialInput,
             User, VerifyTokenResponse,
         },
-        email::EmailService,
+        email::{EmailService, SendEmailError},
         setting::SettingService,
     },
 };
@@ -323,10 +323,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .mail
             .send_invitation_email(email, invitation.code.clone())
             .await;
-        if let Err(e) = email_sent {
-            warn!(
+        match email_sent {
+            Ok(_) | Err(SendEmailError::NotConfigured) => {}
+            Err(e) => warn!(
                 "Failed to send invitation email, please check your SMTP settings are correct: {e}"
-            );
+            ),
         }
         Ok(invitation.into())
     }
