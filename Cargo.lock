@@ -4409,7 +4409,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test 3.0.0",
- "serial_test_derive 3.0.0",
  "tabby-common",
  "tabby-db",
  "tarpc",

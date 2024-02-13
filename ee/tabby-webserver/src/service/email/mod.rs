@@ -248,7 +248,7 @@ mod tests {
     use std::time::Duration;
 
     use serde::Deserialize;
-    use serial_test_derive::serial;
+    use serial_test::serial;
     use tokio::process::{Child, Command};
 
     use super::*;
