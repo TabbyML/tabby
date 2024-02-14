@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
 
@@ -42,5 +42,13 @@ impl DbConn {
                 .fetch_one(&self.pool)
                 .await?;
         Ok(password_reset)
+    }
+
+    pub async fn delete_expired_password_reset(&self) -> Result<()> {
+        let time = Utc::now() - Duration::hours(1);
+        query!("DELETE FROM password_reset WHERE created_at < ?", time)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 }
