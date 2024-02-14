@@ -3,7 +3,7 @@ use std::{collections::HashMap, thread::JoinHandle};
 use cxx::UniquePtr;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
-use crate::ffi;
+use crate::{ffi, RequestContext};
 
 struct LlamaInitRequest {
     prompt: String,
@@ -66,14 +66,16 @@ impl LlamaServiceImpl {
                 continue;
             }
 
-            let request_id = self.alloc_request_id();
-            self.requests.insert(request_id, LlamaRunningRequest { tx });
+            let id = self.alloc_request_id();
+            self.requests.insert(id, LlamaRunningRequest { tx });
             self.engine.as_mut().unwrap().add_request(
-                request_id,
+                Box::new(RequestContext {
+                    id,
+                    max_input_length,
+                    temperature,
+                    seed,
+                }),
                 &prompt,
-                max_input_length,
-                temperature,
-                seed,
             );
         }
 

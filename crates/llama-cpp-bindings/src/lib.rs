@@ -10,11 +10,49 @@ use futures::stream::BoxStream;
 use llama::LlamaService;
 use tabby_inference::{TextGenerationOptions, TextGenerationStream};
 
+struct RequestContext {
+    id: u32,
+    max_input_length: usize,
+    temperature: f32,
+    seed: u64,
+}
+
+impl RequestContext {
+    fn id(&self) -> u32 {
+        self.id
+    }
+    fn max_input_length(&self) -> usize {
+        self.max_input_length
+    }
+    fn seed(&self) -> u64 {
+        self.seed
+    }
+    fn temperature(&self) -> f32 {
+        self.temperature
+    }
+
+    fn check_candidate(&self, _candidate: &[u8]) -> bool {
+        true
+    }
+    fn accept_candidate(&self, _candidate: &[u8]) {}
+}
+
 #[cxx::bridge(namespace = "llama")]
 mod ffi {
     struct StepOutput {
         request_id: u32,
         text: String,
+    }
+
+    extern "Rust" {
+        type RequestContext;
+        fn id(&self) -> u32;
+        fn max_input_length(&self) -> usize;
+        fn seed(&self) -> u64;
+        fn temperature(&self) -> f32;
+
+        fn check_candidate(&self, candidate: &[u8]) -> bool;
+        fn accept_candidate(&self, candidate: &[u8]);
     }
 
     unsafe extern "C++" {
@@ -30,11 +68,8 @@ mod ffi {
 
         fn add_request(
             self: Pin<&mut TextInferenceEngine>,
-            request_id: u32,
+            context: Box<RequestContext>,
             prompt: &str,
-            max_input_length: usize,
-            temperature: f32,
-            seed: u64,
         );
         fn stop_request(self: Pin<&mut TextInferenceEngine>, request_id: u32);
         fn step(self: Pin<&mut TextInferenceEngine>) -> Result<Vec<StepOutput>>;
