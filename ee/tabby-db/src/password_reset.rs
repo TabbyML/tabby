@@ -7,7 +7,7 @@ use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct PasswordResetDAO {
-    pub id: i32,
+    pub user_id: i32,
     pub code: String,
     pub created_at: DateTime<Utc>,
 }
@@ -17,8 +17,8 @@ impl DbConn {
         let code = Uuid::new_v4().to_string();
         let time = Utc::now();
         query!(
-            "INSERT INTO password_reset (id, code, created_at) VALUES ($1, $2, $3)
-            ON CONFLICT(id) DO UPDATE SET code= $2, created_at = $3;",
+            "INSERT INTO password_reset (user_id, code, created_at) VALUES ($1, $2, $3)
+            ON CONFLICT(user_id) DO UPDATE SET code= $2, created_at = $3;",
             id,
             code,
             time
@@ -29,18 +29,19 @@ impl DbConn {
     }
 
     pub async fn delete_password_reset(&self, id: String) -> Result<()> {
-        query!("DELETE FROM password_reset WHERE id = ?", id)
+        query!("DELETE FROM password_reset WHERE user_id = ?", id)
             .execute(&self.pool)
             .await?;
         Ok(())
     }
 
-    pub async fn get_password_reset(&self, id: i32) -> Result<PasswordResetDAO> {
-        let password_reset =
-            sqlx::query_as("SELECT id, code, created_at FROM password_reset WHERE id = ?;")
-                .bind(id)
-                .fetch_one(&self.pool)
-                .await?;
+    pub async fn get_password_reset(&self, id: i32) -> Result<Option<PasswordResetDAO>> {
+        let password_reset = sqlx::query_as(
+            "SELECT user_id, code, created_at FROM password_reset WHERE user_id = ?;",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(password_reset)
     }
 
