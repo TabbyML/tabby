@@ -121,8 +121,8 @@ float compute_softmax_inplace(float* nums, size_t len, float temperature) {
   return sum;
 }
 
-size_t weighted_random(llama_context* ctx, Request* req, float* nums, size_t len) {
-  std::mt19937 rng(req->seed());
+size_t weighted_random(float* nums, size_t len, uint64_t seed) {
+  std::mt19937 rng(seed);
   float sum = 0;
   for (size_t i = 0; i < len; i++) {
     sum += nums[i];
@@ -134,10 +134,7 @@ size_t weighted_random(llama_context* ctx, Request* req, float* nums, size_t len
   for (i = 0; i < len; i++) {
     sum += nums[i];
     if (sum >= random) {
-      const auto token_str = llama_token_to_piece(ctx, i);
-      if (req->check_candidate(token_str)) {
-        return i;
-      }
+      return i;
     }
   }
   return i;
@@ -281,7 +278,14 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
         compute_softmax_inplace(logits, n_vocab, request.temperature());
-        const llama_token next_token = weighted_random(ctx_.get(), &request, logits, n_vocab);
+
+        llama_token next_token = weighted_random(logits, n_vocab, request.seed());
+        auto next_token_str = llama_token_to_piece(ctx, next_token);
+        while (!request.check_candidate(next_token_str)) {
+          next_token = weighted_random(logits, n_vocab, request.seed());
+          next_token_str = llama_token_to_piece(ctx, next_token);
+        }
+                
         request.n_past += request.tokens.size();
 
         request.tokens.clear();
