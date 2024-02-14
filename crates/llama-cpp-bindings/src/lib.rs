@@ -7,35 +7,8 @@ use async_trait::async_trait;
 use derive_builder::Builder;
 use ffi::create_engine;
 use futures::stream::BoxStream;
-use llama::LlamaService;
+use llama::{LlamaInitRequest, LlamaService};
 use tabby_inference::{TextGenerationOptions, TextGenerationStream};
-
-struct RequestContext {
-    id: u32,
-    max_input_length: usize,
-    temperature: f32,
-    seed: u64,
-}
-
-impl RequestContext {
-    fn id(&self) -> u32 {
-        self.id
-    }
-    fn max_input_length(&self) -> usize {
-        self.max_input_length
-    }
-    fn seed(&self) -> u64 {
-        self.seed
-    }
-    fn temperature(&self) -> f32 {
-        self.temperature
-    }
-
-    fn check_candidate(&self, _candidate: &[u8]) -> bool {
-        true
-    }
-    fn accept_candidate(&self, _candidate: &[u8]) {}
-}
 
 #[cxx::bridge(namespace = "llama")]
 mod ffi {
@@ -45,14 +18,17 @@ mod ffi {
     }
 
     extern "Rust" {
-        type RequestContext;
+        type LlamaInitRequest;
         fn id(&self) -> u32;
+        fn prompt(&self) -> &str;
         fn max_input_length(&self) -> usize;
         fn seed(&self) -> u64;
         fn temperature(&self) -> f32;
 
         fn check_candidate(&self, candidate: &[u8]) -> bool;
         fn accept_candidate(&self, candidate: &[u8]);
+
+        fn step(&self, token: &str) -> bool;
     }
 
     unsafe extern "C++" {
@@ -66,13 +42,9 @@ mod ffi {
             parallelism: u8,
         ) -> UniquePtr<TextInferenceEngine>;
 
-        fn add_request(
-            self: Pin<&mut TextInferenceEngine>,
-            context: Box<RequestContext>,
-            prompt: &str,
-        );
-        fn stop_request(self: Pin<&mut TextInferenceEngine>, request_id: u32);
-        fn step(self: Pin<&mut TextInferenceEngine>) -> Result<Vec<StepOutput>>;
+        fn add_request(self: Pin<&mut TextInferenceEngine>, context: Box<LlamaInitRequest>);
+        fn has_pending_requests(&self) -> bool;
+        fn step(self: Pin<&mut TextInferenceEngine>) -> Result<()>;
     }
 }
 

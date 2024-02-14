@@ -21,32 +21,36 @@ constexpr size_t N_BATCH = 512;  // # per batch inference.
 constexpr size_t N_CTX = 4096;   // # max kv history.
 struct Request {
  private:
-  rust::Box<RequestContext> context_;
+  rust::Box<LlamaInitRequest> init_;
 
  public:
-  Request(rust::Box<RequestContext>&& context, std::vector<llama_token>&& input_token_ids) :
-    context_(std::move(context)),
+  Request(rust::Box<LlamaInitRequest>&& init, std::vector<llama_token>&& input_token_ids) :
+    init_(std::move(init)),
     tokens(std::move(input_token_ids)) {
   }
 
   uint32_t id() {
-    return context_->id();
+    return init_->id();
   }
 
   float temperature() {
-    return context_->temperature();
+    return init_->temperature();
   }
 
   uint64_t seed() {
-    return context_->seed();
+    return init_->seed();
   }
 
   bool check_candidate(const std::string& candidate) {
-    return context_->check_candidate(rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(candidate.data()), candidate.size()));
+    return init_->check_candidate(rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(candidate.data()), candidate.size()));
   }
 
   void accept_candidate(const std::string& candidate) {
-    context_->accept_candidate(rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(candidate.data()), candidate.size()));
+    init_->accept_candidate(rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(candidate.data()), candidate.size()));
+  }
+
+  bool step(rust::Str token) {
+    return init_->step(token);
   }
 
   llama_seq_id seq_id = -1;
@@ -172,21 +176,20 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     llama_batch_free(batch_);
   }
 
-  virtual void add_request(rust::Box<RequestContext> context, rust::Str text) override {
-
-    auto tokens = llama_tokenize(llama_get_model(ctx_.get()), text, false, true);
-    if (tokens.size() > context->max_input_length()) {
-      int start = tokens.size() - context->max_input_length();
+  virtual void add_request(rust::Box<LlamaInitRequest> init) override {
+    auto tokens = llama_tokenize(llama_get_model(ctx_.get()), init->prompt(), false, true);
+    if (tokens.size() > init->max_input_length()) {
+      int start = tokens.size() - init->max_input_length();
       tokens = std::vector<llama_token>(tokens.begin() + start, tokens.end());
     }
-    pending_requests_.push_back(Request(std::move(context), std::move(tokens)));
+    pending_requests_.push_back(Request(std::move(init), std::move(tokens)));
   }
 
-  void stop_request(uint32_t request_id) override {
-    stopped_requests_.insert(request_id);
+  virtual bool has_pending_requests() const override {
+    return !pending_requests_.empty() || !requests_.empty();
   }
 
-  rust::Vec<StepOutput> step() override {
+  void step() override {
     std::lock_guard<std::mutex> guard(g_mutex_);
 
     auto* ctx = ctx_.get();
@@ -228,7 +231,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
     if (requests_.size() == 0) {
       llama_kv_cache_clear(ctx);
-      return {};
+      return;
     }
 
     // Clear the batch.
@@ -249,9 +252,6 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       batch_.logits[batch_.n_tokens - 1] = true;
       request.i_batch = batch_.n_tokens - 1;
     }
-
-    rust::Vec<StepOutput> result;
-    result.reserve(requests_.size());
 
     // Decode tokens in chunks
     for (size_t i = 0; i < static_cast<size_t>(batch_.n_tokens); i += N_BATCH) {
@@ -330,13 +330,13 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
             fprintf(stderr, "%s:%d [%s] - ignoring non utf-8/utf-16 output\n", __FILE__, __LINE__, __func__);
           }
 
-          result.push_back({request.id(), generated_text});
           request.generated_text.clear();
+          if (generated_text.empty() || request.step(generated_text)) {
+            stopped_requests_.insert(request.id());
+          }
         }
       }
     }
-
-    return result;
   }
 
  private:
