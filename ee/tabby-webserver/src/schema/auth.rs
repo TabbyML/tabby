@@ -142,22 +142,6 @@ pub enum TokenAuthError {
     Unknown,
 }
 
-#[derive(Error, Debug)]
-pub enum PasswordResetError {
-    #[error("Invalid code")]
-    InvalidCode,
-    #[error("Code is expired")]
-    ExpiredCode,
-    #[error("User does not exist")]
-    InvalidEmail,
-    #[error("Invalid password")]
-    InvalidPassword(#[from] ValidationErrors),
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-    #[error("Unknown error")]
-    Unknown,
-}
-
 #[derive(Default, Serialize)]
 pub struct OAuthResponse {
     pub access_token: String,
@@ -313,30 +297,6 @@ pub struct RequestInvitationInput {
     pub email: String,
 }
 
-#[derive(Validate, GraphQLInputObject)]
-pub struct RequestPasswordResetInput {
-    #[validate(email(code = "email"))]
-    pub email: String,
-}
-
-#[derive(Validate, GraphQLInputObject)]
-pub struct PasswordResetInput {
-    #[validate(email(code = "email"))]
-    pub email: String,
-    pub code: String,
-    #[validate(length(
-        min = 8,
-        code = "password",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
-        max = 20,
-        code = "password",
-        message = "Password must be at most 20 characters"
-    ))]
-    pub password: String,
-}
-
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
 #[graphql(context = Context)]
 pub struct Invitation {
@@ -426,13 +386,6 @@ pub trait AuthenticationService: Send + Sync {
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
-    async fn password_reset(
-        &self,
-        email: &str,
-        code: &str,
-        password: &str,
-    ) -> Result<(), PasswordResetError>;
-    async fn request_password_reset(&self, email: &str) -> Result<()>;
 
     async fn list_users(
         &self,

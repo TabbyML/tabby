@@ -229,17 +229,6 @@ impl EmailService for EmailServiceImpl {
             .await
     }
 
-    async fn send_password_reset_email(
-        &self,
-        email: String,
-        code: String,
-    ) -> Result<JoinHandle<()>, SendEmailError> {
-        let external_url = self.db.read_network_setting().await?.external_url;
-        let contents = templates::password_reset(&external_url, &email, &code);
-        self.send_email_in_background(email, contents.subject, contents.body)
-            .await
-    }
-
     async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>, SendEmailError> {
         let contents = templates::test();
         self.send_email_in_background(to, contents.subject, contents.body)

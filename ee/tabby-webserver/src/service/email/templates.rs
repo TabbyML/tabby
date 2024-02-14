@@ -39,7 +39,3 @@ pub fn invitation(external_url: &str, code: &str) -> EmailContents {
 pub fn test() -> EmailContents {
     template_email!(test: )
 }
-
-pub fn password_reset(external_url: &str, email: &str, code: &str) -> EmailContents {
-    template_email!(password_reset: external_url, email, code)
-}
