@@ -91,7 +91,7 @@ mod tests {
         assert_eq!(res.client_id, "client_id");
         assert_eq!(res.client_secret, "client_secret_2");
 
-        conn.update_github_oauth_credential("client_side", None)
+        conn.update_github_oauth_credential("client_id", None)
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
