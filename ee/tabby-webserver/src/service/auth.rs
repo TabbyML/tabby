@@ -224,7 +224,16 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .get_user_by_email(&email)
             .await
             .map_err(|_| anyhow!("The email specified is not a registered user"))?;
-        let code = self.db.create_password_reset(user.id.as_rowid()?).await?;
+        let id = user.id.as_rowid()?;
+        let existing = self.db.get_password_reset(id).await?;
+        if let Some(existing) = existing {
+            if Utc::now().signed_duration_since(existing.created_at) < Duration::minutes(5) {
+                return Err(anyhow!(
+                    "A reset token has already been sent to that user recently"
+                ));
+            }
+        }
+        let code = self.db.create_password_reset(id).await?;
         self.mail
             .send_password_reset_email(user.email, code)
             .await?;
@@ -243,12 +252,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .get_user_by_email(email)
             .await
             .map_err(|_| PasswordResetError::InvalidEmail)?;
-        let password_reset = user
-            .id
-            .as_rowid()
-            .and_then(|id| Ok(self.db.get_password_reset(id)))
-            .map_err(|_| PasswordResetError::InvalidCode)?
-            .await?;
+        let id = user.id.as_rowid().map_err(anyhow::Error::from)?;
+        let Ok(Some(password_reset)) = self.db.get_password_reset(id).await else {
+            return Err(PasswordResetError::InvalidCode);
+        };
 
         if password_reset.code != code {
             return Err(PasswordResetError::InvalidCode);
