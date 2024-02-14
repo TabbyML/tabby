@@ -432,7 +432,7 @@ pub trait AuthenticationService: Send + Sync {
         code: &str,
         password: &str,
     ) -> Result<(), PasswordResetError>;
-    async fn request_password_reset(&self, email: &str) -> Result<()>;
+    async fn request_password_reset(&self, email: String) -> Result<()>;
 
     async fn list_users(
         &self,

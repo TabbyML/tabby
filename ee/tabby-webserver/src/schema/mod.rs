@@ -296,7 +296,7 @@ impl Mutation {
         input.validate()?;
         ctx.locator
             .auth()
-            .request_password_reset(&input.email)
+            .request_password_reset(input.email)
             .await?;
         Ok(true)
     }

@@ -219,13 +219,14 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(resp)
     }
 
-    async fn request_password_reset(&self, email: &str) -> Result<()> {
-        self.get_user_by_email(email)
+    async fn request_password_reset(&self, email: String) -> Result<()> {
+        let user = self
+            .get_user_by_email(&email)
             .await
             .map_err(|_| anyhow!("The email specified is not a registered user"))?;
-        let code = self.db.create_password_reset(email.to_string()).await?;
+        let code = self.db.create_password_reset(user.id.as_rowid()?).await?;
         self.mail
-            .send_password_reset_email(email.to_string(), code)
+            .send_password_reset_email(user.email, code)
             .await?;
         Ok(())
     }
@@ -242,11 +243,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .get_user_by_email(email)
             .await
             .map_err(|_| PasswordResetError::InvalidEmail)?;
-        let password_reset = self
-            .db
-            .get_password_reset(email.to_string())
-            .await
-            .map_err(|_| PasswordResetError::InvalidCode)?;
+        let password_reset = user
+            .id
+            .as_rowid()
+            .and_then(|id| Ok(self.db.get_password_reset(id)))
+            .map_err(|_| PasswordResetError::InvalidCode)?
+            .await?;
 
         if password_reset.code != code {
             return Err(PasswordResetError::InvalidCode);
