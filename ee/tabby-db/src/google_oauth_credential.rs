@@ -1,5 +1,4 @@
-use anyhow::anyhow;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_scalar, FromRow};
 
