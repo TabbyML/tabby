@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_scalar, FromRow};
@@ -25,14 +26,13 @@ impl DbConn {
         let mut transaction = self.pool.begin().await?;
         let client_secret = match client_secret {
             Some(secret) => secret.to_string(),
-            None => {
-                query_scalar!(
-                    "SELECT client_secret FROM google_oauth_credential WHERE id = ?",
-                    GOOGLE_OAUTH_CREDENTIAL_ROW_ID
-                )
-                .fetch_one(&mut *transaction)
-                .await?
-            }
+            None => query_scalar!(
+                "SELECT client_secret FROM google_oauth_credential WHERE id = ?",
+                GOOGLE_OAUTH_CREDENTIAL_ROW_ID
+            )
+            .fetch_one(&mut *transaction)
+            .await
+            .map_err(|_| anyhow!("Must specify client secret when updating the OAuth credential for the first time"))?,
         };
         query!(
             r#"INSERT INTO google_oauth_credential (id, client_id, client_secret)
@@ -93,6 +93,13 @@ mod tests {
             .await
             .unwrap();
         conn.read_google_oauth_credential().await.unwrap().unwrap();
+
+        conn.update_google_oauth_credential("client_id", None)
+            .await
+            .unwrap();
+        let res = conn.read_google_oauth_credential().await.unwrap().unwrap();
+        assert_eq!(res.client_id, "client_id");
+        assert_eq!(res.client_secret, "client_secret");
 
         // test update
         conn.update_google_oauth_credential("client_id_2", Some("client_secret_2"))

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_scalar, FromRow};
 
@@ -31,7 +31,7 @@ impl DbConn {
                     GITHUB_OAUTH_CREDENTIAL_ROW_ID
                 )
                 .fetch_one(&mut *transaction)
-                .await?
+                .await.map_err(|_| anyhow!("Must specify client secret when updating the OAuth credential for the first time"))?
             }
         };
         query!(
@@ -85,6 +85,13 @@ mod tests {
 
         // test update
         conn.update_github_oauth_credential("client_id", Some("client_secret_2"))
+            .await
+            .unwrap();
+        let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
+        assert_eq!(res.client_id, "client_id");
+        assert_eq!(res.client_secret, "client_secret_2");
+
+        conn.update_github_oauth_credential("client_side", None)
             .await
             .unwrap();
         let res = conn.read_github_oauth_credential().await.unwrap().unwrap();
