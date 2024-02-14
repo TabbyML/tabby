@@ -7,19 +7,19 @@ use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct PasswordResetDAO {
-    pub email: String,
+    pub id: i32,
     pub code: String,
     pub created_at: DateTime<Utc>,
 }
 
 impl DbConn {
-    pub async fn create_password_reset(&self, email: String) -> Result<String> {
+    pub async fn create_password_reset(&self, id: i32) -> Result<String> {
         let code = Uuid::new_v4().to_string();
         let time = Utc::now();
         query!(
-            "INSERT INTO password_reset (email, code, created_at) VALUES ($1, $2, $3)
-            ON CONFLICT(email) DO UPDATE SET email = $1, code= $2, created_at = $3;",
-            email,
+            "INSERT INTO password_reset (id, code, created_at) VALUES ($1, $2, $3)
+            ON CONFLICT(id) DO UPDATE SET code= $2, created_at = $3;",
+            id,
             code,
             time
         )
@@ -28,17 +28,17 @@ impl DbConn {
         Ok(code)
     }
 
-    pub async fn delete_password_reset(&self, email: String) -> Result<()> {
-        query!("DELETE FROM password_reset WHERE email = ?", email)
+    pub async fn delete_password_reset(&self, id: String) -> Result<()> {
+        query!("DELETE FROM password_reset WHERE id = ?", id)
             .execute(&self.pool)
             .await?;
         Ok(())
     }
 
-    pub async fn get_password_reset(&self, email: String) -> Result<PasswordResetDAO> {
+    pub async fn get_password_reset(&self, id: i32) -> Result<PasswordResetDAO> {
         let password_reset =
-            sqlx::query_as("SELECT email, code, created_at FROM password_reset WHERE email = ?;")
-                .bind(email)
+            sqlx::query_as("SELECT id, code, created_at FROM password_reset WHERE id = ?;")
+                .bind(id)
                 .fetch_one(&self.pool)
                 .await?;
         Ok(password_reset)
