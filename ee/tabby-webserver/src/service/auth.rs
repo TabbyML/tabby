@@ -337,7 +337,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn delete_expired_token(&self) -> Result<()> {
-        self.delete_expired_token().await?;
+        self.db.delete_expired_token().await?;
+        Ok(())
+    }
+
+    async fn delete_expired_password_reset(&self) -> Result<()> {
+        self.db.delete_expired_password_reset().await?;
         Ok(())
     }
 
