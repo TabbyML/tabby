@@ -237,7 +237,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         password: &str,
     ) -> Result<(), PasswordResetError> {
         let password_encrypted =
-            password_hash(&password).map_err(|_| PasswordResetError::Unknown)?;
+            password_hash(password).map_err(|_| PasswordResetError::Unknown)?;
         let user = self
             .get_user_by_email(email)
             .await
