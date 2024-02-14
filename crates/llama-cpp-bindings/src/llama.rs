@@ -126,6 +126,7 @@ impl LlamaService {
         let ret = *self.next_request_id.read().await;
 
         // 1048576 (2^20) should be large enough to avoid any collision.
+        // request_id must be unique at time of processing and shouldn't overflow, tabby is unlikely to handle 2^20 requests at once
         *self.next_request_id.write().await = (ret + 1) % 1048576;
         ret
     }
