@@ -7,6 +7,7 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
+use chrono::{Duration, Utc};
 use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
 use tracing::warn;
@@ -19,9 +20,9 @@ use crate::{
         auth::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
-            RefreshTokenError, RefreshTokenResponse, RegisterError, RegisterResponse,
-            RequestInvitationInput, TokenAuthError, TokenAuthResponse, UpdateOAuthCredentialInput,
-            User, VerifyTokenResponse,
+            PasswordResetError, RefreshTokenError, RefreshTokenResponse, RegisterError,
+            RegisterResponse, RequestInvitationInput, TokenAuthError, TokenAuthResponse,
+            UpdateOAuthCredentialInput, User, VerifyTokenResponse,
         },
         email::{EmailService, SendEmailError},
         setting::SettingService,
@@ -216,6 +217,55 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let resp = RegisterResponse::new(access_token, refresh_token);
         Ok(resp)
+    }
+
+    async fn request_password_reset(&self, email: &str) -> Result<()> {
+        self.get_user_by_email(email)
+            .await
+            .map_err(|_| anyhow!("The email specified is not a registered user"))?;
+        let code = self.db.create_password_reset(email.to_string()).await?;
+        self.mail
+            .send_password_reset_email(email.to_string(), code)
+            .await?;
+        Ok(())
+    }
+
+    async fn password_reset(
+        &self,
+        email: &str,
+        code: &str,
+        password: &str,
+    ) -> Result<(), PasswordResetError> {
+        let password_encrypted =
+            password_hash(&password).map_err(|_| PasswordResetError::Unknown)?;
+        let user = self
+            .get_user_by_email(email)
+            .await
+            .map_err(|_| PasswordResetError::InvalidEmail)?;
+        let password_reset = self
+            .db
+            .get_password_reset(email.to_string())
+            .await
+            .map_err(|_| PasswordResetError::InvalidCode)?;
+
+        if password_reset.code != code {
+            return Err(PasswordResetError::InvalidCode);
+        }
+
+        if Utc::now().signed_duration_since(password_reset.created_at) > Duration::minutes(15) {
+            return Err(PasswordResetError::ExpiredCode);
+        }
+
+        self.db.delete_password_reset(email.to_string()).await?;
+        self.db
+            .update_user_password(
+                user.id
+                    .as_rowid()
+                    .expect("ID comes from database, so must be valid"),
+                password_encrypted,
+            )
+            .await?;
+        Ok(())
     }
 
     async fn token_auth(

@@ -14,6 +14,7 @@ mod github_oauth_credential;
 mod google_oauth_credential;
 mod invitations;
 mod job_runs;
+mod password_reset;
 mod path;
 mod refresh_tokens;
 mod repositories;
