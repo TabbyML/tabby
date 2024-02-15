@@ -43,7 +43,7 @@ export function JobRuns() {
         <>
           <JobsTable jobs={displayJobs} />
           {hasNextPage && (
-            <div className="text-center mt-8">
+            <div className="mt-8 text-center">
               <Button disabled={fetching} onClick={fetchNextPage}>
                 {fetching && (
                   <IconSpinner className="mr-2 h-4 w-4 animate-spin" />

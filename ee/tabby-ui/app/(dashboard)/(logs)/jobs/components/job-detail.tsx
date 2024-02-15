@@ -76,7 +76,7 @@ function StdoutView({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('rounded-lg border w-full p-2 mt-2', className)}
+      className={cn('mt-2 w-full rounded-lg border p-2', className)}
       {...rest}
     >
       <pre className="whitespace-pre">
