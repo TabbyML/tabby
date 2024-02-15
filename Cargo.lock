@@ -3890,6 +3890,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "sql_query_builder"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b371e496dc275fae413896ef31160eaeb949df66a942245cf3f37fb741389611"
+
+[[package]]
 name = "sqlformat"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4330,6 +4336,7 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "chrono",
+ "sql_query_builder",
  "sqlx",
  "tabby-common",
  "tokio",

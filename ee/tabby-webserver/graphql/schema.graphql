@@ -1,3 +1,7 @@
+input RequestInvitationInput {
+  email: String!
+}
+
 type TokenAuthResponse {
   accessToken: String!
   refreshToken: String!
@@ -10,13 +14,16 @@ enum WorkerKind {
 
 type Mutation {
   resetRegistrationToken: String!
+  requestInvitationEmail(input: RequestInvitationInput!): Invitation!
   resetUserAuthToken: Boolean!
   updateUserActive(id: ID!, active: Boolean!): Boolean!
+  updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
   register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): VerifyTokenResponse!
   refreshToken(refreshToken: String!): RefreshTokenResponse!
   createInvitation(email: String!): ID!
+  sendTestEmail(to: String!): Boolean!
   createRepository(name: String!, gitUrl: String!): ID!
   deleteRepository(id: ID!): Boolean!
   updateRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
@@ -66,7 +73,7 @@ type Query {
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
-  jobRuns(after: String, before: String, first: Int, last: Int): JobRunConnection!
+  jobRuns(ids: [ID!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   emailSetting: EmailSetting
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
@@ -164,7 +171,7 @@ type Invitation {
   id: ID!
   email: String!
   code: String!
-  createdAt: String!
+  createdAt: DateTimeUtc!
 }
 
 type EmailSetting {

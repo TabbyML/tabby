@@ -59,11 +59,19 @@ impl DbConn {
 
     pub async fn list_job_runs_with_filter(
         &self,
+        ids: Option<Vec<i32>>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<JobRunDAO>> {
-        let query = Self::make_pagination_query(
+        let condition = if let Some(ids) = ids {
+            let ids: Vec<String> = ids.iter().map(i32::to_string).collect();
+            let ids = ids.join(", ");
+            Some(format!("id in ({ids})"))
+        } else {
+            None
+        };
+        let query = Self::make_pagination_query_with_condition(
             "job_runs",
             &[
                 "id",
@@ -78,6 +86,7 @@ impl DbConn {
             limit,
             skip_id,
             backwards,
+            condition,
         );
 
         let runs = sqlx::query_as(&query).fetch_all(&self.pool).await?;

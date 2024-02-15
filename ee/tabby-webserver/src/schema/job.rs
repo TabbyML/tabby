@@ -46,6 +46,7 @@ pub trait JobService: Send + Sync {
 
     async fn list_job_runs(
         &self,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
