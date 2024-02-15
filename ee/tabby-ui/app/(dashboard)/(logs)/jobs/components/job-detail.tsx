@@ -7,6 +7,7 @@ import { useQuery } from 'urql'
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { ListJobRunsQueryVariables } from '@/lib/gql/generates/graphql'
 import { listJobRuns } from '@/lib/tabby/query'
+import { cn } from '@/lib/utils'
 import { IconAlertTriangle, IconTerminalSquare } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
@@ -47,10 +48,10 @@ export default function JobRunDetail() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="stdout">
-              <StdoutWrapper>{edges?.[0]?.node?.stdout}</StdoutWrapper>
+              <StdoutView>{edges?.[0]?.node?.stdout}</StdoutView>
             </TabsContent>
             <TabsContent value="stderr">
-              <StdoutWrapper>{edges?.[0]?.node?.stderr}</StdoutWrapper>
+              <StdoutView>{edges?.[0]?.node?.stderr}</StdoutView>
             </TabsContent>
           </Tabs>
         </div>
@@ -59,9 +60,16 @@ export default function JobRunDetail() {
   )
 }
 
-function StdoutWrapper({ children }: { children: React.ReactNode }) {
+function StdoutView({
+  children,
+  className,
+  ...rest
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className="rounded-lg border w-full p-2 mt-2">
+    <div
+      className={cn('rounded-lg border w-full p-2 mt-2', className)}
+      {...rest}
+    >
       <pre className="whitespace-pre">
         {children ? children : <div>No Data</div>}
       </pre>

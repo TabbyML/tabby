@@ -3,6 +3,8 @@ import moment from 'moment'
 
 import { ListJobRunsQuery } from '@/lib/gql/generates/graphql'
 import { Badge } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
+import { IconFileSearch } from '@/components/ui/icons'
 import {
   Table,
   TableBody,
@@ -37,7 +39,10 @@ export const JobsTable: React.FC<JobsTableProps> = ({
       <TableBody>
         {!jobs?.length ? (
           <TableRow>
-            <TableCell colSpan={5} className="h-[100px] text-center">
+            <TableCell
+              colSpan={showOperation ? 5 : 4}
+              className="h-[100px] text-center"
+            >
               No Data
             </TableCell>
           </TableRow>
@@ -57,7 +62,12 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                   <TableCell>{x.node.exitCode}</TableCell>
                   {showOperation && (
                     <TableCell className="text-right">
-                      <Link href={`/jobs/detail?id=${x.node.id}`}>Detail</Link>
+                      <Link
+                        href={`/jobs/detail?id=${x.node.id}`}
+                        className={buttonVariants({ variant: 'ghost' })}
+                      >
+                        <IconFileSearch />
+                      </Link>
                     </TableCell>
                   )}
                 </TableRow>

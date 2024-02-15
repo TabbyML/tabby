@@ -2,7 +2,7 @@ import { SubHeader } from '@/components/sub-header'
 
 import { JobRuns } from './job-list'
 
-export default function Jobs() {
+export default function JobRunsPage() {
   return (
     <>
       <SubHeader>Job runs</SubHeader>

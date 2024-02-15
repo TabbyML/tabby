@@ -1014,6 +1014,7 @@ function IconTerminalSquare({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn('h-4 w-4', className)}
@@ -1036,6 +1037,7 @@ function IconAlertTriangle({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn('h-4 w-4', className)}
@@ -1044,6 +1046,26 @@ function IconAlertTriangle({
       <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
       <path d="M12 9v4" />
       <path d="M12 17h.01" />
+    </svg>
+  )
+}
+
+function IconFileSearch({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+      <circle cx="11.5" cy="14.5" r="2.5" />
+      <path d="M13.3 16.3 15 18" />
     </svg>
   )
 }
@@ -1102,5 +1124,6 @@ export {
   IconLightingBolt,
   IconScrollText,
   IconTerminalSquare,
-  IconAlertTriangle
+  IconAlertTriangle,
+  IconFileSearch
 }
