@@ -67,7 +67,7 @@ impl DbConn {
         let condition = if let Some(ids) = ids {
             let ids: Vec<String> = ids.iter().map(i32::to_string).collect();
             let ids = ids.join(", ");
-            Some(format!("id in {ids}"))
+            Some(format!("id in ({ids})"))
         } else {
             None
         };

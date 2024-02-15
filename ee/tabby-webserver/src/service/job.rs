@@ -72,5 +72,11 @@ mod tests {
         assert_eq!(job.stdout, "stdout");
         assert_eq!(job.stderr, "stderr");
         assert_eq!(job.exit_code, Some(0));
+
+        let job = svc
+            .list_job_runs(Some(vec![id]), None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(job.len(), 1)
     }
 }
