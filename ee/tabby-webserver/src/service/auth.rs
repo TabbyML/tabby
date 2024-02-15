@@ -240,21 +240,16 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
-    async fn password_reset(
-        &self,
-        email: &str,
-        code: &str,
-        password: &str,
-    ) -> Result<(), PasswordResetError> {
+    async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError> {
         let password_encrypted =
             password_hash(password).map_err(|_| PasswordResetError::Unknown)?;
-        let user = self
-            .get_user_by_email(email)
-            .await
-            .map_err(|_| PasswordResetError::InvalidEmail)?;
-        let id = user.id.as_rowid().map_err(anyhow::Error::from)?;
-        let Ok(Some(password_reset)) = self.db.get_password_reset_by_user_id(id).await else {
+
+        let Ok(Some(password_reset)) = self.db.get_password_reset_by_code(code).await else {
             return Err(PasswordResetError::InvalidCode);
+        };
+
+        let Ok(Some(user)) = self.db.get_user(password_reset.user_id).await else {
+            return Err(PasswordResetError::InvalidEmail);
         };
 
         if password_reset.code != code {
@@ -265,14 +260,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(PasswordResetError::ExpiredCode);
         }
 
-        self.db.delete_password_reset_by_user_id(id).await?;
+        self.db.delete_password_reset_by_user_id(user.id).await?;
         self.db
-            .update_user_password(
-                user.id
-                    .as_rowid()
-                    .expect("ID comes from database, so must be valid"),
-                password_encrypted,
-            )
+            .update_user_password(user.id, password_encrypted)
             .await?;
         Ok(())
     }

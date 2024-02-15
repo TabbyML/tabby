@@ -321,8 +321,6 @@ pub struct RequestPasswordResetEmailInput {
 
 #[derive(Validate, GraphQLInputObject)]
 pub struct PasswordResetInput {
-    #[validate(email(code = "email"))]
-    pub email: String,
     pub code: String,
     #[validate(length(
         min = 8,
@@ -443,12 +441,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
-    async fn password_reset(
-        &self,
-        email: &str,
-        code: &str,
-        password: &str,
-    ) -> Result<(), PasswordResetError>;
+    async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError>;
     async fn request_password_reset_email(&self, email: String) -> Result<()>;
 
     async fn list_users(

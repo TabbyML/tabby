@@ -35,6 +35,15 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn get_password_reset_by_code(&self, code: &str) -> Result<Option<PasswordResetDAO>> {
+        let password_reset =
+            sqlx::query_as("SELECT user_id, code, created_at FROM password_reset WHERE code = ?;")
+                .bind(code)
+                .fetch_optional(&self.pool)
+                .await?;
+        Ok(password_reset)
+    }
+
     pub async fn get_password_reset_by_user_id(
         &self,
         user_id: i32,
