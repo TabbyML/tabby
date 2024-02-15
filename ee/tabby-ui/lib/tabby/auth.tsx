@@ -280,7 +280,13 @@ function useSession(): Session {
   return session
 }
 
-const redirectWhitelist = ['/auth/signin', '/auth/signup']
+export const getIsAdminInitialized = graphql(/* GraphQL */ `
+  query GetIsAdminInitialized {
+    isAdminInitialized
+  }
+`)
+
+const redirectWhitelist = ['/auth/signin', '/auth/signup', '/passwordReset']
 
 function useAuthenticatedSession() {
   const isAdminInitialized = useIsAdminInitialized()

@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
+import { useQuery } from 'urql'
 import * as z from 'zod'
 
 import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
@@ -23,12 +24,20 @@ import {
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
+import { ResetPasswordDialog } from './reset-password-dialog'
+
 export const tokenAuth = graphql(/* GraphQL */ `
   mutation tokenAuth($email: String!, $password: String!) {
     tokenAuth(email: $email, password: $password) {
       accessToken
       refreshToken
     }
+  }
+`)
+
+const isEmailConfigured = graphql(/* GraphQL */ `
+  query GetIsEmailConfigured {
+    isEmailConfigured
   }
 `)
 
@@ -46,6 +55,8 @@ export default function UserSignInForm({
   invitationCode,
   ...props
 }: UserAuthFormProps) {
+  const [{ data }] = useQuery({ query: isEmailConfigured })
+  const showForgotPasswordBtn = !!data?.isEmailConfigured
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema)
   })
@@ -68,7 +79,7 @@ export default function UserSignInForm({
   })
 
   return (
-    <div className={cn('grid gap-6', className)} {...props}>
+    <div className={cn('grid', className)} {...props}>
       <Form {...form}>
         <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
@@ -113,6 +124,13 @@ export default function UserSignInForm({
         </form>
         <FormMessage className="text-center" />
       </Form>
+      {showForgotPasswordBtn && (
+        <ResetPasswordDialog>
+          <div className="cursor-pointer p-1 text-right text-sm text-primary hover:underline">
+            Forgot password?
+          </div>
+        </ResetPasswordDialog>
+      )}
     </div>
   )
 }
