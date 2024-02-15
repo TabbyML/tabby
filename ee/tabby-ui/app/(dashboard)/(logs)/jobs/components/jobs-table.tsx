@@ -57,7 +57,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                   <TableCell>{x.node.exitCode}</TableCell>
                   {showOperation && (
                     <TableCell className="text-right">
-                      <Link href="/jobs/detail">Detail</Link>
+                      <Link href={`/jobs/detail?id=${x.node.id}`}>Detail</Link>
                     </TableCell>
                   )}
                 </TableRow>
