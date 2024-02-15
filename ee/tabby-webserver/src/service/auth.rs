@@ -233,7 +233,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
                 ));
             }
         }
-        let code = self.db.create_password_reset_for_user_id(id).await?;
+        let code = self.db.create_password_reset(id).await?;
         self.mail
             .send_password_reset_email(user.email, code)
             .await?;
