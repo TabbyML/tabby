@@ -146,12 +146,8 @@ pub enum TokenAuthError {
 pub enum PasswordResetError {
     #[error("Invalid code")]
     InvalidCode,
-    #[error("Code is expired")]
-    ExpiredCode,
-    #[error("User does not exist")]
-    InvalidEmail,
     #[error("Invalid password")]
-    InvalidPassword(#[from] ValidationErrors),
+    InvalidInput(#[from] ValidationErrors),
     #[error(transparent)]
     Other(#[from] anyhow::Error),
     #[error("Unknown error")]

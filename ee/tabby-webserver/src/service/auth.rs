@@ -249,7 +249,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         };
 
         let Ok(Some(user)) = self.db.get_user(password_reset.user_id).await else {
-            return Err(PasswordResetError::InvalidEmail);
+            return Err(PasswordResetError::InvalidCode);
         };
 
         if password_reset.code != code {
@@ -257,7 +257,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
 
         if Utc::now().signed_duration_since(password_reset.created_at) > Duration::minutes(15) {
-            return Err(PasswordResetError::ExpiredCode);
+            return Err(PasswordResetError::InvalidCode);
         }
 
         self.db.delete_password_reset_by_user_id(user.id).await?;
@@ -890,6 +890,24 @@ mod tests {
             .update_user_role(&admin_id.as_id(), false)
             .await
             .is_err());
+    }
+
+    #[tokio::test]
+    async fn test_password_reset() {
+        let service = test_authentication_service().await;
+        let user = service
+            .db
+            .create_user("user@example.com".into(), "pass".into(), true)
+            .await
+            .unwrap();
+
+        let code = service.db.create_password_reset(user).await.unwrap();
+
+        assert!(service.password_reset("", "newpass").await.is_err());
+        assert!(service.password_reset(&code, "newpass").await.is_ok());
+
+        let user = service.db.get_user(user).await.unwrap().unwrap();
+        assert_ne!(user.password_encrypted, "pass");
     }
 
     #[tokio::test]
