@@ -13,7 +13,7 @@ pub struct PasswordResetDAO {
 }
 
 impl DbConn {
-    pub async fn create_password_reset_for_user_id(&self, user_id: i32) -> Result<String> {
+    pub async fn create_password_reset(&self, user_id: i32) -> Result<String> {
         let code = Uuid::new_v4().to_string();
         let time = Utc::now();
         query!(
