@@ -1,11 +1,10 @@
 'use client'
 
+import { clearTimeout } from 'timers'
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useQuery } from 'urql'
 
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { ListJobRunsQueryVariables } from '@/lib/gql/generates/graphql'
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { IconAlertTriangle, IconTerminalSquare } from '@/components/ui/icons'
@@ -14,20 +13,30 @@ import { ListSkeleton } from '@/components/skeleton'
 
 import { JobsTable } from './jobs-table'
 
-const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function JobRunDetail() {
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
-  const [variables, setVariables] = React.useState<ListJobRunsQueryVariables>({
-    last: PAGE_SIZE
-  })
-  const [{ data, error, fetching }] = useQuery({
+  const [{ data, error, fetching }, reexecuteQuery] = useQuery({
     query: listJobRuns,
-    variables,
+    variables: { ids: [id as string] },
     pause: !id
   })
 
-  const edges = data?.jobRuns?.edges
+  const edges = data?.jobRuns?.edges?.slice(0, 1)
+  const currentNode = data?.jobRuns?.edges?.[0]?.node
+
+  React.useEffect(() => {
+    let timer: number
+    if (currentNode?.createdAt && !currentNode?.finishedAt) {
+      timer = window.setTimeout(() => {
+        reexecuteQuery()
+      }, 5000)
+    }
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [currentNode])
 
   return (
     <div>
