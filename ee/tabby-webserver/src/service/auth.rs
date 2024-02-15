@@ -11,6 +11,7 @@ use chrono::{Duration, Utc};
 use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
 use tracing::warn;
+use uuid::Uuid;
 use validator::{Validate, ValidationError};
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
@@ -219,10 +220,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(resp)
     }
 
-    async fn request_password_reset_email(&self, email: String) -> Result<()> {
+    async fn request_password_reset_email(&self, email: String) -> Result<String> {
         let user = self.get_user_by_email(&email).await.ok();
 
-        let Some(user) = user else { return Ok(()) };
+        let Some(user) = user else {
+            return Ok(Uuid::new_v4().to_string());
+        };
 
         let id = user.id.as_rowid()?;
         let existing = self.db.get_password_reset_by_user_id(id).await?;
@@ -235,9 +238,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
         let code = self.db.create_password_reset(id).await?;
         self.mail
-            .send_password_reset_email(user.email, code)
+            .send_password_reset_email(user.email, code.clone())
             .await?;
-        Ok(())
+        Ok(code)
     }
 
     async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError> {
@@ -901,13 +904,28 @@ mod tests {
             .await
             .unwrap();
 
-        let code = service.db.create_password_reset(user).await.unwrap();
+        let code = service
+            .request_password_reset_email("user@example.com".into())
+            .await
+            .unwrap();
 
         assert!(service.password_reset("", "newpass").await.is_err());
         assert!(service.password_reset(&code, "newpass").await.is_ok());
 
         let user = service.db.get_user(user).await.unwrap().unwrap();
         assert_ne!(user.password_encrypted, "pass");
+
+        let code = service
+            .request_password_reset_email("user@example.com".into())
+            .await
+            .unwrap();
+
+        service.db.mark_password_reset_expired(&code).await.unwrap();
+
+        assert!(service
+            .password_reset(&code, "newpass2".into())
+            .await
+            .is_err());
     }
 
     #[tokio::test]

@@ -447,7 +447,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
     async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError>;
-    async fn request_password_reset_email(&self, email: String) -> Result<()>;
+    async fn request_password_reset_email(&self, email: String) -> Result<String>;
 
     async fn list_users(
         &self,

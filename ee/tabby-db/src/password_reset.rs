@@ -57,6 +57,18 @@ impl DbConn {
         Ok(password_reset)
     }
 
+    pub async fn mark_password_reset_expired(&self, code: &str) -> Result<()> {
+        let timestamp = Utc::now() - Duration::hours(10);
+        query!(
+            "UPDATE password_reset SET created_at = ? WHERE code = ?;",
+            timestamp,
+            code
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     pub async fn delete_expired_password_resets(&self) -> Result<()> {
         let time = Utc::now() - Duration::hours(1);
         query!("DELETE FROM password_reset WHERE created_at < ?", time)
