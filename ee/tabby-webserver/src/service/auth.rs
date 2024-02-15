@@ -941,6 +941,7 @@ mod tests {
 
         assert!(service.password_reset(&code, "newpass").await.is_err());
 
+        service.db.mark_password_reset_expired(&code).await.unwrap();
         service.delete_expired_password_resets().await.unwrap();
         assert!(service
             .db
