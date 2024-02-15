@@ -920,10 +920,7 @@ mod tests {
 
         service.db.mark_password_reset_expired(&code).await.unwrap();
 
-        assert!(service
-            .password_reset(&code, "newpass2")
-            .await
-            .is_err());
+        assert!(service.password_reset(&code, "newpass2").await.is_err());
 
         let user_id_2 = service
             .db
