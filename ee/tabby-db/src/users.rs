@@ -191,6 +191,17 @@ impl DbConn {
             Ok(())
         }
     }
+
+    pub async fn update_user_password(&self, id: i32, password_encrypted: String) -> Result<()> {
+        query!(
+            "UPDATE users SET password_encrypted = ? WHERE id = ?",
+            password_encrypted,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
 }
 
 fn generate_auth_token() -> String {
