@@ -265,7 +265,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(PasswordResetError::ExpiredCode);
         }
 
-        self.db.delete_password_reset(email.to_string()).await?;
+        self.db.delete_password_reset(id).await?;
         self.db
             .update_user_password(
                 user.id
@@ -349,7 +349,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn delete_expired_password_reset(&self) -> Result<()> {
-        self.db.delete_expired_password_reset().await?;
+        self.db.delete_expired_password_resets().await?;
         Ok(())
     }
 
