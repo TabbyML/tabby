@@ -189,6 +189,7 @@ impl Query {
 
     async fn job_runs(
         ctx: &Context,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -204,7 +205,7 @@ impl Query {
                 Ok(ctx
                     .locator
                     .job()
-                    .list_job_runs(after, before, first, last)
+                    .list_job_runs(ids, after, before, first, last)
                     .await?)
             },
         )

@@ -21,6 +21,7 @@ mod server_setting;
 mod users;
 
 use anyhow::Result;
+use sql_query_builder as sql;
 use sqlx::sqlite::SqliteConnectOptions;
 
 pub trait DbEnum: Sized {
@@ -92,6 +93,44 @@ impl DbConn {
         Ok(())
     }
 
+    fn make_pagination_query_with_condition(
+        table_name: &str,
+        field_names: &[&str],
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+        condition: Option<String>,
+    ) -> String {
+        let mut source = sql::Select::new().select("*").from(table_name);
+        let mut select = sql::Select::new()
+            .select(&field_names.join(", "))
+            .order_by("id ASC");
+
+        if backwards {
+            source = source.order_by("id DESC");
+            if let Some(skip_id) = skip_id {
+                source = source.where_and(&format!("id < {skip_id}"));
+            }
+            if let Some(limit) = limit {
+                source = source.limit(&limit.to_string());
+            }
+        } else {
+            if let Some(skip_id) = skip_id {
+                select = select.where_and(&format!("id > {skip_id}"));
+            }
+            if let Some(limit) = limit {
+                select = select.limit(&limit.to_string());
+            }
+        }
+
+        select = select.from(&format!("({source})"));
+        if let Some(condition) = condition {
+            select = select.where_and(&condition)
+        }
+
+        select.as_string()
+    }
+
     fn make_pagination_query(
         table_name: &str,
         field_names: &[&str],
@@ -99,31 +138,14 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> String {
-        let mut source = String::new();
-        let mut clause = String::new();
-        if backwards {
-            source += &format!("SELECT * FROM {}", table_name);
-            if let Some(skip_id) = skip_id {
-                source += &format!(" WHERE id < {}", skip_id);
-            }
-            source += " ORDER BY id DESC";
-            if let Some(limit) = limit {
-                source += &format!(" LIMIT {}", limit);
-            }
-            clause += " ORDER BY id ASC";
-        } else {
-            source += table_name;
-            if let Some(skip_id) = skip_id {
-                clause += &format!(" WHERE id > {}", skip_id);
-            }
-            clause += " ORDER BY id ASC";
-            if let Some(limit) = limit {
-                clause += &format!(" LIMIT {}", limit);
-            }
-        }
-        let fields = field_names.join(", ");
-
-        format!(r#"SELECT {} FROM ({}) {}"#, fields, source, clause)
+        Self::make_pagination_query_with_condition(
+            table_name,
+            field_names,
+            limit,
+            skip_id,
+            backwards,
+            None,
+        )
     }
 }
 
