@@ -154,6 +154,15 @@ pub enum PasswordResetError {
     Unknown,
 }
 
+impl<S: ScalarValue> IntoFieldError<S> for PasswordResetError {
+    fn into_field_error(self) -> FieldError<S> {
+        match self {
+            Self::InvalidInput(errors) => from_validation_errors(errors),
+            _ => self.into(),
+        }
+    }
+}
+
 #[derive(Default, Serialize)]
 pub struct OAuthResponse {
     pub access_token: String,
