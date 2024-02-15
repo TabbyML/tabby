@@ -285,7 +285,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn delete_expired_token(&self) -> Result<()> {
-        self.delete_expired_token().await?;
+        self.db.delete_expired_token().await?;
         Ok(())
     }
 
