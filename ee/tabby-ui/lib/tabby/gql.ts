@@ -91,18 +91,24 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
 
 function useIsQueryInitialized({
   data,
-  error
+  error,
+  stale
 }: {
   data?: any
   error?: CombinedError
+  stale?: boolean
 }): [boolean, React.Dispatch<React.SetStateAction<boolean>>] {
-  // todo urql do cache data, considering passing default `initialized` with data & stale
-  const [initialized, setInitialized] = useState(false)
+  const isDataExist = (data?: any, error?: CombinedError) => {
+    return !isNil(data) || !isNil(error)
+  }
+  const [initialized, setInitialized] = useState(
+    isDataExist(data, error) && !!stale
+  )
 
   useEffect(() => {
     if (initialized) return
 
-    if (!isNil(data) || !isNil(error)) {
+    if (isDataExist(data, error)) {
       setInitialized(true)
     }
   }, [data, error])

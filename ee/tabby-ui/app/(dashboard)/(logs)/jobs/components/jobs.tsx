@@ -1,12 +1,12 @@
 import { SubHeader } from '@/components/sub-header'
 
-import { JobRunsTable } from './jobs-table'
+import { JobRuns } from './job-list'
 
 export default function Jobs() {
   return (
     <>
       <SubHeader>Job runs</SubHeader>
-      <JobRunsTable />
+      <JobRuns />
     </>
   )
 }

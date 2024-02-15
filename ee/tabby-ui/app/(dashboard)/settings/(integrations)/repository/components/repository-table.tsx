@@ -40,11 +40,11 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function RepositoryTable() {
   const client = useClient()
-  const [{ data, error, fetching }] = useQuery({
+  const [{ data, error, fetching, stale }] = useQuery({
     query: listRepositories,
     variables: { first: PAGE_SIZE }
   })
-  const [initialized] = useIsQueryInitialized({ data, error })
+  const [initialized] = useIsQueryInitialized({ data, error, stale })
 
   const [currentPage, setCurrentPage] = React.useState(1)
   const edges = data?.repositories?.edges
