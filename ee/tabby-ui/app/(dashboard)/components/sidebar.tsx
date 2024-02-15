@@ -20,7 +20,8 @@ import {
   IconGear,
   IconHome,
   IconLightingBolt,
-  IconNetwork
+  IconNetwork,
+  IconScrollText
 } from '@/components/ui/icons'
 
 export interface SidebarProps {
@@ -90,6 +91,16 @@ export default function Sidebar({ children, className }: SidebarProps) {
                     <SidebarButton href="/settings/mail">
                       Mail Delivery
                     </SidebarButton>
+                  </SidebarCollapsible>
+                  <SidebarCollapsible
+                    title={
+                      <>
+                        <IconScrollText />
+                        Logs
+                      </>
+                    }
+                  >
+                    <SidebarButton href="/jobs">Job Runs</SidebarButton>
                   </SidebarCollapsible>
                 </>
               )}
