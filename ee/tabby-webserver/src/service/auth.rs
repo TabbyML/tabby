@@ -225,7 +225,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .await
             .map_err(|_| anyhow!("The email specified is not a registered user"))?;
         let id = user.id.as_rowid()?;
-        let existing = self.db.get_password_reset(id).await?;
+        let existing = self.db.get_password_reset_by_user_id(id).await?;
         if let Some(existing) = existing {
             if Utc::now().signed_duration_since(existing.created_at) < Duration::minutes(5) {
                 return Err(anyhow!(
@@ -233,7 +233,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
                 ));
             }
         }
-        let code = self.db.create_password_reset(id).await?;
+        let code = self.db.create_password_reset_for_user_id(id).await?;
         self.mail
             .send_password_reset_email(user.email, code)
             .await?;
@@ -253,7 +253,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .await
             .map_err(|_| PasswordResetError::InvalidEmail)?;
         let id = user.id.as_rowid().map_err(anyhow::Error::from)?;
-        let Ok(Some(password_reset)) = self.db.get_password_reset(id).await else {
+        let Ok(Some(password_reset)) = self.db.get_password_reset_by_user_id(id).await else {
             return Err(PasswordResetError::InvalidCode);
         };
 
@@ -265,7 +265,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(PasswordResetError::ExpiredCode);
         }
 
-        self.db.delete_password_reset(id).await?;
+        self.db.delete_password_reset_by_user_id(id).await?;
         self.db
             .update_user_password(
                 user.id
