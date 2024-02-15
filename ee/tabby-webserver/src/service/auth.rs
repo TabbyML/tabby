@@ -9,7 +9,7 @@ use argon2::{
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
-use tabby_db::{DbConn, InvitationDAO};
+use tabby_db::{DbConn, InvitationDAO, UserDAO};
 use tracing::warn;
 use uuid::Uuid;
 use validator::{Validate, ValidationError};
@@ -223,7 +223,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     async fn request_password_reset_email(&self, email: String) -> Result<String> {
         let user = self.get_user_by_email(&email).await.ok();
 
-        let Some(user) = user else {
+        let Some(user @ User { active: true, .. }) = user else {
             return Ok(Uuid::new_v4().to_string());
         };
 
@@ -237,9 +237,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
             }
         }
         let code = self.db.create_password_reset(id).await?;
-        self.mail
+        let _ = self
+            .mail
             .send_password_reset_email(user.email, code.clone())
-            .await?;
+            .await;
         Ok(code)
     }
 
@@ -251,13 +252,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(PasswordResetError::InvalidCode);
         };
 
-        let Ok(Some(user)) = self.db.get_user(password_reset.user_id).await else {
+        let user_res = self.db.get_user(password_reset.user_id).await;
+        let Ok(Some(user @ UserDAO { active: true, .. })) = user_res else {
             return Err(PasswordResetError::InvalidCode);
         };
-
-        if password_reset.code != code {
-            return Err(PasswordResetError::InvalidCode);
-        }
 
         if Utc::now().signed_duration_since(password_reset.created_at) > Duration::minutes(15) {
             return Err(PasswordResetError::InvalidCode);
@@ -926,6 +924,25 @@ mod tests {
             .password_reset(&code, "newpass2")
             .await
             .is_err());
+
+        let user_id_2 = service
+            .db
+            .create_user("user2@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+
+        let code = service
+            .request_password_reset_email("user2@example.com".into())
+            .await
+            .unwrap();
+
+        service
+            .db
+            .update_user_active(user_id_2, false)
+            .await
+            .unwrap();
+
+        assert!(service.password_reset(&code, "newpass").await.is_err())
     }
 
     #[tokio::test]
