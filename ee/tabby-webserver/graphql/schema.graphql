@@ -15,6 +15,8 @@ enum WorkerKind {
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
+  requestPasswordResetEmail(input: RequestPasswordResetEmailInput!): Boolean!
+  passwordReset(input: PasswordResetInput!): Boolean!
   resetUserAuthToken: Boolean!
   updateUserActive(id: ID!, active: Boolean!): Boolean!
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
@@ -124,6 +126,10 @@ type RepositoryConnection {
   pageInfo: PageInfo!
 }
 
+input RequestPasswordResetEmailInput {
+  email: String!
+}
+
 input EmailSettingInput {
   smtpUsername: String!
   fromAddress: String!
@@ -161,6 +167,12 @@ type OAuthCredential {
   clientSecret: String!
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
+}
+
+input PasswordResetInput {
+  code: String!
+  password1: String!
+  password2: String!
 }
 
 type VerifyTokenResponse {
