@@ -353,6 +353,7 @@ impl Mutation {
     }
 
     async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
+        check_admin(ctx)?;
         ctx.locator
             .email()
             .send_test_email(to)
