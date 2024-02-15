@@ -220,7 +220,9 @@ impl CompletionService {
         if let Some(temperature) = temperature {
             builder.sampling_temperature(temperature);
         }
-        builder.build().unwrap()
+        builder
+            .build()
+            .expect("Failed to create text generation options")
     }
 
     pub async fn generate(

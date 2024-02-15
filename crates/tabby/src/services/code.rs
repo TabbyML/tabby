@@ -131,7 +131,7 @@ impl CodeSearch for CodeSearchImpl {
 fn get_field(doc: &Document, field: Field) -> String {
     doc.get_first(field)
         .and_then(|x| x.as_text())
-        .unwrap()
+        .expect("Missing field")
         .to_owned()
 }
 
