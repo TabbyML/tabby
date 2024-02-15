@@ -40,7 +40,7 @@ pub async fn refresh_token_job(auth: Arc<dyn AuthenticationService>) -> Result<J
 
 pub async fn password_reset_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
     auth_job(auth, |auth| async move {
-        auth.delete_expired_password_reset().await
+        auth.delete_expired_password_resets().await
     })
     .await
 }

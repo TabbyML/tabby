@@ -431,7 +431,7 @@ pub trait AuthenticationService: Send + Sync {
         refresh_token: String,
     ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError>;
     async fn delete_expired_token(&self) -> Result<()>;
-    async fn delete_expired_password_reset(&self) -> Result<()>;
+    async fn delete_expired_password_resets(&self) -> Result<()>;
     async fn verify_access_token(&self, access_token: &str) -> Result<VerifyTokenResponse>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;

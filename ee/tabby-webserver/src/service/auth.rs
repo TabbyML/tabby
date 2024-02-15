@@ -338,7 +338,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
-    async fn delete_expired_password_reset(&self) -> Result<()> {
+    async fn delete_expired_password_resets(&self) -> Result<()> {
         self.db.delete_expired_password_resets().await?;
         Ok(())
     }

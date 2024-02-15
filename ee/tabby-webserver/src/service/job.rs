@@ -29,14 +29,16 @@ impl JobService for DbConn {
 
     async fn list_job_runs(
         &self,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<JobRun>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+        let rowids = ids.map(|ids| ids.into_iter().filter_map(|x| x.as_rowid().ok()).collect());
         Ok(self
-            .list_job_runs_with_filter(limit, skip_id, backwards)
+            .list_job_runs_with_filter(rowids, limit, skip_id, backwards)
             .await?
             .into_iter()
             .map(Into::into)
@@ -61,11 +63,20 @@ mod tests {
             .unwrap();
         svc.complete_job_run(&id, 0).await.unwrap();
 
-        let job = svc.list_job_runs(None, None, None, None).await.unwrap();
+        let job = svc
+            .list_job_runs(None, None, None, None, None)
+            .await
+            .unwrap();
         let job = job.first().unwrap();
         assert_eq!(job.job, "test-job");
         assert_eq!(job.stdout, "stdout");
         assert_eq!(job.stderr, "stderr");
         assert_eq!(job.exit_code, Some(0));
+
+        let job = svc
+            .list_job_runs(Some(vec![id]), None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(job.len(), 1)
     }
 }
