@@ -4,7 +4,28 @@
 
 ### Fixes and improvements
 
-## [v3.24.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.23.0) (2024-01-08)
+## [v4.0.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.0.0) (2024-02-15)
+
+This major version introduces the breaking change while updating to cuda 12.
+
+### Breaking changes
+
+### Python
+
+* Support cuda 12
+
+### New features
+
+* Add feature to_device() in class StorageView in Python to move data between host <-> device
+
+### Fixes and improvements
+
+* Implement Conv1D with im2col and GEMM to improvement in performance
+* Get tokens in the range of the vocab size for LlaMa models
+* Fix loss of performance
+* Update cibuildwheel to 2.16.5
+
+## [v3.24.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.24.0) (2024-01-08)
 
 ### New features
 * Support of new option offset to ignore token score of special tokens
