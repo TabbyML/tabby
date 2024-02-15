@@ -314,7 +314,7 @@ pub struct RequestInvitationInput {
 }
 
 #[derive(Validate, GraphQLInputObject)]
-pub struct RequestPasswordResetInput {
+pub struct RequestPasswordResetEmailInput {
     #[validate(email(code = "email"))]
     pub email: String,
 }
@@ -449,7 +449,7 @@ pub trait AuthenticationService: Send + Sync {
         code: &str,
         password: &str,
     ) -> Result<(), PasswordResetError>;
-    async fn request_password_reset(&self, email: String) -> Result<()>;
+    async fn request_password_reset_email(&self, email: String) -> Result<()>;
 
     async fn list_users(
         &self,

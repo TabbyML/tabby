@@ -26,7 +26,7 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    auth::{PasswordResetInput, RequestPasswordResetInput, UpdateOAuthCredentialInput},
+    auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
     email::{EmailService, EmailSetting, EmailSettingInput},
     repository::RepositoryService,
     setting::{
@@ -291,12 +291,12 @@ impl Mutation {
 
     async fn request_password_reset_email(
         ctx: &Context,
-        input: RequestPasswordResetInput,
+        input: RequestPasswordResetEmailInput,
     ) -> Result<bool> {
         input.validate()?;
         ctx.locator
             .auth()
-            .request_password_reset(input.email)
+            .request_password_reset_email(input.email)
             .await?;
         Ok(true)
     }

@@ -219,17 +219,17 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(resp)
     }
 
-    async fn request_password_reset(&self, email: String) -> Result<()> {
-        let user = self
-            .get_user_by_email(&email)
-            .await
-            .map_err(|_| anyhow!("The email specified is not a registered user"))?;
+    async fn request_password_reset_email(&self, email: String) -> Result<()> {
+        let user = self.get_user_by_email(&email).await.ok();
+
+        let Some(user) = user else { return Ok(()) };
+
         let id = user.id.as_rowid()?;
         let existing = self.db.get_password_reset_by_user_id(id).await?;
         if let Some(existing) = existing {
             if Utc::now().signed_duration_since(existing.created_at) < Duration::minutes(5) {
                 return Err(anyhow!(
-                    "A reset token has already been sent to that user recently"
+                    "A password reset has been requested recently, please try again later"
                 ));
             }
         }
