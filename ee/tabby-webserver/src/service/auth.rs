@@ -939,7 +939,15 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(service.password_reset(&code, "newpass").await.is_err())
+        assert!(service.password_reset(&code, "newpass").await.is_err());
+
+        service.delete_expired_password_resets().await.unwrap();
+        assert!(service
+            .db
+            .get_password_reset_by_code(&code)
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[tokio::test]
