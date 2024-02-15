@@ -121,7 +121,8 @@ const client = new Client({
       resolvers: {
         Query: {
           invitations: relayPagination(),
-          repositories: relayPagination()
+          repositories: relayPagination(),
+          jobRuns: relayPagination()
         }
       },
       updates: {

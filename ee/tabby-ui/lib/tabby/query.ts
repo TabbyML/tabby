@@ -47,3 +47,33 @@ export const listRepositories = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listJobRuns = graphql(/* GraphQL */ `
+  query ListJobRuns(
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    jobRuns(after: $after, before: $before, first: $first, last: $last) {
+      edges {
+        node {
+          id
+          job
+          createdAt
+          finishedAt
+          exitCode
+          stdout
+          stderr
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
