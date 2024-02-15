@@ -305,7 +305,7 @@ impl Mutation {
         input.validate()?;
         ctx.locator
             .auth()
-            .password_reset(&input.email, &input.code, &input.password)
+            .password_reset(&input.email, &input.code, &input.password1)
             .await
             .map_err(anyhow::Error::from)?;
         Ok(true)

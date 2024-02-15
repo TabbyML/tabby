@@ -326,15 +326,31 @@ pub struct PasswordResetInput {
     pub code: String,
     #[validate(length(
         min = 8,
-        code = "password",
+        code = "password1",
         message = "Password must be at least 8 characters"
     ))]
     #[validate(length(
         max = 20,
-        code = "password",
+        code = "password1",
         message = "Password must be at most 20 characters"
     ))]
-    pub password: String,
+    pub password1: String,
+    #[validate(length(
+        min = 8,
+        code = "password2",
+        message = "Password must be at least 8 characters"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "password2",
+        message = "Password must be at most 20 characters"
+    ))]
+    #[validate(must_match(
+        code = "password2",
+        message = "Passwords do not match",
+        other = "password1"
+    ))]
+    pub password2: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
