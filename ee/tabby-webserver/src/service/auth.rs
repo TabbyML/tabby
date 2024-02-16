@@ -9,9 +9,8 @@ use argon2::{
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
-use tabby_db::{DbConn, InvitationDAO, UserDAO};
+use tabby_db::{DbConn, InvitationDAO};
 use tracing::warn;
-use uuid::Uuid;
 use validator::{Validate, ValidationError};
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
@@ -220,11 +219,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(resp)
     }
 
-    async fn request_password_reset_email(&self, email: String) -> Result<String> {
+    async fn request_password_reset_email(&self, email: String) -> Result<()> {
         let user = self.get_user_by_email(&email).await.ok();
 
         let Some(user @ User { active: true, .. }) = user else {
-            return Ok(Uuid::new_v4().to_string());
+            return Ok(());
         };
 
         let id = user.id.as_rowid()?;
@@ -240,29 +239,17 @@ impl AuthenticationService for AuthenticationServiceImpl {
         self.mail
             .send_password_reset_email(user.email, code.clone())
             .await?;
-        Ok(code)
+        Ok(())
     }
 
     async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError> {
         let password_encrypted =
             password_hash(password).map_err(|_| PasswordResetError::Unknown)?;
 
-        let Ok(Some(password_reset)) = self.db.get_password_reset_by_code(code).await else {
-            return Err(PasswordResetError::InvalidCode);
-        };
-
-        let user_res = self.db.get_user(password_reset.user_id).await;
-        let Ok(Some(user @ UserDAO { active: true, .. })) = user_res else {
-            return Err(PasswordResetError::InvalidCode);
-        };
-
-        if Utc::now().signed_duration_since(password_reset.created_at) > Duration::minutes(15) {
-            return Err(PasswordResetError::InvalidCode);
-        }
-
-        self.db.delete_password_reset_by_user_id(user.id).await?;
+        let user_id = self.db.verify_password_reset(code).await?;
+        self.db.delete_password_reset_by_user_id(user_id).await?;
         self.db
-            .update_user_password(user.id, password_encrypted)
+            .update_user_password(user_id, password_encrypted)
             .await?;
         Ok(())
     }
@@ -907,41 +894,75 @@ mod tests {
             .unwrap();
         let _smtp = start_smtp_server().await;
 
-        let user = service
+        // Test first reset, ensure wrong code fails
+        service
             .db
             .create_user("user@example.com".into(), "pass".into(), true)
             .await
             .unwrap();
+        let user = service.get_user_by_email("user@example.com").await.unwrap();
 
-        let code = service
+        service
             .request_password_reset_email("user@example.com".into())
             .await
+            .unwrap();
+        let reset = service
+            .db
+            .get_password_reset_by_user_id(user.id.as_rowid().unwrap())
+            .await
+            .unwrap()
             .unwrap();
 
         assert!(service.password_reset("", "newpass").await.is_err());
-        assert!(service.password_reset(&code, "newpass").await.is_ok());
+        assert!(service.password_reset(&reset.code, "newpass").await.is_ok());
 
-        let user = service.db.get_user(user).await.unwrap().unwrap();
+        // Test second reset, ensure expired code fails
+        let user = service
+            .db
+            .get_user_by_email(&user.email)
+            .await
+            .unwrap()
+            .unwrap();
         assert_ne!(user.password_encrypted, "pass");
 
-        let code = service
+        service
             .request_password_reset_email("user@example.com".into())
             .await
             .unwrap();
+        let reset = service
+            .db
+            .get_password_reset_by_user_id(user.id)
+            .await
+            .unwrap()
+            .unwrap();
 
-        service.db.mark_password_reset_expired(&code).await.unwrap();
+        service
+            .db
+            .mark_password_reset_expired(&reset.code)
+            .await
+            .unwrap();
 
-        assert!(service.password_reset(&code, "newpass2").await.is_err());
+        assert!(service
+            .password_reset(&reset.code, "newpass2")
+            .await
+            .is_err());
 
+        // Test third reset, ensure inactive users cannot reset their password
         let user_id_2 = service
             .db
             .create_user("user2@example.com".into(), "pass".into(), false)
             .await
             .unwrap();
 
-        let code = service
+        service
             .request_password_reset_email("user2@example.com".into())
             .await
+            .unwrap();
+        let reset = service
+            .db
+            .get_password_reset_by_user_id(user_id_2)
+            .await
+            .unwrap()
             .unwrap();
 
         service
@@ -950,13 +971,20 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(service.password_reset(&code, "newpass").await.is_err());
+        assert!(service
+            .password_reset(&reset.code, "newpass")
+            .await
+            .is_err());
 
-        service.db.mark_password_reset_expired(&code).await.unwrap();
+        service
+            .db
+            .mark_password_reset_expired(&reset.code)
+            .await
+            .unwrap();
         service.delete_expired_password_resets().await.unwrap();
         assert!(service
             .db
-            .get_password_reset_by_code(&code)
+            .get_password_reset_by_code(&reset.code)
             .await
             .unwrap()
             .is_none());

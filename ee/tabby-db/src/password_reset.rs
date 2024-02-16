@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
 use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
@@ -57,6 +57,26 @@ impl DbConn {
         Ok(password_reset)
     }
 
+    pub async fn verify_password_reset(&self, code: &str) -> Result<i32> {
+        let password_reset = self
+            .get_password_reset_by_code(code)
+            .await?
+            .ok_or_else(|| anyhow!("Invalid code"))?;
+
+        let user_res = self
+            .get_user(password_reset.user_id)
+            .await?
+            .filter(|user| user.active)
+            .ok_or_else(|| anyhow!("Invalid code"))?;
+
+        if Utc::now().signed_duration_since(password_reset.created_at) > Duration::minutes(15) {
+            Err(anyhow!("Invalid code"))
+        } else {
+            Ok(user_res.id)
+        }
+    }
+
+    #[cfg(any(test, feature = "testutils"))]
     pub async fn mark_password_reset_expired(&self, code: &str) -> Result<()> {
         let timestamp = Utc::now() - Duration::hours(10);
         query!(
