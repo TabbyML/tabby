@@ -42,11 +42,11 @@ export default function JobRunDetail() {
   }, [currentNode])
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex min-h-full flex-col">
       {fetching ? (
         <ListSkeleton />
       ) : (
-        <div className="flex flex-col gap-2 flex-1">
+        <div className="flex flex-1 flex-col gap-2">
           <JobsTable jobs={edges?.slice(0, 1)} shouldRedirect={false} />
           <Tabs defaultValue="stdout">
             <TabsList className="grid w-[400px] grid-cols-2">
@@ -82,7 +82,7 @@ function StdoutView({
   return (
     <div
       className={cn(
-        'mt-2 w-full rounded-lg border bg-gray-50 dark:bg-gray-800 min-h-80 overflow-x-hidden',
+        'min-h-80 mt-2 w-full overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800',
         className
       )}
       {...rest}
