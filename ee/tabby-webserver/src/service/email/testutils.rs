@@ -27,7 +27,7 @@ impl TestEmailServer {
         mails.json().await.unwrap()
     }
 
-    async fn create_test_email_service(&self, db_conn: DbConn) -> impl EmailService {
+    pub async fn create_test_email_service(&self, db_conn: DbConn) -> impl EmailService {
         let service = new_email_service(db_conn).await.unwrap();
         service
             .update_email_setting(default_email_settings())
@@ -36,7 +36,7 @@ impl TestEmailServer {
         service
     }
 
-    pub async fn start(db_conn: DbConn) -> (TestEmailServer, impl EmailService) {
+    pub async fn start() -> TestEmailServer {
         let mut cmd = Command::new("mailtutan");
         cmd.kill_on_drop(true);
 
@@ -44,9 +44,7 @@ impl TestEmailServer {
             .spawn()
             .expect("You need to run `cargo install mailtutan` before running this test");
         tokio::time::sleep(Duration::from_secs(1)).await;
-        let email_server = TestEmailServer { child };
-        let service = email_server.create_test_email_service(db_conn).await;
-        (email_server, service)
+        TestEmailServer { child }
     }
 }
 

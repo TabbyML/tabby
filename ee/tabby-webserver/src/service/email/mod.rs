@@ -289,8 +289,10 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_send_email() {
-        let (mail_server, service) =
-            TestEmailServer::start(DbConn::new_in_memory().await.unwrap()).await;
+        let mail_server = TestEmailServer::start().await;
+        let service = mail_server
+            .create_test_email_service(DbConn::new_in_memory().await.unwrap())
+            .await;
 
         let handle = service
             .send_invitation_email("user@localhost".into(), "12345".into())
@@ -319,8 +321,10 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_send_test_email() {
-        let (mail_server, service) =
-            TestEmailServer::start(DbConn::new_in_memory().await.unwrap()).await;
+        let mail_server = TestEmailServer::start().await;
+        let service = mail_server
+            .create_test_email_service(DbConn::new_in_memory().await.unwrap())
+            .await;
 
         let handle = service
             .send_test_email("user@localhost".into())

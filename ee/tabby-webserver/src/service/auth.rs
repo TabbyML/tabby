@@ -886,7 +886,8 @@ mod tests {
     #[serial]
     async fn test_password_reset() {
         let service = test_authentication_service().await;
-        let (smtp, _email) = TestEmailServer::start(service.db.clone()).await;
+        let smtp = TestEmailServer::start().await;
+        smtp.create_test_email_service(service.db.clone()).await;
 
         // Test first reset, ensure wrong code fails
         service
