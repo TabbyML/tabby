@@ -16,7 +16,7 @@ use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::warn;
 mod templates;
 #[cfg(test)]
-pub mod test_utils;
+pub mod testutils;
 
 use crate::schema::{
     email::{
@@ -260,7 +260,7 @@ fn to_address(email: String) -> Result<Address> {
 mod tests {
     use serial_test::serial;
 
-    use super::{test_utils::TestEmailServer, *};
+    use super::{testutils::TestEmailServer, *};
 
     #[tokio::test]
     async fn test_update_email_with_service() {

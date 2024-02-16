@@ -601,7 +601,7 @@ mod tests {
     use serial_test::serial;
 
     use super::*;
-    use crate::service::email::{new_email_service, test_utils::TestEmailServer};
+    use crate::service::email::{new_email_service, testutils::TestEmailServer};
 
     #[test]
     fn test_password_hash() {
