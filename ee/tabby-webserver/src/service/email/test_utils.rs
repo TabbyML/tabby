@@ -3,9 +3,8 @@ use std::time::Duration;
 use tabby_db::DbConn;
 use tokio::process::{Child, Command};
 
-use crate::schema::email::{AuthMethod, EmailService, EmailSettingInput, Encryption};
-
 use super::new_email_service;
+use crate::schema::email::{AuthMethod, EmailService, EmailSettingInput, Encryption};
 
 pub fn default_email_settings() -> EmailSettingInput {
     EmailSettingInput {

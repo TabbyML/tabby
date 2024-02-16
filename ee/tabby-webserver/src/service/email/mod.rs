@@ -261,9 +261,8 @@ mod tests {
     use serde::Deserialize;
     use serial_test::serial;
 
-    use crate::service::email::test_utils::setup_test_email_service;
-
     use super::*;
+    use crate::service::email::test_utils::setup_test_email_service;
 
     #[tokio::test]
     async fn test_update_email_with_service() {
