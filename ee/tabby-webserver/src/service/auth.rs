@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
+use tokio::task::JoinHandle;
 use tracing::warn;
 use validator::{Validate, ValidationError};
 
@@ -219,11 +220,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(resp)
     }
 
-    async fn request_password_reset_email(&self, email: String) -> Result<()> {
+    async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>> {
         let user = self.get_user_by_email(&email).await.ok();
 
         let Some(user @ User { active: true, .. }) = user else {
-            return Ok(());
+            return Ok(None);
         };
 
         let id = user.id.as_rowid()?;
@@ -236,10 +237,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
             }
         }
         let code = self.db.create_password_reset(id as i64).await?;
-        self.mail
+        let handle = self
+            .mail
             .send_password_reset_email(user.email, code.clone())
             .await?;
-        Ok(())
+        Ok(Some(handle))
     }
 
     async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError> {
@@ -594,15 +596,23 @@ mod tests {
         }
     }
 
+    async fn test_authentication_service_with_mail() -> (AuthenticationServiceImpl, TestEmailServer)
+    {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let smtp = TestEmailServer::start().await;
+        let service = AuthenticationServiceImpl {
+            db: db.clone(),
+            mail: Arc::new(smtp.create_test_email_service(db).await),
+        };
+        (service, smtp)
+    }
+
     use assert_matches::assert_matches;
     use juniper_axum::relay::{self, Connection};
     use serial_test::serial;
 
     use super::*;
-    use crate::service::email::{
-        new_email_service,
-        test_utils::{default_email_settings, start_smtp_server},
-    };
+    use crate::service::email::{new_email_service, testutils::TestEmailServer};
 
     #[test]
     fn test_password_hash() {
@@ -886,13 +896,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_password_reset() {
-        let service = test_authentication_service().await;
-        service
-            .mail
-            .update_email_setting(default_email_settings())
-            .await
-            .unwrap();
-        let _smtp = start_smtp_server().await;
+        let (service, smtp) = test_authentication_service_with_mail().await;
 
         // Test first reset, ensure wrong code fails
         service
@@ -902,10 +906,16 @@ mod tests {
             .unwrap();
         let user = service.get_user_by_email("user@example.com").await.unwrap();
 
-        service
+        let handle = service
             .request_password_reset_email("user@example.com".into())
             .await
             .unwrap();
+        handle.unwrap().await.unwrap();
+        assert!(smtp.list_mail().await[0]
+            .subject
+            .to_lowercase()
+            .contains("password"));
+
         let reset = service
             .db
             .get_password_reset_by_user_id(user.id.as_rowid().unwrap() as i64)

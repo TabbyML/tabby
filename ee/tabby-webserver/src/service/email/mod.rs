@@ -16,7 +16,7 @@ use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::warn;
 mod templates;
 #[cfg(test)]
-pub mod test_utils;
+pub mod testutils;
 
 use crate::schema::{
     email::{
@@ -258,11 +258,9 @@ fn to_address(email: String) -> Result<Address> {
 
 #[cfg(test)]
 mod tests {
-    use serde::Deserialize;
     use serial_test::serial;
 
-    use super::*;
-    use crate::service::email::test_utils::setup_test_email_service;
+    use super::{testutils::TestEmailServer, *};
 
     #[tokio::test]
     async fn test_update_email_with_service() {
@@ -285,27 +283,16 @@ mod tests {
         service.delete_email_setting().await.unwrap();
     }
 
-    #[derive(Deserialize, Debug)]
-    struct Mail {
-        sender: String,
-        subject: String,
-    }
-
-    async fn read_mails() -> Vec<Mail> {
-        let mails = reqwest::get("http://localhost:1080/api/messages")
-            .await
-            .unwrap();
-
-        mails.json().await.unwrap()
-    }
-
     /*
      * Requires https://github.com/mailtutan/mailtutan
      */
     #[tokio::test]
     #[serial]
     async fn test_send_email() {
-        let (service, _child) = setup_test_email_service().await;
+        let mail_server = TestEmailServer::start().await;
+        let service = mail_server
+            .create_test_email_service(DbConn::new_in_memory().await.unwrap())
+            .await;
 
         let handle = service
             .send_invitation_email("user@localhost".into(), "12345".into())
@@ -321,7 +308,7 @@ mod tests {
 
         handle.await.unwrap();
 
-        let mails = read_mails().await;
+        let mails = mail_server.list_mail().await;
         let default_from = service
             .read_email_setting()
             .await
@@ -334,7 +321,10 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_send_test_email() {
-        let (service, _child) = setup_test_email_service().await;
+        let mail_server = TestEmailServer::start().await;
+        let service = mail_server
+            .create_test_email_service(DbConn::new_in_memory().await.unwrap())
+            .await;
 
         let handle = service
             .send_test_email("user@localhost".into())
@@ -343,7 +333,7 @@ mod tests {
 
         handle.await.unwrap();
 
-        let mails = read_mails().await;
+        let mails = mail_server.list_mail().await;
         assert_eq!(mails[0].subject, templates::test().subject);
     }
 }
