@@ -227,15 +227,15 @@ impl AuthenticationService for AuthenticationServiceImpl {
         };
 
         let id = user.id.as_rowid()?;
-        let existing = self.db.get_password_reset_by_user_id(id).await?;
+        let existing = self.db.get_password_reset_by_user_id(id as i64).await?;
         if let Some(existing) = existing {
-            if Utc::now().signed_duration_since(existing.created_at) < Duration::minutes(5) {
+            if Utc::now().signed_duration_since(*existing.created_at) < Duration::minutes(5) {
                 return Err(anyhow!(
                     "A password reset has been requested recently, please try again later"
                 ));
             }
         }
-        let code = self.db.create_password_reset(id).await?;
+        let code = self.db.create_password_reset(id as i64).await?;
         self.mail
             .send_password_reset_email(user.email, code.clone())
             .await?;
@@ -249,7 +249,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let user_id = self.db.verify_password_reset(code).await?;
         self.db.delete_password_reset_by_user_id(user_id).await?;
         self.db
-            .update_user_password(user_id, password_encrypted)
+            .update_user_password(user_id as i32, password_encrypted)
             .await?;
         Ok(())
     }
@@ -908,7 +908,7 @@ mod tests {
             .unwrap();
         let reset = service
             .db
-            .get_password_reset_by_user_id(user.id.as_rowid().unwrap())
+            .get_password_reset_by_user_id(user.id.as_rowid().unwrap() as i64)
             .await
             .unwrap()
             .unwrap();
@@ -931,7 +931,7 @@ mod tests {
             .unwrap();
         let reset = service
             .db
-            .get_password_reset_by_user_id(user.id)
+            .get_password_reset_by_user_id(user.id as i64)
             .await
             .unwrap()
             .unwrap();
@@ -960,7 +960,7 @@ mod tests {
             .unwrap();
         let reset = service
             .db
-            .get_password_reset_by_user_id(user_id_2)
+            .get_password_reset_by_user_id(user_id_2 as i64)
             .await
             .unwrap()
             .unwrap();
