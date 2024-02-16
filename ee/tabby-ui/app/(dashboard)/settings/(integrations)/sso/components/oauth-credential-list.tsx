@@ -22,7 +22,6 @@ export const oauthCredential = graphql(/* GraphQL */ `
     oauthCredential(provider: $provider) {
       provider
       clientId
-      clientSecret
       createdAt
       updatedAt
     }
