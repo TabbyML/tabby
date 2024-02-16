@@ -218,6 +218,11 @@ impl Query {
         Ok(val)
     }
 
+    async fn email_configured(ctx: &Context) -> Result<bool> {
+        let initialized = ctx.locator.email().read_email_setting().await?.is_some();
+        Ok(initialized)
+    }
+
     async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
         check_admin(ctx)?;
         let val = ctx.locator.setting().read_network_setting().await?;
