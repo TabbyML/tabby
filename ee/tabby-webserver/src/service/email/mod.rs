@@ -260,8 +260,7 @@ fn to_address(email: String) -> Result<Address> {
 mod tests {
     use serial_test::serial;
 
-    use super::*;
-    use crate::service::email::test_utils::setup_test_email_service;
+    use super::{test_utils::TestEmailServer, *};
 
     #[tokio::test]
     async fn test_update_email_with_service() {
@@ -290,7 +289,8 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_send_email() {
-        let (service, mail_server) = setup_test_email_service().await;
+        let (mail_server, service) =
+            TestEmailServer::start(DbConn::new_in_memory().await.unwrap()).await;
 
         let handle = service
             .send_invitation_email("user@localhost".into(), "12345".into())
@@ -306,7 +306,7 @@ mod tests {
 
         handle.await.unwrap();
 
-        let mails = mail_server.get_mail().await;
+        let mails = mail_server.list_mail().await;
         let default_from = service
             .read_email_setting()
             .await
@@ -319,7 +319,8 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_send_test_email() {
-        let (service, mail_server) = setup_test_email_service().await;
+        let (mail_server, service) =
+            TestEmailServer::start(DbConn::new_in_memory().await.unwrap()).await;
 
         let handle = service
             .send_test_email("user@localhost".into())
@@ -328,7 +329,7 @@ mod tests {
 
         handle.await.unwrap();
 
-        let mails = mail_server.get_mail().await;
+        let mails = mail_server.list_mail().await;
         assert_eq!(mails[0].subject, templates::test().subject);
     }
 }

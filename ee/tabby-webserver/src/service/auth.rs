@@ -601,10 +601,7 @@ mod tests {
     use serial_test::serial;
 
     use super::*;
-    use crate::service::email::{
-        new_email_service,
-        test_utils::{default_email_settings, start_smtp_server},
-    };
+    use crate::service::email::{new_email_service, test_utils::TestEmailServer};
 
     #[test]
     fn test_password_hash() {
@@ -889,12 +886,7 @@ mod tests {
     #[serial]
     async fn test_password_reset() {
         let service = test_authentication_service().await;
-        service
-            .mail
-            .update_email_setting(default_email_settings())
-            .await
-            .unwrap();
-        let smtp = start_smtp_server().await;
+        let (smtp, _email) = TestEmailServer::start(service.db.clone()).await;
 
         // Test first reset, ensure wrong code fails
         service
@@ -909,7 +901,7 @@ mod tests {
             .await
             .unwrap();
         handle.unwrap().await.unwrap();
-        assert!(smtp.get_mail().await[0]
+        assert!(smtp.list_mail().await[0]
             .subject
             .to_lowercase()
             .contains("password"));

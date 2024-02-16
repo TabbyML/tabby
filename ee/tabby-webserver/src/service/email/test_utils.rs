@@ -19,16 +19,38 @@ pub struct TestEmailServer {
 }
 
 impl TestEmailServer {
-    pub async fn get_mail(&self) -> Vec<Mail> {
+    pub async fn list_mail(&self) -> Vec<Mail> {
         let mails = reqwest::get("http://localhost:1080/api/messages")
             .await
             .unwrap();
 
         mails.json().await.unwrap()
     }
+
+    async fn init_service(&self, db_conn: DbConn) -> impl EmailService {
+        let service = new_email_service(db_conn).await.unwrap();
+        service
+            .update_email_setting(default_email_settings())
+            .await
+            .unwrap();
+        service
+    }
+
+    pub async fn start(db_conn: DbConn) -> (TestEmailServer, impl EmailService) {
+        let mut cmd = Command::new("mailtutan");
+        cmd.kill_on_drop(true);
+
+        let child = cmd
+            .spawn()
+            .expect("You need to run `cargo install mailtutan` before running this test");
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        let email_server = TestEmailServer { child };
+        let service = email_server.init_service(db_conn).await;
+        (email_server, service)
+    }
 }
 
-pub fn default_email_settings() -> EmailSettingInput {
+fn default_email_settings() -> EmailSettingInput {
     EmailSettingInput {
         smtp_username: "tabby".into(),
         smtp_server: "127.0.0.1".into(),
@@ -38,27 +60,4 @@ pub fn default_email_settings() -> EmailSettingInput {
         auth_method: AuthMethod::None,
         smtp_password: Some("fake".into()),
     }
-}
-
-pub async fn start_smtp_server() -> TestEmailServer {
-    let mut cmd = Command::new("mailtutan");
-    cmd.kill_on_drop(true);
-
-    let child = cmd
-        .spawn()
-        .expect("You need to run `cargo install mailtutan` before running this test");
-    tokio::time::sleep(Duration::from_secs(1)).await;
-    TestEmailServer { child }
-}
-
-pub async fn setup_test_email_service() -> (impl EmailService, TestEmailServer) {
-    let child = start_smtp_server().await;
-
-    let db = DbConn::new_in_memory().await.unwrap();
-    let service = new_email_service(db).await.unwrap();
-    service
-        .update_email_setting(default_email_settings())
-        .await
-        .unwrap();
-    (service, child)
 }
