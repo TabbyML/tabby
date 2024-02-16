@@ -247,9 +247,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             password_hash(password).map_err(|_| PasswordResetError::Unknown)?;
 
         let user_id = self.db.verify_password_reset(code).await?;
-        self.db
-            .delete_password_reset_by_user_id(user_id as i64)
-            .await?;
+        self.db.delete_password_reset_by_user_id(user_id).await?;
         self.db
             .update_user_password(user_id as i32, password_encrypted)
             .await?;
