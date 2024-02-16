@@ -1,15 +1,14 @@
-use anyhow::{anyhow, Result};
-use chrono::{DateTime, Duration, Utc};
-use sqlx::{prelude::FromRow, query};
+use anyhow::Result;
+use chrono::{Duration, Utc};
+use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::DbConn;
+use crate::{DbConn, UtcDateTime};
 
-#[derive(FromRow)]
 pub struct PasswordResetDAO {
-    pub user_id: i32,
+    pub user_id: i64,
     pub code: String,
-    pub created_at: DateTime<Utc>,
+    pub created_at: UtcDateTime,
 }
 
 impl DbConn {
@@ -48,10 +47,11 @@ impl DbConn {
         &self,
         user_id: i32,
     ) -> Result<Option<PasswordResetDAO>> {
-        let password_reset = sqlx::query_as(
+        let password_reset = query_as!(
+            PasswordResetDAO,
             "SELECT user_id, code, created_at FROM password_reset WHERE user_id = ?;",
+            user_id
         )
-        .bind(user_id)
         .fetch_optional(&self.pool)
         .await?;
         Ok(password_reset)
@@ -91,7 +91,7 @@ impl DbConn {
 
     pub async fn delete_expired_password_resets(&self) -> Result<()> {
         let time = Utc::now() - Duration::hours(1);
-        query!("DELETE FROM password_reset WHERE created_at <= ?", time)
+        query!("DELETE FROM password_reset WHERE created_at < ?", time)
             .execute(&self.pool)
             .await?;
         Ok(())
