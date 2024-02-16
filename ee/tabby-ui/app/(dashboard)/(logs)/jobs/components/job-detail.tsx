@@ -3,6 +3,9 @@
 import { clearTimeout } from 'timers'
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useTheme } from 'next-themes'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { coldarkDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import { useQuery } from 'urql'
 
 import { listJobRuns } from '@/lib/tabby/query'
@@ -39,28 +42,28 @@ export default function JobRunDetail() {
   }, [currentNode])
 
   return (
-    <div>
+    <div className="flex flex-col min-h-full">
       {fetching ? (
         <ListSkeleton />
       ) : (
-        <div className="flex flex-col gap-2">
-          <JobsTable jobs={edges?.slice(0, 1)} showOperation={false} />
+        <div className="flex flex-col gap-2 flex-1">
+          <JobsTable jobs={edges?.slice(0, 1)} shouldRedirect={false} />
           <Tabs defaultValue="stdout">
             <TabsList className="grid w-[400px] grid-cols-2">
               <TabsTrigger value="stdout">
                 <IconTerminalSquare className="mr-1" />
                 stdout
               </TabsTrigger>
-              <TabsTrigger value="stderr" className="mr-1">
-                <IconAlertTriangle />
+              <TabsTrigger value="stderr">
+                <IconAlertTriangle className="mr-1" />
                 stderr
               </TabsTrigger>
             </TabsList>
             <TabsContent value="stdout">
-              <StdoutView>{edges?.[0]?.node?.stdout}</StdoutView>
+              <StdoutView value={currentNode?.stdout} />
             </TabsContent>
             <TabsContent value="stderr">
-              <StdoutView>{edges?.[0]?.node?.stderr}</StdoutView>
+              <StdoutView value={currentNode?.stderr} />
             </TabsContent>
           </Tabs>
         </div>
@@ -72,16 +75,40 @@ export default function JobRunDetail() {
 function StdoutView({
   children,
   className,
+  value,
   ...rest
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.HTMLAttributes<HTMLDivElement> & { value?: string }) {
+  const { theme } = useTheme()
   return (
     <div
-      className={cn('mt-2 w-full rounded-lg border p-2', className)}
+      className={cn(
+        'mt-2 w-full rounded-lg border bg-gray-50 dark:bg-gray-800 min-h-80 overflow-x-hidden',
+        className
+      )}
       {...rest}
     >
-      <pre className="whitespace-pre">
-        {children ? children : <div>No Data</div>}
-      </pre>
+      {value ? (
+        <SyntaxHighlighter
+          wrapLongLines
+          language="bash"
+          style={theme === 'dark' ? coldarkDark : undefined}
+          PreTag="div"
+          customStyle={{
+            margin: 0,
+            background: 'transparent'
+          }}
+          codeTagProps={{
+            style: {
+              fontSize: '0.9rem',
+              fontFamily: 'var(--font-mono)'
+            }
+          }}
+        >
+          {value ?? ''}
+        </SyntaxHighlighter>
+      ) : (
+        <div className="p-4 font-mono text-[0.9rem]">No Data</div>
+      )}
     </div>
   )
 }

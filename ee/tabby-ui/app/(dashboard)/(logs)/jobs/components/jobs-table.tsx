@@ -1,10 +1,11 @@
+import React from 'react'
 import Link from 'next/link'
 import moment from 'moment'
 
 import { ListJobRunsQuery } from '@/lib/gql/generates/graphql'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
-import { IconFileSearch } from '@/components/ui/icons'
+import { IconCheck, IconClose, IconPieChart } from '@/components/ui/icons'
 import {
   Table,
   TableBody,
@@ -14,14 +15,15 @@ import {
   TableRow
 } from '@/components/ui/table'
 
+type TJobRun = ListJobRunsQuery['jobRuns']['edges'][0]
 interface JobsTableProps {
-  jobs: ListJobRunsQuery['jobRuns']['edges'] | undefined
-  showOperation?: boolean
+  jobs: TJobRun[] | undefined
+  shouldRedirect?: boolean
 }
 
 export const JobsTable: React.FC<JobsTableProps> = ({
   jobs,
-  showOperation = true
+  shouldRedirect = true
 }) => {
   return (
     <Table>
@@ -30,17 +32,14 @@ export const JobsTable: React.FC<JobsTableProps> = ({
           <TableHead className="w-[200px]">Start Time</TableHead>
           <TableHead className="w-[100px]">Duration</TableHead>
           <TableHead className="w-[100px]">Job Type</TableHead>
-          <TableHead className="w-[100px]">Exist Code</TableHead>
-          {showOperation && (
-            <TableHead className="w-[100px] text-right">Detail</TableHead>
-          )}
+          <TableHead className="w-[100px] text-center">Status</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {!jobs?.length ? (
           <TableRow>
             <TableCell
-              colSpan={showOperation ? 5 : 4}
+              colSpan={shouldRedirect ? 4 : 3}
               className="h-[100px] text-center"
             >
               No Data
@@ -59,17 +58,11 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                   <TableCell>
                     <Badge variant="secondary">{x.node.job}</Badge>
                   </TableCell>
-                  <TableCell>{x.node.exitCode}</TableCell>
-                  {showOperation && (
-                    <TableCell className="text-right">
-                      <Link
-                        href={`/jobs/detail?id=${x.node.id}`}
-                        className={buttonVariants({ variant: 'ghost' })}
-                      >
-                        <IconFileSearch />
-                      </Link>
-                    </TableCell>
-                  )}
+                  <TableCell className="text-center">
+                    <JobStatusAction node={x} shouldRedirect={shouldRedirect}>
+                      <JobStatusIcon node={x} />
+                    </JobStatusAction>
+                  </TableCell>
                 </TableRow>
               )
             })}
@@ -121,4 +114,42 @@ function formatDuration(duration: moment.Duration) {
   }
 
   return formattedDuration
+}
+
+function JobStatusIcon({ node }: { node: TJobRun }) {
+  if (!node) return null
+  const finishedAt = node?.node?.finishedAt
+  const exitCode = node?.node?.exitCode
+
+  // runing, success, error
+  if (!finishedAt) {
+    return <IconPieChart />
+  }
+  if (exitCode === 0) {
+    return <IconCheck className="text-successful-foreground" />
+  }
+
+  return <IconClose className="text-destructive-foreground" />
+}
+
+function JobStatusAction({
+  node,
+  shouldRedirect,
+  children
+}: {
+  shouldRedirect?: boolean
+  node: TJobRun
+  children: React.ReactNode
+}) {
+  if (shouldRedirect) {
+    return (
+      <Link
+        className={buttonVariants({ variant: 'ghost' })}
+        href={`/jobs/detail?id=${node.node.id}`}
+      >
+        {children}
+      </Link>
+    )
+  }
+  return children
 }
