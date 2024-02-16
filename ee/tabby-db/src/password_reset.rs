@@ -71,7 +71,7 @@ impl DbConn {
             .filter(|user| user.active)
             .ok_or_else(|| anyhow!("Invalid code"))?;
 
-        if Utc::now().signed_duration_since(&*password_reset.created_at) > Duration::minutes(15) {
+        if Utc::now().signed_duration_since(*password_reset.created_at) > Duration::minutes(15) {
             Err(anyhow!("Invalid code"))
         } else {
             Ok(user_res.id as i64)
