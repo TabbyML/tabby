@@ -31,6 +31,7 @@ import { preCacheProcess, postCacheProcess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { CompletionProviderStats, CompletionProviderStatsEntry } from "./CompletionProviderStats";
+import { loadTlsCaCerts } from "./loadCaCerts";
 
 export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = rootLogger.child({ component: "TabbyAgent" });
@@ -76,6 +77,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
     this.config = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig) as AgentConfig;
     allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
+
+    await loadTlsCaCerts(this.config.tls);
 
     if (isBlank(this.config.server.token) && this.config.server.requestHeaders["Authorization"] === undefined) {
       if (this.config.server.endpoint !== this.auth?.endpoint) {

@@ -64,6 +64,8 @@ const typeCheckSchema: Record<string, string> = {
   "postprocess.limitScopeByIndentation.experimentalKeepBlockScopeWhenCompletingLine": "boolean",
   logs: "object",
   "logs.level": "string",
+  tls: "object",
+  "tls.ca": "string",
   anonymousUsageTracking: "object",
   "anonymousUsageTracking.disable": "boolean",
 };

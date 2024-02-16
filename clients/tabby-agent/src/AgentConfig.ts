@@ -39,6 +39,10 @@ export type AgentConfig = {
   logs: {
     level: "debug" | "error" | "silent";
   };
+  tls: {
+    // `default`, `system`, or a string point to cert file
+    ca: string;
+  };
   anonymousUsageTracking: {
     disable: boolean;
   };
@@ -89,6 +93,9 @@ export const defaultAgentConfig: AgentConfig = {
   },
   logs: {
     level: "silent",
+  },
+  tls: {
+    ca: "system",
   },
   anonymousUsageTracking: {
     disable: false,
