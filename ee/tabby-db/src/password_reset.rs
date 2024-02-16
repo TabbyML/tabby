@@ -3,16 +3,16 @@ use chrono::{Duration, Utc};
 use sqlx::{query, query_as};
 use uuid::Uuid;
 
-use crate::{DbConn, UtcDateTime};
+use crate::{DateTimeUtc, DbConn};
 
 pub struct PasswordResetDAO {
     pub user_id: i64,
     pub code: String,
-    pub created_at: UtcDateTime,
+    pub created_at: DateTimeUtc,
 }
 
 impl DbConn {
-    pub async fn create_password_reset(&self, user_id: i32) -> Result<String> {
+    pub async fn create_password_reset(&self, user_id: i64) -> Result<String> {
         let code = Uuid::new_v4().to_string();
         let time = Utc::now();
         query!(
@@ -27,7 +27,7 @@ impl DbConn {
         Ok(code)
     }
 
-    pub async fn delete_password_reset_by_user_id(&self, user_id: i32) -> Result<()> {
+    pub async fn delete_password_reset_by_user_id(&self, user_id: i64) -> Result<()> {
         query!("DELETE FROM password_reset WHERE user_id = ?", user_id)
             .execute(&self.pool)
             .await?;
@@ -47,7 +47,7 @@ impl DbConn {
 
     pub async fn get_password_reset_by_user_id(
         &self,
-        user_id: i32,
+        user_id: i64,
     ) -> Result<Option<PasswordResetDAO>> {
         let password_reset = query_as!(
             PasswordResetDAO,

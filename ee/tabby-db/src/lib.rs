@@ -186,16 +186,16 @@ impl DbConn {
     }
 }
 
-pub struct UtcDateTime(DateTime<Utc>);
+pub struct DateTimeUtc(DateTime<Utc>);
 
-impl From<NaiveDateTime> for UtcDateTime {
+impl From<NaiveDateTime> for DateTimeUtc {
     fn from(value: NaiveDateTime) -> Self {
         let utc = DateTime::from_naive_utc_and_offset(value, Utc);
-        UtcDateTime(utc)
+        DateTimeUtc(utc)
     }
 }
 
-impl Deref for UtcDateTime {
+impl Deref for DateTimeUtc {
     type Target = DateTime<Utc>;
 
     fn deref(&self) -> &Self::Target {
@@ -203,7 +203,7 @@ impl Deref for UtcDateTime {
     }
 }
 
-impl UtcDateTime {
+impl DateTimeUtc {
     pub fn into_inner(self) -> DateTime<Utc> {
         self.0
     }
