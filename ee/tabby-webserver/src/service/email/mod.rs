@@ -15,6 +15,8 @@ use tabby_db::{DbConn, DbEnum};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::warn;
 mod templates;
+#[cfg(test)]
+pub mod test_utils;
 
 use crate::schema::{
     email::{
@@ -256,11 +258,10 @@ fn to_address(email: String) -> Result<Address> {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use serde::Deserialize;
     use serial_test::serial;
-    use tokio::process::{Child, Command};
+
+    use crate::service::email::test_utils::setup_test_email_service;
 
     use super::*;
 
@@ -285,50 +286,6 @@ mod tests {
         service.delete_email_setting().await.unwrap();
     }
 
-    fn default_email_setting() -> EmailSetting {
-        EmailSetting {
-            smtp_username: "tabby".into(),
-            smtp_server: "127.0.0.1".into(),
-            smtp_port: 1025,
-            from_address: "tabby@localhost".into(),
-            encryption: Encryption::None,
-            auth_method: AuthMethod::None,
-        }
-    }
-
-    async fn start_smtp_server() -> Child {
-        let mut cmd = Command::new("mailtutan");
-        cmd.kill_on_drop(true);
-
-        let child = cmd
-            .spawn()
-            .expect("You need to run `cargo install mailtutan` before running this test");
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        child
-    }
-
-    async fn setup_service() -> (impl EmailService, Child) {
-        let email_setting = default_email_setting();
-        let smtp_password = "fake";
-        let child = start_smtp_server().await;
-
-        let db: DbConn = DbConn::new_in_memory().await.unwrap();
-        db.update_email_setting(
-            email_setting.smtp_username,
-            Some(smtp_password.into()),
-            email_setting.smtp_server,
-            email_setting.smtp_port,
-            email_setting.from_address.clone(),
-            email_setting.encryption.as_enum_str().into(),
-            email_setting.auth_method.as_enum_str().into(),
-        )
-        .await
-        .unwrap();
-
-        let service = new_email_service(db).await.unwrap();
-        (service, child)
-    }
-
     #[derive(Deserialize, Debug)]
     struct Mail {
         sender: String,
@@ -349,7 +306,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_send_email() {
-        let (service, _child) = setup_service().await;
+        let (service, _child) = setup_test_email_service().await;
 
         let handle = service
             .send_invitation_email("user@localhost".into(), "12345".into())
@@ -366,14 +323,19 @@ mod tests {
         handle.await.unwrap();
 
         let mails = read_mails().await;
-        let default_from = default_email_setting().from_address;
+        let default_from = service
+            .read_email_setting()
+            .await
+            .unwrap()
+            .unwrap()
+            .from_address;
         assert!(mails[0].sender.contains(&default_from));
     }
 
     #[tokio::test]
     #[serial]
     async fn test_send_test_email() {
-        let (service, _child) = setup_service().await;
+        let (service, _child) = setup_test_email_service().await;
 
         let handle = service
             .send_test_email("user@localhost".into())

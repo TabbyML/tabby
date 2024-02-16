@@ -237,10 +237,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
             }
         }
         let code = self.db.create_password_reset(id).await?;
-        let _ = self
-            .mail
+        self.mail
             .send_password_reset_email(user.email, code.clone())
-            .await;
+            .await?;
         Ok(code)
     }
 
@@ -610,9 +609,13 @@ mod tests {
 
     use assert_matches::assert_matches;
     use juniper_axum::relay::{self, Connection};
+    use serial_test::serial;
 
     use super::*;
-    use crate::service::email::new_email_service;
+    use crate::service::email::{
+        new_email_service,
+        test_utils::{default_email_settings, start_smtp_server},
+    };
 
     #[test]
     fn test_password_hash() {
@@ -894,8 +897,16 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_password_reset() {
         let service = test_authentication_service().await;
+        service
+            .mail
+            .update_email_setting(default_email_settings())
+            .await
+            .unwrap();
+        let _smtp = start_smtp_server().await;
+
         let user = service
             .db
             .create_user("user@example.com".into(), "pass".into(), true)
