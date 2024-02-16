@@ -596,6 +596,17 @@ mod tests {
         }
     }
 
+    async fn test_authentication_service_with_mail() -> (AuthenticationServiceImpl, TestEmailServer)
+    {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let smtp = TestEmailServer::start().await;
+        let service = AuthenticationServiceImpl {
+            db: db.clone(),
+            mail: Arc::new(smtp.create_test_email_service(db).await),
+        };
+        (service, smtp)
+    }
+
     use assert_matches::assert_matches;
     use juniper_axum::relay::{self, Connection};
     use serial_test::serial;
@@ -885,9 +896,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_password_reset() {
-        let service = test_authentication_service().await;
-        let smtp = TestEmailServer::start().await;
-        smtp.create_test_email_service(service.db.clone()).await;
+        let (service, smtp) = test_authentication_service_with_mail().await;
 
         // Test first reset, ensure wrong code fails
         service
