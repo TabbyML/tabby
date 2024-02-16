@@ -58,7 +58,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                   <TableCell>
                     <Badge variant="secondary">{x.node.job}</Badge>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="flex justify-center">
                     <JobStatusAction node={x} shouldRedirect={shouldRedirect}>
                       <JobStatusIcon node={x} />
                     </JobStatusAction>
