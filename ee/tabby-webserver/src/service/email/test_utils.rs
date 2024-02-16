@@ -1,10 +1,32 @@
 use std::time::Duration;
 
+use serde::Deserialize;
 use tabby_db::DbConn;
 use tokio::process::{Child, Command};
 
 use super::new_email_service;
 use crate::schema::email::{AuthMethod, EmailService, EmailSettingInput, Encryption};
+
+#[derive(Deserialize, Debug)]
+pub struct Mail {
+    pub sender: String,
+    pub subject: String,
+}
+
+pub struct TestEmailServer {
+    #[allow(unused)]
+    child: Child,
+}
+
+impl TestEmailServer {
+    pub async fn get_mail(&self) -> Vec<Mail> {
+        let mails = reqwest::get("http://localhost:1080/api/messages")
+            .await
+            .unwrap();
+
+        mails.json().await.unwrap()
+    }
+}
 
 pub fn default_email_settings() -> EmailSettingInput {
     EmailSettingInput {
@@ -18,7 +40,7 @@ pub fn default_email_settings() -> EmailSettingInput {
     }
 }
 
-pub async fn start_smtp_server() -> Child {
+pub async fn start_smtp_server() -> TestEmailServer {
     let mut cmd = Command::new("mailtutan");
     cmd.kill_on_drop(true);
 
@@ -26,10 +48,10 @@ pub async fn start_smtp_server() -> Child {
         .spawn()
         .expect("You need to run `cargo install mailtutan` before running this test");
     tokio::time::sleep(Duration::from_secs(1)).await;
-    child
+    TestEmailServer { child }
 }
 
-pub async fn setup_test_email_service() -> (impl EmailService, Child) {
+pub async fn setup_test_email_service() -> (impl EmailService, TestEmailServer) {
     let child = start_smtp_server().await;
 
     let db = DbConn::new_in_memory().await.unwrap();

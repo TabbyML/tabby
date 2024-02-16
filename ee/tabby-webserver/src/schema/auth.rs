@@ -12,6 +12,7 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tabby_common::terminal::{HeaderFormat, InfoMessage};
 use thiserror::Error;
+use tokio::task::JoinHandle;
 use tracing::{error, warn};
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
@@ -447,7 +448,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
     async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError>;
-    async fn request_password_reset_email(&self, email: String) -> Result<()>;
+    async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
 
     async fn list_users(
         &self,

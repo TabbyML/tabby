@@ -258,7 +258,6 @@ fn to_address(email: String) -> Result<Address> {
 
 #[cfg(test)]
 mod tests {
-    use serde::Deserialize;
     use serial_test::serial;
 
     use super::*;
@@ -285,27 +284,13 @@ mod tests {
         service.delete_email_setting().await.unwrap();
     }
 
-    #[derive(Deserialize, Debug)]
-    struct Mail {
-        sender: String,
-        subject: String,
-    }
-
-    async fn read_mails() -> Vec<Mail> {
-        let mails = reqwest::get("http://localhost:1080/api/messages")
-            .await
-            .unwrap();
-
-        mails.json().await.unwrap()
-    }
-
     /*
      * Requires https://github.com/mailtutan/mailtutan
      */
     #[tokio::test]
     #[serial]
     async fn test_send_email() {
-        let (service, _child) = setup_test_email_service().await;
+        let (service, mail_server) = setup_test_email_service().await;
 
         let handle = service
             .send_invitation_email("user@localhost".into(), "12345".into())
@@ -321,7 +306,7 @@ mod tests {
 
         handle.await.unwrap();
 
-        let mails = read_mails().await;
+        let mails = mail_server.get_mail().await;
         let default_from = service
             .read_email_setting()
             .await
@@ -334,7 +319,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_send_test_email() {
-        let (service, _child) = setup_test_email_service().await;
+        let (service, mail_server) = setup_test_email_service().await;
 
         let handle = service
             .send_test_email("user@localhost".into())
@@ -343,7 +328,7 @@ mod tests {
 
         handle.await.unwrap();
 
-        let mails = read_mails().await;
+        let mails = mail_server.get_mail().await;
         assert_eq!(mails[0].subject, templates::test().subject);
     }
 }
