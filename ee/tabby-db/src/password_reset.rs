@@ -59,7 +59,7 @@ impl DbConn {
         Ok(password_reset)
     }
 
-    pub async fn verify_password_reset(&self, code: &str) -> Result<i32> {
+    pub async fn verify_password_reset(&self, code: &str) -> Result<i64> {
         let password_reset = self
             .get_password_reset_by_code(code)
             .await?
@@ -74,7 +74,7 @@ impl DbConn {
         if Utc::now().signed_duration_since(&*password_reset.created_at) > Duration::minutes(15) {
             Err(anyhow!("Invalid code"))
         } else {
-            Ok(user_res.id)
+            Ok(user_res.id as i64)
         }
     }
 

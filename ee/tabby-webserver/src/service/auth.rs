@@ -251,7 +251,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .delete_password_reset_by_user_id(user_id as i64)
             .await?;
         self.db
-            .update_user_password(user_id, password_encrypted)
+            .update_user_password(user_id as i32, password_encrypted)
             .await?;
         Ok(())
     }
