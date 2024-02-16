@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{Duration, Utc};
 use sqlx::{query, query_as};
 use uuid::Uuid;
@@ -35,11 +35,13 @@ impl DbConn {
     }
 
     pub async fn get_password_reset_by_code(&self, code: &str) -> Result<Option<PasswordResetDAO>> {
-        let password_reset =
-            sqlx::query_as("SELECT user_id, code, created_at FROM password_reset WHERE code = ?;")
-                .bind(code)
-                .fetch_optional(&self.pool)
-                .await?;
+        let password_reset = query_as!(
+            PasswordResetDAO,
+            "SELECT user_id, code, created_at FROM password_reset WHERE code = ?;",
+            code
+        )
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(password_reset)
     }
 
@@ -64,12 +66,12 @@ impl DbConn {
             .ok_or_else(|| anyhow!("Invalid code"))?;
 
         let user_res = self
-            .get_user(password_reset.user_id)
+            .get_user(password_reset.user_id as i32)
             .await?
             .filter(|user| user.active)
             .ok_or_else(|| anyhow!("Invalid code"))?;
 
-        if Utc::now().signed_duration_since(password_reset.created_at) > Duration::minutes(15) {
+        if Utc::now().signed_duration_since(&*password_reset.created_at) > Duration::minutes(15) {
             Err(anyhow!("Invalid code"))
         } else {
             Ok(user_res.id)

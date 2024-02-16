@@ -229,7 +229,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let id = user.id.as_rowid()?;
         let existing = self.db.get_password_reset_by_user_id(id).await?;
         if let Some(existing) = existing {
-            if Utc::now().signed_duration_since(existing.created_at) < Duration::minutes(5) {
+            if Utc::now().signed_duration_since(&*existing.created_at) < Duration::minutes(5) {
                 return Err(anyhow!(
                     "A password reset has been requested recently, please try again later"
                 ));
