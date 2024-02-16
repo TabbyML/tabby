@@ -142,6 +142,27 @@ pub enum TokenAuthError {
     Unknown,
 }
 
+#[derive(Error, Debug)]
+pub enum PasswordResetError {
+    #[error("Invalid code")]
+    InvalidCode,
+    #[error("Invalid password")]
+    InvalidInput(#[from] ValidationErrors),
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+    #[error("Unknown error")]
+    Unknown,
+}
+
+impl<S: ScalarValue> IntoFieldError<S> for PasswordResetError {
+    fn into_field_error(self) -> FieldError<S> {
+        match self {
+            Self::InvalidInput(errors) => from_validation_errors(errors),
+            _ => self.into(),
+        }
+    }
+}
+
 #[derive(Default, Serialize)]
 pub struct OAuthResponse {
     pub access_token: String,
@@ -297,6 +318,44 @@ pub struct RequestInvitationInput {
     pub email: String,
 }
 
+#[derive(Validate, GraphQLInputObject)]
+pub struct RequestPasswordResetEmailInput {
+    #[validate(email(code = "email"))]
+    pub email: String,
+}
+
+#[derive(Validate, GraphQLInputObject)]
+pub struct PasswordResetInput {
+    pub code: String,
+    #[validate(length(
+        min = 8,
+        code = "password1",
+        message = "Password must be at least 8 characters"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "password1",
+        message = "Password must be at most 20 characters"
+    ))]
+    pub password1: String,
+    #[validate(length(
+        min = 8,
+        code = "password2",
+        message = "Password must be at least 8 characters"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "password2",
+        message = "Password must be at most 20 characters"
+    ))]
+    #[validate(must_match(
+        code = "password2",
+        message = "Passwords do not match",
+        other = "password1"
+    ))]
+    pub password2: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
 #[graphql(context = Context)]
 pub struct Invitation {
@@ -377,6 +436,7 @@ pub trait AuthenticationService: Send + Sync {
         refresh_token: String,
     ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError>;
     async fn delete_expired_token(&self) -> Result<()>;
+    async fn delete_expired_password_resets(&self) -> Result<()>;
     async fn verify_access_token(&self, access_token: &str) -> Result<VerifyTokenResponse>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
@@ -386,6 +446,8 @@ pub trait AuthenticationService: Send + Sync {
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
+    async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError>;
+    async fn request_password_reset_email(&self, email: String) -> Result<()>;
 
     async fn list_users(
         &self,
