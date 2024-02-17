@@ -8,6 +8,7 @@ default = ["ee", "experimental-http"]
 ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
 rocm = ["llama-cpp-bindings/rocm"]
+oneapi = ["llama-cpp-bindings/oneapi"]
 experimental-http = ["dep:http-api-bindings"]
 # If compiling on a system without OpenSSL installed, or cross-compiling for a different
 # architecture, enable this feature to compile OpenSSL as part of the build.

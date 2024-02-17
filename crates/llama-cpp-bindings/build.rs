@@ -4,7 +4,6 @@ use cmake::Config;
 
 fn main() {
     const LLAMA_CMAKE_PATH: &str = "llama.cpp/CMakeLists.txt";
-
     assert!(
         Path::new(LLAMA_CMAKE_PATH).exists(),
         "Please init submodules with `git submodule update --init --recursive` and try again"
@@ -81,6 +80,39 @@ fn build_llama_cpp() {
         println!("cargo:rustc-link-lib=amdhip64");
         println!("cargo:rustc-link-lib=rocblas");
         println!("cargo:rustc-link-lib=hipblas");
+    }
+
+    if cfg!(feature = "oneapi") {
+        let mkl_root = env::var("MKLROOT")
+            .expect("MKLROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
+        let compiler_root = env::var("CMPLR_ROOT")
+            .expect("CMPLR_ROOT needs to be defined to compile for oneAPI (use setvars.sh to set)");
+
+        config.define("LLAMA_NATIVE", "ON");
+        config.define("LLAMA_BLAS", "ON");
+        config.define("LLAMA_BLAS_VENDOR", "Intel10_64lp");
+        config.define("CMAKE_CXX_COMPILER_ID", "IntelLLVM");
+        config.define("CMAKE_CXX_COMPILER_VERSION", "Intel LLVM 2024.0.2 (2024.0.2.20231213)");
+        config.define("CMAKE_C_COMPILER", format!("{}/bin/icx", compiler_root));
+        config.define("CMAKE_CXX_COMPILER", format!("{}/bin/icpx", compiler_root));
+        println!("cargo:rustc-link-search=native={}/lib", compiler_root);
+        println!("cargo:rustc-link-search=native={}/lib", mkl_root);
+        println!("cargo:rustc-link-lib=svml");
+        println!("cargo:rustc-link-lib=mkl_sycl_blas");
+        println!("cargo:rustc-link-lib=mkl_sycl_lapack");
+        println!("cargo:rustc-link-lib=mkl_sycl_dft");
+        println!("cargo:rustc-link-lib=mkl_sycl_sparse");
+        println!("cargo:rustc-link-lib=mkl_sycl_vm");
+        println!("cargo:rustc-link-lib=mkl_sycl_rng");
+        println!("cargo:rustc-link-lib=mkl_sycl_stats");
+        println!("cargo:rustc-link-lib=mkl_sycl_data_fitting");
+        println!("cargo:rustc-link-lib=mkl_intel_ilp64");
+        println!("cargo:rustc-link-lib=mkl_tbb_thread");
+        println!("cargo:rustc-link-lib=mkl_core");
+        println!("cargo:rustc-link-lib=intlc");
+        println!("cargo:rustc-link-lib=pthread");
+        println!("cargo:rustc-link-lib=m");
+        println!("cargo:rustc-link-lib=dl");
     }
 
     // By default, this value is automatically inferred from Rust’s compilation profile.
