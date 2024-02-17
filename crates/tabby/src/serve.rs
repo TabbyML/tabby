@@ -131,8 +131,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
             logger,
             code,
             config,
-            args.port,
             args.chat_model.is_some(),
+            args.port,
         )
         .await;
         (api, ui)

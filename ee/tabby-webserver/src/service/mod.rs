@@ -55,7 +55,7 @@ impl ServerContext {
     pub async fn new(
         logger: Arc<dyn RawEventLogger>,
         code: Arc<dyn CodeSearch>,
-        is_chat_enabled: bool,
+        is_chat_enabled_locally: bool,
     ) -> Self {
         let db_conn = DbConn::new().await.unwrap();
         let mail = Arc::new(
@@ -72,7 +72,7 @@ impl ServerContext {
             db_conn,
             logger,
             code,
-            is_chat_enabled_locally: is_chat_enabled,
+            is_chat_enabled_locally,
         }
     }
 
