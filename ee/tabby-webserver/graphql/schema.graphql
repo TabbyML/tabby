@@ -77,7 +77,7 @@ type Query {
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(ids: [ID!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   emailSetting: EmailSetting
-  isEmailConfigured: Boolean!
+  isEmailConfigured: Boolean! @deprecated
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
@@ -173,6 +173,7 @@ type OAuthCredential {
 type ServerInfo {
   isAdminInitialized: Boolean!
   isChatEnabled: Boolean!
+  isEmailConfigured: Boolean!
 }
 
 input PasswordResetInput {
