@@ -47,9 +47,9 @@ export default function JobRunDetail() {
       {fetching ? (
         <ListSkeleton />
       ) : (
-        <div className="flex flex-1 flex-col gap-2 items-stretch">
+        <div className="flex flex-1 flex-col items-stretch gap-2">
           <JobsTable jobs={edges?.slice(0, 1)} shouldRedirect={false} />
-          <Tabs defaultValue="stdout" className="flex-1 flex flex-col">
+          <Tabs defaultValue="stdout" className="flex flex-1 flex-col">
             <TabsList className="grid w-[400px] grid-cols-2">
               <TabsTrigger value="stdout">
                 <IconTerminalSquare className="mr-1" />
@@ -60,7 +60,7 @@ export default function JobRunDetail() {
                 stderr
               </TabsTrigger>
             </TabsList>
-            <div className="flex-1 flex flex-col">
+            <div className="flex flex-1 flex-col">
               <TabsContent value="stdout" className="flex-1">
                 <StdoutView value={currentNode?.stdout} />
               </TabsContent>
@@ -85,7 +85,7 @@ function StdoutView({
   return (
     <div
       className={cn(
-        'mt-2 w-full h-full overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800 overflow-y-auto',
+        'mt-2 h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800',
         className
       )}
       {...rest}
