@@ -220,6 +220,7 @@ impl Query {
         Ok(val)
     }
 
+    #[deprecated]
     async fn is_email_configured(ctx: &Context) -> Result<bool> {
         let initialized = ctx.locator.email().read_email_setting().await?.is_some();
         Ok(initialized)
@@ -281,6 +282,7 @@ impl Query {
         Ok(ServerInfo {
             is_admin_initialized: ctx.locator.auth().is_admin_initialized().await?,
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
+            is_email_configured: ctx.locator.email().read_email_setting().await?.is_some()
         })
     }
 }
@@ -289,6 +291,7 @@ impl Query {
 pub struct ServerInfo {
     is_admin_initialized: bool,
     is_chat_enabled: bool,
+    is_email_configured: bool
 }
 
 #[derive(Default)]
