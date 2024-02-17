@@ -11,10 +11,11 @@ use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
     RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
 };
+use futures::TryFutureExt;
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
-    Object, RootNode, ScalarValue, Value, ID,
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
+    IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
 use juniper_axum::{
     relay::{self, Connection},
@@ -129,6 +130,7 @@ impl Query {
         return Ok(token);
     }
 
+    #[deprecated]
     async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
         Ok(ctx.locator.auth().is_admin_initialized().await?)
     }
@@ -226,6 +228,7 @@ impl Query {
         Ok(val)
     }
 
+    #[deprecated]
     async fn is_email_configured(ctx: &Context) -> Result<bool> {
         let initialized = ctx.locator.email().read_email_setting().await?.is_some();
         Ok(initialized)
@@ -283,6 +286,21 @@ impl Query {
         check_admin(ctx)?;
         Ok(ctx.locator.auth().oauth_callback_url(provider).await?)
     }
+
+    async fn server_info(ctx: &Context) -> Result<ServerInfo> {
+        Ok(ServerInfo {
+            is_admin_initialized: ctx.locator.auth().is_admin_initialized().await?,
+            is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
+            is_email_configured: ctx.locator.email().read_email_setting().await?.is_some(),
+        })
+    }
+}
+
+#[derive(GraphQLObject)]
+pub struct ServerInfo {
+    is_admin_initialized: bool,
+    is_chat_enabled: bool,
+    is_email_configured: bool,
 }
 
 #[derive(Default)]
