@@ -206,7 +206,7 @@ impl WorkerService for ServerContext {
     }
 
     async fn is_chat_enabled(&self) -> Result<bool> {
-        let num_chat_workers = self.chat.list().len();
+        let num_chat_workers = self.chat.list().await.len();
         Ok(num_chat_workers > 0 || self.is_chat_enabled)
     }
 }

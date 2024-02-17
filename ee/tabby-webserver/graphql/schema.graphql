@@ -71,7 +71,7 @@ type JobRun {
 type Query {
   workers: [Worker!]!
   registrationToken: String!
-  isAdminInitialized: Boolean!
+  isAdminInitialized: Boolean! @deprecated
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
@@ -83,6 +83,7 @@ type Query {
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
+  serverInfo: ServerInfo!
 }
 
 input NetworkSettingInput {
@@ -167,6 +168,11 @@ type OAuthCredential {
   clientId: String!
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
+}
+
+type ServerInfo {
+  isAdminInitialized: Boolean!
+  isChatEnabled: Boolean!
 }
 
 input PasswordResetInput {
