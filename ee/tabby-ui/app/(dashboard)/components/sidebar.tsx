@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/icons'
 
 export interface SidebarProps {
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
 }
 
@@ -36,25 +36,24 @@ export default function Sidebar({ children, className }: SidebarProps) {
     <div
       className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
     >
-      <div className="hidden border-r md:block">
-        <div className="flex h-full flex-col gap-2">
-          <div className="h-[12px]"></div>
-          <div className="flex-1">
-            <nav className="grid items-start gap-2 px-4 text-sm font-medium">
-              <Link href="/" className="flex justify-center pb-4">
-                <Image
-                  src={logoUrl}
-                  alt="logo"
-                  width={128}
-                  className="dark:hidden"
-                />
-                <Image
-                  src={logoDarkUrl}
-                  alt="logo"
-                  width={96}
-                  className="hidden dark:block"
-                />
-              </Link>
+      <div className="hidden border-r md:block fixed top-0 bottom-0 left-0 w-[280px] pt-4">
+        <nav className="text-sm font-medium flex flex-col h-full overflow-hidden">
+          <Link href="/" className="flex justify-center pb-4">
+            <Image
+              src={logoUrl}
+              alt="logo"
+              width={128}
+              className="dark:hidden"
+            />
+            <Image
+              src={logoDarkUrl}
+              alt="logo"
+              width={96}
+              className="hidden dark:block"
+            />
+          </Link>
+          <div className="flex-1 overflow-y-auto">
+            <div className="flex flex-col gap-2 px-4 pb-4">
               <SidebarButton href="/">
                 <IconHome /> Home
               </SidebarButton>
@@ -104,11 +103,10 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   </SidebarCollapsible>
                 </>
               )}
-            </nav>
+            </div>
           </div>
-        </div>
+        </nav>
       </div>
-      <div className="flex flex-1 flex-col overflow-auto">{children}</div>
     </div>
   )
 }

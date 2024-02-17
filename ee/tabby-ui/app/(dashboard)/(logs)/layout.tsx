@@ -3,5 +3,5 @@ export default function LogsLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <div className="min-h-full p-6">{children}</div>
+  return <div className="p-6 flex flex-col">{children}</div>
 }

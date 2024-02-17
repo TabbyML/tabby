@@ -27,7 +27,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
 }) => {
   return (
     <Table>
-      <TableHeader className="sticky top-0">
+      <TableHeader>
         <TableRow>
           <TableHead className="w-[200px]">Start Time</TableHead>
           <TableHead className="w-[100px]">Duration</TableHead>

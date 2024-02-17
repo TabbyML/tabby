@@ -1,6 +1,5 @@
 'use client'
 
-import { clearTimeout } from 'timers'
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTheme } from 'next-themes'
@@ -37,18 +36,20 @@ export default function JobRunDetail() {
     }
 
     return () => {
-      clearTimeout(timer)
+      if (timer) {
+        clearInterval(timer)
+      }
     }
   }, [currentNode])
 
   return (
-    <div className="flex min-h-full flex-col">
+    <>
       {fetching ? (
         <ListSkeleton />
       ) : (
-        <div className="flex flex-1 flex-col gap-2">
+        <div className="flex flex-1 flex-col gap-2 items-stretch">
           <JobsTable jobs={edges?.slice(0, 1)} shouldRedirect={false} />
-          <Tabs defaultValue="stdout">
+          <Tabs defaultValue="stdout" className="flex-1 flex flex-col">
             <TabsList className="grid w-[400px] grid-cols-2">
               <TabsTrigger value="stdout">
                 <IconTerminalSquare className="mr-1" />
@@ -59,16 +60,18 @@ export default function JobRunDetail() {
                 stderr
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="stdout">
-              <StdoutView value={currentNode?.stdout} />
-            </TabsContent>
-            <TabsContent value="stderr">
-              <StdoutView value={currentNode?.stderr} />
-            </TabsContent>
+            <div className="flex-1 flex flex-col">
+              <TabsContent value="stdout" className="flex-1">
+                <StdoutView value={currentNode?.stdout} />
+              </TabsContent>
+              <TabsContent value="stderr" className="flex-1">
+                <StdoutView value={currentNode?.stderr} />
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
@@ -82,7 +85,7 @@ function StdoutView({
   return (
     <div
       className={cn(
-        'min-h-80 mt-2 w-full overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800',
+        'mt-2 w-full h-full overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800 overflow-y-auto',
         className
       )}
       {...rest}
