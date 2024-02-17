@@ -7,7 +7,6 @@ pub mod worker;
 
 use std::sync::Arc;
 
-
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
     RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
