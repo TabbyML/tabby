@@ -7,7 +7,7 @@ pub mod worker;
 
 use std::sync::Arc;
 
-use anyhow::bail;
+
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
     RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
@@ -85,9 +85,7 @@ pub enum CoreError {
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
-            Self::Forbidden(msg) => {
-                FieldError::new(msg, graphql_value!({"code": "FORBIDDEN"}))
-            }
+            Self::Forbidden(msg) => FieldError::new(msg, graphql_value!({"code": "FORBIDDEN"})),
             Self::Unauthorized(msg) => {
                 FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
             }
@@ -100,7 +98,7 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
 // To make our context usable by Juniper, we have to implement a marker trait.
 impl juniper::Context for Context {}
 
-fn check_claims<'a>(ctx: &'a Context) -> Result<&'a JWTPayload, CoreError> {
+fn check_claims(ctx: &Context) -> Result<&JWTPayload, CoreError> {
     ctx.claims
         .as_ref()
         .ok_or(CoreError::Unauthorized("You're not logged in"))
