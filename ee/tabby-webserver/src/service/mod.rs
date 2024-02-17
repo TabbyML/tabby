@@ -47,10 +47,16 @@ struct ServerContext {
 
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
+
+    is_chat_enabled: bool,
 }
 
 impl ServerContext {
-    pub async fn new(logger: Arc<dyn RawEventLogger>, code: Arc<dyn CodeSearch>) -> Self {
+    pub async fn new(
+        logger: Arc<dyn RawEventLogger>,
+        code: Arc<dyn CodeSearch>,
+        is_chat_enabled: bool,
+    ) -> Self {
         let db_conn = DbConn::new().await.unwrap();
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -66,6 +72,7 @@ impl ServerContext {
             db_conn,
             logger,
             code,
+            is_chat_enabled,
         }
     }
 
@@ -197,6 +204,11 @@ impl WorkerService for ServerContext {
             next.run(request).await
         }
     }
+
+    async fn is_chat_enabled(&self) -> Result<bool> {
+        let num_chat_workers = self.chat.list().len();
+        Ok(num_chat_workers > 0 || self.is_chat_enabled)
+    }
 }
 
 impl ServiceLocator for Arc<ServerContext> {
@@ -236,8 +248,11 @@ impl ServiceLocator for Arc<ServerContext> {
 pub async fn create_service_locator(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
+    is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(Arc::new(ServerContext::new(logger, code).await))
+    Arc::new(Arc::new(
+        ServerContext::new(logger, code, is_chat_enabled).await,
+    ))
 }
 
 pub fn graphql_pagination_to_filter(
