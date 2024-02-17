@@ -91,7 +91,10 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       Mail Delivery
                     </SidebarButton>
                   </SidebarCollapsible>
-                  <SidebarButton href="/jobs"><IconScrollText />Jobs</SidebarButton>
+                  <SidebarButton href="/jobs">
+                    <IconScrollText />
+                    Jobs
+                  </SidebarButton>
                 </>
               )}
             </div>
