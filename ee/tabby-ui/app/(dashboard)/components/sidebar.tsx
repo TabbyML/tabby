@@ -91,17 +91,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       Mail Delivery
                     </SidebarButton>
                   </SidebarCollapsible>
-                  <SidebarCollapsible
-                    title={
-                      <>
-                        <IconScrollText />
-                        Logs
-                      </>
-                    }
-                  >
-                    <SidebarButton href="/jobs">Job Runs</SidebarButton>
-                  </SidebarCollapsible>
-                </>
+     <SidebarButton href="/jobs"><IconScrollText />Jobs</SidebarButton>
               )}
             </div>
           </div>
