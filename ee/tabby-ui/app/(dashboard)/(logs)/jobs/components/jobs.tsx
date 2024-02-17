@@ -5,7 +5,6 @@ import { JobRuns } from './job-list'
 export default function JobRunsPage() {
   return (
     <>
-      <SubHeader>Job runs</SubHeader>
       <JobRuns />
     </>
   )
