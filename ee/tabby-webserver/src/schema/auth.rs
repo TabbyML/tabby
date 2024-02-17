@@ -396,7 +396,6 @@ pub struct OAuthCredential {
     pub provider: OAuthProvider,
     pub client_id: String,
 
-    pub client_secret: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -413,7 +412,7 @@ pub struct UpdateOAuthCredentialInput {
         code = "clientSecret",
         message = "Client secret cannot be empty"
     ))]
-    pub client_secret: String,
+    pub client_secret: Option<String>,
 }
 
 #[async_trait]

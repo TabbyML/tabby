@@ -486,11 +486,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
         match input.provider {
             OAuthProvider::Github => Ok(self
                 .db
-                .update_github_oauth_credential(&input.client_id, &input.client_secret)
+                .update_github_oauth_credential(&input.client_id, input.client_secret.as_deref())
                 .await?),
             OAuthProvider::Google => Ok(self
                 .db
-                .update_google_oauth_credential(&input.client_id, &input.client_secret)
+                .update_google_oauth_credential(&input.client_id, input.client_secret.as_deref())
                 .await?),
         }
     }

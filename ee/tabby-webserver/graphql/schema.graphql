@@ -159,13 +159,12 @@ type UserConnection {
 input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
-  clientSecret: String!
+  clientSecret: String
 }
 
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
-  clientSecret: String!
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
 }

@@ -1,6 +1,6 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use sqlx::{query, FromRow};
+use sqlx::{query, query_scalar, FromRow};
 
 use super::DbConn;
 
@@ -19,10 +19,20 @@ impl DbConn {
     pub async fn update_google_oauth_credential(
         &self,
         client_id: &str,
-        client_secret: &str,
+        client_secret: Option<&str>,
     ) -> Result<()> {
         let client_id = client_id.to_string();
-        let client_secret = client_secret.to_string();
+        let mut transaction = self.pool.begin().await?;
+        let client_secret = match client_secret {
+            Some(secret) => secret.to_string(),
+            None => query_scalar!(
+                "SELECT client_secret FROM google_oauth_credential WHERE id = ?",
+                GOOGLE_OAUTH_CREDENTIAL_ROW_ID
+            )
+            .fetch_one(&mut *transaction)
+            .await
+            .map_err(|_| anyhow!("Must specify client secret when updating the OAuth credential for the first time"))?,
+        };
         query!(
             r#"INSERT INTO google_oauth_credential (id, client_id, client_secret)
                                 VALUES ($1, $2, $3) ON CONFLICT(id) DO UPDATE
@@ -32,8 +42,9 @@ impl DbConn {
             client_id,
             client_secret,
         )
-        .execute(&self.pool)
+        .execute(&mut *transaction)
         .await?;
+        transaction.commit().await?;
         Ok(())
     }
 
@@ -64,7 +75,7 @@ mod tests {
         let conn = DbConn::new_in_memory().await.unwrap();
 
         // test insert
-        conn.update_google_oauth_credential("client_id", "client_secret")
+        conn.update_google_oauth_credential("client_id", Some("client_secret"))
             .await
             .unwrap();
         let res = conn.read_google_oauth_credential().await.unwrap().unwrap();
@@ -77,13 +88,20 @@ mod tests {
         assert!(res.is_none());
 
         // test insert with redirect_uri
-        conn.update_google_oauth_credential("client_id", "client_secret")
+        conn.update_google_oauth_credential("client_id", Some("client_secret"))
             .await
             .unwrap();
         conn.read_google_oauth_credential().await.unwrap().unwrap();
 
+        conn.update_google_oauth_credential("client_id", None)
+            .await
+            .unwrap();
+        let res = conn.read_google_oauth_credential().await.unwrap().unwrap();
+        assert_eq!(res.client_id, "client_id");
+        assert_eq!(res.client_secret, "client_secret");
+
         // test update
-        conn.update_google_oauth_credential("client_id_2", "client_secret_2")
+        conn.update_google_oauth_credential("client_id_2", Some("client_secret_2"))
             .await
             .unwrap();
         let res = conn.read_google_oauth_credential().await.unwrap().unwrap();
