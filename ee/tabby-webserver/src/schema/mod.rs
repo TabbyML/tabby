@@ -7,6 +7,7 @@ pub mod worker;
 
 use std::sync::Arc;
 
+use anyhow::bail;
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
     RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
@@ -68,6 +69,9 @@ pub enum CoreError {
     #[error("{0}")]
     Unauthorized(&'static str),
 
+    #[error("{0}")]
+    Forbidden(&'static str),
+
     #[error("Invalid ID Error")]
     InvalidIDError,
 
@@ -81,6 +85,9 @@ pub enum CoreError {
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
+            Self::Forbidden(msg) => {
+                FieldError::new(msg, graphql_value!({"code": "FORBIDDEN"}))
+            }
             Self::Unauthorized(msg) => {
                 FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
             }
@@ -93,12 +100,19 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
 // To make our context usable by Juniper, we have to implement a marker trait.
 impl juniper::Context for Context {}
 
+fn check_claims<'a>(ctx: &'a Context) -> Result<&'a JWTPayload, CoreError> {
+    ctx.claims
+        .as_ref()
+        .ok_or(CoreError::Unauthorized("You're not logged in"))
+}
+
 fn check_admin(ctx: &Context) -> Result<(), CoreError> {
-    if let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims {
-        Ok(())
-    } else {
-        Err(CoreError::Unauthorized("You must be admin to do that"))
+    let claims = check_claims(ctx)?;
+    if !claims.is_admin {
+        return Err(CoreError::Forbidden("You must be admin to proceed"));
     }
+
+    Ok(())
 }
 
 #[derive(Default)]
@@ -123,12 +137,9 @@ impl Query {
     }
 
     async fn me(ctx: &Context) -> Result<User> {
-        if let Some(claims) = &ctx.claims {
-            let user = ctx.locator.auth().get_user_by_email(&claims.sub).await?;
-            Ok(user)
-        } else {
-            Err(CoreError::Unauthorized("Not logged in"))
-        }
+        let claims = check_claims(ctx)?;
+        let user = ctx.locator.auth().get_user_by_email(&claims.sub).await?;
+        Ok(user)
     }
 
     async fn users(
@@ -243,6 +254,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<Repository>> {
+        check_admin(ctx)?;
         relay::query_async(
             after,
             before,
@@ -318,15 +330,12 @@ impl Mutation {
     }
 
     async fn reset_user_auth_token(ctx: &Context) -> Result<bool> {
-        if let Some(claims) = &ctx.claims {
-            ctx.locator
-                .auth()
-                .reset_user_auth_token(&claims.sub)
-                .await?;
-            Ok(true)
-        } else {
-            Err(CoreError::Unauthorized("You're not logged in"))
-        }
+        let claims = check_claims(ctx)?;
+        ctx.locator
+            .auth()
+            .reset_user_auth_token(&claims.sub)
+            .await?;
+        Ok(true)
     }
 
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
