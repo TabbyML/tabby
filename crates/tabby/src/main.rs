@@ -206,7 +206,7 @@ fn init_logging(otlp_endpoint: Option<String>) {
 
         if let Ok(tracer) = tracer {
             layers.push(tracing_opentelemetry::layer().with_tracer(tracer).boxed());
-            axum_tracing_opentelemetry::init_propagator().unwrap();
+            axum_tracing_opentelemetry::init_propagator().expect("Initializing telemetry");
         };
     }
 

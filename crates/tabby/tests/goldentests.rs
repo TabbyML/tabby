@@ -20,8 +20,11 @@ fn workspace_dir() -> PathBuf {
         .output()
         .unwrap()
         .stdout;
-    let cargo_path = std::path::Path::new(std::str::from_utf8(&output).unwrap().trim());
-    cargo_path.parent().unwrap().to_path_buf()
+    let cargo_path = std::path::Path::new(std::str::from_utf8(&output).expect("Valid path").trim());
+    cargo_path
+        .parent()
+        .expect("Path must have a parent folder")
+        .to_path_buf()
 }
 
 fn tabby_path() -> PathBuf {
@@ -46,7 +49,7 @@ fn initialize_server(gpu_device: Option<&str>) {
             .expect("Failed to start server")
             .wait()
             .await
-            .unwrap();
+            .expect("Failed to start server");
     });
 }
 
