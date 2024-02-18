@@ -1,11 +1,12 @@
 import * as React from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { jwtDecode, JwtPayload } from 'jwt-decode'
-import { useQuery } from 'urql'
 import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
 import { isClientSide } from '@/lib/utils'
+
+import { useIsAdminInitialized } from '../hooks/use-server-info'
 
 interface AuthData {
   accessToken: string
@@ -279,16 +280,10 @@ function useSession(): Session {
   return session
 }
 
-export const getIsAdminInitialized = graphql(/* GraphQL */ `
-  query GetIsAdminInitialized {
-    isAdminInitialized
-  }
-`)
-
 const redirectWhitelist = ['/auth/signin', '/auth/signup']
 
 function useAuthenticatedSession() {
-  const [{ data }] = useQuery({ query: getIsAdminInitialized })
+  const isAdminInitialized = useIsAdminInitialized()
   const router = useRouter()
   const pathName = usePathname()
   const { data: session, status } = useSession()
@@ -296,13 +291,14 @@ function useAuthenticatedSession() {
   React.useEffect(() => {
     if (status === 'loading') return
     if (status === 'authenticated') return
+    if (isAdminInitialized === undefined) return
 
-    if (data?.isAdminInitialized === false) {
+    if (!isAdminInitialized) {
       router.replace('/auth/signup?isAdmin=true')
     } else if (!redirectWhitelist.includes(pathName)) {
       router.replace('/auth/signin')
     }
-  }, [data, status])
+  }, [isAdminInitialized, status])
 
   return session
 }
