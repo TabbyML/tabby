@@ -84,17 +84,17 @@ function StdoutView({
   return (
     <div
       className={cn(
-        'mt-2 h-[33vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800',
+        'mt-2 h-[33vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800 text-[0.9rem] font-mono',
         className
       )}
       {...rest}
     >
       {value ? (
-        <pre className='whitespace-pre-wrap p-4 font-mono'>
+        <pre className='whitespace-pre-wrap p-4'>
           <Ansi>{value}</Ansi>
         </pre>
       ) : (
-        <div className="p-4 font-mono text-[0.9rem]">No Data</div>
+        <div className="p-4">No Data</div>
       )}
     </div>
   )
