@@ -1,11 +1,11 @@
 import React from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import moment from 'moment'
 
 import { ListJobRunsQuery } from '@/lib/gql/generates/graphql'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
-import { IconCheck, IconClose, IconPieChart } from '@/components/ui/icons'
+import { IconCheck, IconClose, IconSpinner } from '@/components/ui/icons'
 import {
   Table,
   TableBody,
@@ -25,6 +25,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
   jobs,
   shouldRedirect = true
 }) => {
+  const router = useRouter()
   return (
     <Table>
       <TableHeader>
@@ -50,18 +51,26 @@ export const JobsTable: React.FC<JobsTableProps> = ({
             {jobs?.map(x => {
               const duration = getJobDuration(x.node)
               return (
-                <TableRow key={x.node.id}>
+                <TableRow
+                  key={x.node.id}
+                  className={cn(shouldRedirect && 'cursor-pointer')}
+                  onClick={e => {
+                    if (shouldRedirect) {
+                      router.push(`/jobs/detail?id=${x.node.id}`)
+                    }
+                  }}
+                >
                   <TableCell>
-                    {moment(x.node.createdAt).format('YYYY-MM-DD HH:mm:ss Z')}
+                    {moment(x.node.createdAt).format('MMMM D, YYYY h:mm a')}
                   </TableCell>
                   <TableCell>{duration ? `${duration}` : 'pending'}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">{x.node.job}</Badge>
                   </TableCell>
-                  <TableCell className="flex justify-center">
-                    <JobStatusAction node={x} shouldRedirect={shouldRedirect}>
+                  <TableCell>
+                    <div className='flex items-center justify-center'>
                       <JobStatusIcon node={x} />
-                    </JobStatusAction>
+                    </div>
                   </TableCell>
                 </TableRow>
               )
@@ -123,33 +132,11 @@ function JobStatusIcon({ node }: { node: TJobRun }) {
 
   // runing, success, error
   if (!finishedAt) {
-    return <IconPieChart />
+    return <IconSpinner />
   }
   if (exitCode === 0) {
     return <IconCheck className="text-successful-foreground" />
   }
 
   return <IconClose className="text-destructive-foreground" />
-}
-
-function JobStatusAction({
-  node,
-  shouldRedirect,
-  children
-}: {
-  shouldRedirect?: boolean
-  node: TJobRun
-  children: React.ReactNode
-}) {
-  if (shouldRedirect) {
-    return (
-      <Link
-        className={buttonVariants({ variant: 'ghost' })}
-        href={`/jobs/detail?id=${node.node.id}`}
-      >
-        {children}
-      </Link>
-    )
-  }
-  return children
 }

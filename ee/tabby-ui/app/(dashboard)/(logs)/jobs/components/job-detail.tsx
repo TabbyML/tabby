@@ -3,7 +3,6 @@
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
-import { useTheme } from 'next-themes'
 import { useQuery } from 'urql'
 
 import { listJobRuns } from '@/lib/tabby/query'
@@ -60,10 +59,10 @@ export default function JobRunDetail() {
               </TabsTrigger>
             </TabsList>
             <div className="flex flex-1 flex-col">
-              <TabsContent value="stdout" className="flex-1">
+              <TabsContent value="stdout">
                 <StdoutView value={currentNode?.stdout} />
               </TabsContent>
-              <TabsContent value="stderr" className="flex-1">
+              <TabsContent value="stderr">
                 <StdoutView value={currentNode?.stderr} />
               </TabsContent>
             </div>
@@ -80,7 +79,6 @@ function StdoutView({
   value,
   ...rest
 }: React.HTMLAttributes<HTMLDivElement> & { value?: string }) {
-  const { theme } = useTheme()
   return (
     <div
       className={cn(

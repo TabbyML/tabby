@@ -62,6 +62,10 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   <SidebarButton href="/cluster">
                     <IconNetwork /> Cluster Information
                   </SidebarButton>
+                  <SidebarButton href="/jobs">
+                    <IconScrollText />
+                    Jobs
+                  </SidebarButton>
                   <SidebarCollapsible
                     title={
                       <>
@@ -91,10 +95,6 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       Mail Delivery
                     </SidebarButton>
                   </SidebarCollapsible>
-                  <SidebarButton href="/jobs">
-                    <IconScrollText />
-                    Jobs
-                  </SidebarButton>
                 </>
               )}
             </div>
