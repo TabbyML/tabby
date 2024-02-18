@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
 
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Header } from '@/components/header'
 
 import Sidebar from './components/sidebar'
@@ -18,15 +17,12 @@ interface DashboardLayoutProps {
 
 export default function RootLayout({ children }: DashboardLayoutProps) {
   return (
-    <>
-      <main className="flex flex-1 flex-col">
-        <Sidebar className="flex-1">
-          <ScrollArea className="max-h-[100vh]">
-            <Header />
-            <div className="p-4">{children}</div>
-          </ScrollArea>
-        </Sidebar>
-      </main>
-    </>
+    <main className="flex flex-1">
+      <Sidebar />
+      <div className="flex min-h-full flex-1 flex-col">
+        <Header />
+        <div className="flex-1 p-4">{children}</div>
+      </div>
+    </main>
   )
 }
