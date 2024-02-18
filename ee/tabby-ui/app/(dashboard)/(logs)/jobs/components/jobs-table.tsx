@@ -32,7 +32,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
         <TableRow>
           <TableHead className="w-[200px]">Start Time</TableHead>
           <TableHead className="w-[100px]">Duration</TableHead>
-          <TableHead className="w-[100px]">Job Type</TableHead>
+          <TableHead className="w-[100px]">Job</TableHead>
           <TableHead className="w-[100px] text-center">Status</TableHead>
         </TableRow>
       </TableHeader>
