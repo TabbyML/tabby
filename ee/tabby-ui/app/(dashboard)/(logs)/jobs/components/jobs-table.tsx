@@ -68,7 +68,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                     <Badge variant="secondary">{x.node.job}</Badge>
                   </TableCell>
                   <TableCell>
-                    <div className='flex items-center justify-center'>
+                    <div className="flex items-center justify-center">
                       <JobStatusIcon node={x} />
                     </div>
                   </TableCell>
