@@ -63,7 +63,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                   <TableCell>
                     {moment(x.node.createdAt).format('MMMM D, YYYY h:mm a')}
                   </TableCell>
-                  <TableCell>{duration ? `${duration}` : 'pending'}</TableCell>
+                  <TableCell>{duration ? `${duration}` : 'Running'}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">{x.node.job}</Badge>
                   </TableCell>
