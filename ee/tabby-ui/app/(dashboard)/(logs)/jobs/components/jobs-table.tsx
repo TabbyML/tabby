@@ -76,7 +76,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                     <Badge variant="secondary">{x.node.job}</Badge>
                   </TableCell>
                   <TableCell>
-                    <div className='flex items-center justify-center'>
+                    <div className="flex items-center justify-center">
                       <JobStatusIcon node={x} />
                     </div>
                   </TableCell>
@@ -138,17 +138,11 @@ function JobStatusIcon({ node }: { node: TJobRun }) {
   const exitCode = node?.node?.exitCode
 
   if (isNil(exitCode)) {
-    return (
-      <IconInfoCircled />
-    )
+    return <IconInfoCircled />
   }
   if (exitCode === 0) {
-    return (
-      <IconCheckCircled />
-    )
+    return <IconCheckCircled />
   }
 
-  return (
-    <IconCrossCircled />
-  )
+  return <IconCrossCircled />
 }
