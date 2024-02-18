@@ -38,7 +38,7 @@ export function JobRuns() {
   }, [edges])
 
   return (
-    <div>
+    <>
       {initialized ? (
         <>
           <JobsTable jobs={displayJobs} />
@@ -56,6 +56,6 @@ export function JobRuns() {
       ) : (
         <ListSkeleton />
       )}
-    </div>
+    </>
   )
 }

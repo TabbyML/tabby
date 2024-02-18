@@ -85,7 +85,7 @@ function StdoutView({
   return (
     <div
       className={cn(
-        'mt-2 h-full w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800',
+        'mt-2 h-[33vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800',
         className
       )}
       {...rest}
