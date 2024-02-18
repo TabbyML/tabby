@@ -25,7 +25,7 @@ function appendCaCerts(certs: Cert[]) {
     return true;
   });
   const merged = [...extraCaCerts, ...filtered].distinct();
-  logger.debug(`Loaded ${merged.length - extraCaCerts.length} a new extra certs.`);
+  logger.debug(`Loaded ${merged.length - extraCaCerts.length} extra certs.`);
   extraCaCerts = merged;
   tls.createSecureContext = (options) => {
     const secureContext = originalCreateSecureContext!(options);
@@ -57,18 +57,15 @@ export async function loadTlsCaCerts(options: AgentConfig["tls"]) {
   if (isBrowser) {
     return;
   }
-  if (options.ca === "default") {
+  if (options.ca === "bundled") {
     return;
   } else if (options.ca === "system") {
     if (process.platform === "win32") {
       logger.debug(`Loading extra certs from win-ca.`);
+      winCa.exe(path.join("win-ca", "roots.exe"));
       winCa({
-        async: true,
         fallback: true,
         inject: "+",
-        ondata: () => {
-          logger.debug(`Receive data from win-ca.`);
-        },
       });
     } else if (process.platform === "darwin") {
       logger.debug(`Loading extra certs from mac-ca.`);
@@ -76,9 +73,9 @@ export async function loadTlsCaCerts(options: AgentConfig["tls"]) {
       appendCaCerts(certs);
     } else {
       // linux: load from openssl cert
-      await loadFromFiles("/etc/ssl/certs/ca-certificates.crt");
+      await loadFromFiles(path.join("/etc/ssl/certs/ca-certificates.crt"));
     }
   } else if (options.ca) {
-    loadFromFiles(options.ca);
+    await loadFromFiles(options.ca);
   }
 }

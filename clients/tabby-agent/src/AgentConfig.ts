@@ -40,7 +40,7 @@ export type AgentConfig = {
     level: "debug" | "error" | "silent";
   };
   tls: {
-    // `default`, `system`, or a string point to cert file
+    // `bundled`, `system`, or a string point to cert file
     ca: string;
   };
   anonymousUsageTracking: {
