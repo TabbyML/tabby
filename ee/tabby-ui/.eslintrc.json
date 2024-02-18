@@ -13,6 +13,7 @@
   "rules": {
     "unused-imports/no-unused-imports": "error",
     "tailwindcss/no-custom-classname": "off",
+    "react-hooks/exhaustive-deps": "error",
     "import/no-restricted-paths": [
       "error",
       {
