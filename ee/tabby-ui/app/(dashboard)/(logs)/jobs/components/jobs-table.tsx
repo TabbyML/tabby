@@ -1,5 +1,6 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
+import { isNil } from 'lodash-es'
 import moment from 'moment'
 
 import { ListJobRunsQuery } from '@/lib/gql/generates/graphql'
@@ -49,7 +50,6 @@ export const JobsTable: React.FC<JobsTableProps> = ({
         ) : (
           <>
             {jobs?.map(x => {
-              const duration = getJobDuration(x.node)
               return (
                 <TableRow
                   key={x.node.id}
@@ -64,7 +64,9 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                     {moment(x.node.createdAt).format('MMMM D, YYYY h:mm a')}
                   </TableCell>
                   <TableCell>
-                    {x.node?.finishedAt ? 'Running' : `${duration ?? '-'}`}
+                    {isNil(x.node?.exitCode)
+                      ? 'Running'
+                      : getJobDuration(x.node)}
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{x.node.job}</Badge>
@@ -91,7 +93,7 @@ function getJobDuration({
   createdAt: string
   finishedAt?: string
 }) {
-  if (!finishedAt) return undefined
+  if (!createdAt || !finishedAt) return undefined
 
   let duration = moment.duration(moment(finishedAt).diff(createdAt))
   return formatDuration(duration)
@@ -129,16 +131,16 @@ function formatDuration(duration: moment.Duration) {
 
 function JobStatusIcon({ node }: { node: TJobRun }) {
   if (!node) return null
-  const finishedAt = node?.node?.finishedAt
   const exitCode = node?.node?.exitCode
 
-  // runing, success, error
-  if (!finishedAt) {
+  // runing
+  if (isNil(exitCode)) {
     return <IconSpinner />
   }
+  // success
   if (exitCode === 0) {
     return <IconCheck className="text-successful-foreground" />
   }
-
+  // error
   return <IconClose className="text-destructive-foreground" />
 }
