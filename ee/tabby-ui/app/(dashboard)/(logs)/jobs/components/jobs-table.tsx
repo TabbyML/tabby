@@ -6,7 +6,11 @@ import moment from 'moment'
 import { ListJobRunsQuery } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { IconCheck, IconClose, IconSpinner } from '@/components/ui/icons'
+import {
+  IconCheckCircled,
+  IconCrossCircled,
+  IconInfoCircled
+} from '@/components/ui/icons'
 import {
   Table,
   TableBody,
@@ -72,7 +76,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                     <Badge variant="secondary">{x.node.job}</Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center justify-center">
+                    <div className='flex items-center justify-center'>
                       <JobStatusIcon node={x} />
                     </div>
                   </TableCell>
@@ -133,14 +137,18 @@ function JobStatusIcon({ node }: { node: TJobRun }) {
   if (!node) return null
   const exitCode = node?.node?.exitCode
 
-  // runing
   if (isNil(exitCode)) {
-    return <IconSpinner />
+    return (
+      <IconInfoCircled />
+    )
   }
-  // success
   if (exitCode === 0) {
-    return <IconCheck className="text-successful-foreground" />
+    return (
+      <IconCheckCircled />
+    )
   }
-  // error
-  return <IconClose className="text-destructive-foreground" />
+
+  return (
+    <IconCrossCircled />
+  )
 }
