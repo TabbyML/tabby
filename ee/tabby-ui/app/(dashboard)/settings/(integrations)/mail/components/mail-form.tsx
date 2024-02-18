@@ -148,7 +148,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
           className="flex flex-col items-start gap-4"
           onSubmit={form.handleSubmit(onSubmit)}
         >
-          <div className="flex gap-8">
+          <div className="flex flex-col gap-8 lg:flex-row">
             <FormField
               control={form.control}
               name="smtpServer"
@@ -234,7 +234,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
               </FormItem>
             )}
           />
-          <div className="flex gap-8">
+          <div className="flex flex-col gap-8 lg:flex-row">
             <FormField
               control={form.control}
               name="smtpUsername"
