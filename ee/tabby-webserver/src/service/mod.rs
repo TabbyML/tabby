@@ -6,6 +6,7 @@ mod proxy;
 mod repository;
 mod setting;
 mod worker;
+mod license;
 
 use std::{net::SocketAddr, sync::Arc};
 
