@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
+import Ansi from '@curvenote/ansi-to-react'
 import { useTheme } from 'next-themes'
 import { useQuery } from 'urql'
 
@@ -12,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { JobsTable } from './jobs-table'
-import Ansi from '@curvenote/ansi-to-react';
 
 export default function JobRunDetail() {
   const searchParams = useSearchParams()
@@ -84,13 +84,13 @@ function StdoutView({
   return (
     <div
       className={cn(
-        'mt-2 h-[33vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 dark:bg-gray-800 text-[0.9rem] font-mono',
+        'mt-2 h-[33vh] w-full overflow-y-auto overflow-x-hidden rounded-lg border bg-gray-50 font-mono text-[0.9rem] dark:bg-gray-800',
         className
       )}
       {...rest}
     >
       {value ? (
-        <pre className='whitespace-pre-wrap p-4'>
+        <pre className="whitespace-pre-wrap p-4">
           <Ansi>{value}</Ansi>
         </pre>
       ) : (
