@@ -3,8 +3,6 @@
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { coldarkDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import { useQuery } from 'urql'
 
 import { listJobRuns } from '@/lib/tabby/query'
@@ -14,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { JobsTable } from './jobs-table'
+import Ansi from '@curvenote/ansi-to-react';
 
 export default function JobRunDetail() {
   const searchParams = useSearchParams()
@@ -91,24 +90,9 @@ function StdoutView({
       {...rest}
     >
       {value ? (
-        <SyntaxHighlighter
-          wrapLongLines
-          language="bash"
-          style={theme === 'dark' ? coldarkDark : undefined}
-          PreTag="div"
-          customStyle={{
-            margin: 0,
-            background: 'transparent'
-          }}
-          codeTagProps={{
-            style: {
-              fontSize: '0.9rem',
-              fontFamily: 'var(--font-mono)'
-            }
-          }}
-        >
-          {value ?? ''}
-        </SyntaxHighlighter>
+        <pre className='whitespace-pre-wrap p-4 font-mono'>
+          <Ansi>{value}</Ansi>
+        </pre>
       ) : (
         <div className="p-4 font-mono text-[0.9rem]">No Data</div>
       )}
