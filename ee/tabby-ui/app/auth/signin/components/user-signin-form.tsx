@@ -8,6 +8,7 @@ import * as z from 'zod'
 
 import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
+import { useIsEmailConfigured } from '@/lib/hooks/use-server-info'
 import { useSession, useSignIn } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -24,7 +25,6 @@ import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
 import { ResetPasswordDialog } from './reset-password-dialog'
-import { useIsEmailConfigured } from '@/lib/hooks/use-server-info'
 
 export const tokenAuth = graphql(/* GraphQL */ `
   mutation tokenAuth($email: String!, $password: String!) {
