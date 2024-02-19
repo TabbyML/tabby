@@ -4,7 +4,6 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { useQuery } from 'urql'
 import * as z from 'zod'
 
 import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
@@ -25,6 +24,7 @@ import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
 import { ResetPasswordDialog } from './reset-password-dialog'
+import { useIsEmailConfigured } from '@/lib/hooks/use-server-info'
 
 export const tokenAuth = graphql(/* GraphQL */ `
   mutation tokenAuth($email: String!, $password: String!) {
@@ -32,12 +32,6 @@ export const tokenAuth = graphql(/* GraphQL */ `
       accessToken
       refreshToken
     }
-  }
-`)
-
-const isEmailConfigured = graphql(/* GraphQL */ `
-  query GetIsEmailConfigured {
-    isEmailConfigured
   }
 `)
 
@@ -55,8 +49,7 @@ export default function UserSignInForm({
   invitationCode,
   ...props
 }: UserAuthFormProps) {
-  const [{ data }] = useQuery({ query: isEmailConfigured })
-  const showForgotPasswordBtn = !!data?.isEmailConfigured
+  const isEmailConfigured = useIsEmailConfigured()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema)
   })
@@ -124,7 +117,7 @@ export default function UserSignInForm({
         </form>
         <FormMessage className="text-center" />
       </Form>
-      {showForgotPasswordBtn && (
+      {!!isEmailConfigured && (
         <ResetPasswordDialog>
           <div className="cursor-pointer p-1 text-right text-sm text-primary hover:underline">
             Forgot password?
