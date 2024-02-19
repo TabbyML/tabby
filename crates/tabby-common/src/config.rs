@@ -67,7 +67,7 @@ impl Config {
 }
 
 lazy_static! {
-    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][a-zA-Z0-9-]+$").unwrap();
+    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.-]+$").unwrap();
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
