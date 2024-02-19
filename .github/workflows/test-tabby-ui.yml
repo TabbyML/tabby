@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/test-tabby-ui.yml'
       - 'ee/tabby-ui/**'
+      - 'ee/tabby-webserver/graphql/**'
 
 concurrency:
   group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 

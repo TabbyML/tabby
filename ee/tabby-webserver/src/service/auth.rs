@@ -23,7 +23,7 @@ use crate::{
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
             PasswordResetError, RefreshTokenError, RefreshTokenResponse, RegisterError,
             RegisterResponse, RequestInvitationInput, TokenAuthError, TokenAuthResponse,
-            UpdateOAuthCredentialInput, User, 
+            UpdateOAuthCredentialInput, User,
         },
         email::{EmailService, SendEmailError},
         setting::SettingService,
