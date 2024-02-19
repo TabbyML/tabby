@@ -64,7 +64,7 @@ impl GithubClient {
         credential: OAuthCredential,
     ) -> Result<GithubOAuthResponse> {
         let Some(client_secret) = credential.client_secret else {
-            return Err(anyhow!("No client_secret presents"));
+            return Err(anyhow!("No client_secret present"));
         };
 
         let params = [
