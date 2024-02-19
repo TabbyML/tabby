@@ -14,8 +14,7 @@ pub enum LicenseType {
 }
 
 #[derive(Debug, Deserialize)]
-pub enum LicenseAddon {
-}
+pub enum LicenseAddon {}
 
 #[derive(Debug, Deserialize)]
 pub struct LicenseInfo {
@@ -39,15 +38,21 @@ pub struct LicenseInfo {
     pub add: Vec<LicenseAddon>,
 
     /// Count of license (# of seats).
-    pub cnt: usize,
+    pub num: usize,
 }
 
-pub fn validate_license(token: &str) -> jwt::errors::Result<LicenseInfo> {
+pub fn validate_license(token: &str) -> Result<LicenseInfo, jwt::errors::ErrorKind> {
     let mut validation = jwt::Validation::new(jwt::Algorithm::RS512);
     validation.set_issuer(&["tabbyml.com"]);
-    validation.set_required_spec_claims(&["exp", "iat", "sub", "iss", "typ", "add", "cnt"]);
-    let data = jwt::decode::<LicenseInfo>(token, &LICENSE_DECODING_KEY, &validation)?;
-    Ok(data.claims)
+    validation.set_required_spec_claims(&["exp", "iat", "sub", "iss"]);
+    let data = jwt::decode::<LicenseInfo>(token, &LICENSE_DECODING_KEY, &validation);
+    let data = data.map_err(|err| match err.kind() {
+        jwt::errors::ErrorKind::Json(err) => {
+            jwt::errors::ErrorKind::MissingRequiredClaim(err.to_string())
+        }
+        _ => err.into_kind()
+    });
+    Ok(data?.claims)
 }
 
 #[cfg(test)]
@@ -57,7 +62,7 @@ mod tests {
 
     #[test]
     fn test_validate_license() {
-        let token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDcyOTgxMDIsImV4cCI6MTkwNzM5ODcwMiwidHlwIjoiVEVBTSIsImNudCI6MTB9.YSx02tyQMJ3v3e4jnOnJ_3V_XEsbyVLzbJJfcgDrlsm-0fYPppH1VI7w3LiNR1Gd3oJZDW5bvKoKyeRpBlxVcFw1ke0CN_IQLFGEmAw-xkVY07_VzaHF8azbfHS4-PHDBzW-DdpGvidxLXT7bYm3JskJDC22z-fTp9xnP799xAIEzyDK4x0Lphc_f3TbTw9kgh2obKsek6HEJ8eJN03CsyIONPS2cakGgOgnJof9Ni7tnRFs0WOdqoQiAKK_F8vd0xsMVA3cGQNsT-Mnd-_XjUyuiommmIB9NXrdg67854x5pvWDP3a4FqfTgwTxqQrtCsMvkKDwQ59fyaEakW_ohvKkJnaCkkRbWrGaoFODI5vghNf7BA_tAR7pxoWt6El-u85YEdW9z5jdlhkGLkr-Xd3GjEg_D8b1T6KKd-8Rz6iIcJp4YhGNJkiA5svkvhvI09QVRcO98e94FAsMkM9t3VJ21mQ8nBbhgMmCzIuufbY3RyNSQfFMt6tKnIuXhwSwvFsVY6ib72B_zd4oEUstTW7F-eBONG_FXOo7-VQ8yttvjtwjvoAmieKz1XP4Luj8DaAFnqXQRqTy2JzoDtP7zyLqtz6wLm-N2GAtpcskbPkmAIJb3cCdhtNNxMqqy4vTRL_xkVv_L2aWjbOdIxr9q9bUfdZ2iYxJWZl8H31uw6I";
+        let token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTgwNzM5ODcwMiwidHlwIjoiVEVBTSIsIm51bSI6MTB9.vVo7PDevytGw2KXU5E-KMdJBijwOWsD1zKIf26rcjfxa3wDesGY40zuYZWyZFMfmAtBTO7DBgqdWnriHnF_HOnoAEDCycrgoxuSJW5TS9XsCWto-3rDhUsjRZ1wls-ztQu3Gxo_84UHUFwrXe-RHmJi_3w_YO-2L-nVw7JDd5zR8CEdLxeccD47vBrumYA7ybultoDHpHxSppjHlW1VPXavoaBIO1Twnbf52uJlbzJmloViDxoq-_9lxcN1hDN3KKE3crzO9uHK4jjZy_1KNHhCIIcnINek6SBl6lWZw9R88UfdP6uaVOTOHDFbGwv544TSLA_oKZXXntXhldKCp94YN8J4djHim91WwYBQARrpQKiQGP1APEQQdv_YO4iUC3QTLOVw_NMjyma0feVjzHYAap_2Q9HgnxyJfMH-KiH2zaR6BcdOfWV86crO5M0qNoP-XOgy4uU8eE2-PevOKM6uVwYiwoNZL4e9ttH6ratJj0tyqGW_3HYpsVyThzqDPisEz95knsrVL-iagwHRd00l6Mqfwcjbn-gOuUOV9knRIpPvUmfKjjjHgb-JI0qMAIdgeVtwQp0pNqPsKwenMwkpYQH1awfuB_Ia7SyMUNEzTAY8k_J4R6kCZ5XKJ2VTCljd9aJFSZpw-K57reUX1eLc6-Cwt1iI4d23M5UlYjvs";
         let license = validate_license(token).unwrap();
         assert_eq!(license.iss, "tabbyml.com");
         assert_eq!(license.sub, "fake@tabbyml.com");
@@ -67,10 +72,15 @@ mod tests {
 
     #[test]
     fn test_expired_license() {
-        let token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDcxOTgxMDIsImV4cCI6MTcwNzM5ODcwMiwidHlwIjoiVEVBTSIsImNudCI6MTB9.rX19CUESvvICiNRv4m9Yhq-xAJ_0XUq9thqV4MRNdmIdvDw4DskCJ0m7dKf1o_t4YTmffCA_-9gVR7O1Yn-Zpe6l717gSOcxQfI3hjReJYhwHvsST1FEWP0G6KbhicuMF6hv-nvLdnXEIVJ6xF_Hga0stDtcZ3Eed1H1y_hBdO7qjKkVQ22nhn6uFEgL9_xm9uWNDxRxcehZrxS4i20O3Q6qlsqWog_rmYjPfMbh8beHwwtkE4FBRB5I-Y_AIXb9NZHCSAiYkSCQTssi8opl6c5KM2BnnAkbiwR10Jg5jVoQBld6VeSmuYIrs82RxdIyEMu3Dx2mjxwyCzIMGAjUAV5EdPvCpoIzCAZ2Qw9DJFSbnq8Tfldle6DcpdNqWPH4I7V4ecZvW3E-vLUN3saAhbvvhwqIxXiZsxKneVKfp7Cs-9mjQz5Hm02KtfLtnnL1_LzgA8p2lHGXTTpvLZxztJEgdapZRMs34QA4ERvcBmYQUgARymVxQdey9uRJJB_7r27YW-gr-_KOtW8zfJULV7tnigUjhXooyTovyj7KU8FSwBf7yiP0aD4dzkdF8Sva33ELABSPEUpl3HT8NjdtryQQf763Ua9Gs1BaNFcsup0DjkQO1yEFp6qPxLj4DfIEOOSNRRhQk-mb2N60Qh8GxKMoi8tkL3CzPVOrqlFMwEE";
+        let token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTcwNzM5ODcwMiwidHlwIjoiVEVBTSIsIm51bSI6MTB9.19wrmSSZUQAj_nfnBljUARD3vz_XEIDh4wpi_U2P6LDRcvm7QYCro__LxUjIf45aE9BBiZCPBRTVOw_tMbegTAv5yK9G9cllGPdRDKWjf24BJpHt2wBKOwhCToUKp8R8D50bQ3cxHuz7J3XxcOMtwKxNRlwaufO-vgxX73v13z_bN6y5ix8FC5JEjY1z3fNPc_TnuuHnaXXqgqL9OJTrxhh5FErqR52kmxGGn2KCM8rm2Nfu0It2IZQuyJHSceZ3-iiIxsrVdXxbO4KHXLEOXos0xJRV8QG9_9VjAo6qui6BioygwrcPqHT7OoG3WfcT8XE9rcEX-s9PZ54_XxLm0yh81g54xPI92n94pe32XfE9T-YXNK3MLAdZWwDhp_sKXTcMSIr7mI9OA7eczZUpvI4BuDM8s1irNx4DKdfTwNchHDfEPmGmO53RHyVEbrS72jF9GBRBIwPmpGppWhcwpVNmlRJw3j1Sa_ttcGikPnBZBrUxGqzynq4q1VpeCpRoTzO9_nw5eciKMpaKww0P5Edqm5kKgg48aABfsTU3hLqTIr9rgjXePL_gEse6MJX_JC8I7-R17iQmMxKiNa9bTqSIk56qlB6gwZTzcjEtpnYlzZ05Ci6D3JBH9ZdO_F3UZDt5JdAD5dqsKl8PfWpxaWpg7FXNlqxYO9BpxCwr_7g";
         let license = validate_license(token);
-        assert!(license.is_err());
-        let err = license.unwrap_err();
-        assert_eq!(err.kind(), &jwt::errors::ErrorKind::ExpiredSignature);
+        assert_matches!(license, Err(jwt::errors::ErrorKind::ExpiredSignature));
+    }
+
+    #[test]
+    fn test_missing_field() {
+        let token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTgwNzM5ODcwMiwidHlwIjoiVEVBTSJ9.Xdp7Tgi39RN3qBfDAT_RncCDF2lSSouT4fjR0YT8F4qN8qkocxgvCa6JyxlksaiqGKWb_aYJvkhCviMHnT_pnoNpR8YaLvB4vezEAdDWLf3jBqzhlsrCCbMGh72wFYKRIODhIHeTzldU4F06I9sz5HdtQpn42Q8WC8tAzG109vHtxcdC7D85u0CumJ35DcV7lTfpfIkil3PORReg0ysjZNjQ2JbiFqMF1VbBmC-DsoTrJoHlrxdHowMQsXv89C80pchx4UFSm7Z9tHiMUTOzfErScsGJI1VC5p8SYA3N4nsrPn-iup1CxOBIdK57BHedKGpd_hi1AVWYB4zXcc8HzzpqgwHulfaw_5vNvRMdkDGj3X2afU3O3rZ4jT_KLGjY-3Krgol8JHgJYiPXkBypiajFU6rVeMLScx-X-2-n3KBdR4GQ9la90QHSyIQUpiGRRfPhviBFDtAfcjJYo1Irlu6MGVhgFq9JH5SOVTn57V0A_VeAbj8WZNdML9hio9xqxP86DprnP_ApHpO_xbi-sx2GCmUyfC10eKnX8_sAB1n7z0AaHz4e-6SGm1I-wQsWcXjZfRYw0Vtogz7wVuyAIpm8lF58XjtOwQ9bP1kD03TGIcBTvEtgA6QUhRcximGJ5buK9X2TTd4TlHjFF1krrmYAUEDgFsorseoKvMkspVE";
+        let license = validate_license(token);
+        assert_matches!(license, Err(jwt::errors::ErrorKind::MissingRequiredClaim(_)));
     }
 }
