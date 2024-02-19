@@ -107,6 +107,30 @@ std::string string_format(const std::string& format, Args ... args)
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
+void sorted_insert_in_capacity(std::vector<size_t>& max_vec, size_t num_index, const float* nums) {
+  size_t max_nums = max_vec.capacity();
+  if (max_vec.empty()) {
+    max_vec.push_back(num_index);
+    return;
+  }
+  int i = max_vec.size();
+  while (i > 0 && nums[num_index] > nums[max_vec[i - 1]]) {
+    i--;
+  }
+  max_vec.insert(max_vec.begin() + i, num_index);
+  if (max_vec.size() > max_nums) {
+    max_vec.resize(max_nums);
+  }
+}
+    
+std::vector<size_t> nmax(const float* nums, size_t len, size_t n) {
+  std::vector<size_t> max(n);
+  for (int i = 0; i < len; i++) {
+   sorted_insert_in_capacity(max, i, nums); 
+  }
+  return max;
+}
+
 float compute_softmax_inplace(float* nums, size_t len, float temperature) {
   float sum = 0;
   float max = *std::max_element(nums, nums + len);
@@ -280,6 +304,11 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
+            // TODO: Replace this logic with nmax 5 to get indices
+            // then construct an array of logits (floats) from indices
+            // then run softmax on that array
+            // then run weighted_random on that array to get an index
+            // note: we might not actually need nmax since we'll need to check the predicate on each index (logit) first
         compute_softmax_inplace(logits, n_vocab, request.temperature());
         const llama_token next_token = weighted_random(ctx_.get(), &request, logits, n_vocab);
         request.n_past += request.tokens.size();
