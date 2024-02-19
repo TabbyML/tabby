@@ -61,6 +61,7 @@ impl From<GithubOAuthCredentialDAO> for OAuthCredential {
             client_id: val.client_id,
             created_at: val.created_at,
             updated_at: val.updated_at,
+            client_secret: Some(val.client_secret),
         }
     }
 }
@@ -72,6 +73,7 @@ impl From<GoogleOAuthCredentialDAO> for OAuthCredential {
             client_id: val.client_id,
             created_at: val.created_at,
             updated_at: val.updated_at,
+            client_secret: Some(val.client_secret),
         }
     }
 }
