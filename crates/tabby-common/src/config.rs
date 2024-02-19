@@ -183,7 +183,13 @@ mod tests {
     }
 
     #[test]
-    fn test_repository_name_regex() {
-        assert!(!REPOSITORY_NAME_REGEX.is_match("3tabby"));
+    fn test_validate_repository_name() {
+        assert!(!RepositoryConfig::validate_name("3tabby"));
+        assert!(!RepositoryConfig::validate_name("_tabby"));
+        assert!(RepositoryConfig::validate_name("tabby"));
+        assert!(RepositoryConfig::validate_name("tabby_ml"));
+        assert!(RepositoryConfig::validate_name(
+            "https_github.com_TabbyML_tabby.git"
+        ));
     }
 }
