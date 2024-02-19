@@ -36,15 +36,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
-interface PasswordResetFormProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ResetPasswordFormProps extends React.HTMLAttributes<HTMLDivElement> {
   code?: string
 }
 
-export function PasswordResetForm({
+export function ResetPasswordForm({
   className,
   code,
   ...props
-}: PasswordResetFormProps) {
+}: ResetPasswordFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {

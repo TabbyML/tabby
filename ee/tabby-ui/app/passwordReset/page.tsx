@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 
-import PasswordReset from './components/passwordReset'
+import ResetPasswordPage from './components/reset-password-page'
 
 export const metadata: Metadata = {
   title: 'Reset password'
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center">
-      <PasswordReset />
+      <ResetPasswordPage />
     </div>
   )
 }

@@ -2,9 +2,9 @@
 
 import { useSearchParams } from 'next/navigation'
 
-import { PasswordResetForm } from './password-reset-form'
+import { ResetPasswordForm } from './reset-password-form'
 
-export default function ResetPassword() {
+export default function ResetPasswordPage() {
   const searchParams = useSearchParams()
   const code = searchParams.get('code') || undefined
 
@@ -16,7 +16,7 @@ export default function ResetPassword() {
         </h1>
         <p className="text-sm text-muted-foreground">Enter a new password</p>
       </div>
-      <PasswordResetForm code={code} />
+      <ResetPasswordForm code={code} />
     </div>
   )
 }
