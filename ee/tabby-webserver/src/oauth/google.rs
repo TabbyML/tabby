@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use serde::Deserialize;
 
@@ -65,8 +65,13 @@ impl GoogleClient {
         credential: OAuthCredential,
         redirect_uri: String,
     ) -> Result<GoogleOAuthResponse> {
+        let Some(client_secret) = credential.client_secret else {
+            return Err(anyhow!("No client_secret presents"));
+        };
+
         let params = [
             ("client_id", credential.client_id.as_str()),
+            ("client_secret", client_secret.as_str()),
             ("code", code.as_str()),
             ("grant_type", "authorization_code"),
             ("redirect_uri", redirect_uri.as_str()),
