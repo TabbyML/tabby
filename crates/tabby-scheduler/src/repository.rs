@@ -18,7 +18,7 @@ impl RepositoryExt for RepositoryConfig {
 
         if !finished {
             std::fs::create_dir_all(&dir)
-                .unwrap_or_else(|_| panic!("Failed to create dir {}", dir.display().to_string()));
+                .unwrap_or_else(|_| panic!("Failed to create dir {}", dir.display()));
             let status = Command::new("git")
                 .current_dir(dir.parent().unwrap())
                 .arg("clone")
