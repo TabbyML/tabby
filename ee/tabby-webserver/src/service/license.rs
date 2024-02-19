@@ -1,6 +1,6 @@
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 lazy_static! {
     static ref LICENSE_DECODING_KEY: jwt::DecodingKey =
@@ -43,15 +43,16 @@ pub fn validate_license(token: &str) -> Result<LicenseInfo, jwt::errors::ErrorKi
         jwt::errors::ErrorKind::Json(err) => {
             jwt::errors::ErrorKind::MissingRequiredClaim(err.to_string())
         }
-        _ => err.into_kind()
+        _ => err.into_kind(),
     });
     Ok(data?.claims)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use assert_matches::assert_matches;
+
+    use super::*;
 
     #[test]
     fn test_validate_license() {
@@ -73,6 +74,9 @@ mod tests {
     fn test_missing_field() {
         let token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTgwNzM5ODcwMiwidHlwIjoiVEVBTSJ9.Xdp7Tgi39RN3qBfDAT_RncCDF2lSSouT4fjR0YT8F4qN8qkocxgvCa6JyxlksaiqGKWb_aYJvkhCviMHnT_pnoNpR8YaLvB4vezEAdDWLf3jBqzhlsrCCbMGh72wFYKRIODhIHeTzldU4F06I9sz5HdtQpn42Q8WC8tAzG109vHtxcdC7D85u0CumJ35DcV7lTfpfIkil3PORReg0ysjZNjQ2JbiFqMF1VbBmC-DsoTrJoHlrxdHowMQsXv89C80pchx4UFSm7Z9tHiMUTOzfErScsGJI1VC5p8SYA3N4nsrPn-iup1CxOBIdK57BHedKGpd_hi1AVWYB4zXcc8HzzpqgwHulfaw_5vNvRMdkDGj3X2afU3O3rZ4jT_KLGjY-3Krgol8JHgJYiPXkBypiajFU6rVeMLScx-X-2-n3KBdR4GQ9la90QHSyIQUpiGRRfPhviBFDtAfcjJYo1Irlu6MGVhgFq9JH5SOVTn57V0A_VeAbj8WZNdML9hio9xqxP86DprnP_ApHpO_xbi-sx2GCmUyfC10eKnX8_sAB1n7z0AaHz4e-6SGm1I-wQsWcXjZfRYw0Vtogz7wVuyAIpm8lF58XjtOwQ9bP1kD03TGIcBTvEtgA6QUhRcximGJ5buK9X2TTd4TlHjFF1krrmYAUEDgFsorseoKvMkspVE";
         let license = validate_license(token);
-        assert_matches!(license, Err(jwt::errors::ErrorKind::MissingRequiredClaim(_)));
+        assert_matches!(
+            license,
+            Err(jwt::errors::ErrorKind::MissingRequiredClaim(_))
+        );
     }
 }
