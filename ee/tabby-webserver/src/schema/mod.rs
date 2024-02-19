@@ -11,7 +11,6 @@ use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
     RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
 };
-use futures::TryFutureExt;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
