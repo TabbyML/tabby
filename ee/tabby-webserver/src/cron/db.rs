@@ -9,12 +9,10 @@ use tracing::error;
 
 use crate::schema::auth::AuthenticationService;
 
-async fn auth_job<F>(
-    auth: Arc<dyn AuthenticationService>,
-    job: fn(Arc<dyn AuthenticationService>) -> F,
-) -> Result<Job>
+async fn service_job<F, S>(auth: Arc<S>, job: fn(Arc<S>) -> F) -> Result<Job>
 where
     F: Future<Output = Result<()>> + 'static + Send,
+    S: Send + Sync + 'static + ?Sized,
 {
     // job is run every 2 hours
     let job = Job::new_async("0 0 1/2 * * * *", move |_, _| {
@@ -31,7 +29,7 @@ where
 }
 
 pub async fn refresh_token_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
-    auth_job(
+    service_job(
         auth,
         |auth| async move { auth.delete_expired_token().await },
     )
@@ -39,7 +37,7 @@ pub async fn refresh_token_job(auth: Arc<dyn AuthenticationService>) -> Result<J
 }
 
 pub async fn password_reset_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
-    auth_job(auth, |auth| async move {
+    service_job(auth, |auth| async move {
         auth.delete_expired_password_resets().await
     })
     .await

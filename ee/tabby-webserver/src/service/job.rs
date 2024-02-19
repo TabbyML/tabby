@@ -27,6 +27,11 @@ impl JobService for DbConn {
         Ok(())
     }
 
+    async fn delete_null_exit_code_job_runs(&self) -> Result<()> {
+        (self as &DbConn).delete_null_exit_code_job_runs().await?;
+        Ok(())
+    }
+
     async fn list_job_runs(
         &self,
         ids: Option<Vec<ID>>,
