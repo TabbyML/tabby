@@ -93,7 +93,7 @@ impl LicenseService for DbConn {
 
     async fn update_license(&self, license: Option<String>) -> Result<()> {
         if let Some(license) = &license {
-            validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
+            validate_license(license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
         }
         (self as &DbConn).update_enterprise_license(license).await?;
         todo!()
