@@ -39,7 +39,7 @@ pub fn validate_license(token: &str) -> Result<LicenseInfo, jwt::errors::ErrorKi
     validation.set_required_spec_claims(&["exp", "iat", "sub", "iss"]);
     let data = jwt::decode::<LicenseInfo>(token, &LICENSE_DECODING_KEY, &validation);
     let data = data.map_err(|err| match err.kind() {
-        // Map json missing field error as missing required claims.
+        // Map json error (missing failed, parse error) as missing required claims.
         jwt::errors::ErrorKind::Json(err) => {
             jwt::errors::ErrorKind::MissingRequiredClaim(err.to_string())
         }
