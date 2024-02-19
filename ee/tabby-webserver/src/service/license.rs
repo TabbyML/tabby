@@ -1,6 +1,12 @@
+use anyhow::{anyhow, Result};
+use async_trait::async_trait;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
+use tabby_db::DbConn;
+
+use crate::schema::license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType};
 
 lazy_static! {
     static ref LICENSE_DECODING_KEY: jwt::DecodingKey =
@@ -34,11 +40,11 @@ pub struct LicenseInfo {
     pub num: usize,
 }
 
-pub fn validate_license(token: &str) -> Result<LicenseInfo, jwt::errors::ErrorKind> {
+pub fn validate_license(token: &str) -> Result<RawLicenseInfo, jwt::errors::ErrorKind> {
     let mut validation = jwt::Validation::new(jwt::Algorithm::RS512);
     validation.set_issuer(&["tabbyml.com"]);
     validation.set_required_spec_claims(&["exp", "iat", "sub", "iss"]);
-    let data = jwt::decode::<LicenseInfo>(token, &LICENSE_DECODING_KEY, &validation);
+    let data = jwt::decode::<RawLicenseInfo>(token, &LICENSE_DECODING_KEY, &validation);
     let data = data.map_err(|err| match err.kind() {
         // Map json error (missing failed, parse error) as missing required claims.
         jwt::errors::ErrorKind::Json(err) => {
@@ -47,6 +53,51 @@ pub fn validate_license(token: &str) -> Result<LicenseInfo, jwt::errors::ErrorKi
         _ => err.into_kind(),
     });
     Ok(data?.claims)
+}
+
+fn jwt_timestamp_to_utc(f: f64) -> Result<DateTime<Utc>> {
+    let secs = f as i64;
+    Ok(NaiveDateTime::from_timestamp_millis(secs * 1000)
+        .ok_or_else(|| anyhow!("Timestamp is corrupt"))?
+        .and_utc())
+}
+
+#[async_trait]
+impl LicenseService for DbConn {
+    async fn get_license_info(&self) -> Result<Option<LicenseInfo>> {
+        let Some(license) = self.read_enterprise_license().await? else {
+            return Ok(None);
+        };
+        let license =
+            validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
+
+        let issued_at = jwt_timestamp_to_utc(license.iat)?;
+        let expires_at = jwt_timestamp_to_utc(license.exp)?;
+
+        let status = if expires_at < Utc::now() {
+            LicenseStatus::Expired
+        } else {
+            LicenseStatus::Ok
+        };
+
+        let license = LicenseInfo {
+            r#type: LicenseType::Team,
+            status,
+            seats: license.num as i32,
+            issued_at,
+            expires_at,
+        };
+
+        Ok(Some(license))
+    }
+
+    async fn update_license(&self, license: Option<String>) -> Result<()> {
+        if let Some(license) = &license {
+            validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
+        }
+        (self as &DbConn).update_enterprise_license(license).await?;
+        todo!()
+    }
 }
 
 #[cfg(test)]

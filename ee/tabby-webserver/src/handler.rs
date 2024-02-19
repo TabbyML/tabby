@@ -82,7 +82,7 @@ async fn distributed_tabby_layer(
 async fn server_setting(
     State(locator): State<Arc<dyn ServiceLocator>>,
 ) -> Result<Json<ServerSetting>, StatusCode> {
-    let setting = match locator.setting().read_security_setting().await {
+    let security_setting = match locator.setting().read_security_setting().await {
         Ok(x) => x,
         Err(err) => {
             warn!("Failed to read security setting {}", err);
@@ -91,6 +91,6 @@ async fn server_setting(
     };
 
     Ok(Json(ServerSetting {
-        disable_client_side_telemetry: setting.disable_client_side_telemetry,
+        disable_client_side_telemetry: security_setting.disable_client_side_telemetry,
     }))
 }

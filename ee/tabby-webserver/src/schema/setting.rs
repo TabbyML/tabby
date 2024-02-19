@@ -5,6 +5,8 @@ use async_trait::async_trait;
 use juniper::{GraphQLInputObject, GraphQLObject};
 use validator::{validate_email, Validate, ValidationError};
 
+use super::license::LicenseInfo;
+
 #[async_trait]
 pub trait SettingService: Send + Sync {
     async fn read_security_setting(&self) -> Result<SecuritySetting>;
@@ -35,6 +37,11 @@ pub struct SecuritySettingInput {
     pub disable_client_side_telemetry: bool,
 }
 
+#[derive(GraphQLObject)]
+pub struct BillingSetting {
+    pub enterprise_license: Option<LicenseInfo>,
+}
+
 #[derive(GraphQLObject, Debug, PartialEq)]
 pub struct NetworkSetting {
     pub external_url: String,
@@ -44,6 +51,11 @@ pub struct NetworkSetting {
 pub struct NetworkSettingInput {
     #[validate(url(code = "externalUrl", message = "URL is malformed"))]
     pub external_url: String,
+}
+
+#[derive(GraphQLInputObject, Debug, PartialEq)]
+pub struct BillingSettingInput {
+    pub enterprise_license: Option<String>,
 }
 
 fn validate_unique_domains(domains: &[String]) -> Result<(), ValidationError> {

@@ -32,6 +32,7 @@ use crate::schema::{
     auth::AuthenticationService,
     email::EmailService,
     job::JobService,
+    license::LicenseService,
     repository::RepositoryService,
     setting::SettingService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
@@ -242,6 +243,10 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn setting(&self) -> Arc<dyn SettingService> {
+        Arc::new(self.db_conn.clone())
+    }
+
+    fn license(&self) -> Arc<dyn LicenseService> {
         Arc::new(self.db_conn.clone())
     }
 }

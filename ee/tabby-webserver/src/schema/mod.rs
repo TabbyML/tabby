@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod email;
 pub mod job;
+pub mod license;
 pub mod repository;
 pub mod setting;
 pub mod worker;
@@ -28,9 +29,11 @@ use worker::{Worker, WorkerService};
 use self::{
     auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
     email::{EmailService, EmailSetting, EmailSettingInput},
+    license::LicenseService,
     repository::RepositoryService,
     setting::{
-        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+        BillingSetting, BillingSettingInput, NetworkSetting, NetworkSettingInput, SecuritySetting,
+        SecuritySettingInput, SettingService,
     },
 };
 use crate::schema::{
@@ -47,6 +50,7 @@ pub trait ServiceLocator: Send + Sync {
     fn repository(&self) -> Arc<dyn RepositoryService>;
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
+    fn license(&self) -> Arc<dyn LicenseService>;
 }
 
 pub struct Context {
@@ -298,6 +302,12 @@ impl Query {
             allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
         })
     }
+
+    async fn billing_setting(ctx: &Context) -> Result<BillingSetting> {
+        check_admin(ctx)?;
+        let enterprise_license = ctx.locator.license().get_license_info().await?;
+        Ok(BillingSetting { enterprise_license })
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -493,6 +503,15 @@ impl Mutation {
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
         check_admin(ctx)?;
         ctx.locator.email().delete_email_setting().await?;
+        Ok(true)
+    }
+
+    async fn update_billing_setting(ctx: &Context, input: BillingSettingInput) -> Result<bool> {
+        check_admin(ctx)?;
+        ctx.locator
+            .license()
+            .update_license(input.enterprise_license)
+            .await?;
         Ok(true)
     }
 }
