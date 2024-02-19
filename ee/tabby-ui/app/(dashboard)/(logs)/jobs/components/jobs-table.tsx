@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import humanizerDuration from 'humanize-duration'
 
 type TJobRun = ListJobRunsQuery['jobRuns']['edges'][0]
 interface JobsTableProps {
@@ -35,17 +36,17 @@ export const JobsTable: React.FC<JobsTableProps> = ({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[200px]">Start Time</TableHead>
-          <TableHead className="w-[100px]">Duration</TableHead>
-          <TableHead className="w-[100px]">Job</TableHead>
-          <TableHead className="w-[100px] text-center">Status</TableHead>
+          <TableHead className="w-[35%]">Start Time</TableHead>
+          <TableHead className="w-[35%]">Duration</TableHead>
+          <TableHead className="w-[15%]">Job</TableHead>
+          <TableHead className="w-[15%] text-center">Status</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {!jobs?.length ? (
           <TableRow>
             <TableCell
-              colSpan={shouldRedirect ? 4 : 3}
+              colSpan={4}
               className="h-[100px] text-center"
             >
               No Data
@@ -99,38 +100,8 @@ function getJobDuration({
 }) {
   if (!createdAt || !finishedAt) return undefined
 
-  let duration = moment.duration(moment(finishedAt).diff(createdAt))
-  return formatDuration(duration)
-}
-
-function formatDuration(duration: moment.Duration) {
-  const hours = duration.hours()
-  const minutes = duration.minutes()
-  const seconds = duration.seconds()
-
-  let formattedDuration = ''
-
-  if (hours > 0) {
-    formattedDuration += `${hours}h`
-  }
-
-  if (minutes > 0) {
-    if (formattedDuration.length > 0) {
-      formattedDuration += ' '
-    }
-
-    formattedDuration += `${minutes}min`
-  }
-
-  if (seconds > 0) {
-    if (formattedDuration.length > 0) {
-      formattedDuration += ' '
-    }
-
-    formattedDuration += `${seconds}s`
-  }
-
-  return formattedDuration
+  let duration = moment.duration(moment(finishedAt).diff(createdAt)).asMilliseconds()
+  return humanizerDuration(duration)
 }
 
 function JobStatusIcon({ node }: { node: TJobRun }) {
