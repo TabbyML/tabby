@@ -51,7 +51,7 @@ export default function MailTestingForm({
                 <FormItem>
                   <FormControl>
                     <Input
-                      placeholder={PLACEHOLDER_EMAIL_FORM}
+                      placeholder={`e.g. ${PLACEHOLDER_EMAIL_FORM}`}
                       type="email"
                       autoCapitalize="none"
                       autoComplete="email"
