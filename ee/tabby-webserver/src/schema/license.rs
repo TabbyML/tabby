@@ -9,7 +9,7 @@ pub enum LicenseType {
     TEAM,
 }
 
-#[derive(GraphQLEnum)]
+#[derive(GraphQLEnum, PartialEq, Debug)]
 pub enum LicenseStatus {
     Ok,
     Expired,
