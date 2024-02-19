@@ -97,7 +97,7 @@ impl ServerContext {
             return (false, None);
         };
         if let Ok(jwt) = self.auth.verify_access_token(token).await {
-            return (true, Some(jwt.claims.sub));
+            return (true, Some(jwt.sub));
         }
         match self.db_conn.verify_auth_token(token).await {
             Ok(email) => (true, Some(email)),

@@ -248,17 +248,6 @@ impl RefreshTokenResponse {
     }
 }
 
-#[derive(Debug)]
-pub struct VerifyTokenResponse {
-    pub claims: JWTPayload,
-}
-
-impl VerifyTokenResponse {
-    pub fn new(claims: JWTPayload) -> Self {
-        Self { claims }
-    }
-}
-
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct JWTPayload {
     /// Expiration time (as UTC timestamp)
@@ -438,7 +427,7 @@ pub trait AuthenticationService: Send + Sync {
     ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError>;
     async fn delete_expired_token(&self) -> Result<()>;
     async fn delete_expired_password_resets(&self) -> Result<()>;
-    async fn verify_access_token(&self, access_token: &str) -> Result<VerifyTokenResponse>;
+    async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 

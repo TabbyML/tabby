@@ -23,7 +23,7 @@ use crate::{
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
             PasswordResetError, RefreshTokenError, RefreshTokenResponse, RegisterError,
             RegisterResponse, RequestInvitationInput, TokenAuthError, TokenAuthResponse,
-            UpdateOAuthCredentialInput, User, VerifyTokenResponse,
+            UpdateOAuthCredentialInput, User, 
         },
         email::{EmailService, SendEmailError},
         setting::SettingService,
@@ -332,10 +332,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
-    async fn verify_access_token(&self, access_token: &str) -> Result<VerifyTokenResponse> {
+    async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload> {
         let claims = validate_jwt(access_token)?;
-        let resp = VerifyTokenResponse::new(claims);
-        Ok(resp)
+        Ok(claims)
     }
 
     async fn is_admin_initialized(&self) -> Result<bool> {

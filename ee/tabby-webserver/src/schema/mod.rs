@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
-    RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
+    RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
 };
 use futures::TryFutureExt;
 use job::{JobRun, JobService};
