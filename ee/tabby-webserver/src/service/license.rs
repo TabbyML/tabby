@@ -81,7 +81,7 @@ impl LicenseService for DbConn {
         };
 
         let license = LicenseInfo {
-            r#type: LicenseType::Team,
+            r#type: LicenseType::TEAM,
             status,
             seats: license.num as i32,
             issued_at,
@@ -112,7 +112,7 @@ mod tests {
         let license = validate_license(token).unwrap();
         assert_eq!(license.iss, "tabbyml.com");
         assert_eq!(license.sub, "fake@tabbyml.com");
-        assert_matches!(license.typ, LicenseType::Team);
+        assert_matches!(license.typ, LicenseType::TEAM);
     }
 
     #[test]

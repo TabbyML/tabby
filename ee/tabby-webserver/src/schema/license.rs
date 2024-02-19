@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize, GraphQLEnum)]
 pub enum LicenseType {
-    Team,
+    TEAM,
 }
 
 #[derive(GraphQLEnum)]
