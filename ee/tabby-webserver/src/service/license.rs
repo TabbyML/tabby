@@ -96,7 +96,7 @@ impl LicenseService for DbConn {
             validate_license(license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
         }
         (self as &DbConn).update_enterprise_license(license).await?;
-        todo!()
+        Ok(())
     }
 }
 
@@ -142,7 +142,7 @@ mod tests {
             .await
             .is_err());
 
-        let token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTgwNzM5ODcwMiwidHlwIjoiVEVBTSJ9.Xdp7Tgi39RN3qBfDAT_RncCDF2lSSouT4fjR0YT8F4qN8qkocxgvCa6JyxlksaiqGKWb_aYJvkhCviMHnT_pnoNpR8YaLvB4vezEAdDWLf3jBqzhlsrCCbMGh72wFYKRIODhIHeTzldU4F06I9sz5HdtQpn42Q8WC8tAzG109vHtxcdC7D85u0CumJ35DcV7lTfpfIkil3PORReg0ysjZNjQ2JbiFqMF1VbBmC-DsoTrJoHlrxdHowMQsXv89C80pchx4UFSm7Z9tHiMUTOzfErScsGJI1VC5p8SYA3N4nsrPn-iup1CxOBIdK57BHedKGpd_hi1AVWYB4zXcc8HzzpqgwHulfaw_5vNvRMdkDGj3X2afU3O3rZ4jT_KLGjY-3Krgol8JHgJYiPXkBypiajFU6rVeMLScx-X-2-n3KBdR4GQ9la90QHSyIQUpiGRRfPhviBFDtAfcjJYo1Irlu6MGVhgFq9JH5SOVTn57V0A_VeAbj8WZNdML9hio9xqxP86DprnP_ApHpO_xbi-sx2GCmUyfC10eKnX8_sAB1n7z0AaHz4e-6SGm1I-wQsWcXjZfRYw0Vtogz7wVuyAIpm8lF58XjtOwQ9bP1kD03TGIcBTvEtgA6QUhRcximGJ5buK9X2TTd4TlHjFF1krrmYAUEDgFsorseoKvMkspVE";
+        let token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTgwNzM5ODcwMiwidHlwIjoiVEVBTSIsIm51bSI6MTB9.vVo7PDevytGw2KXU5E-KMdJBijwOWsD1zKIf26rcjfxa3wDesGY40zuYZWyZFMfmAtBTO7DBgqdWnriHnF_HOnoAEDCycrgoxuSJW5TS9XsCWto-3rDhUsjRZ1wls-ztQu3Gxo_84UHUFwrXe-RHmJi_3w_YO-2L-nVw7JDd5zR8CEdLxeccD47vBrumYA7ybultoDHpHxSppjHlW1VPXavoaBIO1Twnbf52uJlbzJmloViDxoq-_9lxcN1hDN3KKE3crzO9uHK4jjZy_1KNHhCIIcnINek6SBl6lWZw9R88UfdP6uaVOTOHDFbGwv544TSLA_oKZXXntXhldKCp94YN8J4djHim91WwYBQARrpQKiQGP1APEQQdv_YO4iUC3QTLOVw_NMjyma0feVjzHYAap_2Q9HgnxyJfMH-KiH2zaR6BcdOfWV86crO5M0qNoP-XOgy4uU8eE2-PevOKM6uVwYiwoNZL4e9ttH6ratJj0tyqGW_3HYpsVyThzqDPisEz95knsrVL-iagwHRd00l6Mqfwcjbn-gOuUOV9knRIpPvUmfKjjjHgb-JI0qMAIdgeVtwQp0pNqPsKwenMwkpYQH1awfuB_Ia7SyMUNEzTAY8k_J4R6kCZ5XKJ2VTCljd9aJFSZpw-K57reUX1eLc6-Cwt1iI4d23M5UlYjvs";
         service.update_license(Some(token.into())).await.unwrap();
         assert!(service.get_license_info().await.unwrap().is_some());
 
