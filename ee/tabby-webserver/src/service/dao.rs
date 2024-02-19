@@ -145,7 +145,7 @@ impl AsRowid for juniper::ID {
             .decode(self)
             .first()
             .map(|i| *i as i32)
-            .ok_or(CoreError::InvalidIDError)
+            .ok_or(CoreError::InvalidID)
     }
 }
 

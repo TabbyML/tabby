@@ -74,8 +74,11 @@ pub enum CoreError {
     #[error("{0}")]
     Forbidden(&'static str),
 
-    #[error("Invalid ID Error")]
-    InvalidIDError,
+    #[error("Your license is not valid for this feature")]
+    InvalidLicense,
+
+    #[error("Invalid ID")]
+    InvalidID,
 
     #[error("Invalid input parameters")]
     InvalidInput(#[from] ValidationErrors),
