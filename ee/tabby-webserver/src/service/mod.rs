@@ -2,6 +2,7 @@ mod auth;
 mod dao;
 mod email;
 mod job;
+mod license;
 mod proxy;
 mod repository;
 mod setting;
