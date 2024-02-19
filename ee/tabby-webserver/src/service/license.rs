@@ -15,10 +15,10 @@ pub enum LicenseType {
 #[derive(Debug, Deserialize)]
 pub struct LicenseInfo {
     /// Expiration time (as UTC timestamp)
-    pub exp: f64,
+    pub exp: i64,
 
     /// Issued at (as UTC timestamp)
-    pub iat: f64,
+    pub iat: i64,
 
     /// Issuer
     pub iss: String,
