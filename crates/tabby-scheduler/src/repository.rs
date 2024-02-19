@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fs, process::Command};
+use std::{collections::HashSet, fs, path::Path, process::Command};
 
 use anyhow::{anyhow, Result};
 use tabby_common::{config::RepositoryConfig, path::repositories_dir};
@@ -11,32 +11,50 @@ trait RepositoryExt {
 impl RepositoryExt for RepositoryConfig {
     fn sync(&self) -> Result<()> {
         let dir = self.dir();
-        let dir_string = dir.display().to_string();
-        let status = if dir.exists() {
-            Command::new("git").current_dir(&dir).arg("pull").status()
-        } else {
+        let mut finished = false;
+        if dir.exists() {
+            finished = pull_remote(dir.as_path())?;
+        }
+
+        if !finished {
             std::fs::create_dir_all(&dir)
-                .unwrap_or_else(|_| panic!("Failed to create dir {}", dir_string));
-            Command::new("git")
+                .unwrap_or_else(|_| panic!("Failed to create dir {}", dir.display().to_string()));
+            let status = Command::new("git")
                 .current_dir(dir.parent().unwrap())
                 .arg("clone")
                 .arg(&self.git_url)
                 .arg(dir)
-                .status()
-        };
+                .status()?;
 
-        if let Some(code) = status?.code() {
-            if code != 0 {
-                return Err(anyhow!(
-                    "Failed to pull remote '{}'. Consider remove dir '{}' and retry",
-                    &self.git_url,
-                    &dir_string
-                ));
+            if let Some(code) = status.code() {
+                if code != 0 {
+                    return Err(anyhow!(
+                        "Failed to pull remote '{}'. Please check your repository configuration",
+                        &self.git_url,
+                    ));
+                }
             }
         }
 
         Ok(())
     }
+}
+
+fn pull_remote(path: &Path) -> std::io::Result<bool> {
+    let status = Command::new("git").current_dir(path).arg("pull").status()?;
+
+    if let Some(code) = status.code() {
+        if code != 0 {
+            warn!(
+                "Failed to pull remote for `{:?}`, It will now be removed...",
+                path
+            );
+            fs::remove_dir_all(path)?;
+            return Ok(false);
+        }
+    };
+
+    Ok(true)
 }
 
 pub fn sync_repositories(repositories: &[RepositoryConfig]) -> Result<()> {
