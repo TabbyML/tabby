@@ -10,11 +10,7 @@ lazy_static! {
 #[derive(Debug, Deserialize)]
 pub enum LicenseType {
     TEAM,
-    ENTERPRISE,
 }
-
-#[derive(Debug, Deserialize)]
-pub enum LicenseAddon {}
 
 #[derive(Debug, Deserialize)]
 pub struct LicenseInfo {
@@ -33,11 +29,7 @@ pub struct LicenseInfo {
     /// License Type
     pub typ: LicenseType,
 
-    /// License addons.
-    #[serde(skip)]
-    pub add: Vec<LicenseAddon>,
-
-    /// Count of license (# of seats).
+    /// Number of license (# of seats).
     pub num: usize,
 }
 
@@ -68,7 +60,6 @@ mod tests {
         assert_eq!(license.iss, "tabbyml.com");
         assert_eq!(license.sub, "fake@tabbyml.com");
         assert_matches!(license.typ, LicenseType::TEAM);
-        assert!(license.add.is_empty());
     }
 
     #[test]
