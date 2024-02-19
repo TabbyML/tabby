@@ -5,6 +5,7 @@ use crate::DbConn;
 
 #[derive(Debug, PartialEq, FromRow)]
 pub struct ServerSettingDAO {
+    enterprise_license: Option<String>,
     security_allowed_register_domain_list: Option<String>,
     pub security_disable_client_side_telemetry: bool,
     pub network_external_url: String,
@@ -26,10 +27,12 @@ impl DbConn {
         &self,
         transaction: &mut Transaction<'_, Sqlite>,
     ) -> Result<Option<ServerSettingDAO>> {
-        let setting: Option<ServerSettingDAO> = sqlx::query_as("SELECT security_disable_client_side_telemetry, network_external_url, security_allowed_register_domain_list FROM server_setting WHERE id = ?;")
-            .bind(SERVER_SETTING_ROW_ID)
-            .fetch_optional(&mut **transaction)
-            .await?;
+        let setting: Option<ServerSettingDAO> = sqlx::query_as(
+            "SELECT security_disable_client_side_telemetry, network_external_url, security_allowed_register_domain_list, enterprise_license
+            FROM server_setting WHERE id = ?;"
+        ).bind(SERVER_SETTING_ROW_ID)
+        .fetch_optional(&mut **transaction)
+        .await?;
         Ok(setting)
     }
 
@@ -73,6 +76,30 @@ impl DbConn {
                 ON CONFLICT(id) DO UPDATE SET network_external_url = $2",
             SERVER_SETTING_ROW_ID,
             external_url
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn read_enterprise_license(&self) -> Result<Option<String>> {
+        Ok(
+            sqlx::query_scalar("SELECT enterprise_license FROM server_setting WHERE id = ?;")
+                .bind(SERVER_SETTING_ROW_ID)
+                .fetch_one(&self.pool)
+                .await?,
+        )
+    }
+
+    pub async fn update_enterprise_license(
+        &self,
+        enterprise_license: Option<String>,
+    ) -> Result<()> {
+        query!(
+            "INSERT INTO server_setting (id, enterprise_license) VALUES ($1, $2)
+                    ON CONFLICT(id) DO UPDATE SET enterprise_license = $2",
+            SERVER_SETTING_ROW_ID,
+            enterprise_license
         )
         .execute(&self.pool)
         .await?;
