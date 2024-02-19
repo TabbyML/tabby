@@ -66,7 +66,7 @@ impl GoogleClient {
         redirect_uri: String,
     ) -> Result<GoogleOAuthResponse> {
         let Some(client_secret) = credential.client_secret else {
-            return Err(anyhow!("No client_secret presents"));
+            return Err(anyhow!("No client_secret present"));
         };
 
         let params = [
