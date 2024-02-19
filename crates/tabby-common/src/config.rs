@@ -149,7 +149,7 @@ impl RepositoryAccess for ConfigRepositoryAccess {
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, RepositoryConfig, REPOSITORY_NAME_REGEX};
+    use super::{Config, RepositoryConfig};
 
     #[test]
     fn it_parses_empty_config() {
