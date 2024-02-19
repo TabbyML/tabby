@@ -138,6 +138,7 @@ function getLanguage(lang: LanguageName | string, ext?: string) {
     case 'javascript-typescript':
       return 'tsx'
     case 'shellscript':
+    case 'bash':
       return 'shell'
     default:
       return lang as LanguageName

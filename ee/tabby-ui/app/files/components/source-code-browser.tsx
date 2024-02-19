@@ -1,14 +1,16 @@
 'use client'
 
-import React, { PropsWithChildren, useState } from 'react'
+import React, { PropsWithChildren } from 'react'
 import dynamic from 'next/dynamic'
-import { compact, findIndex, has } from 'lodash-es'
+import filename2prism from 'filename2prism'
+import { compact, findIndex } from 'lodash-es'
+import mime from 'mime'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import fetcher from '@/lib/tabby/fetcher'
-import type { ResolveEntriesResponse, TFile, TFileMeta } from '@/lib/types'
+import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import {
   ResizableHandle,
@@ -24,6 +26,7 @@ import {
   sortFileTree,
   type TFileTreeNode
 } from './file-tree'
+import { RawContentPanel } from './raw-content-panel'
 import {
   getDirectoriesFromPath,
   resolveBasenameFromPath,
@@ -35,8 +38,6 @@ const SourceCodeEditor = dynamic(() => import('./source-code-editor'), {
   ssr: false
 })
 
-type TCodeMap = Record<string, string>
-type TFileMetaMap = Record<string, TFileMeta>
 /**
  * FileMap example
  * {
@@ -61,10 +62,6 @@ type TFileMapItem = {
 type TFileMap = Record<string, TFileMapItem>
 
 type SourceCodeBrowserContextValue = {
-  codeMap: Record<string, string>
-  setCodeMap: React.Dispatch<React.SetStateAction<TCodeMap>>
-  fileMetaMap: TFileMetaMap
-  setFileMetaMap: React.Dispatch<React.SetStateAction<TFileMetaMap>>
   activePath: string | undefined
   setActivePath: (path: string | undefined) => void
   fileMap: TFileMap
@@ -104,17 +101,15 @@ const SourceCodeBrowserContextProvider: React.FC<
 
   const [initialized, setInitialized] = React.useState(false)
   const [fileMap, setFileMap] = React.useState<TFileMap>({})
-  const [codeMap, setCodeMap] = useState<TCodeMap>({})
-  const [fileMetaMap, setFileMetaMap] = useState<TFileMetaMap>({})
   const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(new Set())
 
   const updateFileMap = (map: TFileMap) => {
     if (!map) return
 
-    setFileMap({
-      ...fileMap,
+    setFileMap(prevMap => ({
+      ...prevMap,
       ...map
-    })
+    }))
   }
 
   const toggleExpandedKey = (key: string) => {
@@ -148,10 +143,6 @@ const SourceCodeBrowserContextProvider: React.FC<
       value={{
         initialized,
         setInitialized,
-        codeMap,
-        setCodeMap,
-        fileMetaMap,
-        setFileMetaMap,
         activePath,
         setActivePath,
         fileMap,
@@ -178,11 +169,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const {
     activePath,
     setActivePath,
-    codeMap,
-    setCodeMap,
     updateFileMap,
-    fileMetaMap,
-    setFileMetaMap,
     fileMap,
     initialized,
     setInitialized,
@@ -200,16 +187,16 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     return resolveBasenameFromPath(activePath)
   }, [activePath])
 
-  const shouldFetchRawFile = React.useMemo(() => {
-    const isFile = activePath && fileMap?.[activePath]?.file?.kind === 'file'
-    return isFile && !has(codeMap, activePath)
-  }, [activePath, fileMap, codeMap])
-
-  const shouldFetchFileMeta = React.useMemo(() => {
-    const isFile = activePath && fileMap?.[activePath]?.file?.kind === 'file'
-    return isFile && !has(fileMetaMap, activePath)
-  }, [activePath, fileMap, codeMap])
-
+  const isFileActive =
+    activePath && fileMap?.[activePath]?.file?.kind === 'file'
+  const activeEntry = activePath ? fileMap?.[activePath]?.file : undefined
+  const showDirectoryPanel = activeEntry?.kind === 'dir' || activePath === ''
+  const fileDisplayType = React.useMemo(() => {
+    return activePath && isFileActive ? getFileDisplayType(activePath) : ''
+  }, [activePath, isFileActive])
+  const showCodeEditor = fileDisplayType === 'text'
+  const showRawFilePanel =
+    fileDisplayType === 'image' || fileDisplayType === 'raw'
   const shouldFetchSubDir = React.useMemo(() => {
     if (!initialized) return false
 
@@ -219,15 +206,18 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   // fetch raw file
   const { data: fileContent } = useSWRImmutable(
-    shouldFetchRawFile
+    isFileActive
       ? `/repositories/${activeRepoName}/resolve/${activeBasename}`
       : null,
-    (url: string) => fetcher(url, { format: 'text' })
+    (url: string) =>
+      fetcher(url, {
+        format: ['image', 'raw'].includes(fileDisplayType) ? 'blob' : 'text'
+      })
   )
 
   // fetch active file meta
   const { data: fileMeta } = useSWRImmutable(
-    shouldFetchFileMeta
+    isFileActive
       ? `/repositories/${activeRepoName}/meta/${activeBasename}`
       : null,
     fetcher
@@ -264,32 +254,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [])
 
   React.useEffect(() => {
-    const afterFetchRawFile = () => {
-      if (fileContent && activePath) {
-        setCodeMap(map => ({
-          ...map,
-          [activePath]: fileContent
-        }))
-      }
-    }
-
-    afterFetchRawFile()
-  }, [fileContent])
-
-  React.useEffect(() => {
-    const afterFetchMeta = () => {
-      if (fileMeta && activePath) {
-        setFileMetaMap(map => ({
-          ...map,
-          [activePath]: fileMeta
-        }))
-      }
-    }
-
-    afterFetchMeta()
-  }, [fileMeta])
-
-  React.useEffect(() => {
     const afterFetchSubTree = () => {
       if (subTree?.entries?.length && activePath) {
         const repoName = resolveRepoNameFromPath(activePath)
@@ -320,10 +284,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     afterFetchSubTree()
   }, [subTree])
 
-  const activeEntry = activePath ? fileMap?.[activePath]?.file : undefined
-  const showEditor = activeEntry?.kind === 'file'
-  const showDirectoryPanel = activeEntry?.kind === 'dir' || activePath === ''
-
   return (
     <ResizablePanelGroup direction="horizontal" className={cn(className)}>
       <ResizablePanel defaultSize={20} minSize={20}>
@@ -353,11 +313,19 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
                 showDirectoryPanel ? 'block' : 'hidden'
               }`}
             />
-            <SourceCodeEditor
-              className={`rounded-lg border py-2 ${
-                showEditor ? 'block' : 'hidden'
-              }`}
-            />
+            {showCodeEditor && (
+              <SourceCodeEditor
+                className={`rounded-lg border py-2`}
+                value={fileContent}
+                meta={fileMeta}
+              />
+            )}
+            {showRawFilePanel && (
+              <RawContentPanel
+                className={`rounded-lg border py-2 `}
+                value={fileContent}
+              />
+            )}
           </div>
         </div>
       </ResizablePanel>
@@ -476,6 +444,24 @@ async function initFileMap(path?: string) {
   }
 }
 
+function getFileDisplayType(path: string) {
+  const mimeTextList = ['application/toml']
+  const mimeType = mime.getType(path)
+  const detectedLanguage = filename2prism(path)?.[0]
+
+  if (mimeType?.startsWith('image')) return 'image'
+  // FIXME
+  if (
+    (!detectedLanguage && !mimeType) ||
+    detectedLanguage ||
+    mimeType?.startsWith('application') ||
+    mimeType?.startsWith('text') ||
+    (mimeType && mimeTextList.includes(mimeType))
+  )
+    return 'text'
+  return 'raw'
+}
+
 export type { TFileMap, TFileMapItem }
 
-export { SourceCodeBrowserContext, SourceCodeBrowser }
+export { SourceCodeBrowserContext, SourceCodeBrowser, getFileDisplayType }

@@ -4,6 +4,7 @@ import { EditorView } from '@codemirror/view'
 import filename2prism from 'filename2prism'
 import { useTheme } from 'next-themes'
 
+import { TFileMeta } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { CodeMirrorEditor } from '@/components/codemirror/codemirror'
 import { markTagNameExtension } from '@/components/codemirror/name-tag-extension'
@@ -14,21 +15,23 @@ import { SourceCodeBrowserContext } from './source-code-browser'
 
 interface SourceCodeEditorProps {
   className?: string
+  value?: string
+  meta?: TFileMeta
 }
 
-const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
-  const { activePath, codeMap, fileMetaMap } = useContext(
-    SourceCodeBrowserContext
-  )
+const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
+  className,
+  value,
+  meta
+}) => {
+  const { activePath } = useContext(SourceCodeBrowserContext)
   const { theme } = useTheme()
+
   const detectedLanguage = activePath
     ? filename2prism(activePath)[0]
     : undefined
-  const activeCodeContent = activePath ? codeMap?.[activePath] ?? '' : ''
-  const language = activePath
-    ? fileMetaMap?.[activePath]?.language ?? detectedLanguage
-    : ''
-  const tags = activePath ? fileMetaMap?.[activePath]?.tags : undefined
+  const language = (meta?.language ?? detectedLanguage) || ''
+  const tags = meta?.tags
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -46,7 +49,7 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
         }
       })
     ]
-    if (activeCodeContent && tags) {
+    if (value && tags) {
       result.push(
         markTagNameExtension(tags),
         codeTagHoverTooltip(tags),
@@ -54,13 +57,13 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
       )
     }
     return result
-  }, [activeCodeContent, tags])
+  }, [value, tags])
 
   return (
     <div className={cn('source-code-browser', className)}>
       <CodeMirrorEditor
         key={activePath}
-        value={activeCodeContent}
+        value={value}
         theme={theme}
         language={language}
         readonly
