@@ -117,10 +117,13 @@ void sorted_insert_in_capacity(std::vector<size_t>& max_vec, size_t num_index, c
   while (i > 0 && nums[num_index] > nums[max_vec[i - 1]]) {
     i--;
   }
-  max_vec.insert(max_vec.begin() + i, num_index);
-  if (max_vec.size() > max_nums) {
-    max_vec.resize(max_nums);
+  if (i == max_vec.size()) {
+    return;
   }
+  for (int j = max_vec.size() - 1; j > i; j--) {
+    max_vec[j] = max_vec[j - 1];
+  }
+  max_vec[i] = num_index;
 }
     
 std::vector<size_t> nmax(const float* nums, size_t len, size_t n) {
