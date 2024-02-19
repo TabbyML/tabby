@@ -22,7 +22,7 @@ type Mutation {
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
   register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
-  verifyToken(token: String!): VerifyTokenResponse!
+  verifyToken(token: String!): Boolean!
   refreshToken(refreshToken: String!): RefreshTokenResponse!
   createInvitation(email: String!): ID!
   sendTestEmail(to: String!): Boolean!
@@ -45,17 +45,6 @@ type RepositoryEdge {
 
 "DateTime"
 scalar DateTimeUtc
-
-type JWTPayload {
-  "Expiration time (as UTC timestamp)"
-  exp: Float!
-  "Issued at (as UTC timestamp)"
-  iat: Float!
-  "User email address"
-  sub: String!
-  "Whether the user is admin."
-  isAdmin: Boolean!
-}
 
 type JobRun {
   id: ID!
@@ -181,10 +170,6 @@ input PasswordResetInput {
   code: String!
   password1: String!
   password2: String!
-}
-
-type VerifyTokenResponse {
-  claims: JWTPayload!
 }
 
 type Invitation {

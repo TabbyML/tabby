@@ -390,8 +390,9 @@ impl Mutation {
         ctx.locator.auth().token_auth(email, password).await
     }
 
-    async fn verify_token(ctx: &Context, token: String) -> Result<VerifyTokenResponse> {
-        Ok(ctx.locator.auth().verify_access_token(&token).await?)
+    async fn verify_token(ctx: &Context, token: String) -> Result<bool> {
+        ctx.locator.auth().verify_access_token(&token).await?;
+        Ok(true)
     }
 
     async fn refresh_token(

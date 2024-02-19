@@ -248,7 +248,7 @@ impl RefreshTokenResponse {
     }
 }
 
-#[derive(Debug, GraphQLObject)]
+#[derive(Debug)]
 pub struct VerifyTokenResponse {
     pub claims: JWTPayload,
 }
@@ -259,13 +259,13 @@ impl VerifyTokenResponse {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, GraphQLObject)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct JWTPayload {
     /// Expiration time (as UTC timestamp)
-    exp: f64,
+    exp: i64,
 
     /// Issued at (as UTC timestamp)
-    iat: f64,
+    iat: i64,
 
     /// User email address
     pub sub: String,
@@ -278,8 +278,8 @@ impl JWTPayload {
     pub fn new(email: String, is_admin: bool) -> Self {
         let now = jwt::get_current_timestamp();
         Self {
-            iat: now as f64,
-            exp: (now + *JWT_DEFAULT_EXP) as f64,
+            iat: now as i64,
+            exp: (now + *JWT_DEFAULT_EXP) as i64,
             sub: email,
             is_admin,
         }
