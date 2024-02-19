@@ -157,7 +157,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
                   <FormLabel required>SMTP Server Host</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="smtp.gmail.com"
+                      placeholder="e.g. smtp.gmail.com"
                       autoCapitalize="none"
                       autoComplete="off"
                       autoCorrect="off"
@@ -178,7 +178,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
                   <FormControl>
                     <Input
                       type="number"
-                      placeholder="25"
+                      placeholder="e.g. 25"
                       className="w-80 min-w-max"
                       {...field}
                     />
@@ -196,7 +196,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
                 <FormLabel required>From</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="from@gmail.com"
+                    placeholder="e.g. from@gmail.com"
                     type="email"
                     autoCapitalize="none"
                     autoComplete="email"
@@ -244,7 +244,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
                   <FormControl>
                     <Input
                       type="string"
-                      placeholder="support@yourcompany.com"
+                      placeholder="e.g. support@yourcompany.com"
                       autoCapitalize="none"
                       autoCorrect="off"
                       className="w-80 min-w-max"
