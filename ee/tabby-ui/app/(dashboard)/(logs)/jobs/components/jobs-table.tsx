@@ -1,5 +1,6 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
+import humanizerDuration from 'humanize-duration'
 import { isNil } from 'lodash-es'
 import moment from 'moment'
 
@@ -19,7 +20,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import humanizerDuration from 'humanize-duration'
 
 type TJobRun = ListJobRunsQuery['jobRuns']['edges'][0]
 interface JobsTableProps {
@@ -45,10 +45,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({
       <TableBody>
         {!jobs?.length ? (
           <TableRow>
-            <TableCell
-              colSpan={4}
-              className="h-[100px] text-center"
-            >
+            <TableCell colSpan={4} className="h-[100px] text-center">
               No Data
             </TableCell>
           </TableRow>
@@ -100,7 +97,9 @@ function getJobDuration({
 }) {
   if (!createdAt || !finishedAt) return undefined
 
-  let duration = moment.duration(moment(finishedAt).diff(createdAt)).asMilliseconds()
+  let duration = moment
+    .duration(moment(finishedAt).diff(createdAt))
+    .asMilliseconds()
   return humanizerDuration(duration)
 }
 
