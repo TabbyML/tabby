@@ -1,6 +1,6 @@
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
-use serde::{Deserialize};
+use serde::Deserialize;
 
 lazy_static! {
     static ref LICENSE_DECODING_KEY: jwt::DecodingKey =
