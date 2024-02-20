@@ -4,7 +4,6 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
@@ -38,11 +37,13 @@ type FormValues = z.infer<typeof formSchema>
 
 interface ResetPasswordFormProps extends React.HTMLAttributes<HTMLDivElement> {
   code?: string
+  onSuccess?: () => void
 }
 
 export function ResetPasswordForm({
   className,
   code,
+  onSuccess,
   ...props
 }: ResetPasswordFormProps) {
   const form = useForm<FormValues>({
@@ -67,12 +68,7 @@ export function ResetPasswordForm({
       }
     }).then(res => {
       if (res?.data?.passwordReset) {
-        toast.success('Your password has been changed. Redirecting...', {
-          duration: 2000
-        })
-        setTimeout(() => {
-          router.replace('/auth/signin')
-        }, 2000)
+        onSuccess?.()
       }
     })
   }
