@@ -64,16 +64,9 @@ pub async fn attach_webserver(
         )
         .nest("/oauth", oauth::routes(ctx.auth()));
 
-    let ui = ui.route("/graphiql", routing::get(graphiql("/graphql", None)));
-
-    let ui = if let Ok(tabby_frontend_url) = std::env::var("TABBY_FRONTEND_URI") {
-        let host = reverse_proxy_service::builder_http(tabby_frontend_url).unwrap_or_else(|_| {
-            panic!("invalid frontend uri, should be in format like `localhost:3000`")
-        });
-        ui.fallback_service(host.build(reverse_proxy_service::Identity))
-    } else {
-        ui.fallback(ui::handler)
-    };
+    let ui = ui
+        .route("/graphiql", routing::get(graphiql("/graphql", None)))
+        .fallback(ui::handler);
 
     (api, ui)
 }

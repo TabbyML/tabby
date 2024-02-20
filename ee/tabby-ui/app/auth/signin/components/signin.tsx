@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useSWRImmutable from 'swr/immutable'
 
@@ -20,6 +20,13 @@ export default function Signin() {
 
   const shouldAutoSignin = !!accessToken && !!refreshToken
   const displayLoading = shouldAutoSignin && !errorMessage
+
+  const serverOrigin = useMemo(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      return `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}` ?? ''
+    }
+    return ''
+  }, [])
 
   const signin = useSignIn()
   const { data }: { data?: string[] } = useSWRImmutable(
@@ -69,12 +76,12 @@ export default function Signin() {
       )}
       <div className="mx-auto flex items-center gap-6">
         {data?.includes('github') && (
-          <a href={`/oauth/signin?provider=github`}>
+          <a href={`${serverOrigin}/oauth/signin?provider=github`}>
             <IconGithub className="h-8 w-8" />
           </a>
         )}
         {data?.includes('google') && (
-          <a href={`/oauth/signin?provider=google`}>
+          <a href={`${serverOrigin}/oauth/signin?provider=google`}>
             <IconGoogle className="h-8 w-8" />
           </a>
         )}

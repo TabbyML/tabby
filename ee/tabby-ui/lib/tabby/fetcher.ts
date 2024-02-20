@@ -20,6 +20,9 @@ export default async function tokenFetcher(
   url: string,
   init?: PendingRequest['init']
 ): Promise<any> {
+  if (process.env.NODE_ENV !== 'production') {
+    url = `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL}${url}`
+  }
   const response: Response = await fetch(url, addAuthToRequest(init))
   if (response.status === 401) {
     if (refreshing) {

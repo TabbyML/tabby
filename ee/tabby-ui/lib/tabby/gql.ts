@@ -120,7 +120,7 @@ const isTokenExpired = (exp: number) => {
   return Date.now() > exp * 1000
 }
 const client = new Client({
-  url: `/graphql`,
+  url: `${process.env.NEXT_PUBLIC_TABBY_SERVER_URL ?? ''}/graphql`,
   requestPolicy: 'cache-and-network',
   exchanges: [
     cacheExchange({
