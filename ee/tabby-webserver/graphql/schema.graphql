@@ -192,6 +192,7 @@ type User {
   id: ID!
   email: String!
   isAdmin: Boolean!
+  isOwner: Boolean!
   authToken: String!
   createdAt: DateTimeUtc!
   active: Boolean!

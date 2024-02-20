@@ -35,6 +35,8 @@ import {
   TableRow
 } from '@/components/ui/table'
 
+import { UpdateUserRoleDialog } from './user-role-dialog'
+
 const listUsers = graphql(/* GraphQL */ `
   query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
     users(after: $after, before: $before, first: $first, last: $last) {
@@ -43,6 +45,7 @@ const listUsers = graphql(/* GraphQL */ `
           id
           email
           isAdmin
+          isOwner
           createdAt
           active
         }
@@ -64,6 +67,8 @@ const updateUserActiveMutation = graphql(/* GraphQL */ `
   }
 `)
 
+type UserNode = ArrayElementType<ListUsersQuery['users']['edges']>['node']
+
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function UsersTable() {
   const [queryVariables, setQueryVariables] = React.useState<
@@ -74,6 +79,9 @@ export default function UsersTable() {
     variables: queryVariables
   })
   const [users, setUsers] = React.useState<ListUsersQuery['users']>()
+  const [currentUser, setCurrentUser] = React.useState<UserNode>()
+  const [updateRoleVisible, setUpdateRoleVisible] = React.useState(false)
+  const [isPromote, setIsPromote] = React.useState(false)
 
   React.useEffect(() => {
     const _users = data?.users
@@ -90,10 +98,7 @@ export default function UsersTable() {
 
   const updateUserActive = useMutation(updateUserActiveMutation)
 
-  const onUpdateUserActive = (
-    node: ArrayElementType<ListUsersQuery['users']['edges']>['node'],
-    active: boolean
-  ) => {
+  const onUpdateUserActive = (node: UserNode, active: boolean) => {
     updateUserActive({ id: node.id, active }).then(response => {
       if (response?.error || !response?.data?.updateUserActive) {
         toast.error(
@@ -104,11 +109,24 @@ export default function UsersTable() {
       }
 
       reexecuteQuery()
-      toast.success(`${node.email} is ${active ? 'activated' : 'deactivated'}`)
     })
   }
 
+  const onUpdateUserRole = (node: UserNode) => {
+    setCurrentUser(node)
+    setUpdateRoleVisible(true)
+    setIsPromote(!node.isAdmin)
+  }
+
   const pageInfo = users?.pageInfo
+  const makeBadge = (node: UserNode) =>
+    node.isOwner ? (
+      <Badge>OWNER</Badge>
+    ) : node.isAdmin ? (
+      <Badge>ADMIN</Badge>
+    ) : (
+      <Badge variant="secondary">MEMBER</Badge>
+    )
 
   return (
     !!users?.edges?.length && (
@@ -129,49 +147,49 @@ export default function UsersTable() {
                 <TableCell>{x.node.email}</TableCell>
                 <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
                 <TableCell className="text-center">
-                  {x.node.active ? (
-                    <Badge variant="successful">Active</Badge>
-                  ) : (
-                    <Badge variant="secondary">Inactive</Badge>
-                  )}
+                  {makeBadge(x.node)}
                 </TableCell>
-                <TableCell className="text-center">
-                  {x.node.isAdmin ? (
-                    <Badge>ADMIN</Badge>
-                  ) : (
-                    <Badge variant="secondary">MEMBER</Badge>
-                  )}
-                </TableCell>
+                <TableCell className="text-center"></TableCell>
                 <TableCell className="text-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <div className="h-8">
-                        {x.node.isAdmin ? null : (
+                  {!x.node.isOwner && (
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <div className="h-8">
                           <Button size="icon" variant="ghost">
                             <IconMore />
                           </Button>
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent collisionPadding={{ right: 16 }}>
+                        <DropdownMenuItem
+                          onSelect={() => onUpdateUserRole(x.node)}
+                          className="cursor-pointer"
+                        >
+                          <span className="ml-2">
+                            {x.node.isAdmin
+                              ? 'Demote to Member'
+                              : 'Promote to Admin'}
+                          </span>
+                        </DropdownMenuItem>
+                        {x.node.active && (
+                          <DropdownMenuItem
+                            onSelect={() => onUpdateUserActive(x.node, false)}
+                            className="cursor-pointer"
+                          >
+                            <span className="ml-2">Deactivate</span>
+                          </DropdownMenuItem>
                         )}
-                      </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent collisionPadding={{ right: 16 }}>
-                      {x.node.active && (
-                        <DropdownMenuItem
-                          onSelect={() => onUpdateUserActive(x.node, false)}
-                          className="cursor-pointer"
-                        >
-                          <span className="ml-2">Deactivate</span>
-                        </DropdownMenuItem>
-                      )}
-                      {!x.node.active && (
-                        <DropdownMenuItem
-                          onSelect={() => onUpdateUserActive(x.node, true)}
-                          className="cursor-pointer"
-                        >
-                          <span className="ml-2">Activate</span>
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        {!x.node.active && (
+                          <DropdownMenuItem
+                            onSelect={() => onUpdateUserActive(x.node, true)}
+                            className="cursor-pointer"
+                          >
+                            <span className="ml-2">Activate</span>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -205,6 +223,17 @@ export default function UsersTable() {
             </PaginationContent>
           </Pagination>
         )}
+
+        <UpdateUserRoleDialog
+          onSuccess={() => {
+            reexecuteQuery()
+            setUpdateRoleVisible(false)
+          }}
+          user={currentUser}
+          isPromote={isPromote}
+          open={updateRoleVisible}
+          onOpenChange={setUpdateRoleVisible}
+        />
       </>
     )
   )

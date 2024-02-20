@@ -125,7 +125,6 @@ impl EmailServiceImpl {
 
         Ok(tokio::spawn(async move {
             if let Some(smtp_server) = &*(smtp_server.read().await) {
-                // Not enabled.
                 match smtp_server.send(msg).await.map_err(anyhow::Error::msg) {
                     Ok(_) => {}
                     Err(err) => {

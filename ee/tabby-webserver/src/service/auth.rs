@@ -1,6 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
@@ -344,8 +344,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()> {
         let id = id.as_rowid()?;
-        if id == 1 {
-            return Err(anyhow!("The owner's admin status may not be changed"));
+        let user = self.db.get_user(id).await?.context("User doesn't exits")?;
+        if user.is_owner() {
+            return Err(anyhow!("The owner's admin status cannot be changed"));
         }
         self.db.update_user_role(id, is_admin).await
     }
@@ -502,7 +503,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
-        self.db.update_user_active(id.as_rowid()?, active).await
+        let id = id.as_rowid()?;
+        let user = self.db.get_user(id).await?.context("User doesn't exits")?;
+        if user.is_owner() {
+            return Err(anyhow!("The owner's active status cannot be changed"));
+        }
+        self.db.update_user_active(id, active).await
     }
 }
 
@@ -869,7 +875,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_role() {
         let service = test_authentication_service().await;
-        let admin_id = service
+        let _ = service
             .db
             .create_user("admin@example.com".into(), "".into(), true)
             .await
@@ -885,9 +891,24 @@ mod tests {
             .update_user_role(&user_id.as_id(), true)
             .await
             .is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_owner_status() {
+        let service = test_authentication_service().await;
+        let admin_id = service
+            .db
+            .create_user("admin@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
 
         assert!(service
             .update_user_role(&admin_id.as_id(), false)
+            .await
+            .is_err());
+
+        assert!(service
+            .update_user_active(&admin_id.as_id(), false)
             .await
             .is_err());
     }

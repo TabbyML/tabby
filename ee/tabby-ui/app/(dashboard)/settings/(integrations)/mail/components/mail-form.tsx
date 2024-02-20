@@ -100,7 +100,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
     onCompleted(data) {
       if (data?.updateEmailSetting) {
         onSuccess?.()
-        toast.success('Email configuration is updated')
+        toast.success('Email configuration is updated.')
       }
     }
   })

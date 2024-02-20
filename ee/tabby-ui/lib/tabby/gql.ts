@@ -10,6 +10,7 @@ import {
   AnyVariables,
   Client,
   CombinedError,
+  errorExchange,
   fetchExchange,
   OperationResult,
   useMutation as useUrqlMutation
@@ -266,6 +267,13 @@ const client = new Client({
             // This is where auth has gone wrong and we need to clean up and redirect to a login page
             clearAuthToken()
           }
+        }
+      }
+    }),
+    errorExchange({
+      onError(error) {
+        if (error.message.startsWith('[GraphQL]')) {
+          error.message = error.message.replace('[GraphQL]', '').trim()
         }
       }
     }),
