@@ -20,17 +20,32 @@ namespace {
 constexpr size_t N_BATCH = 512;  // # per batch inference.
 constexpr size_t N_CTX = 4096;   // # max kv history.
 struct Request {
-  Request(size_t request_id, std::vector<llama_token> input_token_ids, float temperature, uint64_t seed) :
-    id(request_id),
-    temperature(temperature),
-    seed(seed),
-    tokens(input_token_ids.begin(), input_token_ids.end()) {
+ private:
+  rust::Box<LlamaInitRequest> init_;
+
+ public:
+  Request(rust::Box<LlamaInitRequest>&& init, std::vector<llama_token>&& input_token_ids) :
+    init_(std::move(init)),
+    tokens(std::move(input_token_ids)) {
   }
 
-  uint32_t id = -1;
+  uint32_t id() {
+    return init_->id();
+  }
+
+  float temperature() {
+    return init_->temperature();
+  }
+
+  uint64_t seed() {
+    return init_->seed();
+  }
+
+  bool step(rust::Str token) {
+    return init_->step(token);
+  }
+
   llama_seq_id seq_id = -1;
-  float temperature = 0;
-  uint64_t seed = 0;
 
   std::vector<llama_token> tokens;
   size_t i_batch = -1;
@@ -98,8 +113,8 @@ float compute_softmax_inplace(float* nums, size_t len, float temperature) {
   return sum;
 }
 
-size_t weighted_random(const float* nums, size_t len, uint64_t seed) {
-  std::mt19937 rng(seed);
+size_t weighted_random(Request* req, float* nums, size_t len) {
+  std::mt19937 rng(req->seed());
   float sum = 0;
   for (size_t i = 0; i < len; i++) {
     sum += nums[i];
@@ -150,22 +165,20 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     llama_batch_free(batch_);
   }
 
-  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length,
-                           float temperature, uint64_t seed) override {
-
-    auto tokens = llama_tokenize(llama_get_model(ctx_.get()), text, false, true);
-    if (tokens.size() > max_input_length) {
-      int start = tokens.size() - max_input_length;
+  virtual void add_request(rust::Box<LlamaInitRequest> init) override {
+    auto tokens = llama_tokenize(llama_get_model(ctx_.get()), init->prompt(), false, true);
+    if (tokens.size() > init->max_input_length()) {
+      int start = tokens.size() - init->max_input_length();
       tokens = std::vector<llama_token>(tokens.begin() + start, tokens.end());
     }
-    pending_requests_.push_back(Request(request_id, tokens, temperature, seed));
+    pending_requests_.push_back(Request(std::move(init), std::move(tokens)));
   }
 
-  void stop_request(uint32_t request_id) override {
-    stopped_requests_.insert(request_id);
+  virtual bool has_pending_requests() const override {
+    return !pending_requests_.empty() || !requests_.empty();
   }
 
-  rust::Vec<StepOutput> step() override {
+  void step() override {
     std::lock_guard<std::mutex> guard(g_mutex_);
 
     auto* ctx = ctx_.get();
@@ -173,17 +186,20 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
     // Remove stopped requests.
     if (!stopped_requests_.empty()) {
-      std::vector<Request> requests;
-      for (auto& request : requests_) {
-        if (stopped_requests_.count(request.id) > 0) {
+      std::deque<Request> requests;
+      while (requests_.size() > 0) {
+        Request request = std::move(requests_.front());
+        requests_.pop_front();
+
+        if (stopped_requests_.count(request.id()) > 0) {
           // Release KV cache.
-          llama_kv_cache_seq_rm(ctx_.get(), request.id, -1, -1);
+          llama_kv_cache_seq_rm(ctx_.get(), request.id(), -1, -1);
         } else {
-          requests.emplace_back(request);
+          requests.emplace_back(std::move(request));
         }
       }
 
-      requests_ = requests;
+      requests_ = std::move(requests);
     }
 
     // Add pending requests.
@@ -192,11 +208,11 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       pending_requests_.pop_front();
 
       // Ignore stopped pending requests.
-      if (stopped_requests_.count(request.id) > 0) {
+      if (stopped_requests_.count(request.id()) > 0) {
         continue;
       }
 
-      requests_.push_back(request);
+      requests_.emplace_back(std::move(request));
     }
 
     // Clear stopped requests.
@@ -204,7 +220,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
     if (requests_.size() == 0) {
       llama_kv_cache_clear(ctx);
-      return {};
+      return;
     }
 
     // Clear the batch.
@@ -217,7 +233,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         batch_.token[n_tokens + i] = request.tokens[i];
         batch_.pos[n_tokens + i] = request.n_past + i;
         batch_.n_seq_id[n_tokens + i] = 1;
-        batch_.seq_id[n_tokens + i][0] = request.id;
+        batch_.seq_id[n_tokens + i][0] = request.id();
         batch_.logits[n_tokens + i] = false;
       }
       batch_.n_tokens += request.tokens.size();
@@ -225,9 +241,6 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       batch_.logits[batch_.n_tokens - 1] = true;
       request.i_batch = batch_.n_tokens - 1;
     }
-
-    rust::Vec<StepOutput> result;
-    result.reserve(requests_.size());
 
     // Decode tokens in chunks
     for (size_t i = 0; i < static_cast<size_t>(batch_.n_tokens); i += N_BATCH) {
@@ -256,8 +269,8 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
-        compute_softmax_inplace(logits, n_vocab, request.temperature);
-        const llama_token next_token = weighted_random(logits, n_vocab, request.seed);
+        compute_softmax_inplace(logits, n_vocab, request.temperature());
+        const llama_token next_token = weighted_random(&request, logits, n_vocab);
         request.n_past += request.tokens.size();
 
         request.tokens.clear();
@@ -305,13 +318,13 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
             fprintf(stderr, "%s:%d [%s] - ignoring non utf-8/utf-16 output\n", __FILE__, __LINE__, __func__);
           }
 
-          result.push_back({request.id, generated_text});
           request.generated_text.clear();
+          if (generated_text.empty() || request.step(generated_text)) {
+            stopped_requests_.insert(request.id());
+          }
         }
       }
     }
-
-    return result;
   }
 
  private:
@@ -320,7 +333,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
   llama_batch batch_;
 
-  std::vector<Request> requests_;
+  std::deque<Request> requests_;
   std::deque<Request> pending_requests_;
   std::unordered_set<uint32_t> stopped_requests_;
 
