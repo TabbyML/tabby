@@ -147,9 +147,15 @@ export default function UsersTable() {
                 <TableCell>{x.node.email}</TableCell>
                 <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
                 <TableCell className="text-center">
+                  {x.node.active ? (
+                    <Badge variant="successful">Active</Badge>
+                  ) : (
+                    <Badge variant="secondary">Inactive</Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-center">
                   {makeBadge(x.node)}
                 </TableCell>
-                <TableCell className="text-center"></TableCell>
                 <TableCell className="text-end">
                   {!x.node.isOwner && (
                     <DropdownMenu modal={false}>
@@ -167,8 +173,8 @@ export default function UsersTable() {
                         >
                           <span className="ml-2">
                             {x.node.isAdmin
-                              ? 'Demote to Member'
-                              : 'Promote to Admin'}
+                              ? 'Downgrade to member'
+                              : 'Upgrade to admin'}
                           </span>
                         </DropdownMenuItem>
                         {x.node.active && (
