@@ -27,7 +27,6 @@ mime_guess = "2.0.4"
 pin-project = "1.1.3"
 querystring = "1.1.0"
 reqwest = { workspace = true, features = ["json"] }
-reverse-proxy-service = {version = "0.2.1", features = ["axum"]}
 rust-embed = "8.0.0"
 serde.workspace = true
 serde_json.workspace = true

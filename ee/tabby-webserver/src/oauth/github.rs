@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
 
@@ -63,7 +63,10 @@ impl GithubClient {
         code: String,
         credential: OAuthCredential,
     ) -> Result<GithubOAuthResponse> {
-        let client_secret = credential.client_secret;
+        let Some(client_secret) = credential.client_secret else {
+            return Err(anyhow!("No client_secret present"));
+        };
+
         let params = [
             ("client_id", credential.client_id.as_str()),
             ("client_secret", client_secret.as_str()),

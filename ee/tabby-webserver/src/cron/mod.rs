@@ -25,17 +25,23 @@ pub async fn run_cron(
 ) {
     let mut jobs = vec![];
 
-    let Ok(job1) = db::refresh_token_job(auth).await else {
-        error!("failed to create db job");
+    let Ok(job1) = db::refresh_token_job(auth.clone()).await else {
+        error!("failed to create refresh token cleanup job");
         return;
     };
     jobs.push(job1);
 
-    let Ok(job2) = scheduler::scheduler_job(job, worker, local_port).await else {
-        error!("failed to create scheduler job");
+    let Ok(job2) = db::password_reset_job(auth).await else {
+        error!("failed to create password reset token cleanup job");
         return;
     };
     jobs.push(job2);
+
+    let Ok(job3) = scheduler::scheduler_job(job, worker, local_port).await else {
+        error!("failed to create scheduler job");
+        return;
+    };
+    jobs.push(job3);
 
     if new_job_scheduler(jobs).await.is_err() {
         error!("failed to start job scheduler");

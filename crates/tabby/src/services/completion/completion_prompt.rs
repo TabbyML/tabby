@@ -52,16 +52,9 @@ impl PromptBuilder {
 }
 
 fn get_default_suffix(suffix: Option<String>) -> String {
-    if suffix.is_none() {
-        return "\n".to_owned();
-    }
-
-    let suffix = suffix.unwrap();
-    if suffix.is_empty() {
-        "\n".to_owned()
-    } else {
-        suffix
-    }
+    suffix
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "\n".to_string())
 }
 
 fn rewrite_with_snippets(language: &str, segments: Segments, snippets: &[Snippet]) -> Segments {

@@ -1,9 +1,7 @@
 import React from 'react'
-import { has } from 'lodash-es'
 import NiceAvatar, { genConfig } from 'react-nice-avatar'
 
-import { WorkerKind } from '@/lib/gql/generates/graphql'
-import { useWorkers } from '@/lib/hooks/use-workers'
+import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useAuthenticatedSession, useSignOut } from '@/lib/tabby/auth'
 import {
   DropdownMenu,
@@ -20,8 +18,7 @@ export default function UserPanel() {
   const user = useAuthenticatedSession()
   const signOut = useSignOut()
 
-  const workers = useWorkers()
-  const isChatEnabled = has(workers, WorkerKind.Chat)
+  const isChatEnabled = useIsChatEnabled()
 
   if (!user) {
     return

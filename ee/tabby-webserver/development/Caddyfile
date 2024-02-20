@@ -1,0 +1,20 @@
+:8080 {
+	@backend {
+		path /graphql
+		path /graphiql
+
+		path /v1/*
+		path /v1beta/*
+		path /hub
+		path /repositories/*
+		path /oauth/*
+	}
+
+	handle @backend {
+		reverse_proxy localhost:8081
+	}
+
+	handle /* {
+		reverse_proxy localhost:3000
+	}
+}

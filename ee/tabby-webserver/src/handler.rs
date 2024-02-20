@@ -28,9 +28,10 @@ pub async fn attach_webserver(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
     config: &Config,
+    is_chat_enabled: bool,
     local_port: u16,
 ) -> (Router, Router) {
-    let ctx = create_service_locator(logger, code).await;
+    let ctx = create_service_locator(logger, code, is_chat_enabled).await;
     cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
     let repository_cache = Arc::new(RepositoryCache::new_initialized(
@@ -65,14 +66,7 @@ pub async fn attach_webserver(
 
     let ui = ui.route("/graphiql", routing::get(graphiql("/graphql", None)));
 
-    let ui = if let Ok(tabby_frontend_url) = std::env::var("TABBY_FRONTEND_URI") {
-        let host = reverse_proxy_service::builder_http(tabby_frontend_url).unwrap_or_else(|_| {
-            panic!("invalid frontend uri, should be in format like `localhost:3000`")
-        });
-        ui.fallback_service(host.build(reverse_proxy_service::Identity))
-    } else {
-        ui.fallback(ui::handler)
-    };
+    let ui = ui.fallback(ui::handler);
 
     (api, ui)
 }

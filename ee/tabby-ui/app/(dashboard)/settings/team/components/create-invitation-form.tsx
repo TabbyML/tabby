@@ -61,7 +61,7 @@ export default function CreateInvitationForm({
                 <FormControl>
                   <Input
                     className="w-60"
-                    placeholder={PLACEHOLDER_EMAIL_FORM}
+                    placeholder={`e.g. ${PLACEHOLDER_EMAIL_FORM}`}
                     type="email"
                     autoCapitalize="none"
                     autoComplete="email"

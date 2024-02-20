@@ -11,10 +11,11 @@ use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
     RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
 };
+use futures::TryFutureExt;
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, IntoFieldError,
-    Object, RootNode, ScalarValue, Value, ID,
+    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
+    IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
 use juniper_axum::{
     relay::{self, Connection},
@@ -26,7 +27,7 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    auth::UpdateOAuthCredentialInput,
+    auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
     email::{EmailService, EmailSetting, EmailSettingInput},
     repository::RepositoryService,
     setting::{
@@ -68,6 +69,9 @@ pub enum CoreError {
     #[error("{0}")]
     Unauthorized(&'static str),
 
+    #[error("{0}")]
+    Forbidden(&'static str),
+
     #[error("Invalid ID Error")]
     InvalidIDError,
 
@@ -81,6 +85,7 @@ pub enum CoreError {
 impl<S: ScalarValue> IntoFieldError<S> for CoreError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
+            Self::Forbidden(msg) => FieldError::new(msg, graphql_value!({"code": "FORBIDDEN"})),
             Self::Unauthorized(msg) => {
                 FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
             }
@@ -93,12 +98,19 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
 // To make our context usable by Juniper, we have to implement a marker trait.
 impl juniper::Context for Context {}
 
+fn check_claims(ctx: &Context) -> Result<&JWTPayload, CoreError> {
+    ctx.claims
+        .as_ref()
+        .ok_or(CoreError::Unauthorized("You're not logged in"))
+}
+
 fn check_admin(ctx: &Context) -> Result<(), CoreError> {
-    if let Some(JWTPayload { is_admin: true, .. }) = &ctx.claims {
-        Ok(())
-    } else {
-        Err(CoreError::Unauthorized("You must be admin to do that"))
+    let claims = check_claims(ctx)?;
+    if !claims.is_admin {
+        return Err(CoreError::Forbidden("You must be admin to proceed"));
     }
+
+    Ok(())
 }
 
 #[derive(Default)]
@@ -118,17 +130,15 @@ impl Query {
         return Ok(token);
     }
 
+    #[deprecated]
     async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
         Ok(ctx.locator.auth().is_admin_initialized().await?)
     }
 
     async fn me(ctx: &Context) -> Result<User> {
-        if let Some(claims) = &ctx.claims {
-            let user = ctx.locator.auth().get_user_by_email(&claims.sub).await?;
-            Ok(user)
-        } else {
-            Err(CoreError::Unauthorized("Not logged in"))
-        }
+        let claims = check_claims(ctx)?;
+        let user = ctx.locator.auth().get_user_by_email(&claims.sub).await?;
+        Ok(user)
     }
 
     async fn users(
@@ -218,6 +228,12 @@ impl Query {
         Ok(val)
     }
 
+    #[deprecated]
+    async fn is_email_configured(ctx: &Context) -> Result<bool> {
+        let initialized = ctx.locator.email().read_email_setting().await?.is_some();
+        Ok(initialized)
+    }
+
     async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
         check_admin(ctx)?;
         let val = ctx.locator.setting().read_network_setting().await?;
@@ -238,6 +254,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<Repository>> {
+        check_admin(ctx)?;
         relay::query_async(
             after,
             before,
@@ -259,9 +276,13 @@ impl Query {
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
         check_admin(ctx)?;
-        let Some(credentials) = ctx.locator.auth().read_oauth_credential(provider).await? else {
+        let Some(mut credentials) = ctx.locator.auth().read_oauth_credential(provider).await?
+        else {
             return Ok(None);
         };
+
+        // Client secret is not visible from GraphQL api.
+        credentials.client_secret = None;
         Ok(Some(credentials))
     }
 
@@ -269,6 +290,21 @@ impl Query {
         check_admin(ctx)?;
         Ok(ctx.locator.auth().oauth_callback_url(provider).await?)
     }
+
+    async fn server_info(ctx: &Context) -> Result<ServerInfo> {
+        Ok(ServerInfo {
+            is_admin_initialized: ctx.locator.auth().is_admin_initialized().await?,
+            is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
+            is_email_configured: ctx.locator.email().read_email_setting().await?.is_some(),
+        })
+    }
+}
+
+#[derive(GraphQLObject)]
+pub struct ServerInfo {
+    is_admin_initialized: bool,
+    is_chat_enabled: bool,
+    is_email_configured: bool,
 }
 
 #[derive(Default)]
@@ -290,16 +326,35 @@ impl Mutation {
         Ok(ctx.locator.auth().request_invitation(input).await?)
     }
 
+    async fn request_password_reset_email(
+        ctx: &Context,
+        input: RequestPasswordResetEmailInput,
+    ) -> Result<bool> {
+        input.validate()?;
+        ctx.locator
+            .auth()
+            .request_password_reset_email(input.email)
+            .await?;
+        Ok(true)
+    }
+
+    async fn password_reset(ctx: &Context, input: PasswordResetInput) -> Result<bool> {
+        input.validate()?;
+        ctx.locator
+            .auth()
+            .password_reset(&input.code, &input.password1)
+            .await
+            .map_err(anyhow::Error::from)?;
+        Ok(true)
+    }
+
     async fn reset_user_auth_token(ctx: &Context) -> Result<bool> {
-        if let Some(claims) = &ctx.claims {
-            ctx.locator
-                .auth()
-                .reset_user_auth_token(&claims.sub)
-                .await?;
-            Ok(true)
-        } else {
-            Err(CoreError::Unauthorized("You're not logged in"))
-        }
+        let claims = check_claims(ctx)?;
+        ctx.locator
+            .auth()
+            .reset_user_auth_token(&claims.sub)
+            .await?;
+        Ok(true)
     }
 
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {

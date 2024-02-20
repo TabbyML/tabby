@@ -99,7 +99,7 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
                 </FormDescription>
                 <FormControl>
                   <Input
-                    placeholder="http://localhost:8080"
+                    placeholder="e.g. http://localhost:8080"
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"

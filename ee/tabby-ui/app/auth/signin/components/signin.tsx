@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import useSWRImmutable from 'swr/immutable'
 
@@ -16,7 +16,6 @@ export default function Signin() {
   const errorMessage = searchParams.get('error_message')
   const accessToken = searchParams.get('access_token')
   const refreshToken = searchParams.get('refresh_token')
-  const [progress, setProgress] = useState(13)
 
   const shouldAutoSignin = !!accessToken && !!refreshToken
   const displayLoading = shouldAutoSignin && !errorMessage
@@ -30,17 +29,9 @@ export default function Signin() {
   useEffect(() => {
     if (errorMessage) return
     if (accessToken && refreshToken) {
-      signin({ accessToken, refreshToken }).then(() => setProgress(100))
+      signin({ accessToken, refreshToken }).then(() => router.replace('/'))
     }
   }, [searchParams])
-
-  useEffect(() => {
-    if (progress === 100) {
-      setTimeout(() => {
-        router.replace('/')
-      }, 200)
-    }
-  }, [progress])
 
   if (displayLoading) {
     return <IconSpinner className="h-8 w-8 animate-spin" />

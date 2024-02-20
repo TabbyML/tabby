@@ -15,6 +15,8 @@ enum WorkerKind {
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
+  requestPasswordResetEmail(input: RequestPasswordResetEmailInput!): Boolean!
+  passwordReset(input: PasswordResetInput!): Boolean!
   resetUserAuthToken: Boolean!
   updateUserActive(id: ID!, active: Boolean!): Boolean!
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
@@ -69,17 +71,19 @@ type JobRun {
 type Query {
   workers: [Worker!]!
   registrationToken: String!
-  isAdminInitialized: Boolean!
+  isAdminInitialized: Boolean! @deprecated
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   jobRuns(ids: [ID!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   emailSetting: EmailSetting
+  isEmailConfigured: Boolean! @deprecated
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
+  serverInfo: ServerInfo!
 }
 
 input NetworkSettingInput {
@@ -124,6 +128,10 @@ type RepositoryConnection {
   pageInfo: PageInfo!
 }
 
+input RequestPasswordResetEmailInput {
+  email: String!
+}
+
 input EmailSettingInput {
   smtpUsername: String!
   fromAddress: String!
@@ -152,15 +160,27 @@ type UserConnection {
 input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
-  clientSecret: String!
+  clientSecret: String
 }
 
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
-  clientSecret: String!
+  clientSecret: String
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
+}
+
+type ServerInfo {
+  isAdminInitialized: Boolean!
+  isChatEnabled: Boolean!
+  isEmailConfigured: Boolean!
+}
+
+input PasswordResetInput {
+  code: String!
+  password1: String!
+  password2: String!
 }
 
 type VerifyTokenResponse {

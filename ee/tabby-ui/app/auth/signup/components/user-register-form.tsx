@@ -89,7 +89,7 @@ export function UserAuthForm({
                 <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder={PLACEHOLDER_EMAIL_FORM}
+                    placeholder={`e.g. ${PLACEHOLDER_EMAIL_FORM}`}
                     type="email"
                     autoCapitalize="none"
                     autoComplete="email"

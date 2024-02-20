@@ -47,10 +47,6 @@ export const Mail = () => {
 
   const isNew = !queryResult?.data?.emailSetting
 
-  const onSendTest = async () => {
-    // todo
-  }
-
   const handleMailFormSuccess = () => {
     queryEmailSettings().then(res => {
       const newEmailSettings = res?.data?.emailSetting
@@ -95,7 +91,7 @@ export const Mail = () => {
               ref={mailFormRef}
             />
           </div>
-          <MailTestingForm onSendTest={onSendTest} />
+          <MailTestingForm />
         </div>
       ) : (
         <ListSkeleton />

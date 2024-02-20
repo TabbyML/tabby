@@ -48,4 +48,5 @@ pub trait WorkerService: Send + Sync {
         request: Request<Body>,
         next: Next<Body>,
     ) -> axum::response::Response;
+    async fn is_chat_enabled(&self) -> Result<bool>;
 }

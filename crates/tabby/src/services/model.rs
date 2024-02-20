@@ -83,7 +83,7 @@ fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> imp
         .use_gpu(device.ggml_use_gpu())
         .parallelism(parallelism)
         .build()
-        .unwrap();
+        .expect("Failed to create llama text generation options");
 
     make_text_generation(llama_cpp_bindings::LlamaTextGeneration::new(options))
 }

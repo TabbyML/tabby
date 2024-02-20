@@ -1,4 +1,7 @@
+use std::ops::Deref;
+
 use anyhow::anyhow;
+use chrono::{DateTime, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
 pub use google_oauth_credential::GoogleOAuthCredentialDAO;
@@ -180,6 +183,29 @@ impl DbConn {
         }
 
         Ok(result)
+    }
+}
+
+pub struct DateTimeUtc(DateTime<Utc>);
+
+impl From<NaiveDateTime> for DateTimeUtc {
+    fn from(value: NaiveDateTime) -> Self {
+        let utc = DateTime::from_naive_utc_and_offset(value, Utc);
+        DateTimeUtc(utc)
+    }
+}
+
+impl Deref for DateTimeUtc {
+    type Target = DateTime<Utc>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DateTimeUtc {
+    pub fn into_inner(self) -> DateTime<Utc> {
+        self.0
     }
 }
 
