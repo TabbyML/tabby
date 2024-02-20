@@ -65,7 +65,7 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
   }
 
   const title = isPromote ? 'Promote to Admin' : 'Demote to member'
-  const userEmail = <span className="font-bold">'{user?.email}'</span>;
+  const userEmail = <span className="font-bold">&apos;{user?.email}&apos;</span>;
   const description = isPromote ? <>
     Are you sure you want to grant admin privileges to {userEmail}
   </> : <>
