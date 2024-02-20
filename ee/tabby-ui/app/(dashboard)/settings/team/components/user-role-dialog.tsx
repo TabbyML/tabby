@@ -64,12 +64,12 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
       })
   }
 
-  const title = isPromote ? 'Promote to Admin' : 'Demote to member'
-  const userEmail = <span className="font-bold">&apos;{user?.email}&apos;</span>
+  const title = isPromote ? 'Upgrade to admin' : 'Downgrade to member'
+  const userEmail = <span className="font-bold">{user?.email}</span>
   const description = isPromote ? (
     <>Are you sure you want to grant admin privileges to {userEmail}</>
   ) : (
-    <>Are you sure you want to demote {userEmail} to a regular member?</>
+    <>Are you sure you want to downgrade {userEmail} to a regular member?</>
   )
 
   return (
