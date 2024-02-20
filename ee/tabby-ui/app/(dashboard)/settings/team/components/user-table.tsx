@@ -45,6 +45,7 @@ const listUsers = graphql(/* GraphQL */ `
           id
           email
           isAdmin
+          isOwner
           createdAt
           active
         }
@@ -153,43 +154,45 @@ export default function UsersTable() {
                   )}
                 </TableCell>
                 <TableCell className="text-end">
-                  <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger asChild>
-                      <div className="h-8">
-                        <Button size="icon" variant="ghost">
-                          <IconMore />
-                        </Button>
-                      </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent collisionPadding={{ right: 16 }}>
-                      {x.node.active && (
+                  {!x.node.isOwner && (
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <div className="h-8">
+                          <Button size="icon" variant="ghost">
+                            <IconMore />
+                          </Button>
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent collisionPadding={{ right: 16 }}>
+                        {x.node.active && (
+                          <DropdownMenuItem
+                            onSelect={() => onUpdateUserActive(x.node, false)}
+                            className="cursor-pointer"
+                          >
+                            <span className="ml-2">Deactivate</span>
+                          </DropdownMenuItem>
+                        )}
+                        {!x.node.active && (
+                          <DropdownMenuItem
+                            onSelect={() => onUpdateUserActive(x.node, true)}
+                            className="cursor-pointer"
+                          >
+                            <span className="ml-2">Activate</span>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
-                          onSelect={() => onUpdateUserActive(x.node, false)}
+                          onSelect={() => onUpdateUserRole(x.node)}
                           className="cursor-pointer"
                         >
-                          <span className="ml-2">Deactivate</span>
+                          <span className="ml-2">
+                            {x.node.isAdmin
+                              ? 'Demote to member'
+                              : 'Prompt to admin'}
+                          </span>
                         </DropdownMenuItem>
-                      )}
-                      {!x.node.active && (
-                        <DropdownMenuItem
-                          onSelect={() => onUpdateUserActive(x.node, true)}
-                          className="cursor-pointer"
-                        >
-                          <span className="ml-2">Activate</span>
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        onSelect={() => onUpdateUserRole(x.node)}
-                        className="cursor-pointer"
-                      >
-                        <span className="ml-2">
-                          {x.node.isAdmin
-                            ? 'Demote to member'
-                            : 'Prompt to admin'}
-                        </span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
