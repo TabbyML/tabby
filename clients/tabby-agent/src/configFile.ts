@@ -65,7 +65,7 @@ const typeCheckSchema: Record<string, string> = {
   logs: "object",
   "logs.level": "string",
   tls: "object",
-  "tls.ca": "string",
+  "tls.caCerts": "string",
   anonymousUsageTracking: "object",
   "anonymousUsageTracking.disable": "boolean",
 };

@@ -41,7 +41,7 @@ export type AgentConfig = {
   };
   tls: {
     // `bundled`, `system`, or a string point to cert file
-    ca: string;
+    caCerts: string;
   };
   anonymousUsageTracking: {
     disable: boolean;
@@ -95,7 +95,7 @@ export const defaultAgentConfig: AgentConfig = {
     level: "silent",
   },
   tls: {
-    ca: "system",
+    caCerts: "system",
   },
   anonymousUsageTracking: {
     disable: false,

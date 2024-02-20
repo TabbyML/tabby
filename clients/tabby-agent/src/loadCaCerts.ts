@@ -57,9 +57,9 @@ export async function loadTlsCaCerts(options: AgentConfig["tls"]) {
   if (isBrowser) {
     return;
   }
-  if (options.ca === "bundled") {
+  if (options.caCerts === "bundled") {
     return;
-  } else if (options.ca === "system") {
+  } else if (options.caCerts === "system") {
     if (process.platform === "win32") {
       logger.debug(`Loading extra certs from win-ca.`);
       winCa.exe(path.join("win-ca", "roots.exe"));
@@ -75,7 +75,7 @@ export async function loadTlsCaCerts(options: AgentConfig["tls"]) {
       // linux: load from openssl cert
       await loadFromFiles(path.join("/etc/ssl/certs/ca-certificates.crt"));
     }
-  } else if (options.ca) {
-    await loadFromFiles(options.ca);
+  } else if (options.caCerts) {
+    await loadFromFiles(options.caCerts);
   }
 }
