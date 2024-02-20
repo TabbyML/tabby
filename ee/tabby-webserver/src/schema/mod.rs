@@ -32,8 +32,8 @@ use self::{
     license::LicenseService,
     repository::RepositoryService,
     setting::{
-        BillingSetting, BillingSettingInput, NetworkSetting, NetworkSettingInput, SecuritySetting,
-        SecuritySettingInput, SettingService,
+        BillingSetting, NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput,
+        SettingService,
     },
 };
 use crate::schema::{
@@ -506,12 +506,9 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn update_billing_setting(ctx: &Context, input: BillingSettingInput) -> Result<bool> {
+    async fn upload_license(ctx: &Context, license: Option<String>) -> Result<bool> {
         check_admin(ctx)?;
-        ctx.locator
-            .license()
-            .update_license(input.enterprise_license)
-            .await?;
+        ctx.locator.license().update_license(license).await?;
         Ok(true)
     }
 }

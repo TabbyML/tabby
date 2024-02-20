@@ -53,11 +53,6 @@ pub struct NetworkSettingInput {
     pub external_url: String,
 }
 
-#[derive(GraphQLInputObject, Debug, PartialEq)]
-pub struct BillingSettingInput {
-    pub enterprise_license: Option<String>,
-}
-
 fn validate_unique_domains(domains: &[String]) -> Result<(), ValidationError> {
     let unique: HashSet<_> = domains.iter().collect();
     if unique.len() != domains.len() {
