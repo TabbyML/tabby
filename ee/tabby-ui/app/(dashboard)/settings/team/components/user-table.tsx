@@ -35,6 +35,8 @@ import {
   TableRow
 } from '@/components/ui/table'
 
+import { UpdateUserRoleDialog } from './user-role-dialog'
+
 const listUsers = graphql(/* GraphQL */ `
   query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
     users(after: $after, before: $before, first: $first, last: $last) {
@@ -64,6 +66,8 @@ const updateUserActiveMutation = graphql(/* GraphQL */ `
   }
 `)
 
+type UserNode = ArrayElementType<ListUsersQuery['users']['edges']>['node']
+
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function UsersTable() {
   const [queryVariables, setQueryVariables] = React.useState<
@@ -74,6 +78,8 @@ export default function UsersTable() {
     variables: queryVariables
   })
   const [users, setUsers] = React.useState<ListUsersQuery['users']>()
+  const [currentUser, setCurrentUser] = React.useState<UserNode>()
+  const [updateRoleVisible, setUpdateRoleVisible] = React.useState(false)
 
   React.useEffect(() => {
     const _users = data?.users
@@ -90,10 +96,7 @@ export default function UsersTable() {
 
   const updateUserActive = useMutation(updateUserActiveMutation)
 
-  const onUpdateUserActive = (
-    node: ArrayElementType<ListUsersQuery['users']['edges']>['node'],
-    active: boolean
-  ) => {
+  const onUpdateUserActive = (node: UserNode, active: boolean) => {
     updateUserActive({ id: node.id, active }).then(response => {
       if (response?.error || !response?.data?.updateUserActive) {
         toast.error(
@@ -106,6 +109,11 @@ export default function UsersTable() {
       reexecuteQuery()
       toast.success(`${node.email} is ${active ? 'activated' : 'deactivated'}`)
     })
+  }
+
+  const onUpdateUserRole = (node: UserNode) => {
+    setCurrentUser(node)
+    setUpdateRoleVisible(true)
   }
 
   const pageInfo = users?.pageInfo
@@ -143,14 +151,12 @@ export default function UsersTable() {
                   )}
                 </TableCell>
                 <TableCell className="text-end">
-                  <DropdownMenu>
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <div className="h-8">
-                        {x.node.isAdmin ? null : (
-                          <Button size="icon" variant="ghost">
-                            <IconMore />
-                          </Button>
-                        )}
+                        <Button size="icon" variant="ghost">
+                          <IconMore />
+                        </Button>
                       </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent collisionPadding={{ right: 16 }}>
@@ -170,6 +176,12 @@ export default function UsersTable() {
                           <span className="ml-2">Activate</span>
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem
+                        onSelect={() => onUpdateUserRole(x.node)}
+                        className="cursor-pointer"
+                      >
+                        <span className="ml-2">Update Role</span>
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -205,6 +217,16 @@ export default function UsersTable() {
             </PaginationContent>
           </Pagination>
         )}
+
+        <UpdateUserRoleDialog
+          onSuccess={() => {
+            reexecuteQuery()
+            setUpdateRoleVisible(false)
+          }}
+          user={currentUser}
+          open={updateRoleVisible}
+          onOpenChange={setUpdateRoleVisible}
+        />
       </>
     )
   )
