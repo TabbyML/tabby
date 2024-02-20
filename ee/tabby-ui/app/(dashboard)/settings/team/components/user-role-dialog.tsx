@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { isEmpty } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -25,6 +26,7 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
+import { IconSpinner } from '@/components/ui/icons'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
@@ -52,7 +54,6 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
   open,
   onOpenChange
 }) => {
-  // todo 更新default values， 控制open
   const form = useForm<FormValeus>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -60,18 +61,21 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
     }
   })
 
+  const isDirty = !isEmpty(form.formState.dirtyFields)
+  const { isSubmitting } = form.formState
+
   const requestPasswordResetEmail = useMutation(updateUserRoleMutation, {
     form
   })
 
   const onSubmit = (values: FormValeus) => {
     if (!user?.id) return
-    requestPasswordResetEmail({
+    return requestPasswordResetEmail({
       id: user.id,
       isAdmin: values?.isAdmin === '1'
     }).then(res => {
       if (res?.data?.updateUserRole) {
-        toast.success('updated')
+        toast.success('User role is updated.')
         onSuccess?.()
       }
     })
@@ -125,7 +129,14 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
                 </FormItem>
               )}
             />
-            <Button type="submit" className="mt-2">
+            <Button
+              type="submit"
+              className="mt-2"
+              disabled={!isDirty || isSubmitting}
+            >
+              {isSubmitting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Update
             </Button>
           </form>
