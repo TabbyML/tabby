@@ -43,9 +43,11 @@ impl From<JobRunDAO> for job::JobRun {
 
 impl From<UserDAO> for auth::User {
     fn from(val: UserDAO) -> Self {
+        let is_owner = val.is_owner();
         auth::User {
             id: val.id.as_id(),
             email: val.email,
+            is_owner,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
             created_at: val.created_at,

@@ -28,6 +28,10 @@ impl UserDAO {
             .to_owned()
             + clause
     }
+
+    pub fn is_owner(&self) -> bool {
+        return self.id == 1;
+    }
 }
 
 /// db read/write operations for `users` table

@@ -292,6 +292,7 @@ pub struct User {
     pub id: juniper::ID,
     pub email: String,
     pub is_admin: bool,
+    pub is_owner: bool,
     pub auth_token: String,
     pub created_at: DateTime<Utc>,
     pub active: bool,
