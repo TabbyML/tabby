@@ -27,7 +27,9 @@ use tabby_common::{
 use tabby_db::DbConn;
 use tracing::{info, warn};
 
-use self::{auth::new_authentication_service, email::new_email_service};
+use self::{
+    auth::new_authentication_service, email::new_email_service, license::new_license_service,
+};
 use crate::schema::{
     auth::AuthenticationService,
     email::EmailService,
@@ -247,7 +249,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn license(&self) -> Arc<dyn LicenseService> {
-        Arc::new(self.db_conn.clone())
+        Arc::new(new_license_service(self.db_conn.clone()))
     }
 }
 

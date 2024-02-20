@@ -27,6 +27,6 @@ pub struct LicenseInfo {
 
 #[async_trait]
 pub trait LicenseService: Send + Sync {
-    async fn get_license_info(&self) -> Result<Option<LicenseInfo>>;
-    async fn update_license(&self, license: Option<String>) -> Result<()>;
+    async fn read_license(&self) -> Result<Option<LicenseInfo>>;
+    async fn update_license(&self, license: Option<String>) -> Result<Option<LicenseStatus>>;
 }

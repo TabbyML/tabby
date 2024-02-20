@@ -305,7 +305,7 @@ impl Query {
 
     async fn billing_setting(ctx: &Context) -> Result<BillingSetting> {
         check_admin(ctx)?;
-        let enterprise_license = ctx.locator.license().get_license_info().await?;
+        let enterprise_license = ctx.locator.license().read_license().await?;
         Ok(BillingSetting { enterprise_license })
     }
 }
