@@ -280,7 +280,12 @@ function useSession(): Session {
   return session
 }
 
-const redirectWhitelist = ['/auth/signin', '/auth/signup']
+const redirectWhitelist = [
+  '/auth/signin',
+  '/auth/signup',
+  '/auth/reset-password',
+  '/auth/reset-password/new'
+]
 
 function useAuthenticatedSession() {
   const isAdminInitialized = useIsAdminInitialized()

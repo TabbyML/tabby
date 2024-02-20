@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -8,6 +9,7 @@ import * as z from 'zod'
 
 import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
+import { useIsEmailConfigured } from '@/lib/hooks/use-server-info'
 import { useSession, useSignIn } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -46,6 +48,7 @@ export default function UserSignInForm({
   invitationCode,
   ...props
 }: UserAuthFormProps) {
+  const isEmailConfigured = useIsEmailConfigured()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema)
   })
@@ -68,7 +71,7 @@ export default function UserSignInForm({
   })
 
   return (
-    <div className={cn('grid gap-6', className)} {...props}>
+    <div className={cn('grid', className)} {...props}>
       <Form {...form}>
         <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
@@ -96,7 +99,14 @@ export default function UserSignInForm({
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Password</FormLabel>
+                  {!!isEmailConfigured && (
+                    <div className="cursor-pointer text-right text-sm text-primary hover:underline">
+                      <Link href="/auth/reset-password">Forgot password?</Link>
+                    </div>
+                  )}
+                </div>
                 <FormControl>
                   <Input type="password" {...field} />
                 </FormControl>

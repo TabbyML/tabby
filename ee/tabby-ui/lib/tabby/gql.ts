@@ -197,11 +197,8 @@ const client = new Client({
           })
         },
         didAuthError(error, _operation) {
-          return (
-            error?.response?.status === 401 ||
-            error.graphQLErrors.some(
-              e => e?.extensions?.code === 'UNAUTHORIZED'
-            )
+          return error.graphQLErrors.some(
+            e => e?.extensions?.code === 'UNAUTHORIZED'
           )
         },
         willAuthError(operation) {
