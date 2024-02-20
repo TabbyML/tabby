@@ -103,7 +103,7 @@ export default function UsersTable() {
       if (response?.error || !response?.data?.updateUserActive) {
         toast.error(
           response?.error?.message ||
-          `${active ? 'activate' : 'deactivate'} failed`
+            `${active ? 'activate' : 'deactivate'} failed`
         )
         return
       }
@@ -119,12 +119,14 @@ export default function UsersTable() {
   }
 
   const pageInfo = users?.pageInfo
-  const makeBadge = (node: UserNode) => node.isOwner ? <Badge>OWNER</Badge> : (
-    node.isAdmin ? (
+  const makeBadge = (node: UserNode) =>
+    node.isOwner ? (
+      <Badge>OWNER</Badge>
+    ) : node.isAdmin ? (
       <Badge>ADMIN</Badge>
     ) : (
       <Badge variant="secondary">MEMBER</Badge>
-    ));
+    )
 
   return (
     !!users?.edges?.length && (
@@ -147,8 +149,7 @@ export default function UsersTable() {
                 <TableCell className="text-center">
                   {makeBadge(x.node)}
                 </TableCell>
-                <TableCell className="text-center">
-                </TableCell>
+                <TableCell className="text-center"></TableCell>
                 <TableCell className="text-end">
                   {!x.node.isOwner && (
                     <DropdownMenu modal={false}>

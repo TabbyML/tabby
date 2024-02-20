@@ -65,22 +65,19 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
   }
 
   const title = isPromote ? 'Promote to Admin' : 'Demote to member'
-  const userEmail = <span className="font-bold">&apos;{user?.email}&apos;</span>;
-  const description = isPromote ? <>
-    Are you sure you want to grant admin privileges to {userEmail}
-  </> : <>
-    Are you sure you want to demote {userEmail} to a regular member?
-  </>;
-
+  const userEmail = <span className="font-bold">&apos;{user?.email}&apos;</span>
+  const description = isPromote ? (
+    <>Are you sure you want to grant admin privileges to {userEmail}</>
+  ) : (
+    <>Are you sure you want to demote {userEmail} to a regular member?</>
+  )
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader className="gap-3">
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {description}
-          </AlertDialogDescription>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
