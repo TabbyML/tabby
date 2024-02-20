@@ -1,4 +1,4 @@
-use std::{thread::JoinHandle};
+use std::thread::JoinHandle;
 
 use cxx::UniquePtr;
 use tokio::sync::{

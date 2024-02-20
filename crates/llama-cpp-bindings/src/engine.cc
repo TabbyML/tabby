@@ -113,7 +113,7 @@ float compute_softmax_inplace(float* nums, size_t len, float temperature) {
   return sum;
 }
 
-size_t weighted_random(llama_context* ctx, Request* req, float* nums, size_t len) {
+size_t weighted_random(Request* req, float* nums, size_t len) {
   std::mt19937 rng(req->seed());
   float sum = 0;
   for (size_t i = 0; i < len; i++) {
@@ -270,7 +270,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         int32_t i_batch = request.i_batch - i;
         float* logits = llama_get_logits_ith(ctx, i_batch);
         compute_softmax_inplace(logits, n_vocab, request.temperature());
-        const llama_token next_token = weighted_random(ctx_.get(), &request, logits, n_vocab);
+        const llama_token next_token = weighted_random(&request, logits, n_vocab);
         request.n_past += request.tokens.size();
 
         request.tokens.clear();
