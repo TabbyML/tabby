@@ -60,7 +60,9 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
       input: values
     }).then(res => {
       if (res?.data?.requestPasswordResetEmail) {
-        toast.success('A test email has been sent, please check your inbox to verify.')
+        toast.success(
+          'A test email has been sent, please check your inbox to verify.'
+        )
       }
     })
   }
