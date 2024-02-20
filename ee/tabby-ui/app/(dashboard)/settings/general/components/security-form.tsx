@@ -162,10 +162,10 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                 render={({ field: itemField }) => (
                   <FormItem>
                     <FormLabel className={cn(index !== 0 && 'sr-only')}>
-                      Domain List for Register (without an Invitation)
+                      Authentication Domains
                     </FormLabel>
                     <FormDescription className={cn(index !== 0 && 'sr-only')}>
-                      Add domains for register without an invitation.
+                      Enable users to sign up automatically with an email address on domains.
                     </FormDescription>
                     <div className="flex items-center gap-2">
                       <FormControl>
@@ -228,7 +228,7 @@ function buildListValuesFromField(fieldListValue?: Array<{ value: string }>) {
 export const GeneralSecurityForm = () => {
   const [{ data }] = useQuery({ query: securitySetting })
   const onSuccess = () => {
-    toast.success('Network configuration is updated')
+    toast.success('Security configuration is updated')
   }
   const defaultValues = data && {
     ...data.securitySetting,
