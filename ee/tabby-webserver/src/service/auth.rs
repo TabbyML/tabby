@@ -220,6 +220,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(resp)
     }
 
+    async fn allow_self_signup(&self) -> Result<bool> {
+        let domain_list = self.db.read_security_setting().await?.allowed_register_domain_list;
+        let is_email_configured = self.mail.read_email_setting().await?.is_some();
+        Ok(is_email_configured && !domain_list.is_empty())
+    }
+
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>> {
         let user = self.get_user_by_email(&email).await.ok();
 

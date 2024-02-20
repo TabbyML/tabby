@@ -295,6 +295,7 @@ impl Query {
             is_admin_initialized: ctx.locator.auth().is_admin_initialized().await?,
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
             is_email_configured: ctx.locator.email().read_email_setting().await?.is_some(),
+            allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
         })
     }
 }
@@ -304,6 +305,7 @@ pub struct ServerInfo {
     is_admin_initialized: bool,
     is_chat_enabled: bool,
     is_email_configured: bool,
+    allow_self_signup: bool,
 }
 
 #[derive(Default)]
