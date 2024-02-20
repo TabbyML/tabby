@@ -103,7 +103,7 @@ export default function UsersTable() {
       if (response?.error || !response?.data?.updateUserActive) {
         toast.error(
           response?.error?.message ||
-          `${active ? 'activate' : 'deactivate'} failed`
+            `${active ? 'activate' : 'deactivate'} failed`
         )
         return
       }
