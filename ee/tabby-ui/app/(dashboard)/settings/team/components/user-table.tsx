@@ -180,7 +180,7 @@ export default function UsersTable() {
                         onSelect={() => onUpdateUserRole(x.node)}
                         className="cursor-pointer"
                       >
-                        <span className="ml-2">Update Role</span>
+                        <span className="ml-2">Edit Role</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

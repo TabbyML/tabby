@@ -14,7 +14,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@/components/ui/dialog'
 import {
   Form,
@@ -40,9 +40,9 @@ const formSchema = z.object({
 
 type FormValeus = z.infer<typeof formSchema>
 interface UpdateUserRoleDialogProps {
-  open?: boolean;
-  onOpenChange?(open: boolean): void;
-  user?: { id: string, email: string, isAdmin: boolean }
+  open?: boolean
+  onOpenChange?(open: boolean): void
+  user?: { id: string; email: string; isAdmin: boolean }
   onSuccess?: () => void
 }
 
@@ -60,14 +60,16 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
     }
   })
 
-  const requestPasswordResetEmail = useMutation(
-    updateUserRoleMutation,
-    { form }
-  )
+  const requestPasswordResetEmail = useMutation(updateUserRoleMutation, {
+    form
+  })
 
   const onSubmit = (values: FormValeus) => {
     if (!user?.id) return
-    requestPasswordResetEmail({ id: user.id, isAdmin: values?.isAdmin === '1' }).then(res => {
+    requestPasswordResetEmail({
+      id: user.id,
+      isAdmin: values?.isAdmin === '1'
+    }).then(res => {
       if (res?.data?.updateUserRole) {
         toast.success('updated')
         onSuccess?.()
@@ -85,50 +87,44 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader className="gap-3">
-          <DialogTitle>Update Role</DialogTitle>
+          <DialogTitle>Edit Role</DialogTitle>
           <DialogDescription>
             Update role of user {user?.email}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
-          <FormField
-            control={form.control}
-            name="isAdmin"
-            render={({ field: { onChange, ...rest } }) => (
-              <FormItem>
-                <FormLabel>Role</FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    className="flex gap-6"
-                    orientation="horizontal"
-                    onValueChange={onChange}
-                    {...rest}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem
-                        value={'1'}
-                        id="admin"
-                      />
-                      <Label className="cursor-pointer" htmlFor="admin">
-                        Admin
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem
-                        value={'0'}
-                        id="member"
-                      />
-                      <Label className="cursor-pointer" htmlFor="member">
-                        Member
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="isAdmin"
+              render={({ field: { onChange, ...rest } }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      className="flex gap-6"
+                      orientation="horizontal"
+                      onValueChange={onChange}
+                      {...rest}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value={'1'} id="admin" />
+                        <Label className="cursor-pointer" htmlFor="admin">
+                          Admin
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value={'0'} id="member" />
+                        <Label className="cursor-pointer" htmlFor="member">
+                          Member
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <Button type="submit" className="mt-2">
               Update
             </Button>
