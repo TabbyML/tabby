@@ -3,11 +3,11 @@ mod dao;
 mod email;
 mod job;
 mod license;
+mod logger;
 mod proxy;
 mod repository;
 mod setting;
 mod worker;
-mod logger;
 
 use std::{net::SocketAddr, sync::Arc};
 
