@@ -103,7 +103,7 @@ export default function UsersTable() {
       if (response?.error || !response?.data?.updateUserActive) {
         toast.error(
           response?.error?.message ||
-            `${active ? 'activate' : 'deactivate'} failed`
+          `${active ? 'activate' : 'deactivate'} failed`
         )
         return
       }
@@ -160,11 +160,9 @@ export default function UsersTable() {
                   {!x.node.isOwner && (
                     <DropdownMenu modal={false}>
                       <DropdownMenuTrigger asChild>
-                        <div className="h-8">
-                          <Button size="icon" variant="ghost">
-                            <IconMore />
-                          </Button>
-                        </div>
+                        <Button size="icon" variant="ghost">
+                          <IconMore />
+                        </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent collisionPadding={{ right: 16 }}>
                         <DropdownMenuItem
