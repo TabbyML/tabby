@@ -24,8 +24,8 @@ mod path;
 mod refresh_tokens;
 mod repositories;
 mod server_setting;
-mod users;
 mod user_completions;
+mod users;
 
 use anyhow::Result;
 use sql_query_builder as sql;
