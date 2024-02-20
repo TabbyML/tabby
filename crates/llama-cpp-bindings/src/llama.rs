@@ -39,12 +39,6 @@ impl LlamaInitRequest {
         self.temperature
     }
 
-    pub(crate) fn check_candidate(&self, _candidate: &[u8]) -> bool {
-        true
-    }
-
-    pub(crate) fn accept_candidate(&self, _candidate: &[u8]) {}
-
     pub(crate) fn step(&self, token: &str) -> bool {
         self.tx.send(token.to_owned()).is_err()
     }

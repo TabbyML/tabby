@@ -41,14 +41,6 @@ struct Request {
     return init_->seed();
   }
 
-  bool check_candidate(const std::string& candidate) {
-    return init_->check_candidate(rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(candidate.data()), candidate.size()));
-  }
-
-  void accept_candidate(const std::string& candidate) {
-    init_->accept_candidate(rust::Slice<const uint8_t>(reinterpret_cast<const uint8_t*>(candidate.data()), candidate.size()));
-  }
-
   bool step(rust::Str token) {
     return init_->step(token);
   }
@@ -134,10 +126,7 @@ size_t weighted_random(llama_context* ctx, Request* req, float* nums, size_t len
   for (i = 0; i < len; i++) {
     sum += nums[i];
     if (sum >= random) {
-      const auto token_str = llama_token_to_piece(ctx, i);
-      if (req->check_candidate(token_str)) {
-        return i;
-      }
+      return i;
     }
   }
   return i;
@@ -289,7 +278,6 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
         const auto token_str = llama_token_to_piece(ctx, next_token);
         request.generated_text += token_str;
-        request.accept_candidate(token_str);
 
         // FIXME: Hack for codellama to simplify tabby's implementation.
         const bool is_eos = next_token == eos_id || token_str == " <EOT>";

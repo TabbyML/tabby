@@ -25,9 +25,6 @@ mod ffi {
         fn seed(&self) -> u64;
         fn temperature(&self) -> f32;
 
-        fn check_candidate(&self, candidate: &[u8]) -> bool;
-        fn accept_candidate(&self, candidate: &[u8]);
-
         fn step(&self, token: &str) -> bool;
     }
 
