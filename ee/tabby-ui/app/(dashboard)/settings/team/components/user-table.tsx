@@ -166,8 +166,8 @@ export default function UsersTable() {
                         >
                           <span className="ml-2">
                             {x.node.isAdmin
-                              ? 'Demote to member'
-                              : 'Promote to admin'}
+                              ? 'Demote to Member'
+                              : 'Promote to Admin'}
                           </span>
                         </DropdownMenuItem>
                         {x.node.active && (
