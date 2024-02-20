@@ -78,6 +78,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       General
                     </SidebarButton>
                     <SidebarButton href="/settings/team">Members</SidebarButton>
+                    <SidebarButton href="/settings/subscription">Subscription</SidebarButton>
                   </SidebarCollapsible>
                   <SidebarCollapsible
                     title={
