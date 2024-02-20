@@ -248,24 +248,13 @@ impl RefreshTokenResponse {
     }
 }
 
-#[derive(Debug, GraphQLObject)]
-pub struct VerifyTokenResponse {
-    pub claims: JWTPayload,
-}
-
-impl VerifyTokenResponse {
-    pub fn new(claims: JWTPayload) -> Self {
-        Self { claims }
-    }
-}
-
-#[derive(Debug, Default, Serialize, Deserialize, GraphQLObject)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct JWTPayload {
     /// Expiration time (as UTC timestamp)
-    exp: f64,
+    exp: i64,
 
     /// Issued at (as UTC timestamp)
-    iat: f64,
+    iat: i64,
 
     /// User email address
     pub sub: String,
@@ -278,8 +267,8 @@ impl JWTPayload {
     pub fn new(email: String, is_admin: bool) -> Self {
         let now = jwt::get_current_timestamp();
         Self {
-            iat: now as f64,
-            exp: (now + *JWT_DEFAULT_EXP) as f64,
+            iat: now as i64,
+            exp: (now + *JWT_DEFAULT_EXP) as i64,
             sub: email,
             is_admin,
         }
@@ -438,7 +427,7 @@ pub trait AuthenticationService: Send + Sync {
     ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError>;
     async fn delete_expired_token(&self) -> Result<()>;
     async fn delete_expired_password_resets(&self) -> Result<()>;
-    async fn verify_access_token(&self, access_token: &str) -> Result<VerifyTokenResponse>;
+    async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 

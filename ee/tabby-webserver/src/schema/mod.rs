@@ -9,9 +9,8 @@ use std::sync::Arc;
 
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
-    RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User, VerifyTokenResponse,
+    RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
 };
-use futures::TryFutureExt;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
@@ -390,8 +389,9 @@ impl Mutation {
         ctx.locator.auth().token_auth(email, password).await
     }
 
-    async fn verify_token(ctx: &Context, token: String) -> Result<VerifyTokenResponse> {
-        Ok(ctx.locator.auth().verify_access_token(&token).await?)
+    async fn verify_token(ctx: &Context, token: String) -> Result<bool> {
+        ctx.locator.auth().verify_access_token(&token).await?;
+        Ok(true)
     }
 
     async fn refresh_token(
