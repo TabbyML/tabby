@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -23,8 +24,6 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
-
-import { ResetPasswordDialog } from './reset-password-dialog'
 
 export const tokenAuth = graphql(/* GraphQL */ `
   mutation tokenAuth($email: String!, $password: String!) {
@@ -100,7 +99,14 @@ export default function UserSignInForm({
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Password</FormLabel>
+                  {!!isEmailConfigured && (
+                    <div className="cursor-pointer text-right text-sm text-primary hover:underline">
+                      <Link href="/auth/reset-password">Forgot password?</Link>
+                    </div>
+                  )}
+                </div>
                 <FormControl>
                   <Input type="password" {...field} />
                 </FormControl>
@@ -117,13 +123,6 @@ export default function UserSignInForm({
         </form>
         <FormMessage className="text-center" />
       </Form>
-      {!!isEmailConfigured && (
-        <ResetPasswordDialog>
-          <div className="cursor-pointer p-1 text-right text-sm text-primary hover:underline">
-            Forgot password?
-          </div>
-        </ResetPasswordDialog>
-      )}
     </div>
   )
 }

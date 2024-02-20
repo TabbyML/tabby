@@ -17,6 +17,7 @@ import {
   FormItem,
   FormMessage
 } from '@/components/ui/form'
+import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -44,7 +45,7 @@ export default function MailTestingForm({
   const { isSubmitting } = form.formState
   const sendTestEmail = useMutation(sendTestEmailMutation, { form })
   const onSubmit = (values: FormValues) => {
-    sendTestEmail(values).then(res => {
+    return sendTestEmail(values).then(res => {
       if (res?.data?.sendTestEmail) {
         toast.success(
           'A test email has been sent, please check your inbox to verify.'
@@ -88,6 +89,9 @@ export default function MailTestingForm({
               type="submit"
               disabled={isSubmitting}
             >
+              {isSubmitting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Send
             </Button>
           </div>

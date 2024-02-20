@@ -60,17 +60,19 @@ export function ResetPasswordForm({
   })
 
   const onSubmit = (values: FormValues) => {
-    passwordReset({
+    return passwordReset({
       input: {
         ...values,
         code: values.code ?? ''
       }
     }).then(res => {
       if (res?.data?.passwordReset) {
-        toast.success('Password reset successful')
+        toast.success('Your password has been changed. Redirecting...', {
+          duration: 2000
+        })
         setTimeout(() => {
           router.replace('/auth/signin')
-        }, 1000)
+        }, 2000)
       }
     })
   }
@@ -116,7 +118,7 @@ export function ResetPasswordForm({
               </FormItem>
             )}
           />
-          <Button type="submit" className="mt-1" disabled={isSubmitting}>
+          <Button type="submit" className="mt-2" disabled={isSubmitting}>
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}

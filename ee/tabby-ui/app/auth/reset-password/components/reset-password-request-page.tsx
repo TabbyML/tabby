@@ -1,0 +1,61 @@
+'use client'
+
+import React from 'react'
+import Link from 'next/link'
+
+import { buttonVariants } from '@/components/ui/button'
+import { IconCheckCircled } from '@/components/ui/icons'
+
+import { ResetPasswordRequestForm } from './reset-password-request-form'
+
+interface ResetPasswordRequestPageProps {}
+
+export const ResetPasswordRequestPage: React.FC<
+  ResetPasswordRequestPageProps
+> = () => {
+  const [email, setEmail] = React.useState<string>()
+  const [requestSuccess, setRequestSuccess] = React.useState(false)
+
+  const onSuccess = (email: string) => {
+    setEmail(email)
+    setRequestSuccess(true)
+  }
+
+  if (requestSuccess) {
+    return (
+      <div className="w-[350px] space-y-6">
+        <div className="flex flex-col space-y-2 text-center">
+          <div className="flex justify-center">
+            <IconCheckCircled className="text-successful-foreground w-12 h-12" />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Reset Password
+          </h1>
+          <p className="text-sm text-muted-foreground pb-4">
+            Request received successfully! If the email{' '}
+            <span className="font-bold">{email ?? ''}</span> exists, you’ll
+            receive an email with a reset link soon.
+          </p>
+          <Link href="/auth/signin" className={buttonVariants()}>
+            Back to signin
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-[350px] space-y-6">
+      <div className="flex flex-col space-y-2 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Reset Password
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your email address. If an account exists, you’ll receive an
+          email with a password reset link soon.
+        </p>
+      </div>
+      <ResetPasswordRequestForm onSuccess={onSuccess} />
+    </div>
+  )
+}
