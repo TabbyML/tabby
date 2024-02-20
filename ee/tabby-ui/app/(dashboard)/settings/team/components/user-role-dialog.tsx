@@ -56,7 +56,6 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
     })
       .then(res => {
         if (res?.data?.updateUserRole) {
-          toast.success('User role is updated.')
           onSuccess?.()
         }
       })
@@ -65,15 +64,22 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
       })
   }
 
+  const title = isPromote ? 'Promote to Admin' : 'Demote to member'
+  const userEmail = <span className="font-bold">'{user?.email}'</span>;
+  const description = isPromote ? <>
+    Are you sure you want to grant admin privileges to {userEmail}
+  </> : <>
+    Are you sure you want to demote {userEmail} to a regular member?
+  </>;
+
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader className="gap-3">
-          <AlertDialogTitle>User Role</AlertDialogTitle>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to {isPromote ? 'promote' : 'demote'} user{' '}
-            <span className="font-bold">{`'${user?.email}'`}</span> to a{' '}
-            {isPromote ? 'admin' : 'member'}?
+            {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -86,7 +92,7 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Yes
+            Confirm
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

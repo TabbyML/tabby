@@ -103,13 +103,12 @@ export default function UsersTable() {
       if (response?.error || !response?.data?.updateUserActive) {
         toast.error(
           response?.error?.message ||
-            `${active ? 'activate' : 'deactivate'} failed`
+          `${active ? 'activate' : 'deactivate'} failed`
         )
         return
       }
 
       reexecuteQuery()
-      toast.success(`${node.email} is ${active ? 'activated' : 'deactivated'}`)
     })
   }
 
@@ -120,6 +119,12 @@ export default function UsersTable() {
   }
 
   const pageInfo = users?.pageInfo
+  const makeBadge = (node: UserNode) => node.isOwner ? <Badge>OWNER</Badge> : (
+    node.isAdmin ? (
+      <Badge>ADMIN</Badge>
+    ) : (
+      <Badge variant="secondary">MEMBER</Badge>
+    ));
 
   return (
     !!users?.edges?.length && (
@@ -140,18 +145,9 @@ export default function UsersTable() {
                 <TableCell>{x.node.email}</TableCell>
                 <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
                 <TableCell className="text-center">
-                  {x.node.active ? (
-                    <Badge variant="successful">Active</Badge>
-                  ) : (
-                    <Badge variant="secondary">Inactive</Badge>
-                  )}
+                  {makeBadge(x.node)}
                 </TableCell>
                 <TableCell className="text-center">
-                  {x.node.isAdmin ? (
-                    <Badge>ADMIN</Badge>
-                  ) : (
-                    <Badge variant="secondary">MEMBER</Badge>
-                  )}
                 </TableCell>
                 <TableCell className="text-end">
                   {!x.node.isOwner && (
@@ -164,6 +160,16 @@ export default function UsersTable() {
                         </div>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent collisionPadding={{ right: 16 }}>
+                        <DropdownMenuItem
+                          onSelect={() => onUpdateUserRole(x.node)}
+                          className="cursor-pointer"
+                        >
+                          <span className="ml-2">
+                            {x.node.isAdmin
+                              ? 'Demote to member'
+                              : 'Promote to admin'}
+                          </span>
+                        </DropdownMenuItem>
                         {x.node.active && (
                           <DropdownMenuItem
                             onSelect={() => onUpdateUserActive(x.node, false)}
@@ -180,16 +186,6 @@ export default function UsersTable() {
                             <span className="ml-2">Activate</span>
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem
-                          onSelect={() => onUpdateUserRole(x.node)}
-                          className="cursor-pointer"
-                        >
-                          <span className="ml-2">
-                            {x.node.isAdmin
-                              ? 'Demote to member'
-                              : 'Prompt to admin'}
-                          </span>
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
