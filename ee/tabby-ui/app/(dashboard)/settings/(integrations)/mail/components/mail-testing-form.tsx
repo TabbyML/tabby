@@ -34,9 +34,9 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export default function MailTestingForm({
-  onSendTest
+  onSuccess
 }: {
-  onSendTest: () => Promise<any>
+  onSuccess?: () => Promise<any>
 }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema)
@@ -50,7 +50,7 @@ export default function MailTestingForm({
         toast.success(
           'A test email has been sent, please check your inbox to verify.'
         )
-        onSendTest?.()
+        onSuccess?.()
       }
     })
   }
