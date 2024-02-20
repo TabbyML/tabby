@@ -165,7 +165,8 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                       Authentication Domains
                     </FormLabel>
                     <FormDescription className={cn(index !== 0 && 'sr-only')}>
-                      Enable users to sign up automatically with an email address on domains.
+                      Enable users to sign up automatically with an email
+                      address on domains.
                     </FormDescription>
                     <div className="flex items-center gap-2">
                       <FormControl>
