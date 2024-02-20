@@ -19,12 +19,12 @@ export default function ResetPasswordPage() {
       <div className="w-[350px] space-y-6">
         <div className="flex flex-col space-y-2 text-center">
           <div className="flex justify-center">
-            <IconCheckCircled className="text-successful-foreground w-12 h-12" />
+            <IconCheckCircled className="h-12 w-12 text-successful-foreground" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">
             Set a new password
           </h1>
-          <p className="text-sm text-muted-foreground pb-4">
+          <p className="pb-4 text-sm text-muted-foreground">
             Your password has been changed.
           </p>
           <Link replace href="/auth/signin" className={buttonVariants()}>
