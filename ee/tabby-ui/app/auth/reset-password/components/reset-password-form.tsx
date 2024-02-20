@@ -67,7 +67,7 @@ export function ResetPasswordForm({
       }
     }).then(res => {
       if (res?.data?.passwordReset) {
-        toast.success('success')
+        toast.success('Password reset successful')
         setTimeout(() => {
           router.replace('/auth/signin')
         }, 1000)
