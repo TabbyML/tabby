@@ -30,7 +30,7 @@ impl UserDAO {
     }
 
     pub fn is_owner(&self) -> bool {
-        return self.id == 1;
+        self.id == 1
     }
 }
 
