@@ -80,6 +80,7 @@ export default function UsersTable() {
   const [users, setUsers] = React.useState<ListUsersQuery['users']>()
   const [currentUser, setCurrentUser] = React.useState<UserNode>()
   const [updateRoleVisible, setUpdateRoleVisible] = React.useState(false)
+  const [isPromote, setIsPromote] = React.useState(false)
 
   React.useEffect(() => {
     const _users = data?.users
@@ -114,6 +115,7 @@ export default function UsersTable() {
   const onUpdateUserRole = (node: UserNode) => {
     setCurrentUser(node)
     setUpdateRoleVisible(true)
+    setIsPromote(!node.isAdmin)
   }
 
   const pageInfo = users?.pageInfo
@@ -180,7 +182,11 @@ export default function UsersTable() {
                         onSelect={() => onUpdateUserRole(x.node)}
                         className="cursor-pointer"
                       >
-                        <span className="ml-2">Edit Role</span>
+                        <span className="ml-2">
+                          {x.node.isAdmin
+                            ? 'Demote to member'
+                            : 'Prompt to admin'}
+                        </span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -224,6 +230,7 @@ export default function UsersTable() {
             setUpdateRoleVisible(false)
           }}
           user={currentUser}
+          isPromote={isPromote}
           open={updateRoleVisible}
           onOpenChange={setUpdateRoleVisible}
         />

@@ -1,34 +1,22 @@
 'use client'
 
 import React from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { isEmpty } from 'lodash-es'
-import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates/gql'
 import { useMutation } from '@/lib/tabby/gql'
-import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  // FormItem,
-  FormLabel,
-  FormMessage
-} from '@/components/ui/form'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
+import { buttonVariants } from '@/components/ui/button'
 import { IconSpinner } from '@/components/ui/icons'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 const updateUserRoleMutation = graphql(/* GraphQL */ `
   mutation updateUserRole($id: ID!, $isAdmin: Boolean!) {
@@ -36,15 +24,11 @@ const updateUserRoleMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const formSchema = z.object({
-  isAdmin: z.string()
-})
-
-type FormValeus = z.infer<typeof formSchema>
 interface UpdateUserRoleDialogProps {
   open?: boolean
   onOpenChange?(open: boolean): void
-  user?: { id: string; email: string; isAdmin: boolean }
+  user?: { id: string; email: string }
+  isPromote?: boolean
   onSuccess?: () => void
 }
 
@@ -52,97 +36,60 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
   user,
   onSuccess,
   open,
-  onOpenChange
+  onOpenChange,
+  isPromote
 }) => {
-  const form = useForm<FormValeus>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      isAdmin: user?.isAdmin ? '1' : '0'
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const requestPasswordResetEmail = useMutation(updateUserRoleMutation)
+
+  const onSubmit: React.MouseEventHandler<HTMLButtonElement> = async e => {
+    e.preventDefault()
+
+    if (!user?.id) {
+      toast.error('Oops! Something went wrong. Please try again.')
+      return
     }
-  })
-
-  const isDirty = !isEmpty(form.formState.dirtyFields)
-  const { isSubmitting } = form.formState
-
-  const requestPasswordResetEmail = useMutation(updateUserRoleMutation, {
-    form
-  })
-
-  const onSubmit = (values: FormValeus) => {
-    if (!user?.id) return
+    setIsSubmitting(true)
     return requestPasswordResetEmail({
       id: user.id,
-      isAdmin: values?.isAdmin === '1'
-    }).then(res => {
-      if (res?.data?.updateUserRole) {
-        toast.success('User role is updated.')
-        onSuccess?.()
-      }
+      isAdmin: !!isPromote
     })
+      .then(res => {
+        if (res?.data?.updateUserRole) {
+          toast.success('User role is updated.')
+          onSuccess?.()
+        }
+      })
+      .finally(() => {
+        setIsSubmitting(false)
+      })
   }
 
-  React.useEffect(() => {
-    if (open) {
-      form.reset({ isAdmin: user?.isAdmin ? '1' : '0' })
-    }
-  }, [open])
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader className="gap-3">
-          <DialogTitle>Edit Role</DialogTitle>
-          <DialogDescription>
-            Update role of user {user?.email}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
-            <FormField
-              control={form.control}
-              name="isAdmin"
-              render={({ field: { onChange, ...rest } }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      className="flex gap-6"
-                      orientation="horizontal"
-                      onValueChange={onChange}
-                      {...rest}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value={'1'} id="admin" />
-                        <Label className="cursor-pointer" htmlFor="admin">
-                          Admin
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value={'0'} id="member" />
-                        <Label className="cursor-pointer" htmlFor="member">
-                          Member
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button
-              type="submit"
-              className="mt-2"
-              disabled={!isDirty || isSubmitting}
-            >
-              {isSubmitting && (
-                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Update
-            </Button>
-          </form>
-          <FormMessage className="text-center" />
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader className="gap-3">
+          <AlertDialogTitle>User Role</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to {isPromote ? 'promote' : 'demote'} user{' '}
+            <span className="font-bold">{`'${user?.email}'`}</span> to a{' '}
+            {isPromote ? 'admin' : 'member'}?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className={buttonVariants()}
+            onClick={onSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting && (
+              <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Yes
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
