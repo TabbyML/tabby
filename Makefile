@@ -10,6 +10,9 @@ update-ui:
 	cd ee/tabby-ui && yarn build
 	rm -rf ee/tabby-webserver/ui && cp -R ee/tabby-ui/out ee/tabby-webserver/ui
 
+caddy:
+	caddy run --watch --config ee/tabby-webserver/development/Caddyfile
+
 bump-version:
 	cargo ws version --no-git-tag --force "*"
 
