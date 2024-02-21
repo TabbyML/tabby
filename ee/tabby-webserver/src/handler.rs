@@ -33,9 +33,6 @@ pub async fn attach_webserver(
 ) -> (Router, Router) {
     let ctx = create_service_locator(logger, code, is_chat_enabled).await;
     cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
-    if let Err(e) = ctx.job().delete_null_exit_code_job_runs().await {
-        warn!("Failed to clean up job runs: {e}");
-    }
 
     let repository_cache = Arc::new(RepositoryCache::new_initialized(
         config.repositories.clone(),

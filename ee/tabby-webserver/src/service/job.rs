@@ -27,8 +27,8 @@ impl JobService for DbConn {
         Ok(())
     }
 
-    async fn delete_null_exit_code_job_runs(&self) -> Result<()> {
-        (self as &DbConn).delete_null_exit_code_job_runs().await?;
+    async fn cleanup_stale_job_runs(&self) -> Result<()> {
+        (self as &DbConn).cleanup_stale_job_runs().await?;
         Ok(())
     }
 

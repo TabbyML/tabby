@@ -93,7 +93,7 @@ impl DbConn {
         Ok(runs)
     }
 
-    pub async fn delete_null_exit_code_job_runs(&self) -> Result<()> {
+    pub async fn cleanup_stale_job_runs(&self) -> Result<()> {
         query!("DELETE FROM job_runs WHERE exit_code IS NULL;")
             .execute(&self.pool)
             .await?;

@@ -37,11 +37,17 @@ pub async fn run_cron(
     };
     jobs.push(job2);
 
-    let Ok(job3) = scheduler::scheduler_job(job, worker, local_port).await else {
+    let Ok(job3) = scheduler::scheduler_job(job.clone(), worker, local_port).await else {
         error!("failed to create scheduler job");
         return;
     };
     jobs.push(job3);
+
+    let Ok(job4) = db::stale_job_runs_job(job).await else {
+        error!("failed to create stale job runs cleanup job");
+        return;
+    };
+    jobs.push(job4);
 
     if new_job_scheduler(jobs).await.is_err() {
         error!("failed to start job scheduler");
