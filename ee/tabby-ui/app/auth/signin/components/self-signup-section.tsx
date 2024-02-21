@@ -3,21 +3,20 @@
 import React from 'react'
 import Link from 'next/link'
 
+import { RequestInvitationEmailMutation } from '@/lib/gql/generates/graphql'
 import { buttonVariants } from '@/components/ui/button'
 import { IconCheckCircled } from '@/components/ui/icons'
 
-import { ResetPasswordRequestForm } from './reset-password-request-form'
+import { SelfSignupForm } from './self-signup-form'
 
-interface ResetPasswordRequestPageProps {}
-
-export const ResetPasswordRequestPage: React.FC<
-  ResetPasswordRequestPageProps
-> = () => {
+export default function SelfSignupSection() {
   const [email, setEmail] = React.useState<string>()
   const [requestSuccess, setRequestSuccess] = React.useState(false)
 
-  const onSuccess = (email: string) => {
-    setEmail(email)
+  const onSuccess = (
+    data: RequestInvitationEmailMutation['requestInvitationEmail']
+  ) => {
+    setEmail(data.email)
     setRequestSuccess(true)
   }
 
@@ -29,12 +28,12 @@ export const ResetPasswordRequestPage: React.FC<
             <IconCheckCircled className="h-12 w-12 text-successful-foreground" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Reset Password
+            Create An Account
           </h1>
           <p className="pb-4 text-sm text-muted-foreground">
             Request received successfully! If the email{' '}
             <span className="font-bold">{email ?? ''}</span> exists, you’ll
-            receive an email with a reset link soon.
+            receive an email with a signup link soon.
           </p>
           <Link href="/auth/signin" className={buttonVariants()}>
             Back to signin
@@ -48,14 +47,23 @@ export const ResetPasswordRequestPage: React.FC<
     <div className="w-[350px] space-y-6">
       <div className="flex flex-col space-y-2 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Reset Password
+          Create An Account
         </h1>
         <p className="text-sm text-muted-foreground">
-          Enter your email address. If an account exists, you’ll receive an
-          email with a password reset link soon.
+          Enter your email address. You’ll receive an email with a signup link
+          soon.
         </p>
       </div>
-      <ResetPasswordRequestForm onSuccess={onSuccess} />
+      <SelfSignupForm onSuccess={onSuccess} />
+      <div className="text-center text-sm">
+        Already have an accout?{' '}
+        <Link
+          href="/auth/signin"
+          className="font-semibold text-primary hover:underline"
+        >
+          Signin
+        </Link>
+      </div>
     </div>
   )
 }

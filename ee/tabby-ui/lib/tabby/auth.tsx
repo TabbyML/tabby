@@ -284,7 +284,6 @@ const redirectWhitelist = [
   '/auth/signin',
   '/auth/signup',
   '/auth/reset-password',
-  '/auth/reset-password/new'
 ]
 
 function useAuthenticatedSession() {
