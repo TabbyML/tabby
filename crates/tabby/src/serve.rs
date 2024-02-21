@@ -130,7 +130,6 @@ pub async fn main(config: &Config, args: &ServeArgs) {
             ui,
             logger,
             code,
-            config,
             args.chat_model.is_some(),
             args.port,
         )

@@ -8,10 +8,7 @@ use axum::{
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::{graphiql, graphql, playground};
-use tabby_common::{
-    api::{code::CodeSearch, event::RawEventLogger, server_setting::ServerSetting},
-    config::Config,
-};
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger, server_setting::ServerSetting};
 use tracing::warn;
 
 use crate::{
@@ -27,16 +24,13 @@ pub async fn attach_webserver(
     ui: Router,
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
-    config: &Config,
     is_chat_enabled: bool,
     local_port: u16,
 ) -> (Router, Router) {
     let ctx = create_service_locator(logger, code, is_chat_enabled).await;
     cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
-    let repository_cache = Arc::new(RepositoryCache::new_initialized(
-        config.repositories.clone(),
-    ));
+    let repository_cache = Arc::new(RepositoryCache::new_initialized(ctx.repository()).await);
     repository_cache.start_reload_job().await;
 
     let schema = Arc::new(create_schema());
