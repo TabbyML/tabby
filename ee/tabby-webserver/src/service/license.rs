@@ -42,6 +42,7 @@ pub struct LicenseInfo {
 
 pub fn validate_license(token: &str) -> Result<RawLicenseInfo, jwt::errors::ErrorKind> {
     let mut validation = jwt::Validation::new(jwt::Algorithm::RS512);
+    validation.validate_exp = false;
     validation.set_issuer(&["tabbyml.com"]);
     validation.set_required_spec_claims(&["exp", "iat", "sub", "iss"]);
     let data = jwt::decode::<RawLicenseInfo>(token, &LICENSE_DECODING_KEY, &validation);
@@ -134,8 +135,9 @@ mod tests {
 
     #[test]
     fn test_expired_license() {
-        let license = validate_license(EXPIRED_TOKEN);
-        assert_matches!(license, Err(jwt::errors::ErrorKind::ExpiredSignature));
+        let license = validate_license(EXPIRED_TOKEN).unwrap();
+        let license = license_info_from_raw(license).unwrap();
+        assert_matches!(license.status, LicenseStatus::Expired);
     }
 
     #[test]
