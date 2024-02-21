@@ -31,8 +31,7 @@ export default function SelfSignupSection() {
             Create An Account
           </h1>
           <p className="pb-4 text-sm text-muted-foreground">
-            Request received successfully! If the email{' '}
-            <span className="font-bold">{email ?? ''}</span> exists, you’ll
+            Request received successfully! You’ll
             receive an email with a signup link soon.
           </p>
           <Link href="/auth/signin" className={buttonVariants()}>
