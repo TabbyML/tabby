@@ -51,7 +51,7 @@ pub fn validate_license(token: &str) -> Result<RawLicenseInfo, jwt::errors::Erro
 }
 
 fn jwt_timestamp_to_utc(secs: i64) -> Result<DateTime<Utc>> {
-    Ok(NaiveDateTime::from_timestamp_millis(secs * 1000)
+    Ok(NaiveDateTime::from_timestamp_opt(secs, 0)
         .ok_or_else(|| anyhow!("Timestamp is corrupt"))?
         .and_utc())
 }
