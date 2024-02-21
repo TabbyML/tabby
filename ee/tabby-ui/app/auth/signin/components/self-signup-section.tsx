@@ -31,8 +31,8 @@ export default function SelfSignupSection() {
             Create your Tabby account
           </h1>
           <p className="pb-4 text-sm text-muted-foreground">
-            Request received successfully! You’ll
-            receive an email with a signup link soon.
+            Request received successfully! You’ll receive an email with a signup
+            link soon.
           </p>
           <Link href="/auth/signin" className={buttonVariants()}>
             Back to signin
@@ -46,18 +46,18 @@ export default function SelfSignupSection() {
     <div className="w-[350px] space-y-6">
       <div className="flex flex-col space-y-2 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Create An Account
+          Create your Tabby account
         </h1>
         <p className="text-sm text-muted-foreground">
-    To register your account, please enter your email address.
+          To register your account, please enter your email address.
         </p>
       </div>
       <SelfSignupForm onSuccess={onSuccess} />
       <div className="text-center text-sm">
-        Already have an accout?{' '}
+        Already have an accout?
         <Link
           href="/auth/signin"
-          className="font-semibold text-primary hover:underline"
+          className="font-semibold text-primary hover:underline ml-1"
         >
           Signin
         </Link>

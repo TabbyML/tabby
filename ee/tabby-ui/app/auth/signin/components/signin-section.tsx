@@ -54,7 +54,7 @@ export default function SigninSection() {
             Don’t have an accout?
             <Link
               href="/auth/signin?mode=signup"
-              className="font-semibold text-primary hover:underline"
+              className="font-semibold text-primary hover:underline ml-1"
             >
               Create an account
             </Link>
