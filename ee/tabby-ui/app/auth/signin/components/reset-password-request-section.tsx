@@ -56,7 +56,7 @@ export default function ResetPasswordRequestSection() {
         <Link
           href="/auth/signin"
           replace
-          className="hover:underline text-primary"
+          className="text-primary hover:underline"
         >
           Cancel
         </Link>

@@ -57,7 +57,7 @@ export default function SelfSignupSection() {
         Already have an accout?
         <Link
           href="/auth/signin"
-          className="font-semibold text-primary hover:underline ml-1"
+          className="ml-1 font-semibold text-primary hover:underline"
         >
           Sign In
         </Link>

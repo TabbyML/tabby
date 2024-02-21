@@ -42,7 +42,7 @@ export default function SigninSection() {
   return (
     <>
       <div className="w-[350px] space-y-4">
-        <div className="flex flex-col space-y-2 text-center mt-2">
+        <div className="mt-2 flex flex-col space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Sign In</h1>
           <p className="text-sm text-muted-foreground">
             Enter credentials to login to your account
@@ -54,7 +54,7 @@ export default function SigninSection() {
             Don’t have an accout?
             <Link
               href="/auth/signin?mode=signup"
-              className="font-semibold text-primary hover:underline ml-1"
+              className="ml-1 font-semibold text-primary hover:underline"
             >
               Create an account
             </Link>
