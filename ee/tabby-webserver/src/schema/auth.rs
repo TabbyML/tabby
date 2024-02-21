@@ -415,6 +415,7 @@ pub trait AuthenticationService: Send + Sync {
         password2: String,
         invitation_code: Option<String>,
     ) -> std::result::Result<RegisterResponse, RegisterError>;
+    async fn allow_self_signup(&self) -> Result<bool>;
 
     async fn token_auth(
         &self,

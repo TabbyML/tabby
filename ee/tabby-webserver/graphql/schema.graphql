@@ -164,6 +164,7 @@ type ServerInfo {
   isAdminInitialized: Boolean!
   isChatEnabled: Boolean!
   isEmailConfigured: Boolean!
+  allowSelfSignup: Boolean!
 }
 
 input PasswordResetInput {
