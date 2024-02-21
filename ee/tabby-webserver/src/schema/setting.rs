@@ -46,12 +46,21 @@ pub struct NetworkSettingInput {
     pub external_url: String,
 }
 
+fn first_duplicate(strings: &[String]) -> Option<usize> {
+    let mut set: HashSet<_> = Default::default();
+    for (i, string) in strings.iter().enumerate() {
+        if !set.insert(string) {
+            return Some(i);
+        }
+    }
+    None
+}
+
 fn validate_unique_domains(domains: &[String]) -> Result<(), ValidationError> {
-    let unique: HashSet<_> = domains.iter().collect();
-    if unique.len() != domains.len() {
-        let i = domains.iter().position(|s| unique.contains(s)).unwrap();
+    let duplicate_index = first_duplicate(domains);
+    if let Some(duplicate_index) = duplicate_index {
         let err = ValidationError {
-            code: format!("allowedRegisterDomainList.{i}.value").into(),
+            code: format!("allowedRegisterDomainList.{duplicate_index}.value").into(),
             message: Some("Duplicate domain".into()),
             params: HashMap::default(),
         };
