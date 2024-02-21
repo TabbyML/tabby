@@ -385,14 +385,14 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(invitation.into())
     }
 
-    async fn request_invitation(&self, input: RequestInvitationInput) -> Result<Invitation> {
+    async fn request_invitation_email(&self, input: RequestInvitationInput) -> Result<Invitation> {
         if !self
             .db
             .read_security_setting()
             .await?
             .can_register_without_invitation(&input.email)
         {
-            return Err(anyhow!("Your email does not belong to this organization, please request an invitation from an administrator"));
+            return Err(anyhow!("Your email does not belong to any known authentication domains. Please contact the administrator for assistance."));
         }
         let invitation = AuthenticationService::create_invitation(self, input.email).await?;
         Ok(invitation)
@@ -840,14 +840,14 @@ mod tests {
             .unwrap();
 
         assert!(service
-            .request_invitation(RequestInvitationInput {
+            .request_invitation_email(RequestInvitationInput {
                 email: "test@example.com".into()
             })
             .await
             .is_ok());
 
         assert!(service
-            .request_invitation(RequestInvitationInput {
+            .request_invitation_email(RequestInvitationInput {
                 email: "test@gmail.com".into()
             })
             .await
