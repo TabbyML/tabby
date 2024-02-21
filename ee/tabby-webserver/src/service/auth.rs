@@ -1116,7 +1116,11 @@ mod tests {
 
         assert!(!service.allow_self_signup().await.unwrap());
 
-        service.db.update_security_setting(Some("abc.com".to_owned()), false).await.unwrap();
+        service
+            .db
+            .update_security_setting(Some("abc.com".to_owned()), false)
+            .await
+            .unwrap();
 
         assert!(service.allow_self_signup().await.unwrap());
     }
