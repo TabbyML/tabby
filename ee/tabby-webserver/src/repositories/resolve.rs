@@ -25,7 +25,6 @@ use crate::schema::repository::RepositoryService;
 
 pub struct RepositoryCache {
     repository_lookup: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
-    repositories: RwLock<Vec<RepositoryConfig>>,
     service: Arc<dyn RepositoryService>,
 }
 
@@ -33,7 +32,6 @@ impl std::fmt::Debug for RepositoryCache {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RepositoryCache")
             .field("repository_lookup", &self.repository_lookup)
-            .field("repositories", &self.repositories)
             .finish()
     }
 }
@@ -42,7 +40,6 @@ impl RepositoryCache {
     pub async fn new_initialized(service: Arc<dyn RepositoryService>) -> RepositoryCache {
         let cache = RepositoryCache {
             repository_lookup: Default::default(),
-            repositories: Default::default(),
             service,
         };
         if let Err(e) = cache.reload().await {
@@ -62,8 +59,6 @@ impl RepositoryCache {
         let mut repository_lookup = self.repository_lookup.write().unwrap();
         debug!("Reloading repositoriy metadata...");
         *repository_lookup = load_meta(&new_repositories);
-        let mut repositories = self.repositories.write().unwrap();
-        *repositories = new_repositories;
         Ok(())
     }
 
@@ -259,13 +254,13 @@ impl RepositoryCache {
 
     pub fn resolve_all(&self) -> Result<Response> {
         let entries: Vec<_> = self
-            .repositories
+            .repository_lookup
             .read()
             .unwrap()
-            .iter()
+            .keys()
             .map(|repo| DirEntry {
                 kind: DirEntryKind::Dir,
-                basename: repo.name(),
+                basename: repo.repo_name.clone(),
             })
             .collect();
 
@@ -299,11 +294,14 @@ impl RepositoryCache {
     }
 
     pub fn find_repository(&self, name: &str) -> Option<RepositoryConfig> {
-        self.repositories
-            .read()
-            .unwrap()
-            .iter()
-            .find(|repo| repo.name() == name)
-            .cloned()
+        let repository_lookup = self.repository_lookup.read().unwrap();
+        let key = repository_lookup
+            .keys()
+            .find(|repo| repo.repo_name == name)?;
+        let value = repository_lookup.get(key)?;
+        Some(RepositoryConfig::new_named(
+            key.repo_name.clone(),
+            value.git_url.clone(),
+        ))
     }
 }
