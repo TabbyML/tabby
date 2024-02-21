@@ -35,7 +35,7 @@ export default function SelfSignupSection() {
             link soon.
           </p>
           <Link href="/auth/signin" className={buttonVariants()}>
-            Back to signin
+            Back to Sign In
           </Link>
         </div>
       </div>
@@ -59,7 +59,7 @@ export default function SelfSignupSection() {
           href="/auth/signin"
           className="font-semibold text-primary hover:underline ml-1"
         >
-          Signin
+          Sign In
         </Link>
       </div>
     </div>

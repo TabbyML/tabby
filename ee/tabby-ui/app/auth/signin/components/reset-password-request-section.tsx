@@ -33,7 +33,7 @@ export default function ResetPasswordRequestSection() {
             receive an email with a reset link soon.
           </p>
           <Link href="/auth/signin" className={buttonVariants()}>
-            Back to signin
+            Back to Sign In
           </Link>
         </div>
       </div>

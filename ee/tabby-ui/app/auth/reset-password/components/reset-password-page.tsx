@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
             Your password has been changed.
           </p>
           <Link replace href="/auth/signin" className={buttonVariants()}>
-            Go to signin
+            Go to Sign In
           </Link>
         </div>
       </div>
