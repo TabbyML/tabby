@@ -66,7 +66,7 @@ export default function SigninSection() {
         <div className="relative mt-4 flex w-[350px] items-center py-5">
           <div className="grow border-t "></div>
           <span className="mx-4 shrink text-sm text-muted-foreground">
-            Or Signin with
+            Or Sign In with
           </span>
           <div className="grow border-t "></div>
         </div>
