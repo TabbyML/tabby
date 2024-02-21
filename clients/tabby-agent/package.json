@@ -1,6 +1,6 @@
 {
   "name": "tabby-agent",
-  "version": "1.3.3",
+  "version": "1.4.0-dev",
   "description": "Generic client agent for Tabby AI coding assistant IDE extensions.",
   "homepage": "https://tabby.tabbyml.com/",
   "repository": "https://github.com/TabbyML/tabby",
@@ -49,6 +49,7 @@
     "@types/node": "18.x",
     "@types/object-hash": "^3.0.0",
     "@types/uuid": "^9.0.0",
+    "@types/win-ca": "^3.5.4",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
     "chai": "^4.3.7",
@@ -75,6 +76,7 @@
     "fs-extra": "^11.1.1",
     "jwt-decode": "^3.1.2",
     "lru-cache": "^9.1.1",
+    "mac-ca": "^2.0.3",
     "object-hash": "^3.0.0",
     "openapi-fetch": "^0.7.6",
     "pino": "^8.14.1",
@@ -83,6 +85,7 @@
     "uuid": "^9.0.0",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.11",
-    "web-tree-sitter": "^0.20.8"
+    "web-tree-sitter": "^0.20.8",
+    "win-ca": "^3.5.1"
   }
 }

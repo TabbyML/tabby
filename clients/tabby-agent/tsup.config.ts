@@ -1,3 +1,5 @@
+import path from "path";
+import fs from "fs-extra";
 import type { BuildOptions, Plugin } from "esbuild";
 import { defineConfig } from "tsup";
 import { copy } from "esbuild-plugin-copy";
@@ -30,6 +32,44 @@ function defineEnvs(targetOptions: BuildOptions, envs: { browser: boolean }) {
     "process.env.IS_BROWSER": Boolean(envs?.browser).toString(),
   };
   return targetOptions;
+}
+
+function handleWinCaNativeBinaries(): Plugin {
+  return {
+    name: "handleWinCaNativeBinaries",
+    setup: (build) => {
+      build.onLoad({ filter: /win-ca\/lib\/crypt32-\w*.node$/ }, async (args) => {
+        // As win-ca fallback is used, skip not required `.node` binaries
+        return {
+          contents: "",
+          loader: "empty",
+        };
+      });
+      build.onLoad({ filter: /win-ca\/lib\/fallback.js$/ }, async (args) => {
+        // Copy `roots.exe` binary to `dist/win-ca`, and the LICENSE
+        const binaryName = "roots.exe";
+        const winCaPackagePath = path.join(path.dirname(args.path), "..");
+        const license = await fs.readFile(path.join(winCaPackagePath, "LICENSE"));
+        const packageJson = await fs.readJSON(path.join(winCaPackagePath, "package.json"));
+        const exePath = path.join(path.dirname(args.path), binaryName);
+        const outDir = path.join(build.initialOptions.outdir ?? "", "win-ca");
+        build.onEnd(async () => {
+          await fs.ensureDir(outDir);
+          await fs.copyFile(exePath, path.join(outDir, binaryName));
+          await fs.writeFile(
+            path.join(outDir, "LICENSE"),
+            dedent`
+          win-ca v${packageJson.version}
+          ${packageJson.homepage}
+
+          ${license}
+          `,
+          );
+        });
+        return {};
+      });
+    },
+  };
 }
 
 export default async () => [
@@ -99,6 +139,7 @@ export default async () => [
           },
         ],
       }),
+      handleWinCaNativeBinaries(),
     ],
     esbuildOptions(options) {
       defineEnvs(options, { browser: false });
