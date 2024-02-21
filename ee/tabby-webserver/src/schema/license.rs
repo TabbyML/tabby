@@ -5,8 +5,9 @@ use juniper::{GraphQLEnum, GraphQLObject};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, GraphQLEnum)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum LicenseType {
-    TEAM,
+    Team,
 }
 
 #[derive(GraphQLEnum, PartialEq, Debug)]

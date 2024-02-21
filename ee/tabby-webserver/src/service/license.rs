@@ -14,13 +14,7 @@ lazy_static! {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum LicenseType {
-    Team,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct LicenseInfo {
+pub struct RawLicenseInfo {
     /// Expiration time (as UTC timestamp)
     pub exp: i64,
 
@@ -130,7 +124,7 @@ mod tests {
         let license = validate_license(VALID_TOKEN).unwrap();
         assert_eq!(license.iss, "tabbyml.com");
         assert_eq!(license.sub, "fake@tabbyml.com");
-        assert_matches!(license.typ, LicenseType::TEAM);
+        assert_matches!(license.typ, LicenseType::Team);
     }
 
     #[test]
