@@ -28,7 +28,7 @@ export default function SelfSignupSection() {
             <IconCheckCircled className="h-12 w-12 text-successful-foreground" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Create An Account
+            Create your Tabby account
           </h1>
           <p className="pb-4 text-sm text-muted-foreground">
             Request received successfully! You’ll
