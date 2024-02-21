@@ -22,7 +22,7 @@ async fn download_model_impl(
     if model_path.exists() {
         if !prefer_local_file {
             info!("Checking model integrity..");
-            let checksum = sha256::try_digest(&model_path).unwrap();
+            let checksum = sha256::try_digest(&model_path)?;
             if checksum == model_info.sha256 {
                 return Ok(());
             }
@@ -53,10 +53,14 @@ async fn download_model_impl(
 }
 
 async fn download_file(url: &str, path: &Path) -> Result<()> {
-    let dir = path.parent().unwrap();
+    let dir = path
+        .parent()
+        .ok_or_else(|| anyhow!("Must not be in root directory"))?;
     fs::create_dir_all(dir)?;
 
-    let filename = path.to_str().unwrap();
+    let filename = path
+        .to_str()
+        .ok_or_else(|| anyhow!("Could not convert filename to UTF-8"))?;
     let intermediate_filename = filename.to_owned() + ".tmp";
 
     let mut bar = WrappedBar::new(0, url, false);
