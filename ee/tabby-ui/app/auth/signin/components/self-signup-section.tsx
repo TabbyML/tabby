@@ -49,8 +49,7 @@ export default function SelfSignupSection() {
           Create An Account
         </h1>
         <p className="text-sm text-muted-foreground">
-          Enter your email address. You’ll receive an email with a signup link
-          soon.
+    To register your account, please enter your email address.
         </p>
       </div>
       <SelfSignupForm onSuccess={onSuccess} />
