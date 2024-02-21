@@ -22,6 +22,11 @@ concurrency:
 
 jobs:
   autofix:
+    env:
+      CARGO_TERM_COLOR: always
+      SCCACHE_GHA_ENABLED: true
+      RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: 0
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -33,12 +38,6 @@ jobs:
         with:
           toolchain: nightly
           components: rustfmt, clippy
-
-      - name: Install cargo-machete
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-machete
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
@@ -55,6 +54,12 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+
+      - name: Install cargo-machete
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-machete
 
       - run: bash ./ci/prepare_build_environment.sh
 
