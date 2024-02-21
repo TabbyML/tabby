@@ -22,32 +22,56 @@ use tabby_common::{
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-use tracing::debug;
+use tracing::{debug, error};
 
-#[derive(Debug)]
+use crate::schema::repository::RepositoryService;
+
 pub struct RepositoryCache {
-    repositories: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
-    configured_repositories: Vec<RepositoryConfig>,
+    repository_lookup: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
+    repositories: RwLock<Vec<RepositoryConfig>>,
+    service: Arc<dyn RepositoryService>,
+}
+
+impl std::fmt::Debug for RepositoryCache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RepositoryCache")
+            .field("repository_lookup", &self.repository_lookup)
+            .field("repositories", &self.repositories)
+            .finish()
+    }
 }
 
 impl RepositoryCache {
-    pub fn new_initialized(configured_repositories: Vec<RepositoryConfig>) -> RepositoryCache {
+    pub async fn new_initialized(service: Arc<dyn RepositoryService>) -> RepositoryCache {
         let cache = RepositoryCache {
+            repository_lookup: Default::default(),
             repositories: Default::default(),
-            configured_repositories,
+            service,
         };
-        cache.reload();
+        if let Err(e) = cache.reload().await {
+            error!("Failed to load repositories: {e}");
+        };
         cache
     }
 
-    fn reload(&self) {
-        let mut repositories = self.repositories.write().unwrap();
+    async fn reload(&self) -> Result<()> {
+        let new_repositories = self
+            .service
+            .list_repositories(None, None, None, None)
+            .await?
+            .into_iter()
+            .map(|repository| RepositoryConfig::new_named(repository.name, repository.git_url))
+            .collect();
+        let mut repository_lookup = self.repository_lookup.write().unwrap();
         debug!("Reloading repositoriy metadata...");
-        *repositories = load_meta();
+        *repository_lookup = load_meta();
+        let mut repositories = self.repositories.write().unwrap();
+        *repositories = new_repositories;
+        Ok(())
     }
 
     fn repositories(&self) -> impl Deref<Target = HashMap<RepositoryKey, RepositoryMeta>> + '_ {
-        self.repositories.read().unwrap()
+        self.repository_lookup.read().unwrap()
     }
 }
 
@@ -241,7 +265,9 @@ impl RepositoryCache {
 
     pub fn resolve_all(&self) -> Result<Response> {
         let entries: Vec<_> = self
-            .configured_repositories
+            .repositories
+            .read()
+            .unwrap()
             .iter()
             .map(|repo| DirEntry {
                 kind: DirEntryKind::Dir,
@@ -256,14 +282,20 @@ impl RepositoryCache {
 
         Ok(resp)
     }
+
     pub async fn start_reload_job(self: &Arc<Self>) {
         let cache = self.clone();
         let scheduler = JobScheduler::new().await.unwrap();
         scheduler
             .add(
                 // Reload every 5 minutes
-                Job::new("0 1/5 * * * * *", move |_, _| {
-                    cache.reload();
+                Job::new_async("0 1/5 * * * * *", move |_, _| {
+                    let cache = cache.clone();
+                    Box::pin(async move {
+                        if let Err(e) = cache.reload().await {
+                            error!("Failed to load repositories: {e}");
+                        };
+                    })
                 })
                 .unwrap(),
             )
@@ -271,9 +303,13 @@ impl RepositoryCache {
             .unwrap();
         scheduler.start().await.unwrap();
     }
-    pub fn find_repository(&self, name: &str) -> Option<&RepositoryConfig> {
-        self.configured_repositories
+
+    pub fn find_repository(&self, name: &str) -> Option<RepositoryConfig> {
+        self.repositories
+            .read()
+            .unwrap()
             .iter()
             .find(|repo| repo.name() == name)
+            .cloned()
     }
 }
