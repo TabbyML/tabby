@@ -5,8 +5,6 @@ use async_trait::async_trait;
 use juniper::{GraphQLInputObject, GraphQLObject};
 use validator::{validate_email, Validate, ValidationError};
 
-use super::license::LicenseInfo;
-
 #[async_trait]
 pub trait SettingService: Send + Sync {
     async fn read_security_setting(&self) -> Result<SecuritySetting>;
@@ -35,11 +33,6 @@ pub struct SecuritySettingInput {
     #[validate(custom = "validate_unique_domains")]
     pub allowed_register_domain_list: Vec<String>,
     pub disable_client_side_telemetry: bool,
-}
-
-#[derive(GraphQLObject)]
-pub struct BillingSetting {
-    pub enterprise_license: Option<LicenseInfo>,
 }
 
 #[derive(GraphQLObject, Debug, PartialEq)]

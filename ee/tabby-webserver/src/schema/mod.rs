@@ -29,11 +29,10 @@ use worker::{Worker, WorkerService};
 use self::{
     auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
     email::{EmailService, EmailSetting, EmailSettingInput},
-    license::{LicenseService, LicenseStatus},
+    license::{LicenseInfo, LicenseService, LicenseStatus},
     repository::RepositoryService,
     setting::{
-        BillingSetting, NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput,
-        SettingService,
+        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
 };
 use crate::schema::{
@@ -303,10 +302,8 @@ impl Query {
         })
     }
 
-    async fn billing_setting(ctx: &Context) -> Result<BillingSetting> {
-        check_admin(ctx)?;
-        let enterprise_license = ctx.locator.license().read_license().await?;
-        Ok(BillingSetting { enterprise_license })
+    async fn license(ctx: &Context) -> Result<Option<LicenseInfo>> {
+        Ok(ctx.locator.license().read_license().await?)
     }
 }
 
