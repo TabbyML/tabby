@@ -156,6 +156,7 @@ impl From<SourceFile> for RepositoryMeta {
 
 fn load_meta(repositories: &Vec<RepositoryConfig>) -> HashMap<RepositoryKey, RepositoryMeta> {
     let mut dataset = HashMap::new();
+    // Construct map of String -> &RepositoryConfig for lookup
     let repo_conf = repositories
         .iter()
         .map(|repo| (repo.git_url.clone(), repo))
@@ -163,6 +164,8 @@ fn load_meta(repositories: &Vec<RepositoryConfig>) -> HashMap<RepositoryKey, Rep
     let Ok(iter) = SourceFile::all() else {
         return dataset;
     };
+    // Source files contain all metadata, read repository metadata from json
+    // (SourceFile can be converted into RepositoryMeta)
     for file in iter {
         if let Some(repo_name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
             let key = RepositoryKey {
