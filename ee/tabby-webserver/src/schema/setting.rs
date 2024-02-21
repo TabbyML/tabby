@@ -93,7 +93,10 @@ mod tests {
         assert!(validate_unique_domains(&["domain.withmultipleparts.com".to_owned()]).is_ok());
 
         assert!(
-            validate_unique_domains(&["example.com".to_owned(), "example.com".to_owned()]).is_err()
+            validate_unique_domains(&["example.com".to_owned(), "example.com".to_owned()])
+                .unwrap_err()
+                .code
+                .contains(".1.")
         );
     }
 
