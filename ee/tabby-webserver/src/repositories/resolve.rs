@@ -15,10 +15,7 @@ use axum::{
 };
 use hyper::Body;
 use serde::{Deserialize, Serialize};
-use tabby_common::{
-    config::{Config, RepositoryConfig},
-    SourceFile, Tag,
-};
+use tabby_common::{config::RepositoryConfig, SourceFile, Tag};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
@@ -64,7 +61,7 @@ impl RepositoryCache {
             .collect();
         let mut repository_lookup = self.repository_lookup.write().unwrap();
         debug!("Reloading repositoriy metadata...");
-        *repository_lookup = load_meta();
+        *repository_lookup = load_meta(&new_repositories);
         let mut repositories = self.repositories.write().unwrap();
         *repositories = new_repositories;
         Ok(())
@@ -157,18 +154,12 @@ impl From<SourceFile> for RepositoryMeta {
     }
 }
 
-fn load_meta() -> HashMap<RepositoryKey, RepositoryMeta> {
+fn load_meta(repositories: &Vec<RepositoryConfig>) -> HashMap<RepositoryKey, RepositoryMeta> {
     let mut dataset = HashMap::new();
-    let repo_conf = match Config::load() {
-        Ok(config) => config
-            .repositories
-            .into_iter()
-            .map(|repo| (repo.git_url.clone(), repo))
-            .collect::<HashMap<_, _>>(),
-        Err(_) => {
-            return dataset;
-        }
-    };
+    let repo_conf = repositories
+        .iter()
+        .map(|repo| (repo.git_url.clone(), repo))
+        .collect::<HashMap<_, _>>();
     let Ok(iter) = SourceFile::all() else {
         return dataset;
     };
