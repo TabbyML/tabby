@@ -46,7 +46,7 @@ pub struct NetworkSettingInput {
     pub external_url: String,
 }
 
-fn first_duplicate(strings: &[String]) -> Option<usize> {
+fn first_duplicate(strings: &[impl std::hash::Hash + Eq]) -> Option<usize> {
     let mut set: HashSet<_> = Default::default();
     for (i, string) in strings.iter().enumerate() {
         if !set.insert(string) {
@@ -82,7 +82,7 @@ fn validate_unique_domains(domains: &[String]) -> Result<(), ValidationError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::schema::setting::validate_unique_domains;
+    use crate::schema::setting::{first_duplicate, validate_unique_domains};
 
     #[test]
     fn test_validate_urls() {
@@ -95,5 +95,12 @@ mod tests {
         assert!(
             validate_unique_domains(&["example.com".to_owned(), "example.com".to_owned()]).is_err()
         );
+    }
+
+    #[test]
+    fn test_duplicate_index() {
+        assert_eq!(first_duplicate(&["a", "b", "c"]), None);
+        assert_eq!(first_duplicate(&["a", "b", "b"]), Some(2));
+        assert_eq!(first_duplicate(&["a", "b", "c", "c", "c"]), Some(3));
     }
 }
