@@ -1,11 +1,15 @@
 import { Metadata } from 'next'
 
-import { ResetPasswordRequestPage } from './components/reset-password-request-page'
+import ResetPasswordPage from './components/reset-password-page'
 
 export const metadata: Metadata = {
   title: 'Reset password'
 }
 
 export default function Page() {
-  return <ResetPasswordRequestPage />
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center">
+      <ResetPasswordPage />
+    </div>
+  )
 }

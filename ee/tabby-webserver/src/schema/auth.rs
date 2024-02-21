@@ -434,7 +434,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
-    async fn request_invitation(&self, input: RequestInvitationInput) -> Result<Invitation>;
+    async fn request_invitation_email(&self, input: RequestInvitationInput) -> Result<Invitation>;
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;

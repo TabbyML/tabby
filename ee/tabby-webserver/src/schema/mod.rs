@@ -324,7 +324,7 @@ impl Mutation {
         input: RequestInvitationInput,
     ) -> Result<Invitation> {
         input.validate()?;
-        Ok(ctx.locator.auth().request_invitation(input).await?)
+        Ok(ctx.locator.auth().request_invitation_email(input).await?)
     }
 
     async fn request_password_reset_email(

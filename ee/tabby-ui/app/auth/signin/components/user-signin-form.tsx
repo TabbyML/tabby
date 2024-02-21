@@ -73,7 +73,7 @@ export default function UserSignInForm({
   return (
     <div className={cn('grid', className)} {...props}>
       <Form {...form}>
-        <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
+        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
             name="email"
@@ -103,7 +103,9 @@ export default function UserSignInForm({
                   <FormLabel>Password</FormLabel>
                   {!!isEmailConfigured && (
                     <div className="cursor-pointer text-right text-sm text-primary hover:underline">
-                      <Link href="/auth/reset-password">Forgot password?</Link>
+                      <Link href="/auth/signin?mode=reset">
+                        Forgot password?
+                      </Link>
                     </div>
                   )}
                 </div>

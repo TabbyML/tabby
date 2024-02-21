@@ -8,11 +8,7 @@ import { IconCheckCircled } from '@/components/ui/icons'
 
 import { ResetPasswordRequestForm } from './reset-password-request-form'
 
-interface ResetPasswordRequestPageProps {}
-
-export const ResetPasswordRequestPage: React.FC<
-  ResetPasswordRequestPageProps
-> = () => {
+export default function ResetPasswordRequestSection() {
   const [email, setEmail] = React.useState<string>()
   const [requestSuccess, setRequestSuccess] = React.useState(false)
 
@@ -37,7 +33,7 @@ export const ResetPasswordRequestPage: React.FC<
             receive an email with a reset link soon.
           </p>
           <Link href="/auth/signin" className={buttonVariants()}>
-            Back to signin
+            Back to Sign In
           </Link>
         </div>
       </div>
@@ -56,6 +52,15 @@ export const ResetPasswordRequestPage: React.FC<
         </p>
       </div>
       <ResetPasswordRequestForm onSuccess={onSuccess} />
+      <div className="text-center">
+        <Link
+          href="/auth/signin"
+          replace
+          className="text-primary hover:underline"
+        >
+          Cancel
+        </Link>
+      </div>
     </div>
   )
 }
