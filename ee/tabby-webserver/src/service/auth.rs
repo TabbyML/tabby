@@ -1111,6 +1111,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_allow_self_signup() {
         let (service, _) = test_authentication_service_with_mail().await;
 
