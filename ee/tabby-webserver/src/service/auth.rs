@@ -1109,4 +1109,15 @@ mod tests {
         assert!(!users.page_info.has_next_page);
         assert!(users.page_info.has_previous_page);
     }
+
+    #[tokio::test]
+    async fn test_allow_self_signup() {
+        let (service, _) = test_authentication_service_with_mail().await;
+
+        assert!(!service.allow_self_signup().await.unwrap());
+
+        service.db.update_security_setting(Some("abc.com".to_owned()), false).await.unwrap();
+
+        assert!(service.allow_self_signup().await.unwrap());
+    }
 }
