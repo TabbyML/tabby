@@ -8,8 +8,9 @@ lazy_static! {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum LicenseType {
-    TEAM,
+    Team,
 }
 
 #[derive(Debug, Deserialize)]
@@ -60,7 +61,7 @@ mod tests {
         let license = validate_license(token).unwrap();
         assert_eq!(license.iss, "tabbyml.com");
         assert_eq!(license.sub, "fake@tabbyml.com");
-        assert_matches!(license.typ, LicenseType::TEAM);
+        assert_matches!(license.typ, LicenseType::Team);
     }
 
     #[test]
