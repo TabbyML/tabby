@@ -43,7 +43,7 @@ impl TestEmailServer {
         let child = cmd
             .spawn()
             .expect("You need to run `cargo install mailtutan` before running this test");
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_secs(2)).await;
         TestEmailServer { child }
     }
 }
