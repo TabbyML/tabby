@@ -37,14 +37,21 @@ impl TestEmailServer {
     }
 
     pub async fn start() -> TestEmailServer {
+        tokio::time::sleep(Duration::from_millis(500)).await;
         let mut cmd = Command::new("mailtutan");
         cmd.kill_on_drop(true);
 
         let child = cmd
             .spawn()
             .expect("You need to run `cargo install mailtutan` before running this test");
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_millis(500)).await;
         TestEmailServer { child }
+    }
+}
+
+impl Drop for TestEmailServer {
+    fn drop(&mut self) {
+        let _ = self.child.start_kill();
     }
 }
 

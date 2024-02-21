@@ -135,9 +135,9 @@ export default function UsersTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[25%]">Email</TableHead>
-              <TableHead className="w-[35%]">Joined</TableHead>
-              <TableHead className="w-[15%] text-center">Status</TableHead>
-              <TableHead className="w-[15%] text-center">Level</TableHead>
+              <TableHead className="w-[15%]">Joined</TableHead>
+              <TableHead className="w-[20%] text-center">Status</TableHead>
+              <TableHead className="w-[20%] text-center">Level</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -160,11 +160,9 @@ export default function UsersTable() {
                   {!x.node.isOwner && (
                     <DropdownMenu modal={false}>
                       <DropdownMenuTrigger asChild>
-                        <div className="h-8">
-                          <Button size="icon" variant="ghost">
-                            <IconMore />
-                          </Button>
-                        </div>
+                        <Button size="icon" variant="ghost">
+                          <IconMore />
+                        </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent collisionPadding={{ right: 16 }}>
                         <DropdownMenuItem
