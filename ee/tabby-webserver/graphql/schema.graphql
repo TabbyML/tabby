@@ -74,11 +74,7 @@ type Query {
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
-  billingSetting: BillingSetting!
-}
-
-type BillingSetting {
-  enterpriseLicense: LicenseInfo
+  license: LicenseInfo
 }
 
 input NetworkSettingInput {
