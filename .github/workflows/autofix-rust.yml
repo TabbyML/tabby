@@ -60,6 +60,4 @@ jobs:
 
       - run: make fix
 
-      - run: make update-graphql-schema
-
       - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc

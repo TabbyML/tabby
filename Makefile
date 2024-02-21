@@ -1,4 +1,4 @@
-fix:
+fix: update-graphql-schema
 	cargo machete --fix || true
 	cargo +nightly fmt
 	cargo +nightly clippy --fix --allow-dirty --allow-staged
@@ -33,4 +33,4 @@ update-openapi-doc:
 			    > website/static/openapi.json
 
 update-graphql-schema:
-	cargo run --package tabby-webserver --example update-schema
+	cargo +nightly run --package tabby-webserver --example update-schema
