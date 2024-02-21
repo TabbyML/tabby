@@ -20,7 +20,7 @@ impl RepositoryExt for RepositoryConfig {
             std::fs::create_dir_all(&dir)
                 .unwrap_or_else(|_| panic!("Failed to create dir {}", dir.display()));
             let status = Command::new("git")
-                .current_dir(dir.parent().unwrap())
+                .current_dir(dir.parent().expect("Must not be in root directory"))
                 .arg("clone")
                 .arg(&self.git_url)
                 .arg(dir)
