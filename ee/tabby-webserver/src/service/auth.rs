@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{anyhow, Context, Result};
 use argon2::{
@@ -12,7 +12,6 @@ use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
 use tokio::task::JoinHandle;
 use tracing::warn;
-use validator::{Validate, ValidationError};
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
@@ -21,53 +20,13 @@ use crate::{
         auth::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
-            PasswordResetError, RefreshTokenError, RefreshTokenResponse, RegisterError,
-            RegisterResponse, RequestInvitationInput, TokenAuthError, TokenAuthResponse,
+            RefreshTokenResponse, RegisterResponse, RequestInvitationInput, TokenAuthResponse,
             UpdateOAuthCredentialInput, User,
         },
         email::{EmailService, SendEmailError},
         setting::SettingService,
     },
 };
-
-/// Input parameters for register mutation
-/// `validate` attribute is used to validate the input parameters
-///   - `code` argument specifies which parameter causes the failure
-///   - `message` argument provides client friendly error message
-///
-#[derive(Validate)]
-struct RegisterInput {
-    #[validate(email(code = "email", message = "Email is invalid"))]
-    #[validate(length(
-        max = 128,
-        code = "email",
-        message = "Email must be at most 128 characters"
-    ))]
-    email: String,
-    #[validate(length(
-        min = 8,
-        code = "password1",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
-        max = 20,
-        code = "password1",
-        message = "Password must be at most 20 characters"
-    ))]
-    #[validate(custom = "validate_password")]
-    password1: String,
-    #[validate(must_match(
-        code = "password2",
-        message = "Passwords do not match",
-        other = "password1"
-    ))]
-    #[validate(length(
-        max = 20,
-        code = "password2",
-        message = "Password must be at most 20 characters"
-    ))]
-    password2: String,
-}
 
 #[derive(Clone)]
 struct AuthenticationServiceImpl {
@@ -82,119 +41,31 @@ pub fn new_authentication_service(
     AuthenticationServiceImpl { db, mail }
 }
 
-impl std::fmt::Debug for RegisterInput {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RegisterInput")
-            .field("email", &self.email)
-            .field("password1", &"********")
-            .field("password2", &"********")
-            .finish()
-    }
-}
-
-fn validate_password(value: &str) -> Result<(), ValidationError> {
-    let make_validation_error = |message: &'static str| {
-        let mut err = ValidationError::new("password1");
-        err.message = Some(Cow::Borrowed(message));
-        Err(err)
-    };
-
-    let contains_lowercase = value.chars().any(|x| x.is_ascii_lowercase());
-    if !contains_lowercase {
-        return make_validation_error("Password should contains at least one lowercase character");
-    }
-
-    let contains_uppercase = value.chars().any(|x| x.is_ascii_uppercase());
-    if !contains_uppercase {
-        return make_validation_error("Password should contains at least one uppercase character");
-    }
-
-    let contains_digit = value.chars().any(|x| x.is_ascii_digit());
-    if !contains_digit {
-        return make_validation_error("Password should contains at least one numeric character");
-    }
-
-    let contains_special_char = value.chars().any(|x| x.is_ascii_punctuation());
-    if !contains_special_char {
-        return make_validation_error(
-            "Password should contains at least one special character, e.g @#$%^&{}",
-        );
-    }
-
-    Ok(())
-}
-
-/// Input parameters for token_auth mutation
-/// See `RegisterInput` for `validate` attribute usage
-#[derive(Validate)]
-struct TokenAuthInput {
-    #[validate(email(code = "email", message = "Email is invalid"))]
-    #[validate(length(
-        max = 128,
-        code = "email",
-        message = "Email must be at most 128 characters"
-    ))]
-    email: String,
-    #[validate(length(
-        min = 8,
-        code = "password",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
-        max = 20,
-        code = "password",
-        message = "Password must be at most 20 characters"
-    ))]
-    password: String,
-}
-
-impl std::fmt::Debug for TokenAuthInput {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TokenAuthInput")
-            .field("email", &self.email)
-            .field("password", &"********")
-            .finish()
-    }
-}
-
 #[async_trait]
 impl AuthenticationService for AuthenticationServiceImpl {
     async fn register(
         &self,
         email: String,
-        password1: String,
-        password2: String,
+        password: String,
         invitation_code: Option<String>,
-    ) -> std::result::Result<RegisterResponse, RegisterError> {
-        let input = RegisterInput {
-            email,
-            password1,
-            password2,
-        };
-        input.validate()?;
-
+    ) -> Result<RegisterResponse> {
         let is_admin_initialized = self.is_admin_initialized().await?;
-        let invitation = check_invitation(
-            &self.db,
-            is_admin_initialized,
-            invitation_code,
-            &input.email,
-        )
-        .await?;
+        let invitation =
+            check_invitation(&self.db, is_admin_initialized, invitation_code, &email).await?;
 
         // check if email exists
-        if self.db.get_user_by_email(&input.email).await?.is_some() {
-            return Err(RegisterError::DuplicateEmail);
+        if self.db.get_user_by_email(&email).await?.is_some() {
+            return Err(anyhow!("Email is already registered"));
         }
 
-        let Ok(pwd_hash) = password_hash(&input.password1) else {
-            return Err(RegisterError::Unknown);
+        let Ok(pwd_hash) = password_hash(&password) else {
+            return Err(anyhow!("Unknown error"));
         };
 
         let id = if let Some(invitation) = invitation {
             self.db
                 .create_user_with_invitation(
-                    input.email.clone(),
+                    email.clone(),
                     pwd_hash,
                     !is_admin_initialized,
                     invitation.id,
@@ -202,7 +73,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
                 .await?
         } else {
             self.db
-                .create_user(input.email.clone(), pwd_hash, !is_admin_initialized)
+                .create_user(email.clone(), pwd_hash, !is_admin_initialized)
                 .await?
         };
 
@@ -213,7 +84,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
-            return Err(RegisterError::Unknown);
+            return Err(anyhow!("Unknown error"));
         };
 
         let resp = RegisterResponse::new(access_token, refresh_token);
@@ -254,9 +125,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(Some(handle))
     }
 
-    async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError> {
-        let password_encrypted =
-            password_hash(password).map_err(|_| PasswordResetError::Unknown)?;
+    async fn password_reset(&self, code: &str, password: &str) -> Result<()> {
+        let password_encrypted = password_hash(password).map_err(|_| anyhow!("Unknown error"))?;
 
         let user_id = self.db.verify_password_reset(code).await?;
         self.db.delete_password_reset_by_user_id(user_id).await?;
@@ -266,24 +136,17 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
-    async fn token_auth(
-        &self,
-        email: String,
-        password: String,
-    ) -> std::result::Result<TokenAuthResponse, TokenAuthError> {
-        let input = TokenAuthInput { email, password };
-        input.validate()?;
-
-        let Some(user) = self.db.get_user_by_email(&input.email).await? else {
-            return Err(TokenAuthError::UserNotFound);
+    async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
+        let Some(user) = self.db.get_user_by_email(&email).await? else {
+            return Err(anyhow!("User not found"));
         };
 
         if !user.active {
-            return Err(TokenAuthError::UserDisabled);
+            return Err(anyhow!("User is disabled"));
         }
 
-        if !password_verify(&input.password, &user.password_encrypted) {
-            return Err(TokenAuthError::InvalidPassword);
+        if !password_verify(&password, &user.password_encrypted) {
+            return Err(anyhow!("Password is not valid"));
         }
 
         let refresh_token = generate_refresh_token();
@@ -293,29 +156,26 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
-            return Err(TokenAuthError::Unknown);
+            return Err(anyhow!("Unknown error"));
         };
 
         let resp = TokenAuthResponse::new(access_token, refresh_token);
         Ok(resp)
     }
 
-    async fn refresh_token(
-        &self,
-        token: String,
-    ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError> {
+    async fn refresh_token(&self, token: String) -> Result<RefreshTokenResponse> {
         let Some(refresh_token) = self.db.get_refresh_token(&token).await? else {
-            return Err(RefreshTokenError::InvalidRefreshToken);
+            return Err(anyhow!("Invalid refresh token"));
         };
         if refresh_token.is_expired() {
-            return Err(RefreshTokenError::ExpiredRefreshToken);
+            return Err(anyhow!("Expired refresh token"));
         }
         let Some(user) = self.db.get_user(refresh_token.user_id).await? else {
-            return Err(RefreshTokenError::UserNotFound);
+            return Err(anyhow!("User not found"));
         };
 
         if !user.active {
-            return Err(RefreshTokenError::UserDisabled);
+            return Err(anyhow!("User is disabled"));
         }
 
         let new_token = generate_refresh_token();
@@ -324,7 +184,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         // refresh token update is done, generate new access token based on user info
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
-            return Err(RefreshTokenError::Unknown);
+            return Err(anyhow!("Unknown error"));
         };
 
         let resp = RefreshTokenResponse::new(access_token, new_token, refresh_token.expires_at);
@@ -561,13 +421,13 @@ async fn check_invitation(
     is_admin_initialized: bool,
     invitation_code: Option<String>,
     email: &str,
-) -> Result<Option<InvitationDAO>, RegisterError> {
+) -> Result<Option<InvitationDAO>> {
     if !is_admin_initialized {
         // Creating the admin user, no invitation required
         return Ok(None);
     }
 
-    let err = Err(RegisterError::InvalidInvitationCode);
+    let err = Err(anyhow!("Invitation code is not valid"));
     let Some(invitation_code) = invitation_code else {
         return err;
     };
@@ -652,12 +512,7 @@ mod tests {
 
     async fn register_admin_user(service: &AuthenticationServiceImpl) -> RegisterResponse {
         service
-            .register(
-                ADMIN_EMAIL.to_owned(),
-                ADMIN_PASSWORD.to_owned(),
-                ADMIN_PASSWORD.to_owned(),
-                None,
-            )
+            .register(ADMIN_EMAIL.to_owned(), ADMIN_PASSWORD.to_owned(), None)
             .await
             .unwrap()
     }
@@ -669,7 +524,7 @@ mod tests {
             service
                 .token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
                 .await,
-            Err(TokenAuthError::UserNotFound)
+            Err(_)
         );
 
         register_admin_user(&service).await;
@@ -678,7 +533,7 @@ mod tests {
             service
                 .token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
                 .await,
-            Err(TokenAuthError::InvalidPassword)
+            Err(_)
         );
 
         let resp1 = service
@@ -712,14 +567,9 @@ mod tests {
         // Admin initialized, registeration requires a invitation code;
         assert_matches!(
             service
-                .register(
-                    email.to_owned(),
-                    password.to_owned(),
-                    password.to_owned(),
-                    None
-                )
+                .register(email.to_owned(), password.to_owned(), None)
                 .await,
-            Err(RegisterError::InvalidInvitationCode)
+            Err(_)
         );
 
         // Invalid invitation code won't work.
@@ -728,18 +578,16 @@ mod tests {
                 .register(
                     email.to_owned(),
                     password.to_owned(),
-                    password.to_owned(),
                     Some("abc".to_owned())
                 )
                 .await,
-            Err(RegisterError::InvalidInvitationCode)
+            Err(_)
         );
 
         // Register success.
         assert!(service
             .register(
                 email.to_owned(),
-                password.to_owned(),
                 password.to_owned(),
                 Some(invitation.code.clone()),
             )
@@ -752,11 +600,10 @@ mod tests {
                 .register(
                     email.to_owned(),
                     password.to_owned(),
-                    password.to_owned(),
                     Some(invitation.code.clone())
                 )
                 .await,
-            Err(RegisterError::InvalidInvitationCode)
+            Err(_)
         );
 
         // Used invitation should have been deleted,  following delete attempt should fail.
