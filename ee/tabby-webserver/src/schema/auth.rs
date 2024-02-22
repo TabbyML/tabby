@@ -433,23 +433,23 @@ fn validate_password(value: &str) -> Result<(), validator::ValidationError> {
 
     let contains_lowercase = value.chars().any(|x| x.is_ascii_lowercase());
     if !contains_lowercase {
-        return make_validation_error("Password should contains at least one lowercase character");
+        return make_validation_error("Password should contain at least one lowercase character");
     }
 
     let contains_uppercase = value.chars().any(|x| x.is_ascii_uppercase());
     if !contains_uppercase {
-        return make_validation_error("Password should contains at least one uppercase character");
+        return make_validation_error("Password should contain at least one uppercase character");
     }
 
     let contains_digit = value.chars().any(|x| x.is_ascii_digit());
     if !contains_digit {
-        return make_validation_error("Password should contains at least one numeric character");
+        return make_validation_error("Password should contain at least one numeric character");
     }
 
     let contains_special_char = value.chars().any(|x| x.is_ascii_punctuation());
     if !contains_special_char {
         return make_validation_error(
-            "Password should contains at least one special character, e.g @#$%^&{}",
+            "Password should contain at least one special character, e.g @#$%^&{}",
         );
     }
 
