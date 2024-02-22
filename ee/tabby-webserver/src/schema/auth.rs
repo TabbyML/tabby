@@ -194,33 +194,6 @@ pub enum OAuthError {
     Unknown,
 }
 
-#[derive(Error, Debug)]
-pub enum RefreshTokenError {
-    #[error("Invalid refresh token")]
-    InvalidRefreshToken,
-
-    #[error("Expired refresh token")]
-    ExpiredRefreshToken,
-
-    #[error("User not found")]
-    UserNotFound,
-
-    #[error("User is disabled")]
-    UserDisabled,
-
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-
-    #[error("Unknown error")]
-    Unknown,
-}
-
-impl<S: ScalarValue> IntoFieldError<S> for RefreshTokenError {
-    fn into_field_error(self) -> FieldError<S> {
-        self.into()
-    }
-}
-
 #[derive(Debug, GraphQLObject)]
 pub struct RefreshTokenResponse {
     pub access_token: String,
@@ -416,7 +389,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn refresh_token(
         &self,
         refresh_token: String,
-    ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError>;
+    ) -> Result<RefreshTokenResponse>;
     async fn delete_expired_token(&self) -> Result<()>;
     async fn delete_expired_password_resets(&self) -> Result<()>;
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;

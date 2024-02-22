@@ -9,7 +9,7 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::{
-    validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
+    validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse,
     RegisterError, RegisterResponse, TokenAuthResponse, User,
 };
 use job::{JobRun, JobService};
@@ -412,8 +412,8 @@ impl Mutation {
     async fn refresh_token(
         ctx: &Context,
         refresh_token: String,
-    ) -> Result<RefreshTokenResponse, RefreshTokenError> {
-        ctx.locator.auth().refresh_token(refresh_token).await
+    ) -> Result<RefreshTokenResponse> {
+        Ok(ctx.locator.auth().refresh_token(refresh_token).await?)
     }
 
     async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {

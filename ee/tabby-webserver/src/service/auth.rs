@@ -21,7 +21,7 @@ use crate::{
         auth::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
-            PasswordResetError, RefreshTokenError, RefreshTokenResponse, RegisterError,
+            PasswordResetError, RefreshTokenResponse, RegisterError,
             RegisterResponse, RequestInvitationInput, TokenAuthResponse,
             UpdateOAuthCredentialInput, User,
         },
@@ -263,19 +263,19 @@ impl AuthenticationService for AuthenticationServiceImpl {
     async fn refresh_token(
         &self,
         token: String,
-    ) -> std::result::Result<RefreshTokenResponse, RefreshTokenError> {
+    ) -> Result<RefreshTokenResponse> {
         let Some(refresh_token) = self.db.get_refresh_token(&token).await? else {
-            return Err(RefreshTokenError::InvalidRefreshToken);
+            return Err(anyhow!("Invalid refresh token"));
         };
         if refresh_token.is_expired() {
-            return Err(RefreshTokenError::ExpiredRefreshToken);
+            return Err(anyhow!("Expired refresh token"));
         }
         let Some(user) = self.db.get_user(refresh_token.user_id).await? else {
-            return Err(RefreshTokenError::UserNotFound);
+            return Err(anyhow!("User not found"));
         };
 
         if !user.active {
-            return Err(RefreshTokenError::UserDisabled);
+            return Err(anyhow!("User is disabled"));
         }
 
         let new_token = generate_refresh_token();
@@ -284,7 +284,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         // refresh token update is done, generate new access token based on user info
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
-            return Err(RefreshTokenError::Unknown);
+            return Err(anyhow!("Unknown error"));
         };
 
         let resp = RefreshTokenResponse::new(access_token, new_token, refresh_token.expires_at);
