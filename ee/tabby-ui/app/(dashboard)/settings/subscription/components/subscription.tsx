@@ -19,7 +19,7 @@ export default function Subscription() {
           </div>
           <div>
             <div className="text-muted-foreground">
-              Assigned / Total Instance License
+              Assigned / Total Seats
             </div>
             <div className="text-3xl">2 / 999</div>
           </div>
