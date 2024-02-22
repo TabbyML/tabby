@@ -2,6 +2,7 @@
 
 import { SubHeader } from "@/components/sub-header"
 import { LicenseTable } from "./license-table"
+import { LicenseForm } from "./license-form"
 
 export default function Subscription() {
 
@@ -26,6 +27,7 @@ export default function Subscription() {
             <div className="text-3xl">09/20/2222</div>
           </div>
         </div>
+        <LicenseForm />
         <LicenseTable />
       </div>
     </div>
