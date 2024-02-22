@@ -36,6 +36,7 @@ type Mutation {
   updateSecuritySetting(input: SecuritySettingInput!): Boolean!
   updateNetworkSetting(input: NetworkSettingInput!): Boolean!
   deleteEmailSetting: Boolean!
+  uploadLicense(license: String): LicenseStatus
 }
 
 type RepositoryEdge {
@@ -73,6 +74,7 @@ type Query {
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
+  license: LicenseInfo
 }
 
 input NetworkSettingInput {
@@ -117,8 +119,21 @@ type RepositoryConnection {
   pageInfo: PageInfo!
 }
 
+enum LicenseStatus {
+  OK
+  EXPIRED
+}
+
 input RequestPasswordResetEmailInput {
   email: String!
+}
+
+type LicenseInfo {
+  type: LicenseType!
+  status: LicenseStatus!
+  seats: Int!
+  issuedAt: DateTimeUtc!
+  expiresAt: DateTimeUtc!
 }
 
 input EmailSettingInput {
@@ -134,6 +149,10 @@ input EmailSettingInput {
 input SecuritySettingInput {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
+}
+
+enum LicenseType {
+  TEAM
 }
 
 type SecuritySetting {

@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod email;
 pub mod job;
+pub mod license;
 pub mod repository;
 pub mod setting;
 pub mod worker;
@@ -28,6 +29,7 @@ use worker::{Worker, WorkerService};
 use self::{
     auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
     email::{EmailService, EmailSetting, EmailSettingInput},
+    license::{LicenseInfo, LicenseService, LicenseStatus},
     repository::RepositoryService,
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
@@ -47,6 +49,7 @@ pub trait ServiceLocator: Send + Sync {
     fn repository(&self) -> Arc<dyn RepositoryService>;
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
+    fn license(&self) -> Arc<dyn LicenseService>;
 }
 
 pub struct Context {
@@ -298,6 +301,10 @@ impl Query {
             allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
         })
     }
+
+    async fn license(ctx: &Context) -> Result<Option<LicenseInfo>> {
+        Ok(ctx.locator.license().read_license().await?)
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -494,6 +501,15 @@ impl Mutation {
         check_admin(ctx)?;
         ctx.locator.email().delete_email_setting().await?;
         Ok(true)
+    }
+
+    async fn upload_license(
+        ctx: &Context,
+        license: Option<String>,
+    ) -> Result<Option<LicenseStatus>> {
+        check_admin(ctx)?;
+        let status = ctx.locator.license().update_license(license).await?;
+        Ok(status)
     }
 }
 

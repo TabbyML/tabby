@@ -9,7 +9,7 @@ use crate::schema::setting::{
 #[async_trait]
 impl SettingService for DbConn {
     async fn read_security_setting(&self) -> Result<SecuritySetting> {
-        Ok(self.read_server_setting().await?.into())
+        Ok((self as &DbConn).read_server_setting().await?.into())
     }
 
     async fn update_security_setting(&self, input: SecuritySettingInput) -> Result<()> {
@@ -19,16 +19,19 @@ impl SettingService for DbConn {
             Some(input.allowed_register_domain_list.join(","))
         };
 
-        self.update_security_setting(domains, input.disable_client_side_telemetry)
+        (self as &DbConn)
+            .update_security_setting(domains, input.disable_client_side_telemetry)
             .await
     }
 
     async fn read_network_setting(&self) -> Result<NetworkSetting> {
-        Ok(self.read_server_setting().await?.into())
+        Ok((self as &DbConn).read_server_setting().await?.into())
     }
 
     async fn update_network_setting(&self, input: NetworkSettingInput) -> Result<()> {
-        self.update_network_setting(input.external_url).await
+        (self as &DbConn)
+            .update_network_setting(input.external_url)
+            .await
     }
 }
 
