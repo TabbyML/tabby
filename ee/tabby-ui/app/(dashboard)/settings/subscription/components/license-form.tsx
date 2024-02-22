@@ -19,13 +19,6 @@ import {
 import { IconSpinner } from '@/components/ui/icons'
 import { Textarea } from '@/components/ui/textarea'
 
-
-const passwordResetMutation = graphql(/* GraphQL */ `
-  mutation passwordReset($input: PasswordResetInput!) {
-    passwordReset(input: $input)
-  }
-`)
-
 const formSchema = z.object({
   license: z.string()
 })
@@ -48,11 +41,6 @@ export function LicenseForm({
   })
   const license = form.watch('license')
   const { isSubmitting } = form.formState
-
-  // todo api
-  const passwordReset = useMutation(passwordResetMutation, {
-    form
-  })
 
   const onSubmit = (values: FormValues) => {
     // todo
@@ -78,14 +66,18 @@ export function LicenseForm({
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <Textarea placeholder='Paste your license here' {...field} />
+                  <Textarea placeholder="Paste your license here" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <div className='text-right'>
-            <Button type="submit" className="mt-2" disabled={isSubmitting || !license}>
+          <div className="text-right">
+            <Button
+              type="submit"
+              className="mt-2"
+              disabled={isSubmitting || !license}
+            >
               {isSubmitting && (
                 <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
               )}
