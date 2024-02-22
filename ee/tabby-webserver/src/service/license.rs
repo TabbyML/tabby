@@ -15,7 +15,7 @@ lazy_static! {
 
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
-struct RawLicenseInfo {
+struct LicenseJWTPayload {
     /// Expiration time (as UTC timestamp)
     pub exp: i64,
 
@@ -35,12 +35,12 @@ struct RawLicenseInfo {
     pub num: usize,
 }
 
-fn validate_license(token: &str) -> Result<RawLicenseInfo, jwt::errors::ErrorKind> {
+fn validate_license(token: &str) -> Result<LicenseJWTPayload, jwt::errors::ErrorKind> {
     let mut validation = jwt::Validation::new(jwt::Algorithm::RS512);
     validation.validate_exp = false;
     validation.set_issuer(&["tabbyml.com"]);
     validation.set_required_spec_claims(&["exp", "iat", "sub", "iss"]);
-    let data = jwt::decode::<RawLicenseInfo>(token, &LICENSE_DECODING_KEY, &validation);
+    let data = jwt::decode::<LicenseJWTPayload>(token, &LICENSE_DECODING_KEY, &validation);
     let data = data.map_err(|err| match err.kind() {
         // Map json error (missing failed, parse error) as missing required claims.
         jwt::errors::ErrorKind::Json(err) => {
@@ -65,7 +65,7 @@ pub fn new_license_service(db: DbConn) -> impl LicenseService {
     LicenseServiceImpl { db }
 }
 
-fn license_info_from_raw(raw: RawLicenseInfo) -> Result<LicenseInfo> {
+fn license_info_from_raw(raw: LicenseJWTPayload) -> Result<LicenseInfo> {
     let issued_at = jwt_timestamp_to_utc(raw.iat)?;
     let expires_at = jwt_timestamp_to_utc(raw.exp)?;
 
