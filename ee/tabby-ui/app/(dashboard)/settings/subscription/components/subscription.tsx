@@ -9,7 +9,7 @@ export default function Subscription() {
   return (
     <div className="p-4">
       <SubHeader>
-        You can upload your Bytebase license to unlock pro/enterprise features.
+        You can upload your Tabby license to unlock enterprise features.
       </SubHeader>
       <div className="flex flex-col gap-8">
         <div className="grid lg:grid-cols-3 font-bold">
