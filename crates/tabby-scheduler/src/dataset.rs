@@ -8,7 +8,7 @@ use std::{
     io::{IsTerminal, Write},
 };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use ignore::{DirEntry, Walk};
 use kdam::BarExt;
@@ -47,10 +47,17 @@ impl RepositoryExt for RepositoryConfig {
         for entry in walk_dir {
             pb.as_mut().map(|b| b.update(1)).transpose()?;
 
-            let relative_path = entry.path().strip_prefix(dir.as_path()).unwrap();
-            let language = get_language(relative_path.extension().unwrap())
-                .unwrap()
-                .to_owned();
+            let relative_path = entry
+                .path()
+                .strip_prefix(dir.as_path())
+                .expect("Paths always begin with the prefix");
+            let language = get_language(
+                relative_path
+                    .extension()
+                    .ok_or_else(|| anyhow!("Unknown file extension for {relative_path:?}"))?,
+            )
+            .ok_or_else(|| anyhow!("Unknown language for {relative_path:?}"))?
+            .to_owned();
             match read_to_string(entry.path()) {
                 Ok(file_content) => {
                     let source_file = SourceFile {

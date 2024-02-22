@@ -75,8 +75,16 @@ struct IndexedDocument {
 
 fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
     file.tags.into_iter().filter_map(move |tag| {
-        let name = file.content.get(tag.name_range).unwrap().to_owned();
-        let body = file.content.get(tag.range).unwrap().to_owned();
+        let name = file
+            .content
+            .get(tag.name_range)
+            .expect("Range is known valid")
+            .to_owned();
+        let body = file
+            .content
+            .get(tag.range)
+            .expect("Range is known valid")
+            .to_owned();
 
         if body.lines().collect::<Vec<_>>().len() > MAX_BODY_LINES_THRESHOLD {
             return None;
@@ -171,7 +179,7 @@ mod tests {
                     "syntax_type_name": "function"
                   },
                 ]
-              })).unwrap()
+              })).expect("JSON is valid SourceFile")
     }
 
     #[test]

@@ -33,7 +33,10 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) -> R
                         return;
                     };
 
-                    let repositories = access.list_repositories().await.unwrap();
+                    let repositories = access
+                        .list_repositories()
+                        .await
+                        .expect("Must be able to retrieve repositories for sync");
                     job_sync(&repositories);
                     job_index(&repositories);
                 })
