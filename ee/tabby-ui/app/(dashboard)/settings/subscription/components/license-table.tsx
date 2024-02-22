@@ -12,7 +12,7 @@ import {
 
 export const LicenseTable = () => {
   return (
-    <Table className="text-center border">
+    <Table className="border text-center">
       <TableHeader>
         <TableRow className="hidden">
           <TableHead className="w-[40%]"></TableHead>
@@ -25,7 +25,7 @@ export const LicenseTable = () => {
         <TableRow>
           <TableCell
             colSpan={4}
-            className="bg-accent text-accent-foreground text-left"
+            className="bg-accent text-left text-accent-foreground"
           >
             Change Management
           </TableCell>
@@ -58,7 +58,7 @@ export const LicenseTable = () => {
         <TableRow>
           <TableCell
             colSpan={4}
-            className="bg-accent text-accent-foreground text-left"
+            className="bg-accent text-left text-accent-foreground"
           >
             Security
           </TableCell>

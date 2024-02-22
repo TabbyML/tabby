@@ -12,7 +12,7 @@ export default function Subscription() {
         You can upload your Tabby license to unlock enterprise features.
       </SubHeader>
       <div className="flex flex-col gap-8">
-        <div className="grid lg:grid-cols-3 font-bold">
+        <div className="grid font-bold lg:grid-cols-3">
           <div>
             <div className="text-muted-foreground">Current plan</div>
             <div className="text-3xl">Enterprise</div>
