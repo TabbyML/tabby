@@ -158,28 +158,6 @@ pub struct RegisterInput {
     pub password2: String,
 }
 
-
-#[derive(Error, Debug)]
-pub enum PasswordResetError {
-    #[error("Invalid code")]
-    InvalidCode,
-    #[error("Invalid password")]
-    InvalidInput(#[from] ValidationErrors),
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-    #[error("Unknown error")]
-    Unknown,
-}
-
-impl<S: ScalarValue> IntoFieldError<S> for PasswordResetError {
-    fn into_field_error(self) -> FieldError<S> {
-        match self {
-            Self::InvalidInput(errors) => from_validation_errors(errors),
-            _ => self.into(),
-        }
-    }
-}
-
 #[derive(Default, Serialize)]
 pub struct OAuthResponse {
     pub access_token: String,
@@ -413,7 +391,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
-    async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError>;
+    async fn password_reset(&self, code: &str, password: &str) -> Result<()>;
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
 
     async fn list_users(

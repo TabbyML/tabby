@@ -21,7 +21,7 @@ use crate::{
         auth::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
-            PasswordResetError, RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
+            RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
             TokenAuthResponse, UpdateOAuthCredentialInput, User,
         },
         email::{EmailService, SendEmailError},
@@ -126,9 +126,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(Some(handle))
     }
 
-    async fn password_reset(&self, code: &str, password: &str) -> Result<(), PasswordResetError> {
+    async fn password_reset(&self, code: &str, password: &str) -> Result<()> {
         let password_encrypted =
-            password_hash(password).map_err(|_| PasswordResetError::Unknown)?;
+            password_hash(password).map_err(|_| anyhow!("Unknown error"))?;
 
         let user_id = self.db.verify_password_reset(code).await?;
         self.db.delete_password_reset_by_user_id(user_id).await?;
