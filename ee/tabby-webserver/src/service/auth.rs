@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{anyhow, Context, Result};
 use argon2::{
@@ -12,7 +12,6 @@ use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
 use tokio::task::JoinHandle;
 use tracing::warn;
-use validator::{Validate, ValidationError};
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
@@ -21,8 +20,8 @@ use crate::{
         auth::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
-            RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
-            TokenAuthResponse, UpdateOAuthCredentialInput, User,
+            RefreshTokenResponse, RegisterResponse, RequestInvitationInput, TokenAuthResponse,
+            UpdateOAuthCredentialInput, User,
         },
         email::{EmailService, SendEmailError},
         setting::SettingService,
@@ -127,8 +126,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn password_reset(&self, code: &str, password: &str) -> Result<()> {
-        let password_encrypted =
-            password_hash(password).map_err(|_| anyhow!("Unknown error"))?;
+        let password_encrypted = password_hash(password).map_err(|_| anyhow!("Unknown error"))?;
 
         let user_id = self.db.verify_password_reset(code).await?;
         self.db.delete_password_reset_by_user_id(user_id).await?;
@@ -569,12 +567,7 @@ mod tests {
         // Admin initialized, registeration requires a invitation code;
         assert_matches!(
             service
-                .register(
-                    email.to_owned(),
-                    password.to_owned(),
-                    password.to_owned(),
-                    None
-                )
+                .register(email.to_owned(), password.to_owned(), None)
                 .await,
             Err(_)
         );
@@ -584,7 +577,6 @@ mod tests {
             service
                 .register(
                     email.to_owned(),
-                    password.to_owned(),
                     password.to_owned(),
                     Some("abc".to_owned())
                 )
@@ -597,7 +589,6 @@ mod tests {
             .register(
                 email.to_owned(),
                 password.to_owned(),
-                password.to_owned(),
                 Some(invitation.code.clone()),
             )
             .await
@@ -608,7 +599,6 @@ mod tests {
             service
                 .register(
                     email.to_owned(),
-                    password.to_owned(),
                     password.to_owned(),
                     Some(invitation.code.clone())
                 )

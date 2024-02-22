@@ -4,9 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
-use juniper::{
-    FieldError, GraphQLEnum, GraphQLInputObject, GraphQLObject, IntoFieldError, ScalarValue, ID,
-};
+use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
 use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -15,9 +13,8 @@ use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::{error, warn};
 use uuid::Uuid;
-use validator::{Validate, ValidationErrors};
+use validator::Validate;
 
-use super::from_validation_errors;
 use crate::schema::Context;
 
 lazy_static! {
@@ -376,10 +373,7 @@ pub trait AuthenticationService: Send + Sync {
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse>;
 
-    async fn refresh_token(
-        &self,
-        refresh_token: String,
-    ) -> Result<RefreshTokenResponse>;
+    async fn refresh_token(&self, refresh_token: String) -> Result<RefreshTokenResponse>;
     async fn delete_expired_token(&self) -> Result<()>;
     async fn delete_expired_password_resets(&self) -> Result<()>;
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
@@ -461,7 +455,6 @@ fn validate_password(value: &str) -> Result<(), validator::ValidationError> {
 
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {

@@ -9,8 +9,8 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::{
-    validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, 
-    RegisterResponse, TokenAuthResponse, User,
+    validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
+    TokenAuthResponse, User,
 };
 use job::{JobRun, JobService};
 use juniper::{
@@ -391,13 +391,10 @@ impl Mutation {
         };
         input.validate()?;
 
-        Ok(ctx.locator
+        Ok(ctx
+            .locator
             .auth()
-            .register(
-                input.email,
-                input.password1,
-                invitation_code,
-            )
+            .register(input.email, input.password1, invitation_code)
             .await?)
     }
 
