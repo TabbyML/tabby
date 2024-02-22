@@ -15,7 +15,7 @@ export default function Subscription() {
         <div className="grid font-bold lg:grid-cols-3">
           <div>
             <div className="text-muted-foreground">Current plan</div>
-            <div className="text-3xl">Enterprise</div>
+            <div className="text-3xl">Team</div>
           </div>
           <div>
             <div className="text-muted-foreground">
