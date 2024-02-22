@@ -6,8 +6,9 @@ pub mod repository;
 pub mod setting;
 pub mod worker;
 
-use std::sync::Arc;
+use std::{os::macos::raw::stat, sync::Arc};
 
+use anyhow::anyhow;
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
     TokenAuthResponse, User,
@@ -74,9 +75,6 @@ pub enum CoreError {
     #[error("{0}")]
     Forbidden(&'static str),
 
-    #[error("Your license is not valid for this feature")]
-    InvalidLicense,
-
     #[error("Invalid ID")]
     InvalidID,
 
@@ -117,6 +115,24 @@ fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     if !claims.is_admin {
         return Err(CoreError::Forbidden("You must be admin to proceed"));
     }
+
+    Ok(())
+}
+
+// FIXME(boxbeam): change the function to non-async once `read_license` utilize a underlying cache.
+async fn check_license(ctx: &Context) -> Result<(), CoreError> {
+    let Some(license) = ctx.locator.license().read_license().await? else {
+        return Err(CoreError::Other(anyhow!(
+            "This feature requires a license to be used"
+        )));
+    };
+
+    match license.status {
+        LicenseStatus::Expired => {
+            return Err(CoreError::Other(anyhow!("Your license has expired")));
+        }
+        LicenseStatus::Ok => (),
+    };
 
     Ok(())
 }
@@ -467,6 +483,7 @@ impl Mutation {
         ctx: &Context,
         input: UpdateOAuthCredentialInput,
     ) -> Result<bool> {
+        check_license(ctx).await?;
         check_admin(ctx)?;
         input.validate()?;
         ctx.locator.auth().update_oauth_credential(input).await?;
@@ -480,6 +497,7 @@ impl Mutation {
     }
 
     async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
+        check_license(ctx).await?;
         check_admin(ctx)?;
         input.validate()?;
         ctx.locator.email().update_email_setting(input).await?;
@@ -487,6 +505,7 @@ impl Mutation {
     }
 
     async fn update_security_setting(ctx: &Context, input: SecuritySettingInput) -> Result<bool> {
+        check_license(ctx).await?;
         check_admin(ctx)?;
         input.validate()?;
         ctx.locator.setting().update_security_setting(input).await?;
@@ -494,6 +513,7 @@ impl Mutation {
     }
 
     async fn update_network_setting(ctx: &Context, input: NetworkSettingInput) -> Result<bool> {
+        check_license(ctx).await?;
         check_admin(ctx)?;
         input.validate()?;
         ctx.locator.setting().update_network_setting(input).await?;
