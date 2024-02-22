@@ -18,9 +18,7 @@ export default function Subscription() {
             <div className="text-3xl">Team</div>
           </div>
           <div>
-            <div className="text-muted-foreground">
-              Assigned / Total Seats
-            </div>
+            <div className="text-muted-foreground">Assigned / Total Seats</div>
             <div className="text-3xl">2 / 999</div>
           </div>
           <div>
