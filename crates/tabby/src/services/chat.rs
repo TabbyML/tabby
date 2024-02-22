@@ -146,7 +146,7 @@ impl ChatService {
             }
             yield ChatCompletionChunk::new("".into(), id.clone(), created, true);
 
-            self.logger.log(Event::ChatCompletion { completion_id: id, input: event_input, output: create_assistant_message(event_output) });
+            self.logger.log(Event::ChatCompletion { completion_id: id, input: event_input, output: create_assistant_message(event_output) }).await;
         };
 
         Ok(Box::pin(s))

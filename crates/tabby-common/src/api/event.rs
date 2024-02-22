@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -92,8 +93,9 @@ pub struct Segments {
     pub clipboard: Option<String>,
 }
 
+#[async_trait]
 pub trait EventLogger: Send + Sync {
-    fn log(&self, e: Event);
+    async fn log(&self, e: Event);
 }
 
 #[derive(Serialize)]
@@ -106,8 +108,9 @@ pub trait RawEventLogger: Send + Sync {
     fn log(&self, content: String);
 }
 
+#[async_trait]
 impl<T: RawEventLogger> EventLogger for T {
-    fn log(&self, e: Event) {
+    async fn log(&self, e: Event) {
         let content = serdeconv::to_json_string(&Log {
             ts: timestamp(),
             event: e,

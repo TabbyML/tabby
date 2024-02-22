@@ -10,6 +10,7 @@ testutils = []
 prod-db = []
 
 [dependencies]
+async-trait.workspace = true
 anyhow.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 sql_query_builder = { version = "2.1.0", features = ["sqlite"] }
