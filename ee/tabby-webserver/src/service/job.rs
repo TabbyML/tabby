@@ -27,6 +27,11 @@ impl JobService for DbConn {
         Ok(())
     }
 
+    async fn cleanup_stale_job_runs(&self) -> Result<()> {
+        (self as &DbConn).cleanup_stale_job_runs().await?;
+        Ok(())
+    }
+
     async fn list_job_runs(
         &self,
         ids: Option<Vec<ID>>,

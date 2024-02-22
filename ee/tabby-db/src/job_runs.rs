@@ -92,4 +92,11 @@ impl DbConn {
         let runs = sqlx::query_as(&query).fetch_all(&self.pool).await?;
         Ok(runs)
     }
+
+    pub async fn cleanup_stale_job_runs(&self) -> Result<()> {
+        query!("DELETE FROM job_runs WHERE exit_code IS NULL;")
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
 }
