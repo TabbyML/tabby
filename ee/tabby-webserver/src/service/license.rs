@@ -14,7 +14,8 @@ lazy_static! {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RawLicenseInfo {
+#[allow(unused)]
+struct RawLicenseInfo {
     /// Expiration time (as UTC timestamp)
     pub exp: i64,
 
@@ -34,7 +35,7 @@ pub struct RawLicenseInfo {
     pub num: usize,
 }
 
-pub fn validate_license(token: &str) -> Result<RawLicenseInfo, jwt::errors::ErrorKind> {
+fn validate_license(token: &str) -> Result<RawLicenseInfo, jwt::errors::ErrorKind> {
     let mut validation = jwt::Validation::new(jwt::Algorithm::RS512);
     validation.validate_exp = false;
     validation.set_issuer(&["tabbyml.com"]);
