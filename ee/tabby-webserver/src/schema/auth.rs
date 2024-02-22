@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -80,33 +80,6 @@ impl RegisterResponse {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum RegisterError {
-    #[error("Invalid input parameters")]
-    InvalidInput(#[from] ValidationErrors),
-
-    #[error("Invitation code is not valid")]
-    InvalidInvitationCode,
-
-    #[error("Email is already registered")]
-    DuplicateEmail,
-
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-
-    #[error("Unknown error")]
-    Unknown,
-}
-
-impl<S: ScalarValue> IntoFieldError<S> for RegisterError {
-    fn into_field_error(self) -> FieldError<S> {
-        match self {
-            Self::InvalidInput(errors) => from_validation_errors(errors),
-            _ => self.into(),
-        }
-    }
-}
-
 #[derive(Debug, GraphQLObject)]
 pub struct TokenAuthResponse {
     access_token: String,
@@ -145,6 +118,46 @@ pub struct TokenAuthInput {
     ))]
     pub password: String,
 }
+
+/// Input parameters for register mutation
+/// `validate` attribute is used to validate the input parameters
+///   - `code` argument specifies which parameter causes the failure
+///   - `message` argument provides client friendly error message
+///
+#[derive(Validate)]
+pub struct RegisterInput {
+    #[validate(email(code = "email", message = "Email is invalid"))]
+    #[validate(length(
+        max = 128,
+        code = "email",
+        message = "Email must be at most 128 characters"
+    ))]
+    pub email: String,
+    #[validate(length(
+        min = 8,
+        code = "password1",
+        message = "Password must be at least 8 characters"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "password1",
+        message = "Password must be at most 20 characters"
+    ))]
+    #[validate(custom = "validate_password")]
+    pub password1: String,
+    #[validate(must_match(
+        code = "password2",
+        message = "Passwords do not match",
+        other = "password1"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "password2",
+        message = "Password must be at most 20 characters"
+    ))]
+    pub password2: String,
+}
+
 
 #[derive(Error, Debug)]
 pub enum PasswordResetError {
@@ -379,9 +392,8 @@ pub trait AuthenticationService: Send + Sync {
         &self,
         email: String,
         password1: String,
-        password2: String,
         invitation_code: Option<String>,
-    ) -> std::result::Result<RegisterResponse, RegisterError>;
+    ) -> Result<RegisterResponse>;
     async fn allow_self_signup(&self) -> Result<bool>;
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse>;
@@ -439,6 +451,39 @@ pub trait AuthenticationService: Send + Sync {
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()>;
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()>;
 }
+
+fn validate_password(value: &str) -> Result<(), validator::ValidationError> {
+    let make_validation_error = |message: &'static str| {
+        let mut err = validator::ValidationError::new("password1");
+        err.message = Some(Cow::Borrowed(message));
+        Err(err)
+    };
+
+    let contains_lowercase = value.chars().any(|x| x.is_ascii_lowercase());
+    if !contains_lowercase {
+        return make_validation_error("Password should contains at least one lowercase character");
+    }
+
+    let contains_uppercase = value.chars().any(|x| x.is_ascii_uppercase());
+    if !contains_uppercase {
+        return make_validation_error("Password should contains at least one uppercase character");
+    }
+
+    let contains_digit = value.chars().any(|x| x.is_ascii_digit());
+    if !contains_digit {
+        return make_validation_error("Password should contains at least one numeric character");
+    }
+
+    let contains_special_char = value.chars().any(|x| x.is_ascii_punctuation());
+    if !contains_special_char {
+        return make_validation_error(
+            "Password should contains at least one special character, e.g @#$%^&{}",
+        );
+    }
+
+    Ok(())
+}
+
 
 #[cfg(test)]
 mod tests {

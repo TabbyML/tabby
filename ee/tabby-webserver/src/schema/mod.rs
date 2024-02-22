@@ -9,8 +9,8 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::{
-    validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse,
-    RegisterError, RegisterResponse, TokenAuthResponse, User,
+    validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, 
+    RegisterResponse, TokenAuthResponse, User,
 };
 use job::{JobRun, JobService};
 use juniper::{
@@ -383,11 +383,22 @@ impl Mutation {
         password1: String,
         password2: String,
         invitation_code: Option<String>,
-    ) -> Result<RegisterResponse, RegisterError> {
-        ctx.locator
+    ) -> Result<RegisterResponse> {
+        let input = auth::RegisterInput {
+            email,
+            password1,
+            password2,
+        };
+        input.validate()?;
+
+        Ok(ctx.locator
             .auth()
-            .register(email, password1, password2, invitation_code)
-            .await
+            .register(
+                input.email,
+                input.password1,
+                invitation_code,
+            )
+            .await?)
     }
 
     async fn token_auth(
@@ -409,10 +420,7 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn refresh_token(
-        ctx: &Context,
-        refresh_token: String,
-    ) -> Result<RefreshTokenResponse> {
+    async fn refresh_token(ctx: &Context, refresh_token: String) -> Result<RefreshTokenResponse> {
         Ok(ctx.locator.auth().refresh_token(refresh_token).await?)
     }
 
