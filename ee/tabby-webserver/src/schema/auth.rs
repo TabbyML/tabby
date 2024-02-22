@@ -122,25 +122,28 @@ impl TokenAuthResponse {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum TokenAuthError {
-    #[error("Invalid input parameters")]
-    InvalidInput(#[from] ValidationErrors),
-
-    #[error("User not found")]
-    UserNotFound,
-
-    #[error("Password is not valid")]
-    InvalidPassword,
-
-    #[error("User is disabled")]
-    UserDisabled,
-
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-
-    #[error("Unknown error")]
-    Unknown,
+/// Input parameters for token_auth mutation
+/// See `RegisterInput` for `validate` attribute usage
+#[derive(Validate)]
+pub struct TokenAuthInput {
+    #[validate(email(code = "email", message = "Email is invalid"))]
+    #[validate(length(
+        max = 128,
+        code = "email",
+        message = "Email must be at most 128 characters"
+    ))]
+    pub email: String,
+    #[validate(length(
+        min = 8,
+        code = "password",
+        message = "Password must be at least 8 characters"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "password",
+        message = "Password must be at most 20 characters"
+    ))]
+    pub password: String,
 }
 
 #[derive(Error, Debug)]
@@ -189,15 +192,6 @@ pub enum OAuthError {
 
     #[error("Unknown error")]
     Unknown,
-}
-
-impl<S: ScalarValue> IntoFieldError<S> for TokenAuthError {
-    fn into_field_error(self) -> FieldError<S> {
-        match self {
-            Self::InvalidInput(errors) => from_validation_errors(errors),
-            _ => self.into(),
-        }
-    }
 }
 
 #[derive(Error, Debug)]
@@ -417,11 +411,7 @@ pub trait AuthenticationService: Send + Sync {
     ) -> std::result::Result<RegisterResponse, RegisterError>;
     async fn allow_self_signup(&self) -> Result<bool>;
 
-    async fn token_auth(
-        &self,
-        email: String,
-        password: String,
-    ) -> std::result::Result<TokenAuthResponse, TokenAuthError>;
+    async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse>;
 
     async fn refresh_token(
         &self,

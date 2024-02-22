@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenError, RefreshTokenResponse,
-    RegisterError, RegisterResponse, TokenAuthError, TokenAuthResponse, User,
+    RegisterError, RegisterResponse, TokenAuthResponse, User,
 };
 use job::{JobRun, JobService};
 use juniper::{
@@ -394,8 +394,14 @@ impl Mutation {
         ctx: &Context,
         email: String,
         password: String,
-    ) -> Result<TokenAuthResponse, TokenAuthError> {
-        ctx.locator.auth().token_auth(email, password).await
+    ) -> Result<TokenAuthResponse> {
+        let input = auth::TokenAuthInput { email, password };
+        input.validate()?;
+        Ok(ctx
+            .locator
+            .auth()
+            .token_auth(input.email, input.password)
+            .await?)
     }
 
     async fn verify_token(ctx: &Context, token: String) -> Result<bool> {

@@ -22,7 +22,7 @@ use crate::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
             PasswordResetError, RefreshTokenError, RefreshTokenResponse, RegisterError,
-            RegisterResponse, RequestInvitationInput, TokenAuthError, TokenAuthResponse,
+            RegisterResponse, RequestInvitationInput, TokenAuthResponse,
             UpdateOAuthCredentialInput, User,
         },
         email::{EmailService, SendEmailError},
@@ -122,39 +122,6 @@ fn validate_password(value: &str) -> Result<(), ValidationError> {
     }
 
     Ok(())
-}
-
-/// Input parameters for token_auth mutation
-/// See `RegisterInput` for `validate` attribute usage
-#[derive(Validate)]
-struct TokenAuthInput {
-    #[validate(email(code = "email", message = "Email is invalid"))]
-    #[validate(length(
-        max = 128,
-        code = "email",
-        message = "Email must be at most 128 characters"
-    ))]
-    email: String,
-    #[validate(length(
-        min = 8,
-        code = "password",
-        message = "Password must be at least 8 characters"
-    ))]
-    #[validate(length(
-        max = 20,
-        code = "password",
-        message = "Password must be at most 20 characters"
-    ))]
-    password: String,
-}
-
-impl std::fmt::Debug for TokenAuthInput {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TokenAuthInput")
-            .field("email", &self.email)
-            .field("password", &"********")
-            .finish()
-    }
 }
 
 #[async_trait]
@@ -266,24 +233,17 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
-    async fn token_auth(
-        &self,
-        email: String,
-        password: String,
-    ) -> std::result::Result<TokenAuthResponse, TokenAuthError> {
-        let input = TokenAuthInput { email, password };
-        input.validate()?;
-
-        let Some(user) = self.db.get_user_by_email(&input.email).await? else {
-            return Err(TokenAuthError::UserNotFound);
+    async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
+        let Some(user) = self.db.get_user_by_email(&email).await? else {
+            return Err(anyhow!("User not found"));
         };
 
         if !user.active {
-            return Err(TokenAuthError::UserDisabled);
+            return Err(anyhow!("User is disabled"));
         }
 
-        if !password_verify(&input.password, &user.password_encrypted) {
-            return Err(TokenAuthError::InvalidPassword);
+        if !password_verify(&password, &user.password_encrypted) {
+            return Err(anyhow!("Password is not valid"));
         }
 
         let refresh_token = generate_refresh_token();
@@ -293,7 +253,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
-            return Err(TokenAuthError::Unknown);
+            return Err(anyhow!("Unknown error"));
         };
 
         let resp = TokenAuthResponse::new(access_token, refresh_token);
@@ -669,7 +629,7 @@ mod tests {
             service
                 .token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
                 .await,
-            Err(TokenAuthError::UserNotFound)
+            Err(_)
         );
 
         register_admin_user(&service).await;
@@ -678,7 +638,7 @@ mod tests {
             service
                 .token_auth(ADMIN_EMAIL.to_owned(), "12345678".to_owned())
                 .await,
-            Err(TokenAuthError::InvalidPassword)
+            Err(_)
         );
 
         let resp1 = service
