@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
+import { graphql } from '@/lib/gql/generates'
+import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,8 +18,6 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Textarea } from '@/components/ui/textarea'
-import { graphql } from '@/lib/gql/generates'
-import { useMutation } from '@/lib/tabby/gql'
 
 const formSchema = z.object({
   license: z.string()

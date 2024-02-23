@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react';
+import React from 'react'
 
 interface LoadingWrapperProps {
   loading?: boolean
@@ -8,8 +8,11 @@ interface LoadingWrapperProps {
   fallback?: React.ReactNode
 }
 
-export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({ loading, fallback, children }) => {
-
+export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
+  loading,
+  fallback,
+  children
+}) => {
   const [loaded, setLoaded] = React.useState(!loading)
 
   React.useEffect(() => {
@@ -19,10 +22,10 @@ export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({ loading, fallbac
   }, [loading])
 
   if (!loaded) {
-    return fallback; 
+    return fallback
   } else {
-    return children;
+    return children
   }
-};
+}
 
-export default LoadingWrapper;
+export default LoadingWrapper
