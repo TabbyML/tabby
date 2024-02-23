@@ -8,18 +8,18 @@ import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
-import com.intellij.util.messages.MessageBusConnection
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 
 class EditorListener : EditorFactoryListener {
   private val logger = Logger.getInstance(EditorListener::class.java)
-  private val messagesConnection = mutableMapOf<Editor, MessageBusConnection>()
+  private val disposers = mutableMapOf<Editor, () -> Unit>()
 
   override fun editorCreated(event: EditorFactoryEvent) {
     val editor = event.editor
     val editorManager = editor.project?.let { FileEditorManager.getInstance(it) } ?: return
     val settings = service<ApplicationSettingsState>()
     val completionProvider = service<CompletionProvider>()
+    logger.debug("EditorFactoryListener: editorCreated $event")
 
     editor.caretModel.addCaretListener(object : CaretListener {
       override fun caretPositionChanged(event: CaretEvent) {
@@ -37,7 +37,7 @@ class EditorListener : EditorFactoryListener {
       }
     })
 
-    editor.document.addDocumentListener(object : DocumentListener {
+    val documentListener = object : DocumentListener {
       override fun documentChanged(event: DocumentEvent) {
         logger.debug("DocumentListener: documentChanged $event")
         if (editorManager.selectedTextEditor == editor) {
@@ -55,23 +55,29 @@ class EditorListener : EditorFactoryListener {
           }
         }
       }
-    })
+    }
+    editor.document.addDocumentListener(documentListener)
 
-    editor.project?.messageBus?.connect()?.let {
-      it.subscribe(
-        FileEditorManagerListener.FILE_EDITOR_MANAGER,
-        object : FileEditorManagerListener {
-          override fun selectionChanged(event: FileEditorManagerEvent) {
-            logger.debug("FileEditorManagerListener: selectionChanged.")
-            completionProvider.clear()
-          }
+    val messagesConnection = editor.project?.messageBus?.connect()
+    messagesConnection?.subscribe(
+      FileEditorManagerListener.FILE_EDITOR_MANAGER,
+      object : FileEditorManagerListener {
+        override fun selectionChanged(event: FileEditorManagerEvent) {
+          logger.debug("FileEditorManagerListener: selectionChanged.")
+          completionProvider.clear()
         }
-      )
-      messagesConnection[editor] = it
+      }
+    )
+
+    disposers[editor] = {
+      editor.document.removeDocumentListener(documentListener)
+      messagesConnection?.disconnect()
     }
   }
 
   override fun editorReleased(event: EditorFactoryEvent) {
-    messagesConnection[event.editor]?.disconnect()
+    logger.debug("EditorFactoryListener: editorReleased $event")
+    disposers[event.editor]?.invoke()
+    disposers.remove(event.editor)
   }
 }
