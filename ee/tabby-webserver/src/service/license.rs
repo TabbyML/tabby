@@ -69,15 +69,16 @@ struct LicenseServiceImpl {
 impl LicenseServiceImpl {
     async fn read_used_seats(&self, force_refresh: bool) -> Result<usize> {
         let now = Utc::now();
-        let lock = self.seats.read().await;
-        let (refreshed, seats) = &*lock;
+        let (refreshed, mut seats) = {
+            let lock = self.seats.read().await;
+            *lock
+        };
         if force_refresh || now - refreshed > Duration::minutes(5) {
             let mut lock = self.seats.write().await;
-            let seats = self.db.count_active_users().await?;
+            seats = self.db.count_active_users().await?;
             *lock = (now, seats);
-            return Ok(seats);
         }
-        Ok(*seats)
+        Ok(seats)
     }
 }
 
@@ -177,7 +178,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_delete_license() {
+    async fn test_create_update_license() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = new_license_service(db).await.unwrap();
 
@@ -186,8 +187,6 @@ mod tests {
         service.update_license(VALID_TOKEN.into()).await.unwrap();
         assert!(service.read_license().await.unwrap().is_some());
 
-        service.update_license(EXPIRED_TOKEN.into()).await.unwrap();
-        let info = service.read_license().await.unwrap().unwrap();
-        assert_eq!(info.status, LicenseStatus::Expired);
+        assert!(service.update_license(EXPIRED_TOKEN.into()).await.is_err());
     }
 }
