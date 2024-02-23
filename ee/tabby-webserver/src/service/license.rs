@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
@@ -10,6 +10,7 @@ use tabby_db::DbConn;
 use tokio::sync::RwLock;
 
 use crate::schema::license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType};
+use crate::schema::Result;
 
 lazy_static! {
     static ref LICENSE_DECODING_KEY: jwt::DecodingKey =
@@ -66,9 +67,6 @@ struct LicenseServiceImpl {
 }
 
 impl LicenseServiceImpl {
-    // TODO: Discuss caching strategies when caching is needed for other fields.
-    // We may want to cache at a different layer, and probably want an abstraction over
-    // this kind of caching logic.
     async fn read_used_seats(&self) -> Result<usize> {
         let now = Utc::now();
         let lock = self.seats.read().await;
