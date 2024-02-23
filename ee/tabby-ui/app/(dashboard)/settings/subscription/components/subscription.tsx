@@ -68,12 +68,10 @@ export default function Subscription() {
               </div>
               <div className="text-3xl">0 / {license?.seats ?? '1'}</div>
             </div>
-            {!!license && (
-              <div>
-                <div className="mb-1 text-muted-foreground">Expires at</div>
-                <div className="text-3xl">{expiresAt}</div>
-              </div>
-            )}
+            <div>
+              <div className="mb-1 text-muted-foreground">Expires at</div>
+              <div className="text-3xl">{expiresAt}</div>
+            </div>
           </div>
         </LoadingWrapper>
         <LicenseForm onSuccess={onUploadLicenseSuccess} />

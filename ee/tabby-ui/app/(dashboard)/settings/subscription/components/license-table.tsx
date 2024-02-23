@@ -13,10 +13,11 @@ export const LicenseTable = () => {
   return (
     <Table className="border text-center">
       <TableHeader>
-        <TableRow className="hidden">
+        <TableRow>
           <TableHead className="w-[40%]"></TableHead>
-          <TableHead className="w-[30%]"></TableHead>
-          <TableHead className="w-[30%]"></TableHead>
+          <TableHead className="w-[20%] text-center">Free</TableHead>
+          <TableHead className="w-[20%] text-center">Team</TableHead>
+          <TableHead className="w-[20%] text-center">Enterprise</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -32,6 +33,7 @@ export const LicenseTable = () => {
           <TableCell className="text-left">Seat count</TableCell>
           <TableCell>1</TableCell>
           <TableCell>Up to 10</TableCell>
+          <TableCell>Unlimited</TableCell>
         </TableRow>
       </TableBody>
     </Table>
