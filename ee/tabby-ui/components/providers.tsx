@@ -7,6 +7,7 @@ import { Provider as UrqlProvider } from 'urql'
 
 import { AuthProvider, useAuthenticatedSession } from '@/lib/tabby/auth'
 import { client } from '@/lib/tabby/gql'
+import { LicenseProvider } from '@/lib/tabby/license'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 export function Providers({ children, ...props }: ThemeProviderProps) {
@@ -15,8 +16,10 @@ export function Providers({ children, ...props }: ThemeProviderProps) {
       <UrqlProvider value={client}>
         <TooltipProvider>
           <AuthProvider>
-            <EnsureSignin />
-            {children}
+            <LicenseProvider>
+              <EnsureSignin />
+              {children}
+            </LicenseProvider>
           </AuthProvider>
         </TooltipProvider>
       </UrqlProvider>

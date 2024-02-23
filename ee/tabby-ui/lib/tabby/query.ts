@@ -84,3 +84,15 @@ export const listJobRuns = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const getLicenseInfo = graphql(/* GraphQL */ `
+  query GetLicenseInfo {
+    license {
+      type
+      status
+      seats
+      issuedAt
+      expiresAt
+    }
+  }
+`)
