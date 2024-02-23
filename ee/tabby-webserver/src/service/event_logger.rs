@@ -144,4 +144,34 @@ mod tests {
             1
         );
     }
+
+    #[tokio::test]
+    async fn test_event_logging_no_user() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let logger = new_event_logger(db.clone());
+
+        logger.log(Event::Completion {
+            completion_id: "test_id".into(),
+            language: "rust".into(),
+            prompt: "testprompt".into(),
+            segments: None,
+            choices: vec![],
+            user: Some("testuser".into()),
+        });
+
+        sleep_50().await;
+        assert!(db.fetch_one_user_completion().await.unwrap().is_none());
+
+        logger.log(Event::Completion {
+            completion_id: "test_id".into(),
+            language: "rust".into(),
+            prompt: "testprompt".into(),
+            segments: None,
+            choices: vec![],
+            user: None,
+        });
+
+        sleep_50().await;
+        assert!(db.fetch_one_user_completion().await.unwrap().is_none());
+    }
 }
