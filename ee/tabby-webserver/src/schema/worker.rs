@@ -1,10 +1,10 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use axum::middleware::Next;
 use hyper::{Body, Request};
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use crate::schema::Result;
 
 #[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]
 pub enum WorkerKind {
