@@ -94,7 +94,9 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
             Self::Forbidden(msg) => FieldError::new(msg, graphql_value!({"code": "FORBIDDEN"})),
-            Self::Unauthorized(msg) => FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"})),
+            Self::Unauthorized(msg) => {
+                FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
+            }
             Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
