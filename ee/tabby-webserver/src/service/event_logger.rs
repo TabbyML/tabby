@@ -146,7 +146,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_event_logging_no_user() {
+    async fn test_event_without_user_will_be_skipped() {
         let db = DbConn::new_in_memory().await.unwrap();
         let logger = new_event_logger(db.clone());
 
@@ -173,6 +173,12 @@ mod tests {
 
         sleep_50().await;
         assert!(db.fetch_one_user_completion().await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_chat_completion_event_will_be_skipped() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let logger = new_event_logger(db.clone());
 
         logger.log(Event::ChatCompletion {
             completion_id: "test_id".into(),
