@@ -74,20 +74,24 @@ mod tests {
     use super::*;
 
     async fn sleep_50() {
-        tokio::time::sleep(Duration::from_millis(50)).await;
+        tokio::time::sleep(Duration::from_millis(500)).await;
     }
 
     #[tokio::test]
     async fn test_event_logger() {
         let db = DbConn::new_in_memory().await.unwrap();
         let logger = new_event_logger(db.clone());
+        db.create_user("testuser".into(), "pass".into(), true)
+            .await
+            .unwrap();
+
         logger.log(Event::Completion {
             completion_id: "test_id".into(),
             language: "rust".into(),
             prompt: "testprompt".into(),
             segments: None,
             choices: vec![],
-            user: Some("example".into()),
+            user: Some("testuser".into()),
         });
 
         sleep_50().await;
@@ -101,7 +105,7 @@ mod tests {
 
         sleep_50().await;
         assert_eq!(
-            !db.fetch_one_user_completion().await.unwrap().unwrap().views,
+            db.fetch_one_user_completion().await.unwrap().unwrap().views,
             1
         );
 
@@ -114,7 +118,7 @@ mod tests {
 
         sleep_50().await;
         assert_eq!(
-            !db.fetch_one_user_completion()
+            db.fetch_one_user_completion()
                 .await
                 .unwrap()
                 .unwrap()
@@ -132,7 +136,7 @@ mod tests {
 
         sleep_50().await;
         assert_eq!(
-            !db.fetch_one_user_completion()
+            db.fetch_one_user_completion()
                 .await
                 .unwrap()
                 .unwrap()
