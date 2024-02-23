@@ -4321,7 +4321,6 @@ version = "0.9.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
- "async-trait",
  "chrono",
  "sql_query_builder",
  "sqlx",
