@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Context, };
+use anyhow::{anyhow, Context};
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
@@ -22,7 +22,10 @@ use crate::{
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
             RefreshTokenResponse, RegisterResponse, RequestInvitationInput, TokenAuthResponse,
             UpdateOAuthCredentialInput, User,
-        }, email::EmailService, setting::SettingService, CoreError, Result
+        },
+        email::EmailService,
+        setting::SettingService,
+        CoreError, Result,
     },
 };
 
@@ -112,7 +115,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
             if Utc::now().signed_duration_since(*existing.created_at) < Duration::minutes(5) {
                 return Err(anyhow!(
                     "A password reset has been requested recently, please try again later"
-                ).into());
+                )
+                .into());
             }
         }
         let code = self.db.create_password_reset(id as i64).await?;
@@ -390,7 +394,8 @@ async fn get_or_create_oauth_user(db: &DbConn, email: &str) -> Result<(i32, bool
     }
     if db
         .read_security_setting()
-        .await?
+        .await
+        .map_err(|x| OAuthError::Other(x.into()))?
         .can_register_without_invitation(email)
     {
         // it's ok to set password to empty string here, because
