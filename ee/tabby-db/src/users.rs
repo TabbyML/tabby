@@ -133,12 +133,12 @@ impl DbConn {
         Ok(users)
     }
 
-    pub async fn verify_auth_token(&self, token: &str, requires_admin: bool) -> Result<String> {
+    pub async fn verify_auth_token(&self, token: &str, requires_owner: bool) -> Result<String> {
         let token = token.to_owned();
         let email = query_scalar!(
-            "SELECT email FROM users WHERE auth_token = ? AND active AND (is_admin OR NOT ?)",
+            "SELECT email FROM users WHERE auth_token = ? AND active AND (id == 1 OR NOT ?)",
             token,
-            requires_admin
+            requires_owner
         )
         .fetch_one(&self.pool)
         .await;
