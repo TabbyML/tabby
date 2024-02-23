@@ -24,6 +24,7 @@ use crate::{
             UpdateOAuthCredentialInput, User,
         },
         email::EmailService,
+        license::{IsLicenseValid, LicenseService},
         setting::SettingService,
         CoreError, Result,
     },
@@ -33,13 +34,15 @@ use crate::{
 struct AuthenticationServiceImpl {
     db: DbConn,
     mail: Arc<dyn EmailService>,
+    license: Arc<dyn LicenseService>,
 }
 
 pub fn new_authentication_service(
     db: DbConn,
     mail: Arc<dyn EmailService>,
+    license: Arc<dyn LicenseService>,
 ) -> impl AuthenticationService {
-    AuthenticationServiceImpl { db, mail }
+    AuthenticationServiceImpl { db, mail, license }
 }
 
 #[async_trait]
@@ -233,6 +236,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
+        if !self.license.read_license().await.is_license_valid() {
+            return Err(CoreError::InvalidLicense(
+                "This feature requires enterprise license",
+            ));
+        };
+
         let invitation = self.db.create_invitation(email.clone()).await?;
         let email_sent = self
             .mail
@@ -467,11 +476,41 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 #[cfg(test)]
 mod tests {
 
+    struct MockLicenseService(LicenseStatus);
+
+    #[async_trait]
+    impl LicenseService for MockLicenseService {
+        async fn read_license(&self) -> Result<Option<LicenseInfo>> {
+            Ok(Some(LicenseInfo {
+                r#type: crate::schema::license::LicenseType::Team,
+                status: self.0.clone(),
+                seats: 1,
+                seats_used: 1,
+                issued_at: Utc::now(),
+                expires_at: Utc::now(),
+            }))
+        }
+
+        async fn update_license(&self, _: String) -> Result<()> {
+            Ok(())
+        }
+    }
+
     async fn test_authentication_service() -> AuthenticationServiceImpl {
         let db = DbConn::new_in_memory().await.unwrap();
         AuthenticationServiceImpl {
             db: db.clone(),
             mail: Arc::new(new_email_service(db).await.unwrap()),
+            license: Arc::new(MockLicenseService(LicenseStatus::Ok)),
+        }
+    }
+
+    async fn test_authentication_service_without_valid_license() -> AuthenticationServiceImpl {
+        let db = DbConn::new_in_memory().await.unwrap();
+        AuthenticationServiceImpl {
+            db: db.clone(),
+            mail: Arc::new(new_email_service(db).await.unwrap()),
+            license: Arc::new(MockLicenseService(LicenseStatus::Expired)),
         }
     }
 
@@ -482,6 +521,7 @@ mod tests {
         let service = AuthenticationServiceImpl {
             db: db.clone(),
             mail: Arc::new(smtp.create_test_email_service(db).await),
+            license: Arc::new(MockLicenseService(LicenseStatus::Ok)),
         };
         (service, smtp)
     }
@@ -491,7 +531,10 @@ mod tests {
     use serial_test::serial;
 
     use super::*;
-    use crate::service::email::{new_email_service, testutils::TestEmailServer};
+    use crate::{
+        schema::license::{LicenseInfo, LicenseStatus},
+        service::email::{new_email_service, testutils::TestEmailServer},
+    };
 
     #[test]
     fn test_password_hash() {
@@ -975,5 +1018,14 @@ mod tests {
             .unwrap();
 
         assert!(service.allow_self_signup().await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_create_invitation_without_license() {
+        let service = test_authentication_service_without_valid_license().await;
+        assert_matches!(
+            service.create_invitation("abc.com".into()).await,
+            Err(CoreError::InvalidLicense(_))
+        )
     }
 }

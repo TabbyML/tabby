@@ -27,17 +27,16 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
+    auth::{
+        JWTPayload, OAuthCredential, OAuthProvider, PasswordResetInput, RequestInvitationInput,
+        RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
+    },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    license::{LicenseInfo, LicenseService},
-    repository::RepositoryService,
+    license::{LicenseInfo, LicenseService, LicenseStatus},
+    repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
-};
-use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider, RequestInvitationInput},
-    repository::Repository,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -74,14 +73,17 @@ pub enum CoreError {
     #[error("{0}")]
     Forbidden(&'static str),
 
-    #[error("Invalid ID Error")]
-    InvalidIDError,
+    #[error("Invalid ID")]
+    InvalidID,
 
     #[error("Invalid input parameters")]
     InvalidInput(#[from] ValidationErrors),
 
     #[error("Email is not configured")]
     EmailNotConfigured,
+
+    #[error("{0}")]
+    InvalidLicense(&'static str),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -116,6 +118,24 @@ fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     }
 
     Ok(())
+}
+
+async fn check_license(ctx: &Context) -> Result<(), CoreError> {
+    let Some(license) = ctx.locator.license().read_license().await? else {
+        return Err(CoreError::InvalidLicense(
+            "This feature requires enterprise license",
+        ));
+    };
+
+    match license.status {
+        LicenseStatus::Ok => Ok(()),
+        LicenseStatus::Expired => Err(CoreError::InvalidLicense(
+            "Your enterprise license is expired",
+        )),
+        LicenseStatus::SeatsExceeded => Err(CoreError::InvalidLicense(
+            "You have more active users than seats included in your license",
+        )),
+    }
 }
 
 #[derive(Default)]
@@ -465,6 +485,7 @@ impl Mutation {
         input: UpdateOAuthCredentialInput,
     ) -> Result<bool> {
         check_admin(ctx)?;
+        check_license(ctx).await?;
         input.validate()?;
         ctx.locator.auth().update_oauth_credential(input).await?;
         Ok(true)
@@ -485,6 +506,7 @@ impl Mutation {
 
     async fn update_security_setting(ctx: &Context, input: SecuritySettingInput) -> Result<bool> {
         check_admin(ctx)?;
+        check_license(ctx).await?;
         input.validate()?;
         ctx.locator.setting().update_security_setting(input).await?;
         Ok(true)
