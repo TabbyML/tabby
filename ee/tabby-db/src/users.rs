@@ -285,7 +285,7 @@ mod tests {
         conn.update_user_active(new_user.id, false).await.unwrap();
         assert!(conn.verify_auth_token(&new_user.auth_token, false).await.is_err());
 
-        // Admin user should pass verification.
+        // Owner user should pass verification.
         assert!(conn.verify_auth_token(&new_user.auth_token, true).await.is_err());
     }
 
