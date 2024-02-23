@@ -1,10 +1,10 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::repository::{Repository, RepositoryService};
+use crate::schema::Result;
 
 #[async_trait]
 impl RepositoryService for DbConn {
@@ -27,13 +27,13 @@ impl RepositoryService for DbConn {
     }
 
     async fn delete_repository(&self, id: &ID) -> Result<bool> {
-        self.delete_repository(id.as_rowid()?).await
+        Ok(self.delete_repository(id.as_rowid()?).await?)
     }
 
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
         self.update_repository(id.as_rowid()?, name, git_url)
-            .await
-            .map(|_| true)
+            .await?;
+        Ok(true)
     }
 }
 
