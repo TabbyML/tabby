@@ -94,7 +94,7 @@ export default function CreateRepositoryForm({
           />
           <FormMessage className="text-center" />
           <div className="flex justify-end gap-4">
-            <Link href="/settings/repository">
+            <Link href="/settings/git">
               <Button type="button" variant="ghost" disabled={isSubmitting}>
                 Cancel
               </Button>

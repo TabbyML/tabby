@@ -9,7 +9,7 @@ export const NewRepository = () => {
   const router = useRouter()
 
   const onCreated = () => {
-    router.replace('/settings/repository')
+    router.replace('/settings/git')
   }
 
   return (
