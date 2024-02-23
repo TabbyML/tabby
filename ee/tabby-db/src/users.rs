@@ -272,7 +272,10 @@ mod tests {
 
         assert!(conn.verify_auth_token("abcd", false).await.is_err());
 
-        assert!(conn.verify_auth_token(&user.auth_token, false).await.is_ok());
+        assert!(conn
+            .verify_auth_token(&user.auth_token, false)
+            .await
+            .is_ok());
 
         conn.reset_user_auth_token_by_email(&user.email)
             .await
@@ -283,10 +286,16 @@ mod tests {
 
         // Inactive user's auth token will be rejected.
         conn.update_user_active(new_user.id, false).await.unwrap();
-        assert!(conn.verify_auth_token(&new_user.auth_token, false).await.is_err());
+        assert!(conn
+            .verify_auth_token(&new_user.auth_token, false)
+            .await
+            .is_err());
 
         // Owner user should pass verification.
-        assert!(conn.verify_auth_token(&new_user.auth_token, true).await.is_err());
+        assert!(conn
+            .verify_auth_token(&new_user.auth_token, true)
+            .await
+            .is_err());
     }
 
     #[tokio::test]

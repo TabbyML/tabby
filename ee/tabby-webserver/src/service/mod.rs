@@ -111,7 +111,11 @@ impl ServerContext {
         };
         let is_license_valid = self.license.read_license().await.is_license_valid();
         // If there's no valid license, only allows owner access.
-        match self.db_conn.verify_auth_token(token, !is_license_valid).await {
+        match self
+            .db_conn
+            .verify_auth_token(token, !is_license_valid)
+            .await
+        {
             Ok(email) => (true, Some(email)),
             Err(_) => (false, None),
         }
