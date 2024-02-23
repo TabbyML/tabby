@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use async_trait::async_trait;
 use lettre::{
     message::{Mailbox, MessageBuilder},
@@ -19,6 +19,7 @@ mod templates;
 pub mod testutils;
 
 use crate::schema::{
+    Result,
     email::{
         AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption, SendEmailError,
     },
@@ -44,7 +45,7 @@ fn make_smtp_builder(
     port: u16,
     encryption: Encryption,
 ) -> Result<AsyncSmtpTransportBuilder> {
-    let tls_parameters = TlsParameters::new(host.into())?;
+    let tls_parameters = TlsParameters::new(host.into()).map_err(anyhow::Error::new)?;
 
     let builder = match encryption {
         Encryption::StartTls => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host)
@@ -248,7 +249,7 @@ impl EmailService for EmailServiceImpl {
     }
 }
 
-fn to_address(email: String) -> Result<Address> {
+fn to_address(email: String) -> anyhow::Result<Address> {
     let (user, domain) = email
         .split_once('@')
         .ok_or_else(|| anyhow!("address contains no @"))?;
