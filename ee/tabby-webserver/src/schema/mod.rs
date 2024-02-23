@@ -487,8 +487,8 @@ impl Mutation {
         ctx: &Context,
         input: UpdateOAuthCredentialInput,
     ) -> Result<bool> {
-        check_license(ctx).await?;
         check_admin(ctx)?;
+        check_license(ctx).await?;
         input.validate()?;
         ctx.locator.auth().update_oauth_credential(input).await?;
         Ok(true)
@@ -501,24 +501,24 @@ impl Mutation {
     }
 
     async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
-        check_license(ctx).await?;
         check_admin(ctx)?;
+        check_license(ctx).await?;
         input.validate()?;
         ctx.locator.email().update_email_setting(input).await?;
         Ok(true)
     }
 
     async fn update_security_setting(ctx: &Context, input: SecuritySettingInput) -> Result<bool> {
-        check_license(ctx).await?;
         check_admin(ctx)?;
+        check_license(ctx).await?;
         input.validate()?;
         ctx.locator.setting().update_security_setting(input).await?;
         Ok(true)
     }
 
     async fn update_network_setting(ctx: &Context, input: NetworkSettingInput) -> Result<bool> {
-        check_license(ctx).await?;
         check_admin(ctx)?;
+        check_license(ctx).await?;
         input.validate()?;
         ctx.locator.setting().update_network_setting(input).await?;
         Ok(true)
