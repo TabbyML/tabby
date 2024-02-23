@@ -47,4 +47,11 @@ impl DbConn {
             views, selects, dismisses, completion_id).execute(&self.pool).await?;
         Ok(())
     }
+
+    #[cfg(any(test, feature = "testutils"))]
+    pub async fn list_user_completions(&self) -> Result<Vec<UserCompletionDAO>> {
+        Ok(sqlx::query_as("SELECT * FROM user_completions")
+            .fetch_all(&self.pool)
+            .await?)
+    }
 }
