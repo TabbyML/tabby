@@ -4,7 +4,6 @@ use sqlx::{prelude::FromRow, query};
 
 use crate::DbConn;
 
-// TODO: add user completions dao.
 #[derive(FromRow)]
 pub struct UserCompletionDAO {
     pub user_id: i32,
