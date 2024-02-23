@@ -57,20 +57,20 @@ export default function Subscription() {
         >
           <div className="grid font-bold lg:grid-cols-3">
             <div>
-              <div className="text-muted-foreground mb-1">Current plan</div>
+              <div className="mb-1 text-muted-foreground">Current plan</div>
               <div className="text-3xl text-primary">
                 {capitalize(license?.type ?? 'FREE')}
               </div>
             </div>
             <div>
-              <div className="text-muted-foreground mb-1">
+              <div className="mb-1 text-muted-foreground">
                 Assigned / Total Seats
               </div>
               <div className="text-3xl">0 / {license?.seats ?? '1'}</div>
             </div>
             {!!license && (
               <div>
-                <div className="text-muted-foreground mb-1">Expires at</div>
+                <div className="mb-1 text-muted-foreground">Expires at</div>
                 <div className="text-3xl">{expiresAt}</div>
               </div>
             )}
