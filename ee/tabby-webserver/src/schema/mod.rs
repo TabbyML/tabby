@@ -96,7 +96,6 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
         match self {
             Self::Forbidden(msg) => FieldError::new(msg, graphql_value!({"code": "FORBIDDEN"})),
             Self::Unauthorized(msg) => FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"})),
-            Self::InvalidLicense(msg) => FieldError::new(msg, graphql_value!({"code": "INVALID_LICENSE"})),
             Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
@@ -502,7 +501,6 @@ impl Mutation {
 
     async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
         check_admin(ctx)?;
-        check_license(ctx).await?;
         input.validate()?;
         ctx.locator.email().update_email_setting(input).await?;
         Ok(true)
