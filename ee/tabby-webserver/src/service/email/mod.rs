@@ -17,7 +17,6 @@ use tracing::warn;
 mod templates;
 #[cfg(test)]
 pub mod testutils;
-mod user_completions;
 
 use crate::schema::{
     email::{

@@ -3,7 +3,7 @@ use std::fmt::Display;
 use tabby_common::api::event::EventLogger;
 use tabby_db::DbConn;
 
-struct UserCompletionServiceImpl {
+struct EventLoggerImpl {
     db: DbConn,
 }
 
@@ -13,7 +13,7 @@ fn log_err<T, E: Display>(res: Result<T, E>) {
     }
 }
 
-impl EventLogger for UserCompletionServiceImpl {
+impl EventLogger for EventLoggerImpl {
     fn log(&self, e: tabby_common::api::event::Event) {
         match e {
             tabby_common::api::event::Event::View { completion_id, .. } => {
