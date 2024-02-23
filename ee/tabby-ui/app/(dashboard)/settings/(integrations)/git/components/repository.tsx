@@ -13,7 +13,7 @@ export default function Repository() {
       <RepositoryHeader />
       <RepositoryTable />
       <div className="mt-4 flex justify-end">
-        <Link href="/settings/repository/new" className={buttonVariants()}>
+        <Link href="/settings/git/new" className={buttonVariants()}>
           Create
         </Link>
       </div>
