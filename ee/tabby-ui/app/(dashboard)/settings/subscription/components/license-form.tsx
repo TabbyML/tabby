@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Textarea } from '@/components/ui/textarea'
+import { graphql } from '@/lib/gql/generates'
+import { useMutation } from '@/lib/tabby/gql'
 
 const formSchema = z.object({
   license: z.string()
@@ -24,13 +26,17 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 interface LicenseFormProps extends React.HTMLAttributes<HTMLDivElement> {
-  code?: string
   onSuccess?: () => void
 }
 
+const uploadLicenseMutation = graphql(/* GraphQL */ `
+  mutation UploadLicense($license: String!) {
+    uploadLicense(license: $license)
+  }
+`)
+
 export function LicenseForm({
   className,
-  code,
   onSuccess,
   ...props
 }: LicenseFormProps) {
@@ -40,18 +46,16 @@ export function LicenseForm({
   const license = form.watch('license')
   const { isSubmitting } = form.formState
 
+  const uploadLicense = useMutation(uploadLicenseMutation, {
+    form
+  })
+
   const onSubmit = (values: FormValues) => {
-    // todo
-    // return passwordReset({
-    //   input: {
-    //     ...values,
-    //     code: values.code ?? ''
-    //   }
-    // }).then(res => {
-    //   if (res?.data?.passwordReset) {
-    //     onSuccess?.()
-    //   }
-    // })
+    return uploadLicense(values).then(res => {
+      if (res?.data?.uploadLicense) {
+        onSuccess?.()
+      }
+    })
   }
 
   return (
