@@ -36,7 +36,7 @@ type Mutation {
   updateSecuritySetting(input: SecuritySettingInput!): Boolean!
   updateNetworkSetting(input: NetworkSettingInput!): Boolean!
   deleteEmailSetting: Boolean!
-  uploadLicense(license: String): LicenseStatus
+  uploadLicense(license: String!): Boolean!
 }
 
 type RepositoryEdge {
