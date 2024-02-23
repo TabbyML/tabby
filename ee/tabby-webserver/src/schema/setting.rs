@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::Result;
+use super::Result;
 use async_trait::async_trait;
 use juniper::{GraphQLInputObject, GraphQLObject};
 use validator::{validate_email, Validate, ValidationError};
