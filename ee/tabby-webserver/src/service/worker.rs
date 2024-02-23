@@ -1,7 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use tokio::sync::RwLock;
-use tracing::error;
+
 
 use crate::schema::worker::Worker;
 

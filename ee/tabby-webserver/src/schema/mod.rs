@@ -27,12 +27,13 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider, RequestInvitationInput},
-    auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
+    auth::{
+        JWTPayload, OAuthCredential, OAuthProvider, PasswordResetInput, RequestInvitationInput,
+        RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
+    },
     email::{EmailService, EmailSetting, EmailSettingInput},
     license::{LicenseInfo, LicenseService, LicenseStatus},
-    repository::Repository,
-    repository::RepositoryService,
+    repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },

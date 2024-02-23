@@ -48,7 +48,9 @@ impl IsLicenseValid for LicenseInfo {
 
 impl<L: IsLicenseValid> IsLicenseValid for Option<L> {
     fn is_license_valid(&self) -> bool {
-        self.as_ref().map(|x| x.is_license_valid()).unwrap_or_default()
+        self.as_ref()
+            .map(|x| x.is_license_valid())
+            .unwrap_or_default()
     }
 }
 

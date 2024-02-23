@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
@@ -1024,6 +1024,9 @@ mod tests {
     #[serial]
     async fn test_create_invitation_without_license() {
         let service = test_authentication_service_without_valid_license().await;
-        assert_matches!(service.create_invitation("abc.com".into()).await, Err(CoreError::InvalidLicense(_)))
+        assert_matches!(
+            service.create_invitation("abc.com".into()).await,
+            Err(CoreError::InvalidLicense(_))
+        )
     }
 }
