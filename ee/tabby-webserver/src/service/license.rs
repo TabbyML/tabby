@@ -1,6 +1,4 @@
-
-
-use anyhow::{anyhow};
+use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
@@ -8,7 +6,6 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
 use tokio::sync::RwLock;
-
 
 use crate::schema::{
     license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
@@ -132,8 +129,11 @@ impl LicenseService for LicenseServiceImpl {
     async fn update_license(&self, license: String) -> Result<()> {
         let raw = validate_license(&license).map_err(|_e| anyhow!("License is not valid"))?;
         let seats = self.read_used_seats(true).await?;
-        let _status = Some(license_info_from_raw(raw, seats)?.status);
-        self.db.update_enterprise_license(Some(license)).await?;
+        match license_info_from_raw(raw, seats)?.status {
+            LicenseStatus::Ok => self.db.update_enterprise_license(Some(license)).await?,
+            LicenseStatus::Expired => return Err(anyhow!("License is expired").into()),
+            LicenseStatus::SeatsExceeded => return Err(anyhow!("License doesn't contain sufficient number of seats").into())
+        };
         Ok(())
     }
 }
