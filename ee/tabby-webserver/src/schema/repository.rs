@@ -1,10 +1,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use juniper::{FieldError, GraphQLObject, IntoFieldError, ScalarValue, ID};
+use juniper::{GraphQLObject, ID};
 use juniper_axum::relay::NodeType;
-use validator::{Validate, ValidationErrors};
+use validator::Validate;
 
-use super::{from_validation_errors, Context};
+use super::Context;
 
 #[derive(Validate)]
 pub struct CreateRepositoryInput {
@@ -16,23 +16,6 @@ pub struct CreateRepositoryInput {
     pub name: String,
     #[validate(url(code = "gitUrl", message = "Invalid Git URL"))]
     pub git_url: String,
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum RepositoryError {
-    #[error("Invalid input parameters")]
-    InvalidInput(#[from] ValidationErrors),
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-}
-
-impl<S: ScalarValue> IntoFieldError<S> for RepositoryError {
-    fn into_field_error(self) -> FieldError<S> {
-        match self {
-            Self::InvalidInput(errors) => from_validation_errors(errors),
-            _ => self.into(),
-        }
-    }
 }
 
 #[derive(GraphQLObject, Debug)]
@@ -69,8 +52,7 @@ pub trait RepositoryService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<Repository>>;
 
-    async fn create_repository(&self, name: String, git_url: String)
-        -> Result<ID, RepositoryError>;
+    async fn create_repository(&self, name: String, git_url: String) -> Result<ID>;
     async fn delete_repository(&self, id: &ID) -> Result<bool>;
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
 }

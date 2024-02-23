@@ -439,12 +439,13 @@ impl Mutation {
 
     async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
         check_admin(ctx)?;
+        let input = repository::CreateRepositoryInput { name, git_url };
+        input.validate()?;
         Ok(ctx
             .locator
             .repository()
-            .create_repository(name, git_url)
-            .await
-            .map_err(anyhow::Error::from)?)
+            .create_repository(input.name, input.git_url)
+            .await?)
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
