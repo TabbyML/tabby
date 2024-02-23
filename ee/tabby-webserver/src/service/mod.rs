@@ -109,10 +109,13 @@ impl ServerContext {
             // Admin system is initialized, but there is no valid token.
             return (false, None);
         };
-        if let Ok(jwt) = self.auth.verify_access_token(token).await {
-            return (true, Some(jwt.sub));
-        }
-        match self.db_conn.verify_auth_token(token).await {
+        let is_license_valid = self.license.read_license().await.is_license_valid();
+        // If there's no valid license, only allows owner access.
+        match self
+            .db_conn
+            .verify_auth_token(token, !is_license_valid)
+            .await
+        {
             Ok(email) => (true, Some(email)),
             Err(_) => (false, None),
         }
