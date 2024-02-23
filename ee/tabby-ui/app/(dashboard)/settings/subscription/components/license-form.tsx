@@ -68,7 +68,7 @@ export function LicenseForm({
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <Textarea placeholder="Paste your license here" {...field} />
+                  <Textarea placeholder="Paste your license here - write only" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

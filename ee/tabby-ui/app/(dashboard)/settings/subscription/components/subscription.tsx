@@ -35,7 +35,6 @@ export default function Subscription() {
     : '-'
 
   const onUploadLicenseSuccess = () => {
-    toast.success('License upload successful')
     reexecuteQuery()
   }
 
@@ -57,10 +56,8 @@ export default function Subscription() {
         >
           <div className="grid font-bold lg:grid-cols-3">
             <div>
-              <div className="mb-1 text-muted-foreground">Current plan</div>
-              <div className="text-3xl text-primary">
-                {capitalize(license?.type ?? 'FREE')}
-              </div>
+              <div className="mb-1 text-muted-foreground">Expires at</div>
+              <div className="text-3xl">{expiresAt}</div>
             </div>
             <div>
               <div className="mb-1 text-muted-foreground">
@@ -69,13 +66,15 @@ export default function Subscription() {
               <div className="text-3xl">0 / {license?.seats ?? '1'}</div>
             </div>
             <div>
-              <div className="mb-1 text-muted-foreground">Expires at</div>
-              <div className="text-3xl">{expiresAt}</div>
+              <div className="mb-1 text-muted-foreground">Current plan</div>
+              <div className="text-3xl text-primary">
+                {capitalize(license?.type ?? 'FREE')}
+              </div>
             </div>
           </div>
         </LoadingWrapper>
         <LicenseForm onSuccess={onUploadLicenseSuccess} />
-        <LicenseTable />
+        {false && <LicenseTable />}
       </div>
     </div>
   )
