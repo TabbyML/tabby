@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::schema::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject};
