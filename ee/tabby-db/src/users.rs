@@ -133,11 +133,12 @@ impl DbConn {
         Ok(users)
     }
 
-    pub async fn verify_auth_token(&self, token: &str) -> Result<String> {
+    pub async fn verify_auth_token(&self, token: &str, requires_admin: bool) -> Result<String> {
         let token = token.to_owned();
         let email = query_scalar!(
-            "SELECT email FROM users WHERE auth_token = ? AND active",
-            token
+            "SELECT email FROM users WHERE auth_token = ? AND active AND (is_admin OR NOT ?)",
+            token,
+            requires_admin
         )
         .fetch_one(&self.pool)
         .await;
@@ -266,9 +267,9 @@ mod tests {
 
         let user = conn.get_user(id).await.unwrap().unwrap();
 
-        assert!(conn.verify_auth_token("abcd").await.is_err());
+        assert!(conn.verify_auth_token("abcd", false).await.is_err());
 
-        assert!(conn.verify_auth_token(&user.auth_token).await.is_ok());
+        assert!(conn.verify_auth_token(&user.auth_token, false).await.is_ok());
 
         conn.reset_user_auth_token_by_email(&user.email)
             .await
@@ -279,7 +280,10 @@ mod tests {
 
         // Inactive user's auth token will be rejected.
         conn.update_user_active(new_user.id, false).await.unwrap();
-        assert!(conn.verify_auth_token(&new_user.auth_token).await.is_err());
+        assert!(conn.verify_auth_token(&new_user.auth_token, false).await.is_err());
+
+        // Admin user should pass verification.
+        assert!(conn.verify_auth_token(&new_user.auth_token, true).await.is_err());
     }
 
     #[tokio::test]

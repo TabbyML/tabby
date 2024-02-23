@@ -73,7 +73,7 @@ impl LicenseServiceImpl {
             let lock = self.seats.read().await;
             *lock
         };
-        if force_refresh || now - refreshed > Duration::minutes(5) {
+        if force_refresh || now - refreshed > Duration::seconds(15) {
             let mut lock = self.seats.write().await;
             seats = self.db.count_active_users().await?;
             *lock = (now, seats);
