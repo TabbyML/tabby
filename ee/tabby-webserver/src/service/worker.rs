@@ -24,18 +24,14 @@ impl WorkerGroup {
         self.workers.read().await.clone()
     }
 
-    pub async fn register(&self, worker: Worker) -> Option<Worker> {
+    pub async fn register(&self, worker: Worker) -> Worker {
         let mut workers = self.workers.write().await;
-        if workers.len() >= 1 {
-            error!("You need enterprise license to utilize more than 1 workers, please contact hi@tabbyml.com for information.");
-            return None;
-        }
 
         if workers.iter().all(|x| x.addr != worker.addr) {
             workers.push(worker.clone());
         }
 
-        Some(worker)
+        worker
     }
 
     pub async fn unregister(&self, worker_addr: &str) -> bool {
@@ -71,12 +67,7 @@ mod tests {
         let worker1 = make_worker("http://127.0.0.1:8080");
         let worker2 = make_worker("http://127.0.0.2:8080");
 
-        // Register success.
-        assert!(wg.register(worker1.clone()).await.is_some());
-        assert!(wg.select().await.is_some());
-
-        // Register failed, as > 1 workers requires enterprise license.
-        assert!(wg.register(worker2.clone()).await.is_none());
+        wg.register(worker1.clone()).await;
 
         let workers = wg.list().await;
         assert_eq!(workers.len(), 1);

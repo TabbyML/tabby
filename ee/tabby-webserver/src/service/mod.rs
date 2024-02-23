@@ -33,7 +33,7 @@ use crate::schema::{
     auth::AuthenticationService,
     email::EmailService,
     job::JobService,
-    license::LicenseService,
+    license::{IsLicenseValid, LicenseService, LicenseStatus},
     repository::RepositoryService,
     setting::SettingService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
@@ -77,7 +77,7 @@ impl ServerContext {
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             mail: mail.clone(),
-            auth: Arc::new(new_authentication_service(db_conn.clone(), mail)),
+            auth: Arc::new(new_authentication_service(db_conn.clone(), mail, license.clone())),
             license,
             db_conn,
             logger,
@@ -133,20 +133,24 @@ impl WorkerService for ServerContext {
     }
 
     async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
-        let worker = match worker.kind {
-            WorkerKind::Completion => self.completion.register(worker).await,
-            WorkerKind::Chat => self.chat.register(worker).await,
+        let worker_group = match worker.kind {
+            WorkerKind::Completion => &self.completion,
+            WorkerKind::Chat => &self.chat,
         };
 
-        if let Some(worker) = worker {
-            info!(
-                "registering <{:?}> worker running at {}",
-                worker.kind, worker.addr
-            );
-            Ok(worker)
-        } else {
-            Err(RegisterWorkerError::RequiresEnterpriseLicense)
+        let count_workers = worker_group.list().await.len();
+        let is_license_valid = self.license.read_license().await.is_license_valid();
+
+        if count_workers > 0 && !is_license_valid {
+            return Err(RegisterWorkerError::RequiresEnterpriseLicense);
         }
+
+        let worker = worker_group.register(worker).await;
+        info!(
+            "registering <{:?}> worker running at {}",
+            worker.kind, worker.addr
+        );
+        Ok(worker)
     }
 
     async fn unregister_worker(&self, worker_addr: &str) {

@@ -27,17 +27,15 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
+    auth::{JWTPayload, OAuthCredential, OAuthProvider, RequestInvitationInput},
     auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
     email::{EmailService, EmailSetting, EmailSettingInput},
-    license::{LicenseInfo, LicenseService},
+    license::{LicenseInfo, LicenseService, LicenseStatus},
+    repository::Repository,
     repository::RepositoryService,
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
-};
-use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider, RequestInvitationInput},
-    repository::Repository,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -121,24 +119,22 @@ fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     Ok(())
 }
 
-// FIXME(boxbeam): change the function to non-async once `read_license` utilize a underlying cache.
 async fn check_license(ctx: &Context) -> Result<(), CoreError> {
     let Some(license) = ctx.locator.license().read_license().await? else {
         return Err(CoreError::InvalidLicense(
-            "This feature requires a license to be used",
+            "This feature requires enterprise license",
         ));
     };
 
     match license.status {
-        LicenseStatus::Expired => {
-            return Err(CoreError::InvalidLicense(
-                "This feature requires a license to be used",
-            ));
-        }
-        LicenseStatus::Ok => (),
-    };
-
-    Ok(())
+        LicenseStatus::Ok => Ok(()),
+        LicenseStatus::Expired => Err(CoreError::InvalidLicense(
+            "Your enterprise license is expired",
+        )),
+        LicenseStatus::SeatsExceeded => Err(CoreError::InvalidLicense(
+            "You have more active users than seats included in your license",
+        )),
+    }
 }
 
 #[derive(Default)]
@@ -517,7 +513,6 @@ impl Mutation {
 
     async fn update_network_setting(ctx: &Context, input: NetworkSettingInput) -> Result<bool> {
         check_admin(ctx)?;
-        check_license(ctx).await?;
         input.validate()?;
         ctx.locator.setting().update_network_setting(input).await?;
         Ok(true)
