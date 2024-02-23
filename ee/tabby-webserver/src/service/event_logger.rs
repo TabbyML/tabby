@@ -67,9 +67,10 @@ impl EventLogger for EventLoggerImpl {
 mod tests {
     use std::time::Duration;
 
-    use super::*;
     use tabby_common::api::event::Event;
     use tabby_db::DbConn;
+
+    use super::*;
 
     async fn sleep_50() {
         tokio::time::sleep(Duration::from_millis(50)).await;
