@@ -29,7 +29,7 @@ use worker::{Worker, WorkerService};
 use self::{
     auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
     email::{EmailService, EmailSetting, EmailSettingInput},
-    license::{LicenseInfo, LicenseService, LicenseStatus},
+    license::{LicenseInfo, LicenseService},
     repository::RepositoryService,
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
@@ -503,12 +503,10 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn upload_license(
-        ctx: &Context,
-        license: Option<String>,
-    ) -> Result<Option<LicenseStatus>> {
+    async fn upload_license(ctx: &Context, license: String) -> Result<bool> {
         check_admin(ctx)?;
-        ctx.locator.license().update_license(license).await
+        ctx.locator.license().update_license(license).await?;
+        Ok(true)
     }
 }
 
