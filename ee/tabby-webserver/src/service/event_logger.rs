@@ -68,7 +68,7 @@ impl EventLogger for EventLoggerImpl {
 mod tests {
     use std::time::Duration;
 
-    use tabby_common::api::event::Event;
+    use tabby_common::api::event::{Event, Message};
     use tabby_db::DbConn;
 
     use super::*;
@@ -169,6 +169,18 @@ mod tests {
             segments: None,
             choices: vec![],
             user: None,
+        });
+
+        sleep_50().await;
+        assert!(db.fetch_one_user_completion().await.unwrap().is_none());
+
+        logger.log(Event::ChatCompletion {
+            completion_id: "test_id".into(),
+            input: vec![],
+            output: Message {
+                role: "user".into(),
+                content: "test".into(),
+            },
         });
 
         sleep_50().await;
