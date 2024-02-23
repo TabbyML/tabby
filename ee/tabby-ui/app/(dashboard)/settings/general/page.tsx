@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+
 import General from './components/general'
 
 export const metadata: Metadata = {
