@@ -19,6 +19,7 @@ const getLicenseInfo = graphql(/* GraphQL */ `
       type
       status
       seats
+      seatsUsed
       issuedAt
       expiresAt
     }
@@ -37,6 +38,8 @@ export default function Subscription() {
   const onUploadLicenseSuccess = () => {
     reexecuteQuery()
   }
+
+  const seatsText = license ? `${license.seatsUsed} / ${license.seats}` : '-';
 
   return (
     <div className="p-4">
@@ -63,7 +66,7 @@ export default function Subscription() {
               <div className="mb-1 text-muted-foreground">
                 Assigned / Total Seats
               </div>
-              <div className="text-3xl">0 / {license?.seats ?? '1'}</div>
+              <div className="text-3xl">{seatsText}</div>
             </div>
             <div>
               <div className="mb-1 text-muted-foreground">Current plan</div>
