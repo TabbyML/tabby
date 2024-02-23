@@ -28,6 +28,9 @@ RUN apt-get update && \
 RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+RUN git config --system --add safe.directory "*"
+
+FROM build as rust_build
 WORKDIR /root/workspace
 
 RUN mkdir -p /opt/tabby/bin
@@ -73,7 +76,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then  \
         /usr/lib/x86_64-linux-gnu/libnvidia-ml.so; \
     fi
 
-COPY --from=build /opt/tabby /opt/tabby
+COPY --from=rust_build /opt/tabby /opt/tabby
 
 ENV PATH="$PATH:/opt/tabby/bin"
 ENV TABBY_ROOT=/data

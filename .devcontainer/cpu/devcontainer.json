@@ -1,0 +1,26 @@
+{
+	"name": "TabbyML (CPU)",
+	"build": {
+		"context": "../..",
+		"dockerfile": "../../Dockerfile",
+		"target": "build"
+	},
+	"forwardPorts": [
+		8080
+	],
+	"mounts": [
+		{
+			"type": "bind",
+			"source": "${localEnv:HOME}/.tabby",
+			"target": "/root/.tabby"
+		},
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"TabbyML.vscode-tabby"
+			]
+		}
+	},
+	"initializeCommand": "mkdir -p $HOME/.tabby",
+}

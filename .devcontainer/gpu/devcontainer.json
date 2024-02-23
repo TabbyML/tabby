@@ -1,0 +1,29 @@
+{
+	"name": "TabbyML (GPU)",
+	"build": {
+		"context": "../..",
+		"dockerfile": "../../Dockerfile",
+		"target": "build"
+	},
+	"runArgs": [
+		"--gpus", "all",
+	],
+	"forwardPorts": [
+		8080
+	],
+	"mounts": [
+		{
+			"type": "bind",
+			"source": "${localEnv:HOME}/.tabby",
+			"target": "/root/.tabby"
+		},
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"TabbyML.vscode-tabby"
+			]
+		}
+	},
+	"initializeCommand": "mkdir -p $HOME/.tabby",
+}
