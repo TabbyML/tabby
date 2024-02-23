@@ -1,10 +1,11 @@
+use std::sync::Arc;
+
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use std::sync::Arc;
 use tabby_db::DbConn;
 use tokio::sync::RwLock;
 

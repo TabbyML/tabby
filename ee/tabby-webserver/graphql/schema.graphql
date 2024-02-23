@@ -133,6 +133,7 @@ type LicenseInfo {
   type: LicenseType!
   status: LicenseStatus!
   seats: Int!
+  seatsUsed: Int!
   issuedAt: DateTimeUtc!
   expiresAt: DateTimeUtc!
 }
