@@ -22,6 +22,8 @@ pub struct UserDAO {
     pub active: bool,
 }
 
+static OWNER_USER_ID: i32 = 1;
+
 impl UserDAO {
     fn select(clause: &str) -> String {
         r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active FROM users WHERE "#
@@ -30,7 +32,7 @@ impl UserDAO {
     }
 
     pub fn is_owner(&self) -> bool {
-        self.id == 1
+        self.id == OWNER_USER_ID
     }
 }
 
@@ -136,8 +138,9 @@ impl DbConn {
     pub async fn verify_auth_token(&self, token: &str, requires_owner: bool) -> Result<String> {
         let token = token.to_owned();
         let email = query_scalar!(
-            "SELECT email FROM users WHERE auth_token = ? AND active AND (id == 1 OR NOT ?)",
+            "SELECT email FROM users WHERE auth_token = ? AND active AND (id == ? OR NOT ?)",
             token,
+            OWNER_USER_ID,
             requires_owner
         )
         .fetch_one(&self.pool)
