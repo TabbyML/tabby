@@ -15,6 +15,7 @@ pub enum LicenseType {
 pub enum LicenseStatus {
     Ok,
     Expired,
+    SeatsExceeded,
 }
 
 #[derive(GraphQLObject)]
@@ -22,6 +23,7 @@ pub struct LicenseInfo {
     pub r#type: LicenseType,
     pub status: LicenseStatus,
     pub seats: i32,
+    pub seats_used: i32,
     pub issued_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
 }

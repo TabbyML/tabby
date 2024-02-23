@@ -206,6 +206,13 @@ impl DbConn {
         .await?;
         Ok(())
     }
+
+    pub async fn count_active_users(&self) -> Result<usize> {
+        let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active;")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(users as usize)
+    }
 }
 
 fn generate_auth_token() -> String {
@@ -497,3 +504,4 @@ mod tests {
         );
     }
 }
+// FIXME(boxbeam): Revisit if a caching layer should be put into DbConn for this query in future.

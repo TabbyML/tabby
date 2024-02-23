@@ -1,10 +1,14 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use async_trait::async_trait;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
+use tokio::sync::RwLock;
+use tracing::warn;
 
 use crate::schema::{
     license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
@@ -62,18 +66,49 @@ fn jwt_timestamp_to_utc(secs: i64) -> Result<DateTime<Utc>> {
 
 struct LicenseServiceImpl {
     db: DbConn,
+    seats: Arc<RwLock<(DateTime<Utc>, usize)>>,
 }
 
-pub fn new_license_service(db: DbConn) -> impl LicenseService {
-    LicenseServiceImpl { db }
+impl LicenseServiceImpl {
+    async fn read_used_seats(&self) -> Result<usize> {
+        let now = Utc::now();
+        let lock = self.seats.read().await;
+        let (refreshed, seats) = &*lock;
+        if now - refreshed > Duration::minutes(5) {
+            let seats_clone = self.seats.clone();
+            let db = self.db.clone();
+            tokio::spawn(async move {
+                let mut lock = seats_clone.write().await;
+                let seats = match db.count_active_users().await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        warn!("Failed to count users: {e}");
+                        return;
+                    }
+                };
+                *lock = (now, seats);
+            });
+        }
+        Ok(*seats)
+    }
 }
 
-fn license_info_from_raw(raw: LicenseJWTPayload) -> Result<LicenseInfo> {
+pub async fn new_license_service(db: DbConn) -> Result<impl LicenseService> {
+    let seats = db.count_active_users().await?;
+    Ok(LicenseServiceImpl {
+        db,
+        seats: Arc::new((Utc::now(), seats).into()),
+    })
+}
+
+fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<LicenseInfo> {
     let issued_at = jwt_timestamp_to_utc(raw.iat)?;
     let expires_at = jwt_timestamp_to_utc(raw.exp)?;
 
     let status = if expires_at < Utc::now() {
         LicenseStatus::Expired
+    } else if seats_used > raw.num {
+        LicenseStatus::SeatsExceeded
     } else {
         LicenseStatus::Ok
     };
@@ -82,6 +117,7 @@ fn license_info_from_raw(raw: LicenseJWTPayload) -> Result<LicenseInfo> {
         r#type: raw.typ,
         status,
         seats: raw.num as i32,
+        seats_used: seats_used as i32,
         issued_at,
         expires_at,
     };
@@ -96,7 +132,8 @@ impl LicenseService for LicenseServiceImpl {
         };
         let license =
             validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
-        let license = license_info_from_raw(license)?;
+        let seats = self.read_used_seats().await?;
+        let license = license_info_from_raw(license, seats)?;
 
         Ok(Some(license))
     }
@@ -106,7 +143,8 @@ impl LicenseService for LicenseServiceImpl {
         if let Some(license) = &license {
             let raw =
                 validate_license(license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
-            status = Some(license_info_from_raw(raw)?.status);
+            let seats = self.read_used_seats().await?;
+            status = Some(license_info_from_raw(raw, seats)?.status);
         }
         self.db.update_enterprise_license(license).await?;
         Ok(status)
@@ -129,12 +167,16 @@ mod tests {
         assert_eq!(license.iss, "tabbyml.com");
         assert_eq!(license.sub, "fake@tabbyml.com");
         assert_matches!(license.typ, LicenseType::Team);
+        assert_eq!(
+            license_info_from_raw(license, 11).unwrap().status,
+            LicenseStatus::SeatsExceeded
+        );
     }
 
     #[test]
     fn test_expired_license() {
         let license = validate_license(EXPIRED_TOKEN).unwrap();
-        let license = license_info_from_raw(license).unwrap();
+        let license = license_info_from_raw(license, 0).unwrap();
         assert_matches!(license.status, LicenseStatus::Expired);
     }
 
@@ -150,7 +192,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_delete_license() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = new_license_service(db);
+        let service = new_license_service(db).await.unwrap();
 
         assert!(service
             .update_license(Some("bad_token".into()))

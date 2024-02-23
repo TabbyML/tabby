@@ -47,6 +47,7 @@ struct ServerContext {
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
     auth: Arc<dyn AuthenticationService>,
+    license: Arc<dyn LicenseService>,
 
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -66,12 +67,18 @@ impl ServerContext {
                 .await
                 .expect("failed to initialize mail service"),
         );
+        let license = Arc::new(
+            new_license_service(db_conn.clone())
+                .await
+                .expect("failed to initialize license service"),
+        );
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             mail: mail.clone(),
             auth: Arc::new(new_authentication_service(db_conn.clone(), mail)),
+            license,
             db_conn,
             logger,
             code,
@@ -248,7 +255,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn license(&self) -> Arc<dyn LicenseService> {
-        Arc::new(new_license_service(self.db_conn.clone()))
+        self.license.clone()
     }
 }
 
