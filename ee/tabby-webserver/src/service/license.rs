@@ -1,10 +1,11 @@
 use anyhow::anyhow;
 use async_trait::async_trait;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
+use tokio::sync::RwLock;
 
 use crate::schema::{
     license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
@@ -62,18 +63,40 @@ fn jwt_timestamp_to_utc(secs: i64) -> Result<DateTime<Utc>> {
 
 struct LicenseServiceImpl {
     db: DbConn,
+    seats: RwLock<(DateTime<Utc>, usize)>,
+}
+
+impl LicenseServiceImpl {
+    async fn seats(&self) -> Result<usize> {
+        let now = Utc::now();
+        let lock = self.seats.read().await;
+        let (refreshed, seats) = &*lock;
+        if now - refreshed <= Duration::minutes(5) {
+            return Ok(*seats);
+        }
+        drop(lock);
+        let mut lock = self.seats.write().await;
+        let seats = self.db.count_seats().await?;
+        *lock = (now, seats);
+        Ok(seats)
+    }
 }
 
 pub fn new_license_service(db: DbConn) -> impl LicenseService {
-    LicenseServiceImpl { db }
+    LicenseServiceImpl {
+        db,
+        seats: Default::default(),
+    }
 }
 
-fn license_info_from_raw(raw: LicenseJWTPayload) -> Result<LicenseInfo> {
+fn license_info_from_raw(raw: LicenseJWTPayload, seats: usize) -> Result<LicenseInfo> {
     let issued_at = jwt_timestamp_to_utc(raw.iat)?;
     let expires_at = jwt_timestamp_to_utc(raw.exp)?;
 
     let status = if expires_at < Utc::now() {
         LicenseStatus::Expired
+    } else if seats > raw.num {
+        LicenseStatus::SeatsExceeded
     } else {
         LicenseStatus::Ok
     };
@@ -96,7 +119,8 @@ impl LicenseService for LicenseServiceImpl {
         };
         let license =
             validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
-        let license = license_info_from_raw(license)?;
+        let seats = self.seats().await?;
+        let license = license_info_from_raw(license, seats)?;
 
         Ok(Some(license))
     }
@@ -106,7 +130,8 @@ impl LicenseService for LicenseServiceImpl {
         if let Some(license) = &license {
             let raw =
                 validate_license(license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
-            status = Some(license_info_from_raw(raw)?.status);
+            let seats = self.seats().await?;
+            status = Some(license_info_from_raw(raw, seats)?.status);
         }
         self.db.update_enterprise_license(license).await?;
         Ok(status)
@@ -129,12 +154,16 @@ mod tests {
         assert_eq!(license.iss, "tabbyml.com");
         assert_eq!(license.sub, "fake@tabbyml.com");
         assert_matches!(license.typ, LicenseType::Team);
+        assert_eq!(
+            license_info_from_raw(license, 11).unwrap().status,
+            LicenseStatus::SeatsExceeded
+        );
     }
 
     #[test]
     fn test_expired_license() {
         let license = validate_license(EXPIRED_TOKEN).unwrap();
-        let license = license_info_from_raw(license).unwrap();
+        let license = license_info_from_raw(license, 0).unwrap();
         assert_matches!(license.status, LicenseStatus::Expired);
     }
 

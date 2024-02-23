@@ -1,5 +1,5 @@
 use anyhow::Result;
-use sqlx::{prelude::FromRow, query, Sqlite, Transaction};
+use sqlx::{prelude::FromRow, query, query_scalar, Sqlite, Transaction};
 
 use crate::DbConn;
 
@@ -104,5 +104,12 @@ impl DbConn {
         .execute(&self.pool)
         .await?;
         Ok(())
+    }
+
+    pub async fn count_seats(&self) -> Result<usize> {
+        let users = query_scalar!("SELECT COUNT(1) FROM users;")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(users as usize)
     }
 }

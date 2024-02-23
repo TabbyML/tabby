@@ -15,6 +15,7 @@ pub enum LicenseType {
 pub enum LicenseStatus {
     Ok,
     Expired,
+    SeatsExceeded,
 }
 
 #[derive(GraphQLObject)]
