@@ -84,6 +84,9 @@ pub enum CoreError {
     #[error("Email is not configured")]
     EmailNotConfigured,
 
+    #[error("{0}")]
+    InvalidLicense(&'static str),
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
@@ -92,9 +95,8 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
     fn into_field_error(self) -> FieldError<S> {
         match self {
             Self::Forbidden(msg) => FieldError::new(msg, graphql_value!({"code": "FORBIDDEN"})),
-            Self::Unauthorized(msg) => {
-                FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"}))
-            }
+            Self::Unauthorized(msg) => FieldError::new(msg, graphql_value!({"code": "UNAUTHORIZED"})),
+            Self::InvalidLicense(msg) => FieldError::new(msg, graphql_value!({"code": "INVALID_LICENSE"})),
             Self::InvalidInput(errors) => from_validation_errors(errors),
             _ => self.into(),
         }
@@ -122,14 +124,16 @@ fn check_admin(ctx: &Context) -> Result<(), CoreError> {
 // FIXME(boxbeam): change the function to non-async once `read_license` utilize a underlying cache.
 async fn check_license(ctx: &Context) -> Result<(), CoreError> {
     let Some(license) = ctx.locator.license().read_license().await? else {
-        return Err(CoreError::Other(anyhow!(
-            "This feature requires a license to be used"
-        )));
+        return Err(CoreError::InvalidLicense(
+            "This feature requires a license to be used",
+        ));
     };
 
     match license.status {
         LicenseStatus::Expired => {
-            return Err(CoreError::Other(anyhow!("Your license has expired")));
+            return Err(CoreError::InvalidLicense(
+                "This feature requires a license to be used",
+            ));
         }
         LicenseStatus::Ok => (),
     };
