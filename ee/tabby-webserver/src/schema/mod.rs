@@ -6,9 +6,8 @@ pub mod repository;
 pub mod setting;
 pub mod worker;
 
-use std::{os::macos::raw::stat, sync::Arc};
+use std::sync::Arc;
 
-use anyhow::anyhow;
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
     TokenAuthResponse, User,
