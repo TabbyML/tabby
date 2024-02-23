@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
@@ -8,7 +6,6 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
 use tokio::sync::RwLock;
-use tracing::warn;
 
 use crate::schema::{
     license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
@@ -66,30 +63,22 @@ fn jwt_timestamp_to_utc(secs: i64) -> Result<DateTime<Utc>> {
 
 struct LicenseServiceImpl {
     db: DbConn,
-    seats: Arc<RwLock<(DateTime<Utc>, usize)>>,
+    seats: RwLock<(DateTime<Utc>, usize)>,
 }
 
 impl LicenseServiceImpl {
-    async fn read_used_seats(&self) -> Result<usize> {
+    async fn read_used_seats(&self, force_refresh: bool) -> Result<usize> {
         let now = Utc::now();
-        let lock = self.seats.read().await;
-        let (refreshed, seats) = &*lock;
-        if now - refreshed > Duration::minutes(5) {
-            let seats_clone = self.seats.clone();
-            let db = self.db.clone();
-            tokio::spawn(async move {
-                let mut lock = seats_clone.write().await;
-                let seats = match db.count_active_users().await {
-                    Ok(s) => s,
-                    Err(e) => {
-                        warn!("Failed to count users: {e}");
-                        return;
-                    }
-                };
-                *lock = (now, seats);
-            });
+        let (refreshed, mut seats) = {
+            let lock = self.seats.read().await;
+            *lock
+        };
+        if force_refresh || now - refreshed > Duration::minutes(5) {
+            let mut lock = self.seats.write().await;
+            seats = self.db.count_active_users().await?;
+            *lock = (now, seats);
         }
-        Ok(*seats)
+        Ok(seats)
     }
 }
 
@@ -97,7 +86,7 @@ pub async fn new_license_service(db: DbConn) -> Result<impl LicenseService> {
     let seats = db.count_active_users().await?;
     Ok(LicenseServiceImpl {
         db,
-        seats: Arc::new((Utc::now(), seats).into()),
+        seats: (Utc::now(), seats).into(),
     })
 }
 
@@ -132,22 +121,23 @@ impl LicenseService for LicenseServiceImpl {
         };
         let license =
             validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
-        let seats = self.read_used_seats().await?;
+        let seats = self.read_used_seats(false).await?;
         let license = license_info_from_raw(license, seats)?;
 
         Ok(Some(license))
     }
 
-    async fn update_license(&self, license: Option<String>) -> Result<Option<LicenseStatus>> {
-        let mut status = None;
-        if let Some(license) = &license {
-            let raw =
-                validate_license(license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
-            let seats = self.read_used_seats().await?;
-            status = Some(license_info_from_raw(raw, seats)?.status);
-        }
-        self.db.update_enterprise_license(license).await?;
-        Ok(status)
+    async fn update_license(&self, license: String) -> Result<()> {
+        let raw = validate_license(&license).map_err(|_e| anyhow!("License is not valid"))?;
+        let seats = self.read_used_seats(true).await?;
+        match license_info_from_raw(raw, seats)?.status {
+            LicenseStatus::Ok => self.db.update_enterprise_license(Some(license)).await?,
+            LicenseStatus::Expired => return Err(anyhow!("License is expired").into()),
+            LicenseStatus::SeatsExceeded => {
+                return Err(anyhow!("License doesn't contain sufficient number of seats").into())
+            }
+        };
+        Ok(())
     }
 }
 
@@ -190,29 +180,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_delete_license() {
+    async fn test_create_update_license() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = new_license_service(db).await.unwrap();
 
-        assert!(service
-            .update_license(Some("bad_token".into()))
-            .await
-            .is_err());
+        assert!(service.update_license("bad_token".into()).await.is_err());
 
-        service
-            .update_license(Some(VALID_TOKEN.into()))
-            .await
-            .unwrap();
+        service.update_license(VALID_TOKEN.into()).await.unwrap();
         assert!(service.read_license().await.unwrap().is_some());
 
-        service.update_license(None).await.unwrap();
-        assert!(service.read_license().await.unwrap().is_none());
-
-        service
-            .update_license(Some(EXPIRED_TOKEN.into()))
-            .await
-            .unwrap();
-        let info = service.read_license().await.unwrap().unwrap();
-        assert_eq!(info.status, LicenseStatus::Expired);
+        assert!(service.update_license(EXPIRED_TOKEN.into()).await.is_err());
     }
 }

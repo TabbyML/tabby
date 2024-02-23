@@ -31,5 +31,5 @@ pub struct LicenseInfo {
 #[async_trait]
 pub trait LicenseService: Send + Sync {
     async fn read_license(&self) -> Result<Option<LicenseInfo>>;
-    async fn update_license(&self, license: Option<String>) -> Result<Option<LicenseStatus>>;
+    async fn update_license(&self, license: String) -> Result<()>;
 }
