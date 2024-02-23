@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use tabby_common::api::event::EventLogger;
 use tabby_db::DbConn;
+use tracing::warn;
 
 struct EventLoggerImpl {
     db: DbConn,
@@ -9,7 +10,7 @@ struct EventLoggerImpl {
 
 fn log_err<T, E: Display>(res: Result<T, E>) {
     if let Err(e) = res {
-        eprintln!("Failed to log event: {e}");
+        warn!("Failed to log event: {e}");
     }
 }
 
@@ -49,7 +50,7 @@ impl EventLogger for EventLoggerImpl {
                 tokio::spawn(async move {
                     let user_db = db.get_user_by_email(&user).await;
                     let Ok(Some(user_db)) = user_db else {
-                        eprintln!("Failed to retrieve user for {user}");
+                        warn!("Failed to retrieve user for {user}");
                         return;
                     };
                     log_err(
@@ -90,7 +91,7 @@ mod tests {
         });
 
         sleep_50().await;
-        assert!(!db.list_user_completions().await.unwrap().is_empty());
+        assert!(db.fetch_one_user_completion().await.unwrap().is_some());
 
         logger.log(Event::View {
             completion_id: "test_id".into(),
@@ -99,7 +100,10 @@ mod tests {
         });
 
         sleep_50().await;
-        assert_eq!(!db.list_user_completions().await.unwrap()[0].views, 1);
+        assert_eq!(
+            !db.fetch_one_user_completion().await.unwrap().unwrap().views,
+            1
+        );
 
         logger.log(Event::Dismiss {
             completion_id: "test_id".into(),
@@ -109,7 +113,14 @@ mod tests {
         });
 
         sleep_50().await;
-        assert_eq!(!db.list_user_completions().await.unwrap()[0].dismisses, 1);
+        assert_eq!(
+            !db.fetch_one_user_completion()
+                .await
+                .unwrap()
+                .unwrap()
+                .dismisses,
+            1
+        );
 
         logger.log(Event::Select {
             completion_id: "test_id".into(),
@@ -120,6 +131,13 @@ mod tests {
         });
 
         sleep_50().await;
-        assert_eq!(!db.list_user_completions().await.unwrap()[0].selects, 1);
+        assert_eq!(
+            !db.fetch_one_user_completion()
+                .await
+                .unwrap()
+                .unwrap()
+                .selects,
+            1
+        );
     }
 }
