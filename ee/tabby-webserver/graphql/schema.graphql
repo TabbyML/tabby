@@ -122,6 +122,7 @@ type RepositoryConnection {
 enum LicenseStatus {
   OK
   EXPIRED
+  SEATS_EXCEEDED
 }
 
 input RequestPasswordResetEmailInput {
