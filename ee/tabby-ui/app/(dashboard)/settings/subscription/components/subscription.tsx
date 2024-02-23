@@ -2,7 +2,6 @@
 
 import { capitalize } from 'lodash-es'
 import moment from 'moment'
-import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -39,7 +38,7 @@ export default function Subscription() {
     reexecuteQuery()
   }
 
-  const seatsText = license ? `${license.seatsUsed} / ${license.seats}` : '-';
+  const seatsText = license ? `${license.seatsUsed} / ${license.seats}` : '-'
 
   return (
     <div className="p-4">
