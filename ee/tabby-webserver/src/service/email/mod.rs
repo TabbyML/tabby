@@ -19,9 +19,9 @@ mod templates;
 pub mod testutils;
 
 use crate::schema::{
-    email::{
-        AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption, 
-    }, setting::SettingService, CoreError, Result
+    email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
+    setting::SettingService,
+    CoreError, Result,
 };
 
 struct EmailServiceImpl {
@@ -217,11 +217,7 @@ impl EmailService for EmailServiceImpl {
         Ok(())
     }
 
-    async fn send_invitation_email(
-        &self,
-        email: String,
-        code: String,
-    ) -> Result<JoinHandle<()>> {
+    async fn send_invitation_email(&self, email: String, code: String) -> Result<JoinHandle<()>> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
         let contents = templates::invitation(&external_url, &code);

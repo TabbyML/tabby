@@ -3,8 +3,10 @@ use juniper::ID;
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
-use crate::schema::repository::{Repository, RepositoryService};
-use crate::schema::Result;
+use crate::schema::{
+    repository::{Repository, RepositoryService},
+    Result,
+};
 
 #[async_trait]
 impl RepositoryService for DbConn {

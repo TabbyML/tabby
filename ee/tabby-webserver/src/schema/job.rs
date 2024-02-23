@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 use juniper_axum::relay;
 
-use crate::schema::{Result, Context};
+use crate::schema::{Context, Result};
 
 #[derive(Debug, GraphQLObject)]
 #[graphql(context = Context)]

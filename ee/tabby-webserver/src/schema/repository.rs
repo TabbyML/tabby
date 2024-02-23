@@ -3,7 +3,7 @@ use juniper::{GraphQLObject, ID};
 use juniper_axum::relay::NodeType;
 use validator::Validate;
 
-use super::{Result, Context};
+use super::{Context, Result};
 
 #[derive(Validate)]
 pub struct CreateRepositoryInput {

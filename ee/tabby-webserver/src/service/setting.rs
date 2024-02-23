@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 use tabby_db::DbConn;
 
-use crate::schema::setting::{
-    NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+use crate::schema::{
+    setting::{
+        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+    },
+    Result,
 };
-use crate::schema::Result;
 
 #[async_trait]
 impl SettingService for DbConn {

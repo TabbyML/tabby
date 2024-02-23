@@ -1,9 +1,10 @@
-use crate::schema::Result;
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject};
-use thiserror::Error;
+
 use tokio::task::JoinHandle;
 use validator::Validate;
+
+use crate::schema::Result;
 
 #[derive(GraphQLEnum, Clone, Debug)]
 pub enum Encryption {

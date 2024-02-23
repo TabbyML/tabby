@@ -10,7 +10,6 @@ mod worker;
 
 use std::{net::SocketAddr, sync::Arc};
 
-use crate::schema::Result;
 use async_trait::async_trait;
 use axum::{
     http::{HeaderName, HeaderValue, Request},
@@ -38,7 +37,7 @@ use crate::schema::{
     repository::RepositoryService,
     setting::SettingService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    CoreError, ServiceLocator,
+    CoreError, Result, ServiceLocator,
 };
 
 struct ServerContext {

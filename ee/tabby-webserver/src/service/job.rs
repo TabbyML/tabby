@@ -3,8 +3,10 @@ use juniper::ID;
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
-use crate::schema::job::{JobRun, JobService};
-use crate::schema::Result;
+use crate::schema::{
+    job::{JobRun, JobService},
+    Result,
+};
 
 #[async_trait]
 impl JobService for DbConn {

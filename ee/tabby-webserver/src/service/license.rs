@@ -6,8 +6,10 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
 
-use crate::schema::license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType};
-use crate::schema::Result;
+use crate::schema::{
+    license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
+    Result,
+};
 
 lazy_static! {
     static ref LICENSE_DECODING_KEY: jwt::DecodingKey =

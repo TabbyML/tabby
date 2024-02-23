@@ -387,8 +387,7 @@ impl Mutation {
         };
         input.validate()?;
 
-        ctx
-            .locator
+        ctx.locator
             .auth()
             .register(input.email, input.password1, invitation_code)
             .await
@@ -401,8 +400,7 @@ impl Mutation {
     ) -> Result<TokenAuthResponse> {
         let input = auth::TokenAuthInput { email, password };
         input.validate()?;
-        ctx
-            .locator
+        ctx.locator
             .auth()
             .token_auth(input.email, input.password)
             .await
@@ -414,7 +412,7 @@ impl Mutation {
     }
 
     async fn refresh_token(ctx: &Context, refresh_token: String) -> Result<RefreshTokenResponse> {
-        Ok(ctx.locator.auth().refresh_token(refresh_token).await?)
+        ctx.locator.auth().refresh_token(refresh_token).await
     }
 
     async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
@@ -425,10 +423,7 @@ impl Mutation {
 
     async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
         check_admin(ctx)?;
-        ctx.locator
-            .email()
-            .send_test_email(to)
-            .await?;
+        ctx.locator.email().send_test_email(to).await?;
         Ok(true)
     }
 
@@ -436,8 +431,7 @@ impl Mutation {
         check_admin(ctx)?;
         let input = repository::CreateRepositoryInput { name, git_url };
         input.validate()?;
-        ctx
-            .locator
+        ctx.locator
             .repository()
             .create_repository(input.name, input.git_url)
             .await
@@ -455,8 +449,7 @@ impl Mutation {
         git_url: String,
     ) -> Result<bool> {
         check_admin(ctx)?;
-        ctx
-            .locator
+        ctx.locator
             .repository()
             .update_repository(&id, name, git_url)
             .await
