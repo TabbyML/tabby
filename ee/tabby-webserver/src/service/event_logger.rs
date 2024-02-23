@@ -71,6 +71,10 @@ mod tests {
     use tabby_common::api::event::Event;
     use tabby_db::DbConn;
 
+    async fn sleep_50() {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+
     #[tokio::test]
     async fn test_event_logger() {
         let db = DbConn::new_in_memory().await.unwrap();
@@ -84,7 +88,7 @@ mod tests {
             user: Some("example".into()),
         });
 
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        sleep_50().await;
         assert!(!db.list_user_completions().await.unwrap().is_empty());
 
         logger.log(Event::View {
@@ -93,7 +97,7 @@ mod tests {
             view_id: None,
         });
 
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        sleep_50().await;
         assert_eq!(!db.list_user_completions().await.unwrap()[0].views, 1);
 
         logger.log(Event::Dismiss {
@@ -103,7 +107,7 @@ mod tests {
             elapsed: None,
         });
 
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        sleep_50().await;
         assert_eq!(!db.list_user_completions().await.unwrap()[0].dismisses, 1);
 
         logger.log(Event::Select {
@@ -114,7 +118,7 @@ mod tests {
             elapsed: None,
         });
 
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        sleep_50().await;
         assert_eq!(!db.list_user_completions().await.unwrap()[0].selects, 1);
     }
 }
