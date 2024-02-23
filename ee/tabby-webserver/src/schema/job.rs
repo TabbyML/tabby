@@ -1,12 +1,11 @@
 use std::fmt::Debug;
 
-use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 use juniper_axum::relay;
 
-use crate::schema::Context;
+use crate::schema::{Result, Context};
 
 #[derive(Debug, GraphQLObject)]
 #[graphql(context = Context)]
