@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject};
-
 use tokio::task::JoinHandle;
 use validator::Validate;
 
