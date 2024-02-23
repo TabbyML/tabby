@@ -1,16 +1,14 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
+use std::sync::Arc;
 use tabby_db::DbConn;
 use tokio::sync::RwLock;
 
-use crate::schema::{
-    license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
-    Result,
-};
+use crate::schema::license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType};
 
 lazy_static! {
     static ref LICENSE_DECODING_KEY: jwt::DecodingKey =
@@ -63,22 +61,30 @@ fn jwt_timestamp_to_utc(secs: i64) -> Result<DateTime<Utc>> {
 
 struct LicenseServiceImpl {
     db: DbConn,
-    seats: RwLock<(DateTime<Utc>, usize)>,
+    seats: Arc<RwLock<(DateTime<Utc>, usize)>>,
 }
 
 impl LicenseServiceImpl {
-    async fn seats(&self) -> Result<usize> {
+    async fn read_used_seats(&self) -> Result<usize> {
         let now = Utc::now();
         let lock = self.seats.read().await;
         let (refreshed, seats) = &*lock;
-        if now - refreshed <= Duration::minutes(5) {
-            return Ok(*seats);
+        if now - refreshed > Duration::minutes(5) {
+            let seats_clone = self.seats.clone();
+            let db = self.db.clone();
+            tokio::spawn(async move {
+                let mut lock = seats_clone.write().await;
+                let seats = match db.count_users().await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("Failed to count users: {e}");
+                        return;
+                    }
+                };
+                *lock = (now, seats);
+            });
         }
-        drop(lock);
-        let mut lock = self.seats.write().await;
-        let seats = self.db.count_seats().await?;
-        *lock = (now, seats);
-        Ok(seats)
+        Ok(*seats)
     }
 }
 
@@ -89,13 +95,13 @@ pub fn new_license_service(db: DbConn) -> impl LicenseService {
     }
 }
 
-fn license_info_from_raw(raw: LicenseJWTPayload, seats: usize) -> Result<LicenseInfo> {
+fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<LicenseInfo> {
     let issued_at = jwt_timestamp_to_utc(raw.iat)?;
     let expires_at = jwt_timestamp_to_utc(raw.exp)?;
 
     let status = if expires_at < Utc::now() {
         LicenseStatus::Expired
-    } else if seats > raw.num {
+    } else if seats_used > raw.num {
         LicenseStatus::SeatsExceeded
     } else {
         LicenseStatus::Ok
@@ -105,6 +111,7 @@ fn license_info_from_raw(raw: LicenseJWTPayload, seats: usize) -> Result<License
         r#type: raw.typ,
         status,
         seats: raw.num as i32,
+        seats_used: seats_used as i32,
         issued_at,
         expires_at,
     };
@@ -119,7 +126,7 @@ impl LicenseService for LicenseServiceImpl {
         };
         let license =
             validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
-        let seats = self.seats().await?;
+        let seats = self.read_used_seats().await?;
         let license = license_info_from_raw(license, seats)?;
 
         Ok(Some(license))
@@ -130,7 +137,7 @@ impl LicenseService for LicenseServiceImpl {
         if let Some(license) = &license {
             let raw =
                 validate_license(license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
-            let seats = self.seats().await?;
+            let seats = self.read_used_seats().await?;
             status = Some(license_info_from_raw(raw, seats)?.status);
         }
         self.db.update_enterprise_license(license).await?;

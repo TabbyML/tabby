@@ -206,6 +206,13 @@ impl DbConn {
         .await?;
         Ok(())
     }
+
+    pub async fn count_users(&self) -> Result<usize> {
+        let users = query_scalar!("SELECT COUNT(1) FROM users;")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(users as usize)
+    }
 }
 
 fn generate_auth_token() -> String {

@@ -301,7 +301,7 @@ impl Query {
     }
 
     async fn license(ctx: &Context) -> Result<Option<LicenseInfo>> {
-        ctx.locator.license().read_license().await
+        Ok(ctx.locator.license().read_license().await?)
     }
 }
 
@@ -508,7 +508,7 @@ impl Mutation {
         license: Option<String>,
     ) -> Result<Option<LicenseStatus>> {
         check_admin(ctx)?;
-        ctx.locator.license().update_license(license).await
+        Ok(ctx.locator.license().update_license(license).await?)
     }
 }
 
