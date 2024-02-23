@@ -131,19 +131,17 @@ impl Query {
 
     async fn registration_token(ctx: &Context) -> Result<String> {
         check_admin(ctx)?;
-        let token = ctx.locator.worker().read_registration_token().await?;
-        return Ok(token);
+        ctx.locator.worker().read_registration_token().await
     }
 
     #[deprecated]
     async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
-        Ok(ctx.locator.auth().is_admin_initialized().await?)
+        ctx.locator.auth().is_admin_initialized().await
     }
 
     async fn me(ctx: &Context) -> Result<User> {
         let claims = check_claims(ctx)?;
-        let user = ctx.locator.auth().get_user_by_email(&claims.sub).await?;
-        Ok(user)
+        ctx.locator.auth().get_user_by_email(&claims.sub).await
     }
 
     async fn users(
@@ -229,8 +227,7 @@ impl Query {
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
         check_admin(ctx)?;
-        let val = ctx.locator.email().read_email_setting().await?;
-        Ok(val)
+        ctx.locator.email().read_email_setting().await
     }
 
     #[deprecated]
@@ -241,14 +238,12 @@ impl Query {
 
     async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
         check_admin(ctx)?;
-        let val = ctx.locator.setting().read_network_setting().await?;
-        Ok(val)
+        ctx.locator.setting().read_network_setting().await
     }
 
     async fn security_setting(ctx: &Context) -> Result<SecuritySetting> {
         check_admin(ctx)?;
-        let val = ctx.locator.setting().read_security_setting().await?;
-        Ok(val)
+        ctx.locator.setting().read_security_setting().await
     }
 
     async fn repositories(
@@ -293,7 +288,7 @@ impl Query {
 
     async fn oauth_callback_url(ctx: &Context, provider: OAuthProvider) -> Result<String> {
         check_admin(ctx)?;
-        Ok(ctx.locator.auth().oauth_callback_url(provider).await?)
+        ctx.locator.auth().oauth_callback_url(provider).await
     }
 
     async fn server_info(ctx: &Context) -> Result<ServerInfo> {
@@ -306,7 +301,7 @@ impl Query {
     }
 
     async fn license(ctx: &Context) -> Result<Option<LicenseInfo>> {
-        Ok(ctx.locator.license().read_license().await?)
+        ctx.locator.license().read_license().await
     }
 }
 
@@ -325,8 +320,7 @@ pub struct Mutation;
 impl Mutation {
     async fn reset_registration_token(ctx: &Context) -> Result<String> {
         check_admin(ctx)?;
-        let reg_token = ctx.locator.worker().reset_registration_token().await?;
-        Ok(reg_token)
+        ctx.locator.worker().reset_registration_token().await
     }
 
     async fn request_invitation_email(
@@ -334,7 +328,7 @@ impl Mutation {
         input: RequestInvitationInput,
     ) -> Result<Invitation> {
         input.validate()?;
-        Ok(ctx.locator.auth().request_invitation_email(input).await?)
+        ctx.locator.auth().request_invitation_email(input).await
     }
 
     async fn request_password_reset_email(
@@ -354,8 +348,7 @@ impl Mutation {
         ctx.locator
             .auth()
             .password_reset(&input.code, &input.password1)
-            .await
-            .map_err(anyhow::Error::from)?;
+            .await?;
         Ok(true)
     }
 
@@ -394,11 +387,11 @@ impl Mutation {
         };
         input.validate()?;
 
-        Ok(ctx
+        ctx
             .locator
             .auth()
             .register(input.email, input.password1, invitation_code)
-            .await?)
+            .await
     }
 
     async fn token_auth(
@@ -408,11 +401,11 @@ impl Mutation {
     ) -> Result<TokenAuthResponse> {
         let input = auth::TokenAuthInput { email, password };
         input.validate()?;
-        Ok(ctx
+        ctx
             .locator
             .auth()
             .token_auth(input.email, input.password)
-            .await?)
+            .await
     }
 
     async fn verify_token(ctx: &Context, token: String) -> Result<bool> {
@@ -435,8 +428,7 @@ impl Mutation {
         ctx.locator
             .email()
             .send_test_email(to)
-            .await
-            .map_err(anyhow::Error::from)?;
+            .await?;
         Ok(true)
     }
 
@@ -444,16 +436,16 @@ impl Mutation {
         check_admin(ctx)?;
         let input = repository::CreateRepositoryInput { name, git_url };
         input.validate()?;
-        Ok(ctx
+        ctx
             .locator
             .repository()
             .create_repository(input.name, input.git_url)
-            .await?)
+            .await
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx)?;
-        Ok(ctx.locator.repository().delete_repository(&id).await?)
+        ctx.locator.repository().delete_repository(&id).await
     }
 
     async fn update_repository(
@@ -463,16 +455,16 @@ impl Mutation {
         git_url: String,
     ) -> Result<bool> {
         check_admin(ctx)?;
-        Ok(ctx
+        ctx
             .locator
             .repository()
             .update_repository(&id, name, git_url)
-            .await?)
+            .await
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
         check_admin(ctx)?;
-        Ok(ctx.locator.auth().delete_invitation(&id).await?)
+        ctx.locator.auth().delete_invitation(&id).await
     }
 
     async fn update_oauth_credential(
@@ -523,8 +515,7 @@ impl Mutation {
         license: Option<String>,
     ) -> Result<Option<LicenseStatus>> {
         check_admin(ctx)?;
-        let status = ctx.locator.license().update_license(license).await?;
-        Ok(status)
+        ctx.locator.license().update_license(license).await
     }
 }
 
