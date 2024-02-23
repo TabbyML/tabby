@@ -207,8 +207,8 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn count_users(&self) -> Result<usize> {
-        let users = query_scalar!("SELECT COUNT(1) FROM users;")
+    pub async fn count_active_users(&self) -> Result<usize> {
+        let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active;")
             .fetch_one(&self.pool)
             .await?;
         Ok(users as usize)

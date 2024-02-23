@@ -65,6 +65,9 @@ struct LicenseServiceImpl {
 }
 
 impl LicenseServiceImpl {
+    // TODO: Discuss caching strategies when caching is needed for other fields.
+    // We may want to cache at a different layer, and probably want an abstraction over
+    // this kind of caching logic.
     async fn read_used_seats(&self) -> Result<usize> {
         let now = Utc::now();
         let lock = self.seats.read().await;
@@ -74,7 +77,7 @@ impl LicenseServiceImpl {
             let db = self.db.clone();
             tokio::spawn(async move {
                 let mut lock = seats_clone.write().await;
-                let seats = match db.count_users().await {
+                let seats = match db.count_active_users().await {
                     Ok(s) => s,
                     Err(e) => {
                         eprintln!("Failed to count users: {e}");
@@ -88,11 +91,12 @@ impl LicenseServiceImpl {
     }
 }
 
-pub fn new_license_service(db: DbConn) -> impl LicenseService {
-    LicenseServiceImpl {
+pub async fn new_license_service(db: DbConn) -> Result<impl LicenseService> {
+    let seats = db.count_active_users().await?;
+    Ok(LicenseServiceImpl {
         db,
-        seats: Default::default(),
-    }
+        seats: Arc::new((Utc::now(), seats).into()),
+    })
 }
 
 fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<LicenseInfo> {
@@ -186,7 +190,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_delete_license() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = new_license_service(db);
+        let service = new_license_service(db).await.unwrap();
 
         assert!(service
             .update_license(Some("bad_token".into()))
