@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
@@ -6,7 +6,10 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
 
-use crate::schema::license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType};
+use crate::schema::{
+    license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
+    Result,
+};
 
 lazy_static! {
     static ref LICENSE_DECODING_KEY: jwt::DecodingKey =

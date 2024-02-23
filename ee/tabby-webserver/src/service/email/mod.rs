@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use async_trait::async_trait;
 use lettre::{
     message::{Mailbox, MessageBuilder},
@@ -19,10 +19,9 @@ mod templates;
 pub mod testutils;
 
 use crate::schema::{
-    email::{
-        AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption, SendEmailError,
-    },
+    email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
     setting::SettingService,
+    CoreError, Result,
 };
 
 struct EmailServiceImpl {
@@ -44,7 +43,7 @@ fn make_smtp_builder(
     port: u16,
     encryption: Encryption,
 ) -> Result<AsyncSmtpTransportBuilder> {
-    let tls_parameters = TlsParameters::new(host.into())?;
+    let tls_parameters = TlsParameters::new(host.into()).map_err(anyhow::Error::new)?;
 
     let builder = match encryption {
         Encryption::StartTls => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host)
@@ -105,12 +104,12 @@ impl EmailServiceImpl {
         to: String,
         subject: String,
         message: String,
-    ) -> Result<JoinHandle<()>, SendEmailError> {
+    ) -> Result<JoinHandle<()>> {
         let smtp_server = self.smtp_server.clone();
 
         // Check if the email service is actually configured.
         if smtp_server.read().await.is_none() {
-            return Err(SendEmailError::NotConfigured);
+            return Err(CoreError::EmailNotConfigured);
         }
 
         let from = self.from.read().await.clone();
@@ -218,11 +217,7 @@ impl EmailService for EmailServiceImpl {
         Ok(())
     }
 
-    async fn send_invitation_email(
-        &self,
-        email: String,
-        code: String,
-    ) -> Result<JoinHandle<()>, SendEmailError> {
+    async fn send_invitation_email(&self, email: String, code: String) -> Result<JoinHandle<()>> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
         let contents = templates::invitation(&external_url, &code);
@@ -234,21 +229,21 @@ impl EmailService for EmailServiceImpl {
         &self,
         email: String,
         code: String,
-    ) -> Result<JoinHandle<()>, SendEmailError> {
+    ) -> Result<JoinHandle<()>> {
         let external_url = self.db.read_network_setting().await?.external_url;
         let contents = templates::password_reset(&external_url, &email, &code);
         self.send_email_in_background(email, contents.subject, contents.body)
             .await
     }
 
-    async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>, SendEmailError> {
+    async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>> {
         let contents = templates::test();
         self.send_email_in_background(to, contents.subject, contents.body)
             .await
     }
 }
 
-fn to_address(email: String) -> Result<Address> {
+fn to_address(email: String) -> anyhow::Result<Address> {
     let (user, domain) = email
         .split_once('@')
         .ok_or_else(|| anyhow!("address contains no @"))?;

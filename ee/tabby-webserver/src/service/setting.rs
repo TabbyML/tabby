@@ -1,9 +1,11 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use tabby_db::DbConn;
 
-use crate::schema::setting::{
-    NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+use crate::schema::{
+    setting::{
+        NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
+    },
+    Result,
 };
 
 #[async_trait]
@@ -21,7 +23,8 @@ impl SettingService for DbConn {
 
         (self as &DbConn)
             .update_security_setting(domains, input.disable_client_side_telemetry)
-            .await
+            .await?;
+        Ok(())
     }
 
     async fn read_network_setting(&self) -> Result<NetworkSetting> {
@@ -31,7 +34,8 @@ impl SettingService for DbConn {
     async fn update_network_setting(&self, input: NetworkSettingInput) -> Result<()> {
         (self as &DbConn)
             .update_network_setting(input.external_url)
-            .await
+            .await?;
+        Ok(())
     }
 }
 

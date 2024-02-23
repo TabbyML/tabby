@@ -1,9 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::Result;
 use async_trait::async_trait;
 use juniper::{GraphQLInputObject, GraphQLObject};
 use validator::{validate_email, Validate, ValidationError};
+
+use super::Result;
 
 #[async_trait]
 pub trait SettingService: Send + Sync {

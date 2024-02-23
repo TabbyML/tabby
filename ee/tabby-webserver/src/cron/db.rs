@@ -29,16 +29,15 @@ where
 }
 
 pub async fn refresh_token_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
-    service_job(
-        auth,
-        |auth| async move { auth.delete_expired_token().await },
-    )
+    service_job(auth, |auth| async move {
+        Ok(auth.delete_expired_token().await?)
+    })
     .await
 }
 
 pub async fn password_reset_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
     service_job(auth, |auth| async move {
-        auth.delete_expired_password_resets().await
+        Ok(auth.delete_expired_password_resets().await?)
     })
     .await
 }

@@ -10,7 +10,6 @@ mod worker;
 
 use std::{net::SocketAddr, sync::Arc};
 
-use anyhow::Result;
 use async_trait::async_trait;
 use axum::{
     http::{HeaderName, HeaderValue, Request},
@@ -38,7 +37,7 @@ use crate::schema::{
     repository::RepositoryService,
     setting::SettingService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    CoreError, ServiceLocator,
+    CoreError, Result, ServiceLocator,
 };
 
 struct ServerContext {
@@ -113,13 +112,13 @@ impl ServerContext {
 impl WorkerService for ServerContext {
     /// Query current token from the database.
     async fn read_registration_token(&self) -> Result<String> {
-        self.db_conn.read_registration_token().await
+        Ok(self.db_conn.read_registration_token().await?)
     }
 
     /// Generate new token, and update it in the database.
     /// Return new token after update is done
     async fn reset_registration_token(&self) -> Result<String> {
-        self.db_conn.reset_registration_token().await
+        Ok(self.db_conn.reset_registration_token().await?)
     }
 
     async fn list_workers(&self) -> Vec<Worker> {

@@ -1,8 +1,9 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::Deserialize;
+
+use crate::schema::Result;
 
 #[derive(Debug, Deserialize, GraphQLEnum)]
 #[serde(rename_all = "UPPERCASE")]

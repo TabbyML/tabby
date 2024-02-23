@@ -1,15 +1,17 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
-use crate::schema::job::{JobRun, JobService};
+use crate::schema::{
+    job::{JobRun, JobService},
+    Result,
+};
 
 #[async_trait]
 impl JobService for DbConn {
     async fn create_job_run(&self, name: String) -> Result<ID> {
-        self.create_job_run(name).await.map(|x| x.as_id())
+        Ok(self.create_job_run(name).await.map(|x| x.as_id())?)
     }
 
     async fn update_job_stdout(&self, id: &ID, stdout: String) -> Result<()> {
