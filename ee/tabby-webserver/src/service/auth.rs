@@ -1021,7 +1021,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
     async fn test_create_invitation_without_license() {
         let service = test_authentication_service_without_valid_license().await;
         assert_matches!(
