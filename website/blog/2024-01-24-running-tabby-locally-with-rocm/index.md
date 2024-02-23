@@ -32,6 +32,8 @@ docker run --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined
 
 The command output should look similar to the below:
 
+![Tabby running inside Docker](./tabby-rocm-docker.png)
+
 ## Build Tabby with ROCm locally
 
 If you would rather run Tabby directly on your machine, you can [compile Tabby yourself](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md#local-setup). If compiling yourself, make sure to use the flag `--features rocm` to enable it.
