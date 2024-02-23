@@ -133,7 +133,9 @@ impl LicenseService for LicenseServiceImpl {
         match license_info_from_raw(raw, seats)?.status {
             LicenseStatus::Ok => self.db.update_enterprise_license(Some(license)).await?,
             LicenseStatus::Expired => return Err(anyhow!("License is expired").into()),
-            LicenseStatus::SeatsExceeded => return Err(anyhow!("License doesn't contain sufficient number of seats").into())
+            LicenseStatus::SeatsExceeded => {
+                return Err(anyhow!("License doesn't contain sufficient number of seats").into())
+            }
         };
         Ok(())
     }
