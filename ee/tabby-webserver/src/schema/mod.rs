@@ -64,7 +64,7 @@ impl FromAuth<Arc<dyn ServiceLocator>> for Context {
     }
 }
 
-type Result<T, E = CoreError> = std::result::Result<T, E>;
+pub type Result<T, E = CoreError> = std::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum CoreError {
@@ -79,6 +79,9 @@ pub enum CoreError {
 
     #[error("Invalid input parameters")]
     InvalidInput(#[from] ValidationErrors),
+
+    #[error(transparent)]
+    SendEmailError(#[from] email::SendEmailError),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),

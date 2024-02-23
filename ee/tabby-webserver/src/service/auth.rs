@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context, };
 use argon2::{
     password_hash,
     password_hash::{rand_core::OsRng, SaltString},
@@ -17,6 +17,7 @@ use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
     oauth,
     schema::{
+        Result,
         auth::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
@@ -55,11 +56,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         // check if email exists
         if self.db.get_user_by_email(&email).await?.is_some() {
-            return Err(anyhow!("Email is already registered"));
+            return Err(anyhow!("Email is already registered").into());
         }
 
         let Ok(pwd_hash) = password_hash(&password) else {
-            return Err(anyhow!("Unknown error"));
+            return Err(anyhow!("Unknown error").into());
         };
 
         let id = if let Some(invitation) = invitation {
@@ -84,7 +85,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
-            return Err(anyhow!("Unknown error"));
+            return Err(anyhow!("Unknown error").into());
         };
 
         let resp = RegisterResponse::new(access_token, refresh_token);
@@ -114,7 +115,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             if Utc::now().signed_duration_since(*existing.created_at) < Duration::minutes(5) {
                 return Err(anyhow!(
                     "A password reset has been requested recently, please try again later"
-                ));
+                ).into());
             }
         }
         let code = self.db.create_password_reset(id as i64).await?;
@@ -138,15 +139,15 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
         let Some(user) = self.db.get_user_by_email(&email).await? else {
-            return Err(anyhow!("User not found"));
+            return Err(anyhow!("User not found").into());
         };
 
         if !user.active {
-            return Err(anyhow!("User is disabled"));
+            return Err(anyhow!("User is disabled").into());
         }
 
         if !password_verify(&password, &user.password_encrypted) {
-            return Err(anyhow!("Password is not valid"));
+            return Err(anyhow!("Password is not valid").into());
         }
 
         let refresh_token = generate_refresh_token();
@@ -156,7 +157,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
-            return Err(anyhow!("Unknown error"));
+            return Err(anyhow!("Unknown error").into());
         };
 
         let resp = TokenAuthResponse::new(access_token, refresh_token);
@@ -165,17 +166,17 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn refresh_token(&self, token: String) -> Result<RefreshTokenResponse> {
         let Some(refresh_token) = self.db.get_refresh_token(&token).await? else {
-            return Err(anyhow!("Invalid refresh token"));
+            return Err(anyhow!("Invalid refresh token").into());
         };
         if refresh_token.is_expired() {
-            return Err(anyhow!("Expired refresh token"));
+            return Err(anyhow!("Expired refresh token").into());
         }
         let Some(user) = self.db.get_user(refresh_token.user_id).await? else {
-            return Err(anyhow!("User not found"));
+            return Err(anyhow!("User not found").into());
         };
 
         if !user.active {
-            return Err(anyhow!("User is disabled"));
+            return Err(anyhow!("User is disabled").into());
         }
 
         let new_token = generate_refresh_token();
@@ -184,7 +185,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         // refresh token update is done, generate new access token based on user info
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
         else {
-            return Err(anyhow!("Unknown error"));
+            return Err(anyhow!("Unknown error").into());
         };
 
         let resp = RefreshTokenResponse::new(access_token, new_token, refresh_token.expires_at);
@@ -203,7 +204,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload> {
-        let claims = validate_jwt(access_token)?;
+        let claims = validate_jwt(access_token).map_err(anyhow::Error::new)?;
         Ok(claims)
     }
 
@@ -216,9 +217,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
-            return Err(anyhow!("The owner's admin status cannot be changed"));
+            return Err(anyhow!("The owner's admin status cannot be changed").into());
         }
-        self.db.update_user_role(id, is_admin).await
+        Ok(self.db.update_user_role(id, is_admin).await?)
     }
 
     async fn get_user_by_email(&self, email: &str) -> Result<User> {
@@ -226,7 +227,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if let Some(user) = user {
             Ok(user.into())
         } else {
-            Err(anyhow!("User not found {}", email))
+            Err(anyhow!("User not found {}", email).into())
         }
     }
 
@@ -252,7 +253,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .await?
             .can_register_without_invitation(&input.email)
         {
-            return Err(anyhow!("Your email does not belong to any known authentication domains. Please contact the administrator for assistance."));
+            return Err(anyhow!("Your email does not belong to any known authentication domains. Please contact the administrator for assistance.").into());
         }
         let invitation = AuthenticationService::create_invitation(self, input.email).await?;
         Ok(invitation)
@@ -263,7 +264,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
-        self.db.reset_user_auth_token_by_email(email).await
+        Ok(self.db.reset_user_auth_token_by_email(email).await?)
     }
 
     async fn list_users(
@@ -366,19 +367,20 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()> {
-        match provider {
+        let ret = match provider {
             OAuthProvider::Github => self.db.delete_github_oauth_credential().await,
             OAuthProvider::Google => self.db.delete_google_oauth_credential().await,
-        }
+        };
+        Ok(ret?)
     }
 
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
         let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
-            return Err(anyhow!("The owner's active status cannot be changed"));
+            return Err(anyhow!("The owner's active status cannot be changed").into());
         }
-        self.db.update_user_active(id, active).await
+        Ok(self.db.update_user_active(id, active).await?)
     }
 }
 
@@ -427,7 +429,7 @@ async fn check_invitation(
         return Ok(None);
     }
 
-    let err = Err(anyhow!("Invitation code is not valid"));
+    let err = Err(anyhow!("Invitation code is not valid").into());
     let Some(invitation_code) = invitation_code else {
         return err;
     };

@@ -1,6 +1,5 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
@@ -15,7 +14,7 @@ use tracing::{error, warn};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::schema::Context;
+use crate::schema::{Context, Result};
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
