@@ -4,7 +4,6 @@ mod email;
 mod event_logger;
 mod job;
 mod license;
-mod logger;
 mod proxy;
 mod repository;
 mod setting;
