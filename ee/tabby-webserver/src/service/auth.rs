@@ -17,15 +17,12 @@ use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
     oauth,
     schema::{
-        Result,
         auth::{
             generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
             RefreshTokenResponse, RegisterResponse, RequestInvitationInput, TokenAuthResponse,
             UpdateOAuthCredentialInput, User,
-        },
-        email::{EmailService, SendEmailError},
-        setting::SettingService,
+        }, email::EmailService, setting::SettingService, CoreError, Result
     },
 };
 
@@ -238,7 +235,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .send_invitation_email(email, invitation.code.clone())
             .await;
         match email_sent {
-            Ok(_) | Err(SendEmailError::NotConfigured) => {}
+            Ok(_) | Err(CoreError::EmailNotConfigured) => {}
             Err(e) => warn!(
                 "Failed to send invitation email, please check your SMTP settings are correct: {e}"
             ),

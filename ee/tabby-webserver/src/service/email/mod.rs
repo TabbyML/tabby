@@ -19,11 +19,9 @@ mod templates;
 pub mod testutils;
 
 use crate::schema::{
-    Result,
     email::{
-        AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption, SendEmailError,
-    },
-    setting::SettingService,
+        AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption, 
+    }, setting::SettingService, CoreError, Result
 };
 
 struct EmailServiceImpl {
@@ -106,12 +104,12 @@ impl EmailServiceImpl {
         to: String,
         subject: String,
         message: String,
-    ) -> Result<JoinHandle<()>, SendEmailError> {
+    ) -> Result<JoinHandle<()>> {
         let smtp_server = self.smtp_server.clone();
 
         // Check if the email service is actually configured.
         if smtp_server.read().await.is_none() {
-            return Err(SendEmailError::NotConfigured);
+            return Err(CoreError::EmailNotConfigured);
         }
 
         let from = self.from.read().await.clone();
@@ -223,7 +221,7 @@ impl EmailService for EmailServiceImpl {
         &self,
         email: String,
         code: String,
-    ) -> Result<JoinHandle<()>, SendEmailError> {
+    ) -> Result<JoinHandle<()>> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
         let contents = templates::invitation(&external_url, &code);
@@ -235,14 +233,14 @@ impl EmailService for EmailServiceImpl {
         &self,
         email: String,
         code: String,
-    ) -> Result<JoinHandle<()>, SendEmailError> {
+    ) -> Result<JoinHandle<()>> {
         let external_url = self.db.read_network_setting().await?.external_url;
         let contents = templates::password_reset(&external_url, &email, &code);
         self.send_email_in_background(email, contents.subject, contents.body)
             .await
     }
 
-    async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>, SendEmailError> {
+    async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>> {
         let contents = templates::test();
         self.send_email_in_background(to, contents.subject, contents.body)
             .await

@@ -80,8 +80,8 @@ pub enum CoreError {
     #[error("Invalid input parameters")]
     InvalidInput(#[from] ValidationErrors),
 
-    #[error(transparent)]
-    SendEmailError(#[from] email::SendEmailError),
+    #[error("Email is not configured")]
+    EmailNotConfigured,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
