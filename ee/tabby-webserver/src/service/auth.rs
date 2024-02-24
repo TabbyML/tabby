@@ -86,7 +86,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let refresh_token = generate_refresh_token();
         self.db.create_refresh_token(id, &refresh_token).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        let Ok(access_token) = generate_jwt(JWTPayload::new(id.as_id(), user.is_admin))
         else {
             return Err(anyhow!("Unknown error").into());
         };
@@ -159,7 +159,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .create_refresh_token(user.id, &refresh_token)
             .await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin))
         else {
             return Err(anyhow!("Unknown error").into());
         };
@@ -187,7 +187,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         self.db.replace_refresh_token(&token, &new_token).await?;
 
         // refresh token update is done, generate new access token based on user info
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin))
         else {
             return Err(anyhow!("Unknown error").into());
         };
@@ -329,7 +329,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .create_refresh_token(user_id, &refresh_token)
             .await?;
 
-        let access_token = generate_jwt(JWTPayload::new(email.clone(), is_admin))
+        let access_token = generate_jwt(JWTPayload::new(user_id.as_id(), is_admin))
             .map_err(|_| OAuthError::Unknown)?;
 
         let resp = OAuthResponse {
