@@ -32,6 +32,7 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             binary: aarch64-apple-darwin
+            build_args: --features prod-db
           - os: dimerun-k3-ubuntu2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014
