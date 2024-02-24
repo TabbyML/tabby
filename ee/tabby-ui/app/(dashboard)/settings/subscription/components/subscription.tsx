@@ -11,6 +11,7 @@ import { SubHeader } from '@/components/sub-header'
 
 import { LicenseForm } from './license-form'
 import { LicenseTable } from './license-table'
+import { LicenseInfo } from '@/lib/gql/generates/graphql'
 
 const getLicenseInfo = graphql(/* GraphQL */ `
   query GetLicenseInfo {
@@ -30,15 +31,9 @@ export default function Subscription() {
     query: getLicenseInfo
   })
   const license = data?.license
-  const expiresAt = license?.expiresAt
-    ? moment(license.expiresAt).format('MM/DD/YYYY')
-    : '–'
-
   const onUploadLicenseSuccess = () => {
     reexecuteQuery()
   }
-
-  const seatsText = license ? `${license.seatsUsed} / ${license.seats}` : '–'
 
   return (
     <div className="p-4">
@@ -56,28 +51,39 @@ export default function Subscription() {
             </div>
           }
         >
-          <div className="grid font-bold lg:grid-cols-3">
-            <div>
-              <div className="mb-1 text-muted-foreground">Expires at</div>
-              <div className="text-3xl">{expiresAt}</div>
-            </div>
-            <div>
-              <div className="mb-1 text-muted-foreground">
-                Assigned / Total Seats
-              </div>
-              <div className="text-3xl">{seatsText}</div>
-            </div>
-            <div>
-              <div className="mb-1 text-muted-foreground">Current plan</div>
-              <div className="text-3xl text-primary">
-                {capitalize(license?.type ?? 'Community')}
-              </div>
-            </div>
-          </div>
+          {license && <License license={license} />}
         </LoadingWrapper>
         <LicenseForm onSuccess={onUploadLicenseSuccess} />
         <LicenseTable />
       </div>
     </div>
   )
+}
+
+
+function License({ license }: { license: LicenseInfo }) {
+  const expiresAt = license.expiresAt
+    ? moment(license.expiresAt).format('MM/DD/YYYY')
+    : '–'
+
+  const seatsText = `${license.seatsUsed} / ${license.seats}`;
+
+  return <div className="grid font-bold lg:grid-cols-3">
+    <div>
+      <div className="mb-1 text-muted-foreground">Expires at</div>
+      <div className="text-3xl">{expiresAt}</div>
+    </div>
+    <div>
+      <div className="mb-1 text-muted-foreground">
+        Assigned / Total Seats
+      </div>
+      <div className="text-3xl">{seatsText}</div>
+    </div>
+    <div>
+      <div className="mb-1 text-muted-foreground">Current plan</div>
+      <div className="text-3xl text-primary">
+        {capitalize(license?.type ?? 'Community')}
+      </div>
+    </div>
+  </div>
 }

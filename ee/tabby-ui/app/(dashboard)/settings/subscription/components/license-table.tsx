@@ -18,7 +18,7 @@ export const LicenseTable = () => {
         <TableRow>
           <TableHead className="w-[40%]"></TableHead>
           {PLANS.map(({ name, pricing, limit }, i) =>
-            <TableHead className="w-[20%] text-center">
+            <TableHead className="w-[20%] text-center" key={i}>
               <h1 className='text-2xl py-4 font-bold'>{name}</h1>
               <p className='text-center font-semibold'>{pricing}</p>
               <p className='pt-1 pb-2'>{limit}</p>
@@ -27,7 +27,7 @@ export const LicenseTable = () => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {FEATURES.map(({ name, features }, i) => <FeatureList name={name} features={features} />)}
+        {FEATURES.map(({ name, features }, i) => <FeatureList key={i} name={name} features={features} />)}
       </TableBody>
     </Table>
   )
@@ -58,7 +58,7 @@ interface Plan {
 
 const PLANS: Plan[] = [
   { name: "Community", pricing: "$0 per user/month", limit: "Up to 5 users, single node" },
-  { name: "Team", pricing: "$19 per user/month", limit: "Up to 30 users, up to 3 nodes" },
+  { name: "Team", pricing: "$19 per user/month", limit: "Up to 30 users, up to 2 nodes" },
   { name: "Enterprise", pricing: "Contact Us", limit: "Customized, billed annually" },
 ]
 
