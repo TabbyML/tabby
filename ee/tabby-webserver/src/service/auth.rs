@@ -236,10 +236,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
-        if !self.license.read_license().await.is_license_valid() {
-            return Err(CoreError::InvalidLicense(
-                "This feature requires enterprise license",
-            ));
+        let license = self.license.read_license().await?;
+        if !license.is_license_valid() {
+            return Err(license.status.into());
         };
 
         let invitation = self.db.create_invitation(email.clone()).await?;

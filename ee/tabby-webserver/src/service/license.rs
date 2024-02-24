@@ -82,7 +82,7 @@ impl LicenseServiceImpl {
 
     async fn make_community_license(&self) -> Result<LicenseInfo> {
         let seats_used = self.read_used_seats(false).await?;
-        let status = if seats_used > 5 {
+        let status = if seats_used > LicenseInfo::seat_limits_for_community_license() {
             LicenseStatus::SeatsExceeded
         } else {
             LicenseStatus::Ok
@@ -91,11 +91,11 @@ impl LicenseServiceImpl {
         Ok(LicenseInfo {
             r#type: LicenseType::Community,
             status,
-            seats: 5,
+            seats: LicenseInfo::seat_limits_for_community_license() as i32,
             seats_used: seats_used as i32,
             issued_at: None,
             expires_at: None,
-        })
+        }.ensure_seat_limit())
     }
 }
 
@@ -126,7 +126,7 @@ fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<Li
         seats_used: seats_used as i32,
         issued_at: Some(issued_at),
         expires_at: Some(expires_at),
-    };
+    }.ensure_seat_limit();
     Ok(license)
 }
 

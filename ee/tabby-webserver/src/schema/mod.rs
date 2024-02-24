@@ -131,12 +131,7 @@ async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<()
 
     match license.status {
         LicenseStatus::Ok => Ok(()),
-        LicenseStatus::Expired => Err(CoreError::InvalidLicense(
-            "Your enterprise license is expired",
-        )),
-        LicenseStatus::SeatsExceeded => Err(CoreError::InvalidLicense(
-            "You have more active users than seats included in your license",
-        )),
+        LicenseStatus::Expired | LicenseStatus::SeatsExceeded => Err(license.status.into()),
     }
 }
 
