@@ -7,10 +7,12 @@ use serde::Deserialize;
 
 use crate::schema::Result;
 
-#[derive(Debug, Deserialize, GraphQLEnum)]
+#[derive(Debug, Deserialize, GraphQLEnum, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum LicenseType {
+    Community,
     Team,
+    Enterprise,
 }
 
 #[derive(GraphQLEnum, PartialEq, Debug, Clone)]
@@ -26,13 +28,13 @@ pub struct LicenseInfo {
     pub status: LicenseStatus,
     pub seats: i32,
     pub seats_used: i32,
-    pub issued_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
+    pub issued_at: Option<DateTime<Utc>>,
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 #[async_trait]
 pub trait LicenseService: Send + Sync {
-    async fn read_license(&self) -> Result<Option<LicenseInfo>>;
+    async fn read_license(&self) -> Result<LicenseInfo>;
     async fn update_license(&self, license: String) -> Result<()>;
 }
 
@@ -43,14 +45,6 @@ pub trait IsLicenseValid {
 impl IsLicenseValid for LicenseInfo {
     fn is_license_valid(&self) -> bool {
         self.status == LicenseStatus::Ok
-    }
-}
-
-impl<L: IsLicenseValid> IsLicenseValid for Option<L> {
-    fn is_license_valid(&self) -> bool {
-        self.as_ref()
-            .map(|x| x.is_license_valid())
-            .unwrap_or_default()
     }
 }
 

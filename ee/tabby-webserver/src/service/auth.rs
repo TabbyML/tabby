@@ -480,15 +480,15 @@ mod tests {
 
     #[async_trait]
     impl LicenseService for MockLicenseService {
-        async fn read_license(&self) -> Result<Option<LicenseInfo>> {
-            Ok(Some(LicenseInfo {
+        async fn read_license(&self) -> Result<LicenseInfo> {
+            Ok(LicenseInfo {
                 r#type: crate::schema::license::LicenseType::Team,
                 status: self.0.clone(),
                 seats: 1,
                 seats_used: 1,
-                issued_at: Utc::now(),
-                expires_at: Utc::now(),
-            }))
+                issued_at: Some(Utc::now()),
+                expires_at: Some(Utc::now()),
+            })
         }
 
         async fn update_license(&self, _: String) -> Result<()> {
