@@ -74,7 +74,7 @@ type Query {
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
-  license: LicenseInfo
+  license: LicenseInfo!
 }
 
 input NetworkSettingInput {
@@ -134,8 +134,8 @@ type LicenseInfo {
   status: LicenseStatus!
   seats: Int!
   seatsUsed: Int!
-  issuedAt: DateTimeUtc!
-  expiresAt: DateTimeUtc!
+  issuedAt: DateTimeUtc
+  expiresAt: DateTimeUtc
 }
 
 input EmailSettingInput {
@@ -154,7 +154,9 @@ input SecuritySettingInput {
 }
 
 enum LicenseType {
+  COMMUNITY
   TEAM
+  ENTERPRISE
 }
 
 type SecuritySetting {
