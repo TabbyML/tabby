@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
@@ -56,9 +56,8 @@ fn validate_license(token: &str) -> Result<LicenseJWTPayload, jwt::errors::Error
 }
 
 fn jwt_timestamp_to_utc(secs: i64) -> Result<DateTime<Utc>> {
-    Ok(NaiveDateTime::from_timestamp_opt(secs, 0)
-        .ok_or_else(|| anyhow!("Timestamp is corrupt"))?
-        .and_utc())
+    let datetime = NaiveDateTime::from_timestamp_opt(secs, 0).context("Timestamp is corrupt")?;
+    Ok(datetime.and_utc())
 }
 
 struct LicenseServiceImpl {
@@ -79,6 +78,25 @@ impl LicenseServiceImpl {
             *lock = (now, seats);
         }
         Ok(seats)
+    }
+
+    async fn make_community_license(&self) -> Result<LicenseInfo> {
+        let seats_used = self.read_used_seats(false).await?;
+        let status = if seats_used > LicenseInfo::seat_limits_for_community_license() {
+            LicenseStatus::SeatsExceeded
+        } else {
+            LicenseStatus::Ok
+        };
+
+        Ok(LicenseInfo {
+            r#type: LicenseType::Community,
+            status,
+            seats: LicenseInfo::seat_limits_for_community_license() as i32,
+            seats_used: seats_used as i32,
+            issued_at: None,
+            expires_at: None,
+        }
+        .ensure_seat_limit())
     }
 }
 
@@ -107,24 +125,25 @@ fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<Li
         status,
         seats: raw.num as i32,
         seats_used: seats_used as i32,
-        issued_at,
-        expires_at,
-    };
+        issued_at: Some(issued_at),
+        expires_at: Some(expires_at),
+    }
+    .ensure_seat_limit();
     Ok(license)
 }
 
 #[async_trait]
 impl LicenseService for LicenseServiceImpl {
-    async fn read_license(&self) -> Result<Option<LicenseInfo>> {
+    async fn read_license(&self) -> Result<LicenseInfo> {
         let Some(license) = self.db.read_enterprise_license().await? else {
-            return Ok(None);
+            return self.make_community_license().await;
         };
         let license =
             validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
         let seats = self.read_used_seats(false).await?;
         let license = license_info_from_raw(license, seats)?;
 
-        Ok(Some(license))
+        Ok(license)
     }
 
     async fn update_license(&self, license: String) -> Result<()> {
@@ -187,7 +206,7 @@ mod tests {
         assert!(service.update_license("bad_token".into()).await.is_err());
 
         service.update_license(VALID_TOKEN.into()).await.unwrap();
-        assert!(service.read_license().await.unwrap().is_some());
+        assert!(service.read_license().await.is_ok());
 
         assert!(service.update_license(EXPIRED_TOKEN.into()).await.is_err());
     }

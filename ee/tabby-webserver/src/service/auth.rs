@@ -236,10 +236,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
-        if !self.license.read_license().await.is_license_valid() {
-            return Err(CoreError::InvalidLicense(
-                "This feature requires enterprise license",
-            ));
+        let license = self.license.read_license().await?;
+        if !license.is_license_valid() {
+            return Err(license.status.into());
         };
 
         let invitation = self.db.create_invitation(email.clone()).await?;
@@ -480,15 +479,15 @@ mod tests {
 
     #[async_trait]
     impl LicenseService for MockLicenseService {
-        async fn read_license(&self) -> Result<Option<LicenseInfo>> {
-            Ok(Some(LicenseInfo {
+        async fn read_license(&self) -> Result<LicenseInfo> {
+            Ok(LicenseInfo {
                 r#type: crate::schema::license::LicenseType::Team,
                 status: self.0.clone(),
                 seats: 1,
                 seats_used: 1,
-                issued_at: Utc::now(),
-                expires_at: Utc::now(),
-            }))
+                issued_at: Some(Utc::now()),
+                expires_at: Some(Utc::now()),
+            })
         }
 
         async fn update_license(&self, _: String) -> Result<()> {

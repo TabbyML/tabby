@@ -5,12 +5,15 @@ use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::Deserialize;
 
+use super::CoreError;
 use crate::schema::Result;
 
-#[derive(Debug, Deserialize, GraphQLEnum)]
+#[derive(Debug, Deserialize, GraphQLEnum, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum LicenseType {
+    Community,
     Team,
+    Enterprise,
 }
 
 #[derive(GraphQLEnum, PartialEq, Debug, Clone)]
@@ -20,19 +23,64 @@ pub enum LicenseStatus {
     SeatsExceeded,
 }
 
+impl From<LicenseStatus> for CoreError {
+    fn from(val: LicenseStatus) -> Self {
+        match val {
+            LicenseStatus::Ok => panic!("License is valid, shouldn't be converted to CoreError"),
+            LicenseStatus::Expired => {
+                CoreError::InvalidLicense("Your enterprise license is expired")
+            }
+            LicenseStatus::SeatsExceeded => CoreError::InvalidLicense(
+                "You have more active users than seats included in your license",
+            ),
+        }
+    }
+}
+
 #[derive(GraphQLObject)]
 pub struct LicenseInfo {
     pub r#type: LicenseType,
     pub status: LicenseStatus,
     pub seats: i32,
     pub seats_used: i32,
-    pub issued_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
+    pub issued_at: Option<DateTime<Utc>>,
+    pub expires_at: Option<DateTime<Utc>>,
+}
+
+impl LicenseInfo {
+    pub fn seat_limits_for_community_license() -> usize {
+        5
+    }
+
+    pub fn seat_limits_for_team_license() -> usize {
+        30
+    }
+
+    pub fn check_node_limit(&self, num_nodes: usize) -> bool {
+        match self.r#type {
+            LicenseType::Community => false,
+            LicenseType::Team => num_nodes < 2,
+            LicenseType::Enterprise => true,
+        }
+    }
+
+    pub fn ensure_seat_limit(mut self) -> Self {
+        let seats = self.seats as usize;
+        self.seats = match self.r#type {
+            LicenseType::Community => {
+                std::cmp::max(seats, Self::seat_limits_for_community_license())
+            }
+            LicenseType::Team => std::cmp::max(seats, Self::seat_limits_for_team_license()),
+            LicenseType::Enterprise => seats,
+        } as i32;
+
+        self
+    }
 }
 
 #[async_trait]
 pub trait LicenseService: Send + Sync {
-    async fn read_license(&self) -> Result<Option<LicenseInfo>>;
+    async fn read_license(&self) -> Result<LicenseInfo>;
     async fn update_license(&self, license: String) -> Result<()>;
 }
 
@@ -43,14 +91,6 @@ pub trait IsLicenseValid {
 impl IsLicenseValid for LicenseInfo {
     fn is_license_valid(&self) -> bool {
         self.status == LicenseStatus::Ok
-    }
-}
-
-impl<L: IsLicenseValid> IsLicenseValid for Option<L> {
-    fn is_license_valid(&self) -> bool {
-        self.as_ref()
-            .map(|x| x.is_license_valid())
-            .unwrap_or_default()
     }
 }
 

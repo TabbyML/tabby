@@ -32,7 +32,7 @@ use self::{
         RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    license::{LicenseInfo, LicenseService, LicenseStatus},
+    license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
     repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
@@ -120,21 +120,18 @@ fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     Ok(())
 }
 
-async fn check_license(ctx: &Context) -> Result<(), CoreError> {
-    let Some(license) = ctx.locator.license().read_license().await? else {
+async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<(), CoreError> {
+    let license = ctx.locator.license().read_license().await?;
+
+    if !license_type.contains(&license.r#type) {
         return Err(CoreError::InvalidLicense(
-            "This feature requires enterprise license",
+            "Your plan doesn't include support for this feature.",
         ));
-    };
+    }
 
     match license.status {
         LicenseStatus::Ok => Ok(()),
-        LicenseStatus::Expired => Err(CoreError::InvalidLicense(
-            "Your enterprise license is expired",
-        )),
-        LicenseStatus::SeatsExceeded => Err(CoreError::InvalidLicense(
-            "You have more active users than seats included in your license",
-        )),
+        LicenseStatus::Expired | LicenseStatus::SeatsExceeded => Err(license.status.into()),
     }
 }
 
@@ -320,7 +317,7 @@ impl Query {
         })
     }
 
-    async fn license(ctx: &Context) -> Result<Option<LicenseInfo>> {
+    async fn license(ctx: &Context) -> Result<LicenseInfo> {
         ctx.locator.license().read_license().await
     }
 }
@@ -485,7 +482,7 @@ impl Mutation {
         input: UpdateOAuthCredentialInput,
     ) -> Result<bool> {
         check_admin(ctx)?;
-        check_license(ctx).await?;
+        check_license(ctx, &[LicenseType::Enterprise]).await?;
         input.validate()?;
         ctx.locator.auth().update_oauth_credential(input).await?;
         Ok(true)
@@ -506,7 +503,7 @@ impl Mutation {
 
     async fn update_security_setting(ctx: &Context, input: SecuritySettingInput) -> Result<bool> {
         check_admin(ctx)?;
-        check_license(ctx).await?;
+        check_license(ctx, &[LicenseType::Enterprise]).await?;
         input.validate()?;
         ctx.locator.setting().update_security_setting(input).await?;
         Ok(true)

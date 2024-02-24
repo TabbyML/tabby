@@ -152,9 +152,13 @@ impl WorkerService for ServerContext {
         };
 
         let count_workers = worker_group.list().await.len();
-        let is_license_valid = self.license.read_license().await.is_license_valid();
+        let license = self
+            .license
+            .read_license()
+            .await
+            .map_err(|_| RegisterWorkerError::RequiresEnterpriseLicense)?;
 
-        if count_workers > 0 && !is_license_valid {
+        if license.check_node_limit(count_workers) {
             return Err(RegisterWorkerError::RequiresEnterpriseLicense);
         }
 
