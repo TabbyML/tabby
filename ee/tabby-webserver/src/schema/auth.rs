@@ -162,16 +162,16 @@ pub struct OAuthResponse {
 
 #[derive(Error, Debug)]
 pub enum OAuthError {
-    #[error("The code passed is incorrect or expired")]
+    #[error("The oauth code passed is incorrect or expired")]
     InvalidVerificationCode,
 
-    #[error("The credential is not active")]
+    #[error("OAuth is not enabled")]
     CredentialNotActive,
 
-    #[error("The user is not invited to access the system")]
+    #[error("User is not invited, please contact admin for help")]
     UserNotInvited,
 
-    #[error("User is disabled")]
+    #[error("User is disabled, please contact admin for help")]
     UserDisabled,
 
     #[error(transparent)]

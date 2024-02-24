@@ -120,7 +120,7 @@ async fn google_oauth_handler(
     Query(param): Query<GoogleOAuthQueryParam>,
 ) -> Redirect {
     if !param.error.is_empty() {
-        return make_error_redirect(OAuthProvider::Google, &param.error);
+        return make_error_redirect(OAuthProvider::Google, param.error);
     }
     match_auth_result(
         OAuthProvider::Google,
@@ -140,26 +140,21 @@ fn match_auth_result(
             );
             Redirect::temporary(&uri)
         }
-        Err(OAuthError::InvalidVerificationCode) => {
-            make_error_redirect(provider, "Invalid oauth code")
-        }
-        Err(OAuthError::CredentialNotActive) => {
-            make_error_redirect(provider, "OAuth is not enabled")
-        }
-        Err(OAuthError::UserNotInvited) => make_error_redirect(
-            provider,
-            "User is not invited, please contact your admin for help",
-        ),
-        Err(e) => {
-            error!("Failed to authenticate: {:?}", e);
-            make_error_redirect(provider, "Unknown error")
-        }
+        Err(err) => match err {
+            OAuthError::InvalidVerificationCode | OAuthError::UserNotInvited | OAuthError::UserDisabled | OAuthError::CredentialNotActive | OAuthError::Unknown => {
+                make_error_redirect(provider, err.to_string())
+            },
+            OAuthError::Other(e) => {
+                error!("Failed to authenticate: {:?}", e);
+                make_error_redirect(provider, OAuthError::Unknown.to_string())
+            }
+        },
     }
 }
 
-fn make_error_redirect(provider: OAuthProvider, message: &str) -> Redirect {
+fn make_error_redirect(provider: OAuthProvider, message: String) -> Redirect {
     let query = querystring::stringify(vec![
-        ("error_message", urlencoding::encode(message).as_ref()),
+        ("error_message", urlencoding::encode(&message).as_ref()),
         (
             "provider",
             serde_json::to_string(&provider).unwrap().as_str(),
