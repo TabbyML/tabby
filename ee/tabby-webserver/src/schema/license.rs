@@ -5,9 +5,8 @@ use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::Deserialize;
 
-use crate::schema::Result;
-
 use super::CoreError;
+use crate::schema::Result;
 
 #[derive(Debug, Deserialize, GraphQLEnum, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
@@ -24,12 +23,16 @@ pub enum LicenseStatus {
     SeatsExceeded,
 }
 
-impl Into<CoreError> for LicenseStatus {
-    fn into(self) -> CoreError {
-        match self {
+impl From<LicenseStatus> for CoreError {
+    fn from(val: LicenseStatus) -> Self {
+        match val {
             LicenseStatus::Ok => panic!("License is valid, shouldn't be converted to CoreError"),
-            LicenseStatus::Expired => CoreError::InvalidLicense("Your enterprise license is expired"),
-            LicenseStatus::SeatsExceeded => CoreError::InvalidLicense("You have more active users than seats included in your license"),
+            LicenseStatus::Expired => {
+                CoreError::InvalidLicense("Your enterprise license is expired")
+            }
+            LicenseStatus::SeatsExceeded => CoreError::InvalidLicense(
+                "You have more active users than seats included in your license",
+            ),
         }
     }
 }
@@ -57,16 +60,18 @@ impl LicenseInfo {
         match self.r#type {
             LicenseType::Community => false,
             LicenseType::Team => num_nodes < 2,
-            LicenseType::Enterprise => true
+            LicenseType::Enterprise => true,
         }
     }
 
     pub fn ensure_seat_limit(mut self) -> Self {
         let seats = self.seats as usize;
         self.seats = match self.r#type {
-            LicenseType::Community => std::cmp::max(seats, Self::seat_limits_for_community_license()),
+            LicenseType::Community => {
+                std::cmp::max(seats, Self::seat_limits_for_community_license())
+            }
             LicenseType::Team => std::cmp::max(seats, Self::seat_limits_for_team_license()),
-            LicenseType::Enterprise => seats
+            LicenseType::Enterprise => seats,
         } as i32;
 
         self

@@ -95,7 +95,8 @@ impl LicenseServiceImpl {
             seats_used: seats_used as i32,
             issued_at: None,
             expires_at: None,
-        }.ensure_seat_limit())
+        }
+        .ensure_seat_limit())
     }
 }
 
@@ -126,7 +127,8 @@ fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<Li
         seats_used: seats_used as i32,
         issued_at: Some(issued_at),
         expires_at: Some(expires_at),
-    }.ensure_seat_limit();
+    }
+    .ensure_seat_limit();
     Ok(license)
 }
 
