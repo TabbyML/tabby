@@ -6,11 +6,13 @@ import { IconExternalLink } from '@/components/ui/icons'
 
 interface SubHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   externalLink?: string
+  externalLinkText?: string
 }
 
 export const SubHeader: React.FC<SubHeaderProps> = ({
   className,
   externalLink,
+  externalLinkText = "Learn more",
   children
 }) => {
   return (
@@ -23,8 +25,8 @@ export const SubHeader: React.FC<SubHeaderProps> = ({
             href={externalLink}
             target="_blank"
           >
-            Learn more
-            <IconExternalLink />
+            {externalLinkText}
+            <IconExternalLink className='ml-1'/>
           </Link>
         )}
       </div>

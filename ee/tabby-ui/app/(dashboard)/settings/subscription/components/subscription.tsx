@@ -32,18 +32,18 @@ export default function Subscription() {
   const license = data?.license
   const expiresAt = license?.expiresAt
     ? moment(license.expiresAt).format('MM/DD/YYYY')
-    : '-'
+    : '–'
 
   const onUploadLicenseSuccess = () => {
     reexecuteQuery()
   }
 
-  const seatsText = license ? `${license.seatsUsed} / ${license.seats}` : '-'
+  const seatsText = license ? `${license.seatsUsed} / ${license.seats}` : '–'
 
   return (
     <div className="p-4">
-      <SubHeader>
-        You can upload your Tabby license to unlock enterprise features.
+      <SubHeader className="mb-8" externalLink='https://links.tabbyml.com/schedule-a-demo' externalLinkText='📆 Book a 30-minute product demo'>
+        You can upload your Tabby license to unlock team/enterprise features.
       </SubHeader>
       <div className="flex flex-col gap-8">
         <LoadingWrapper
@@ -70,13 +70,13 @@ export default function Subscription() {
             <div>
               <div className="mb-1 text-muted-foreground">Current plan</div>
               <div className="text-3xl text-primary">
-                {capitalize(license?.type ?? 'FREE')}
+                {capitalize(license?.type ?? 'Community')}
               </div>
             </div>
           </div>
         </LoadingWrapper>
         <LicenseForm onSuccess={onUploadLicenseSuccess} />
-        {false && <LicenseTable />}
+        <LicenseTable />
       </div>
     </div>
   )
