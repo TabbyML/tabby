@@ -141,9 +141,11 @@ fn match_auth_result(
             Redirect::temporary(&uri)
         }
         Err(err) => match err {
-            OAuthError::InvalidVerificationCode | OAuthError::UserNotInvited | OAuthError::UserDisabled | OAuthError::CredentialNotActive | OAuthError::Unknown => {
-                make_error_redirect(provider, err.to_string())
-            },
+            OAuthError::InvalidVerificationCode
+            | OAuthError::UserNotInvited
+            | OAuthError::UserDisabled
+            | OAuthError::CredentialNotActive
+            | OAuthError::Unknown => make_error_redirect(provider, err.to_string()),
             OAuthError::Other(e) => {
                 error!("Failed to authenticate: {:?}", e);
                 make_error_redirect(provider, OAuthError::Unknown.to_string())
