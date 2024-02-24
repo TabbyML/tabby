@@ -12,7 +12,7 @@ interface SubHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 export const SubHeader: React.FC<SubHeaderProps> = ({
   className,
   externalLink,
-  externalLinkText = "Learn more",
+  externalLinkText = 'Learn more',
   children
 }) => {
   return (
@@ -26,7 +26,7 @@ export const SubHeader: React.FC<SubHeaderProps> = ({
             target="_blank"
           >
             {externalLinkText}
-            <IconExternalLink className='ml-1'/>
+            <IconExternalLink className="ml-1" />
           </Link>
         )}
       </div>

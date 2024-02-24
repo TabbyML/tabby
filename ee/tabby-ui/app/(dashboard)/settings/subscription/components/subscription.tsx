@@ -5,13 +5,13 @@ import moment from 'moment'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
+import { LicenseInfo } from '@/lib/gql/generates/graphql'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
 import { LicenseForm } from './license-form'
 import { LicenseTable } from './license-table'
-import { LicenseInfo } from '@/lib/gql/generates/graphql'
 
 const getLicenseInfo = graphql(/* GraphQL */ `
   query GetLicenseInfo {
@@ -37,7 +37,11 @@ export default function Subscription() {
 
   return (
     <div className="p-4">
-      <SubHeader className="mb-8" externalLink='https://links.tabbyml.com/schedule-a-demo' externalLinkText='📆 Book a 30-minute product demo'>
+      <SubHeader
+        className="mb-8"
+        externalLink="https://links.tabbyml.com/schedule-a-demo"
+        externalLinkText="📆 Book a 30-minute product demo"
+      >
         You can upload your Tabby license to unlock team/enterprise features.
       </SubHeader>
       <div className="flex flex-col gap-8">
@@ -60,30 +64,29 @@ export default function Subscription() {
   )
 }
 
-
 function License({ license }: { license: LicenseInfo }) {
   const expiresAt = license.expiresAt
     ? moment(license.expiresAt).format('MM/DD/YYYY')
     : '–'
 
-  const seatsText = `${license.seatsUsed} / ${license.seats}`;
+  const seatsText = `${license.seatsUsed} / ${license.seats}`
 
-  return <div className="grid font-bold lg:grid-cols-3">
-    <div>
-      <div className="mb-1 text-muted-foreground">Expires at</div>
-      <div className="text-3xl">{expiresAt}</div>
-    </div>
-    <div>
-      <div className="mb-1 text-muted-foreground">
-        Assigned / Total Seats
+  return (
+    <div className="grid font-bold lg:grid-cols-3">
+      <div>
+        <div className="mb-1 text-muted-foreground">Expires at</div>
+        <div className="text-3xl">{expiresAt}</div>
       </div>
-      <div className="text-3xl">{seatsText}</div>
-    </div>
-    <div>
-      <div className="mb-1 text-muted-foreground">Current plan</div>
-      <div className="text-3xl text-primary">
-        {capitalize(license?.type ?? 'Community')}
+      <div>
+        <div className="mb-1 text-muted-foreground">Assigned / Total Seats</div>
+        <div className="text-3xl">{seatsText}</div>
+      </div>
+      <div>
+        <div className="mb-1 text-muted-foreground">Current plan</div>
+        <div className="text-3xl text-primary">
+          {capitalize(license?.type ?? 'Community')}
+        </div>
       </div>
     </div>
-  </div>
+  )
 }
