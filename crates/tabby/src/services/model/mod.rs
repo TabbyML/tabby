@@ -13,7 +13,6 @@ use tabby_inference::{
 };
 use tracing::info;
 
-use self::chat::make_chat_completion;
 use crate::{fatal, Device};
 
 pub async fn load_chat_completion(
@@ -23,17 +22,17 @@ pub async fn load_chat_completion(
 ) -> Arc<dyn ChatCompletionStreaming> {
     #[cfg(feature = "experimental-http")]
     if device == &Device::ExperimentalHttp {
-        http_api_bindings::create_chat(model_id)
-    } else {
-        let (engine, PromptInfo { chat_template, .. }) =
-            load_text_generation(model_id, device, parallelism).await;
-
-        let Some(chat_template) = chat_template else {
-            fatal!("Chat model requires specifying prompt template");
-        };
-
-        Arc::new(make_chat_completion(engine, chat_template))
+        return http_api_bindings::create_chat(model_id);
     }
+
+    let (engine, PromptInfo { chat_template, .. }) =
+        load_text_generation(model_id, device, parallelism).await;
+
+    let Some(chat_template) = chat_template else {
+        fatal!("Chat model requires specifying prompt template");
+    };
+
+    Arc::new(chat::make_chat_completion(engine, chat_template))
 }
 
 pub async fn load_text_generation(
