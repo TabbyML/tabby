@@ -6,10 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow.workspace = true
 async-stream = { workspace = true }
 async-trait = { workspace = true }
 dashmap = "5.5.3"
 derive_builder = "0.12.0"
 futures = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
 tabby-common = { path = "../tabby-common" }
 trie-rs = "0.1.1"
+utoipa.workspace = true
+uuid.workspace = true
