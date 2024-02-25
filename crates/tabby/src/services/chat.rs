@@ -1,59 +1,25 @@
-mod chat_prompt;
-
 use std::sync::Arc;
 
 use async_stream::stream;
-use chat_prompt::ChatPromptBuilder;
 use futures::stream::BoxStream;
-use tabby_common::api::{chat::{ChatCompletionChunk, ChatCompletionRequest, Message}, event::{Event, EventLogger}};
-use tabby_inference::{
-    chat::{self, ChatCompletionStreaming},
-    TextGeneration, TextGenerationOptions, TextGenerationStream,
+use tabby_common::api::{
+    chat::{ChatCompletionChunk, ChatCompletionRequest, Message},
+    event::{Event, EventLogger},
 };
+use tabby_inference::chat::ChatCompletionStreaming;
 use tracing::warn;
 
 use super::model;
-use crate::{fatal, Device};
+use crate::Device;
 
 pub struct ChatService {
-    engine: Arc<dyn TextGeneration>,
+    engine: Arc<dyn ChatCompletionStreaming>,
     logger: Arc<dyn EventLogger>,
-    prompt_builder: ChatPromptBuilder,
-}
-
-impl chat::ChatPromptBuilder for ChatService {
-    fn build_chat_prompt(&self, messages: &[Message]) -> anyhow::Result<String> {
-        self.prompt_builder.build(messages)
-    }
-}
-
-#[async_trait::async_trait]
-impl TextGenerationStream for ChatService {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
-        let prompt = prompt.to_owned();
-        let s = stream! {
-            for await (streaming, text) in self.engine.generate_stream(&prompt, options).await {
-                if !streaming {
-                    yield text;
-                }
-            }
-        };
-
-        Box::pin(s)
-    }
 }
 
 impl ChatService {
-    fn new(
-        engine: Arc<dyn TextGeneration>,
-        logger: Arc<dyn EventLogger>,
-        chat_template: String,
-    ) -> Self {
-        Self {
-            engine,
-            logger,
-            prompt_builder: ChatPromptBuilder::new(chat_template),
-        }
+    fn new(engine: Arc<dyn ChatCompletionStreaming>, logger: Arc<dyn EventLogger>) -> Self {
+        Self { engine, logger }
     }
 
     pub async fn generate<'a>(
@@ -63,7 +29,7 @@ impl ChatService {
         let mut output = String::new();
         let input = convert_messages(&request.messages);
         let s = stream! {
-            let s = match self.chat_completion(request).await {
+            let s = match self.engine.chat_completion(request).await {
                 Ok(x) => x,
                 Err(e) => {
                     warn!("Failed to start chat completion: {:?}", e);
@@ -114,12 +80,7 @@ pub async fn create_chat_service(
     device: &Device,
     parallelism: u8,
 ) -> ChatService {
-    let (engine, model::PromptInfo { chat_template, .. }) =
-        model::load_text_generation(model, device, parallelism).await;
+    let engine = model::load_chat_completion(model, device, parallelism).await;
 
-    let Some(chat_template) = chat_template else {
-        fatal!("Chat model requires specifying prompt template");
-    };
-
-    ChatService::new(engine, logger, chat_template)
+    ChatService::new(engine, logger)
 }

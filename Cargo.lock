@@ -1636,11 +1636,13 @@ dependencies = [
 name = "http-api-bindings"
 version = "0.9.0-dev"
 dependencies = [
+ "anyhow",
  "async-openai",
  "async-stream",
  "async-trait",
  "futures",
  "serde_json",
+ "tabby-common",
  "tabby-inference",
  "tracing",
 ]

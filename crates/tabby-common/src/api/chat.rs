@@ -13,6 +13,7 @@ pub struct ChatCompletionRequest {
     pub messages: Vec<Message>,
     pub temperature: Option<f32>,
     pub seed: Option<u64>,
+    pub model: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]

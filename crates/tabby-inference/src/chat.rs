@@ -28,7 +28,11 @@ impl<T: ChatPromptBuilder + TextGenerationStream> ChatCompletionStreaming for T 
         let options = TextGenerationOptionsBuilder::default()
             .max_input_length(2048)
             .max_decoding_length(1920)
-            .seed(request.seed.unwrap_or_else(TextGenerationOptions::default_seed))
+            .seed(
+                request
+                    .seed
+                    .unwrap_or_else(TextGenerationOptions::default_seed),
+            )
             .sampling_temperature(request.temperature.unwrap_or(0.1))
             .build()?;
 

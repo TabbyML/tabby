@@ -1,6 +1,14 @@
+use std::sync::Arc;
+
 use anyhow::Result;
+use async_stream::stream;
+use futures::stream::BoxStream;
 use minijinja::{context, Environment};
 use tabby_common::api::chat::Message;
+use tabby_inference::{
+    chat::{self, ChatCompletionStreaming},
+    TextGeneration, TextGenerationOptions, TextGenerationStream,
+};
 
 pub struct ChatPromptBuilder {
     env: Environment<'static>,
@@ -20,6 +28,43 @@ impl ChatPromptBuilder {
         Ok(self.env.get_template("prompt")?.render(context!(
                 messages => messages
         ))?)
+    }
+}
+
+struct ChatCompletionImpl {
+    engine: Arc<dyn TextGeneration>,
+    prompt_builder: ChatPromptBuilder,
+}
+
+impl chat::ChatPromptBuilder for ChatCompletionImpl {
+    fn build_chat_prompt(&self, messages: &[Message]) -> anyhow::Result<String> {
+        self.prompt_builder.build(messages)
+    }
+}
+
+#[async_trait::async_trait]
+impl TextGenerationStream for ChatCompletionImpl {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
+        let prompt = prompt.to_owned();
+        let s = stream! {
+            for await (streaming, text) in self.engine.generate_stream(&prompt, options).await {
+                if !streaming {
+                    yield text;
+                }
+            }
+        };
+
+        Box::pin(s)
+    }
+}
+
+pub fn make_chat_completion(
+    engine: Arc<dyn TextGeneration>,
+    prompt_template: String,
+) -> impl ChatCompletionStreaming {
+    ChatCompletionImpl {
+        engine,
+        prompt_builder: ChatPromptBuilder::new(prompt_template),
     }
 }
 

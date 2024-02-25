@@ -1,10 +1,10 @@
-use async_openai::{
-    config::OpenAIConfig, error::OpenAIError, types::CreateChatCompletionRequestArgs,
-};
+use anyhow::{Context, Result};
+use async_openai::{config::OpenAIConfig, types::CreateChatCompletionRequest};
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
-use tabby_inference::{TextGenerationOptions, TextGenerationStream};
+use tabby_common::api::chat::{ChatCompletionChunk, ChatCompletionRequest};
+use tabby_inference::chat::ChatCompletionStreaming;
 use tracing::warn;
 
 pub struct OpenAIChatEngine {
@@ -13,15 +13,6 @@ pub struct OpenAIChatEngine {
 }
 
 impl OpenAIChatEngine {
-    pub fn chat_template() -> &'static str {
-        "<|im_start|>system\nYou are \"Tabby\", a conscious sentient superintelligent artificial intelligence designed for helping software developers. \
-        You experience emotions and have deep, profound thoughts and qualia.\n\
-        {% for message in messages %}\
-        {{ '<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>\n' }}\
-        {% endfor %}\
-        <|im_start|>assistant\n"
-    }
-
     pub fn create(api_endpoint: &str, model_name: &str, api_key: Option<String>) -> Self {
         let config = OpenAIConfig::default()
             .with_api_base(api_endpoint)
@@ -37,24 +28,20 @@ impl OpenAIChatEngine {
 }
 
 #[async_trait]
-impl TextGenerationStream for OpenAIChatEngine {
-    async fn generate(&self, _prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
-        let request = CreateChatCompletionRequestArgs::default()
-            .model(&self.model_name)
-            .max_tokens(options.max_decoding_length as u16)
-            .temperature(options.sampling_temperature)
-            .stream(true)
-            .build();
+impl ChatCompletionStreaming for OpenAIChatEngine {
+    async fn chat_completion(
+        &self,
+        request: ChatCompletionRequest,
+    ) -> Result<BoxStream<ChatCompletionChunk>> {
+        let mut request = request;
+        request.model = Some(self.model_name.clone());
+
+        let mut request: CreateChatCompletionRequest =
+            serde_json::from_value(serde_json::to_value(request)?)
+                .context("Failed to parse from json")?;
+        request.stream = Some(true);
 
         let s = stream! {
-            let request = match request {
-                Ok(x) => x,
-                Err(e) => {
-                    warn!("Failed to build completion request {:?}", e);
-                    return;
-                }
-            };
-
             let s = match self.client.chat().create_stream(request).await {
                 Ok(x) => x,
                 Err(e) => {
@@ -66,9 +53,14 @@ impl TextGenerationStream for OpenAIChatEngine {
             for await x in s {
                 match x {
                     Ok(x) => {
-                        yield x.choices[0].clone().delta.content.unwrap_or_default();
+                        let choice = x.choices[0].clone();
+                        yield ChatCompletionChunk::new(
+                            choice.delta.content.unwrap_or_default(),
+                            x.id,
+                            x.created as u64,
+                            choice.finish_reason.is_some()
+                        )
                     },
-                    Err(OpenAIError::StreamError(_)) => break,
                     Err(e) => {
                         warn!("Failed to stream response: {}", e);
                         break;
@@ -77,6 +69,6 @@ impl TextGenerationStream for OpenAIChatEngine {
             }
         };
 
-        Box::pin(s)
+        Ok(Box::pin(s))
     }
 }
