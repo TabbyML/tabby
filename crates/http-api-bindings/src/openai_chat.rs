@@ -1,15 +1,11 @@
 use async_openai::{
-    config::OpenAIConfig,
-    error::OpenAIError,
-    types::{
-        CreateChatCompletionRequest, CreateChatCompletionRequestArgs, CreateCompletionRequestArgs,
-    },
+    config::OpenAIConfig, error::OpenAIError, types::CreateChatCompletionRequestArgs,
 };
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use tabby_inference::{TextGenerationOptions, TextGenerationStream};
-use tracing::{debug, field::debug, warn};
+use tracing::warn;
 
 pub struct OpenAIChatEngine {
     client: async_openai::Client<OpenAIConfig>,
@@ -42,7 +38,7 @@ impl OpenAIChatEngine {
 
 #[async_trait]
 impl TextGenerationStream for OpenAIChatEngine {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
+    async fn generate(&self, _prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
         let request = CreateChatCompletionRequestArgs::default()
             .model(&self.model_name)
             .max_tokens(options.max_decoding_length as u16)

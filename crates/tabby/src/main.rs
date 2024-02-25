@@ -8,8 +8,6 @@ mod serve;
 #[cfg(feature = "ee")]
 mod worker;
 
-use std::env;
-
 use clap::{Parser, Subcommand};
 use opentelemetry::{
     global,

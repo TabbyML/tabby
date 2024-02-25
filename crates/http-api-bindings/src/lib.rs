@@ -30,7 +30,11 @@ pub fn create(model: &str) -> (Arc<dyn TextGeneration>, Option<String>, Option<S
             &model_name,
             api_key,
         ));
-        (Arc::new(engine), None, Some(OpenAIChatEngine::chat_template().to_owned()))
+        (
+            Arc::new(engine),
+            None,
+            Some(OpenAIChatEngine::chat_template().to_owned()),
+        )
     } else {
         panic!("Only openai are supported for http backend");
     }

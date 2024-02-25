@@ -4495,10 +4495,9 @@ dependencies = [
  "dashmap",
  "derive_builder",
  "futures",
- "serde",
  "tabby-common",
  "trie-rs",
- "utoipa",
+ "uuid 1.6.1",
 ]
 
 [[package]]

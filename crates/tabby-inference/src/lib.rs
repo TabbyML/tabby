@@ -1,7 +1,7 @@
 //! Lays out the abstract definition of a text generation model, and utilities for encodings.
+pub mod chat;
 mod decoding;
 mod imp;
-mod chat;
 
 use async_trait::async_trait;
 use derive_builder::Builder;

@@ -8,9 +8,10 @@ use axum::{
     Json,
 };
 use futures::StreamExt;
+use tabby_common::api::chat::ChatCompletionRequest;
 use tracing::instrument;
 
-use crate::services::chat::{ChatCompletionRequest, ChatService};
+use crate::services::chat::ChatService;
 
 #[utoipa::path(
     post,
@@ -33,14 +34,6 @@ pub async fn chat_completions(
     Json(request): Json<ChatCompletionRequest>,
 ) -> Response {
     let stream = state.generate(request).await;
-    let stream = match stream {
-        Ok(s) => s,
-        Err(_) => {
-            let mut response = StreamBody::default().into_response();
-            *response.status_mut() = hyper::StatusCode::UNPROCESSABLE_ENTITY;
-            return response;
-        }
-    };
     let s = stream.map(|chunk| match serde_json::to_string(&chunk) {
         Ok(s) => Ok(format!("data: {s}\n\n")),
         Err(e) => Err(anyhow::Error::from(e)),

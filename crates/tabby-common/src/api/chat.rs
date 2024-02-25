@@ -17,38 +17,37 @@ pub struct ChatCompletionRequest {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Message {
-    role: String,
-    content: String,
+    pub role: String,
+    pub content: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ChatCompletionChunk {
-    id: String,
+    pub id: String,
     created: u64,
     system_fingerprint: String,
     object: &'static str,
     model: &'static str,
-    choices: [ChatCompletionChoice; 1],
+    pub choices: [ChatCompletionChoice; 1],
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct ChatCompletionChoice {
     index: usize,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     logprobs: Option<String>,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     finish_reason: Option<String>,
-    delta: ChatCompletionDelta,
+    pub delta: ChatCompletionDelta,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct ChatCompletionDelta {
-    #[serde(skip_serializing_if="Option::is_none")]
-    content: Option<String>,
+    pub content: String,
 }
 
 impl ChatCompletionChunk {
-    pub fn new(content: Option<String>, id: String, created: u64, last_chunk: bool) -> Self {
+    pub fn new(content: String, id: String, created: u64, last_chunk: bool) -> Self {
         ChatCompletionChunk {
             id,
             created,

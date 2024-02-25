@@ -1,9 +1,8 @@
-mod types;
-
-use anyhow::{bail, Result};
+use anyhow::Result;
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
+use tabby_common::api::chat as types;
 use uuid::Uuid;
 
 use crate::{TextGenerationOptions, TextGenerationOptionsBuilder, TextGenerationStream};
@@ -17,7 +16,7 @@ pub trait ChatCompletionStreaming: Sync + Send {
 }
 
 pub trait ChatPromptBuilder {
-    fn build_chat_prompt(&self, request: &[types::Message]) -> Result<String>;
+    fn build_chat_prompt(&self, messages: &[types::Message]) -> Result<String>;
 }
 
 #[async_trait]
@@ -29,7 +28,7 @@ impl<T: ChatPromptBuilder + TextGenerationStream> ChatCompletionStreaming for T 
         let options = TextGenerationOptionsBuilder::default()
             .max_input_length(2048)
             .max_decoding_length(1920)
-            .seed(TextGenerationOptions::default_seed())
+            .seed(request.seed.unwrap_or_else(TextGenerationOptions::default_seed))
             .sampling_temperature(request.temperature.unwrap_or(0.1))
             .build()?;
 
@@ -42,10 +41,10 @@ impl<T: ChatPromptBuilder + TextGenerationStream> ChatCompletionStreaming for T 
         let id = format!("chatcmpl-{}", Uuid::new_v4());
         let s = stream! {
             for await content in self.generate(&prompt, options).await {
-                yield types::ChatCompletionChunk::new(Some(content), id.clone(), created, false);
+                yield types::ChatCompletionChunk::new(content, id.clone(), created, false);
             }
 
-            yield types::ChatCompletionChunk::new(None, id.clone(), created, true);
+            yield types::ChatCompletionChunk::new(String::default(), id.clone(), created, true);
         };
 
         Ok(Box::pin(s))

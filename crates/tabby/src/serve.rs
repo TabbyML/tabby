@@ -5,7 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api,
-    api::{code::CodeSearch, event::EventLogger},
+    api::{chat, code::CodeSearch, event::EventLogger},
     config::Config,
     usage,
 };
@@ -21,7 +21,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     routes::{self, run_app},
     services::{
-        chat::{self, create_chat_service},
+        chat::create_chat_service,
         code::create_code_search,
         completion::{self, create_completion_service},
         event::create_logger,

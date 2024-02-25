@@ -1,6 +1,6 @@
+use anyhow::Result;
 use minijinja::{context, Environment};
-
-use super::{CompletionError, Message};
+use tabby_common::api::chat::Message;
 
 pub struct ChatPromptBuilder {
     env: Environment<'static>,
@@ -16,7 +16,7 @@ impl ChatPromptBuilder {
         Self { env }
     }
 
-    pub fn build(&self, messages: &[Message]) -> Result<String, CompletionError> {
+    pub fn build(&self, messages: &[Message]) -> Result<String> {
         Ok(self.env.get_template("prompt")?.render(context!(
                 messages => messages
         ))?)
