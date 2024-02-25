@@ -10,7 +10,7 @@ use tabby_inference::{
     TextGeneration, TextGenerationOptions, TextGenerationStream,
 };
 
-pub struct ChatPromptBuilder {
+struct ChatPromptBuilder {
     env: Environment<'static>,
 }
 
@@ -25,6 +25,11 @@ impl ChatPromptBuilder {
     }
 
     pub fn build(&self, messages: &[Message]) -> Result<String> {
+        // System prompt is not supported for TextGenerationStream backed chat.
+        let messages = messages
+            .iter()
+            .filter(|x| x.role != "system")
+            .collect::<Vec<_>>();
         Ok(self.env.get_template("prompt")?.render(context!(
                 messages => messages
         ))?)
