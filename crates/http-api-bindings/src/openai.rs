@@ -3,7 +3,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use tabby_inference::{TextGenerationOptions, TextGenerationStream};
-use tracing::{debug, warn};
+use tracing::{debug, field::debug, warn};
 
 pub struct OpenAIEngine {
     client: async_openai::Client<OpenAIConfig>,
