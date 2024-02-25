@@ -16,6 +16,7 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::WithExportConfig;
 use tabby_common::config::{Config, ConfigRepositoryAccess};
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]
@@ -210,10 +211,14 @@ fn init_logging(otlp_endpoint: Option<String>) {
         };
     }
 
-    let env_filter = EnvFilter::from_default_env()
-        .add_directive("tabby=info".parse().unwrap())
-        .add_directive("axum_tracing_opentelemetry=info".parse().unwrap())
-        .add_directive("otel=debug".parse().unwrap());
+    let mut dirs = "tabby=info,axum_tracing_opentelemetry=info,otel=debug".to_owned();
+    if let Ok(env) = std::env::var(EnvFilter::DEFAULT_ENV) {
+        dirs = format!("{dirs},{env}")
+    };
+
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::WARN.into())
+        .parse_lossy(dirs);
 
     tracing_subscriber::registry()
         .with(layers)

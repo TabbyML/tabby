@@ -1,20 +1,19 @@
-mod chat_prompt;
-
 use std::sync::Arc;
 
 use async_stream::stream;
-use chat_prompt::ChatPromptBuilder;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
-use tabby_common::api::event::{Event, EventLogger};
-use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
-use thiserror::Error;
-use tracing::debug;
+use tabby_common::api::{
+    chat::Message,
+    event::{Event, EventLogger},
+};
+use tabby_inference::chat::{ChatCompletionOptionsBuilder, ChatCompletionStream};
+use tracing::warn;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::model;
-use crate::{fatal, Device};
+use crate::Device;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -31,18 +30,6 @@ pub struct ChatCompletionRequest {
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct Message {
-    role: String,
-    content: String,
-}
-
-#[derive(Error, Debug)]
-pub enum CompletionError {
-    #[error("failed to format prompt")]
-    MiniJinja(#[from] minijinja::Error),
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ChatCompletionChunk {
     id: String,
     created: u64,
@@ -55,7 +42,9 @@ pub struct ChatCompletionChunk {
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct ChatCompletionChoice {
     index: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
     logprobs: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     finish_reason: Option<String>,
     delta: ChatCompletionDelta,
 }
@@ -84,72 +73,52 @@ impl ChatCompletionChunk {
 }
 
 pub struct ChatService {
-    engine: Arc<dyn TextGeneration>,
+    engine: Arc<dyn ChatCompletionStream>,
     logger: Arc<dyn EventLogger>,
-    prompt_builder: ChatPromptBuilder,
 }
 
 impl ChatService {
-    fn new(
-        engine: Arc<dyn TextGeneration>,
-        logger: Arc<dyn EventLogger>,
-        chat_template: String,
-    ) -> Self {
-        Self {
-            engine,
-            logger,
-            prompt_builder: ChatPromptBuilder::new(chat_template),
-        }
-    }
-
-    fn text_generation_options(temperature: Option<f32>, seed: u64) -> TextGenerationOptions {
-        let mut builder = TextGenerationOptionsBuilder::default();
-        builder
-            .max_input_length(2048)
-            .max_decoding_length(1920)
-            .seed(seed);
-        if let Some(temperature) = temperature {
-            builder.sampling_temperature(temperature);
-        }
-        builder
-            .build()
-            .expect("Failed to create text generation options")
+    fn new(engine: Arc<dyn ChatCompletionStream>, logger: Arc<dyn EventLogger>) -> Self {
+        Self { engine, logger }
     }
 
     pub async fn generate<'a>(
         self: Arc<Self>,
         request: ChatCompletionRequest,
-    ) -> Result<BoxStream<'a, ChatCompletionChunk>, CompletionError> {
-        let mut event_output = String::new();
-        let event_input = convert_messages(&request.messages);
-
-        let prompt = self.prompt_builder.build(&request.messages)?;
-        let options = Self::text_generation_options(
-            request.temperature,
-            request
-                .seed
-                .unwrap_or_else(TextGenerationOptions::default_seed),
-        );
-        let created = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("Must be able to read system clock")
-            .as_secs();
-        let id = format!("chatcmpl-{}", Uuid::new_v4());
-
-        debug!("PROMPT: {}", prompt);
+    ) -> BoxStream<'a, ChatCompletionChunk> {
+        let mut output = String::new();
+        let options = ChatCompletionOptionsBuilder::default()
+            .build()
+            .expect("Failed to create ChatCompletionOptions");
         let s = stream! {
-            for await (streaming, content) in self.engine.generate_stream(&prompt, options).await {
-                if streaming {
-                    event_output.push_str(&content);
-                    yield ChatCompletionChunk::new(content, id.clone(), created, false)
+            let s = match self.engine.chat_completion(&request.messages, options).await {
+                Ok(x) => x,
+                Err(e) => {
+                    warn!("Failed to start chat completion: {:?}", e);
+                    return;
                 }
-            }
-            yield ChatCompletionChunk::new("".into(), id.clone(), created, true);
+            };
 
-            self.logger.log(Event::ChatCompletion { completion_id: id, input: event_input, output: create_assistant_message(event_output) });
+            let created = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("Must be able to read system clock")
+                .as_secs();
+
+            let completion_id = format!("chatcmpl-{}", Uuid::new_v4());
+            for await content in s {
+                output.push_str(&content);
+                yield ChatCompletionChunk::new(content, completion_id.clone(), created, false);
+            }
+            yield ChatCompletionChunk::new(String::default(), completion_id.clone(), created, true);
+
+            self.logger.log(Event::ChatCompletion {
+                completion_id,
+                input: convert_messages(&request.messages),
+                output: create_assistant_message(output)
+            });
         };
 
-        Ok(Box::pin(s))
+        Box::pin(s)
     }
 }
 
@@ -176,12 +145,7 @@ pub async fn create_chat_service(
     device: &Device,
     parallelism: u8,
 ) -> ChatService {
-    let (engine, model::PromptInfo { chat_template, .. }) =
-        model::load_text_generation(model, device, parallelism).await;
+    let engine = model::load_chat_completion(model, device, parallelism).await;
 
-    let Some(chat_template) = chat_template else {
-        fatal!("Chat model requires specifying prompt template");
-    };
-
-    ChatService::new(engine, logger, chat_template)
+    ChatService::new(engine, logger)
 }

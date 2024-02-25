@@ -1,3 +1,5 @@
+mod chat;
+
 use std::{fs, path::PathBuf, sync::Arc};
 
 use serde::Deserialize;
@@ -6,10 +8,32 @@ use tabby_common::{
     terminal::{HeaderFormat, InfoMessage},
 };
 use tabby_download::download_model;
-use tabby_inference::{make_text_generation, TextGeneration};
+use tabby_inference::{
+    chat::ChatCompletionStream, make_text_generation, TextGeneration, TextGenerationStream,
+};
 use tracing::info;
 
 use crate::{fatal, Device};
+
+pub async fn load_chat_completion(
+    model_id: &str,
+    device: &Device,
+    parallelism: u8,
+) -> Arc<dyn ChatCompletionStream> {
+    #[cfg(feature = "experimental-http")]
+    if device == &Device::ExperimentalHttp {
+        return http_api_bindings::create_chat(model_id);
+    }
+
+    let (engine, PromptInfo { chat_template, .. }) =
+        load_text_generation(model_id, device, parallelism).await;
+
+    let Some(chat_template) = chat_template else {
+        fatal!("Chat model requires specifying prompt template");
+    };
+
+    Arc::new(chat::make_chat_completion(engine, chat_template))
+}
 
 pub async fn load_text_generation(
     model_id: &str,
@@ -37,7 +61,7 @@ pub async fn load_text_generation(
             parallelism,
         );
         let engine_info = PromptInfo::read(path.join("tabby.json"));
-        (Arc::new(engine), engine_info)
+        (Arc::new(make_text_generation(engine)), engine_info)
     } else {
         let (registry, name) = parse_model_id(model_id);
         let registry = ModelRegistry::new(registry).await;
@@ -45,7 +69,7 @@ pub async fn load_text_generation(
         let model_info = registry.get_model_info(name);
         let engine = create_ggml_engine(device, &model_path, parallelism);
         (
-            Arc::new(engine),
+            Arc::new(make_text_generation(engine)),
             PromptInfo {
                 prompt_template: model_info.prompt_template.clone(),
                 chat_template: model_info.chat_template.clone(),
@@ -67,7 +91,11 @@ impl PromptInfo {
     }
 }
 
-fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> impl TextGeneration {
+fn create_ggml_engine(
+    device: &Device,
+    model_path: &str,
+    parallelism: u8,
+) -> impl TextGenerationStream {
     if !device.ggml_use_gpu() {
         InfoMessage::new(
             "CPU Device",
@@ -85,7 +113,7 @@ fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> imp
         .build()
         .expect("Failed to create llama text generation options");
 
-    make_text_generation(llama_cpp_bindings::LlamaTextGeneration::new(options))
+    llama_cpp_bindings::LlamaTextGeneration::new(options)
 }
 
 pub async fn download_model_if_needed(model: &str) {

@@ -4,15 +4,12 @@ version = "0.9.0-dev"
 edition = "2021"
 
 [dependencies]
+anyhow.workspace = true
+async-openai = "0.18.3"
 async-stream.workspace = true
 async-trait.workspace = true
 futures.workspace = true
-reqwest = { workspace = true, features = ["json"] }
-reqwest-eventsource.workspace = true
-serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+tabby-common = { version = "0.9.0-dev", path = "../tabby-common" }
 tabby-inference = { version = "0.9.0-dev", path = "../tabby-inference" }
 tracing.workspace = true
-
-[dev-dependencies]
-tokio = { workspace = true, features = ["full"] }

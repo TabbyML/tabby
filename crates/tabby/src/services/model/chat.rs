@@ -1,8 +1,16 @@
+use std::sync::Arc;
+
+use anyhow::Result;
+use async_stream::stream;
+use futures::stream::BoxStream;
 use minijinja::{context, Environment};
+use tabby_common::api::chat::Message;
+use tabby_inference::{
+    chat::{self, ChatCompletionStream},
+    TextGeneration, TextGenerationOptions, TextGenerationStream,
+};
 
-use super::{CompletionError, Message};
-
-pub struct ChatPromptBuilder {
+struct ChatPromptBuilder {
     env: Environment<'static>,
 }
 
@@ -16,10 +24,52 @@ impl ChatPromptBuilder {
         Self { env }
     }
 
-    pub fn build(&self, messages: &[Message]) -> Result<String, CompletionError> {
+    pub fn build(&self, messages: &[Message]) -> Result<String> {
+        // System prompt is not supported for TextGenerationStream backed chat.
+        let messages = messages
+            .iter()
+            .filter(|x| x.role != "system")
+            .collect::<Vec<_>>();
         Ok(self.env.get_template("prompt")?.render(context!(
                 messages => messages
         ))?)
+    }
+}
+
+struct ChatCompletionImpl {
+    engine: Arc<dyn TextGeneration>,
+    prompt_builder: ChatPromptBuilder,
+}
+
+impl chat::ChatPromptBuilder for ChatCompletionImpl {
+    fn build_chat_prompt(&self, messages: &[Message]) -> anyhow::Result<String> {
+        self.prompt_builder.build(messages)
+    }
+}
+
+#[async_trait::async_trait]
+impl TextGenerationStream for ChatCompletionImpl {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
+        let prompt = prompt.to_owned();
+        let s = stream! {
+            for await (streaming, text) in self.engine.generate_stream(&prompt, options).await {
+                if streaming {
+                    yield text;
+                }
+            }
+        };
+
+        Box::pin(s)
+    }
+}
+
+pub fn make_chat_completion(
+    engine: Arc<dyn TextGeneration>,
+    prompt_template: String,
+) -> impl ChatCompletionStream {
+    ChatCompletionImpl {
+        engine,
+        prompt_builder: ChatPromptBuilder::new(prompt_template),
     }
 }
 
@@ -46,16 +96,5 @@ mod tests {
             },
         ];
         assert_eq!(builder.build(&messages).unwrap(), "<s>[INST] What is tail recursion? [/INST]It's a kind of optimization in compiler?</s> [INST] Could you share more details? [/INST]")
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_it_panic() {
-        let builder = ChatPromptBuilder::new(PROMPT_TEMPLATE.to_owned());
-        let messages = vec![Message {
-            role: "system".to_owned(),
-            content: "system".to_owned(),
-        }];
-        builder.build(&messages).unwrap();
     }
 }
