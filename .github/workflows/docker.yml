@@ -33,9 +33,9 @@ jobs:
         device-type: [cuda, rocm]
         include:
           - device-type: cuda
-            docker-suffix: ''
+            image-suffix: ''
           - device-type: rocm
-            docker-suffix: '-rocm'
+            image-suffix: '-rocm'
 
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -78,8 +78,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Generate image name
+        env:
+          IMAGE_SUFFIX: ${{ matrix.image-suffix }}
         run: |
-          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}${IMAGE_SUFFIX}" >>${GITHUB_ENV}
 
       - uses: int128/docker-build-cache-config-action@v1
         id: cache
@@ -97,9 +99,9 @@ jobs:
           # generate Docker tags based on the following events/attributes
           tags: |
             type=raw,value={{branch}}-{{sha}},enable=${{ startsWith(github.ref, 'refs/heads') }}
-            type=schedule,pattern=nightly${{ matrix.docker-suffix }}
-            type=schedule,pattern={{date 'YYYYMMDD'}}${{ matrix.docker-suffix }}
-            type=semver,pattern={{version}}${{ matrix.docker-suffix }}
+            type=schedule,pattern=nightly$
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=semver,pattern={{version}}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
