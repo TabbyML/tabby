@@ -211,6 +211,7 @@ fn init_logging(otlp_endpoint: Option<String>) {
     }
 
     let env_filter = EnvFilter::from_default_env()
+        .add_directive("warn".parse().unwrap())
         .add_directive("tabby=info".parse().unwrap())
         .add_directive("axum_tracing_opentelemetry=info".parse().unwrap())
         .add_directive("otel=debug".parse().unwrap());

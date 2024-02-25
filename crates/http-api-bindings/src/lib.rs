@@ -10,15 +10,15 @@ pub fn create(model: &str) -> (Arc<dyn TextGeneration>, Option<String>, Option<S
     let params = serde_json::from_str(model).expect("Failed to parse model string");
     let kind = get_param(&params, "kind");
     if kind == "openai" {
-        let model_name = get_param(&params, "model_name");
+        let model_name = get_optional_param(&params, "model_name").unwrap_or_default();
         let api_endpoint = get_param(&params, "api_endpoint");
-        let authorization = get_optional_param(&params, "authorization");
+        let api_key = get_optional_param(&params, "api_key");
         let prompt_template = get_optional_param(&params, "prompt_template");
         let chat_template = get_optional_param(&params, "chat_template");
         let engine = make_text_generation(OpenAIEngine::create(
             api_endpoint.as_str(),
             model_name.as_str(),
-            authorization,
+            api_key
         ));
         (Arc::new(engine), prompt_template, chat_template)
     } else {
