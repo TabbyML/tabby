@@ -6,7 +6,7 @@ ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VER
 # Target the CUDA runtime image
 ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
-FROM ${BASE_CUDA_DEV_CONTAINER} AS build
+FROM ${BASE_CUDA_DEV_CONTAINER} as build
 
 # Rust toolchain version
 ARG RUST_TOOLCHAIN=stable
@@ -14,13 +14,13 @@ ARG RUST_TOOLCHAIN=stable
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    curl \
-    pkg-config \
-    libssl-dev \
-    protobuf-compiler \
-    git \
-    cmake \
-    && \
+        curl \
+        pkg-config \
+        libssl-dev \
+        protobuf-compiler \
+        git \
+        cmake \
+        && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -41,14 +41,19 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --features cuda,prod-db --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
-FROM ${BASE_CUDA_RUN_CONTAINER} AS runtime
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/root/workspace/target \
+    cargo build --features prod-db --release --package tabby && \
+    cp target/release/tabby /opt/tabby/bin/tabby-cpu
+
+FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    git \
-    openssh-client \
-    ca-certificates \
-    && \
+        git \
+        openssh-client \
+        ca-certificates \
+        && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -65,13 +70,12 @@ ARG TARGETARCH
 # so that we could get GPU stats.
 RUN if [ "$TARGETARCH" = "amd64" ]; then  \
     ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
-    /usr/lib/x86_64-linux-gnu/libnvidia-ml.so; \
+        /usr/lib/x86_64-linux-gnu/libnvidia-ml.so; \
     fi
 
 COPY --from=build /opt/tabby /opt/tabby
 
 ENV PATH="$PATH:/opt/tabby/bin"
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/compat"
 ENV TABBY_ROOT=/data
 
 ENTRYPOINT ["/opt/tabby/bin/tabby"]
