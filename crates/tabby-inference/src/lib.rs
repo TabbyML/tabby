@@ -20,7 +20,7 @@ pub struct TextGenerationOptions {
     #[builder(default = "0.1")]
     pub sampling_temperature: f32,
 
-    #[builder(default = "0")]
+    #[builder(default = "TextGenerationOptions::default_seed()")]
     pub seed: u64,
 
     #[builder(default = "None")]

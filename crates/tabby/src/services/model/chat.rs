@@ -6,7 +6,7 @@ use futures::stream::BoxStream;
 use minijinja::{context, Environment};
 use tabby_common::api::chat::Message;
 use tabby_inference::{
-    chat::{self, ChatCompletionStreaming},
+    chat::{self, ChatCompletionStream},
     TextGeneration, TextGenerationOptions, TextGenerationStream,
 };
 
@@ -66,7 +66,7 @@ impl TextGenerationStream for ChatCompletionImpl {
 pub fn make_chat_completion(
     engine: Arc<dyn TextGeneration>,
     prompt_template: String,
-) -> impl ChatCompletionStreaming {
+) -> impl ChatCompletionStream {
     ChatCompletionImpl {
         engine,
         prompt_builder: ChatPromptBuilder::new(prompt_template),

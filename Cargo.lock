@@ -4499,7 +4499,6 @@ dependencies = [
  "futures",
  "tabby-common",
  "trie-rs",
- "uuid 1.6.1",
 ]
 
 [[package]]

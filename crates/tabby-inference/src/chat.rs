@@ -1,54 +1,54 @@
 use anyhow::Result;
 use async_stream::stream;
 use async_trait::async_trait;
+use derive_builder::Builder;
 use futures::stream::BoxStream;
-use tabby_common::api::chat as types;
-use uuid::Uuid;
+use tabby_common::api::chat::Message;
 
 use crate::{TextGenerationOptions, TextGenerationOptionsBuilder, TextGenerationStream};
 
+#[derive(Builder, Debug)]
+pub struct ChatCompletionOptions {
+    #[builder(default = "0.1")]
+    pub sampling_temperature: f32,
+
+    #[builder(default = "TextGenerationOptions::default_seed()")]
+    pub seed: u64,
+}
+
 #[async_trait]
-pub trait ChatCompletionStreaming: Sync + Send {
+pub trait ChatCompletionStream: Sync + Send {
     async fn chat_completion(
         &self,
-        request: types::ChatCompletionRequest,
-    ) -> Result<BoxStream<types::ChatCompletionChunk>>;
+        messages: &[Message],
+        options: ChatCompletionOptions,
+    ) -> Result<BoxStream<String>>;
 }
 
 pub trait ChatPromptBuilder {
-    fn build_chat_prompt(&self, messages: &[types::Message]) -> Result<String>;
+    fn build_chat_prompt(&self, messages: &[Message]) -> Result<String>;
 }
 
 #[async_trait]
-impl<T: ChatPromptBuilder + TextGenerationStream> ChatCompletionStreaming for T {
+impl<T: ChatPromptBuilder + TextGenerationStream> ChatCompletionStream for T {
     async fn chat_completion(
         &self,
-        request: types::ChatCompletionRequest,
-    ) -> Result<BoxStream<types::ChatCompletionChunk>> {
+        messages: &[Message],
+        options: ChatCompletionOptions,
+    ) -> Result<BoxStream<String>> {
         let options = TextGenerationOptionsBuilder::default()
             .max_input_length(2048)
             .max_decoding_length(1920)
-            .seed(
-                request
-                    .seed
-                    .unwrap_or_else(TextGenerationOptions::default_seed),
-            )
-            .sampling_temperature(request.temperature.unwrap_or(0.1))
+            .seed(options.seed)
+            .sampling_temperature(options.sampling_temperature)
             .build()?;
 
-        let prompt = self.build_chat_prompt(&request.messages)?;
+        let prompt = self.build_chat_prompt(messages)?;
 
-        let created = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("Must be able to read system clock")
-            .as_secs();
-        let id = format!("chatcmpl-{}", Uuid::new_v4());
         let s = stream! {
             for await content in self.generate(&prompt, options).await {
-                yield types::ChatCompletionChunk::new(content, id.clone(), created, false);
+                yield content
             }
-
-            yield types::ChatCompletionChunk::new(String::default(), id.clone(), created, true);
         };
 
         Ok(Box::pin(s))

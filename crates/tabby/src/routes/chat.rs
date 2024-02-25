@@ -8,10 +8,9 @@ use axum::{
     Json,
 };
 use futures::StreamExt;
-use tabby_common::api::chat::ChatCompletionRequest;
 use tracing::instrument;
 
-use crate::services::chat::ChatService;
+use crate::services::chat::{ChatCompletionRequest, ChatService};
 
 #[utoipa::path(
     post,

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use openai::OpenAIEngine;
 use openai_chat::OpenAIChatEngine;
 use serde_json::Value;
-use tabby_inference::{chat::ChatCompletionStreaming, make_text_generation, TextGeneration};
+use tabby_inference::{chat::ChatCompletionStream, make_text_generation, TextGeneration};
 
 pub fn create(model: &str) -> (Arc<dyn TextGeneration>, Option<String>, Option<String>) {
     let params = serde_json::from_str(model).expect("Failed to parse model string");
@@ -25,7 +25,7 @@ pub fn create(model: &str) -> (Arc<dyn TextGeneration>, Option<String>, Option<S
     }
 }
 
-pub fn create_chat(model: &str) -> Arc<dyn ChatCompletionStreaming> {
+pub fn create_chat(model: &str) -> Arc<dyn ChatCompletionStream> {
     let params = serde_json::from_str(model).expect("Failed to parse model string");
     let kind = get_param(&params, "kind");
     if kind == "openai-chat" {

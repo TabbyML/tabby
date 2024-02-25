@@ -9,7 +9,7 @@ use tabby_common::{
 };
 use tabby_download::download_model;
 use tabby_inference::{
-    chat::ChatCompletionStreaming, make_text_generation, TextGeneration, TextGenerationStream,
+    chat::ChatCompletionStream, make_text_generation, TextGeneration, TextGenerationStream,
 };
 use tracing::info;
 
@@ -19,7 +19,7 @@ pub async fn load_chat_completion(
     model_id: &str,
     device: &Device,
     parallelism: u8,
-) -> Arc<dyn ChatCompletionStreaming> {
+) -> Arc<dyn ChatCompletionStream> {
     #[cfg(feature = "experimental-http")]
     if device == &Device::ExperimentalHttp {
         return http_api_bindings::create_chat(model_id);

@@ -5,7 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api,
-    api::{chat, code::CodeSearch, event::EventLogger},
+    api::{code::CodeSearch, event::EventLogger},
     config::Config,
     usage,
 };
@@ -21,6 +21,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     routes::{self, run_app},
     services::{
+        chat,
         chat::create_chat_service,
         code::create_code_search,
         completion::{self, create_completion_service},
@@ -61,7 +62,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         chat::ChatCompletionRequest,
         chat::ChatCompletionChoice,
         chat::ChatCompletionDelta,
-        chat::Message,
+        api::chat::Message,
         chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
