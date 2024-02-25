@@ -1,8 +1,10 @@
 mod openai;
+mod openai_chat;
 
 use std::sync::Arc;
 
 use openai::OpenAIEngine;
+use openai_chat::OpenAIChatEngine;
 use serde_json::Value;
 use tabby_inference::{make_text_generation, TextGeneration};
 
@@ -15,12 +17,20 @@ pub fn create(model: &str) -> (Arc<dyn TextGeneration>, Option<String>, Option<S
         let api_key = get_optional_param(&params, "api_key");
         let prompt_template = get_optional_param(&params, "prompt_template");
         let chat_template = get_optional_param(&params, "chat_template");
-        let engine = make_text_generation(OpenAIEngine::create(
-            api_endpoint.as_str(),
-            model_name.as_str(),
-            api_key
-        ));
+        let engine =
+            make_text_generation(OpenAIEngine::create(&api_endpoint, &model_name, api_key));
         (Arc::new(engine), prompt_template, chat_template)
+    } else if kind == "openai-chat" {
+        let model_name = get_optional_param(&params, "model_name").unwrap_or_default();
+        let api_endpoint = get_param(&params, "api_endpoint");
+        let api_key = get_optional_param(&params, "api_key");
+
+        let engine = make_text_generation(OpenAIChatEngine::create(
+            &api_endpoint,
+            &model_name,
+            api_key,
+        ));
+        (Arc::new(engine), None, Some(OpenAIChatEngine::chat_template().to_owned()))
     } else {
         panic!("Only openai are supported for http backend");
     }
