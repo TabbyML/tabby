@@ -2,16 +2,75 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use futures::stream::BoxStream;
+use serde::{Deserialize, Serialize};
 use tabby_common::api::{
     chat::Message,
     event::{Event, EventLogger},
 };
 use tabby_inference::chat::{ChatCompletionOptionsBuilder, ChatCompletionStream};
 use tracing::warn;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::model;
 use crate::Device;
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[schema(example=json!({
+    "messages": [
+        Message { role: "user".to_owned(), content: "What is tail recursion?".to_owned()},
+        Message { role: "assistant".to_owned(), content: "It's a kind of optimization in compiler?".to_owned()},
+        Message { role: "user".to_owned(), content: "Could you share more details?".to_owned()},
+    ]
+}))]
+pub struct ChatCompletionRequest {
+    messages: Vec<Message>,
+    temperature: Option<f32>,
+    seed: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct ChatCompletionChunk {
+    id: String,
+    created: u64,
+    system_fingerprint: String,
+    object: &'static str,
+    model: &'static str,
+    choices: [ChatCompletionChoice; 1],
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+pub struct ChatCompletionChoice {
+    index: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    logprobs: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    finish_reason: Option<String>,
+    delta: ChatCompletionDelta,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+pub struct ChatCompletionDelta {
+    content: String,
+}
+
+impl ChatCompletionChunk {
+    fn new(content: String, id: String, created: u64, last_chunk: bool) -> Self {
+        ChatCompletionChunk {
+            id,
+            created,
+            object: "chat.completion.chunk",
+            model: "unused-model",
+            system_fingerprint: "unused-system-fingerprint".into(),
+            choices: [ChatCompletionChoice {
+                index: 0,
+                delta: ChatCompletionDelta { content },
+                logprobs: None,
+                finish_reason: last_chunk.then(|| "stop".into()),
+            }],
+        }
+    }
+}
 
 pub struct ChatService {
     engine: Arc<dyn ChatCompletionStream>,
@@ -89,65 +148,4 @@ pub async fn create_chat_service(
     let engine = model::load_chat_completion(model, device, parallelism).await;
 
     ChatService::new(engine, logger)
-}
-
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-#[schema(example=json!({
-    "messages": [
-        Message { role: "user".to_owned(), content: "What is tail recursion?".to_owned()},
-        Message { role: "assistant".to_owned(), content: "It's a kind of optimization in compiler?".to_owned()},
-        Message { role: "user".to_owned(), content: "Could you share more details?".to_owned()},
-    ]
-}))]
-pub struct ChatCompletionRequest {
-    pub messages: Vec<Message>,
-    pub temperature: Option<f32>,
-    pub seed: Option<u64>,
-    pub model: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct ChatCompletionChunk {
-    pub id: String,
-    created: u64,
-    system_fingerprint: String,
-    object: &'static str,
-    model: &'static str,
-    pub choices: [ChatCompletionChoice; 1],
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
-pub struct ChatCompletionChoice {
-    index: usize,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    logprobs: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    finish_reason: Option<String>,
-    pub delta: ChatCompletionDelta,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
-pub struct ChatCompletionDelta {
-    pub content: String,
-}
-
-impl ChatCompletionChunk {
-    pub fn new(content: String, id: String, created: u64, last_chunk: bool) -> Self {
-        ChatCompletionChunk {
-            id,
-            created,
-            object: "chat.completion.chunk",
-            model: "unused-model",
-            system_fingerprint: "unused-system-fingerprint".into(),
-            choices: [ChatCompletionChoice {
-                index: 0,
-                delta: ChatCompletionDelta { content },
-                logprobs: None,
-                finish_reason: last_chunk.then(|| "stop".into()),
-            }],
-        }
-    }
 }
