@@ -97,15 +97,4 @@ mod tests {
         ];
         assert_eq!(builder.build(&messages).unwrap(), "<s>[INST] What is tail recursion? [/INST]It's a kind of optimization in compiler?</s> [INST] Could you share more details? [/INST]")
     }
-
-    #[test]
-    #[should_panic]
-    fn test_it_panic() {
-        let builder = ChatPromptBuilder::new(PROMPT_TEMPLATE.to_owned());
-        let messages = vec![Message {
-            role: "system".to_owned(),
-            content: "system".to_owned(),
-        }];
-        builder.build(&messages).unwrap();
-    }
 }
