@@ -1,3 +1,4 @@
+mod javascript;
 mod python;
 mod rust;
 
@@ -11,6 +12,10 @@ pub fn collect(path: &Path, file: &mut DependencyFile) {
     }
 
     if let Ok(mut deps) = rust::process_cargo(path) {
+        file.direct.append(&mut deps);
+    }
+
+    if let Ok(mut deps) = javascript::process_package_lock_json(path) {
         file.direct.append(&mut deps);
     }
 
