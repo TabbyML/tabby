@@ -29,6 +29,12 @@ apt-get install protobuf-compiler libopenblas-dev
 choco install protoc
 ```
 
+Some of the tests require mailtutan SMTP server which you can install with:
+
+```bash
+cargo install mailtutan
+```
+
 Before proceeding, ensure that all tests are passing locally:
 
 ```
@@ -78,6 +84,7 @@ By default, Tabby will start on `localhost:8080` and serve requests.
 Tabby is broken up into several crates, each responsible for a different part of the functionality. These crates fall into two categories: Fully open source features, and enterprise features. All open-source feature crates are located in the `/crates` folder in the repository root, and all enterprise feature crates are located in `/ee`.
 
 ### Crates
+
 - `crates/tabby` - The core tabby application, this is the main binary crate defining CLI behavior and driving the API
 - `crates/tabby-common` - Interfaces and type definitions shared across most other tabby crates, especially types used for serialization
 - `crates/tabby-download` - Very small crate, responsible for downloading models at runtime
