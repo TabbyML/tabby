@@ -48,7 +48,7 @@ impl TextGenerationStream for ChatCompletionImpl {
         let prompt = prompt.to_owned();
         let s = stream! {
             for await (streaming, text) in self.engine.generate_stream(&prompt, options).await {
-                if !streaming {
+                if streaming {
                     yield text;
                 }
             }
