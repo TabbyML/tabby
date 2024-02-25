@@ -22,7 +22,7 @@ pub fn create(model: &str) -> (Arc<dyn TextGeneration>, Option<String>, Option<S
         ));
         (Arc::new(engine), prompt_template, chat_template)
     } else {
-        panic!("Only vertex_ai and openai are supported for http backend");
+        panic!("Only openai are supported for http backend");
     }
 }
 
