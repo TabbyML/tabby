@@ -3,11 +3,11 @@ name: Create and publish docker image
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 20 */1 * *"
+    - cron: '0 20 */1 * *'
   push:
     tags:
-      - "v*"
-      - "!*-dev"
+      - 'v*'
+      - '!*-dev'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
