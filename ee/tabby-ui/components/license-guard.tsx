@@ -60,8 +60,10 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
       <HoverCardTrigger
         asChild
         onClick={e => {
-          e.preventDefault()
-          onOpenChange(true)
+          if (!hasValidLicense) {
+            e.preventDefault()
+            onOpenChange(true)
+          }
         }}
       >
         <div className={cn(!hasValidLicense ? 'cursor-not-allowed' : '')}>
