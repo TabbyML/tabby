@@ -157,12 +157,6 @@ export class TabbyStatusBarItem {
       console.debug("Tabby agent issuesUpdated", { event });
       const status = agent().getStatus();
       this.fsmService.send(status);
-      if (event.issues.includes("connectionFailed")) {
-        // Do not show it when initializing
-        if (status !== "notInitialized") {
-          notifications.showInformationWhenDisconnected();
-        }
-      }
     });
   }
 
