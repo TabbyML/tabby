@@ -117,8 +117,8 @@ const LicenseGuard = React.forwardRef<
     setOpen(v)
   }
 
-  let licenseString = capitalize(licenses[0]);
-  let licenseText = licenseString;
+  let licenseString = capitalize(licenses[0])
+  let licenseText = licenseString
   if (licenses.length > 1) {
     licenseText = `${licenseString} or higher`
   }
@@ -127,8 +127,9 @@ const LicenseGuard = React.forwardRef<
     <HoverCard open={open} onOpenChange={onOpenChange} openDelay={100}>
       <HoverCardContent side="top" collisionPadding={16} className="w-[400px]">
         <div>
-          This feature is only available on Tabby’s <span className='font-semibold'>{licenseText}</span> plan.
-          Upgrade to use this feature.
+          This feature is only available on Tabby’s{' '}
+          <span className="font-semibold">{licenseText}</span> plan. Upgrade to
+          use this feature.
         </div>
         <div className="mt-4 text-center">
           <Link className={buttonVariants()} href="/settings/subscription">
