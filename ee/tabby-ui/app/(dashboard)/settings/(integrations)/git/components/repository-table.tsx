@@ -138,7 +138,7 @@ export default function RepositoryTable() {
                   {currentPageRepos?.map(x => {
                     return (
                       <TableRow key={x.node.id}>
-                        <TableCell>{x.node.name}</TableCell>
+                        <TableCell className='truncate'>{x.node.name}</TableCell>
                         <TableCell className='truncate'>{x.node.gitUrl}</TableCell>
                         <TableCell className="flex justify-end">
                           <div className="flex gap-1">
