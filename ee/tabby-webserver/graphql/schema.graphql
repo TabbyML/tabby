@@ -17,7 +17,7 @@ type Mutation {
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
   requestPasswordResetEmail(input: RequestPasswordResetEmailInput!): Boolean!
   passwordReset(input: PasswordResetInput!): Boolean!
-  updatePassword(input: PasswordUpdateInput!): Boolean!
+  passwordChange(input: PasswordUpdateInput!): Boolean!
   resetUserAuthToken: Boolean!
   updateUserActive(id: ID!, active: Boolean!): Boolean!
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
@@ -112,8 +112,9 @@ type RefreshTokenResponse {
 }
 
 input PasswordUpdateInput {
-  password1: String!
-  password2: String!
+  oldPassword: String!
+  newPassword1: String!
+  newPassword2: String!
 }
 
 type RepositoryConnection {
@@ -227,6 +228,7 @@ type User {
   authToken: String!
   createdAt: DateTimeUtc!
   active: Boolean!
+  isPasswordSet: Boolean!
 }
 
 type Worker {
