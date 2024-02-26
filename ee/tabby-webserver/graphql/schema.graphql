@@ -112,7 +112,7 @@ type RefreshTokenResponse {
 }
 
 input PasswordUpdateInput {
-  oldPassword: String!
+  oldPassword: String
   newPassword1: String!
   newPassword2: String!
 }
