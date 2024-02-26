@@ -39,29 +39,31 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
 
   let licenseString = capitalize(licenses[0])
   let licenseText = licenseString
-  if (licenses.length > 1) {
-    licenseText = `${licenseString} or higher`
+  if (licenses.length == 2) {
+    licenseText = `${capitalize(licenses[0])} or ${capitalize(licenses[1])}`
   }
 
   return (
     <HoverCard open={open} onOpenChange={onOpenChange} openDelay={100}>
       <HoverCardContent side="top" collisionPadding={16} className="w-[400px]">
         <div>
-          This feature is only available on Tabby’s{' '}
+          This feature is only available on Tabby&apos;s{' '}
           <span className="font-semibold">{licenseText}</span> plan. Upgrade to
           use this feature.
         </div>
         <div className="mt-4 text-center">
           <Link className={buttonVariants()} href="/settings/subscription">
-            Upgrade to {licenseText}
+            Upgrade to {licenseString}
           </Link>
         </div>
       </HoverCardContent>
       <HoverCardTrigger
         asChild
         onClick={e => {
-          e.preventDefault()
-          onOpenChange(true)
+          if (!hasValidLicense) {
+            e.preventDefault()
+            onOpenChange(true)
+          }
         }}
       >
         <div className={cn(!hasValidLicense ? 'cursor-not-allowed' : '')}>

@@ -10,7 +10,7 @@ import { useClient, useQuery } from 'urql'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
-import { OAuthProvider } from '@/lib/gql/generates/graphql'
+import { LicenseType, OAuthProvider } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import {
@@ -39,6 +39,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CopyButton } from '@/components/copy-button'
+import { LicenseGuard } from '@/components/license-guard'
 
 import { oauthCredential } from './oauth-credential-list'
 
@@ -324,15 +325,21 @@ export default function OAuthCredentialForm({
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            <Button
-              type="submit"
-              disabled={isSubmitting || (!isNew && !isDirty)}
-            >
-              {isSubmitting && (
-                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+            <LicenseGuard licenses={[LicenseType.Enterprise]}>
+              {({ hasValidLicense }) => (
+                <Button
+                  type="submit"
+                  disabled={
+                    !hasValidLicense || isSubmitting || (!isNew && !isDirty)
+                  }
+                >
+                  {isSubmitting && (
+                    <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isNew ? 'Create' : 'Update'}
+                </Button>
               )}
-              {isNew ? 'Create' : 'Update'}
-            </Button>
+            </LicenseGuard>
           </div>
         </form>
         <FormMessage className="text-center" />
