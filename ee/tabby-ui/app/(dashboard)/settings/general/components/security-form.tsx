@@ -9,6 +9,7 @@ import { useQuery } from 'urql'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
+import { LicenseType } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/form'
 import { IconTrash } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
+import { LicenseGuard } from '@/components/license-guard'
 
 const updateSecuritySettingMutation = graphql(/* GraphQL */ `
   mutation updateSecuritySetting($input: SecuritySettingInput!) {
@@ -64,15 +66,9 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
   onSuccess,
   defaultValues: propsDefaultValues
 }) => {
-  const defaultValues = React.useMemo(() => {
-    return {
-      ...(propsDefaultValues || {})
-    }
-  }, [propsDefaultValues])
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues
+    defaultValues: propsDefaultValues
   })
 
   const { fields, append, remove, update } = useFieldArray({
@@ -201,9 +197,15 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
             </div>
           </div>
           <div className="mt-2 flex justify-end">
-            <Button type="submit" disabled={!isDirty}>
-              Update
-            </Button>
+            <LicenseGuard licenses={[LicenseType.Enterprise]}>
+              {({ hasValidLicense }) => {
+                return (
+                  <Button type="submit" disabled={!hasValidLicense || !isDirty}>
+                    Update
+                  </Button>
+                )
+              }}
+            </LicenseGuard>
           </div>
         </form>
         <FormMessage className="text-center" />
