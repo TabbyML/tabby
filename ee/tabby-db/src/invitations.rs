@@ -1,18 +1,17 @@
 use anyhow::{anyhow, Result};
-use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::SQLXResultExt;
+use crate::{DateTimeUtc, SQLXResultExt};
 
 #[derive(FromRow)]
 pub struct InvitationDAO {
-    pub id: i32,
+    pub id: i64,
     pub email: String,
     pub code: String,
 
-    pub created_at: DateTime<Utc>,
+    pub created_at: DateTimeUtc,
 }
 
 /// db read/write operations for `invitations` table
@@ -37,20 +36,23 @@ impl DbConn {
     }
 
     pub async fn get_invitation_by_code(&self, code: &str) -> Result<Option<InvitationDAO>> {
-        let token =
-            sqlx::query_as(r#"SELECT id, email, code, created_at FROM invitations WHERE code = ?"#)
-                .bind(code)
-                .fetch_optional(&self.pool)
-                .await?;
+        let token = sqlx::query_as!(
+            InvitationDAO,
+            r#"SELECT id as "id!", email, code, created_at as "created_at!" FROM invitations WHERE code = ?"#,
+            code
+        )
+        .fetch_optional(&self.pool)
+        .await?;
 
         Ok(token)
     }
 
     pub async fn get_invitation_by_email(&self, email: &str) -> Result<Option<InvitationDAO>> {
-        let token = sqlx::query_as(
-            r#"SELECT id, email, code, created_at FROM invitations WHERE email = ?"#,
+        let token = sqlx::query_as!(
+            InvitationDAO,
+            r#"SELECT id as "id!", email, code, created_at as "created_at!" FROM invitations WHERE email = ?"#,
+            email
         )
-        .bind(email)
         .fetch_optional(&self.pool)
         .await?;
 
@@ -63,7 +65,7 @@ impl DbConn {
         }
 
         let code = Uuid::new_v4().to_string();
-        let created_at = chrono::offset::Utc::now();
+        let created_at = chrono::offset::Utc::now().into();
         let res = query!(
             "INSERT INTO invitations (email, code, created_at) VALUES (?, ?, ?)",
             email,
@@ -74,7 +76,7 @@ impl DbConn {
         .await;
 
         let res = res.unique_error("Failed to create invitation, email already exists")?;
-        let id = res.last_insert_rowid() as i32;
+        let id = res.last_insert_rowid();
 
         Ok(InvitationDAO {
             id,
@@ -84,7 +86,7 @@ impl DbConn {
         })
     }
 
-    pub async fn delete_invitation(&self, id: i32) -> Result<i32> {
+    pub async fn delete_invitation(&self, id: i64) -> Result<i64> {
         let res = query!("DELETE FROM invitations WHERE id = ?", id)
             .execute(&self.pool)
             .await?;

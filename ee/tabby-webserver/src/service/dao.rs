@@ -18,10 +18,10 @@ use crate::schema::{
 impl From<InvitationDAO> for auth::Invitation {
     fn from(val: InvitationDAO) -> Self {
         Self {
-            id: val.id.as_id(),
+            id: (val.id as i32).as_id(),
             email: val.email,
             code: val.code,
-            created_at: val.created_at,
+            created_at: *val.created_at,
         }
     }
 }
