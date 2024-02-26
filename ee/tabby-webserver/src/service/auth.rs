@@ -401,10 +401,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("The owner's active status cannot be changed").into());
         }
 
-        if user.is_admin {
+        if active && user.is_admin {
+            // Check there's sufficient seat if an admin being swtiched to active.
             let num_admins = self.db.count_active_admin_users().await?;
             license.ensure_admin_seats(num_admins + 1)?;
         }
+
         Ok(self.db.update_user_active(id, active).await?)
     }
 }
@@ -1095,5 +1097,66 @@ mod tests {
             service.create_invitation("abc.com".into()).await,
             Err(CoreError::InvalidLicense(_))
         )
+    }
+
+    #[tokio::test]
+    async fn test_update_user_active_on_admin_seats() {
+        let service = test_authentication_service_with_license(Arc::new(
+            MockLicenseService::team_with_seats(3),
+        ))
+        .await;
+
+        // Create owner user.
+        service
+            .register("a@example.com".into(), "pass".into(), None)
+            .await
+            .unwrap();
+
+        let user1 = service
+            .db
+            .create_user("b@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+        let user2 = service
+            .db
+            .create_user("c@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+        let user3 = service
+            .db
+            .create_user("d@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+
+        service
+            .update_user_role(&user1.as_id(), true)
+            .await
+            .unwrap();
+        service
+            .update_user_role(&user2.as_id(), true)
+            .await
+            .unwrap();
+
+        assert_matches!(service.db.count_active_admin_users().await, Ok(3));
+
+        assert_matches!(
+            service.update_user_role(&user3.as_id(), true).await,
+            Err(CoreError::InvalidLicense(_))
+        );
+
+        // Change user2 to deactive.
+        service
+            .update_user_active(&user2.as_id(), false)
+            .await
+            .unwrap();
+
+        assert_matches!(service.db.count_active_admin_users().await, Ok(2));
+        assert_matches!(service.update_user_role(&user3.as_id(), true).await, Ok(_));
+
+        // Not able to toggle user to active due to admin seat limits.
+        assert_matches!(
+            service.update_user_role(&user2.as_id(), true).await,
+            Err(CoreError::InvalidLicense(_))
+        );
     }
 }
