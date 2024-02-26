@@ -198,9 +198,13 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
           </div>
           <div className="mt-2 flex justify-end">
             <LicenseGuard licenses={[LicenseType.Enterprise]}>
-              <Button type="submit" disabled={!isDirty}>
-                Update
-              </Button>
+              {({ hasValidLicense }) => {
+                return (
+                  <Button type="submit" disabled={!hasValidLicense || !isDirty}>
+                    Update
+                  </Button>
+                )
+              }}
             </LicenseGuard>
           </div>
         </form>

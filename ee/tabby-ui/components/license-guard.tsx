@@ -18,43 +18,22 @@ import {
 
 interface LicenseGuardProps {
   licenses: LicenseType[]
-  children:
-    | React.ReactNode
-    | React.ReactNode[]
-    | ((params: {
-        disabled: boolean
-        license: GetLicenseInfoQuery['license'] | undefined | null
-      }) => React.ReactNode)
+  children: (params: {
+    hasValidLicense: boolean
+    license: GetLicenseInfoQuery['license'] | undefined | null
+  }) => React.ReactNode
 }
 
 const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
   const [open, setOpen] = React.useState(false)
   const license = useLicenseInfo()
-  let isLicenseDisabled = false
-  if (
-    !license ||
-    license?.status !== LicenseStatus.Ok ||
-    !licenses.includes(license?.type)
-  ) {
-    isLicenseDisabled = true
-  }
-
-  const updatedChildren = React.useMemo(() => {
-    if (typeof children === 'function') {
-      return null
-    }
-    return React.Children.map(children, child => {
-      if (React.isValidElement(child)) {
-        return React.cloneElement(child, {
-          disabled: isLicenseDisabled || child.props.disabled
-        } as React.Attributes)
-      }
-      return child
-    })
-  }, [children, isLicenseDisabled])
+  const hasValidLicense =
+    !!license &&
+    license.status === LicenseStatus.Ok &&
+    licenses.includes(license.type)
 
   const onOpenChange = (v: boolean) => {
-    if (!isLicenseDisabled) return
+    if (hasValidLicense) return
     setOpen(v)
   }
 
@@ -85,10 +64,8 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
           onOpenChange(true)
         }}
       >
-        <div className={cn(isLicenseDisabled ? 'cursor-not-allowed' : '')}>
-          {typeof children === 'function'
-            ? children({ disabled: isLicenseDisabled, license })
-            : updatedChildren}
+        <div className={cn(!hasValidLicense ? 'cursor-not-allowed' : '')}>
+          {children({ hasValidLicense, license })}
         </div>
       </HoverCardTrigger>
     </HoverCard>
