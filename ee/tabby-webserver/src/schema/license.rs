@@ -78,16 +78,17 @@ impl LicenseInfo {
         let num_admin_seats = match self.r#type {
             LicenseType::Community => 1,
             LicenseType::Team => 3,
-            LicenseType::Enterprise => usize::MAX
+            LicenseType::Enterprise => usize::MAX,
         };
 
         if num_admins > num_admin_seats {
-            return Err(CoreError::InvalidLicense("No sufficient admin seats under the license"));
+            return Err(CoreError::InvalidLicense(
+                "No sufficient admin seats under the license",
+            ));
         }
 
         Ok(())
     }
-
 }
 
 #[async_trait]
