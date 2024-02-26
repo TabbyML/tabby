@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
-import { useQueryNetworkSetting } from '@/lib/hooks/use-network-setting'
+import { useNetworkSetting } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
@@ -115,7 +115,7 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 }
 
 export const GeneralNetworkForm = () => {
-  const [{ data }, reexecuteQuery] = useQueryNetworkSetting()
+  const [{ data }, reexecuteQuery] = useNetworkSetting()
   const onSuccess = () => {
     toast.success('Network configuration is updated')
     reexecuteQuery()
