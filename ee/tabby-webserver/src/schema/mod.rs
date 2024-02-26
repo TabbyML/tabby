@@ -367,6 +367,7 @@ impl Mutation {
         Ok(true)
     }
 
+    // TODO(boxbeam): Make this use an ID instead of email
     async fn password_change(ctx: &Context, input: PasswordUpdateInput) -> Result<bool> {
         let claims = check_claims(ctx)?;
         input.validate()?;
