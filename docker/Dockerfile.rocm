@@ -1,0 +1,76 @@
+ARG UBUNTU_VERSION=22.04
+# This needs to generally match the container host's environment.
+ARG ROCM_VERSION=5.7.1
+# Target the ROCM build image
+ARG BASE_ROCM_DEV_CONTAINER=rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}-complete
+# Target the ROCM runtime image
+ARG BASE_ROCM_RUN_CONTAINER=rocm/dev-ubuntu-${UBUNTU_VERSION}:${ROCM_VERSION}
+
+FROM ${BASE_ROCM_DEV_CONTAINER} AS build
+
+# Rust toolchain version
+ARG RUST_TOOLCHAIN=stable
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    pkg-config \
+    libssl-dev \
+    protobuf-compiler \
+    git \
+    cmake \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# setup rust.
+RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+WORKDIR /root/workspace
+
+RUN mkdir -p /opt/tabby/bin
+RUN mkdir -p /opt/tabby/lib
+RUN mkdir -p target
+
+COPY . .
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/root/workspace/target \
+    cargo build --features rocm,prod-db --release --package tabby && \
+    cp target/release/tabby /opt/tabby/bin/
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/root/workspace/target \
+    cargo build --features prod-db --release --package tabby && \
+    cp target/release/tabby /opt/tabby/bin/tabby-cpu
+
+FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    openssh-client \
+    ca-certificates \
+    libssl3 \
+    rocblas \
+    hipblas \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Disable safe directory in docker
+# Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
+RUN git config --system --add safe.directory "*"
+
+# Automatic platform ARGs in the global scope
+# https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
+ARG TARGETARCH
+
+COPY --from=build /opt/tabby /opt/tabby
+
+ENV PATH="$PATH:/opt/tabby/bin"
+ENV TABBY_ROOT=/data
+
+ENTRYPOINT ["/opt/tabby/bin/tabby"]
