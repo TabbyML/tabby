@@ -372,7 +372,11 @@ impl Mutation {
         input.validate()?;
         ctx.locator
             .auth()
-            .update_user_password(&claims.sub, &input.old_password, &input.new_password1)
+            .update_user_password(
+                &claims.sub,
+                input.old_password.as_deref(),
+                &input.new_password1,
+            )
             .await?;
         Ok(true)
     }

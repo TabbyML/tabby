@@ -143,7 +143,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     async fn update_user_password(
         &self,
         email: &str,
-        old_password: &str,
+        old_password: Option<&str>,
         new_password: &str,
     ) -> Result<()> {
         let user = self
@@ -151,11 +151,16 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .get_user_by_email(email)
             .await?
             .ok_or_else(|| anyhow!("Invalid user"))?;
-        if !user.password_encrypted.is_empty()
-            && !password_verify(old_password, &user.password_encrypted)
-        {
+
+        let password_verified = match (user.password_encrypted.is_empty(), old_password) {
+            (true, _) => true,
+            (false, None) => false,
+            (false, Some(old_password)) => password_verify(old_password, &user.password_encrypted),
+        };
+        if !password_verified {
             return Err(anyhow!("Password is incorrect").into());
         }
+
         let new_password_encrypted =
             password_hash(new_password).map_err(|_| anyhow!("Unknown error"))?;
         self.db
@@ -1200,17 +1205,17 @@ mod tests {
             .unwrap();
 
         assert!(service
-            .update_user_password("test@example.com", "", "newpass")
+            .update_user_password("test@example.com", None, "newpass")
             .await
             .is_ok());
 
         assert!(service
-            .update_user_password("test@example.com", "", "newpass2")
+            .update_user_password("test@example.com", None, "newpass2")
             .await
             .is_err());
 
         assert!(service
-            .update_user_password("test@example.com", "newpass", "newpass2")
+            .update_user_password("test@example.com", Some("newpass"), "newpass2")
             .await
             .is_ok());
     }

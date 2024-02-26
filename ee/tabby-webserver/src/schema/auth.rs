@@ -309,7 +309,7 @@ pub struct PasswordResetInput {
 
 #[derive(Validate, GraphQLInputObject)]
 pub struct PasswordUpdateInput {
-    pub old_password: String,
+    pub old_password: Option<String>,
 
     #[validate(length(
         min = 8,
@@ -429,7 +429,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn update_user_password(
         &self,
         email: &str,
-        old_password: &str,
+        old_password: Option<&str>,
         new_password: &str,
     ) -> Result<()>;
 
