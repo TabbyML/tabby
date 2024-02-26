@@ -203,6 +203,7 @@ impl RefreshTokenResponse {
 }
 
 // IDWrapper to used as a type guard for refactoring, can be removed in a follow up PR.
+// FIXME(meng): refactor out IDWrapper.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IDWrapper(pub ID);
 
