@@ -2,37 +2,24 @@
 
 import { capitalize } from 'lodash-es'
 import moment from 'moment'
-import { useQuery } from 'urql'
 
-import { graphql } from '@/lib/gql/generates'
 import { LicenseInfo } from '@/lib/gql/generates/graphql'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useLicense } from '@/components/license-guard'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
 import { LicenseForm } from './license-form'
 import { LicenseTable } from './license-table'
 
-const getLicenseInfo = graphql(/* GraphQL */ `
-  query GetLicenseInfo {
-    license {
-      type
-      status
-      seats
-      seatsUsed
-      issuedAt
-      expiresAt
-    }
-  }
-`)
-
 export default function Subscription() {
-  const [{ data, fetching }, reexecuteQuery] = useQuery({
-    query: getLicenseInfo
-  })
+  const {
+    licenseInfoQuery: { data, fetching },
+    refreshLicense
+  } = useLicense()
   const license = data?.license
   const onUploadLicenseSuccess = () => {
-    reexecuteQuery()
+    refreshLicense()
   }
 
   return (
@@ -48,10 +35,10 @@ export default function Subscription() {
         <LoadingWrapper
           loading={fetching}
           fallback={
-            <div className="grid grid-cols-3 space-x-8">
-              <Skeleton className="h-16" />
-              <Skeleton className="h-16" />
-              <Skeleton className="h-16" />
+            <div className="grid grid-cols-3">
+              <Skeleton className="h-16 w-[80%]" />
+              <Skeleton className="h-16 w-[80%]" />
+              <Skeleton className="h-16 w-[80%]" />
             </div>
           }
         >

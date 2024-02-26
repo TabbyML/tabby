@@ -2,8 +2,15 @@ import * as React from 'react'
 import Link from 'next/link'
 import { Slot } from '@radix-ui/react-slot'
 import { capitalize } from 'lodash-es'
-import { useQuery } from 'urql'
+import { useQuery, UseQueryState } from 'urql'
 
+import { graphql } from '@/lib/gql/generates'
+import {
+  Exact,
+  GetLicenseInfoQuery,
+  LicenseStatus,
+  LicenseType
+} from '@/lib/gql/generates/graphql'
 import { buttonVariants } from '@/components/ui/button'
 import {
   HoverCard,
@@ -11,18 +18,30 @@ import {
   HoverCardTrigger
 } from '@/components/ui/hover-card'
 
-import {
-  GetLicenseInfoQuery,
-  LicenseStatus,
-  LicenseType
-} from '../gql/generates/graphql'
-import { getLicenseInfo } from './query'
+export const getLicenseInfo = graphql(/* GraphQL */ `
+  query GetLicenseInfo {
+    license {
+      type
+      status
+      seats
+      seatsUsed
+      issuedAt
+      expiresAt
+    }
+  }
+`)
 
 interface LicenseProviderProps {
   children: React.ReactNode
 }
 
 interface LicenseContextValue {
+  licenseInfoQuery: UseQueryState<
+    GetLicenseInfoQuery,
+    Exact<{
+      [key: string]: never
+    }>
+  >
   license: GetLicenseInfoQuery['license'] | undefined | null
   refreshLicense: () => void
 }
@@ -34,16 +53,19 @@ const LicenseContext = React.createContext<LicenseContextValue>(
 const LicenseProvider: React.FunctionComponent<LicenseProviderProps> = ({
   children
 }) => {
-  const [{ data }, refreshLicense] = useQuery({ query: getLicenseInfo })
+  const [licenseInfoQuery, refreshLicense] = useQuery({ query: getLicenseInfo })
+  const license = licenseInfoQuery?.data?.license
 
   return (
-    <LicenseContext.Provider value={{ license: data?.license, refreshLicense }}>
+    <LicenseContext.Provider
+      value={{ licenseInfoQuery, license, refreshLicense }}
+    >
       {children}
     </LicenseContext.Provider>
   )
 }
 
-class AuthProviderIsMissing extends Error {
+class LicenseProviderIsMissing extends Error {
   constructor() {
     super(
       'LicenseProvider is missing. Please add the LicenseProvider at root level'
@@ -55,7 +77,7 @@ function useLicense() {
   const context = React.useContext(LicenseContext)
 
   if (!context) {
-    throw new AuthProviderIsMissing()
+    throw new LicenseProviderIsMissing()
   }
 
   return context
