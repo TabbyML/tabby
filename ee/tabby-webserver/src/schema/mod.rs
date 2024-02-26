@@ -28,7 +28,7 @@ use worker::{Worker, WorkerService};
 
 use self::{
     auth::{
-        JWTPayload, OAuthCredential, OAuthProvider, PasswordResetInput, RequestInvitationInput,
+        PasswordResetInput, PasswordUpdateInput, RequestInvitationInput,
         RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
@@ -38,6 +38,7 @@ use self::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
 };
+use crate::schema::auth::{JWTPayload, OAuthCredential, OAuthProvider};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
@@ -362,6 +363,16 @@ impl Mutation {
         ctx.locator
             .auth()
             .password_reset(&input.code, &input.password1)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_password(ctx: &Context, input: PasswordUpdateInput) -> Result<bool> {
+        let claims = check_claims(ctx)?;
+        input.validate()?;
+        ctx.locator
+            .auth()
+            .update_user_password(&claims.sub, &input.password1)
             .await?;
         Ok(true)
     }

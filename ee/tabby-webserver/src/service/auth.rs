@@ -140,6 +140,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
+    async fn update_user_password(&self, email: &str, password: &str) -> Result<()> {
+        let user = self.db.get_user_by_email(email).await?.ok_or_else(|| anyhow!("Invalid user"))?;
+        self.db.update_user_password(user.id, password.into()).await?;
+        Ok(())
+    }
+
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
         let Some(user) = self.db.get_user_by_email(&email).await? else {
             return Err(anyhow!("User not found").into());
