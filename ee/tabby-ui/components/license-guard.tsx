@@ -1,6 +1,5 @@
 import * as React from 'react'
 import Link from 'next/link'
-import { Slot } from '@radix-ui/react-slot'
 import { capitalize } from 'lodash-es'
 import { useQuery, UseQueryState } from 'urql'
 
@@ -83,15 +82,18 @@ function useLicense() {
   return context
 }
 
-interface LicenseGuardProps
-  extends React.ComponentPropsWithoutRef<typeof Slot> {
+interface LicenseGuardProps {
   licenses: LicenseType[]
+  children:
+    | React.ReactNode
+    | React.ReactNode[]
+    | ((params: {
+        disabled: boolean
+        license: GetLicenseInfoQuery['license'] | undefined | null
+      }) => React.ReactNode)
 }
 
-const LicenseGuard = React.forwardRef<
-  React.ElementRef<typeof Slot>,
-  LicenseGuardProps
->(({ licenses, children }, ref) => {
+const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
   const [open, setOpen] = React.useState(false)
   const { license } = useLicense()
   let isLicenseDisabled = false
@@ -103,14 +105,19 @@ const LicenseGuard = React.forwardRef<
     isLicenseDisabled = true
   }
 
-  const updatedChildren = React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
-      return React.cloneElement(child, {
-        disabled: isLicenseDisabled || child.props.disabled
-      } as React.Attributes)
+  const updatedChildren = React.useMemo(() => {
+    if (typeof children === 'function') {
+      return null
     }
-    return child
-  })
+    return React.Children.map(children, child => {
+      if (React.isValidElement(child)) {
+        return React.cloneElement(child, {
+          disabled: isLicenseDisabled || child.props.disabled
+        } as React.Attributes)
+      }
+      return child
+    })
+  }, [children, isLicenseDisabled])
 
   const onOpenChange = (v: boolean) => {
     if (!isLicenseDisabled) return
@@ -145,12 +152,14 @@ const LicenseGuard = React.forwardRef<
         }}
       >
         <div className={isLicenseDisabled ? 'cursor-not-allowed' : ''}>
-          {updatedChildren}
+          {typeof children === 'function'
+            ? children({ disabled: isLicenseDisabled, license })
+            : updatedChildren}
         </div>
       </HoverCardTrigger>
     </HoverCard>
   )
-})
+}
 LicenseGuard.displayName = 'LicenseGuard'
 
 export { LicenseProvider, LicenseGuard, useLicense }
