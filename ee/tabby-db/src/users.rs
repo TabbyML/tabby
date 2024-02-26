@@ -218,6 +218,13 @@ impl DbConn {
             .await?;
         Ok(users as usize)
     }
+
+    pub async fn count_active_admin_users(&self) -> Result<usize> {
+        let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active and is_admin;")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(users as usize)
+    }
 }
 
 fn generate_auth_token() -> String {

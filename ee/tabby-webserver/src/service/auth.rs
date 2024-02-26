@@ -1,3 +1,4 @@
+use core::num;
 use std::sync::Arc;
 
 use anyhow::{anyhow, Context};
@@ -218,6 +219,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()> {
+        if is_admin {
+            let license = self.license.read_license().await?;
+            let num_admins = self.db.count_active_admin_users().await?;
+            license.ensure_admin_seats(num_admins + 1)?;
+        }
+
         let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
@@ -382,9 +389,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
+        let license = self.license.read_license().await?;
+
         if active {
-            // Check there's avaiable seat if switching user to active.
-            let license = self.license.read_license().await?;
+            // Check there's sufficient seat if switching user to active.
             license.ensure_available_seats(1)?;
         }
 
@@ -392,6 +400,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
             return Err(anyhow!("The owner's active status cannot be changed").into());
+        }
+
+        if user.is_admin {
+            let num_admins = self.db.count_active_admin_users().await?;
+            license.ensure_admin_seats(num_admins + 1)?;
         }
         Ok(self.db.update_user_active(id, active).await?)
     }

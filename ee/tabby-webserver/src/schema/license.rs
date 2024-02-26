@@ -45,7 +45,7 @@ impl LicenseInfo {
     pub fn check_node_limit(&self, num_nodes: usize) -> bool {
         match self.r#type {
             LicenseType::Community => false,
-            LicenseType::Team => num_nodes < 2,
+            LicenseType::Team => num_nodes <= 2,
             LicenseType::Enterprise => true,
         }
     }
@@ -62,15 +62,32 @@ impl LicenseInfo {
 
         self
     }
-    pub fn ensure_available_seats(&self, num_seats: i32) -> Result<()> {
+
+    pub fn ensure_available_seats(&self, num_new_seats: usize) -> Result<()> {
         self.ensure_valid_license()?;
-        if (self.seats_used + num_seats) > self.seats {
+        if (self.seats_used as usize + num_new_seats) > self.seats as usize {
             return Err(CoreError::InvalidLicense(
                 "No sufficient seats under current license",
             ));
         }
         Ok(())
     }
+
+    pub fn ensure_admin_seats(&self, num_admins: usize) -> Result<()> {
+        self.ensure_valid_license()?;
+        let num_admin_seats = match self.r#type {
+            LicenseType::Community => 1,
+            LicenseType::Team => 3,
+            LicenseType::Enterprise => usize::MAX
+        };
+
+        if num_admins > num_admin_seats {
+            return Err(CoreError::InvalidLicense("No sufficient admin seats under the license"));
+        }
+
+        Ok(())
+    }
+
 }
 
 #[async_trait]
