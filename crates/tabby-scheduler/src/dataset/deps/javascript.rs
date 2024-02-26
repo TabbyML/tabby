@@ -50,8 +50,9 @@ pub fn process_package_lock_json(path: &Path) -> Result<Vec<Package>> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::{env, path::PathBuf};
+
+    use super::*;
 
     #[test]
     fn it_parses_top_level_deps_from_package_lock() -> Result<()> {
