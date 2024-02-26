@@ -29,6 +29,7 @@ Once you've installed ROCm, you're ready to start using Tabby! Simply use the fo
 ```
 docker run \
   --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video \
+  -p 8080:8080 -v $HOME/.tabby:/data \
   tabbyml/tabby-rocm \
   serve --device rocm --model StarCoder-1B
 ```
