@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import moment from 'moment'
 import { toast } from 'sonner'
 import { useClient, useQuery } from 'urql'
@@ -11,6 +11,7 @@ import {
   InvitationEdge,
   ListInvitationsQueryVariables
 } from '@/lib/gql/generates/graphql'
+import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { listInvitations } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
@@ -96,10 +97,7 @@ export default function InvitationTable() {
     }
   }
 
-  const [origin, setOrigin] = useState('')
-  useEffect(() => {
-    setOrigin(new URL(window.location.href).origin)
-  }, [])
+  const externalUrl = useExternalURL()
 
   const deleteInvitation = useMutation(deleteInvitationMutation)
 
@@ -162,7 +160,7 @@ export default function InvitationTable() {
         )}
         <TableBody>
           {currentPageInvits?.map(x => {
-            const link = `${origin}/auth/signup?invitationCode=${x.node.code}`
+            const link = `${externalUrl}/auth/signup?invitationCode=${x.node.code}`
             return (
               <TableRow key={x.node.id}>
                 <TableCell>{x.node.email}</TableCell>
