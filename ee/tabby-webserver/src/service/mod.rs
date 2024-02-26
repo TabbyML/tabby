@@ -112,7 +112,7 @@ impl ServerContext {
 
         // Allow JWT based access (from web browser), regardless of the license status.
         if let Ok(jwt) = self.auth.verify_access_token(token).await {
-            return (true, Some(ID::from(jwt.sub)));
+            return (true, Some(jwt.sub.0));
         }
 
         let is_license_valid = self

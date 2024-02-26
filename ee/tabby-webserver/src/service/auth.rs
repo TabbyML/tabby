@@ -285,8 +285,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(self.db.delete_invitation(id.as_rowid()?).await?.as_id())
     }
 
-    async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
-        Ok(self.db.reset_user_auth_token_by_email(email).await?)
+    async fn reset_user_auth_token(&self, id: &ID) -> Result<()> {
+        Ok(self.db.reset_user_auth_token_by_id(id.as_rowid()?).await?)
     }
 
     async fn list_users(
@@ -748,7 +748,7 @@ mod tests {
         register_admin_user(&service).await;
 
         let user = service.get_user_by_email(ADMIN_EMAIL).await.unwrap();
-        service.reset_user_auth_token(&user.email).await.unwrap();
+        service.reset_user_auth_token(&user.id).await.unwrap();
 
         let user2 = service.get_user_by_email(ADMIN_EMAIL).await.unwrap();
         assert_ne!(user.auth_token, user2.auth_token);

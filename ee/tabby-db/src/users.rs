@@ -152,15 +152,14 @@ impl DbConn {
         Ok(id)
     }
 
-    pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
-        let email = email.to_owned();
+    pub async fn reset_user_auth_token_by_id(&self, id: i32) -> Result<()> {
         let updated_at = chrono::Utc::now();
         let token = generate_auth_token();
         query!(
-            r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE email = ?"#,
+            r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE id = ?"#,
             token,
             updated_at,
-            email
+            id
         )
         .execute(&self.pool)
         .await?;
@@ -289,7 +288,7 @@ mod tests {
             .await
             .is_ok());
 
-        conn.reset_user_auth_token_by_email(&user.email)
+        conn.reset_user_auth_token_by_id(user.id)
             .await
             .unwrap();
         let new_user = conn.get_user(id).await.unwrap().unwrap();

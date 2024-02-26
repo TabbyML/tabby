@@ -155,7 +155,7 @@ impl Query {
 
     async fn me(ctx: &Context) -> Result<User> {
         let claims = check_claims(ctx)?;
-        ctx.locator.auth().get_user_by_email(&claims.sub).await
+        ctx.locator.auth().get_user(&claims.sub.0).await
     }
 
     async fn users(
@@ -370,7 +370,7 @@ impl Mutation {
         let claims = check_claims(ctx)?;
         ctx.locator
             .auth()
-            .reset_user_auth_token(&claims.sub)
+            .reset_user_auth_token(&claims.sub.0)
             .await?;
         Ok(true)
     }

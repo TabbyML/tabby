@@ -204,7 +204,7 @@ impl RefreshTokenResponse {
 
 // IDWrapper to used as a type guard for refactoring, can be removed in a follow up PR.
 #[derive(Serialize, Deserialize, Debug)]
-struct IDWrapper(ID);
+pub struct IDWrapper(pub ID);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JWTPayload {
@@ -388,7 +388,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn request_invitation_email(&self, input: RequestInvitationInput) -> Result<Invitation>;
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
-    async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
+    async fn reset_user_auth_token(&self, id: &ID) -> Result<()>;
     async fn password_reset(&self, code: &str, password: &str) -> Result<()>;
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
 
@@ -476,7 +476,7 @@ mod tests {
         let claims = JWTPayload::new(ID::from("test".to_owned()), false);
         let token = generate_jwt(claims).unwrap();
         let claims = validate_jwt(&token).unwrap();
-        assert_eq!(claims.sub, "test");
+        assert_eq!(claims.sub.0.to_string(), "test");
         assert!(!claims.is_admin);
     }
 
