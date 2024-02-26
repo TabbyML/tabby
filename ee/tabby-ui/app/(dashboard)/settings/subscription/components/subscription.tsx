@@ -4,8 +4,8 @@ import { capitalize } from 'lodash-es'
 import moment from 'moment'
 
 import { LicenseInfo } from '@/lib/gql/generates/graphql'
+import { useLicense } from '@/lib/hooks/use-license'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useLicense } from '@/components/license-guard'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
@@ -13,13 +13,10 @@ import { LicenseForm } from './license-form'
 import { LicenseTable } from './license-table'
 
 export default function Subscription() {
-  const {
-    licenseInfoQuery: { data, fetching },
-    refreshLicense
-  } = useLicense()
+  const [{ data, fetching }, reexecuteQuery] = useLicense()
   const license = data?.license
   const onUploadLicenseSuccess = () => {
-    refreshLicense()
+    reexecuteQuery()
   }
 
   return (

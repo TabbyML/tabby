@@ -1,86 +1,20 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { capitalize } from 'lodash-es'
-import { useQuery, UseQueryState } from 'urql'
 
-import { graphql } from '@/lib/gql/generates'
 import {
-  Exact,
   GetLicenseInfoQuery,
   LicenseStatus,
   LicenseType
 } from '@/lib/gql/generates/graphql'
+import { useLicenseInfo } from '@/lib/hooks/use-license'
+import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger
 } from '@/components/ui/hover-card'
-
-export const getLicenseInfo = graphql(/* GraphQL */ `
-  query GetLicenseInfo {
-    license {
-      type
-      status
-      seats
-      seatsUsed
-      issuedAt
-      expiresAt
-    }
-  }
-`)
-
-interface LicenseProviderProps {
-  children: React.ReactNode
-}
-
-interface LicenseContextValue {
-  licenseInfoQuery: UseQueryState<
-    GetLicenseInfoQuery,
-    Exact<{
-      [key: string]: never
-    }>
-  >
-  license: GetLicenseInfoQuery['license'] | undefined | null
-  refreshLicense: () => void
-}
-
-const LicenseContext = React.createContext<LicenseContextValue>(
-  {} as LicenseContextValue
-)
-
-const LicenseProvider: React.FunctionComponent<LicenseProviderProps> = ({
-  children
-}) => {
-  const [licenseInfoQuery, refreshLicense] = useQuery({ query: getLicenseInfo })
-  const license = licenseInfoQuery?.data?.license
-
-  return (
-    <LicenseContext.Provider
-      value={{ licenseInfoQuery, license, refreshLicense }}
-    >
-      {children}
-    </LicenseContext.Provider>
-  )
-}
-
-class LicenseProviderIsMissing extends Error {
-  constructor() {
-    super(
-      'LicenseProvider is missing. Please add the LicenseProvider at root level'
-    )
-  }
-}
-
-function useLicense() {
-  const context = React.useContext(LicenseContext)
-
-  if (!context) {
-    throw new LicenseProviderIsMissing()
-  }
-
-  return context
-}
 
 interface LicenseGuardProps {
   licenses: LicenseType[]
@@ -95,7 +29,7 @@ interface LicenseGuardProps {
 
 const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
   const [open, setOpen] = React.useState(false)
-  const { license } = useLicense()
+  const license = useLicenseInfo()
   let isLicenseDisabled = false
   if (
     !license ||
@@ -151,7 +85,7 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
           onOpenChange(true)
         }}
       >
-        <div className={isLicenseDisabled ? 'cursor-not-allowed' : ''}>
+        <div className={cn(isLicenseDisabled ? 'cursor-not-allowed' : '')}>
           {typeof children === 'function'
             ? children({ disabled: isLicenseDisabled, license })
             : updatedChildren}
@@ -162,4 +96,4 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
 }
 LicenseGuard.displayName = 'LicenseGuard'
 
-export { LicenseProvider, LicenseGuard, useLicense }
+export { LicenseGuard }
