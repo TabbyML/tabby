@@ -23,20 +23,6 @@ pub enum LicenseStatus {
     SeatsExceeded,
 }
 
-impl From<LicenseStatus> for CoreError {
-    fn from(val: LicenseStatus) -> Self {
-        match val {
-            LicenseStatus::Ok => panic!("License is valid, shouldn't be converted to CoreError"),
-            LicenseStatus::Expired => {
-                CoreError::InvalidLicense("Your enterprise license is expired")
-            }
-            LicenseStatus::SeatsExceeded => CoreError::InvalidLicense(
-                "You have more active users than seats included in your license",
-            ),
-        }
-    }
-}
-
 #[derive(GraphQLObject)]
 pub struct LicenseInfo {
     pub r#type: LicenseType,
@@ -64,7 +50,7 @@ impl LicenseInfo {
         }
     }
 
-    pub fn ensure_seat_limit(mut self) -> Self {
+    pub fn guard_seat_limit(mut self) -> Self {
         let seats = self.seats as usize;
         self.seats = match self.r#type {
             LicenseType::Community => {
@@ -76,6 +62,15 @@ impl LicenseInfo {
 
         self
     }
+    pub fn ensure_available_seats(&self, num_seats: i32) -> Result<()> {
+        self.ensure_valid_license()?;
+        if (self.seats_used + num_seats) > self.seats {
+            return Err(CoreError::InvalidLicense(
+                "No sufficient seats under current license",
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -85,21 +80,29 @@ pub trait LicenseService: Send + Sync {
 }
 
 pub trait IsLicenseValid {
-    fn is_license_valid(&self) -> bool;
+    fn ensure_valid_license(&self) -> Result<()>;
 }
 
 impl IsLicenseValid for LicenseInfo {
-    fn is_license_valid(&self) -> bool {
-        self.status == LicenseStatus::Ok
+    fn ensure_valid_license(&self) -> Result<()> {
+        match self.status {
+            LicenseStatus::Expired => Err(CoreError::InvalidLicense(
+                "Your enterprise license is expired",
+            )),
+            LicenseStatus::SeatsExceeded => Err(CoreError::InvalidLicense(
+                "You have more active users than seats included in your license",
+            )),
+            LicenseStatus::Ok => Ok(()),
+        }
     }
 }
 
 impl<L: IsLicenseValid, T: Error> IsLicenseValid for std::result::Result<L, T> {
-    fn is_license_valid(&self) -> bool {
+    fn ensure_valid_license(&self) -> Result<()> {
         if let Ok(x) = self {
-            x.is_license_valid()
+            x.ensure_valid_license()
         } else {
-            false
+            Err(CoreError::InvalidLicense("No valid license configured"))
         }
     }
 }
