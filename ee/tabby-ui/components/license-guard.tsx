@@ -85,7 +85,7 @@ function useLicense() {
 
 interface LicenseGuardProps
   extends React.ComponentPropsWithoutRef<typeof Slot> {
-  licenses?: LicenseType[]
+  licenses: LicenseType[]
 }
 
 const LicenseGuard = React.forwardRef<
@@ -95,14 +95,12 @@ const LicenseGuard = React.forwardRef<
   const [open, setOpen] = React.useState(false)
   const { license } = useLicense()
   let isLicenseDisabled = false
-  if (licenses?.length) {
-    if (
-      !license ||
-      license?.status !== LicenseStatus.Ok ||
-      !licenses.includes(license?.type)
-    ) {
-      isLicenseDisabled = true
-    }
+  if (
+    !license ||
+    license?.status !== LicenseStatus.Ok ||
+    !licenses.includes(license?.type)
+  ) {
+    isLicenseDisabled = true
   }
 
   const updatedChildren = React.Children.map(children, child => {
@@ -119,18 +117,22 @@ const LicenseGuard = React.forwardRef<
     setOpen(v)
   }
 
-  const licensesString = licenses?.map(l => capitalize(l))?.join('/') ?? ''
+  let licenseString = capitalize(licenses[0]);
+  let licenseText = licenseString;
+  if (licenses.length > 1) {
+    licenseText = `${licenseString} or higher`
+  }
 
   return (
     <HoverCard open={open} onOpenChange={onOpenChange} openDelay={100}>
       <HoverCardContent side="top" collisionPadding={16} className="w-[400px]">
         <div>
-          This feature is only available on Tabby’s {licensesString} license.
+          This feature is only available on Tabby’s <span className='font-semibold'>{licenseText}</span> plan.
           Upgrade to use this feature.
         </div>
         <div className="mt-4 text-center">
           <Link className={buttonVariants()} href="/settings/subscription">
-            Upgrade to {licensesString}
+            Upgrade to {licenseText}
           </Link>
         </div>
       </HoverCardContent>
