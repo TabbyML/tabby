@@ -216,12 +216,12 @@ impl CompletionService {
             .max_input_length(1024 + 512)
             .max_decoding_length(128)
             .language(Some(get_language(language)));
-        if let Some(temperature) = temperature {
-            builder.sampling_temperature(temperature);
-        }
-        if let Some(seed) = seed {
-            builder.seed(seed);
-        }
+        temperature.inspect(|x| {
+            builder.sampling_temperature(*x);
+        });
+        seed.inspect(|x| {
+            builder.seed(*x);
+        });
         builder
             .build()
             .expect("Failed to create text generation options")
