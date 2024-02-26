@@ -12,10 +12,10 @@ const networkSettingQuery = graphql(/* GraphQL */ `
   }
 `)
 
-const useNetworkSettingQuery = () => useQuery({ query: networkSettingQuery })
+const useQueryNetworkSetting = () => useQuery({ query: networkSettingQuery })
 
 const useNetworkSetting = () => {
-  const [{ data }] = useNetworkSettingQuery()
+  const [{ data }] = useQueryNetworkSetting()
   return data?.networkSetting
 }
 
@@ -35,4 +35,4 @@ function getOrigin() {
   return ''
 }
 
-export { useNetworkSettingQuery, useNetworkSetting, useExternalURL }
+export { useQueryNetworkSetting, useNetworkSetting, useExternalURL }
