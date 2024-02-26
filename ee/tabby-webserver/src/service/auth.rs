@@ -1106,11 +1106,12 @@ mod tests {
         ))
         .await;
 
+        // Create owner user.
         service
             .register("a@example.com".into(), "pass".into(), None)
             .await
             .unwrap();
-        let owner = 1;
+
         let user1 = service
             .db
             .create_user("b@example.com".into(), "pass".into(), false)
