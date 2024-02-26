@@ -237,9 +237,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
         let license = self.license.read_license().await?;
-        if !license.is_license_valid() {
-            return Err(license.status.into());
-        };
+        license.ensure_available_seats(1)?;
 
         let invitation = self.db.create_invitation(email.clone()).await?;
         let email_sent = self
@@ -384,6 +382,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
+        if active {
+            // Check there's avaiable seat if switching user to active.
+            let license = self.license.read_license().await?;
+            license.ensure_available_seats(1)?;
+        }
+
         let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {

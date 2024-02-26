@@ -32,7 +32,7 @@ use self::{
         RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
+    license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseStatus, LicenseType},
     repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
@@ -129,10 +129,7 @@ async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<()
         ));
     }
 
-    match license.status {
-        LicenseStatus::Ok => Ok(()),
-        LicenseStatus::Expired | LicenseStatus::SeatsExceeded => Err(license.status.into()),
-    }
+    license.ensure_valid_license()
 }
 
 #[derive(Default)]
