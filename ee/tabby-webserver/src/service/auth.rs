@@ -540,7 +540,7 @@ mod tests {
             unimplemented!()
         }
 
-        async fn delete_license(&self) -> Result<()> {
+        async fn reset_license(&self) -> Result<()> {
             unimplemented!()
         }
     }

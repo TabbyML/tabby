@@ -159,7 +159,7 @@ impl LicenseService for LicenseServiceImpl {
         Ok(())
     }
 
-    async fn delete_license(&self) -> Result<()> {
+    async fn reset_license(&self) -> Result<()> {
         self.db.update_enterprise_license(None).await?;
         Ok(())
     }
@@ -215,7 +215,7 @@ mod tests {
 
         assert!(service.update_license(EXPIRED_TOKEN.into()).await.is_err());
 
-        service.delete_license().await.unwrap();
+        service.reset_license().await.unwrap();
         assert_eq!(
             service.read_license().await.unwrap().seats,
             LicenseInfo::seat_limits_for_community_license() as i32
