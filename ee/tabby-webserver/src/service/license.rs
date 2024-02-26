@@ -216,6 +216,9 @@ mod tests {
         assert!(service.update_license(EXPIRED_TOKEN.into()).await.is_err());
 
         service.delete_license().await.unwrap();
-        assert_eq!(service.read_license().await.unwrap().seats, 1);
+        assert_eq!(
+            service.read_license().await.unwrap().seats,
+            LicenseInfo::seat_limits_for_community_license() as i32
+        );
     }
 }
