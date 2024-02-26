@@ -479,16 +479,46 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 #[cfg(test)]
 mod tests {
 
-    struct MockLicenseService(LicenseStatus);
+    struct MockLicenseService {
+        status: LicenseStatus,
+        seats: i32,
+        seats_used: i32,
+    }
+
+    impl MockLicenseService {
+        fn team() -> Self {
+            Self {
+                status: LicenseStatus::Ok,
+                seats: 5,
+                seats_used: 1,
+            }
+        }
+
+        fn team_with_seats(seats: i32) -> Self {
+            Self {
+                status: LicenseStatus::Ok,
+                seats,
+                seats_used: 1,
+            }
+        }
+
+        fn invalid() -> Self {
+            Self {
+                status: LicenseStatus::Expired,
+                seats: 5,
+                seats_used: 1,
+            }
+        }
+    }
 
     #[async_trait]
     impl LicenseService for MockLicenseService {
         async fn read_license(&self) -> Result<LicenseInfo> {
             Ok(LicenseInfo {
                 r#type: crate::schema::license::LicenseType::Team,
-                status: self.0.clone(),
-                seats: 5,
-                seats_used: 1,
+                status: self.status.clone(),
+                seats: self.seats,
+                seats_used: self.seats_used,
                 issued_at: Some(Utc::now()),
                 expires_at: Some(Utc::now()),
             })
@@ -499,22 +529,23 @@ mod tests {
         }
     }
 
-    async fn test_authentication_service() -> AuthenticationServiceImpl {
+    async fn test_authentication_service_with_license(
+        license: Arc<dyn LicenseService>,
+    ) -> AuthenticationServiceImpl {
         let db = DbConn::new_in_memory().await.unwrap();
         AuthenticationServiceImpl {
             db: db.clone(),
             mail: Arc::new(new_email_service(db).await.unwrap()),
-            license: Arc::new(MockLicenseService(LicenseStatus::Ok)),
+            license,
         }
     }
 
+    async fn test_authentication_service() -> AuthenticationServiceImpl {
+        test_authentication_service_with_license(Arc::new(MockLicenseService::team())).await
+    }
+
     async fn test_authentication_service_without_valid_license() -> AuthenticationServiceImpl {
-        let db = DbConn::new_in_memory().await.unwrap();
-        AuthenticationServiceImpl {
-            db: db.clone(),
-            mail: Arc::new(new_email_service(db).await.unwrap()),
-            license: Arc::new(MockLicenseService(LicenseStatus::Expired)),
-        }
+        test_authentication_service_with_license(Arc::new(MockLicenseService::invalid())).await
     }
 
     async fn test_authentication_service_with_mail() -> (AuthenticationServiceImpl, TestEmailServer)
@@ -524,7 +555,7 @@ mod tests {
         let service = AuthenticationServiceImpl {
             db: db.clone(),
             mail: Arc::new(smtp.create_test_email_service(db).await),
-            license: Arc::new(MockLicenseService(LicenseStatus::Ok)),
+            license: Arc::new(MockLicenseService::team()),
         };
         (service, smtp)
     }
@@ -1026,6 +1057,24 @@ mod tests {
     #[tokio::test]
     async fn test_create_invitation_without_license() {
         let service = test_authentication_service_without_valid_license().await;
+        assert_matches!(
+            service.create_invitation("abc.com".into()).await,
+            Err(CoreError::InvalidLicense(_))
+        )
+    }
+
+    #[tokio::test]
+    async fn test_create_invitation_without_sufficient_seats() {
+        let service = test_authentication_service_with_license(Arc::new(
+            MockLicenseService::team_with_seats(2),
+        ))
+        .await;
+        assert_matches!(service.create_invitation("abc.com".into()).await, Ok(_));
+
+        let service = test_authentication_service_with_license(Arc::new(
+            MockLicenseService::team_with_seats(1),
+        ))
+        .await;
         assert_matches!(
             service.create_invitation("abc.com".into()).await,
             Err(CoreError::InvalidLicense(_))
