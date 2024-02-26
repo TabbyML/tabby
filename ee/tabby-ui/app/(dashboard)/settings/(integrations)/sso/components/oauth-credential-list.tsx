@@ -7,15 +7,18 @@ import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import {
+  LicenseType,
   OAuthCredentialQuery,
   OAuthProvider
 } from '@/lib/gql/generates/graphql'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { PROVIDER_METAS } from './constant'
 import { SSOHeader } from './sso-header'
+import { LicenseGuard } from '@/components/license-guard'
+import { useRouter } from 'next/navigation'
 
 export const oauthCredential = graphql(/* GraphQL */ `
   query OAuthCredential($provider: OAuthProvider!) {
@@ -42,6 +45,15 @@ const OAuthCredentialList = () => {
   const credentialList = React.useMemo(() => {
     return compact([githubData?.oauthCredential, googleData?.oauthCredential])
   }, [githubData, googleData])
+
+  const router = useRouter();
+  const createButton =
+    <LicenseGuard licenses={[LicenseType.Enterprise]}>
+      {({ hasValidLicense }) => <Button disabled={!hasValidLicense} onClick={() => router.push("/settings/sso/new")}>
+        Create
+      </Button>
+      }
+    </LicenseGuard>
 
   if (!credentialList?.length) {
     return (
@@ -79,16 +91,7 @@ const OAuthCredentialList = () => {
           )
         })}
       </div>
-      {credentialList.length < 2 && (
-        <div className="mt-4 flex justify-end">
-          <Link
-            href="/settings/sso/new"
-            className={buttonVariants({ variant: 'default' })}
-          >
-            Create
-          </Link>
-        </div>
-      )}
+      {credentialList.length < 2 && <div className="mt-4 flex justify-end">{createButton}</div>}
     </div>
   )
 }

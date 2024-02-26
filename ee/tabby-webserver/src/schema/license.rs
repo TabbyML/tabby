@@ -54,9 +54,9 @@ impl LicenseInfo {
         let seats = self.seats as usize;
         self.seats = match self.r#type {
             LicenseType::Community => {
-                std::cmp::max(seats, Self::seat_limits_for_community_license())
+                std::cmp::min(seats, Self::seat_limits_for_community_license())
             }
-            LicenseType::Team => std::cmp::max(seats, Self::seat_limits_for_team_license()),
+            LicenseType::Team => std::cmp::min(seats, Self::seat_limits_for_team_license()),
             LicenseType::Enterprise => seats,
         } as i32;
 
