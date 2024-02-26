@@ -47,7 +47,7 @@ const LicenseGuard: React.FC<LicenseGuardProps> = ({ licenses, children }) => {
     <HoverCard open={open} onOpenChange={onOpenChange} openDelay={100}>
       <HoverCardContent side="top" collisionPadding={16} className="w-[400px]">
         <div>
-          This feature is only available on Tabby's{' '}
+          This feature is only available on Tabby&apos;s{' '}
           <span className="font-semibold">{licenseText}</span> plan. Upgrade to
           use this feature.
         </div>
