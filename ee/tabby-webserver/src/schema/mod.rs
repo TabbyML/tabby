@@ -32,7 +32,7 @@ use self::{
         RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseStatus, LicenseType},
+    license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,

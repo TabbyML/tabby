@@ -24,7 +24,7 @@ use crate::{
             UpdateOAuthCredentialInput, User,
         },
         email::EmailService,
-        license::{IsLicenseValid, LicenseService},
+        license::{LicenseService},
         setting::SettingService,
         CoreError, Result,
     },
