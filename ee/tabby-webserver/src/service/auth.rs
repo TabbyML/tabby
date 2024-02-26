@@ -537,7 +537,11 @@ mod tests {
         }
 
         async fn update_license(&self, _: String) -> Result<()> {
-            Ok(())
+            unimplemented!()
+        }
+
+        async fn reset_license(&self) -> Result<()> {
+            unimplemented!()
         }
     }
 

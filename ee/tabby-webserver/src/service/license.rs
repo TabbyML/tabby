@@ -158,6 +158,11 @@ impl LicenseService for LicenseServiceImpl {
         };
         Ok(())
     }
+
+    async fn reset_license(&self) -> Result<()> {
+        self.db.update_enterprise_license(None).await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -199,7 +204,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_update_license() {
+    async fn test_license_mutations() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = new_license_service(db).await.unwrap();
 
@@ -209,5 +214,11 @@ mod tests {
         assert!(service.read_license().await.is_ok());
 
         assert!(service.update_license(EXPIRED_TOKEN.into()).await.is_err());
+
+        service.reset_license().await.unwrap();
+        assert_eq!(
+            service.read_license().await.unwrap().seats,
+            LicenseInfo::seat_limits_for_community_license() as i32
+        );
     }
 }
