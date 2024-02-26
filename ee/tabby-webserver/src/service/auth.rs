@@ -308,7 +308,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn delete_invitation(&self, id: &ID) -> Result<ID> {
-        Ok((self.db.delete_invitation(id.as_rowid()? as i64).await? as i32).as_id())
+        Ok((self.db.delete_invitation(id.as_rowid()? as i64).await?).as_id())
     }
 
     async fn reset_user_auth_token(&self, id: &ID) -> Result<()> {
