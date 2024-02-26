@@ -4,6 +4,7 @@ import React from 'react'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates/gql'
+import { LicenseType } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import {
   AlertDialog,
@@ -18,7 +19,6 @@ import {
 import { buttonVariants } from '@/components/ui/button'
 import { IconSpinner } from '@/components/ui/icons'
 import { LicenseGuard } from '@/components/license-guard'
-import { LicenseType } from '@/lib/gql/generates/graphql'
 
 const updateUserRoleMutation = graphql(/* GraphQL */ `
   mutation updateUserRole($id: ID!, $isAdmin: Boolean!) {
@@ -84,17 +84,18 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <LicenseGuard licenses={[LicenseType.Team, LicenseType.Enterprise]}>
-            {({ hasValidLicense }) => <AlertDialogAction
-              className={buttonVariants()}
-              onClick={onSubmit}
-              disabled={!hasValidLicense || isSubmitting}
-            >
-              {isSubmitting && (
-                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Confirm
-            </AlertDialogAction>
-            }
+            {({ hasValidLicense }) => (
+              <AlertDialogAction
+                className={buttonVariants()}
+                onClick={onSubmit}
+                disabled={!hasValidLicense || isSubmitting}
+              >
+                {isSubmitting && (
+                  <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Confirm
+              </AlertDialogAction>
+            )}
           </LicenseGuard>
         </AlertDialogFooter>
       </AlertDialogContent>

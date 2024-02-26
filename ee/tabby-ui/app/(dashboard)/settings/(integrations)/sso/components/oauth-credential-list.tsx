@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { compact, find } from 'lodash-es'
 import { useQuery } from 'urql'
 
@@ -14,11 +15,10 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { LicenseGuard } from '@/components/license-guard'
 
 import { PROVIDER_METAS } from './constant'
 import { SSOHeader } from './sso-header'
-import { LicenseGuard } from '@/components/license-guard'
-import { useRouter } from 'next/navigation'
 
 export const oauthCredential = graphql(/* GraphQL */ `
   query OAuthCredential($provider: OAuthProvider!) {
@@ -46,14 +46,19 @@ const OAuthCredentialList = () => {
     return compact([githubData?.oauthCredential, googleData?.oauthCredential])
   }, [githubData, googleData])
 
-  const router = useRouter();
-  const createButton =
+  const router = useRouter()
+  const createButton = (
     <LicenseGuard licenses={[LicenseType.Enterprise]}>
-      {({ hasValidLicense }) => <Button disabled={!hasValidLicense} onClick={() => router.push("/settings/sso/new")}>
-        Create
-      </Button>
-      }
+      {({ hasValidLicense }) => (
+        <Button
+          disabled={!hasValidLicense}
+          onClick={() => router.push('/settings/sso/new')}
+        >
+          Create
+        </Button>
+      )}
     </LicenseGuard>
+  )
 
   if (!credentialList?.length) {
     return (
@@ -91,7 +96,9 @@ const OAuthCredentialList = () => {
           )
         })}
       </div>
-      {credentialList.length < 2 && <div className="mt-4 flex justify-end">{createButton}</div>}
+      {credentialList.length < 2 && (
+        <div className="mt-4 flex justify-end">{createButton}</div>
+      )}
     </div>
   )
 }

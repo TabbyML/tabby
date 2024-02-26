@@ -39,9 +39,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CopyButton } from '@/components/copy-button'
+import { LicenseGuard } from '@/components/license-guard'
 
 import { oauthCredential } from './oauth-credential-list'
-import { LicenseGuard } from '@/components/license-guard'
 
 export const updateOauthCredentialMutation = graphql(/* GraphQL */ `
   mutation updateOauthCredential($input: UpdateOAuthCredentialInput!) {
@@ -326,16 +326,19 @@ export default function OAuthCredentialForm({
               </AlertDialog>
             )}
             <LicenseGuard licenses={[LicenseType.Enterprise]}>
-              {({hasValidLicense}) => <Button
+              {({ hasValidLicense }) => (
+                <Button
                   type="submit"
-                  disabled={!hasValidLicense || isSubmitting || (!isNew && !isDirty)}
+                  disabled={
+                    !hasValidLicense || isSubmitting || (!isNew && !isDirty)
+                  }
                 >
                   {isSubmitting && (
                     <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   {isNew ? 'Create' : 'Update'}
                 </Button>
-              }
+              )}
             </LicenseGuard>
           </div>
         </form>
