@@ -487,7 +487,7 @@ mod tests {
             Ok(LicenseInfo {
                 r#type: crate::schema::license::LicenseType::Team,
                 status: self.0.clone(),
-                seats: 1,
+                seats: 5,
                 seats_used: 1,
                 issued_at: Some(Utc::now()),
                 expires_at: Some(Utc::now()),
