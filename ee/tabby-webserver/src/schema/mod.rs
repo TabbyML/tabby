@@ -524,6 +524,12 @@ impl Mutation {
         ctx.locator.license().update_license(license).await?;
         Ok(true)
     }
+
+    async fn delete_license(ctx: &Context) -> Result<bool> {
+        check_admin(ctx)?;
+        ctx.locator.license().delete_license().await?;
+        Ok(true)
+    }
 }
 
 fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {

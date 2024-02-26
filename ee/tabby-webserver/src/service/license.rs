@@ -158,6 +158,11 @@ impl LicenseService for LicenseServiceImpl {
         };
         Ok(())
     }
+
+    async fn delete_license(&self) -> Result<()> {
+        self.db.update_enterprise_license(None).await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
