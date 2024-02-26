@@ -1143,5 +1143,20 @@ mod tests {
             service.update_user_role(&user3.as_id(), true).await,
             Err(CoreError::InvalidLicense(_))
         );
+
+        // Change user2 to deactive.
+        service
+            .update_user_active(&user2.as_id(), false)
+            .await
+            .unwrap();
+
+        assert_matches!(service.db.count_active_admin_users().await, Ok(2));
+        assert_matches!(service.update_user_role(&user3.as_id(), true).await, Ok(_));
+
+        // Not able to toggle user to active due to admin seat limits.
+        assert_matches!(
+            service.update_user_role(&user2.as_id(), true).await,
+            Err(CoreError::InvalidLicense(_))
+        );
     }
 }
