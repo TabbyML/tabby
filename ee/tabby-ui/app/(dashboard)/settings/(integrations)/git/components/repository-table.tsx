@@ -118,12 +118,12 @@ export default function RepositoryTable() {
     <div>
       {initialized ? (
         <>
-          <Table className="border-b">
+          <Table className="border-b table-fixed">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[25%]">Name</TableHead>
-                <TableHead className="w-[45%]">Git URL</TableHead>
-                <TableHead></TableHead>
+                <TableHead>Git URL</TableHead>
+                <TableHead className='w-[100px]'></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -139,7 +139,7 @@ export default function RepositoryTable() {
                     return (
                       <TableRow key={x.node.id}>
                         <TableCell>{x.node.name}</TableCell>
-                        <TableCell>{x.node.gitUrl}</TableCell>
+                        <TableCell className='truncate'>{x.node.gitUrl}</TableCell>
                         <TableCell className="flex justify-end">
                           <div className="flex gap-1">
                             <Button
