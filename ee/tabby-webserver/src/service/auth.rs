@@ -241,6 +241,15 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
     }
 
+    async fn get_user(&self, id: &ID) -> Result<User> {
+        let user = self.db.get_user(id.as_rowid()?).await?;
+        if let Some(user) = user {
+            Ok(user.into())
+        } else {
+            Err(anyhow!("User not found").into())
+        }
+    }
+
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
         let license = self.license.read_license().await?;
         license.ensure_available_seats(1)?;

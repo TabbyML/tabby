@@ -202,7 +202,11 @@ impl RefreshTokenResponse {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+// IDWrapper to used as a type guard for refactoring, can be removed in a follow up PR.
+#[derive(Serialize, Deserialize, Debug)]
+struct IDWrapper(ID);
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct JWTPayload {
     /// Expiration time (as UTC timestamp)
     exp: i64,
@@ -211,7 +215,7 @@ pub struct JWTPayload {
     iat: i64,
 
     /// User id string
-    pub sub: String,
+    pub sub: IDWrapper,
 
     /// Whether the user is admin.
     pub is_admin: bool,
@@ -223,7 +227,7 @@ impl JWTPayload {
         Self {
             iat: now as i64,
             exp: (now + *JWT_DEFAULT_EXP) as i64,
-            sub: id.to_string(),
+            sub: IDWrapper(id),
             is_admin,
         }
     }
@@ -378,6 +382,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
+    async fn get_user(&self, id: &ID) -> Result<User>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
     async fn request_invitation_email(&self, input: RequestInvitationInput) -> Result<Invitation>;
