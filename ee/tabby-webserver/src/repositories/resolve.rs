@@ -58,7 +58,7 @@ impl RepositoryCache {
             .collect();
         let mut repository_lookup = self.repository_lookup.write().unwrap();
         debug!("Reloading repositoriy metadata...");
-        *repository_lookup = load_meta(&new_repositories);
+        *repository_lookup = load_meta(new_repositories);
         Ok(())
     }
 
@@ -149,7 +149,7 @@ impl From<SourceFile> for RepositoryMeta {
     }
 }
 
-fn load_meta(repositories: &Vec<RepositoryConfig>) -> HashMap<RepositoryKey, RepositoryMeta> {
+fn load_meta(repositories: Vec<RepositoryConfig>) -> HashMap<RepositoryKey, RepositoryMeta> {
     let mut dataset = HashMap::new();
     // Construct map of String -> &RepositoryConfig for lookup
     let repo_conf = repositories

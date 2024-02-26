@@ -1,7 +1,7 @@
 fix:
 	cargo machete --fix || true
 	cargo +nightly fmt
-	cargo +nightly clippy --fix --allow-dirty --allow-staged
+	cargo clippy --fix --allow-dirty --allow-staged
 
 fix-ui:
 	cd ee/tabby-ui && yarn format:write && yarn lint:fix

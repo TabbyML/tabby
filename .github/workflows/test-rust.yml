@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUST_TOOLCHAIN: 1.73.0
+  RUST_TOOLCHAIN: 1.76.0
 
 jobs:
   tests:
