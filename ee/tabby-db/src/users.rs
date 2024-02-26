@@ -288,9 +288,7 @@ mod tests {
             .await
             .is_ok());
 
-        conn.reset_user_auth_token_by_id(user.id)
-            .await
-            .unwrap();
+        conn.reset_user_auth_token_by_id(user.id).await.unwrap();
         let new_user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.email, new_user.email);
         assert_ne!(user.auth_token, new_user.auth_token);
