@@ -14,6 +14,7 @@ import {
 } from "vscode";
 import { EventEmitter } from "events";
 import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-agent";
+import { logger } from "./logger";
 import { agent } from "./agent";
 
 type DisplayedCompletion = {
@@ -23,6 +24,7 @@ type DisplayedCompletion = {
 };
 
 export class TabbyCompletionProvider extends EventEmitter implements InlineCompletionItemProvider {
+  private readonly logger = logger();
   private triggerMode: "automatic" | "manual" | "disabled" = "automatic";
   private onGoingRequestAbortController: AbortController | null = null;
   private loading: boolean = false;
@@ -52,7 +54,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     context: InlineCompletionContext,
     token: CancellationToken,
   ): Promise<InlineCompletionItem[] | null> {
-    console.debug("Call provideInlineCompletionItems.");
+    this.logger.debug("Call provideInlineCompletionItems.");
 
     if (this.displayedCompletion) {
       // auto dismiss by new completion
@@ -60,7 +62,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     }
 
     if (context.triggerKind === InlineCompletionTriggerKind.Automatic && this.triggerMode === "manual") {
-      console.debug("Skip automatic trigger when triggerMode is manual.");
+      this.logger.debug("Skip automatic trigger when triggerMode is manual.");
       return null;
     }
 
@@ -70,18 +72,18 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       window.activeTextEditor &&
       !window.activeTextEditor.selection.isEmpty
     ) {
-      console.debug("Text selected, skipping.");
+      this.logger.debug("Text selected, skipping.");
       return null;
     }
 
     // Check if autocomplete widget is visible
     if (context.selectedCompletionInfo !== undefined) {
-      console.debug("Autocomplete widget is visible, skipping.");
+      this.logger.debug("Autocomplete widget is visible, skipping.");
       return null;
     }
 
     if (token?.isCancellationRequested) {
-      console.debug("Completion request is canceled before agent request.");
+      this.logger.debug("Completion request is canceled before agent request.");
       return null;
     }
 
@@ -99,7 +101,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     const abortController = new AbortController();
     this.onGoingRequestAbortController = abortController;
     token?.onCancellationRequested(() => {
-      console.debug("Completion request is canceled.");
+      this.logger.debug("Completion request is canceled.");
       abortController.abort();
     });
 
@@ -111,7 +113,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       this.emit("loadingStatusUpdated");
 
       if (token?.isCancellationRequested) {
-        console.debug("Completion request is canceled after agent request.");
+        this.logger.debug("Completion request is canceled after agent request.");
         return null;
       }
 
@@ -146,7 +148,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         this.emit("loadingStatusUpdated");
       }
       if (error.name !== "AbortError") {
-        console.debug("Error when providing completions", { error });
+        this.logger.error("Error when providing completions", { error });
       }
     }
 
@@ -208,10 +210,10 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         choice_index: completion.choices[0]!.index,
         view_id: id,
       };
-      console.debug(`Post event ${event}`, { postBody });
+      this.logger.debug(`Post event ${event}`, { postBody });
       agent().postEvent(postBody);
     } catch (error: any) {
-      console.debug("Error when posting event", { error });
+      this.logger.error("Error when posting event", { error });
     }
   }
 

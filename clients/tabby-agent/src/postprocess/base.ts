@@ -1,5 +1,5 @@
 import { CompletionResponse, CompletionResponseChoice, CompletionContext } from "../CompletionContext";
-import { rootLogger } from "../logger";
+import { logger as getLogger } from "../logger";
 import "../ArrayExt";
 
 type PostprocessFilterBase<T extends string | CompletionResponseChoice> = (
@@ -10,7 +10,7 @@ type PostprocessFilterBase<T extends string | CompletionResponseChoice> = (
 export type PostprocessFilter = PostprocessFilterBase<string>;
 export type PostprocessChoiceFilter = PostprocessFilterBase<CompletionResponseChoice>;
 
-export const logger = rootLogger.child({ component: "Postprocess" });
+export const logger = getLogger("Postprocess");
 
 export function applyFilter(
   filter: PostprocessFilter,

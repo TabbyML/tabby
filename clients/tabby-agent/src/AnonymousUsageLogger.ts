@@ -5,12 +5,12 @@ import { v4 as uuid } from "uuid";
 import type { paths as CloudApi } from "./types/cloudApi";
 import { name as agentName, version as agentVersion } from "../package.json";
 import { isBrowser } from "./env";
-import { rootLogger } from "./logger";
+import { logger } from "./logger";
 import { DataStore } from "./dataStore";
 
 export class AnonymousUsageLogger {
   private anonymousUsageTrackingApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
-  private logger = rootLogger.child({ component: "AnonymousUsage" });
+  private logger = logger("AnonymousUsage");
   private systemData = {
     agent: `${agentName}, ${agentVersion}`,
     browser: isBrowser ? navigator?.userAgent || "browser" : undefined,

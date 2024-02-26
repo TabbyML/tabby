@@ -15,14 +15,14 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { name as agentName, version as agentVersion } from "../package.json";
 import { Agent, StatusChangedEvent, CompletionRequest, CompletionResponse } from "./Agent";
-import { rootLogger } from "./logger";
+import { logger } from "./logger";
 import { splitLines, isCanceledError } from "./utils";
 
 export class LspServer {
   private readonly connection = createConnection();
   private readonly documents = new TextDocuments(TextDocument);
 
-  private readonly logger = rootLogger.child({ component: "LspServer" });
+  private readonly logger = logger("LspServer");
 
   private agent?: Agent;
 

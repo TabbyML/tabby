@@ -1,6 +1,6 @@
 import readline from "readline";
 import { AgentFunction, AgentEvent, Agent, agentEventNames } from "./Agent";
-import { rootLogger } from "./logger";
+import { logger } from "./logger";
 import { isCanceledError } from "./utils";
 
 type AgentFunctionRequest<T extends keyof AgentFunction> = [
@@ -45,7 +45,7 @@ export class JsonLineServer {
   private readonly process: NodeJS.Process = process;
   private readonly inStream: NodeJS.ReadStream = process.stdin;
   private readonly outStream: NodeJS.WriteStream = process.stdout;
-  private readonly logger = rootLogger.child({ component: "JsonLineServer" });
+  private readonly logger = logger("JsonLineServer");
 
   private abortControllers: { [id: string]: AbortController } = {};
 

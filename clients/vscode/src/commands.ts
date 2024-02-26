@@ -12,6 +12,7 @@ import {
 } from "vscode";
 import os from "os";
 import { strict as assert } from "assert";
+import { logger } from "./logger";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
@@ -65,7 +66,7 @@ const setApiEndpoint: Command = {
       })
       .then((url) => {
         if (url) {
-          console.debug("Set Tabby Server URL: ", url);
+          logger().debug("Set Tabby Server URL: ", url);
           configuration.update("api.endpoint", url, configTarget, false);
         }
       });
@@ -88,11 +89,11 @@ const setApiToken = (context: ExtensionContext): Command => {
             return; // User canceled
           }
           if (token.length > 0) {
-            console.debug("Set token: ", token);
+            logger().debug("Set token: ", token);
             context.globalState.update("server.token", token);
             agent().updateConfig("server.token", token);
           } else {
-            console.debug("Clear token.");
+            logger().debug("Clear token.");
             context.globalState.update("server.token", undefined);
             agent().clearConfig("server.token");
           }
@@ -178,7 +179,7 @@ const openAuthPage: Command = {
           if (error.name === "AbortError") {
             return;
           }
-          console.debug("Error auth", { error });
+          logger().error("Error auth", { error });
           notifications.showInformationWhenAuthFailed();
         } finally {
           callbacks?.onAuthEnd?.();

@@ -6,7 +6,7 @@ import type { paths as CloudApi } from "./types/cloudApi";
 import type { AbortSignalOption } from "./Agent";
 import { HttpError, abortSignalFromAnyOf } from "./utils";
 import { DataStore, FileDataStore } from "./dataStore";
-import { rootLogger } from "./logger";
+import { logger } from "./logger";
 
 export type StorageData = {
   auth: { [endpoint: string]: { jwt: string } };
@@ -46,7 +46,7 @@ export class Auth extends EventEmitter {
     },
   };
 
-  private readonly logger = rootLogger.child({ component: "Auth" });
+  private readonly logger = logger("Auth");
   private dataStore?: DataStore;
   private authApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
   private jwt?: JWT;

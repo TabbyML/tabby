@@ -1,6 +1,7 @@
 import { StatusBarAlignment, ThemeColor, ExtensionContext, window } from "vscode";
 import { createMachine, interpret } from "@xstate/fsm";
 import type { StatusChangedEvent, AuthRequiredEvent, IssuesUpdatedEvent } from "tabby-agent";
+import { logger } from "./logger";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
@@ -19,6 +20,7 @@ const backgroundColorNormal = new ThemeColor("statusBar.background");
 const backgroundColorWarning = new ThemeColor("statusBarItem.warningBackground");
 
 export class TabbyStatusBarItem {
+  private readonly logger = logger();
   private item = window.createStatusBarItem(StatusBarAlignment.Right);
   private extensionContext: ExtensionContext;
   private completionProvider: TabbyCompletionProvider;
@@ -144,17 +146,17 @@ export class TabbyStatusBarItem {
     });
 
     agent().on("statusChanged", (event: StatusChangedEvent) => {
-      console.debug("Tabby agent statusChanged", { event });
+      this.logger.info("Tabby agent statusChanged", { event });
       this.fsmService.send(event.status);
     });
 
     agent().on("authRequired", (event: AuthRequiredEvent) => {
-      console.debug("Tabby agent authRequired", { event });
+      this.logger.info("Tabby agent authRequired", { event });
       notifications.showInformationWhenUnauthorized();
     });
 
     agent().on("issuesUpdated", (event: IssuesUpdatedEvent) => {
-      console.debug("Tabby agent issuesUpdated", { event });
+      this.logger.info("Tabby agent issuesUpdated", { event });
       const status = agent().getStatus();
       this.fsmService.send(status);
     });
@@ -227,7 +229,7 @@ export class TabbyStatusBarItem {
       arguments: [() => notifications.showInformationWhenInlineSuggestDisabled()],
     };
 
-    console.debug("Tabby code completion is enabled but inline suggest is disabled.");
+    this.logger.info("Tabby code completion is enabled but inline suggest is disabled.");
     notifications.showInformationWhenInlineSuggestDisabled();
   }
 
