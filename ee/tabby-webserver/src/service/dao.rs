@@ -52,6 +52,7 @@ impl From<UserDAO> for auth::User {
             auth_token: val.auth_token,
             created_at: val.created_at,
             active: val.active,
+            is_password_set: !val.password_encrypted.is_empty(),
         }
     }
 }

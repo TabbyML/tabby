@@ -244,6 +244,7 @@ pub struct User {
     pub auth_token: String,
     pub created_at: DateTime<Utc>,
     pub active: bool,
+    pub is_password_set: bool,
 }
 
 impl relay::NodeType for User {
@@ -308,33 +309,35 @@ pub struct PasswordResetInput {
 
 #[derive(Validate, GraphQLInputObject)]
 pub struct PasswordUpdateInput {
+    pub old_password: String,
+
     #[validate(length(
         min = 8,
-        code = "password1",
+        code = "new_password1",
         message = "Password must be at least 8 characters"
     ))]
     #[validate(length(
         max = 20,
-        code = "password1",
+        code = "new_password1",
         message = "Password must be at most 20 characters"
     ))]
-    pub password1: String,
+    pub new_password1: String,
     #[validate(length(
         min = 8,
-        code = "password2",
+        code = "new_password2",
         message = "Password must be at least 8 characters"
     ))]
     #[validate(length(
         max = 20,
-        code = "password2",
+        code = "new_password2",
         message = "Password must be at most 20 characters"
     ))]
     #[validate(must_match(
-        code = "password2",
+        code = "new_password2",
         message = "Passwords do not match",
-        other = "password1"
+        other = "new_password1"
     ))]
-    pub password2: String,
+    pub new_password2: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
@@ -423,7 +426,12 @@ pub trait AuthenticationService: Send + Sync {
     async fn reset_user_auth_token(&self, id: &ID) -> Result<()>;
     async fn password_reset(&self, code: &str, password: &str) -> Result<()>;
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
-    async fn update_user_password(&self, email: &str, password: &str) -> Result<()>;
+    async fn update_user_password(
+        &self,
+        email: &str,
+        old_password: &str,
+        new_password: &str,
+    ) -> Result<()>;
 
     async fn list_users(
         &self,

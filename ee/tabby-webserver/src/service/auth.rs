@@ -140,14 +140,26 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
-    async fn update_user_password(&self, email: &str, password: &str) -> Result<()> {
+    async fn update_user_password(
+        &self,
+        email: &str,
+        old_password: &str,
+        new_password: &str,
+    ) -> Result<()> {
         let user = self
             .db
             .get_user_by_email(email)
             .await?
             .ok_or_else(|| anyhow!("Invalid user"))?;
+        if !user.password_encrypted.is_empty()
+            && !password_verify(old_password, &user.password_encrypted)
+        {
+            return Err(anyhow!("Password is incorrect").into());
+        }
+        let new_password_encrypted =
+            password_hash(new_password).map_err(|_| anyhow!("Unknown error"))?;
         self.db
-            .update_user_password(user.id, password.into())
+            .update_user_password(user.id, new_password_encrypted)
             .await?;
         Ok(())
     }
@@ -1176,5 +1188,30 @@ mod tests {
             service.update_user_role(&user2.as_id(), true).await,
             Err(CoreError::InvalidLicense(_))
         );
+    }
+
+    #[tokio::test]
+    async fn test_update_password() {
+        let service = test_authentication_service().await;
+        service
+            .db
+            .create_user("test@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
+
+        assert!(service
+            .update_user_password("test@example.com", "", "newpass")
+            .await
+            .is_ok());
+
+        assert!(service
+            .update_user_password("test@example.com", "", "newpass2")
+            .await
+            .is_err());
+
+        assert!(service
+            .update_user_password("test@example.com", "newpass", "newpass2")
+            .await
+            .is_ok());
     }
 }

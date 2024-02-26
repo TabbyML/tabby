@@ -367,12 +367,12 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn update_password(ctx: &Context, input: PasswordUpdateInput) -> Result<bool> {
+    async fn password_change(ctx: &Context, input: PasswordUpdateInput) -> Result<bool> {
         let claims = check_claims(ctx)?;
         input.validate()?;
         ctx.locator
             .auth()
-            .update_user_password(&claims.sub, &input.password1)
+            .update_user_password(&claims.sub, &input.old_password, &input.new_password1)
             .await?;
         Ok(true)
     }
