@@ -42,8 +42,7 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
   isPromote
 }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const requestPasswordResetEmail = useMutation(updateUserRoleMutation)
-
+  const updateUserRole = useMutation(updateUserRoleMutation)
   const onSubmit: React.MouseEventHandler<HTMLButtonElement> = async e => {
     e.preventDefault()
 
@@ -52,13 +51,15 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
       return
     }
     setIsSubmitting(true)
-    return requestPasswordResetEmail({
+    return updateUserRole({
       id: user.id,
       isAdmin: !!isPromote
     })
       .then(res => {
         if (res?.data?.updateUserRole) {
           onSuccess?.()
+        } else if (res?.error) {
+          toast.error(res.error?.message ?? 'update failed')
         }
       })
       .finally(() => {

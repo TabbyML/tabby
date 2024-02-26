@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { noop } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
+import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
@@ -46,10 +46,7 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 function MainPanel() {
   const { data: healthInfo } = useHealth()
   const [{ data }, reexecuteQuery] = useQuery({ query: meQuery })
-  const [origin, setOrigin] = useState('')
-  useEffect(() => {
-    setOrigin(new URL(window.location.href).origin)
-  }, [])
+  const externalUrl = useExternalURL()
 
   const resetUserAuthToken = useMutation(resetUserAuthTokenDocument, {
     onCompleted: () => reexecuteQuery()
@@ -65,8 +62,12 @@ function MainPanel() {
       <CardContent className="flex flex-col gap-4">
         <Label>Endpoint URL</Label>
         <span className="flex items-center gap-1">
-          <Input value={origin} onChange={noop} className="max-w-[320px]" />
-          <CopyButton value={origin} />
+          <Input
+            value={externalUrl}
+            onChange={noop}
+            className="max-w-[320px]"
+          />
+          <CopyButton value={externalUrl} />
         </span>
 
         <Label>Token</Label>

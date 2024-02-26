@@ -5,10 +5,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { isEmpty } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { useQuery } from 'urql'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
+import { useNetworkSettingQuery } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,14 +25,6 @@ import { Input } from '@/components/ui/input'
 const updateNetworkSettingMutation = graphql(/* GraphQL */ `
   mutation updateNetworkSettingMutation($input: NetworkSettingInput!) {
     updateNetworkSetting(input: $input)
-  }
-`)
-
-export const networkSetting = graphql(/* GraphQL */ `
-  query NetworkSetting {
-    networkSetting {
-      externalUrl
-    }
   }
 `)
 
@@ -123,10 +115,12 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 }
 
 export const GeneralNetworkForm = () => {
-  const [{ data: data }] = useQuery({ query: networkSetting })
+  const [{ data }, reexecuteQuery] = useNetworkSettingQuery()
   const onSuccess = () => {
     toast.success('Network configuration is updated')
+    reexecuteQuery()
   }
+
   return (
     data && (
       <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
