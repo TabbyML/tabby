@@ -87,9 +87,20 @@ impl ChatService {
         request: ChatCompletionRequest,
     ) -> BoxStream<'a, ChatCompletionChunk> {
         let mut output = String::new();
-        let options = ChatCompletionOptionsBuilder::default()
-            .build()
-            .expect("Failed to create ChatCompletionOptions");
+
+        let options = {
+            let mut builder = ChatCompletionOptionsBuilder::default();
+            request.temperature.inspect(|x| {
+                builder.sampling_temperature(*x);
+            });
+            request.seed.inspect(|x| {
+                builder.seed(*x);
+            });
+            builder
+                .build()
+                .expect("Failed to create ChatCompletionOptions")
+        };
+
         let s = stream! {
             let s = match self.engine.chat_completion(&request.messages, options).await {
                 Ok(x) => x,
