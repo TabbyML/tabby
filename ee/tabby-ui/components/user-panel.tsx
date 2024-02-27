@@ -1,8 +1,9 @@
 import React from 'react'
 import NiceAvatar, { genConfig } from 'react-nice-avatar'
 
+import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
-import { useAuthenticatedSession, useSignOut } from '@/lib/tabby/auth'
+import { useSignOut } from '@/lib/tabby/auth'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +16,9 @@ import {
 import { IconBackpack, IconChat, IconCode, IconLogout } from './ui/icons'
 
 export default function UserPanel() {
-  const user = useAuthenticatedSession()
   const signOut = useSignOut()
-
+  const [{ data }] = useMe()
+  const user = data?.me
   const isChatEnabled = useIsChatEnabled()
 
   if (!user) {

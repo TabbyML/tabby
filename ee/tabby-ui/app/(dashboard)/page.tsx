@@ -1,10 +1,10 @@
 'use client'
 
 import { noop } from 'lodash-es'
-import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
+import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
@@ -29,14 +29,6 @@ export default function Home() {
   )
 }
 
-const meQuery = graphql(/* GraphQL */ `
-  query MeQuery {
-    me {
-      authToken
-    }
-  }
-`)
-
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {
     resetUserAuthToken
@@ -45,14 +37,14 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()
-  const [{ data }, reexecuteQuery] = useQuery({ query: meQuery })
+  const [{ data }, reexecuteQuery] = useMe()
   const externalUrl = useExternalURL()
 
   const resetUserAuthToken = useMutation(resetUserAuthTokenDocument, {
     onCompleted: () => reexecuteQuery()
   })
 
-  if (!healthInfo || !data) return
+  if (!healthInfo || !data?.me) return
 
   return (
     <div>
