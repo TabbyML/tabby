@@ -48,10 +48,10 @@ function MainPanel() {
 
   return (
     <div>
-      <CardHeader>
+      <CardHeader className="px-0 pt-0">
         <CardTitle>Getting Started</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-4 px-0">
         <Label>Endpoint URL</Label>
         <span className="flex items-center gap-1">
           <Input
@@ -80,7 +80,7 @@ function MainPanel() {
           <CopyButton value={data.me.authToken} />
         </span>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="px-0">
         <span>
           Use informations above for IDE extensions / plugins configuration, see{' '}
           <a

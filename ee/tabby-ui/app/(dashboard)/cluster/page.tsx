@@ -7,9 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function IndexPage() {
-  return (
-    <div className="p-6">
-      <ClusterInfo />
-    </div>
-  )
+  return <ClusterInfo />
 }
