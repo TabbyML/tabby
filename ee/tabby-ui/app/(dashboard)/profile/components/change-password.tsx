@@ -117,7 +117,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             name="newPassword2"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>Confirm New Password</FormLabel>
+                <FormLabel required>Confirm new password</FormLabel>
                 <FormControl>
                   <Input
                     className="w-[350px]"
