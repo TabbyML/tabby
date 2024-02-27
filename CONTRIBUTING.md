@@ -41,9 +41,9 @@ Before proceeding, ensure that all tests are passing locally:
 cargo test -- --skip golden
 ```
 
-Golden tests should be skipped on all platforms except Apple silicon (M1/M2), because they have not been created for other platforms yet.
-
 This will help ensure everything is working correctly and avoid surprises with local breakages.
+
+Golden tests, which run models and check their outputs against previous "golden snapshots", should be skipped for most development purposes, as they take a very long time to run (especially the tests running the models on CPU). You may still want to run them if your changes relate to the functioning of or integration with the generative models, but skipping them is recommended otherwise.
 
 ## Building and Running
 
