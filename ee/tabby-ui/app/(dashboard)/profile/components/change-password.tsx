@@ -2,73 +2,63 @@
 
 import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { isEmpty } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
-import { useNetworkSetting } from '@/lib/hooks/use-network-setting'
+import { useMe } from '@/lib/hooks/use-me'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
+import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
-const updateNetworkSettingMutation = graphql(/* GraphQL */ `
-  mutation updateNetworkSettingMutation($input: NetworkSettingInput!) {
-    updateNetworkSetting(input: $input)
+const passwordChangeMutation = graphql(/* GraphQL */ `
+  mutation PasswordChange($input: PasswordChangeInput!) {
+    passwordChange(input: $input)
   }
 `)
 
-const formSchema = z.object({
-  externalUrl: z.string()
-})
-
-type NetworkFormValues = z.infer<typeof formSchema>
-
-interface NetworkFormProps {
-  defaultValues?: Partial<NetworkFormValues>
+interface ChangePasswordFormProps {
+  showOldPassword?: boolean
   onSuccess?: () => void
 }
 
-const NetworkForm: React.FC<NetworkFormProps> = ({
+const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   onSuccess,
-  defaultValues: propsDefaultValues
+  showOldPassword
 }) => {
-  const defaultValues = React.useMemo(() => {
-    return {
-      ...(propsDefaultValues || {})
-    }
-  }, [propsDefaultValues])
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues
+  const formSchema = z.object({
+    oldPassword: showOldPassword ? z.string() : z.string().optional(),
+    newPassword1: z.string(),
+    newPassword2: z.string()
   })
 
-  const isDirty = !isEmpty(form.formState.dirtyFields)
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema)
+  })
+  const { isSubmitting } = form.formState
 
-  const updateNetworkSetting = useMutation(updateNetworkSettingMutation, {
+  const passwordChange = useMutation(passwordChangeMutation, {
     form,
     onCompleted(values) {
-      if (values?.updateNetworkSetting) {
+      if (values?.passwordChange) {
         onSuccess?.()
-        form.reset(form.getValues())
       }
     }
   })
 
-  const onSubmit = async () => {
-    await updateNetworkSetting({
-      input: form.getValues()
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    await passwordChange({
+      input: values
     })
   }
 
@@ -79,22 +69,41 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
           className="flex flex-col gap-8"
           onSubmit={form.handleSubmit(onSubmit)}
         >
+          {showOldPassword && (
+            <FormField
+              control={form.control}
+              name="oldPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>Old Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      className="w-[350px]"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      type="password"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
-            name="externalUrl"
+            name="newPassword1"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>External URL</FormLabel>
-                <FormDescription>
-                  The external URL where user visits Tabby, must start with
-                  http:// or https://.
-                </FormDescription>
+                <FormLabel required>New Password</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="e.g. http://localhost:8080"
+                    className="w-[350px]"
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
+                    type="password"
                     {...field}
                   />
                 </FormControl>
@@ -102,9 +111,32 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="mt-2 flex justify-end">
-            <Button type="submit" disabled={!isDirty}>
-              Update
+          <FormField
+            control={form.control}
+            name="newPassword2"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Confirm New Password</FormLabel>
+                <FormControl>
+                  <Input
+                    className="w-[350px]"
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    type="password"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="mt-2 flex">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Update Password
             </Button>
           </div>
         </form>
@@ -114,16 +146,17 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
   )
 }
 
-export const ChangePasswordForm = () => {
-  const [{ data }, reexecuteQuery] = useNetworkSetting()
+export const ChangePassword = () => {
+  const [{ data }, reexecuteQuery] = useMe()
   const onSuccess = () => {
-    toast.success('Network configuration is updated')
+    toast.success('Password is updated')
     reexecuteQuery()
   }
 
-  return (
-    data && (
-      <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
-    )
-  )
+  return data ? (
+    <ChangePasswordForm
+      onSuccess={onSuccess}
+      showOldPassword={data?.me?.isPasswordSet}
+    />
+  ) : null
 }
