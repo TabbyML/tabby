@@ -15,13 +15,13 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 }) => {
   return (
     <div
-      className={cn('flex flex-col gap-8 border p-6 rounded-lg', className)}
+      className={cn('flex flex-col gap-8 rounded-lg border p-6', className)}
       {...props}
     >
       <div>
         <CardTitle>{title}</CardTitle>
         {description && (
-          <div className="text-sm text-muted-foreground mt-2">
+          <div className="mt-2 text-sm text-muted-foreground">
             {description}
           </div>
         )}
