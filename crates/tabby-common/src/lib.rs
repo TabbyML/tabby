@@ -93,25 +93,14 @@ pub struct DependencyFile {
     pub direct: Vec<Package>,
 }
 
-type Generator<T, E> = Box<dyn Fn() -> Box<dyn Future<Output = Result<T, E>> + Unpin>>;
-
-pub struct Cache<T, E> {
-    timeout: Option<Duration>,
-    last_updated: RwLock<DateTime<Utc>>,
+pub struct Cache<T> {
     value: RwLock<Option<T>>,
-    refresh: Generator<T, E>,
 }
 
-impl<T, E> Cache<T, E> {
-    pub async fn new(refresh: Generator<T, E>, timeout: Option<Duration>) -> Self {
+impl<T> Cache<T> {
+    pub async fn new() -> Self {
         Cache {
-            timeout,
-            last_updated: NaiveDateTime::from_timestamp_millis(0)
-                .expect("Zeroed timestamp always valid")
-                .and_utc()
-                .into(),
-            value: None.into(),
-            refresh,
+            value: Default::default(),
         }
     }
 
@@ -119,83 +108,29 @@ impl<T, E> Cache<T, E> {
         *self.value.write().await = None;
     }
 
-    pub async fn get(&self) -> Result<T, E>
+    pub async fn get_or_refresh<F, E>(&self, refresh: impl Fn() -> F) -> Result<T, E>
     where
         T: Clone,
+        F: Future<Output = Result<T, E>>,
     {
-        if let Some(timeout) = &self.timeout {
-            if Utc::now() - *self.last_updated.read().await >= *timeout {
-                self.invalidate().await;
-            }
-        }
         let value = self.value.read().await;
         if let Some(value) = &*value {
             Ok(value.clone())
         } else {
             drop(value);
             let mut value = self.value.write().await;
-            let generated = (self.refresh)().await?;
+            let generated = refresh().await?;
             *value = Some(generated.clone());
-            self.update().await;
             Ok(generated)
         }
     }
 
-    async fn update(&self) {
-        *self.last_updated.write().await = Utc::now();
+    pub async fn update(&self, f: impl FnOnce(&mut T)) {
+        let mut lock = self.value.write().await;
+        lock.as_mut().map(f);
     }
 
     pub async fn set(&self, value: T) {
         *self.value.write().await = Some(value);
-        self.update().await;
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-enum CacheError {
-    #[error("Missing cache for type {0}")]
-    MissingCache(&'static str),
-}
-
-pub struct AnyCache<E> {
-    caches: RwLock<HashMap<TypeId, Box<dyn Any>>>,
-    phantom: PhantomData<E>,
-}
-
-impl<E> AnyCache<E>
-where
-    E: From<CacheError>,
-{
-    fn new() -> Self {
-        Self {
-            caches: Default::default(),
-            phantom: PhantomData,
-        }
-    }
-
-    async fn init_cache<T>(&self, refresh: Generator<T, E>, timeout: Option<Duration>)
-    where
-        T: 'static,
-        E: 'static,
-    {
-        self.caches.write().await.insert(
-            std::any::TypeId::of::<T>(),
-            Box::new(Cache::new(refresh, timeout).await),
-        );
-    }
-
-    async fn get<T>(&self) -> Result<T, E>
-    where
-        E: 'static,
-        T: Clone + 'static,
-    {
-        let cache_lock = self.caches.read().await;
-        let cache = cache_lock
-            .get(&std::any::TypeId::of::<T>())
-            .ok_or(CacheError::MissingCache(std::any::type_name::<T>()))?;
-        let cache = cache
-            .downcast_ref::<Cache<T, E>>()
-            .expect("Cache is always of type Cache<T, E>");
-        cache.get().await
     }
 }
