@@ -11,7 +11,12 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 
 export const LicenseTable = () => {
   return (
@@ -99,16 +104,31 @@ interface Feature {
   enterprise: ReactNode | String
 }
 
-const FeatureTooltip = ({ children }: { children: ReactNode }) => <TooltipProvider>
-  <Tooltip>
-    <TooltipTrigger><IconInfoCircled /></TooltipTrigger>
-    <TooltipContent>
-      <p className='max-w-[320px]'>{children}</p>
-    </TooltipContent>
-  </Tooltip>
-</TooltipProvider>
+const FeatureTooltip = ({ children }: { children: ReactNode }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger>
+        <IconInfoCircled />
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="max-w-[320px]">{children}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+)
 
-const FeatureWithTooltip = ({ name, children }: { name: string, children: ReactNode }) => <span className='flex gap-1'>{name}<FeatureTooltip>{children}</FeatureTooltip></span>
+const FeatureWithTooltip = ({
+  name,
+  children
+}: {
+  name: string
+  children: ReactNode
+}) => (
+  <span className="flex gap-1">
+    {name}
+    <FeatureTooltip>{children}</FeatureTooltip>
+  </span>
+)
 
 interface FeatureGroup {
   name: String
@@ -141,19 +161,25 @@ const FEATURES: FeatureGroup[] = [
         enterprise: checked
       },
       {
-        name: <FeatureWithTooltip name='Bring your own LLM'>
-          Tabby builds on top of open technologies, allowing customers to bring their own LLM models.
-        </FeatureWithTooltip>,
+        name: (
+          <FeatureWithTooltip name="Bring your own LLM">
+            Tabby builds on top of open technologies, allowing customers to
+            bring their own LLM models.
+          </FeatureWithTooltip>
+        ),
         community: checked,
         team: checked,
         enterprise: checked
       },
       {
-        name: <FeatureWithTooltip name='Git Providers'>
-          Tabby can retrieve the codebase context to enhance responses.
-          Underlying Tabby pulls context from git providers with a code search index.
-          This method enables Tabby to utilize the team&apos;s past practices at scale.
-        </FeatureWithTooltip>,
+        name: (
+          <FeatureWithTooltip name="Git Providers">
+            Tabby can retrieve the codebase context to enhance responses.
+            Underlying Tabby pulls context from git providers with a code search
+            index. This method enables Tabby to utilize the team&apos;s past
+            practices at scale.
+          </FeatureWithTooltip>
+        ),
         community: checked,
         team: checked,
         enterprise: checked

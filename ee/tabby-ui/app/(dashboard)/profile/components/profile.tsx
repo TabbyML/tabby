@@ -9,7 +9,7 @@ import { ProfileCard } from './profile-card'
 
 export default function Profile() {
   return (
-    <div className="flex flex-col gap-6 items-center">
+    <div className="flex flex-col items-center gap-6">
       <ProfileCard
         title="Your Email"
         description="This will be the email you use to log in and receive notifications."
