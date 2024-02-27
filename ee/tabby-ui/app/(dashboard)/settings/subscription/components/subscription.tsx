@@ -21,7 +21,7 @@ export default function Subscription() {
   const canReset = !!license?.type && license.type !== LicenseType.Community
 
   return (
-    <div className="p-4">
+    <>
       <SubHeader
         className="mb-8"
         externalLink="https://links.tabbyml.com/schedule-a-demo"
@@ -45,7 +45,7 @@ export default function Subscription() {
         <LicenseForm onSuccess={onUploadLicenseSuccess} canReset={canReset} />
         <LicenseTable />
       </div>
-    </div>
+    </>
   )
 }
 

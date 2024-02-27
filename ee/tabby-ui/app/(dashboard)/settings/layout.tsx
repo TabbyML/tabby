@@ -1,4 +1,4 @@
-export default function IntegrationsLayout({
+export default function SettingsLayout({
   children
 }: {
   children: React.ReactNode
