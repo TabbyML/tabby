@@ -202,7 +202,12 @@ impl RefreshTokenResponse {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+// IDWrapper to used as a type guard for refactoring, can be removed in a follow up PR.
+// FIXME(meng): refactor out IDWrapper.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IDWrapper(pub ID);
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct JWTPayload {
     /// Expiration time (as UTC timestamp)
     exp: i64,
@@ -210,20 +215,20 @@ pub struct JWTPayload {
     /// Issued at (as UTC timestamp)
     iat: i64,
 
-    /// User email address
-    pub sub: String,
+    /// User id string
+    pub sub: IDWrapper,
 
     /// Whether the user is admin.
     pub is_admin: bool,
 }
 
 impl JWTPayload {
-    pub fn new(email: String, is_admin: bool) -> Self {
+    pub fn new(id: ID, is_admin: bool) -> Self {
         let now = jwt::get_current_timestamp();
         Self {
             iat: now as i64,
             exp: (now + *JWT_DEFAULT_EXP) as i64,
-            sub: email,
+            sub: IDWrapper(id),
             is_admin,
         }
     }
@@ -378,12 +383,13 @@ pub trait AuthenticationService: Send + Sync {
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
+    async fn get_user(&self, id: &ID) -> Result<User>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
     async fn request_invitation_email(&self, input: RequestInvitationInput) -> Result<Invitation>;
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
-    async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
+    async fn reset_user_auth_token(&self, id: &ID) -> Result<()>;
     async fn password_reset(&self, code: &str, password: &str) -> Result<()>;
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
 
@@ -460,7 +466,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_generate_jwt() {
-        let claims = JWTPayload::new("test".to_string(), false);
+        let claims = JWTPayload::new(ID::from("test".to_owned()), false);
         let token = generate_jwt(claims).unwrap();
 
         assert!(!token.is_empty())
@@ -468,10 +474,10 @@ mod tests {
 
     #[test]
     fn test_validate_jwt() {
-        let claims = JWTPayload::new("test".to_string(), false);
+        let claims = JWTPayload::new(ID::from("test".to_owned()), false);
         let token = generate_jwt(claims).unwrap();
         let claims = validate_jwt(&token).unwrap();
-        assert_eq!(claims.sub, "test");
+        assert_eq!(claims.sub.0.to_string(), "test");
         assert!(!claims.is_admin);
     }
 

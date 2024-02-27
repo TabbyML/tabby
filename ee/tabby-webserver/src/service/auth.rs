@@ -86,8 +86,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let refresh_token = generate_refresh_token();
         self.db.create_refresh_token(id, &refresh_token).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-        else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
         };
 
@@ -159,8 +158,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .create_refresh_token(user.id, &refresh_token)
             .await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-        else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
         };
 
@@ -187,8 +185,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         self.db.replace_refresh_token(&token, &new_token).await?;
 
         // refresh token update is done, generate new access token based on user info
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-        else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
         };
 
@@ -241,6 +238,15 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
     }
 
+    async fn get_user(&self, id: &ID) -> Result<User> {
+        let user = self.db.get_user(id.as_rowid()?).await?;
+        if let Some(user) = user {
+            Ok(user.into())
+        } else {
+            Err(anyhow!("User not found").into())
+        }
+    }
+
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
         let license = self.license.read_license().await?;
         license.ensure_available_seats(1)?;
@@ -276,8 +282,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(self.db.delete_invitation(id.as_rowid()?).await?.as_id())
     }
 
-    async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
-        Ok(self.db.reset_user_auth_token_by_email(email).await?)
+    async fn reset_user_auth_token(&self, id: &ID) -> Result<()> {
+        Ok(self.db.reset_user_auth_token_by_id(id.as_rowid()?).await?)
     }
 
     async fn list_users(
@@ -329,7 +335,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .create_refresh_token(user_id, &refresh_token)
             .await?;
 
-        let access_token = generate_jwt(JWTPayload::new(email.clone(), is_admin))
+        let access_token = generate_jwt(JWTPayload::new(user_id.as_id(), is_admin))
             .map_err(|_| OAuthError::Unknown)?;
 
         let resp = OAuthResponse {
@@ -741,7 +747,7 @@ mod tests {
         register_admin_user(&service).await;
 
         let user = service.get_user_by_email(ADMIN_EMAIL).await.unwrap();
-        service.reset_user_auth_token(&user.email).await.unwrap();
+        service.reset_user_auth_token(&user.id).await.unwrap();
 
         let user2 = service.get_user_by_email(ADMIN_EMAIL).await.unwrap();
         assert_ne!(user.auth_token, user2.auth_token);

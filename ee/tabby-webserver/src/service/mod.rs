@@ -90,7 +90,7 @@ impl ServerContext {
         }
     }
 
-    async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<String>) {
+    async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<ID>) {
         let path = request.uri().path();
         if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
             return (true, None);
@@ -112,7 +112,7 @@ impl ServerContext {
 
         // Allow JWT based access (from web browser), regardless of the license status.
         if let Ok(jwt) = self.auth.verify_access_token(token).await {
-            return (true, Some(jwt.sub));
+            return (true, Some(jwt.sub.0));
         }
 
         let is_license_valid = self
@@ -127,7 +127,7 @@ impl ServerContext {
             .verify_auth_token(token, !is_license_valid)
             .await
         {
-            Ok(email) => (true, Some(email)),
+            Ok(id) => (true, Some(id.as_id())),
             Err(_) => (false, None),
         }
     }

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_scalar, FromRow};
 use uuid::Uuid;
@@ -135,28 +135,31 @@ impl DbConn {
         Ok(users)
     }
 
-    pub async fn verify_auth_token(&self, token: &str, requires_owner: bool) -> Result<String> {
+    pub async fn verify_auth_token(&self, token: &str, requires_owner: bool) -> Result<i64> {
         let token = token.to_owned();
-        let email = query_scalar!(
-            "SELECT email FROM users WHERE auth_token = ? AND active AND (id == ? OR NOT ?)",
+        let Some(id) = query_scalar!(
+            "SELECT id FROM users WHERE auth_token = ? AND active AND (id == ? OR NOT ?)",
             token,
             OWNER_USER_ID,
             requires_owner
         )
         .fetch_one(&self.pool)
-        .await;
-        email.map_err(Into::into)
+        .await?
+        else {
+            bail!("Invalid auth_token")
+        };
+
+        Ok(id)
     }
 
-    pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
-        let email = email.to_owned();
+    pub async fn reset_user_auth_token_by_id(&self, id: i32) -> Result<()> {
         let updated_at = chrono::Utc::now();
         let token = generate_auth_token();
         query!(
-            r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE email = ?"#,
+            r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE id = ?"#,
             token,
             updated_at,
-            email
+            id
         )
         .execute(&self.pool)
         .await?;
@@ -285,9 +288,7 @@ mod tests {
             .await
             .is_ok());
 
-        conn.reset_user_auth_token_by_email(&user.email)
-            .await
-            .unwrap();
+        conn.reset_user_auth_token_by_id(user.id).await.unwrap();
         let new_user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.email, new_user.email);
         assert_ne!(user.auth_token, new_user.auth_token);
