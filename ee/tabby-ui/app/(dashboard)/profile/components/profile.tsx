@@ -17,10 +17,14 @@ export default function Profile() {
       >
         <Avatar />
       </ProfileCard>
-      <ProfileCard title="Your Email">
+      <ProfileCard
+        title="Your Email"
+        description="This is the email associated with your Tabby account"
+        footer="Your email"
+      >
         <Email />
       </ProfileCard>
-      <ProfileCard title="Change Password">
+      <ProfileCard title="Change Password" footerClassname="pb-0">
         <ChangePassword />
       </ProfileCard>
     </div>

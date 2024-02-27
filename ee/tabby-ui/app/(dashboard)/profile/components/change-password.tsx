@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 import { ListSkeleton } from '@/components/skeleton'
 
 const passwordChangeMutation = graphql(/* GraphQL */ `
@@ -132,7 +133,9 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="mt-2 flex">
+          <FormMessage />
+          <Separator />
+          <div className="flex">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && (
                 <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
@@ -141,7 +144,6 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             </Button>
           </div>
         </form>
-        <FormMessage className="text-center" />
       </div>
     </Form>
   )

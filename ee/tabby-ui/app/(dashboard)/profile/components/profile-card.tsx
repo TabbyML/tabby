@@ -2,6 +2,7 @@ import React from 'react'
 
 import { cn } from '@/lib/utils'
 import { CardContent, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 
 interface ProfileCardProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string
@@ -42,6 +43,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           footerClassname
         )}
       >
+        {!!footer && <Separator className="mb-6" />}
         {footer}
       </div>
     </div>
