@@ -17,7 +17,7 @@ type Mutation {
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
   requestPasswordResetEmail(input: RequestPasswordResetEmailInput!): Boolean!
   passwordReset(input: PasswordResetInput!): Boolean!
-  passwordChange(input: PasswordUpdateInput!): Boolean!
+  passwordChange(input: PasswordChangeInput!): Boolean!
   resetUserAuthToken: Boolean!
   updateUserActive(id: ID!, active: Boolean!): Boolean!
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
@@ -111,10 +111,9 @@ type RefreshTokenResponse {
   refreshExpiresAt: DateTimeUtc!
 }
 
-input PasswordUpdateInput {
-  oldPassword: String
-  newPassword1: String!
-  newPassword2: String!
+type RegisterResponse {
+  accessToken: String!
+  refreshToken: String!
 }
 
 type RepositoryConnection {
@@ -141,11 +140,6 @@ type LicenseInfo {
   expiresAt: DateTimeUtc
 }
 
-type RegisterResponse {
-  accessToken: String!
-  refreshToken: String!
-}
-
 input EmailSettingInput {
   smtpUsername: String!
   fromAddress: String!
@@ -154,6 +148,11 @@ input EmailSettingInput {
   encryption: Encryption!
   authMethod: AuthMethod!
   smtpPassword: String
+}
+
+input SecuritySettingInput {
+  allowedRegisterDomainList: [String!]!
+  disableClientSideTelemetry: Boolean!
 }
 
 enum LicenseType {
@@ -178,11 +177,6 @@ input UpdateOAuthCredentialInput {
   clientSecret: String
 }
 
-input SecuritySettingInput {
-  allowedRegisterDomainList: [String!]!
-  disableClientSideTelemetry: Boolean!
-}
-
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
@@ -202,6 +196,12 @@ input PasswordResetInput {
   code: String!
   password1: String!
   password2: String!
+}
+
+input PasswordChangeInput {
+  oldPassword: String
+  newPassword1: String!
+  newPassword2: String!
 }
 
 type Invitation {

@@ -28,7 +28,7 @@ use worker::{Worker, WorkerService};
 
 use self::{
     auth::{
-        PasswordResetInput, PasswordChangeInput, RequestInvitationInput,
+        PasswordChangeInput, PasswordResetInput, RequestInvitationInput,
         RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
