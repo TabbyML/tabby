@@ -38,7 +38,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
       <CardContent className="p-0">{children}</CardContent>
       <div
         className={cn(
-          'pb-6 rounded-b-lg text-muted-foreground text-sm',
+          'rounded-b-lg pb-6 text-sm text-muted-foreground',
           footerClassname
         )}
       >
