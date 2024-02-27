@@ -17,7 +17,7 @@ use std::{
     future::Future,
     io::{BufReader, Error},
     marker::PhantomData,
-    ops::{Range},
+    ops::Range,
     path::PathBuf,
 };
 
