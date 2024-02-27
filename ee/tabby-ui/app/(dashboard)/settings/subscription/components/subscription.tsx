@@ -3,7 +3,7 @@
 import { capitalize } from 'lodash-es'
 import moment from 'moment'
 
-import { LicenseInfo } from '@/lib/gql/generates/graphql'
+import { LicenseInfo, LicenseType } from '@/lib/gql/generates/graphql'
 import { useLicense } from '@/lib/hooks/use-license'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -18,6 +18,7 @@ export default function Subscription() {
   const onUploadLicenseSuccess = () => {
     reexecuteQuery()
   }
+  const canReset = !!license?.type && license.type !== LicenseType.Community
 
   return (
     <div className="p-4">
@@ -41,7 +42,7 @@ export default function Subscription() {
         >
           {license && <License license={license} />}
         </LoadingWrapper>
-        <LicenseForm onSuccess={onUploadLicenseSuccess} />
+        <LicenseForm onSuccess={onUploadLicenseSuccess} canReset={canReset} />
         <LicenseTable />
       </div>
     </div>
