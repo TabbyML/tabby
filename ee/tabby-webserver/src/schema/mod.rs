@@ -28,7 +28,7 @@ use worker::{Worker, WorkerService};
 
 use self::{
     auth::{
-        PasswordResetInput, PasswordUpdateInput, RequestInvitationInput,
+        PasswordResetInput, PasswordChangeInput, RequestInvitationInput,
         RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
@@ -367,7 +367,7 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn password_change(ctx: &Context, input: PasswordUpdateInput) -> Result<bool> {
+    async fn password_change(ctx: &Context, input: PasswordChangeInput) -> Result<bool> {
         let claims = check_claims(ctx)?;
         input.validate()?;
         ctx.locator

@@ -308,32 +308,32 @@ pub struct PasswordResetInput {
 }
 
 #[derive(Validate, GraphQLInputObject)]
-pub struct PasswordUpdateInput {
+pub struct PasswordChangeInput {
     pub old_password: Option<String>,
 
     #[validate(length(
         min = 8,
-        code = "new_password1",
+        code = "newPassword1",
         message = "Password must be at least 8 characters"
     ))]
     #[validate(length(
         max = 20,
-        code = "new_password1",
+        code = "newPassword1",
         message = "Password must be at most 20 characters"
     ))]
     pub new_password1: String,
     #[validate(length(
         min = 8,
-        code = "new_password2",
+        code = "newPassword2",
         message = "Password must be at least 8 characters"
     ))]
     #[validate(length(
         max = 20,
-        code = "new_password2",
+        code = "newPassword2",
         message = "Password must be at most 20 characters"
     ))]
     #[validate(must_match(
-        code = "new_password2",
+        code = "newPassword2",
         message = "Passwords do not match",
         other = "new_password1"
     ))]
