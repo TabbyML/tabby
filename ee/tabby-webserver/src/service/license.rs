@@ -1,11 +1,10 @@
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
-use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
-use tokio::sync::RwLock;
 
 use crate::schema::{
     license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
@@ -62,26 +61,11 @@ fn jwt_timestamp_to_utc(secs: i64) -> Result<DateTime<Utc>> {
 
 struct LicenseServiceImpl {
     db: DbConn,
-    seats: RwLock<(DateTime<Utc>, usize)>,
 }
 
 impl LicenseServiceImpl {
-    async fn read_used_seats(&self, force_refresh: bool) -> Result<usize> {
-        let now = Utc::now();
-        let (refreshed, mut seats) = {
-            let lock = self.seats.read().await;
-            *lock
-        };
-        if force_refresh || now - refreshed > Duration::seconds(15) {
-            let mut lock = self.seats.write().await;
-            seats = self.db.count_active_users().await?;
-            *lock = (now, seats);
-        }
-        Ok(seats)
-    }
-
     async fn make_community_license(&self) -> Result<LicenseInfo> {
-        let seats_used = self.read_used_seats(false).await?;
+        let seats_used = self.db.count_active_users().await?;
         let status = if seats_used > LicenseInfo::seat_limits_for_community_license() {
             LicenseStatus::SeatsExceeded
         } else {
@@ -101,11 +85,7 @@ impl LicenseServiceImpl {
 }
 
 pub async fn new_license_service(db: DbConn) -> Result<impl LicenseService> {
-    let seats = db.count_active_users().await?;
-    Ok(LicenseServiceImpl {
-        db,
-        seats: (Utc::now(), seats).into(),
-    })
+    Ok(LicenseServiceImpl { db })
 }
 
 fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<LicenseInfo> {
@@ -140,7 +120,7 @@ impl LicenseService for LicenseServiceImpl {
         };
         let license =
             validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
-        let seats = self.read_used_seats(false).await?;
+        let seats = self.db.count_active_users().await?;
         let license = license_info_from_raw(license, seats)?;
 
         Ok(license)
@@ -148,7 +128,7 @@ impl LicenseService for LicenseServiceImpl {
 
     async fn update_license(&self, license: String) -> Result<()> {
         let raw = validate_license(&license).map_err(|_e| anyhow!("License is not valid"))?;
-        let seats = self.read_used_seats(true).await?;
+        let seats = self.db.count_active_users().await?;
         match license_info_from_raw(raw, seats)?.status {
             LicenseStatus::Ok => self.db.update_enterprise_license(Some(license)).await?,
             LicenseStatus::Expired => return Err(anyhow!("License is expired").into()),

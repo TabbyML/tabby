@@ -79,6 +79,11 @@ impl DbConn {
         let res = res.unique_error("User already exists")?;
         transaction.commit().await?;
 
+        self.cache.active_user_count.update(|x| *x += 1).await;
+        if is_admin {
+            self.cache.active_admin_count.update(|x| *x += 1).await;
+        }
+
         Ok(res.last_insert_rowid() as i32)
     }
 
@@ -179,10 +184,15 @@ impl DbConn {
         .await?
         .rows_affected();
         if changed != 1 {
-            Err(anyhow!("user active status was not changed"))
-        } else {
-            Ok(())
+            return Err(anyhow!("user active status was not changed"));
         }
+        self.cache.active_admin_count.invalidate().await;
+        if active {
+            self.cache.active_user_count.update(|x| *x += 1).await;
+        } else {
+            self.cache.active_user_count.update(|x| *x -= 1).await;
+        }
+        Ok(())
     }
 
     pub async fn update_user_role(&self, id: i32, is_admin: bool) -> Result<()> {
@@ -199,6 +209,7 @@ impl DbConn {
         if changed != 1 {
             Err(anyhow!("user admin status was not changed"))
         } else {
+            self.cache.active_admin_count.invalidate().await;
             Ok(())
         }
     }
@@ -214,19 +225,28 @@ impl DbConn {
         Ok(())
     }
 
-    // FIXME(boxbeam): Revisit if a caching layer should be put into DbConn for this query in future.
     pub async fn count_active_users(&self) -> Result<usize> {
-        let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active;")
-            .fetch_one(&self.pool)
-            .await?;
-        Ok(users as usize)
+        self.cache
+            .active_admin_count
+            .get_or_refresh(|| async {
+                let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active;")
+                    .fetch_one(&self.pool)
+                    .await?;
+                Ok(users as usize)
+            })
+            .await
     }
 
     pub async fn count_active_admin_users(&self) -> Result<usize> {
-        let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active and is_admin;")
-            .fetch_one(&self.pool)
-            .await?;
-        Ok(users as usize)
+        self.cache
+            .active_user_count
+            .get_or_refresh(|| async {
+                let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active and is_admin;")
+                    .fetch_one(&self.pool)
+                    .await?;
+                Ok(users as usize)
+            })
+            .await
     }
 }
 

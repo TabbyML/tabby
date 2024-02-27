@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc};
 
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -10,6 +10,7 @@ pub use job_runs::JobRunDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
+use tabby_common::Cache;
 pub use users::UserDAO;
 
 pub mod cache;
@@ -34,9 +35,16 @@ pub trait DbEnum: Sized {
     fn from_enum_str(s: &str) -> anyhow::Result<Self>;
 }
 
+#[derive(Default)]
+pub struct DbCache {
+    pub active_user_count: Cache<usize>,
+    pub active_admin_count: Cache<usize>,
+}
+
 #[derive(Clone)]
 pub struct DbConn {
     pool: Pool<Sqlite>,
+    cache: Arc<DbCache>,
 }
 
 impl DbConn {
@@ -75,7 +83,10 @@ impl DbConn {
         .execute(&pool)
         .await?;
 
-        let conn = Self { pool };
+        let conn = Self {
+            pool,
+            cache: Default::default(),
+        };
         conn.manual_users_active_migration().await?;
         Ok(conn)
     }
