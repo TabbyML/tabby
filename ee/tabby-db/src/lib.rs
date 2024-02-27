@@ -219,7 +219,7 @@ impl<'a> sqlx::Decode<'a, Sqlite> for DateTimeUtc {
 
 impl Type<Sqlite> for DateTimeUtc {
     fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
-        NaiveDateTime::type_info()
+        <String as Type<Sqlite>>::type_info()
     }
 }
 
