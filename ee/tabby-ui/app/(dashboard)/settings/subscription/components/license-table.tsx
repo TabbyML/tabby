@@ -152,7 +152,7 @@ const FEATURES: FeatureGroup[] = [
         name: <FeatureWithTooltip name='Git Providers'>
           Tabby can retrieve the codebase context to enhance responses.
           Underlying Tabby pulls context from git providers with a code search index.
-          This method enables Tabby to utilize the team's past practices at scale.
+          This method enables Tabby to utilize the team&apos;s past practices at scale.
         </FeatureWithTooltip>,
         community: checked,
         team: checked,
