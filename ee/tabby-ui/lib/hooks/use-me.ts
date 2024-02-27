@@ -7,6 +7,7 @@ const meQuery = graphql(/* GraphQL */ `
     me {
       authToken
       email
+      isAdmin
     }
   }
 `)
