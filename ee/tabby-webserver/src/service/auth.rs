@@ -142,13 +142,13 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn update_user_password(
         &self,
-        email: &str,
+        id: &ID,
         old_password: Option<&str>,
         new_password: &str,
     ) -> Result<()> {
         let user = self
             .db
-            .get_user_by_email(email)
+            .get_user(id.as_rowid()?)
             .await?
             .ok_or_else(|| anyhow!("Invalid user"))?;
 
@@ -1198,24 +1198,26 @@ mod tests {
     #[tokio::test]
     async fn test_update_password() {
         let service = test_authentication_service().await;
-        service
+        let id = service
             .db
             .create_user("test@example.com".into(), "".into(), true)
             .await
             .unwrap();
 
+        let id = id.as_id();
+
         assert!(service
-            .update_user_password("test@example.com", None, "newpass")
+            .update_user_password(&id, None, "newpass")
             .await
             .is_ok());
 
         assert!(service
-            .update_user_password("test@example.com", None, "newpass2")
+            .update_user_password(&id, None, "newpass2")
             .await
             .is_err());
 
         assert!(service
-            .update_user_password("test@example.com", Some("newpass"), "newpass2")
+            .update_user_password(&id, Some("newpass"), "newpass2")
             .await
             .is_ok());
     }

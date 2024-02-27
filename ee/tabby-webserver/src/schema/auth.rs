@@ -428,7 +428,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
     async fn update_user_password(
         &self,
-        email: &str,
+        id: &ID,
         old_password: Option<&str>,
         new_password: &str,
     ) -> Result<()>;
