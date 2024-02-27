@@ -525,7 +525,7 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn delete_license(ctx: &Context) -> Result<bool> {
+    async fn reset_license(ctx: &Context) -> Result<bool> {
         check_admin(ctx)?;
         ctx.locator.license().reset_license().await?;
         Ok(true)
