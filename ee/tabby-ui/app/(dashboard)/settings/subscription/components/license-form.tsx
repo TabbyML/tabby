@@ -126,7 +126,7 @@ export function LicenseForm({
               </FormItem>
             )}
           />
-          <div className="flex justify-end gap-4 items-center mt-2">
+          <div className="mt-2 flex items-center justify-end gap-4">
             <AlertDialog
               open={deleteDialogOpen}
               onOpenChange={onDeleteDialogOpenChange}
