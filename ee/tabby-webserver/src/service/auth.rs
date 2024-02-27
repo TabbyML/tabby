@@ -140,6 +140,35 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
+    async fn update_user_password(
+        &self,
+        id: &ID,
+        old_password: Option<&str>,
+        new_password: &str,
+    ) -> Result<()> {
+        let user = self
+            .db
+            .get_user(id.as_rowid()?)
+            .await?
+            .ok_or_else(|| anyhow!("Invalid user"))?;
+
+        let password_verified = match (user.password_encrypted.is_empty(), old_password) {
+            (true, _) => true,
+            (false, None) => false,
+            (false, Some(old_password)) => password_verify(old_password, &user.password_encrypted),
+        };
+        if !password_verified {
+            return Err(anyhow!("Password is incorrect").into());
+        }
+
+        let new_password_encrypted =
+            password_hash(new_password).map_err(|_| anyhow!("Unknown error"))?;
+        self.db
+            .update_user_password(user.id, new_password_encrypted)
+            .await?;
+        Ok(())
+    }
+
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
         let Some(user) = self.db.get_user_by_email(&email).await? else {
             return Err(anyhow!("User not found").into());
@@ -1164,5 +1193,32 @@ mod tests {
             service.update_user_role(&user2.as_id(), true).await,
             Err(CoreError::InvalidLicense(_))
         );
+    }
+
+    #[tokio::test]
+    async fn test_update_password() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
+
+        let id = id.as_id();
+
+        assert!(service
+            .update_user_password(&id, None, "newpass")
+            .await
+            .is_ok());
+
+        assert!(service
+            .update_user_password(&id, None, "newpass2")
+            .await
+            .is_err());
+
+        assert!(service
+            .update_user_password(&id, Some("newpass"), "newpass2")
+            .await
+            .is_ok());
     }
 }
