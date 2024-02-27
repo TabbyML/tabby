@@ -4,6 +4,7 @@ import React from 'react'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates/gql'
+import { LicenseType } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 import {
   AlertDialog,
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { buttonVariants } from '@/components/ui/button'
 import { IconSpinner } from '@/components/ui/icons'
+import { LicenseGuard } from '@/components/license-guard'
 
 const updateUserRoleMutation = graphql(/* GraphQL */ `
   mutation updateUserRole($id: ID!, $isAdmin: Boolean!) {
@@ -40,8 +42,7 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
   isPromote
 }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const requestPasswordResetEmail = useMutation(updateUserRoleMutation)
-
+  const updateUserRole = useMutation(updateUserRoleMutation)
   const onSubmit: React.MouseEventHandler<HTMLButtonElement> = async e => {
     e.preventDefault()
 
@@ -50,13 +51,15 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
       return
     }
     setIsSubmitting(true)
-    return requestPasswordResetEmail({
+    return updateUserRole({
       id: user.id,
       isAdmin: !!isPromote
     })
       .then(res => {
         if (res?.data?.updateUserRole) {
           onSuccess?.()
+        } else if (res?.error) {
+          toast.error(res.error?.message ?? 'update failed')
         }
       })
       .finally(() => {
@@ -81,16 +84,20 @@ export const UpdateUserRoleDialog: React.FC<UpdateUserRoleDialogProps> = ({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            className={buttonVariants()}
-            onClick={onSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting && (
-              <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+          <LicenseGuard licenses={[LicenseType.Team, LicenseType.Enterprise]}>
+            {({ hasValidLicense }) => (
+              <AlertDialogAction
+                className={buttonVariants()}
+                onClick={onSubmit}
+                disabled={!hasValidLicense || isSubmitting}
+              >
+                {isSubmitting && (
+                  <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Confirm
+              </AlertDialogAction>
             )}
-            Confirm
-          </AlertDialogAction>
+          </LicenseGuard>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

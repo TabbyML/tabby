@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
@@ -56,9 +56,8 @@ fn validate_license(token: &str) -> Result<LicenseJWTPayload, jwt::errors::Error
 }
 
 fn jwt_timestamp_to_utc(secs: i64) -> Result<DateTime<Utc>> {
-    Ok(NaiveDateTime::from_timestamp_opt(secs, 0)
-        .ok_or_else(|| anyhow!("Timestamp is corrupt"))?
-        .and_utc())
+    let datetime = NaiveDateTime::from_timestamp_opt(secs, 0).context("Timestamp is corrupt")?;
+    Ok(datetime.and_utc())
 }
 
 struct LicenseServiceImpl {
@@ -73,12 +72,31 @@ impl LicenseServiceImpl {
             let lock = self.seats.read().await;
             *lock
         };
-        if force_refresh || now - refreshed > Duration::minutes(5) {
+        if force_refresh || now - refreshed > Duration::seconds(15) {
             let mut lock = self.seats.write().await;
             seats = self.db.count_active_users().await?;
             *lock = (now, seats);
         }
         Ok(seats)
+    }
+
+    async fn make_community_license(&self) -> Result<LicenseInfo> {
+        let seats_used = self.read_used_seats(false).await?;
+        let status = if seats_used > LicenseInfo::seat_limits_for_community_license() {
+            LicenseStatus::SeatsExceeded
+        } else {
+            LicenseStatus::Ok
+        };
+
+        Ok(LicenseInfo {
+            r#type: LicenseType::Community,
+            status,
+            seats: LicenseInfo::seat_limits_for_community_license() as i32,
+            seats_used: seats_used as i32,
+            issued_at: None,
+            expires_at: None,
+        }
+        .guard_seat_limit())
     }
 }
 
@@ -107,24 +125,25 @@ fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<Li
         status,
         seats: raw.num as i32,
         seats_used: seats_used as i32,
-        issued_at,
-        expires_at,
-    };
+        issued_at: Some(issued_at),
+        expires_at: Some(expires_at),
+    }
+    .guard_seat_limit();
     Ok(license)
 }
 
 #[async_trait]
 impl LicenseService for LicenseServiceImpl {
-    async fn read_license(&self) -> Result<Option<LicenseInfo>> {
+    async fn read_license(&self) -> Result<LicenseInfo> {
         let Some(license) = self.db.read_enterprise_license().await? else {
-            return Ok(None);
+            return self.make_community_license().await;
         };
         let license =
             validate_license(&license).map_err(|e| anyhow!("License is corrupt: {e:?}"))?;
         let seats = self.read_used_seats(false).await?;
         let license = license_info_from_raw(license, seats)?;
 
-        Ok(Some(license))
+        Ok(license)
     }
 
     async fn update_license(&self, license: String) -> Result<()> {
@@ -139,6 +158,11 @@ impl LicenseService for LicenseServiceImpl {
         };
         Ok(())
     }
+
+    async fn reset_license(&self) -> Result<()> {
+        self.db.update_enterprise_license(None).await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -147,9 +171,9 @@ mod tests {
 
     use super::*;
 
-    const VALID_TOKEN: &str = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTgwNzM5ODcwMiwidHlwIjoiVEVBTSIsIm51bSI6MTB9.vVo7PDevytGw2KXU5E-KMdJBijwOWsD1zKIf26rcjfxa3wDesGY40zuYZWyZFMfmAtBTO7DBgqdWnriHnF_HOnoAEDCycrgoxuSJW5TS9XsCWto-3rDhUsjRZ1wls-ztQu3Gxo_84UHUFwrXe-RHmJi_3w_YO-2L-nVw7JDd5zR8CEdLxeccD47vBrumYA7ybultoDHpHxSppjHlW1VPXavoaBIO1Twnbf52uJlbzJmloViDxoq-_9lxcN1hDN3KKE3crzO9uHK4jjZy_1KNHhCIIcnINek6SBl6lWZw9R88UfdP6uaVOTOHDFbGwv544TSLA_oKZXXntXhldKCp94YN8J4djHim91WwYBQARrpQKiQGP1APEQQdv_YO4iUC3QTLOVw_NMjyma0feVjzHYAap_2Q9HgnxyJfMH-KiH2zaR6BcdOfWV86crO5M0qNoP-XOgy4uU8eE2-PevOKM6uVwYiwoNZL4e9ttH6ratJj0tyqGW_3HYpsVyThzqDPisEz95knsrVL-iagwHRd00l6Mqfwcjbn-gOuUOV9knRIpPvUmfKjjjHgb-JI0qMAIdgeVtwQp0pNqPsKwenMwkpYQH1awfuB_Ia7SyMUNEzTAY8k_J4R6kCZ5XKJ2VTCljd9aJFSZpw-K57reUX1eLc6-Cwt1iI4d23M5UlYjvs";
-    const EXPIRED_TOKEN: &str = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTcwNzM5ODcwMiwidHlwIjoiVEVBTSIsIm51bSI6MTB9.19wrmSSZUQAj_nfnBljUARD3vz_XEIDh4wpi_U2P6LDRcvm7QYCro__LxUjIf45aE9BBiZCPBRTVOw_tMbegTAv5yK9G9cllGPdRDKWjf24BJpHt2wBKOwhCToUKp8R8D50bQ3cxHuz7J3XxcOMtwKxNRlwaufO-vgxX73v13z_bN6y5ix8FC5JEjY1z3fNPc_TnuuHnaXXqgqL9OJTrxhh5FErqR52kmxGGn2KCM8rm2Nfu0It2IZQuyJHSceZ3-iiIxsrVdXxbO4KHXLEOXos0xJRV8QG9_9VjAo6qui6BioygwrcPqHT7OoG3WfcT8XE9rcEX-s9PZ54_XxLm0yh81g54xPI92n94pe32XfE9T-YXNK3MLAdZWwDhp_sKXTcMSIr7mI9OA7eczZUpvI4BuDM8s1irNx4DKdfTwNchHDfEPmGmO53RHyVEbrS72jF9GBRBIwPmpGppWhcwpVNmlRJw3j1Sa_ttcGikPnBZBrUxGqzynq4q1VpeCpRoTzO9_nw5eciKMpaKww0P5Edqm5kKgg48aABfsTU3hLqTIr9rgjXePL_gEse6MJX_JC8I7-R17iQmMxKiNa9bTqSIk56qlB6gwZTzcjEtpnYlzZ05Ci6D3JBH9ZdO_F3UZDt5JdAD5dqsKl8PfWpxaWpg7FXNlqxYO9BpxCwr_7g";
-    const INCOMPLETE_TOKEN: &str = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTgwNzM5ODcwMiwidHlwIjoiVEVBTSJ9.Xdp7Tgi39RN3qBfDAT_RncCDF2lSSouT4fjR0YT8F4qN8qkocxgvCa6JyxlksaiqGKWb_aYJvkhCviMHnT_pnoNpR8YaLvB4vezEAdDWLf3jBqzhlsrCCbMGh72wFYKRIODhIHeTzldU4F06I9sz5HdtQpn42Q8WC8tAzG109vHtxcdC7D85u0CumJ35DcV7lTfpfIkil3PORReg0ysjZNjQ2JbiFqMF1VbBmC-DsoTrJoHlrxdHowMQsXv89C80pchx4UFSm7Z9tHiMUTOzfErScsGJI1VC5p8SYA3N4nsrPn-iup1CxOBIdK57BHedKGpd_hi1AVWYB4zXcc8HzzpqgwHulfaw_5vNvRMdkDGj3X2afU3O3rZ4jT_KLGjY-3Krgol8JHgJYiPXkBypiajFU6rVeMLScx-X-2-n3KBdR4GQ9la90QHSyIQUpiGRRfPhviBFDtAfcjJYo1Irlu6MGVhgFq9JH5SOVTn57V0A_VeAbj8WZNdML9hio9xqxP86DprnP_ApHpO_xbi-sx2GCmUyfC10eKnX8_sAB1n7z0AaHz4e-6SGm1I-wQsWcXjZfRYw0Vtogz7wVuyAIpm8lF58XjtOwQ9bP1kD03TGIcBTvEtgA6QUhRcximGJ5buK9X2TTd4TlHjFF1krrmYAUEDgFsorseoKvMkspVE";
+    const VALID_TOKEN: &str = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTgwNzM5ODcwMiwidHlwIjoiVEVBTSIsIm51bSI6MX0.r99qAkHGAzjZtS904ko5MMklquMcEJdibVGAZAxrJTf-kKBT-Kc-u-A8o7ZSrLD0eubIxNrLb16UsyAMxJ6xnIJY4h8BTIR9cz_dTezyGywpuAKI13Q2S77tfwcyBF6icFkDsz187MSQGPQuTdVNU8zXkYR5ZkNs8_Uc8SL940xt0KHWLU9DX8KT6eCcVMwAypLyAsSTRJeqE8uRumq1K6dKK7wkE_HQrg9nSmr40A5ZZPzRsUp6hShJyMYSp-D02utbT8bAzVPw6alBgZWrmlVEvdcvfO81DZylUIm-pszKityfT5tmuyMWtUx3AeLXSiQWZOpah3OBnL11IKhNhYWSzUMGuDENHfbP9hlSJvzjq8WeN73nXSjkNEVYetT2er6pnoGrvFUBWcLLdWcl4p324WwqsP5A7ZDbWamo62yPxHUy7Vr4ySRLDfNEQbjP8JVPacpx3-5oY16LlzS4e9RhR0G-aykJitrLd5--gTVGxlxsLbmz33TTDd3nMGuQp2xmpZsw4rTKefEN7hCdvgJhtwRLgL4jxSm2mBgtwWH_i0uuBFpCYNgh97rU-Cak66adXDydAOr6-imSHAIlSphGj6G4rUdbMtBV0n1MVGg3vIyHQot3hMaH6uXMpHOUEtxQivkp0F-fY6PoFr49HfWD-ZuneENaKKjB8p_rd9k";
+    const EXPIRED_TOKEN: &str = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTcwNDM5ODcwMiwidHlwIjoiVEVBTSIsIm51bSI6MX0.UBufd2YlyhuChdCSZvbvEBtxLABhZSuhya4KHKHYM2ABaSTjYYtSyT-yv0i9b8sySBoeu7kG0XBNrLQOg4fcirR5DxOFxiskI7qLLSQEIDYe-xnEbvxqKhN3RpHkxik9_OlvElvpIGrZRQxiELhESIM0NGck0Dz6MwTDFutkHZFh06cLFeoihs1rn44SknL3wP_afyCaOpQtTjDfsayBMfyDAriTG8HSnPbrw5Om7ER7uAqszhX8wpFonDeFeVB0OIUjayfL-SAMdLqNEqaFsUcuE4cUk7o9tA2jsYz2-BRlwDocLpRVp2V-K8MuyQJhDTiswbey2DE5tNRvnd3nNaVr7Pmt3mF7NMt8op8hl4I9scoThFBj9Bb1iMfAGVSXlRn9Kf2HHe2BJXGWC3w9bjWH2KRPMP3tScJ4CQccIJxZPU-fcX7IC1q8R4PWDYS11TDJ03PvCTEGFt3fBTLLaGOeoYHYNnd4qux317YhGtWTOO6ESIuoxQkJdTpNVOwfNmCVSfFUvJYs0l4r7z-QouHAd79Ck_GJ-cdiIOrV9MB1Lq6ayk267bXfdi0Lx6-PYxrTwXEkF5tBydrsPyhoReAbH8yQDqzlPbQzOlLo--Z4940kSEpgEsL9G6ymG5wDlMzNuQfjbYbCI0L19Spx5QRGtyYXtiSU1Tq-hhGm3zA";
+    const INCOMPLETE_TOKEN: &str = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJ0YWJieW1sLmNvbSIsInN1YiI6ImZha2VAdGFiYnltbC5jb20iLCJpYXQiOjE3MDUxOTgxMDIsImV4cCI6MTgwNDM5ODcwMiwidHlwIjoiVEVBTSJ9.juNQeg8jMRj7Q2XbmHSdneKZbTP_BIL43yW3He5avIRAKee1NF9-qg4ndGOYVWBmtoO6Y_CAts_trSw6gmuDuwWcmSbbr7CWQOYuNrMj1_Gp1MctA8zzC3yzr0EoBLzqkNBq3OySlfOkohopmJ6Lu0d0KRtf46qq94cMDAlfs7etcVGkGqfMEwxznptXiF7_S3qRVbahvJDPJlu_ozwn51tICXMrlGV_P6jdBcNLQ8I1LAH2RfyH9u-4mUSTKt-obnXw6mtPxPjl07MEajM_wW3X05-iRygQfyzDulvW0EXf39OnW2kCuyfQWx5Zksr-sCNTEL2VSalf9o8MchjAhDN5QrygdZkk7KXwt3O54tpcnFVABw9ORxJtTrsZJD-YvdmS01O6qLfMRWs2CGWFTfDJLxMSiBhAsy4DC4TkZN4UnBpX09U7n6f_0NUr83YAWcw0Rlp32k01j9iPUWSdePZh46Ck00XdzLcc15xfqv__ilaLAyRtb9JUVBX7g-VaLb1YGk658t19eukRNzE6WFyKfAE7u6EbxowtFQqVKYXWX_zDHoalo3DjUmPBV_VsorcBg4cjhrhBPBOB5f7Wa8r7eiJz1gWEj1xJEK2Y_mdShAvxNSWPSTvNvviPTgJbvbwDTzQ0It_d066ADBY2o0y5DTMP23EPL-oZ14TYIY4";
 
     #[test]
     fn test_validate_license() {
@@ -180,15 +204,21 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_update_license() {
+    async fn test_license_mutations() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = new_license_service(db).await.unwrap();
 
         assert!(service.update_license("bad_token".into()).await.is_err());
 
         service.update_license(VALID_TOKEN.into()).await.unwrap();
-        assert!(service.read_license().await.unwrap().is_some());
+        assert!(service.read_license().await.is_ok());
 
         assert!(service.update_license(EXPIRED_TOKEN.into()).await.is_err());
+
+        service.reset_license().await.unwrap();
+        assert_eq!(
+            service.read_license().await.unwrap().seats,
+            LicenseInfo::seat_limits_for_community_license() as i32
+        );
     }
 }

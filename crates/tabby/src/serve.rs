@@ -21,7 +21,8 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     routes::{self, run_app},
     services::{
-        chat::{self, create_chat_service},
+        chat,
+        chat::create_chat_service,
         code::create_code_search,
         completion::{self, create_completion_service},
         event::create_logger,
@@ -61,7 +62,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         chat::ChatCompletionRequest,
         chat::ChatCompletionChoice,
         chat::ChatCompletionDelta,
-        chat::Message,
+        api::chat::Message,
         chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,

@@ -33,7 +33,7 @@ use crate::schema::{
     auth::AuthenticationService,
     email::EmailService,
     job::JobService,
-    license::LicenseService,
+    license::{IsLicenseValid, LicenseService},
     repository::RepositoryService,
     setting::SettingService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
@@ -77,7 +77,11 @@ impl ServerContext {
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             mail: mail.clone(),
-            auth: Arc::new(new_authentication_service(db_conn.clone(), mail)),
+            auth: Arc::new(new_authentication_service(
+                db_conn.clone(),
+                mail,
+                license.clone(),
+            )),
             license,
             db_conn,
             logger,
@@ -86,7 +90,7 @@ impl ServerContext {
         }
     }
 
-    async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<String>) {
+    async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<ID>) {
         let path = request.uri().path();
         if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
             return (true, None);
@@ -105,11 +109,25 @@ impl ServerContext {
             // Admin system is initialized, but there is no valid token.
             return (false, None);
         };
+
+        // Allow JWT based access (from web browser), regardless of the license status.
         if let Ok(jwt) = self.auth.verify_access_token(token).await {
-            return (true, Some(jwt.sub));
+            return (true, Some(jwt.sub.0));
         }
-        match self.db_conn.verify_auth_token(token).await {
-            Ok(email) => (true, Some(email)),
+
+        let is_license_valid = self
+            .license
+            .read_license()
+            .await
+            .ensure_valid_license()
+            .is_ok();
+        // If there's no valid license, only allows owner access.
+        match self
+            .db_conn
+            .verify_auth_token(token, !is_license_valid)
+            .await
+        {
+            Ok(id) => (true, Some(id.as_id())),
             Err(_) => (false, None),
         }
     }
@@ -133,20 +151,28 @@ impl WorkerService for ServerContext {
     }
 
     async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
-        let worker = match worker.kind {
-            WorkerKind::Completion => self.completion.register(worker).await,
-            WorkerKind::Chat => self.chat.register(worker).await,
+        let worker_group = match worker.kind {
+            WorkerKind::Completion => &self.completion,
+            WorkerKind::Chat => &self.chat,
         };
 
-        if let Some(worker) = worker {
-            info!(
-                "registering <{:?}> worker running at {}",
-                worker.kind, worker.addr
-            );
-            Ok(worker)
-        } else {
-            Err(RegisterWorkerError::RequiresEnterpriseLicense)
+        let count_workers = worker_group.list().await.len();
+        let license = self
+            .license
+            .read_license()
+            .await
+            .map_err(|_| RegisterWorkerError::RequiresEnterpriseLicense)?;
+
+        if license.check_node_limit(count_workers + 1) {
+            return Err(RegisterWorkerError::RequiresEnterpriseLicense);
         }
+
+        let worker = worker_group.register(worker).await;
+        info!(
+            "registering <{:?}> worker running at {}",
+            worker.kind, worker.addr
+        );
+        Ok(worker)
     }
 
     async fn unregister_worker(&self, worker_addr: &str) {

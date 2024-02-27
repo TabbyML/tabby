@@ -6,6 +6,7 @@ import useLocalStorage from 'use-local-storage'
 import { graphql } from '@/lib/gql/generates'
 import { isClientSide } from '@/lib/utils'
 
+import { useMe } from '../hooks/use-me'
 import { useIsAdminInitialized } from '../hooks/use-server-info'
 
 interface AuthData {
@@ -150,6 +151,7 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
     status: 'loading',
     data: undefined
   })
+  const [, reexecuteQueryMe] = useMe()
 
   React.useEffect(() => {
     initialized.current = true
@@ -166,6 +168,7 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
     // After being mounted, listen for changes in the access token
     if (authToken?.accessToken && authToken?.refreshToken) {
       dispatch({ type: AuthActionType.SignIn, data: authToken })
+      reexecuteQueryMe()
     } else {
       dispatch({ type: AuthActionType.SignOut })
     }
@@ -174,12 +177,11 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
   const session: Session = React.useMemo(() => {
     if (authState?.status == 'authenticated') {
       try {
-        const { sub, is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
+        const { is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
           authState.data.accessToken
         )
         return {
           data: {
-            email: sub!,
             isAdmin: is_admin,
             accessToken: authState.data.accessToken
           },
@@ -260,7 +262,6 @@ function useSignOut(): () => Promise<void> {
 }
 
 interface User {
-  email: string
   isAdmin: boolean
   accessToken: string
 }

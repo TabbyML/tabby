@@ -52,6 +52,7 @@ impl From<UserDAO> for auth::User {
             auth_token: val.auth_token,
             created_at: val.created_at,
             active: val.active,
+            is_password_set: !val.password_encrypted.is_empty(),
         }
     }
 }
@@ -145,7 +146,7 @@ impl AsRowid for juniper::ID {
             .decode(self)
             .first()
             .map(|i| *i as i32)
-            .ok_or(CoreError::InvalidIDError)
+            .ok_or(CoreError::InvalidID)
     }
 }
 
@@ -154,6 +155,12 @@ pub trait AsID {
 }
 
 impl AsID for i32 {
+    fn as_id(&self) -> juniper::ID {
+        (*self as i64).as_id()
+    }
+}
+
+impl AsID for i64 {
     fn as_id(&self) -> juniper::ID {
         juniper::ID::new(HASHER.encode(&[*self as u64]))
     }

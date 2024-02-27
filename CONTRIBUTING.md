@@ -29,15 +29,21 @@ apt-get install protobuf-compiler libopenblas-dev
 choco install protoc
 ```
 
+Some of the tests require mailtutan SMTP server which you can install with:
+
+```bash
+cargo install mailtutan
+```
+
 Before proceeding, ensure that all tests are passing locally:
 
 ```
 cargo test -- --skip golden
 ```
 
-Golden tests should be skipped on all platforms except Apple silicon (M1/M2), because they have not been created for other platforms yet.
-
 This will help ensure everything is working correctly and avoid surprises with local breakages.
+
+Golden tests, which run models and check their outputs against previous "golden snapshots", should be skipped for most development purposes, as they take a very long time to run (especially the tests running the models on CPU). You may still want to run them if your changes relate to the functioning of or integration with the generative models, but skipping them is recommended otherwise.
 
 ## Building and Running
 
@@ -78,6 +84,7 @@ By default, Tabby will start on `localhost:8080` and serve requests.
 Tabby is broken up into several crates, each responsible for a different part of the functionality. These crates fall into two categories: Fully open source features, and enterprise features. All open-source feature crates are located in the `/crates` folder in the repository root, and all enterprise feature crates are located in `/ee`.
 
 ### Crates
+
 - `crates/tabby` - The core tabby application, this is the main binary crate defining CLI behavior and driving the API
 - `crates/tabby-common` - Interfaces and type definitions shared across most other tabby crates, especially types used for serialization
 - `crates/tabby-download` - Very small crate, responsible for downloading models at runtime

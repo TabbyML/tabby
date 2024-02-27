@@ -10,8 +10,8 @@ on:
       - '!*-dev'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }} 
-  
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+
   # If this is enabled it will cancel current running and start latest
   cancel-in-progress: true
 
@@ -27,6 +27,15 @@ jobs:
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
+
+    strategy:
+      matrix:
+        device-type: [cuda, rocm]
+        include:
+          - device-type: cuda
+            image-suffix: ''
+          - device-type: rocm
+            image-suffix: '-rocm'
 
     steps:
       - name: Free Disk Space (Ubuntu)
@@ -69,8 +78,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Generate image name
+        env:
+          IMAGE_SUFFIX: ${{ matrix.image-suffix }}
         run: |
-          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}${IMAGE_SUFFIX}" >>${GITHUB_ENV}
 
       - uses: int128/docker-build-cache-config-action@v1
         id: cache
@@ -98,7 +109,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v3.1.1
         with:
-          file: Dockerfile
+          file: docker/Dockerfile.${{ matrix.device-type }}
           push: true
           context: .
           tags: ${{ steps.meta.outputs.tags }}
@@ -113,4 +124,3 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: tabbyml/tabby
-

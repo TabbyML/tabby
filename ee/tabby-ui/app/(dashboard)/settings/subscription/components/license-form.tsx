@@ -3,12 +3,24 @@
 import * as React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -27,6 +39,7 @@ type FormValues = z.infer<typeof formSchema>
 
 interface LicenseFormProps extends React.HTMLAttributes<HTMLDivElement> {
   onSuccess?: () => void
+  canReset?: boolean
 }
 
 const uploadLicenseMutation = graphql(/* GraphQL */ `
@@ -35,9 +48,16 @@ const uploadLicenseMutation = graphql(/* GraphQL */ `
   }
 `)
 
+const resetLicenseMutation = graphql(/* GraphQL */ `
+  mutation ResetLicense {
+    resetLicense
+  }
+`)
+
 export function LicenseForm({
   className,
   onSuccess,
+  canReset,
   ...props
 }: LicenseFormProps) {
   const form = useForm<FormValues>({
@@ -45,18 +65,45 @@ export function LicenseForm({
   })
   const license = form.watch('license')
   const { isSubmitting } = form.formState
+  const [isReseting, setIsDeleting] = React.useState(false)
+  const [resetDialogOpen, setResetDialogOpen] = React.useState(false)
 
   const uploadLicense = useMutation(uploadLicenseMutation, {
     form
   })
 
+  const resetLicense = useMutation(resetLicenseMutation)
+
   const onSubmit = (values: FormValues) => {
     return uploadLicense(values).then(res => {
       if (res?.data?.uploadLicense) {
         form.reset({ license: '' })
+        toast.success('License is uploaded')
         onSuccess?.()
       }
     })
+  }
+
+  const onReset: React.MouseEventHandler<HTMLButtonElement> = e => {
+    e.preventDefault()
+    setIsDeleting(true)
+    resetLicense()
+      .then(res => {
+        if (res?.data?.resetLicense) {
+          setResetDialogOpen(false)
+          onSuccess?.()
+        } else if (res?.error) {
+          toast.error(res.error.message ?? 'reset failed')
+        }
+      })
+      .finally(() => {
+        setIsDeleting(false)
+      })
+  }
+
+  const onResetDialogOpenChange = (v: boolean) => {
+    if (isReseting) return
+    setResetDialogOpen(v)
   }
 
   return (
@@ -79,12 +126,42 @@ export function LicenseForm({
               </FormItem>
             )}
           />
-          <div className="text-right">
-            <Button
-              type="submit"
-              className="mt-2"
-              disabled={isSubmitting || !license}
+          <div className="mt-2 flex items-center justify-end gap-4">
+            <AlertDialog
+              open={resetDialogOpen}
+              onOpenChange={onResetDialogOpenChange}
             >
+              {canReset && (
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="hover-destructive">
+                    Reset
+                  </Button>
+                </AlertDialogTrigger>
+              )}
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. It will reset the current
+                    license.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={buttonVariants({ variant: 'destructive' })}
+                    onClick={onReset}
+                    disabled={isReseting}
+                  >
+                    {isReseting && (
+                      <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Yes, reset it
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button type="submit" disabled={isSubmitting || !license}>
               {isSubmitting && (
                 <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
               )}

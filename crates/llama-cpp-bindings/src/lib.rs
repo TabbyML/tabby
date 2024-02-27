@@ -12,11 +12,6 @@ use tabby_inference::{TextGenerationOptions, TextGenerationStream};
 
 #[cxx::bridge(namespace = "llama")]
 mod ffi {
-    struct StepOutput {
-        request_id: u32,
-        text: String,
-    }
-
     extern "Rust" {
         type LlamaInitRequest;
         fn id(&self) -> u32;

@@ -17,6 +17,7 @@ type Mutation {
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
   requestPasswordResetEmail(input: RequestPasswordResetEmailInput!): Boolean!
   passwordReset(input: PasswordResetInput!): Boolean!
+  passwordChange(input: PasswordChangeInput!): Boolean!
   resetUserAuthToken: Boolean!
   updateUserActive(id: ID!, active: Boolean!): Boolean!
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
@@ -37,6 +38,7 @@ type Mutation {
   updateNetworkSetting(input: NetworkSettingInput!): Boolean!
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
+  resetLicense: Boolean!
 }
 
 type RepositoryEdge {
@@ -74,7 +76,7 @@ type Query {
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
-  license: LicenseInfo
+  license: LicenseInfo!
 }
 
 input NetworkSettingInput {
@@ -134,8 +136,8 @@ type LicenseInfo {
   status: LicenseStatus!
   seats: Int!
   seatsUsed: Int!
-  issuedAt: DateTimeUtc!
-  expiresAt: DateTimeUtc!
+  issuedAt: DateTimeUtc
+  expiresAt: DateTimeUtc
 }
 
 input EmailSettingInput {
@@ -154,7 +156,9 @@ input SecuritySettingInput {
 }
 
 enum LicenseType {
+  COMMUNITY
   TEAM
+  ENTERPRISE
 }
 
 type SecuritySetting {
@@ -194,6 +198,12 @@ input PasswordResetInput {
   password2: String!
 }
 
+input PasswordChangeInput {
+  oldPassword: String
+  newPassword1: String!
+  newPassword2: String!
+}
+
 type Invitation {
   id: ID!
   email: String!
@@ -218,6 +228,7 @@ type User {
   authToken: String!
   createdAt: DateTimeUtc!
   active: Boolean!
+  isPasswordSet: Boolean!
 }
 
 type Worker {

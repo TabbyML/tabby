@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { noop } from 'lodash-es'
-import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
+import { useMe } from '@/lib/hooks/use-me'
+import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,14 +29,6 @@ export default function Home() {
   )
 }
 
-const meQuery = graphql(/* GraphQL */ `
-  query MeQuery {
-    me {
-      authToken
-    }
-  }
-`)
-
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {
     resetUserAuthToken
@@ -45,28 +37,29 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()
-  const [{ data }, reexecuteQuery] = useQuery({ query: meQuery })
-  const [origin, setOrigin] = useState('')
-  useEffect(() => {
-    setOrigin(new URL(window.location.href).origin)
-  }, [])
+  const [{ data }, reexecuteQuery] = useMe()
+  const externalUrl = useExternalURL()
 
   const resetUserAuthToken = useMutation(resetUserAuthTokenDocument, {
     onCompleted: () => reexecuteQuery()
   })
 
-  if (!healthInfo || !data) return
+  if (!healthInfo || !data?.me) return
 
   return (
     <div>
-      <CardHeader>
+      <CardHeader className="px-0 pt-0">
         <CardTitle>Getting Started</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-4 px-0">
         <Label>Endpoint URL</Label>
         <span className="flex items-center gap-1">
-          <Input value={origin} onChange={noop} className="max-w-[320px]" />
-          <CopyButton value={origin} />
+          <Input
+            value={externalUrl}
+            onChange={noop}
+            className="max-w-[320px]"
+          />
+          <CopyButton value={externalUrl} />
         </span>
 
         <Label>Token</Label>
@@ -87,7 +80,7 @@ function MainPanel() {
           <CopyButton value={data.me.authToken} />
         </span>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="px-0">
         <span>
           Use informations above for IDE extensions / plugins configuration, see{' '}
           <a

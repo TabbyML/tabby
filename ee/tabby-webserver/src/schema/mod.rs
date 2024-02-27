@@ -27,18 +27,18 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    auth::{PasswordResetInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput},
+    auth::{
+        PasswordChangeInput, PasswordResetInput, RequestInvitationInput,
+        RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
+    },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    license::{LicenseInfo, LicenseService},
-    repository::RepositoryService,
+    license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
+    repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
 };
-use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider, RequestInvitationInput},
-    repository::Repository,
-};
+use crate::schema::auth::{JWTPayload, OAuthCredential, OAuthProvider};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
@@ -74,14 +74,17 @@ pub enum CoreError {
     #[error("{0}")]
     Forbidden(&'static str),
 
-    #[error("Invalid ID Error")]
-    InvalidIDError,
+    #[error("Invalid ID")]
+    InvalidID,
 
     #[error("Invalid input parameters")]
     InvalidInput(#[from] ValidationErrors),
 
     #[error("Email is not configured")]
     EmailNotConfigured,
+
+    #[error("{0}")]
+    InvalidLicense(&'static str),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -118,6 +121,18 @@ fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     Ok(())
 }
 
+async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<(), CoreError> {
+    let license = ctx.locator.license().read_license().await?;
+
+    if !license_type.contains(&license.r#type) {
+        return Err(CoreError::InvalidLicense(
+            "Your plan doesn't include support for this feature.",
+        ));
+    }
+
+    license.ensure_valid_license()
+}
+
 #[derive(Default)]
 pub struct Query;
 
@@ -141,7 +156,7 @@ impl Query {
 
     async fn me(ctx: &Context) -> Result<User> {
         let claims = check_claims(ctx)?;
-        ctx.locator.auth().get_user_by_email(&claims.sub).await
+        ctx.locator.auth().get_user(&claims.sub.0).await
     }
 
     async fn users(
@@ -300,7 +315,7 @@ impl Query {
         })
     }
 
-    async fn license(ctx: &Context) -> Result<Option<LicenseInfo>> {
+    async fn license(ctx: &Context) -> Result<LicenseInfo> {
         ctx.locator.license().read_license().await
     }
 }
@@ -352,11 +367,25 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn password_change(ctx: &Context, input: PasswordChangeInput) -> Result<bool> {
+        let claims = check_claims(ctx)?;
+        input.validate()?;
+        ctx.locator
+            .auth()
+            .update_user_password(
+                &claims.sub.0,
+                input.old_password.as_deref(),
+                &input.new_password1,
+            )
+            .await?;
+        Ok(true)
+    }
+
     async fn reset_user_auth_token(ctx: &Context) -> Result<bool> {
         let claims = check_claims(ctx)?;
         ctx.locator
             .auth()
-            .reset_user_auth_token(&claims.sub)
+            .reset_user_auth_token(&claims.sub.0)
             .await?;
         Ok(true)
     }
@@ -465,6 +494,7 @@ impl Mutation {
         input: UpdateOAuthCredentialInput,
     ) -> Result<bool> {
         check_admin(ctx)?;
+        check_license(ctx, &[LicenseType::Enterprise]).await?;
         input.validate()?;
         ctx.locator.auth().update_oauth_credential(input).await?;
         Ok(true)
@@ -485,6 +515,7 @@ impl Mutation {
 
     async fn update_security_setting(ctx: &Context, input: SecuritySettingInput) -> Result<bool> {
         check_admin(ctx)?;
+        check_license(ctx, &[LicenseType::Enterprise]).await?;
         input.validate()?;
         ctx.locator.setting().update_security_setting(input).await?;
         Ok(true)
@@ -506,6 +537,12 @@ impl Mutation {
     async fn upload_license(ctx: &Context, license: String) -> Result<bool> {
         check_admin(ctx)?;
         ctx.locator.license().update_license(license).await?;
+        Ok(true)
+    }
+
+    async fn reset_license(ctx: &Context) -> Result<bool> {
+        check_admin(ctx)?;
+        ctx.locator.license().reset_license().await?;
         Ok(true)
     }
 }

@@ -24,6 +24,7 @@ use crate::{
             UpdateOAuthCredentialInput, User,
         },
         email::EmailService,
+        license::LicenseService,
         setting::SettingService,
         CoreError, Result,
     },
@@ -33,13 +34,15 @@ use crate::{
 struct AuthenticationServiceImpl {
     db: DbConn,
     mail: Arc<dyn EmailService>,
+    license: Arc<dyn LicenseService>,
 }
 
 pub fn new_authentication_service(
     db: DbConn,
     mail: Arc<dyn EmailService>,
+    license: Arc<dyn LicenseService>,
 ) -> impl AuthenticationService {
-    AuthenticationServiceImpl { db, mail }
+    AuthenticationServiceImpl { db, mail, license }
 }
 
 #[async_trait]
@@ -83,8 +86,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let refresh_token = generate_refresh_token();
         self.db.create_refresh_token(id, &refresh_token).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-        else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
         };
 
@@ -138,6 +140,35 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
+    async fn update_user_password(
+        &self,
+        id: &ID,
+        old_password: Option<&str>,
+        new_password: &str,
+    ) -> Result<()> {
+        let user = self
+            .db
+            .get_user(id.as_rowid()?)
+            .await?
+            .ok_or_else(|| anyhow!("Invalid user"))?;
+
+        let password_verified = match (user.password_encrypted.is_empty(), old_password) {
+            (true, _) => true,
+            (false, None) => false,
+            (false, Some(old_password)) => password_verify(old_password, &user.password_encrypted),
+        };
+        if !password_verified {
+            return Err(anyhow!("Password is incorrect").into());
+        }
+
+        let new_password_encrypted =
+            password_hash(new_password).map_err(|_| anyhow!("Unknown error"))?;
+        self.db
+            .update_user_password(user.id, new_password_encrypted)
+            .await?;
+        Ok(())
+    }
+
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
         let Some(user) = self.db.get_user_by_email(&email).await? else {
             return Err(anyhow!("User not found").into());
@@ -156,8 +187,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .create_refresh_token(user.id, &refresh_token)
             .await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-        else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
         };
 
@@ -184,8 +214,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         self.db.replace_refresh_token(&token, &new_token).await?;
 
         // refresh token update is done, generate new access token based on user info
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.email.clone(), user.is_admin))
-        else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
         };
 
@@ -215,6 +244,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()> {
+        if is_admin {
+            let license = self.license.read_license().await?;
+            let num_admins = self.db.count_active_admin_users().await?;
+            license.ensure_admin_seats(num_admins + 1)?;
+        }
+
         let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
@@ -232,7 +267,19 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
     }
 
+    async fn get_user(&self, id: &ID) -> Result<User> {
+        let user = self.db.get_user(id.as_rowid()?).await?;
+        if let Some(user) = user {
+            Ok(user.into())
+        } else {
+            Err(anyhow!("User not found").into())
+        }
+    }
+
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
+        let license = self.license.read_license().await?;
+        license.ensure_available_seats(1)?;
+
         let invitation = self.db.create_invitation(email.clone()).await?;
         let email_sent = self
             .mail
@@ -264,8 +311,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(self.db.delete_invitation(id.as_rowid()?).await?.as_id())
     }
 
-    async fn reset_user_auth_token(&self, email: &str) -> Result<()> {
-        Ok(self.db.reset_user_auth_token_by_email(email).await?)
+    async fn reset_user_auth_token(&self, id: &ID) -> Result<()> {
+        Ok(self.db.reset_user_auth_token_by_id(id.as_rowid()?).await?)
     }
 
     async fn list_users(
@@ -317,7 +364,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .create_refresh_token(user_id, &refresh_token)
             .await?;
 
-        let access_token = generate_jwt(JWTPayload::new(email.clone(), is_admin))
+        let access_token = generate_jwt(JWTPayload::new(user_id.as_id(), is_admin))
             .map_err(|_| OAuthError::Unknown)?;
 
         let resp = OAuthResponse {
@@ -376,11 +423,25 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
+        let license = self.license.read_license().await?;
+
+        if active {
+            // Check there's sufficient seat if switching user to active.
+            license.ensure_available_seats(1)?;
+        }
+
         let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
             return Err(anyhow!("The owner's active status cannot be changed").into());
         }
+
+        if active && user.is_admin {
+            // Check there's sufficient seat if an admin being swtiched to active.
+            let num_admins = self.db.count_active_admin_users().await?;
+            license.ensure_admin_seats(num_admins + 1)?;
+        }
+
         Ok(self.db.update_user_active(id, active).await?)
     }
 }
@@ -467,12 +528,77 @@ fn password_verify(raw: &str, hash: &str) -> bool {
 #[cfg(test)]
 mod tests {
 
-    async fn test_authentication_service() -> AuthenticationServiceImpl {
+    struct MockLicenseService {
+        status: LicenseStatus,
+        seats: i32,
+        seats_used: i32,
+    }
+
+    impl MockLicenseService {
+        fn team() -> Self {
+            Self {
+                status: LicenseStatus::Ok,
+                seats: 5,
+                seats_used: 1,
+            }
+        }
+
+        fn team_with_seats(seats: i32) -> Self {
+            Self {
+                status: LicenseStatus::Ok,
+                seats,
+                seats_used: 1,
+            }
+        }
+
+        fn invalid() -> Self {
+            Self {
+                status: LicenseStatus::Expired,
+                seats: 5,
+                seats_used: 1,
+            }
+        }
+    }
+
+    #[async_trait]
+    impl LicenseService for MockLicenseService {
+        async fn read_license(&self) -> Result<LicenseInfo> {
+            Ok(LicenseInfo {
+                r#type: crate::schema::license::LicenseType::Team,
+                status: self.status.clone(),
+                seats: self.seats,
+                seats_used: self.seats_used,
+                issued_at: Some(Utc::now()),
+                expires_at: Some(Utc::now()),
+            })
+        }
+
+        async fn update_license(&self, _: String) -> Result<()> {
+            unimplemented!()
+        }
+
+        async fn reset_license(&self) -> Result<()> {
+            unimplemented!()
+        }
+    }
+
+    async fn test_authentication_service_with_license(
+        license: Arc<dyn LicenseService>,
+    ) -> AuthenticationServiceImpl {
         let db = DbConn::new_in_memory().await.unwrap();
         AuthenticationServiceImpl {
             db: db.clone(),
             mail: Arc::new(new_email_service(db).await.unwrap()),
+            license,
         }
+    }
+
+    async fn test_authentication_service() -> AuthenticationServiceImpl {
+        test_authentication_service_with_license(Arc::new(MockLicenseService::team())).await
+    }
+
+    async fn test_authentication_service_without_valid_license() -> AuthenticationServiceImpl {
+        test_authentication_service_with_license(Arc::new(MockLicenseService::invalid())).await
     }
 
     async fn test_authentication_service_with_mail() -> (AuthenticationServiceImpl, TestEmailServer)
@@ -482,6 +608,7 @@ mod tests {
         let service = AuthenticationServiceImpl {
             db: db.clone(),
             mail: Arc::new(smtp.create_test_email_service(db).await),
+            license: Arc::new(MockLicenseService::team()),
         };
         (service, smtp)
     }
@@ -491,7 +618,10 @@ mod tests {
     use serial_test::serial;
 
     use super::*;
-    use crate::service::email::{new_email_service, testutils::TestEmailServer};
+    use crate::{
+        schema::license::{LicenseInfo, LicenseStatus},
+        service::email::{new_email_service, testutils::TestEmailServer},
+    };
 
     #[test]
     fn test_password_hash() {
@@ -646,7 +776,7 @@ mod tests {
         register_admin_user(&service).await;
 
         let user = service.get_user_by_email(ADMIN_EMAIL).await.unwrap();
-        service.reset_user_auth_token(&user.email).await.unwrap();
+        service.reset_user_auth_token(&user.id).await.unwrap();
 
         let user2 = service.get_user_by_email(ADMIN_EMAIL).await.unwrap();
         assert_ne!(user.auth_token, user2.auth_token);
@@ -975,5 +1105,120 @@ mod tests {
             .unwrap();
 
         assert!(service.allow_self_signup().await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_create_invitation_without_license() {
+        let service = test_authentication_service_without_valid_license().await;
+        assert_matches!(
+            service.create_invitation("abc.com".into()).await,
+            Err(CoreError::InvalidLicense(_))
+        )
+    }
+
+    #[tokio::test]
+    async fn test_create_invitation_without_sufficient_seats() {
+        let service = test_authentication_service_with_license(Arc::new(
+            MockLicenseService::team_with_seats(2),
+        ))
+        .await;
+        assert_matches!(service.create_invitation("abc.com".into()).await, Ok(_));
+
+        let service = test_authentication_service_with_license(Arc::new(
+            MockLicenseService::team_with_seats(1),
+        ))
+        .await;
+        assert_matches!(
+            service.create_invitation("abc.com".into()).await,
+            Err(CoreError::InvalidLicense(_))
+        )
+    }
+
+    #[tokio::test]
+    async fn test_update_user_active_on_admin_seats() {
+        let service = test_authentication_service_with_license(Arc::new(
+            MockLicenseService::team_with_seats(3),
+        ))
+        .await;
+
+        // Create owner user.
+        service
+            .register("a@example.com".into(), "pass".into(), None)
+            .await
+            .unwrap();
+
+        let user1 = service
+            .db
+            .create_user("b@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+        let user2 = service
+            .db
+            .create_user("c@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+        let user3 = service
+            .db
+            .create_user("d@example.com".into(), "pass".into(), false)
+            .await
+            .unwrap();
+
+        service
+            .update_user_role(&user1.as_id(), true)
+            .await
+            .unwrap();
+        service
+            .update_user_role(&user2.as_id(), true)
+            .await
+            .unwrap();
+
+        assert_matches!(service.db.count_active_admin_users().await, Ok(3));
+
+        assert_matches!(
+            service.update_user_role(&user3.as_id(), true).await,
+            Err(CoreError::InvalidLicense(_))
+        );
+
+        // Change user2 to deactive.
+        service
+            .update_user_active(&user2.as_id(), false)
+            .await
+            .unwrap();
+
+        assert_matches!(service.db.count_active_admin_users().await, Ok(2));
+        assert_matches!(service.update_user_role(&user3.as_id(), true).await, Ok(_));
+
+        // Not able to toggle user to active due to admin seat limits.
+        assert_matches!(
+            service.update_user_role(&user2.as_id(), true).await,
+            Err(CoreError::InvalidLicense(_))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_update_password() {
+        let service = test_authentication_service().await;
+        let id = service
+            .db
+            .create_user("test@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
+
+        let id = id.as_id();
+
+        assert!(service
+            .update_user_password(&id, None, "newpass")
+            .await
+            .is_ok());
+
+        assert!(service
+            .update_user_password(&id, None, "newpass2")
+            .await
+            .is_err());
+
+        assert!(service
+            .update_user_password(&id, Some("newpass"), "newpass2")
+            .await
+            .is_ok());
     }
 }

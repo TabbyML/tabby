@@ -1,4 +1,5 @@
 //! Lays out the abstract definition of a text generation model, and utilities for encodings.
+pub mod chat;
 mod decoding;
 mod imp;
 
@@ -19,7 +20,7 @@ pub struct TextGenerationOptions {
     #[builder(default = "0.1")]
     pub sampling_temperature: f32,
 
-    #[builder(default = "0")]
+    #[builder(default = "TextGenerationOptions::default_seed()")]
     pub seed: u64,
 
     #[builder(default = "None")]

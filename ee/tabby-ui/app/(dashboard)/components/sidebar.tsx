@@ -21,7 +21,8 @@ import {
   IconHome,
   IconLightingBolt,
   IconNetwork,
-  IconScrollText
+  IconScrollText,
+  IconUser
 } from '@/components/ui/icons'
 
 export interface SidebarProps {
@@ -56,6 +57,9 @@ export default function Sidebar({ children, className }: SidebarProps) {
             <div className="flex flex-col gap-2 px-4 pb-4">
               <SidebarButton href="/">
                 <IconHome /> Home
+              </SidebarButton>
+              <SidebarButton href="/profile">
+                <IconUser /> Profile
               </SidebarButton>
               {isAdmin && (
                 <>

@@ -162,16 +162,16 @@ pub struct OAuthResponse {
 
 #[derive(Error, Debug)]
 pub enum OAuthError {
-    #[error("The code passed is incorrect or expired")]
+    #[error("The oauth code passed is incorrect or expired")]
     InvalidVerificationCode,
 
-    #[error("The credential is not active")]
+    #[error("OAuth is not enabled")]
     CredentialNotActive,
 
-    #[error("The user is not invited to access the system")]
+    #[error("User is not invited, please contact admin for help")]
     UserNotInvited,
 
-    #[error("User is disabled")]
+    #[error("User is disabled, please contact admin for help")]
     UserDisabled,
 
     #[error(transparent)]
@@ -202,7 +202,12 @@ impl RefreshTokenResponse {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+// IDWrapper to used as a type guard for refactoring, can be removed in a follow up PR.
+// FIXME(meng): refactor out IDWrapper.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IDWrapper(pub ID);
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct JWTPayload {
     /// Expiration time (as UTC timestamp)
     exp: i64,
@@ -210,20 +215,20 @@ pub struct JWTPayload {
     /// Issued at (as UTC timestamp)
     iat: i64,
 
-    /// User email address
-    pub sub: String,
+    /// User id string
+    pub sub: IDWrapper,
 
     /// Whether the user is admin.
     pub is_admin: bool,
 }
 
 impl JWTPayload {
-    pub fn new(email: String, is_admin: bool) -> Self {
+    pub fn new(id: ID, is_admin: bool) -> Self {
         let now = jwt::get_current_timestamp();
         Self {
             iat: now as i64,
             exp: (now + *JWT_DEFAULT_EXP) as i64,
-            sub: email,
+            sub: IDWrapper(id),
             is_admin,
         }
     }
@@ -239,6 +244,7 @@ pub struct User {
     pub auth_token: String,
     pub created_at: DateTime<Utc>,
     pub active: bool,
+    pub is_password_set: bool,
 }
 
 impl relay::NodeType for User {
@@ -299,6 +305,39 @@ pub struct PasswordResetInput {
         other = "password1"
     ))]
     pub password2: String,
+}
+
+#[derive(Validate, GraphQLInputObject)]
+pub struct PasswordChangeInput {
+    pub old_password: Option<String>,
+
+    #[validate(length(
+        min = 8,
+        code = "newPassword1",
+        message = "Password must be at least 8 characters"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "newPassword1",
+        message = "Password must be at most 20 characters"
+    ))]
+    pub new_password1: String,
+    #[validate(length(
+        min = 8,
+        code = "newPassword2",
+        message = "Password must be at least 8 characters"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "newPassword2",
+        message = "Password must be at most 20 characters"
+    ))]
+    #[validate(must_match(
+        code = "newPassword2",
+        message = "Passwords do not match",
+        other = "new_password1"
+    ))]
+    pub new_password2: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
@@ -378,14 +417,21 @@ pub trait AuthenticationService: Send + Sync {
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
+    async fn get_user(&self, id: &ID) -> Result<User>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
     async fn request_invitation_email(&self, input: RequestInvitationInput) -> Result<Invitation>;
     async fn delete_invitation(&self, id: &ID) -> Result<ID>;
 
-    async fn reset_user_auth_token(&self, email: &str) -> Result<()>;
+    async fn reset_user_auth_token(&self, id: &ID) -> Result<()>;
     async fn password_reset(&self, code: &str, password: &str) -> Result<()>;
     async fn request_password_reset_email(&self, email: String) -> Result<Option<JoinHandle<()>>>;
+    async fn update_user_password(
+        &self,
+        id: &ID,
+        old_password: Option<&str>,
+        new_password: &str,
+    ) -> Result<()>;
 
     async fn list_users(
         &self,
@@ -460,7 +506,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_generate_jwt() {
-        let claims = JWTPayload::new("test".to_string(), false);
+        let claims = JWTPayload::new(ID::from("test".to_owned()), false);
         let token = generate_jwt(claims).unwrap();
 
         assert!(!token.is_empty())
@@ -468,10 +514,10 @@ mod tests {
 
     #[test]
     fn test_validate_jwt() {
-        let claims = JWTPayload::new("test".to_string(), false);
+        let claims = JWTPayload::new(ID::from("test".to_owned()), false);
         let token = generate_jwt(claims).unwrap();
         let claims = validate_jwt(&token).unwrap();
-        assert_eq!(claims.sub, "test");
+        assert_eq!(claims.sub.0.to_string(), "test");
         assert!(!claims.is_admin);
     }
 

@@ -181,32 +181,6 @@ class AgentService : Disposable {
         }
       }
     }
-
-    scope.launch {
-      agent.currentIssue.collect { issueName ->
-        val notification = when (issueName) {
-          "connectionFailed" -> Notification(
-            "com.tabbyml.intellijtabby.notification.warning",
-            "Cannot connect to Tabby server",
-            NotificationType.ERROR,
-          ).apply {
-            addAction(ActionManager.getInstance().getAction("Tabby.CheckIssueDetail"))
-          }
-
-          else -> {
-            invokeLater {
-              issueNotification?.expire()
-            }
-            return@collect
-          }
-        }
-        invokeLater {
-          issueNotification?.expire()
-          issueNotification = notification
-          Notifications.Bus.notify(notification)
-        }
-      }
-    }
   }
 
   private fun createAgentConfig(state: ApplicationSettingsState.State): Agent.Config {

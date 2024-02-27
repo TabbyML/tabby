@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_scalar, FromRow};
 use uuid::Uuid;
@@ -22,6 +22,8 @@ pub struct UserDAO {
     pub active: bool,
 }
 
+static OWNER_USER_ID: i32 = 1;
+
 impl UserDAO {
     fn select(clause: &str) -> String {
         r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active FROM users WHERE "#
@@ -30,7 +32,7 @@ impl UserDAO {
     }
 
     pub fn is_owner(&self) -> bool {
-        self.id == 1
+        self.id == OWNER_USER_ID
     }
 }
 
@@ -133,26 +135,31 @@ impl DbConn {
         Ok(users)
     }
 
-    pub async fn verify_auth_token(&self, token: &str) -> Result<String> {
+    pub async fn verify_auth_token(&self, token: &str, requires_owner: bool) -> Result<i64> {
         let token = token.to_owned();
-        let email = query_scalar!(
-            "SELECT email FROM users WHERE auth_token = ? AND active",
-            token
+        let Some(id) = query_scalar!(
+            "SELECT id FROM users WHERE auth_token = ? AND active AND (id == ? OR NOT ?)",
+            token,
+            OWNER_USER_ID,
+            requires_owner
         )
         .fetch_one(&self.pool)
-        .await;
-        email.map_err(Into::into)
+        .await?
+        else {
+            bail!("Invalid auth_token")
+        };
+
+        Ok(id)
     }
 
-    pub async fn reset_user_auth_token_by_email(&self, email: &str) -> Result<()> {
-        let email = email.to_owned();
+    pub async fn reset_user_auth_token_by_id(&self, id: i32) -> Result<()> {
         let updated_at = chrono::Utc::now();
         let token = generate_auth_token();
         query!(
-            r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE email = ?"#,
+            r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE id = ?"#,
             token,
             updated_at,
-            email
+            id
         )
         .execute(&self.pool)
         .await?;
@@ -207,8 +214,16 @@ impl DbConn {
         Ok(())
     }
 
+    // FIXME(boxbeam): Revisit if a caching layer should be put into DbConn for this query in future.
     pub async fn count_active_users(&self) -> Result<usize> {
         let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active;")
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(users as usize)
+    }
+
+    pub async fn count_active_admin_users(&self) -> Result<usize> {
+        let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active and is_admin;")
             .fetch_one(&self.pool)
             .await?;
         Ok(users as usize)
@@ -266,20 +281,30 @@ mod tests {
 
         let user = conn.get_user(id).await.unwrap().unwrap();
 
-        assert!(conn.verify_auth_token("abcd").await.is_err());
+        assert!(conn.verify_auth_token("abcd", false).await.is_err());
 
-        assert!(conn.verify_auth_token(&user.auth_token).await.is_ok());
-
-        conn.reset_user_auth_token_by_email(&user.email)
+        assert!(conn
+            .verify_auth_token(&user.auth_token, false)
             .await
-            .unwrap();
+            .is_ok());
+
+        conn.reset_user_auth_token_by_id(user.id).await.unwrap();
         let new_user = conn.get_user(id).await.unwrap().unwrap();
         assert_eq!(user.email, new_user.email);
         assert_ne!(user.auth_token, new_user.auth_token);
 
         // Inactive user's auth token will be rejected.
         conn.update_user_active(new_user.id, false).await.unwrap();
-        assert!(conn.verify_auth_token(&new_user.auth_token).await.is_err());
+        assert!(conn
+            .verify_auth_token(&new_user.auth_token, false)
+            .await
+            .is_err());
+
+        // Owner user should pass verification.
+        assert!(conn
+            .verify_auth_token(&new_user.auth_token, true)
+            .await
+            .is_err());
     }
 
     #[tokio::test]
