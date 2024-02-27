@@ -8,7 +8,7 @@ import { ProfileCard } from './profile-card'
 export default function Profile() {
   return (
     <div className="flex flex-col gap-6">
-      <ProfileCard title="Password">
+      <ProfileCard title="Change password">
         <ChangePassword />
       </ProfileCard>
     </div>
