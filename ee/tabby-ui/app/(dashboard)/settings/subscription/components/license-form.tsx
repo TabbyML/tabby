@@ -39,7 +39,7 @@ type FormValues = z.infer<typeof formSchema>
 
 interface LicenseFormProps extends React.HTMLAttributes<HTMLDivElement> {
   onSuccess?: () => void
-  canDelete?: boolean
+  canReset?: boolean
 }
 
 const uploadLicenseMutation = graphql(/* GraphQL */ `
@@ -48,16 +48,16 @@ const uploadLicenseMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const deleteLicenseMutation = graphql(/* GraphQL */ `
-  mutation DeleteLicense {
-    deleteLicense
+const resetLicenseMutation = graphql(/* GraphQL */ `
+  mutation ResetLicense {
+    resetLicense
   }
 `)
 
 export function LicenseForm({
   className,
   onSuccess,
-  canDelete,
+  canReset,
   ...props
 }: LicenseFormProps) {
   const form = useForm<FormValues>({
@@ -65,14 +65,14 @@ export function LicenseForm({
   })
   const license = form.watch('license')
   const { isSubmitting } = form.formState
-  const [isDeleting, setIsDeleting] = React.useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
+  const [isReseting, setIsDeleting] = React.useState(false)
+  const [resetDialogOpen, setResetDialogOpen] = React.useState(false)
 
   const uploadLicense = useMutation(uploadLicenseMutation, {
     form
   })
 
-  const deleteLicense = useMutation(deleteLicenseMutation)
+  const resetLicense = useMutation(resetLicenseMutation)
 
   const onSubmit = (values: FormValues) => {
     return uploadLicense(values).then(res => {
@@ -84,16 +84,16 @@ export function LicenseForm({
     })
   }
 
-  const onDelete: React.MouseEventHandler<HTMLButtonElement> = e => {
+  const onReset: React.MouseEventHandler<HTMLButtonElement> = e => {
     e.preventDefault()
     setIsDeleting(true)
-    deleteLicense()
+    resetLicense()
       .then(res => {
-        if (res?.data?.deleteLicense) {
-          setDeleteDialogOpen(false)
+        if (res?.data?.resetLicense) {
+          setResetDialogOpen(false)
           onSuccess?.()
         } else if (res?.error) {
-          toast.error(res.error.message ?? 'delete failed')
+          toast.error(res.error.message ?? 'reset failed')
         }
       })
       .finally(() => {
@@ -101,9 +101,9 @@ export function LicenseForm({
       })
   }
 
-  const onDeleteDialogOpenChange = (v: boolean) => {
-    if (isDeleting) return
-    setDeleteDialogOpen(v)
+  const onResetDialogOpenChange = (v: boolean) => {
+    if (isReseting) return
+    setResetDialogOpen(v)
   }
 
   return (
@@ -128,13 +128,13 @@ export function LicenseForm({
           />
           <div className="mt-2 flex items-center justify-end gap-4">
             <AlertDialog
-              open={deleteDialogOpen}
-              onOpenChange={onDeleteDialogOpenChange}
+              open={resetDialogOpen}
+              onOpenChange={onResetDialogOpenChange}
             >
-              {canDelete && (
+              {canReset && (
                 <AlertDialogTrigger asChild>
                   <Button type="button" variant="hover-destructive">
-                    Delete
+                    Reset
                   </Button>
                 </AlertDialogTrigger>
               )}
@@ -142,7 +142,7 @@ export function LicenseForm({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. It will delete the current
+                    This action cannot be undone. It will reset the current
                     license.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -150,13 +150,13 @@ export function LicenseForm({
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     className={buttonVariants({ variant: 'destructive' })}
-                    onClick={onDelete}
-                    disabled={isDeleting}
+                    onClick={onReset}
+                    disabled={isReseting}
                   >
-                    {isDeleting && (
+                    {isReseting && (
                       <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Yes, delete it
+                    Yes, reset it
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

@@ -18,7 +18,7 @@ export default function Subscription() {
   const onUploadLicenseSuccess = () => {
     reexecuteQuery()
   }
-  const canDelete = !!license?.type && license.type !== LicenseType.Community
+  const canReset = !!license?.type && license.type !== LicenseType.Community
 
   return (
     <div className="p-4">
@@ -42,7 +42,7 @@ export default function Subscription() {
         >
           {license && <License license={license} />}
         </LoadingWrapper>
-        <LicenseForm onSuccess={onUploadLicenseSuccess} canDelete={canDelete} />
+        <LicenseForm onSuccess={onUploadLicenseSuccess} canReset={canReset} />
         <LicenseTable />
       </div>
     </div>
