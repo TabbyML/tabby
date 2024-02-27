@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
+import { ListSkeleton } from '@/components/skeleton'
 
 const passwordChangeMutation = graphql(/* GraphQL */ `
   mutation PasswordChange($input: PasswordChangeInput!) {
@@ -158,5 +159,7 @@ export const ChangePassword = () => {
       onSuccess={onSuccess}
       showOldPassword={data?.me?.isPasswordSet}
     />
-  ) : null
+  ) : (
+    <ListSkeleton />
+  )
 }
