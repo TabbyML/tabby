@@ -23,7 +23,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   return (
     <div
       className={cn(
-        'flex flex-col gap-8 rounded-lg border p-6 pb-0',
+        'flex flex-col gap-8 rounded-lg border p-6 pb-0 w-full xl:w-[800px]',
         className
       )}
       {...props}
