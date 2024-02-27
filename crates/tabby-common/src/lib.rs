@@ -17,9 +17,8 @@ use std::{
     future::Future,
     io::{BufReader, Error},
     marker::PhantomData,
-    ops::{Deref, Range},
+    ops::{Range},
     path::PathBuf,
-    sync::RwLockReadGuard,
 };
 
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
