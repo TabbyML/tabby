@@ -79,9 +79,9 @@ impl DbConn {
         let res = res.unique_error("User already exists")?;
         transaction.commit().await?;
 
-        self.cache.active_user_count.update(|x| *x += 1).await;
+        self.cache.active_user_count.invalidate().await;
         if is_admin {
-            self.cache.active_admin_count.update(|x| *x += 1).await;
+            self.cache.active_admin_count.invalidate().await;
         }
 
         Ok(res.last_insert_rowid() as i32)
@@ -187,11 +187,7 @@ impl DbConn {
             return Err(anyhow!("user active status was not changed"));
         }
         self.cache.active_admin_count.invalidate().await;
-        if active {
-            self.cache.active_user_count.update(|x| *x += 1).await;
-        } else {
-            self.cache.active_user_count.update(|x| *x -= 1).await;
-        }
+        self.cache.active_user_count.invalidate().await;
         Ok(())
     }
 
