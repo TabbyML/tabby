@@ -118,15 +118,17 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     info!("Starting server, this might take a few minutes...");
 
-    let ws = if cfg!(feature = "ee") && args.webserver {
-        Some(WebserverHandle::new().await)
-    } else {
-        None
-    };
-    let logger = ws
-        .as_ref()
-        .map(|ws| ws.logger())
-        .unwrap_or_else(|| Arc::new(create_logger()));
+    #[cfg(feature = "ee")]
+    let ws = WebserverHandle::new().await;
+    let logger;
+    #[cfg(feature = "ee")]
+    {
+        logger = ws.logger();
+    }
+    #[cfg(not(feature = "ee"))]
+    {
+        logger = Arc::new(create_logger());
+    }
     let code = Arc::new(create_code_search());
 
     let api = api_router(args, config, logger.clone(), code.clone()).await;
@@ -136,7 +138,6 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(feature = "ee")]
     let (api, ui) = if args.webserver {
         let (api, ui) = ws
-            .unwrap()
             .attach_webserver(
                 api,
                 ui,

@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = ["ee", "experimental-http"]
-ee = []
+ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
 rocm = ["llama-cpp-bindings/rocm"]
 vulkan = ["llama-cpp-bindings/vulkan"]
@@ -21,7 +21,7 @@ tabby-common = { path = "../tabby-common" }
 tabby-scheduler = { path = "../tabby-scheduler" }
 tabby-download = { path = "../tabby-download" }
 tabby-inference = { path = "../tabby-inference" }
-tabby-webserver = { path = "../../ee/tabby-webserver" }
+tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
 axum.workspace = true
 hyper = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
