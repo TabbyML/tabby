@@ -223,7 +223,7 @@ impl DbConn {
 
     pub async fn count_active_users(&self) -> Result<usize> {
         self.cache
-            .active_admin_count
+            .active_user_count
             .get_or_refresh(|| async {
                 let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active;")
                     .fetch_one(&self.pool)
@@ -235,7 +235,7 @@ impl DbConn {
 
     pub async fn count_active_admin_users(&self) -> Result<usize> {
         self.cache
-            .active_user_count
+            .active_admin_count
             .get_or_refresh(|| async {
                 let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active and is_admin;")
                     .fetch_one(&self.pool)
@@ -544,5 +544,38 @@ mod tests {
             )
         );
     }
+
+    #[tokio::test]
+    async fn test_caching() {
+        let db = DbConn::new_in_memory().await.unwrap();
+
+        db.create_user("example@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
+
+        assert_eq!(db.count_active_users().await.unwrap(), 1);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
+
+        let user2_id = db
+            .create_user("example2@example.com".into(), "".into(), false)
+            .await
+            .unwrap();
+        assert_eq!(db.count_active_users().await.unwrap(), 2);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
+
+        db.update_user_active(user2_id, false).await.unwrap();
+        assert_eq!(db.count_active_users().await.unwrap(), 1);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
+
+        let user3_id = db
+            .create_user("example3@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
+        assert_eq!(db.count_active_users().await.unwrap(), 2);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 2);
+
+        db.update_user_active(user3_id, false).await.unwrap();
+        assert_eq!(db.count_active_users().await.unwrap(), 1);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
+    }
 }
-// FIXME(boxbeam): Revisit if a caching layer should be put into DbConn for this query in future.
