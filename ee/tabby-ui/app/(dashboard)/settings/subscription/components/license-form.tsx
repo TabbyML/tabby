@@ -111,11 +111,11 @@ export function LicenseForm({
     e.preventDefault()
     toggleResetting.run(true)
     resetLicense().then(res => {
-      if (res?.data?.resetLicense) {
-        toggleResetting.run(false, true)
-      } else if (res?.error) {
+      const isSuccess = res?.data?.resetLicense
+      toggleResetting.run(false, isSuccess)
+
+      if (res?.error) {
         toast.error(res.error.message ?? 'reset failed')
-        toggleResetting.run(false, false)
       }
     })
   }
