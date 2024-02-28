@@ -12,6 +12,7 @@ pub use server_setting::ServerSettingDAO;
 use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
 pub use users::UserDAO;
 
+pub mod cache;
 mod email_setting;
 mod github_oauth_credential;
 mod google_oauth_credential;
