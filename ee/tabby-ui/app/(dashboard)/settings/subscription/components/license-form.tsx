@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import {
@@ -64,9 +65,34 @@ export function LicenseForm({
     resolver: zodResolver(formSchema)
   })
   const license = form.watch('license')
-  const { isSubmitting } = form.formState
-  const [isReseting, setIsDeleting] = React.useState(false)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [resetDialogOpen, setResetDialogOpen] = React.useState(false)
+  const [isResetting, setIsResetting] = React.useState(false)
+
+  const toggleSubmitting = useDebounceCallback(
+    (value: boolean, success?: boolean) => {
+      setIsSubmitting(value)
+      if (success) {
+        form.reset({ license: '' })
+        toast.success('License is uploaded')
+        onSuccess?.()
+      }
+    },
+    500,
+    { leading: true }
+  )
+
+  const toggleResetting = useDebounceCallback(
+    (value: boolean, success?: boolean) => {
+      setIsResetting(value)
+      if (success) {
+        setResetDialogOpen(false)
+        onSuccess?.()
+      }
+    },
+    500,
+    { leading: true }
+  )
 
   const uploadLicense = useMutation(uploadLicenseMutation, {
     form
@@ -75,34 +101,27 @@ export function LicenseForm({
   const resetLicense = useMutation(resetLicenseMutation)
 
   const onSubmit = (values: FormValues) => {
+    toggleSubmitting.run(true)
     return uploadLicense(values).then(res => {
-      if (res?.data?.uploadLicense) {
-        form.reset({ license: '' })
-        toast.success('License is uploaded')
-        onSuccess?.()
-      }
+      toggleSubmitting.run(false, res?.data?.uploadLicense)
     })
   }
 
   const onReset: React.MouseEventHandler<HTMLButtonElement> = e => {
     e.preventDefault()
-    setIsDeleting(true)
-    resetLicense()
-      .then(res => {
-        if (res?.data?.resetLicense) {
-          setResetDialogOpen(false)
-          onSuccess?.()
-        } else if (res?.error) {
-          toast.error(res.error.message ?? 'reset failed')
-        }
-      })
-      .finally(() => {
-        setIsDeleting(false)
-      })
+    toggleResetting.run(true)
+    resetLicense().then(res => {
+      const isSuccess = res?.data?.resetLicense
+      toggleResetting.run(false, isSuccess)
+
+      if (res?.error) {
+        toast.error(res.error.message ?? 'reset failed')
+      }
+    })
   }
 
   const onResetDialogOpenChange = (v: boolean) => {
-    if (isReseting) return
+    if (isResetting) return
     setResetDialogOpen(v)
   }
 
@@ -126,6 +145,7 @@ export function LicenseForm({
               </FormItem>
             )}
           />
+          <FormMessage />
           <div className="mt-2 flex items-center justify-end gap-4">
             <AlertDialog
               open={resetDialogOpen}
@@ -151,9 +171,9 @@ export function LicenseForm({
                   <AlertDialogAction
                     className={buttonVariants({ variant: 'destructive' })}
                     onClick={onReset}
-                    disabled={isReseting}
+                    disabled={isResetting}
                   >
-                    {isReseting && (
+                    {isResetting && (
                       <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     Yes, reset it
@@ -169,7 +189,6 @@ export function LicenseForm({
             </Button>
           </div>
         </form>
-        <FormMessage className="text-center" />
       </Form>
     </div>
   )
