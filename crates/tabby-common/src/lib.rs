@@ -11,21 +11,15 @@ pub mod terminal;
 pub mod usage;
 
 use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
     fs::File,
-    future::Future,
     io::{BufReader, Error},
-    marker::PhantomData,
     ops::Range,
     path::PathBuf,
 };
 
-use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use path::dataset_dir;
 use serde::{Deserialize, Serialize};
 use serde_jsonlines::JsonLinesReader;
-use tokio::sync::RwLock;
 
 #[derive(Serialize, Deserialize)]
 pub struct SourceFile {
@@ -91,46 +85,4 @@ pub struct Package {
 #[derive(Default, Serialize, Deserialize)]
 pub struct DependencyFile {
     pub direct: Vec<Package>,
-}
-
-pub struct Cache<T> {
-    value: RwLock<Option<T>>,
-}
-
-impl<T> Cache<T> {
-    pub async fn new() -> Self {
-        Cache {
-            value: Default::default(),
-        }
-    }
-
-    pub async fn invalidate(&self) {
-        *self.value.write().await = None;
-    }
-
-    pub async fn get_or_refresh<F, E>(&self, refresh: impl Fn() -> F) -> Result<T, E>
-    where
-        T: Clone,
-        F: Future<Output = Result<T, E>>,
-    {
-        let value = self.value.read().await;
-        if let Some(value) = &*value {
-            Ok(value.clone())
-        } else {
-            drop(value);
-            let mut value = self.value.write().await;
-            let generated = refresh().await?;
-            *value = Some(generated.clone());
-            Ok(generated)
-        }
-    }
-
-    pub async fn update(&self, f: impl FnOnce(&mut T)) {
-        let mut lock = self.value.write().await;
-        lock.as_mut().map(f);
-    }
-
-    pub async fn set(&self, value: T) {
-        *self.value.write().await = Some(value);
-    }
 }

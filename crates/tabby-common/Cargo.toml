@@ -20,8 +20,6 @@ serde_json.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
 regex.workspace = true
-chrono.workspace = true
-tokio.workspace = true
 
 [features]
 testutils = []
