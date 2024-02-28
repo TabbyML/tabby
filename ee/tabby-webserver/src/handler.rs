@@ -8,32 +8,56 @@ use axum::{
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::{graphiql, graphql, playground};
-use tabby_common::api::{code::CodeSearch, event::RawEventLogger, server_setting::ServerSetting};
+use tabby_common::api::{
+    code::CodeSearch,
+    event::{EventLogger, RawEventLogger},
+    server_setting::ServerSetting,
+};
+use tabby_db::DbConn;
 use tracing::warn;
 
 use crate::{
-    cron::{self},
-    hub, oauth,
+    cron, hub, oauth,
+    public::new_event_logger,
     repositories::{self, RepositoryCache},
     schema::{create_schema, Schema, ServiceLocator},
     service::create_service_locator,
     ui,
 };
 
-pub async fn attach_webserver(
-    api: Router,
-    ui: Router,
-    logger: Arc<dyn RawEventLogger>,
-    code: Arc<dyn CodeSearch>,
-    is_chat_enabled: bool,
-    local_port: u16,
-) -> (Router, Router) {
-    let ctx = create_service_locator(logger, code, is_chat_enabled).await;
-    let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
-    let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;
+pub struct WebserverHandle {
+    db: DbConn,
+    event_logger: Arc<dyn EventLogger>,
+}
 
-    let schema = Arc::new(create_schema());
-    let rs = Arc::new(repository_cache);
+impl WebserverHandle {
+    pub async fn new() -> Self {
+        let db = DbConn::new().await.expect("Must be able to initialize db");
+        let event_logger = Arc::new(new_event_logger(db.clone()));
+        WebserverHandle { db, event_logger }
+    }
+
+    pub fn logger(&self) -> Arc<dyn EventLogger> {
+        self.event_logger.clone()
+    }
+
+    pub async fn attach_webserver(
+        &self,
+        api: Router,
+        ui: Router,
+        logger: Arc<dyn RawEventLogger>,
+        code: Arc<dyn CodeSearch>,
+        is_chat_enabled: bool,
+        local_port: u16,
+    ) -> (Router, Router) {
+        let ctx = create_service_locator(logger, code, self.db.clone(), is_chat_enabled).await;
+        cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
+
+        let repository_cache = Arc::new(RepositoryCache::new_initialized(ctx.repository()).await);
+        repository_cache.start_reload_job().await;
+
+        let schema = Arc::new(create_schema());
+        let rs = Arc::new(repository_cache);
 
     let api = api
         .route(
@@ -65,6 +89,7 @@ pub async fn attach_webserver(
     let ui = ui.fallback(ui::handler);
 
     (api, ui)
+    }
 }
 
 async fn distributed_tabby_layer(

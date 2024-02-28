@@ -9,6 +9,7 @@ use tabby_common::{
     config::Config,
     usage,
 };
+use tabby_webserver::public::WebserverHandle;
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
 use tracing::info;
@@ -117,7 +118,15 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     info!("Starting server, this might take a few minutes...");
 
-    let logger = Arc::new(create_logger());
+    let ws = if cfg!(feature = "ee") && args.webserver {
+        Some(WebserverHandle::new().await)
+    } else {
+        None
+    };
+    let logger = ws
+        .as_ref()
+        .map(|ws| ws.logger())
+        .unwrap_or_else(|| Arc::new(create_logger()));
     let code = Arc::new(create_code_search());
 
     let api = api_router(args, config, logger.clone(), code.clone()).await;
@@ -126,15 +135,17 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     let (api, ui) = if args.webserver {
-        let (api, ui) = tabby_webserver::public::attach_webserver(
-            api,
-            ui,
-            logger,
-            code,
-            args.chat_model.is_some(),
-            args.port,
-        )
-        .await;
+        let (api, ui) = ws
+            .unwrap()
+            .attach_webserver(
+                api,
+                ui,
+                Arc::new(create_logger()),
+                code,
+                args.chat_model.is_some(),
+                args.port,
+            )
+            .await;
         (api, ui)
     } else {
         let ui = ui.fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });

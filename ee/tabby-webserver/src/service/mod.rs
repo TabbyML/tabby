@@ -1,7 +1,7 @@
 mod auth;
 mod dao;
 mod email;
-mod event_logger;
+pub mod event_logger;
 mod job;
 mod license;
 mod proxy;
@@ -60,9 +60,9 @@ impl ServerContext {
     pub async fn new(
         logger: Arc<dyn RawEventLogger>,
         code: Arc<dyn CodeSearch>,
+        db_conn: DbConn,
         is_chat_enabled_locally: bool,
     ) -> Self {
-        let db_conn = DbConn::new().await.unwrap();
         let mail = Arc::new(
             new_email_service(db_conn.clone())
                 .await
@@ -289,10 +289,11 @@ impl ServiceLocator for Arc<ServerContext> {
 pub async fn create_service_locator(
     logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
+    db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(Arc::new(
-        ServerContext::new(logger, code, is_chat_enabled).await,
+        ServerContext::new(logger, code, db, is_chat_enabled).await,
     ))
 }
 
