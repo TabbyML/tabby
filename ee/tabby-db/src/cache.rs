@@ -2,6 +2,7 @@ use std::future::Future;
 
 use tokio::sync::RwLock;
 
+#[derive(Default)]
 pub struct Cache<T> {
     value: RwLock<Option<T>>,
 }
@@ -32,14 +33,5 @@ impl<T> Cache<T> {
             *value = Some(generated.clone());
             Ok(generated)
         }
-    }
-
-    pub async fn update(&self, f: impl FnOnce(&mut T)) {
-        let mut lock = self.value.write().await;
-        lock.as_mut().map(f);
-    }
-
-    pub async fn set(&self, value: T) {
-        *self.value.write().await = Some(value);
     }
 }
