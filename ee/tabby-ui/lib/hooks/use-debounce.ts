@@ -1,6 +1,9 @@
 import React from 'react'
 import { debounce, type DebounceSettings } from 'lodash-es'
 
+import { useLatest } from './use-latest'
+import { useUnmount } from './use-unmount'
+
 type noop = (...args: any[]) => any
 
 // interface UseDebounceOptions<T = any> extends DebounceSettings {
@@ -9,11 +12,10 @@ type noop = (...args: any[]) => any
 
 function useDebounceCallback<T extends noop>(
   fn: T,
-  wait = 200,
+  wait: number,
   options?: DebounceSettings
 ) {
-  const fnRef = React.useRef(fn)
-
+  const fnRef = useLatest(fn)
   const debounced = React.useMemo(
     () =>
       debounce(
@@ -26,9 +28,7 @@ function useDebounceCallback<T extends noop>(
     []
   )
 
-  React.useEffect(() => {
-    return () => debounced.cancel()
-  }, [])
+  useUnmount(() => debounced.cancel())
 
   return {
     run: debounced,
@@ -39,7 +39,7 @@ function useDebounceCallback<T extends noop>(
 
 function useDebounceValue<T>(
   value: T,
-  wait = 200,
+  wait: number,
   options?: DebounceSettings
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [debouncedValue, setDebouncedValue] = React.useState(value)

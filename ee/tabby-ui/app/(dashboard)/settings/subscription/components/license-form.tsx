@@ -67,7 +67,7 @@ export function LicenseForm({
   const license = form.watch('license')
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [resetDialogOpen, setResetDialogOpen] = React.useState(false)
-  const [isReseting, setIsReseting] = React.useState(false)
+  const [isResetting, setIsResetting] = React.useState(false)
 
   const toggleSubmitting = useDebounceCallback(
     (value: boolean, success?: boolean) => {
@@ -78,18 +78,20 @@ export function LicenseForm({
         onSuccess?.()
       }
     },
-    500
+    500,
+    { leading: true }
   )
 
-  const toggleReseting = useDebounceCallback(
+  const toggleResetting = useDebounceCallback(
     (value: boolean, success?: boolean) => {
-      setIsReseting(value)
+      setIsResetting(value)
       if (success) {
         setResetDialogOpen(false)
         onSuccess?.()
       }
     },
-    500
+    500,
+    { leading: true }
   )
 
   const uploadLicense = useMutation(uploadLicenseMutation, {
@@ -99,29 +101,27 @@ export function LicenseForm({
   const resetLicense = useMutation(resetLicenseMutation)
 
   const onSubmit = (values: FormValues) => {
-    setIsSubmitting(true)
+    toggleSubmitting.run(true)
     return uploadLicense(values).then(res => {
-      if (res?.data?.uploadLicense) {
-        toggleSubmitting.run(false, true)
-      }
+      toggleSubmitting.run(false, res?.data?.uploadLicense)
     })
   }
 
   const onReset: React.MouseEventHandler<HTMLButtonElement> = e => {
     e.preventDefault()
-    setIsReseting(true)
+    toggleResetting.run(true)
     resetLicense().then(res => {
       if (res?.data?.resetLicense) {
-        toggleReseting.run(false, true)
+        toggleResetting.run(false, true)
       } else if (res?.error) {
         toast.error(res.error.message ?? 'reset failed')
-        setIsReseting(false)
+        toggleResetting.run(false, false)
       }
     })
   }
 
   const onResetDialogOpenChange = (v: boolean) => {
-    if (isReseting) return
+    if (isResetting) return
     setResetDialogOpen(v)
   }
 
@@ -145,6 +145,7 @@ export function LicenseForm({
               </FormItem>
             )}
           />
+          <FormMessage />
           <div className="mt-2 flex items-center justify-end gap-4">
             <AlertDialog
               open={resetDialogOpen}
@@ -170,9 +171,9 @@ export function LicenseForm({
                   <AlertDialogAction
                     className={buttonVariants({ variant: 'destructive' })}
                     onClick={onReset}
-                    disabled={isReseting}
+                    disabled={isResetting}
                   >
-                    {isReseting && (
+                    {isResetting && (
                       <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     Yes, reset it
@@ -188,7 +189,6 @@ export function LicenseForm({
             </Button>
           </div>
         </form>
-        <FormMessage className="text-center" />
       </Form>
     </div>
   )
