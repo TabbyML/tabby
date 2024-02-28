@@ -1,10 +1,11 @@
 import { EventEmitter } from "events";
 import decodeJwt from "jwt-decode";
+import deepEqual from "deep-equal";
 import createClient from "openapi-fetch";
 import type { paths as CloudApi } from "./types/cloudApi";
 import type { AbortSignalOption } from "./Agent";
 import { HttpError, abortSignalFromAnyOf } from "./utils";
-import { dataStore, DataStore } from "./dataStore";
+import { DataStore, FileDataStore } from "./dataStore";
 import { rootLogger } from "./logger";
 
 export type StorageData = {
@@ -55,17 +56,15 @@ export class Auth extends EventEmitter {
   }
 
   async init(options?: { dataStore?: DataStore }) {
-    if (options?.dataStore) {
-      this.dataStore = options.dataStore;
-    } else {
-      this.dataStore = dataStore;
-      if (dataStore) {
-        dataStore.on("updated", async () => {
-          await this.load();
+    this.dataStore = options?.dataStore;
+    if (this.dataStore instanceof FileDataStore) {
+      this.dataStore.on("updated", async () => {
+        const oldJwt = this.jwt;
+        await this.load();
+        if (!deepEqual(oldJwt, this.jwt)) {
           super.emit("updated", this.jwt);
-        });
-        dataStore.watch();
-      }
+        }
+      });
     }
     this.scheduleRefreshToken();
     await this.load();

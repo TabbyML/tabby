@@ -6,7 +6,7 @@ import type { paths as CloudApi } from "./types/cloudApi";
 import { name as agentName, version as agentVersion } from "../package.json";
 import { isBrowser } from "./env";
 import { rootLogger } from "./logger";
-import { dataStore, DataStore } from "./dataStore";
+import { DataStore } from "./dataStore";
 
 export class AnonymousUsageLogger {
   private anonymousUsageTrackingApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
@@ -25,13 +25,8 @@ export class AnonymousUsageLogger {
   disabled: boolean = false;
 
   async init(options?: { dataStore?: DataStore }) {
-    this.dataStore = options?.dataStore || dataStore;
+    this.dataStore = options?.dataStore;
     if (this.dataStore) {
-      try {
-        await this.dataStore.load();
-      } catch (error) {
-        this.logger.debug({ error }, "Error when loading anonymousId");
-      }
       if (typeof this.dataStore.data["anonymousId"] === "string") {
         this.anonymousId = this.dataStore.data["anonymousId"];
       } else {

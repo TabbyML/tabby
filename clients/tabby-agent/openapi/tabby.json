@@ -4,7 +4,7 @@
     "title": "Tabby Server",
     "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)\n[![Join Slack](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)\n\nInstall following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).\n* [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)\n* [VIM Extension](https://github.com/TabbyML/tabby/tree/main/clients/vim)\n* [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij) – Install from the [marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)\n",
     "license": { "name": "Apache 2.0", "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE" },
-    "version": "0.7.0"
+    "version": "0.9.0-dev"
   },
   "servers": [{ "url": "/", "description": "Server" }],
   "paths": {
@@ -95,6 +95,19 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SearchResponse" } } }
           },
           "501": { "description": "When code search is not enabled, the endpoint will returns 501 Not Implemented" }
+        },
+        "security": [{ "token": [] }]
+      }
+    },
+    "/v1beta/server_setting": {
+      "get": {
+        "tags": ["v1beta"],
+        "operationId": "config",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ServerSetting" } } }
+          }
         },
         "security": [{ "token": [] }]
       }
@@ -300,6 +313,11 @@
             "nullable": true
           }
         }
+      },
+      "ServerSetting": {
+        "type": "object",
+        "required": ["disable_client_side_telemetry"],
+        "properties": { "disable_client_side_telemetry": { "type": "boolean" } }
       },
       "Snippet": {
         "type": "object",

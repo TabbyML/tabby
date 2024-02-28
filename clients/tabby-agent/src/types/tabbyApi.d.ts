@@ -21,6 +21,9 @@ export interface paths {
   "/v1beta/search": {
     get: operations["search"];
   };
+  "/v1beta/server_setting": {
+    get: operations["config"];
+  };
 }
 
 export type webhooks = Record<string, never>;
@@ -197,6 +200,9 @@ export interface components {
       /** @description Clipboard content when requesting code completion. */
       clipboard?: string | null;
     };
+    ServerSetting: {
+      disable_client_side_telemetry: boolean;
+    };
     Snippet: {
       filepath: string;
       body: string;
@@ -314,6 +320,16 @@ export interface operations {
       /** @description When code search is not enabled, the endpoint will returns 501 Not Implemented */
       501: {
         content: never;
+      };
+    };
+  };
+  config: {
+    responses: {
+      /** @description Success */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ServerSetting"];
+        };
       };
     };
   };

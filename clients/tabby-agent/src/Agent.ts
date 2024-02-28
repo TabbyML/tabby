@@ -72,6 +72,7 @@ export interface AgentFunction {
    * 1. Default config
    * 2. User config file `~/.tabby-client/agent/config.toml` (not available in browser)
    * 3. Agent `initialize` and `updateConfig` methods
+   * 4. Fetched server-provided config
    *
    * This method will update the 3rd level config.
    * @param key the key of the config to update, can be nested with dot, e.g. `server.endpoint`
