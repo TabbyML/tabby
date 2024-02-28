@@ -4,7 +4,7 @@ import React from 'react'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
-import { useDebounce } from '@/lib/hooks/use-debounce'
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -225,7 +225,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     !fileMap?.[node.fullPath]?.treeExpanded &&
     expanded
 
-  const { data, isValidating }: SWRResponse<ResolveEntriesResponse> =
+  const { data, isLoading }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
       shouldFetchChildren
         ? `/repositories/${repositoryName}/resolve/${basename}`
@@ -262,7 +262,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     onSelectTreeNode?.(node)
   }
 
-  const loading = useDebounce(isValidating, 100)
+  const [loading] = useDebounceValue(isLoading, 300)
 
   const existingChildren = !!node?.children?.length
 

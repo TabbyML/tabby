@@ -1,7 +1,7 @@
 import React from 'react'
 import { find, omit } from 'lodash-es'
 
-import { useDebounce } from '@/lib/hooks/use-debounce'
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 import { IconDirectorySolid, IconFile } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -28,7 +28,7 @@ const DirectoryPanel: React.FC<DirectoryPanelProps> = ({
     return getCurrentDirFromTree(fileTreeData, activePath)
   }, [fileTreeData, activePath])
 
-  const loading = useDebounce(propsLoading, 300)
+  const [loading] = useDebounceValue(propsLoading, 300)
 
   const showParentEntry = currentFileRoutes?.length > 0
 
