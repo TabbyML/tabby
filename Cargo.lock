@@ -4445,7 +4445,6 @@ version = "0.9.0-dev"
 dependencies = [
  "anyhow",
  "async-trait",
- "chrono",
  "filenamify",
  "glob",
  "home",
@@ -4458,7 +4457,6 @@ dependencies = [
  "serdeconv",
  "tantivy",
  "thiserror",
- "tokio",
  "utoipa",
  "uuid 1.6.1",
 ]
