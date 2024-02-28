@@ -34,8 +34,4 @@ impl<T> Cache<T> {
             Ok(generated)
         }
     }
-
-    pub async fn set(&self, value: T) {
-        *self.value.write().await = Some(value);
-    }
 }
