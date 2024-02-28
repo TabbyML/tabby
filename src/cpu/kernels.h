@@ -95,7 +95,8 @@ namespace ctranslate2 {
                   float* output,
                   dim_t batch_size,
                   dim_t depth,
-                  float epsilon);
+                  float epsilon,
+                  bool use_residual);
 
     template <CpuIsa ISA>
     void quantize_s8(const float* x,

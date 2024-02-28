@@ -15,7 +15,8 @@ namespace ctranslate2 {
                                     const T* gamma,
                                     T* output,
                                     cuda::index_t depth,
-                                    float epsilon) {
+                                    float epsilon,
+                                    bool use_residual) {
       typedef cub::BlockReduce<float, num_threads> BlockReduce;
       __shared__ typename BlockReduce::TempStorage temp_storage;
       __shared__ float s_inv_rms;
@@ -34,7 +35,10 @@ namespace ctranslate2 {
       __syncthreads();
 
       for (cuda::index_t i = threadIdx.x; i < depth; i += blockDim.x)
-        output[i] = float(input[i]) * s_inv_rms * float(gamma[i]);
+        if (use_residual)
+          output[i] = float(input[i]) * s_inv_rms * (1 + float(gamma[i]));
+        else
+          output[i] = float(input[i]) * s_inv_rms * float(gamma[i]);
     }
 
     template <Device D, typename T>
@@ -48,7 +52,8 @@ namespace ctranslate2 {
         cuda::device_cast(gamma.data<T>()),
         cuda::device_cast(output.data<T>()),
         depth,
-        _epsilon);
+        _epsilon,
+        _use_residual);
     }
 
 #define DECLARE_IMPL(T)                                                 \

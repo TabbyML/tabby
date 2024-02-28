@@ -534,7 +534,8 @@ namespace ctranslate2 {
                               float* output,
                               dim_t batch_size,
                               dim_t depth,
-                              float epsilon) {
+                              float epsilon,
+                              bool use_residual) {
       parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
         for (dim_t i = begin; i < end; ++i) {
           const auto offset = i * depth;
@@ -548,7 +549,13 @@ namespace ctranslate2 {
           const float inv_rms = 1.f / std::sqrt(sum_squares / depth + epsilon);
 
           for (dim_t j = 0; j < depth; ++j)
-            y[j] = x[j] * inv_rms * gamma[j];
+          {
+            if (use_residual)
+              y[j] = x[j] * inv_rms * (1 + gamma[j]);
+            else
+              y[j] = x[j] * inv_rms * gamma[j];
+          }
+
         }
       });
     }

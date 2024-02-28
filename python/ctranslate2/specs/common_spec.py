@@ -28,6 +28,8 @@ class LayerNormSpec(model_spec.LayerSpec):
         self.gamma = None
         if not rms_norm:
             self.beta = None
+        else:
+            self.layer_norm_use_residual = model_spec.OPTIONAL
 
 
 class LinearSpec(model_spec.LayerSpec):
@@ -50,3 +52,4 @@ class EmbeddingsSpec(model_spec.LayerSpec):
     def __init__(self):
         self.weight = None
         self.weight_scale = model_spec.OPTIONAL
+        self.multiply_by_sqrt_depth = model_spec.OPTIONAL

@@ -381,7 +381,7 @@ namespace ctranslate2 {
       , _is_decoder(is_decoder)
       , _linear(make_linear_layers(model, scope, self_attention))
       , _d_model(_linear.back().output_size())
-      , _d_head(_d_model / _num_heads)
+      , _d_head(model.get_attribute_with_default<int32_t >(scope + "/head_dim", _d_model / _num_heads))
       , _pre_norm(pre_norm)
       , _layer_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
       , _rotary_embeddings(make_rotary_embeddings(model, scope))

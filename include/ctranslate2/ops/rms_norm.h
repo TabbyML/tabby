@@ -7,7 +7,7 @@ namespace ctranslate2 {
 
     class RMSNorm : public Op {
     public:
-      RMSNorm(const float epsilon = 1e-6);
+      RMSNorm(const float epsilon = 1e-6, const bool use_residual = false);
 
       void operator()(const StorageView& gamma,
                       const StorageView& input,
@@ -20,6 +20,7 @@ namespace ctranslate2 {
                    StorageView& output) const;
 
       const float _epsilon;
+      const bool _use_residual;
     };
 
   }

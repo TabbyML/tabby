@@ -5,8 +5,9 @@
 namespace ctranslate2 {
   namespace ops {
 
-    RMSNorm::RMSNorm(const float epsilon)
+    RMSNorm::RMSNorm(const float epsilon, const bool use_residual)
       : _epsilon(epsilon)
+      , _use_residual(use_residual)
     {
     }
 
