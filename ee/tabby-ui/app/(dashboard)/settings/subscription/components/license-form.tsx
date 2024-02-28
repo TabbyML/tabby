@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import {
@@ -64,9 +65,32 @@ export function LicenseForm({
     resolver: zodResolver(formSchema)
   })
   const license = form.watch('license')
-  const { isSubmitting } = form.formState
-  const [isReseting, setIsDeleting] = React.useState(false)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [resetDialogOpen, setResetDialogOpen] = React.useState(false)
+  const [isReseting, setIsReseting] = React.useState(false)
+
+  const toggleSubmitting = useDebounceCallback(
+    (value: boolean, success?: boolean) => {
+      setIsSubmitting(value)
+      if (success) {
+        form.reset({ license: '' })
+        toast.success('License is uploaded')
+        onSuccess?.()
+      }
+    },
+    500
+  )
+
+  const toggleReseting = useDebounceCallback(
+    (value: boolean, success?: boolean) => {
+      setIsReseting(value)
+      if (success) {
+        setResetDialogOpen(false)
+        onSuccess?.()
+      }
+    },
+    500
+  )
 
   const uploadLicense = useMutation(uploadLicenseMutation, {
     form
@@ -75,30 +99,25 @@ export function LicenseForm({
   const resetLicense = useMutation(resetLicenseMutation)
 
   const onSubmit = (values: FormValues) => {
+    setIsSubmitting(true)
     return uploadLicense(values).then(res => {
       if (res?.data?.uploadLicense) {
-        form.reset({ license: '' })
-        toast.success('License is uploaded')
-        onSuccess?.()
+        toggleSubmitting.run(false, true)
       }
     })
   }
 
   const onReset: React.MouseEventHandler<HTMLButtonElement> = e => {
     e.preventDefault()
-    setIsDeleting(true)
-    resetLicense()
-      .then(res => {
-        if (res?.data?.resetLicense) {
-          setResetDialogOpen(false)
-          onSuccess?.()
-        } else if (res?.error) {
-          toast.error(res.error.message ?? 'reset failed')
-        }
-      })
-      .finally(() => {
-        setIsDeleting(false)
-      })
+    setIsReseting(true)
+    resetLicense().then(res => {
+      if (res?.data?.resetLicense) {
+        toggleReseting.run(false, true)
+      } else if (res?.error) {
+        toast.error(res.error.message ?? 'reset failed')
+        setIsReseting(false)
+      }
+    })
   }
 
   const onResetDialogOpenChange = (v: boolean) => {
