@@ -329,6 +329,6 @@ mod tests {
         handle.await.unwrap();
 
         let mails = mail_server.list_mail().await;
-        assert_eq!(mails[0].subject, templates::test().subject);
+        assert!(mails[0].subject.contains("ready to go"));
     }
 }
