@@ -1,18 +1,9 @@
-pub struct EmailContents {
-    pub subject: String,
-    pub body: String,
-}
-
-fn format_email(template: &'static str, replacements: &[(&str, &str)]) -> EmailContents {
-    let (subject, body) = template
-        .split_once("---")
-        .expect("Email template must have subject and body separated by ---");
-    let (mut subject, mut body) = (subject.to_string(), body.to_string());
+fn format_email(body: &'static str, replacements: &[(&str, &str)]) -> String {
+    let mut body = body.to_string();
     for (name, replacement) in replacements {
         body = body.replace(name, replacement);
-        subject = subject.replace(name, replacement);
     }
-    EmailContents { subject, body }
+    body
 }
 
 macro_rules! template_email {
@@ -32,14 +23,14 @@ macro_rules! template_email {
     };
 }
 
-pub fn invitation(external_url: &str, code: &str) -> EmailContents {
-    template_email!(invitation: external_url, code)
+pub fn invitation(external_url: &str, code: &str, email: &str) -> String {
+    template_email!(invitation: external_url, code, email)
 }
 
-pub fn test() -> EmailContents {
+pub fn test() -> String {
     template_email!(test: )
 }
 
-pub fn password_reset(external_url: &str, email: &str, code: &str) -> EmailContents {
+pub fn password_reset(external_url: &str, email: &str, code: &str) -> String {
     template_email!(password_reset: external_url, email, code)
 }
