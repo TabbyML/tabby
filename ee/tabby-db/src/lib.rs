@@ -1,6 +1,7 @@
 use std::{ops::Deref, sync::Arc};
 
 use anyhow::anyhow;
+use cache::Cache;
 use chrono::{DateTime, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
 pub use github_oauth_credential::GithubOAuthCredentialDAO;
@@ -10,7 +11,6 @@ pub use job_runs::JobRunDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
-use tabby_common::Cache;
 pub use users::UserDAO;
 
 pub mod cache;

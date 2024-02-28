@@ -2,6 +2,7 @@ use std::future::Future;
 
 use tokio::sync::RwLock;
 
+#[derive(Default)]
 pub struct Cache<T> {
     value: RwLock<Option<T>>,
 }
