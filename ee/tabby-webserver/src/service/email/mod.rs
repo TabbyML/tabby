@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use lettre::{
-    message::{Mailbox, MessageBuilder},
+    message::{header::ContentType, Mailbox, MessageBuilder},
     transport::smtp::{
         authentication::{Credentials, Mechanism},
         client::{Tls, TlsParameters},
@@ -117,6 +117,7 @@ impl EmailServiceImpl {
         let address_to = to_address(to)?;
         let msg = MessageBuilder::new()
             .subject(subject)
+            .header(ContentType::TEXT_HTML)
             .from(Mailbox::new(Some("Tabby Admin".to_owned()), address_from))
             .to(Mailbox::new(None, address_to))
             .body(message)
@@ -220,9 +221,13 @@ impl EmailService for EmailServiceImpl {
     async fn send_invitation_email(&self, email: String, code: String) -> Result<JoinHandle<()>> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
-        let contents = templates::invitation(&external_url, &code);
-        self.send_email_in_background(email, contents.subject, contents.body)
-            .await
+        let body = templates::invitation(&external_url, &code, &email);
+        self.send_email_in_background(
+            email,
+            "You've been invited to join a Tabby server!".into(),
+            body,
+        )
+        .await
     }
 
     async fn send_password_reset_email(
@@ -231,14 +236,14 @@ impl EmailService for EmailServiceImpl {
         code: String,
     ) -> Result<JoinHandle<()>> {
         let external_url = self.db.read_network_setting().await?.external_url;
-        let contents = templates::password_reset(&external_url, &email, &code);
-        self.send_email_in_background(email, contents.subject, contents.body)
+        let body = templates::password_reset(&external_url, &email, &code);
+        self.send_email_in_background(email, "Reset your Tabby account password".into(), body)
             .await
     }
 
     async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>> {
-        let contents = templates::test();
-        self.send_email_in_background(to, contents.subject, contents.body)
+        let body = templates::test();
+        self.send_email_in_background(to, "Your mail server is ready to go!".into(), body)
             .await
     }
 }
@@ -328,6 +333,6 @@ mod tests {
         handle.await.unwrap();
 
         let mails = mail_server.list_mail().await;
-        assert_eq!(mails[0].subject, templates::test().subject);
+        assert!(mails[0].subject.contains("ready to go"));
     }
 }

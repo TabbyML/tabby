@@ -10,6 +10,10 @@ update-ui:
 	cd ee/tabby-ui && yarn build
 	rm -rf ee/tabby-webserver/ui && cp -R ee/tabby-ui/out ee/tabby-webserver/ui
 
+update-email-templates:
+	cd ee/tabby-email && yarn export
+	rm -rf ee/tabby-webserver/email_templates && cp -R ee/tabby-email/out ee/tabby-webserver/email_templates
+
 caddy:
 	caddy run --watch --config ee/tabby-webserver/development/Caddyfile
 
