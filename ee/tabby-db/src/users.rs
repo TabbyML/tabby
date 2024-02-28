@@ -79,6 +79,11 @@ impl DbConn {
         let res = res.unique_error("User already exists")?;
         transaction.commit().await?;
 
+        self.cache.active_user_count.invalidate().await;
+        if is_admin {
+            self.cache.active_admin_count.invalidate().await;
+        }
+
         Ok(res.last_insert_rowid() as i32)
     }
 
@@ -179,10 +184,11 @@ impl DbConn {
         .await?
         .rows_affected();
         if changed != 1 {
-            Err(anyhow!("user active status was not changed"))
-        } else {
-            Ok(())
+            return Err(anyhow!("user active status was not changed"));
         }
+        self.cache.active_admin_count.invalidate().await;
+        self.cache.active_user_count.invalidate().await;
+        Ok(())
     }
 
     pub async fn update_user_role(&self, id: i32, is_admin: bool) -> Result<()> {
@@ -199,6 +205,7 @@ impl DbConn {
         if changed != 1 {
             Err(anyhow!("user admin status was not changed"))
         } else {
+            self.cache.active_admin_count.invalidate().await;
             Ok(())
         }
     }
@@ -214,19 +221,28 @@ impl DbConn {
         Ok(())
     }
 
-    // FIXME(boxbeam): Revisit if a caching layer should be put into DbConn for this query in future.
     pub async fn count_active_users(&self) -> Result<usize> {
-        let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active;")
-            .fetch_one(&self.pool)
-            .await?;
-        Ok(users as usize)
+        self.cache
+            .active_user_count
+            .get_or_refresh(|| async {
+                let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active;")
+                    .fetch_one(&self.pool)
+                    .await?;
+                Ok(users as usize)
+            })
+            .await
     }
 
     pub async fn count_active_admin_users(&self) -> Result<usize> {
-        let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active and is_admin;")
-            .fetch_one(&self.pool)
-            .await?;
-        Ok(users as usize)
+        self.cache
+            .active_admin_count
+            .get_or_refresh(|| async {
+                let users = query_scalar!("SELECT COUNT(1) FROM users WHERE active and is_admin;")
+                    .fetch_one(&self.pool)
+                    .await?;
+                Ok(users as usize)
+            })
+            .await
     }
 }
 
@@ -528,5 +544,38 @@ mod tests {
             )
         );
     }
+
+    #[tokio::test]
+    async fn test_caching() {
+        let db = DbConn::new_in_memory().await.unwrap();
+
+        db.create_user("example@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
+
+        assert_eq!(db.count_active_users().await.unwrap(), 1);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
+
+        let user2_id = db
+            .create_user("example2@example.com".into(), "".into(), false)
+            .await
+            .unwrap();
+        assert_eq!(db.count_active_users().await.unwrap(), 2);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
+
+        db.update_user_active(user2_id, false).await.unwrap();
+        assert_eq!(db.count_active_users().await.unwrap(), 1);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
+
+        let user3_id = db
+            .create_user("example3@example.com".into(), "".into(), true)
+            .await
+            .unwrap();
+        assert_eq!(db.count_active_users().await.unwrap(), 2);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 2);
+
+        db.update_user_active(user3_id, false).await.unwrap();
+        assert_eq!(db.count_active_users().await.unwrap(), 1);
+        assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
+    }
 }
-// FIXME(boxbeam): Revisit if a caching layer should be put into DbConn for this query in future.
