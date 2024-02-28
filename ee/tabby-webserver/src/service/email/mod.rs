@@ -222,8 +222,12 @@ impl EmailService for EmailServiceImpl {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
         let body = templates::invitation(&external_url, &code, &email);
-        self.send_email_in_background(email, "You've been invited to join a Tabby server!".into(), body)
-            .await
+        self.send_email_in_background(
+            email,
+            "You've been invited to join a Tabby server!".into(),
+            body,
+        )
+        .await
     }
 
     async fn send_password_reset_email(
