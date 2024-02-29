@@ -83,7 +83,7 @@ fn build_llama_cpp() {
         println!("cargo:rustc-link-lib=hipblas");
     }
     if cfg!(feature = "vulkan") {
-        config.define("LLAMA_VULKAN", "1");
+        config.define("LLAMA_VULKAN", "ON");
     }
 
     // By default, this value is automatically inferred from Rust’s compilation profile.

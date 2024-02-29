@@ -86,6 +86,10 @@ pub enum Device {
     #[strum(serialize = "metal")]
     Metal,
 
+    #[cfg(feature = "vulkan")]
+    #[strum(serialize = "metal")]
+    Vulkan,
+
     #[cfg(feature = "experimental-http")]
     #[strum(serialize = "experimental_http")]
     #[clap(hide = true)]
@@ -106,6 +110,11 @@ impl Device {
     #[cfg(feature = "rocm")]
     pub fn ggml_use_gpu(&self) -> bool {
         *self == Device::Rocm
+    }
+
+    #[cfg(feature = "vulkan")]
+    pub fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Vulkan
     }
 
     #[cfg(not(any(
