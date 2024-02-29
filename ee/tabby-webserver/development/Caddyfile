@@ -8,6 +8,10 @@
 		path /hub
 		path /repositories/*
 		path /oauth/*
+
+		path /swagger-ui
+		path /swagger-ui/*
+		path /api-docs/*
 	}
 
 	handle @backend {
