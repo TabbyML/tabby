@@ -502,7 +502,7 @@ async fn check_invitation(
     };
 
     if invitation.email != email {
-        return Err(anyhow!("Invitation code is not for this user").into());
+        return Err(anyhow!("Invitation code is not for this email address").into());
     }
 
     Ok(Some(invitation))
