@@ -8,7 +8,7 @@ import deepEqual from "deep-equal";
 import { getProperty, deleteProperty } from "dot-prop";
 import type { PartialAgentConfig } from "./AgentConfig";
 import { isBrowser } from "./env";
-import { rootLogger } from "./logger";
+import { logger } from "./logger";
 
 const configTomlTemplate = `## Tabby agent configuration file
 
@@ -82,7 +82,7 @@ function validateConfig(config: PartialAgentConfig): PartialAgentConfig {
 class ConfigFile extends EventEmitter {
   private data: PartialAgentConfig = {};
   private watcher?: chokidar.FSWatcher;
-  private logger = rootLogger.child({ component: "ConfigFile" });
+  private logger = logger("ConfigFile");
 
   constructor(private readonly filepath: string) {
     super();

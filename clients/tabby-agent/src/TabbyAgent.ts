@@ -28,13 +28,13 @@ import { CompletionCache } from "./CompletionCache";
 import { CompletionDebounce } from "./CompletionDebounce";
 import { CompletionContext } from "./CompletionContext";
 import { preCacheProcess, postCacheProcess } from "./postprocess";
-import { rootLogger, allLoggers } from "./logger";
+import { logger, allBasicLoggers, extraLogger } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { CompletionProviderStats, CompletionProviderStatsEntry } from "./CompletionProviderStats";
 import { loadTlsCaCerts } from "./loadCaCerts";
 
 export class TabbyAgent extends EventEmitter implements Agent {
-  private readonly logger = rootLogger.child({ component: "TabbyAgent" });
+  private readonly logger = logger("TabbyAgent");
   private anonymousUsageLogger = new AnonymousUsageLogger();
   private config: AgentConfig = defaultAgentConfig;
   private userConfig: PartialAgentConfig = {}; // config from `~/.tabby-client/agent/config.toml`
@@ -81,7 +81,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.clientConfig,
       this.serverProvidedConfig,
     ) as AgentConfig;
-    allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
+    allBasicLoggers.forEach((logger) => (logger.level = this.config.logs.level));
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
 
     await loadTlsCaCerts(this.config.tls);
@@ -343,6 +343,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public async initialize(options: AgentInitOptions): Promise<boolean> {
+    if (options.loggers) {
+      extraLogger.loggers = options.loggers;
+    }
     this.dataStore = options.dataStore ?? defaultDataStore;
     if (this.dataStore instanceof FileDataStore) {
       try {
@@ -355,7 +358,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     await this.anonymousUsageLogger.init({ dataStore: this.dataStore });
     if (options.clientProperties) {
       const { user: userProp, session: sessionProp } = options.clientProperties;
-      allLoggers.forEach((logger) => logger.setBindings?.({ ...sessionProp }));
+      allBasicLoggers.forEach((logger) => logger.setBindings?.({ ...sessionProp }));
       if (sessionProp) {
         Object.entries(sessionProp).forEach(([key, value]) => {
           this.anonymousUsageLogger.setSessionProperties(key, value);
@@ -419,7 +422,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   public async updateClientProperties(type: keyof ClientProperties, key: string, value: any): Promise<boolean> {
     switch (type) {
       case "session":
-        allLoggers.forEach((logger) => logger.setBindings?.(setProperty({}, key, value)));
+        allBasicLoggers.forEach((logger) => logger.setBindings?.(setProperty({}, key, value)));
         this.anonymousUsageLogger.setSessionProperties(key, value);
         break;
       case "user":

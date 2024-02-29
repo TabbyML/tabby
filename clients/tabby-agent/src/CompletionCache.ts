@@ -1,13 +1,13 @@
 import { LRUCache } from "lru-cache";
 import { CompletionContext, CompletionResponse } from "./CompletionContext";
-import { rootLogger } from "./logger";
+import { logger } from "./logger";
 import { splitLines, autoClosingPairs, findUnpairedAutoClosingChars } from "./utils";
 
 type CompletionCacheKey = CompletionContext;
 type CompletionCacheValue = CompletionResponse;
 
 export class CompletionCache {
-  private readonly logger = rootLogger.child({ component: "CompletionCache" });
+  private readonly logger = logger("CompletionCache");
   private options = {
     maxCount: 10000,
     prebuildCache: {

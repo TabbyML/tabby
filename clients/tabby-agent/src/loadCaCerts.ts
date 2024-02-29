@@ -6,11 +6,11 @@ import * as macCa from "mac-ca";
 import type { AgentConfig } from "./AgentConfig";
 import { isBrowser } from "./env";
 import "./ArrayExt";
-import { rootLogger } from "./logger";
+import { logger as getLogger } from "./logger";
 
 type Cert = string | winCa.Certificate;
 
-const logger = rootLogger.child({ component: "CaCert" });
+const logger = getLogger("CaCert");
 let extraCaCerts: Cert[] = [];
 let originalCreateSecureContext: typeof tls.createSecureContext | undefined = undefined;
 
