@@ -18,10 +18,10 @@ use crate::schema::{
 impl From<InvitationDAO> for auth::Invitation {
     fn from(val: InvitationDAO) -> Self {
         Self {
-            id: val.id.as_id(),
+            id: (val.id as i32).as_id(),
             email: val.email,
             code: val.code,
-            created_at: val.created_at,
+            created_at: *val.created_at,
         }
     }
 }
@@ -154,15 +154,15 @@ pub trait AsID {
     fn as_id(&self) -> juniper::ID;
 }
 
-impl AsID for i32 {
-    fn as_id(&self) -> juniper::ID {
-        (*self as i64).as_id()
-    }
-}
-
 impl AsID for i64 {
     fn as_id(&self) -> juniper::ID {
         juniper::ID::new(HASHER.encode(&[*self as u64]))
+    }
+}
+
+impl AsID for i32 {
+    fn as_id(&self) -> juniper::ID {
+        (*self as i64).as_id()
     }
 }
 

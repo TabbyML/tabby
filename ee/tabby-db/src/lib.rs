@@ -10,7 +10,9 @@ pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
-use sqlx::{query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool};
+use sqlx::{
+    query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool, Type, Value, ValueRef,
+};
 pub use users::UserDAO;
 
 pub mod cache;
@@ -200,10 +202,39 @@ impl DbConn {
 
 pub struct DateTimeUtc(DateTime<Utc>);
 
+impl From<DateTime<Utc>> for DateTimeUtc {
+    fn from(value: DateTime<Utc>) -> Self {
+        Self(value)
+    }
+}
+
+impl<'a> sqlx::Decode<'a, Sqlite> for DateTimeUtc {
+    fn decode(
+        value: <Sqlite as sqlx::database::HasValueRef<'a>>::ValueRef,
+    ) -> std::prelude::v1::Result<Self, sqlx::error::BoxDynError> {
+        let time: NaiveDateTime = value.to_owned().decode();
+        Ok(time.into())
+    }
+}
+
+impl Type<Sqlite> for DateTimeUtc {
+    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
+        <String as Type<Sqlite>>::type_info()
+    }
+}
+
+impl<'a> sqlx::Encode<'a, Sqlite> for DateTimeUtc {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Sqlite as sqlx::database::HasArguments<'a>>::ArgumentBuffer,
+    ) -> sqlx::encode::IsNull {
+        self.0.encode_by_ref(buf)
+    }
+}
+
 impl From<NaiveDateTime> for DateTimeUtc {
     fn from(value: NaiveDateTime) -> Self {
-        let utc = DateTime::from_naive_utc_and_offset(value, Utc);
-        DateTimeUtc(utc)
+        DateTimeUtc(value.and_utc())
     }
 }
 

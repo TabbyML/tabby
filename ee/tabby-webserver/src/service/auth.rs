@@ -72,7 +72,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
                     email.clone(),
                     pwd_hash,
                     !is_admin_initialized,
-                    invitation.id,
+                    invitation.id as i32,
                 )
                 .await?
         } else {
@@ -308,7 +308,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn delete_invitation(&self, id: &ID) -> Result<ID> {
-        Ok(self.db.delete_invitation(id.as_rowid()?).await?.as_id())
+        Ok((self.db.delete_invitation(id.as_rowid()? as i64).await?).as_id())
     }
 
     async fn reset_user_auth_token(&self, id: &ID) -> Result<()> {
@@ -474,7 +474,12 @@ async fn get_or_create_oauth_user(db: &DbConn, email: &str) -> Result<(i32, bool
         };
         // safe to create with empty password for same reasons above
         let id = db
-            .create_user_with_invitation(email.to_owned(), "".to_owned(), false, invitation.id)
+            .create_user_with_invitation(
+                email.to_owned(),
+                "".to_owned(),
+                false,
+                invitation.id as i32,
+            )
             .await?;
         let user = db.get_user(id).await?.unwrap();
         Ok((user.id, user.is_admin))
@@ -743,7 +748,7 @@ mod tests {
         // Used invitation should have been deleted,  following delete attempt should fail.
         assert!(service
             .db
-            .delete_invitation(invitation.id.as_rowid().unwrap())
+            .delete_invitation(invitation.id.as_rowid().unwrap() as i64)
             .await
             .is_err());
     }
