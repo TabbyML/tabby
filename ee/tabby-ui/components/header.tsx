@@ -8,6 +8,7 @@ import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
 import { buttonVariants } from '@/components/ui/button'
 import { IconNotice } from '@/components/ui/icons'
 
+import { ClientOnly } from './client-only'
 import { ThemeToggle } from './theme-toggle'
 import UserPanel from './user-panel'
 
@@ -35,7 +36,9 @@ export function Header() {
         )}
       </div>
       <div className="flex items-center justify-center gap-6">
-        <ThemeToggle />
+        <ClientOnly>
+          <ThemeToggle />
+        </ClientOnly>
         <UserPanel />
       </div>
     </header>
