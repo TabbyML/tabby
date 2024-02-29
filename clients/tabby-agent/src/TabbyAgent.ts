@@ -296,7 +296,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       const fetchedConfig = response.data;
       const serverProvidedConfig: PartialAgentConfig = {};
       if (fetchedConfig.disable_client_side_telemetry) {
-        serverProvidedConfig["anonymousUsageTracking"] = {
+        serverProvidedConfig.anonymousUsageTracking = {
           disable: true,
         };
       }
