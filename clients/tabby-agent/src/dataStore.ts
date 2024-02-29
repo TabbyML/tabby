@@ -5,10 +5,12 @@ import fs from "fs-extra";
 import deepEqual from "deep-equal";
 import chokidar from "chokidar";
 import { isBrowser } from "./env";
+import type { PartialAgentConfig } from "./AgentConfig";
 
 export type StoredData = {
   anonymousId: string;
   auth: { [endpoint: string]: { jwt: string } };
+  serverConfig: { [endpoint: string]: PartialAgentConfig };
 };
 
 export interface DataStore {
@@ -17,7 +19,7 @@ export interface DataStore {
   save(): PromiseLike<void>;
 }
 
-class FileDataStore extends EventEmitter implements FileDataStore {
+export class FileDataStore extends EventEmitter implements FileDataStore {
   private watcher?: ReturnType<typeof chokidar.watch>;
   public data: Partial<StoredData> = {};
 

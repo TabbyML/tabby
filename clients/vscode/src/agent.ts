@@ -21,9 +21,11 @@ function buildInitOptions(context: ExtensionContext): AgentInitOptions {
     }
   }
   const anonymousUsageTrackingDisabled = configuration.get<boolean>("usage.anonymousUsageTracking", false);
-  config.anonymousUsageTracking = {
-    disable: anonymousUsageTrackingDisabled,
-  };
+  if (anonymousUsageTrackingDisabled) {
+    config.anonymousUsageTracking = {
+      disable: true,
+    };
+  }
   const clientProperties: ClientProperties = {
     user: {
       vscode: {
@@ -82,7 +84,11 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
       }
       if (event.affectsConfiguration("tabby.usage.anonymousUsageTracking")) {
         const anonymousUsageTrackingDisabled = configuration.get<boolean>("usage.anonymousUsageTracking", false);
-        agent.updateConfig("anonymousUsageTracking.disable", anonymousUsageTrackingDisabled);
+        if (anonymousUsageTrackingDisabled) {
+          agent.updateConfig("anonymousUsageTracking.disable", true);
+        } else {
+          agent.clearConfig("anonymousUsageTracking.disable");
+        }
       }
       if (event.affectsConfiguration("tabby.inlineCompletion.triggerMode")) {
         const triggerMode = configuration.get<string>("inlineCompletion.triggerMode", "automatic");

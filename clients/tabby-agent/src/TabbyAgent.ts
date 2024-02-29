@@ -19,7 +19,7 @@ import type {
   CompletionResponse,
   LogEventRequest,
 } from "./Agent";
-import type { DataStore } from "./dataStore";
+import { dataStore as defaultDataStore, DataStore, FileDataStore } from "./dataStore";
 import { isBlank, abortSignalFromAnyOf, HttpError, isTimeoutError, isCanceledError, errorToString } from "./utils";
 import { Auth } from "./Auth";
 import { AgentConfig, PartialAgentConfig, defaultAgentConfig } from "./AgentConfig";
@@ -39,6 +39,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private config: AgentConfig = defaultAgentConfig;
   private userConfig: PartialAgentConfig = {}; // config from `~/.tabby-client/agent/config.toml`
   private clientConfig: PartialAgentConfig = {}; // config from `initialize` and `updateConfig` method
+  private serverProvidedConfig: PartialAgentConfig = {}; // config fetched from server and saved in dataStore
   private status: AgentStatus = "notInitialized";
   private issues: AgentIssue["name"][] = [];
   private serverHealthState?: ServerHealthState;
@@ -74,7 +75,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
     const oldConfig = this.config;
     const oldStatus = this.status;
 
-    this.config = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig) as AgentConfig;
+    this.config = deepmerge(
+      defaultAgentConfig,
+      this.userConfig,
+      this.clientConfig,
+      this.serverProvidedConfig,
+    ) as AgentConfig;
     allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
 
@@ -103,7 +109,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.connectionErrorMessage = undefined;
     }
 
-    await this.setupApi();
+    if (!this.api || !deepEqual(oldConfig.server, this.config.server)) {
+      await this.setupApi();
+
+      // schedule fetch server config later, no await
+      this.fetchServerConfig();
+    }
 
     if (!deepEqual(oldConfig.server, this.config.server)) {
       // If server config changed and status remain `unauthorized`, we want to emit `authRequired` again.
@@ -240,6 +251,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
       ) {
         this.serverHealthState = healthState;
         this.anonymousUsageLogger.uniqueEvent("AgentConnected", healthState);
+
+        // schedule fetch server config later, no await
+        this.fetchServerConfig();
       }
     } catch (error) {
       this.serverHealthState = undefined;
@@ -266,6 +280,47 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
   }
 
+  private async fetchServerConfig(): Promise<void> {
+    const requestId = uuid();
+    try {
+      if (!this.api) {
+        throw new Error("http client not initialized");
+      }
+      const requestPath = "/v1beta/server_setting";
+      this.logger.debug({ requestId, url: this.config.server.endpoint + requestPath }, "Fetch server config request");
+      const response = await this.api.GET(requestPath);
+      if (response.error || !response.response.ok) {
+        throw new HttpError(response.response);
+      }
+      this.logger.debug({ requestId, response }, "Fetch server config response");
+      const fetchedConfig = response.data;
+      const serverProvidedConfig: PartialAgentConfig = {};
+      if (fetchedConfig.disable_client_side_telemetry) {
+        serverProvidedConfig.anonymousUsageTracking = {
+          disable: true,
+        };
+      }
+
+      if (!deepEqual(serverProvidedConfig, this.serverProvidedConfig)) {
+        this.serverProvidedConfig = serverProvidedConfig;
+        await this.applyConfig();
+        if (this.dataStore) {
+          if (!this.dataStore.data.serverConfig) {
+            this.dataStore.data.serverConfig = {};
+          }
+          this.dataStore.data.serverConfig[this.config.server.endpoint] = this.serverProvidedConfig;
+          try {
+            await this.dataStore.save();
+          } catch (error) {
+            this.logger.error({ error }, "Error when saving serverConfig");
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error({ requestId, error }, "Fetch server config error");
+    }
+  }
+
   private createSegments(context: CompletionContext): { prefix: string; suffix: string; clipboard?: string } {
     // max lines in prefix and suffix configurable
     const maxPrefixLines = this.config.completion.prompt.maxPrefixLines;
@@ -288,7 +343,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public async initialize(options: AgentInitOptions): Promise<boolean> {
-    this.dataStore = options?.dataStore;
+    this.dataStore = options.dataStore ?? defaultDataStore;
+    if (this.dataStore instanceof FileDataStore) {
+      try {
+        await this.dataStore.load();
+      } catch (error) {
+        this.logger.debug({ error }, "No stored data loaded.");
+      }
+      this.dataStore.watch();
+    }
     await this.anonymousUsageLogger.init({ dataStore: this.dataStore });
     if (options.clientProperties) {
       const { user: userProp, session: sessionProp } = options.clientProperties;
@@ -315,6 +378,20 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
     if (options.config) {
       this.clientConfig = options.config;
+    }
+    if (this.dataStore) {
+      const localConfig = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig) as AgentConfig;
+      this.serverProvidedConfig = this.dataStore?.data.serverConfig?.[localConfig.server.endpoint] ?? {};
+      if (this.dataStore instanceof FileDataStore) {
+        this.dataStore.on("updated", async () => {
+          const localConfig = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig) as AgentConfig;
+          const storedServerConfig = defaultDataStore?.data.serverConfig?.[localConfig.server.endpoint];
+          if (!deepEqual(storedServerConfig, this.serverProvidedConfig)) {
+            this.serverProvidedConfig = storedServerConfig ?? {};
+            await this.applyConfig();
+          }
+        });
+      }
     }
     await this.applyConfig();
     await this.anonymousUsageLogger.uniqueEvent("AgentInitialized");
