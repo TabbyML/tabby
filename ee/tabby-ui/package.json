@@ -55,6 +55,7 @@
     "copy-to-clipboard": "^3.3.3",
     "downshift": "^8.2.2",
     "focus-trap-react": "^10.1.1",
+    "framer-motion": "^11.0.7",
     "graphql": "^16.8.1",
     "humanize-duration": "^3.31.0",
     "jwt-decode": "^4.0.0",

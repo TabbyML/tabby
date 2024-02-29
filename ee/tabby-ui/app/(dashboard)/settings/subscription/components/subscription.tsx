@@ -3,6 +3,7 @@
 import { capitalize } from 'lodash-es'
 import moment from 'moment'
 
+import { DEFAULT_ANIMTATION } from '@/lib/constants'
 import { LicenseInfo, LicenseType } from '@/lib/gql/generates/graphql'
 import { useLicense } from '@/lib/hooks/use-license'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -31,6 +32,7 @@ export default function Subscription() {
       </SubHeader>
       <div className="flex flex-col gap-8">
         <LoadingWrapper
+          animate={DEFAULT_ANIMTATION}
           loading={fetching}
           fallback={
             <div className="grid grid-cols-3">

@@ -1,17 +1,20 @@
 'use client'
 
 import React from 'react'
+import { AnimationProps, motion } from 'framer-motion'
 
 interface LoadingWrapperProps {
   loading?: boolean
   children?: React.ReactNode
   fallback?: React.ReactNode
+  animate?: AnimationProps
 }
 
 export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   loading,
   fallback,
-  children
+  children,
+  animate
 }) => {
   const [loaded, setLoaded] = React.useState(!loading)
 
@@ -24,7 +27,7 @@ export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   if (!loaded) {
     return fallback
   } else {
-    return children
+    return <motion.div {...animate}>{children}</motion.div>
   }
 }
 
