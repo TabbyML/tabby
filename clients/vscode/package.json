@@ -154,7 +154,7 @@
             "tabby-style"
           ],
           "default": "vscode-style",
-          "markdownDescription": "Select the keybinding profile to accept shown inline completion. \n | | Next Line | Full Completion | Next Word | \n |:---:|:---:|:---:|:---:| \n | _vscode-style_ | - | Tab | Ctrl + RightArrow | \n | _tabby-style_ <br/> _(experimental)_ | Tab | Ctrl + Tab | Ctrl + RightArrow | \n"
+          "markdownDescription": "Select the keybinding profile to accept inline completion. You can also customize it in [Keyboard Shortcuts](command:tabby.openKeybindings). \n | | Next Line | Full Completion | Next Word | \n |:---|:---|:---|:---| \n | _vscode-style_ | - | `Tab` | `Ctrl + RightArrow` (macOS: `Cmd + RightArrow`) | \n | _tabby-style_  _(experimental)_ | `Tab` | `Ctrl + Tab` | `Ctrl + RightArrow` (macOS: `Cmd + RightArrow`) | \n"
         },
         "tabby.usage.anonymousUsageTracking": {
           "type": "boolean",
@@ -177,16 +177,19 @@
       {
         "command": "tabby.inlineCompletion.acceptNextWord",
         "key": "ctrl+right",
+        "mac": "cmd+right",
         "when": "config.tabby.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
         "command": "tabby.inlineCompletion.accept",
         "key": "ctrl+tab",
+        "mac": "ctrl+tab",
         "when": "config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
         "command": "tabby.inlineCompletion.acceptNextWord",
         "key": "ctrl+right",
+        "mac": "cmd+right",
         "when": "config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
