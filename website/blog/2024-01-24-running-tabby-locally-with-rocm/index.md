@@ -6,7 +6,7 @@ tags: [deployment]
 
 :::info
 
-Tabby's ROCm support is currently only in our [nightly builds](https://github.com/TabbyML/tabby/releases/tag/nightly). It will become stable in version 0.8.
+Tabby's ROCm support is currently only in our [nightly builds](https://github.com/TabbyML/tabby/releases/tag/nightly). It will become stable in version 0.9.
 
 :::
 
@@ -22,9 +22,25 @@ Before starting, please make sure you are on a supported system and have ROCm in
 
 ![ROCm installed on Arch Linux](./rocm-packages.png)
 
-## Install and run Tabby
+## Deploy Tabby with ROCm from Docker
 
-Once you have installed ROCm, you can [download the precompiled binary for Tabby](https://github.com/TabbyML/tabby/releases/download/nightly/tabby_x86_64-manylinux2014-rocm57) with ROCm, or you can [compile it yourself](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md#local-setup). If compiling yourself, make sure to use the flag `--features rocm` to enable it. ROCm is currently supported in Tabby's nightly builds only, but will be stable with 0.8.8.
+Once you've installed ROCm, you're ready to start using Tabby! Simply use the following command to run the container with GPU passthrough:
+
+```
+docker run \
+  --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video \
+  -p 8080:8080 -v $HOME/.tabby:/data \
+  tabbyml/tabby-rocm \
+  serve --device rocm --model StarCoder-1B
+```
+
+The command output should look similar to the below:
+
+![Tabby running inside Docker](./tabby-rocm-docker.png)
+
+## Build Tabby with ROCm locally
+
+If you would rather run Tabby directly on your machine, you can [compile Tabby yourself](https://github.com/TabbyML/tabby/blob/main/CONTRIBUTING.md#local-setup). If compiling yourself, make sure to use the flag `--features rocm` to enable it.
 
 Once you have a compiled binary, you can run it with this command:
 
