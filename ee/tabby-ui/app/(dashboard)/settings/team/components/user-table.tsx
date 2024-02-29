@@ -165,17 +165,19 @@ export default function UsersTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent collisionPadding={{ right: 16 }}>
-                        <DropdownMenuItem
-                          onSelect={() => onUpdateUserRole(x.node)}
-                          className="cursor-pointer"
-                        >
-                          <span className="ml-2">
-                            {x.node.isAdmin
-                              ? 'Downgrade to member'
-                              : 'Upgrade to admin'}
-                          </span>
-                        </DropdownMenuItem>
-                        {x.node.active && (
+                        {!!x.node.active && (
+                          <DropdownMenuItem
+                            onSelect={() => onUpdateUserRole(x.node)}
+                            className="cursor-pointer"
+                          >
+                            <span className="ml-2">
+                              {x.node.isAdmin
+                                ? 'Downgrade to member'
+                                : 'Upgrade to admin'}
+                            </span>
+                          </DropdownMenuItem>
+                        )}
+                        {!!x.node.active && (
                           <DropdownMenuItem
                             onSelect={() => onUpdateUserActive(x.node, false)}
                             className="cursor-pointer"

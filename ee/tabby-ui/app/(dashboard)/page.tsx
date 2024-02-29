@@ -82,7 +82,7 @@ function MainPanel() {
       </CardContent>
       <CardFooter className="px-0">
         <span>
-          Use informations above for IDE extensions / plugins configuration, see{' '}
+          Use information above for IDE extensions / plugins configuration, see{' '}
           <a
             className="underline"
             target="_blank"
