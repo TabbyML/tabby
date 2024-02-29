@@ -21,6 +21,9 @@ fn main() {
 
 fn build_llama_cpp() {
     let mut config = Config::new("llama.cpp");
+    config.define("LLAMA_NATIVE", "OFF");
+    config.define("INS_ENB", "ON");
+
     if cfg!(target_os = "macos") {
         config.define("LLAMA_METAL", "ON");
         println!("cargo:rustc-link-lib=framework=Foundation");
