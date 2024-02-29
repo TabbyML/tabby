@@ -16,7 +16,6 @@ use axum::{
 use hyper::Body;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, SourceFile, Tag};
-use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 use tracing::{debug, error};
@@ -48,7 +47,7 @@ impl RepositoryCache {
         cache
     }
 
-    async fn reload(&self) -> Result<()> {
+    pub async fn reload(&self) -> Result<()> {
         let new_repositories = self
             .service
             .list_repositories(None, None, None, None)
@@ -270,27 +269,6 @@ impl RepositoryCache {
             .body(body.into_body())?;
 
         Ok(resp)
-    }
-
-    pub async fn start_reload_job(self: &Arc<Self>) {
-        let cache = self.clone();
-        let scheduler = JobScheduler::new().await.unwrap();
-        scheduler
-            .add(
-                // Reload every 5 minutes
-                Job::new_async("0 1/5 * * * * *", move |_, _| {
-                    let cache = cache.clone();
-                    Box::pin(async move {
-                        if let Err(e) = cache.reload().await {
-                            error!("Failed to load repositories: {e}");
-                        };
-                    })
-                })
-                .unwrap(),
-            )
-            .await
-            .unwrap();
-        scheduler.start().await.unwrap();
     }
 
     pub fn find_repository(&self, name: &str) -> Option<RepositoryConfig> {
