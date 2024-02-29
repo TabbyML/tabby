@@ -121,6 +121,7 @@ impl Device {
         all(target_os = "macos", target_arch = "aarch64"),
         feature = "cuda",
         feature = "rocm",
+        feature = "vulkan",
     )))]
     pub fn ggml_use_gpu(&self) -> bool {
         false
