@@ -19,7 +19,7 @@ export interface DataStore {
   save(): PromiseLike<void>;
 }
 
-export class FileDataStore extends EventEmitter implements FileDataStore {
+class FileDataStore extends EventEmitter implements DataStore {
   private watcher?: ReturnType<typeof chokidar.watch>;
   public data: Partial<StoredData> = {};
 

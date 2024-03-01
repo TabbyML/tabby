@@ -19,7 +19,7 @@ import type {
   CompletionResponse,
   LogEventRequest,
 } from "./Agent";
-import { dataStore as defaultDataStore, DataStore, FileDataStore } from "./dataStore";
+import { dataStore as defaultDataStore, DataStore } from "./dataStore";
 import { isBlank, abortSignalFromAnyOf, HttpError, isTimeoutError, isCanceledError, errorToString } from "./utils";
 import { Auth } from "./Auth";
 import { AgentConfig, PartialAgentConfig, defaultAgentConfig } from "./AgentConfig";
@@ -347,13 +347,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
       extraLogger.loggers = options.loggers;
     }
     this.dataStore = options.dataStore ?? defaultDataStore;
-    if (this.dataStore instanceof FileDataStore) {
+    if (this.dataStore) {
       try {
         await this.dataStore.load();
+        if ("watch" in this.dataStore && typeof this.dataStore.watch === "function") {
+          this.dataStore.watch();
+        }
       } catch (error) {
         this.logger.debug({ error }, "No stored data loaded.");
       }
-      this.dataStore.watch();
     }
     await this.anonymousUsageLogger.init({ dataStore: this.dataStore });
     if (options.clientProperties) {
@@ -385,7 +387,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (this.dataStore) {
       const localConfig = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig) as AgentConfig;
       this.serverProvidedConfig = this.dataStore?.data.serverConfig?.[localConfig.server.endpoint] ?? {};
-      if (this.dataStore instanceof FileDataStore) {
+      if (this.dataStore instanceof EventEmitter) {
         this.dataStore.on("updated", async () => {
           const localConfig = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig) as AgentConfig;
           const storedServerConfig = defaultDataStore?.data.serverConfig?.[localConfig.server.endpoint];
