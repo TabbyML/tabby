@@ -83,6 +83,7 @@ fn validate_unique_domains(domains: &[String]) -> Result<(), ValidationError> {
 
 #[cfg(test)]
 mod tests {
+    use super::SecuritySetting;
     use crate::schema::setting::{first_duplicate, validate_unique_domains};
 
     #[test]
@@ -106,5 +107,36 @@ mod tests {
         assert_eq!(first_duplicate(&["a", "b", "c"]), None);
         assert_eq!(first_duplicate(&["a", "b", "b"]), Some(2));
         assert_eq!(first_duplicate(&["a", "b", "c", "c", "c"]), Some(3));
+    }
+
+    #[test]
+    fn test_can_register_without_invitation() {
+        let setting = SecuritySetting {
+            allowed_register_domain_list: vec![],
+            disable_client_side_telemetry: false,
+        };
+
+        assert!(!setting.can_register_without_invitation("abc@abc.com"));
+
+        let setting = SecuritySetting {
+            allowed_register_domain_list: vec!["".into()],
+            disable_client_side_telemetry: false,
+        };
+
+        assert!(!setting.can_register_without_invitation("abc@abc.com"));
+
+        let setting = SecuritySetting {
+            allowed_register_domain_list: vec![".com".into()],
+            disable_client_side_telemetry: false,
+        };
+
+        assert!(!setting.can_register_without_invitation("abc@abc.com"));
+
+        let setting = SecuritySetting {
+            allowed_register_domain_list: vec!["abc.com".into()],
+            disable_client_side_telemetry: false,
+        };
+
+        assert!(setting.can_register_without_invitation("abc@abc.com"));
     }
 }

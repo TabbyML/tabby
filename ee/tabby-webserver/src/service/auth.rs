@@ -24,7 +24,7 @@ use crate::{
             UpdateOAuthCredentialInput, User,
         },
         email::EmailService,
-        license::LicenseService,
+        license::{LicenseInfo, LicenseService},
         setting::SettingService,
         CoreError, Result,
     },
@@ -357,7 +357,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
     ) -> std::result::Result<OAuthResponse, OAuthError> {
         let client = oauth::new_oauth_client(provider, Arc::new(self.clone()));
         let email = client.fetch_user_email(code).await?;
-        let (user_id, is_admin) = get_or_create_oauth_user(&self.db, &email).await?;
+        let license = self
+            .license
+            .read_license()
+            .await
+            .context("Failed to read license info")?;
+        let (user_id, is_admin) = get_or_create_oauth_user(&license, &self.db, &email).await?;
 
         let refresh_token = generate_refresh_token();
         self.db
@@ -446,13 +451,23 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 }
 
-async fn get_or_create_oauth_user(db: &DbConn, email: &str) -> Result<(i32, bool), OAuthError> {
+async fn get_or_create_oauth_user(
+    license: &LicenseInfo,
+    db: &DbConn,
+    email: &str,
+) -> Result<(i32, bool), OAuthError> {
     if let Some(user) = db.get_user_by_email(email).await? {
         return user
             .active
             .then_some((user.id, user.is_admin))
             .ok_or(OAuthError::UserDisabled);
     }
+
+    // Check license before creating user.
+    if license.ensure_available_seats(1).is_err() {
+        return Err(OAuthError::InsufficientSeats);
+    }
+
     if db
         .read_security_setting()
         .await
@@ -838,6 +853,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_or_create_oauth_user() {
         let service = test_authentication_service().await;
+        let license = service.license.read_license().await.unwrap();
         let id = service
             .db
             .create_user("test@example.com".into(), "".into(), false)
@@ -845,9 +861,11 @@ mod tests {
             .unwrap();
         service.db.update_user_active(id, false).await.unwrap();
 
-        assert!(get_or_create_oauth_user(&service.db, "test@example.com")
-            .await
-            .is_err());
+        assert!(
+            get_or_create_oauth_user(&license, &service.db, "test@example.com")
+                .await
+                .is_err()
+        );
 
         service
             .db
@@ -855,12 +873,16 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(get_or_create_oauth_user(&service.db, "example@example.com")
-            .await
-            .is_ok());
-        assert!(get_or_create_oauth_user(&service.db, "example@gmail.com")
-            .await
-            .is_err());
+        assert!(
+            get_or_create_oauth_user(&license, &service.db, "example@example.com")
+                .await
+                .is_ok()
+        );
+        assert!(
+            get_or_create_oauth_user(&license, &service.db, "example@gmail.com")
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
