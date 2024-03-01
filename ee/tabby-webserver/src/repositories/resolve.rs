@@ -66,7 +66,7 @@ impl RepositoryCache {
 
     pub fn start_reload_listener(self: &Arc<Self>, events: &CronEvents) {
         let clone = self.clone();
-        start_listener(&events.scheduler_job_complete, move |_| {
+        start_listener(&events.scheduler_job_succeeded, move |_| {
             let clone = clone.clone();
             async move {
                 if let Err(e) = clone.reload().await {

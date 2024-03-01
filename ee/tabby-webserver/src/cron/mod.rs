@@ -11,7 +11,7 @@ use tracing::error;
 use crate::schema::{auth::AuthenticationService, job::JobService, worker::WorkerService};
 
 pub(crate) struct CronEvents {
-    pub scheduler_job_complete: Receiver<()>,
+    pub scheduler_job_succeeded: Receiver<()>,
 }
 
 pub(crate) fn start_listener<E, F, Fut>(recv: &Receiver<E>, f: F)
@@ -81,6 +81,6 @@ pub async fn run_cron(
         error!("failed to start job scheduler");
     };
     Some(CronEvents {
-        scheduler_job_complete: receive_scheduler_complete,
+        scheduler_job_succeeded: receive_scheduler_complete,
     })
 }
