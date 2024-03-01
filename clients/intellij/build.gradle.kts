@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.tabbyml"
-version = "1.4.0-dev"
+version = "1.4.0"
 
 repositories {
   mavenCentral()

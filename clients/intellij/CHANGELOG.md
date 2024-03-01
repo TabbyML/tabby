@@ -1,3 +1,15 @@
+## 1.4.0
+
+### Features
+
+- Added support for loading system-wide CA certificates. Previously, only Node.js bundled CA certificates were used.
+- Added support for loading configurations from Tabby server, including `Disabling Client-side Telemetry`.
+- Removed the notification when disconnected from Tabby server, keep only status bar icon.
+
+### Fixes
+
+- Fixed the unexpected behaviors that occur when a closed project is reopened within the same IDE process.
+
 ## 1.3.2
 
 ### Fixes:
