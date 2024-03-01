@@ -12,7 +12,8 @@ use tabby_common::api::{code::CodeSearch, event::RawEventLogger, server_setting:
 use tracing::warn;
 
 use crate::{
-    cron, hub, oauth,
+    cron::{self},
+    hub, oauth,
     repositories::{self, RepositoryCache},
     schema::{create_schema, Schema, ServiceLocator},
     service::create_service_locator,
@@ -29,9 +30,9 @@ pub async fn attach_webserver(
 ) -> (Router, Router) {
     let ctx = create_service_locator(logger, code, is_chat_enabled).await;
     let repository_cache = Arc::new(RepositoryCache::new_initialized(ctx.repository()).await);
-    let listener = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
-    if let Some(receiver) = listener {
-        repository_cache.clone().start_reload_listener(receiver);
+    let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
+    if let Some(events) = events {
+        repository_cache.start_reload_listener(&events);
     }
 
     let schema = Arc::new(create_schema());

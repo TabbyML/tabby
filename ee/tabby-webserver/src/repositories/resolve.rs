@@ -16,12 +16,14 @@ use axum::{
 use hyper::Body;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, SourceFile, Tag};
-use tokio::sync::broadcast::{error::RecvError, Receiver};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 use tracing::{debug, error, warn};
 
-use crate::{cron::SchedulerJobCompleteEvent, schema::repository::RepositoryService};
+use crate::{
+    cron::{start_listener, CronEvents},
+    schema::repository::RepositoryService,
+};
 
 pub struct RepositoryCache {
     repository_lookup: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
@@ -62,21 +64,12 @@ impl RepositoryCache {
         Ok(())
     }
 
-    pub fn start_reload_listener(
-        self: Arc<Self>,
-        mut receiver: Receiver<SchedulerJobCompleteEvent>,
-    ) {
-        tokio::spawn(async move {
-            loop {
-                match receiver.recv().await {
-                    Ok(_) => (),
-                    Err(RecvError::Closed) => break,
-                    Err(e) => {
-                        warn!("Error when receiving event: {e}");
-                        continue;
-                    }
-                };
-                if let Err(e) = self.reload().await {
+    pub fn start_reload_listener(self: &Arc<Self>, events: &CronEvents) {
+        let clone = self.clone();
+        start_listener(&events.scheduler_job_complete, move |_| {
+            let clone = clone.clone();
+            async move {
+                if let Err(e) = clone.reload().await {
                     warn!("Error when reloading repository cache: {e}");
                 };
             }

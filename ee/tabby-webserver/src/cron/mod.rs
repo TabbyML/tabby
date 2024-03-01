@@ -3,7 +3,8 @@ mod scheduler;
 
 use std::sync::Arc;
 
-use tokio::sync::broadcast::{self, Receiver};
+use futures::Future;
+use tokio::sync::broadcast::{self, error::RecvError, Receiver};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::error;
 
@@ -11,6 +12,29 @@ use crate::schema::{auth::AuthenticationService, job::JobService, worker::Worker
 
 #[derive(Clone)]
 pub(crate) struct SchedulerJobCompleteEvent;
+
+pub(crate) struct CronEvents {
+    pub scheduler_job_complete: Receiver<SchedulerJobCompleteEvent>,
+}
+
+pub(crate) fn start_listener<E, F, Fut>(recv: &Receiver<E>, f: F)
+where
+    F: Fn(E) -> Fut + Send + 'static,
+    Fut: Future + Send,
+    E: Clone + Send + 'static,
+{
+    let mut recv = recv.resubscribe();
+    tokio::spawn(async move {
+        loop {
+            let event = match recv.recv().await {
+                Ok(event) => event,
+                Err(RecvError::Closed) => break,
+                Err(_) => continue,
+            };
+            f(event).await;
+        }
+    });
+}
 
 async fn new_job_scheduler(jobs: Vec<Job>) -> anyhow::Result<JobScheduler> {
     let scheduler = JobScheduler::new().await?;
@@ -26,9 +50,10 @@ pub async fn run_cron(
     job: Arc<dyn JobService>,
     worker: Arc<dyn WorkerService>,
     local_port: u16,
-) -> Option<Receiver<SchedulerJobCompleteEvent>> {
+) -> Option<CronEvents> {
     let mut jobs = vec![];
-    let (send, receive) = broadcast::channel::<SchedulerJobCompleteEvent>(2);
+    let (send_scheduler_complete, receive_scheduler_complete) =
+        broadcast::channel::<SchedulerJobCompleteEvent>(2);
 
     let Ok(job1) = db::refresh_token_job(auth.clone()).await else {
         error!("failed to create refresh token cleanup job");
@@ -42,7 +67,9 @@ pub async fn run_cron(
     };
     jobs.push(job2);
 
-    let Ok(job3) = scheduler::scheduler_job(job.clone(), worker, send, local_port).await else {
+    let Ok(job3) =
+        scheduler::scheduler_job(job.clone(), worker, send_scheduler_complete, local_port).await
+    else {
         error!("failed to create scheduler job");
         return None;
     };
@@ -57,5 +84,7 @@ pub async fn run_cron(
     if new_job_scheduler(jobs).await.is_err() {
         error!("failed to start job scheduler");
     };
-    Some(receive)
+    Some(CronEvents {
+        scheduler_job_complete: receive_scheduler_complete,
+    })
 }
