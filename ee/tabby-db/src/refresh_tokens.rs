@@ -1,24 +1,26 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use sqlx::{query, FromRow};
+
+use crate::DateTimeUtc;
 
 use super::DbConn;
 
 #[allow(unused)]
 #[derive(FromRow)]
 pub struct RefreshTokenDAO {
-    id: u32,
-    created_at: DateTime<Utc>,
+    id: i64,
+    created_at: DateTimeUtc,
 
-    pub user_id: i32,
+    pub user_id: i64,
     pub token: String,
-    pub expires_at: DateTime<Utc>,
+    pub expires_at: DateTimeUtc,
 }
 
 impl RefreshTokenDAO {
     pub fn is_expired(&self) -> bool {
         let now = chrono::Utc::now();
-        self.expires_at < now
+        *self.expires_at < now
     }
 }
 
@@ -64,10 +66,13 @@ impl DbConn {
     }
 
     pub async fn get_refresh_token(&self, token: &str) -> Result<Option<RefreshTokenDAO>> {
-        let token = sqlx::query_as("SELECT * FROM refresh_tokens WHERE token = ?")
-            .bind(token)
-            .fetch_optional(&self.pool)
-            .await?;
+        let token = sqlx::query_as!(
+            RefreshTokenDAO,
+            r#"SELECT id as "id!", created_at as "created_at!", expires_at, user_id, token FROM refresh_tokens WHERE token = ?"#,
+            token
+        )
+        .fetch_optional(&self.pool)
+        .await?;
 
         Ok(token)
     }
@@ -90,8 +95,8 @@ mod tests {
 
         assert_eq!(token.user_id, 1);
         assert_eq!(token.token, "test");
-        assert!(token.expires_at > Utc::now().add(chrono::Duration::days(6)));
-        assert!(token.expires_at < Utc::now().add(chrono::Duration::days(7)));
+        assert!(*token.expires_at > Utc::now().add(chrono::Duration::days(6)));
+        assert!(*token.expires_at < Utc::now().add(chrono::Duration::days(7)));
     }
 
     #[tokio::test]
