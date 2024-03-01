@@ -21,7 +21,8 @@
     "./dist/index.js",
     "./dist/index.mjs",
     "./dist/index.d.ts",
-    "./dist/wasm/**"
+    "./dist/wasm/**",
+    "./dist/win-ca/**"
   ],
   "bin": {
     "tabby-agent": "./dist/cli.js"
