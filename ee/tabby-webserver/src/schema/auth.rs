@@ -174,6 +174,9 @@ pub enum OAuthError {
     #[error("User is disabled, please contact admin for help")]
     UserDisabled,
 
+    #[error("Seat limit on license would be exceeded")]
+    InsufficientSeats,
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 
