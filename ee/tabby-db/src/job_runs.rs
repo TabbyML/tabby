@@ -2,9 +2,8 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use sqlx::{query, FromRow};
 
-use crate::make_pagination_query_with_condition;
-
 use super::DbConn;
+use crate::make_pagination_query_with_condition;
 
 #[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {

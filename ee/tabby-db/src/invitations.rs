@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query};
+use tabby_macros::pagination_query;
 use uuid::Uuid;
 
 use super::DbConn;
 use crate::{DateTimeUtc, SQLXResultExt};
-use tabby_macros::pagination_query;
 
 #[derive(FromRow)]
 pub struct InvitationDAO {
