@@ -6,6 +6,7 @@ edition = "2021"
 [features]
 cuda = []
 rocm = []
+vulkan = []
 
 [build-dependencies]
 cxx-build = "1.0"

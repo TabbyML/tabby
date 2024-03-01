@@ -86,6 +86,10 @@ pub enum Device {
     #[strum(serialize = "metal")]
     Metal,
 
+    #[cfg(feature = "vulkan")]
+    #[strum(serialize = "metal")]
+    Vulkan,
+
     #[cfg(feature = "experimental-http")]
     #[strum(serialize = "experimental_http")]
     #[clap(hide = true)]
@@ -108,10 +112,16 @@ impl Device {
         *self == Device::Rocm
     }
 
+    #[cfg(feature = "vulkan")]
+    pub fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Vulkan
+    }
+
     #[cfg(not(any(
         all(target_os = "macos", target_arch = "aarch64"),
         feature = "cuda",
         feature = "rocm",
+        feature = "vulkan",
     )))]
     pub fn ggml_use_gpu(&self) -> bool {
         false
