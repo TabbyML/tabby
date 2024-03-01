@@ -18,6 +18,7 @@ impl ServerSettingDAO {
         self.security_allowed_register_domain_list
             .iter()
             .flat_map(|s| s.split(','))
+            .map(|x| x.trim())
             .filter(|s| !s.is_empty())
     }
 }
@@ -104,5 +105,38 @@ impl DbConn {
         .execute(&self.pool)
         .await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_dao(security_allowed_register_domain_list: Option<String>) -> ServerSettingDAO {
+        ServerSettingDAO {
+            billing_enterprise_license: None,
+            security_allowed_register_domain_list,
+            security_disable_client_side_telemetry: false,
+            network_external_url: "http://localhost:8080".into(),
+        }
+    }
+    #[test]
+    fn test_security_allowed_register_domain_list() {
+        let dao = make_dao(None);
+        let domains: Vec<_> = dao.security_allowed_register_domain_list().collect();
+        assert!(domains.is_empty());
+
+        let dao = make_dao(Some("".into()));
+        let domains: Vec<_> = dao.security_allowed_register_domain_list().collect();
+        assert!(domains.is_empty());
+
+        let dao = make_dao(Some("    ".into()));
+        let domains: Vec<_> = dao.security_allowed_register_domain_list().collect();
+        assert!(domains.is_empty());
+
+        let dao = make_dao(Some("abc.com, def.com".into()));
+        let domains: Vec<_> = dao.security_allowed_register_domain_list().collect();
+        assert_eq!(domains[0], "abc.com");
+        assert_eq!(domains[1], "def.com");
     }
 }
