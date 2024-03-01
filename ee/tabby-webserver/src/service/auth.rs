@@ -465,7 +465,7 @@ async fn get_or_create_oauth_user(
 
     // Check license before creating user.
     if license.ensure_available_seats(1).is_err() {
-        return Err(OAuthError::NoSufficientSeat);
+        return Err(OAuthError::InsufficientSeats);
     }
 
     if db

@@ -145,7 +145,7 @@ fn match_auth_result(
             | OAuthError::UserNotInvited
             | OAuthError::UserDisabled
             | OAuthError::CredentialNotActive
-            | OAuthError::InsufficientSeatss
+            | OAuthError::InsufficientSeats
             | OAuthError::Unknown => make_error_redirect(provider, err.to_string()),
             OAuthError::Other(e) => {
                 error!("Failed to authenticate: {:?}", e);
