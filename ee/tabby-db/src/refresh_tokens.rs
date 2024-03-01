@@ -2,9 +2,8 @@ use anyhow::Result;
 use chrono::Utc;
 use sqlx::{query, FromRow};
 
-use crate::DateTimeUtc;
-
 use super::DbConn;
+use crate::DateTimeUtc;
 
 #[allow(unused)]
 #[derive(FromRow)]
