@@ -1,6 +1,6 @@
 {
   "name": "tabby-agent",
-  "version": "1.4.0-dev",
+  "version": "1.4.2",
   "description": "Generic client agent for Tabby AI coding assistant IDE extensions.",
   "homepage": "https://tabby.tabbyml.com/",
   "repository": "https://github.com/TabbyML/tabby",
@@ -21,7 +21,8 @@
     "./dist/index.js",
     "./dist/index.mjs",
     "./dist/index.d.ts",
-    "./dist/wasm/**"
+    "./dist/wasm/**",
+    "./dist/win-ca/**"
   ],
   "bin": {
     "tabby-agent": "./dist/cli.js"
