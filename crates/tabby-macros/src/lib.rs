@@ -112,7 +112,7 @@ pub fn pagination_query(input: TokenStream) -> TokenStream {
     quote! {
         {
             let _ = sqlx::query_as!(#typ, "SELECT " + #columns_joined + " FROM " + #table_name + #where_clause);
-            make_pagination_query_with_condition(#table_name, &[ #(#columns),* ], #limit, #skip_id, #backwards, #condition)
+            crate::make_pagination_query_with_condition(#table_name, &[ #(#columns),* ], #limit, #skip_id, #backwards, #condition)
         }
     }.into()
 }

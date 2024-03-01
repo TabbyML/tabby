@@ -5,7 +5,6 @@ use uuid::Uuid;
 use super::DbConn;
 use crate::{DateTimeUtc, SQLXResultExt};
 use tabby_macros::pagination_query;
-use crate::make_pagination_query_with_condition;
 
 #[derive(FromRow)]
 pub struct InvitationDAO {
