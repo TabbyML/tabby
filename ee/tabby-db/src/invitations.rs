@@ -3,7 +3,9 @@ use sqlx::{prelude::FromRow, query};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::{pagination_query, DateTimeUtc, SQLXResultExt};
+use crate::{DateTimeUtc, SQLXResultExt};
+use tabby_macros::pagination_query;
+use crate::make_pagination_query_with_condition;
 
 #[derive(FromRow)]
 pub struct InvitationDAO {
@@ -22,7 +24,7 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<InvitationDAO>> {
-        let query = pagination_query!(InvitationDAO FROM "invitations": ["id", "email", "code" & "created_at"] (limit, skip_id, backwards));
+        let query = pagination_query!(InvitationDAO FROM "invitations" ["id", "email", "code", "created_at"!], limit, skip_id, backwards);
         let invitations = sqlx::query_as(&query).fetch_all(&self.pool).await?;
 
         Ok(invitations)
