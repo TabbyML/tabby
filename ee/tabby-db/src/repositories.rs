@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query};
 
-use crate::{DbConn, SQLXResultExt};
+use crate::{make_pagination_query, DbConn, SQLXResultExt};
 
 #[derive(FromRow)]
 pub struct RepositoryDAO {
@@ -17,7 +17,7 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<RepositoryDAO>> {
-        let query = Self::make_pagination_query(
+        let query = make_pagination_query(
             "repositories",
             &["id", "name", "git_url"],
             limit,

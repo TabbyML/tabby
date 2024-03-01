@@ -4,7 +4,7 @@ use sqlx::{query, query_scalar, FromRow};
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::SQLXResultExt;
+use crate::{make_pagination_query, SQLXResultExt};
 
 #[allow(unused)]
 #[derive(FromRow)]
@@ -119,7 +119,7 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<UserDAO>> {
-        let query = Self::make_pagination_query(
+        let query = make_pagination_query(
             "users",
             &[
                 "id",

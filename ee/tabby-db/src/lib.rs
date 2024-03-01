@@ -49,6 +49,71 @@ pub struct DbConn {
     cache: Arc<DbCache>,
 }
 
+#[macro_export]
+macro_rules! pagination_query {
+    ($ty:ident FROM $table:literal: [ $($column:literal),+ & $last_column:literal ] $(COND $cond:literal)? ($limit:expr, $skip_id:expr, $backwards:expr)) => {
+        {
+            let _ = sqlx::query_as!($ty, "SELECT " + $($column + " AS \"" + $column + "!\", " +)+ $last_column + " AS \"" + $last_column + "!\" FROM " + $table + ";");
+            ($crate::make_pagination_query_with_condition(
+                $table,
+                &[ $($column),+ ],
+                $limit,
+                $skip_id,
+                $backwards,
+                [ $($cond.into())? ].into_iter().next()
+            ))
+        }
+    };
+}
+
+fn make_pagination_query_with_condition(
+    table_name: &str,
+    field_names: &[&str],
+    limit: Option<usize>,
+    skip_id: Option<i32>,
+    backwards: bool,
+    condition: Option<String>,
+) -> String {
+    let mut source = sql::Select::new().select("*").from(table_name);
+    let mut select = sql::Select::new()
+        .select(&field_names.join(", "))
+        .order_by("id ASC");
+
+    if backwards {
+        source = source.order_by("id DESC");
+        if let Some(skip_id) = skip_id {
+            source = source.where_and(&format!("id < {skip_id}"));
+        }
+        if let Some(limit) = limit {
+            source = source.limit(&limit.to_string());
+        }
+    } else {
+        if let Some(skip_id) = skip_id {
+            select = select.where_and(&format!("id > {skip_id}"));
+        }
+        if let Some(limit) = limit {
+            select = select.limit(&limit.to_string());
+        }
+    }
+
+    select = select.from(&format!("({source})"));
+    if let Some(condition) = condition {
+        select = select.where_and(&condition)
+    }
+
+    select.as_string()
+}
+
+fn make_pagination_query(
+    table_name: &str,
+    field_names: &[&str],
+    limit: Option<usize>,
+    skip_id: Option<i32>,
+    backwards: bool,
+) -> String {
+    make_pagination_query_with_condition(table_name, field_names, limit, skip_id, backwards, None)
+}
+
 impl DbConn {
     #[cfg(any(test, feature = "testutils"))]
     pub async fn new_in_memory() -> Result<Self> {
@@ -109,61 +174,6 @@ impl DbConn {
                 .await?;
         }
         Ok(())
-    }
-
-    fn make_pagination_query_with_condition(
-        table_name: &str,
-        field_names: &[&str],
-        limit: Option<usize>,
-        skip_id: Option<i32>,
-        backwards: bool,
-        condition: Option<String>,
-    ) -> String {
-        let mut source = sql::Select::new().select("*").from(table_name);
-        let mut select = sql::Select::new()
-            .select(&field_names.join(", "))
-            .order_by("id ASC");
-
-        if backwards {
-            source = source.order_by("id DESC");
-            if let Some(skip_id) = skip_id {
-                source = source.where_and(&format!("id < {skip_id}"));
-            }
-            if let Some(limit) = limit {
-                source = source.limit(&limit.to_string());
-            }
-        } else {
-            if let Some(skip_id) = skip_id {
-                select = select.where_and(&format!("id > {skip_id}"));
-            }
-            if let Some(limit) = limit {
-                select = select.limit(&limit.to_string());
-            }
-        }
-
-        select = select.from(&format!("({source})"));
-        if let Some(condition) = condition {
-            select = select.where_and(&condition)
-        }
-
-        select.as_string()
-    }
-
-    fn make_pagination_query(
-        table_name: &str,
-        field_names: &[&str],
-        limit: Option<usize>,
-        skip_id: Option<i32>,
-        backwards: bool,
-    ) -> String {
-        Self::make_pagination_query_with_condition(
-            table_name,
-            field_names,
-            limit,
-            skip_id,
-            backwards,
-            None,
-        )
     }
 }
 

@@ -2,6 +2,8 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use sqlx::{query, FromRow};
 
+use crate::make_pagination_query_with_condition;
+
 use super::DbConn;
 
 #[derive(Default, Clone, FromRow)]
@@ -71,7 +73,7 @@ impl DbConn {
         } else {
             None
         };
-        let query = Self::make_pagination_query_with_condition(
+        let query = make_pagination_query_with_condition(
             "job_runs",
             &[
                 "id",
