@@ -1,3 +1,16 @@
+## 1.4.0
+
+### Features
+
+- Added support for loading system-wide CA certificates. Previously, only Node.js bundled CA certificates were used.
+- Added support for loading configurations from Tabby server, including `Disabling Client-side Telemetry`.
+- Added output channel for logging. The log level can be configured by VSCode command `Developer: Set Log Level...`.
+- Removed the notification when disconnected from Tabby server, keep only status bar icon.
+
+### Fixes
+
+- Fixed keybinding for accepting inline completion next word for macOS (cmd+right).
+
 ## 1.3.2
 
 ### Fixes:
