@@ -17,7 +17,7 @@
   "devDependencies": {
     "@types/vscode": "^1.82.0",
     "esbuild-plugin-copy": "^2.1.1",
-    "tabby-agent": "1.4.0-dev"
+    "tabby-agent": "1.4.0"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"
