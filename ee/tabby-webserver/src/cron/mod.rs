@@ -10,11 +10,8 @@ use tracing::error;
 
 use crate::schema::{auth::AuthenticationService, job::JobService, worker::WorkerService};
 
-#[derive(Clone)]
-pub(crate) struct SchedulerJobCompleteEvent;
-
 pub(crate) struct CronEvents {
-    pub scheduler_job_complete: Receiver<SchedulerJobCompleteEvent>,
+    pub scheduler_job_complete: Receiver<()>,
 }
 
 pub(crate) fn start_listener<E, F, Fut>(recv: &Receiver<E>, f: F)
@@ -52,8 +49,7 @@ pub async fn run_cron(
     local_port: u16,
 ) -> Option<CronEvents> {
     let mut jobs = vec![];
-    let (send_scheduler_complete, receive_scheduler_complete) =
-        broadcast::channel::<SchedulerJobCompleteEvent>(2);
+    let (send_scheduler_complete, receive_scheduler_complete) = broadcast::channel::<()>(2);
 
     let Ok(job1) = db::refresh_token_job(auth.clone()).await else {
         error!("failed to create refresh token cleanup job");

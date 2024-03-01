@@ -5,13 +5,12 @@ use tokio::{io::AsyncBufReadExt, sync::broadcast};
 use tokio_cron_scheduler::Job;
 use tracing::{error, info, warn};
 
-use super::SchedulerJobCompleteEvent;
 use crate::schema::{job::JobService, worker::WorkerService};
 
 pub async fn scheduler_job(
     job: Arc<dyn JobService>,
     worker: Arc<dyn WorkerService>,
-    events: broadcast::Sender<SchedulerJobCompleteEvent>,
+    events: broadcast::Sender<()>,
     local_port: u16,
 ) -> anyhow::Result<Job> {
     let scheduler_mutex = Arc::new(tokio::sync::Mutex::new(()));
@@ -30,7 +29,7 @@ pub async fn scheduler_job(
             if let Err(err) = run_scheduler_now(job, worker, local_port).await {
                 error!("Failed to run scheduler job, reason: `{}`", err);
             } else {
-                let _ = events.send(SchedulerJobCompleteEvent);
+                let _ = events.send(());
             }
 
             if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {
