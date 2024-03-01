@@ -175,7 +175,7 @@ pub enum OAuthError {
     UserDisabled,
 
     #[error("Seat limit on license would be exceeded")]
-    NoSufficientSeat,
+    InsufficientSeats,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
