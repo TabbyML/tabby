@@ -5,7 +5,7 @@ import createClient from "openapi-fetch";
 import type { paths as CloudApi } from "./types/cloudApi";
 import type { AbortSignalOption } from "./Agent";
 import { HttpError, abortSignalFromAnyOf } from "./utils";
-import { DataStore, FileDataStore } from "./dataStore";
+import { DataStore } from "./dataStore";
 import { logger } from "./logger";
 
 export type StorageData = {
@@ -57,7 +57,7 @@ export class Auth extends EventEmitter {
 
   async init(options?: { dataStore?: DataStore }) {
     this.dataStore = options?.dataStore;
-    if (this.dataStore instanceof FileDataStore) {
+    if (this.dataStore instanceof EventEmitter) {
       this.dataStore.on("updated", async () => {
         const oldJwt = this.jwt;
         await this.load();
