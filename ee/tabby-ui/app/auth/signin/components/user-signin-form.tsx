@@ -73,57 +73,59 @@ export default function UserSignInForm({
   return (
     <div className={cn('grid', className)} {...props}>
       <Form {...form}>
-        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder={PLACEHOLDER_EMAIL_FORM}
-                    type="email"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    autoCorrect="off"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel>Password</FormLabel>
-                  {!!isEmailConfigured && (
-                    <div className="cursor-pointer text-right text-sm text-primary hover:underline">
-                      <Link href="/auth/signin?mode=reset">
-                        Forgot password?
-                      </Link>
-                    </div>
-                  )}
-                </div>
-                <FormControl>
-                  <Input type="password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button type="submit" className="mt-2" disabled={isSubmitting}>
-            {isSubmitting && (
-              <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Login
-          </Button>
-        </form>
-        <FormMessage className="mt-2 text-center" />
+        <div className="grid gap-2">
+          <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={PLACEHOLDER_EMAIL_FORM}
+                      type="email"
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      autoCorrect="off"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Password</FormLabel>
+                    {!!isEmailConfigured && (
+                      <div className="cursor-pointer text-right text-sm text-primary hover:underline">
+                        <Link href="/auth/signin?mode=reset">
+                          Forgot password?
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="mt-2" disabled={isSubmitting}>
+              {isSubmitting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Login
+            </Button>
+          </form>
+          <FormMessage className="text-center" />
+        </div>
       </Form>
     </div>
   )

@@ -50,59 +50,61 @@ export default function CreateRepositoryForm({
 
   return (
     <Form {...form}>
-      <form
-        className="flex w-full flex-col gap-6"
-        onSubmit={form.handleSubmit(createRepository)}
-      >
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel required>Name</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="e.g. tabby"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  autoComplete="off"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="gitUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel required>Git URL</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="e.g. https://github.com/tabbyML/tabby"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="flex justify-end gap-4">
-          <Link href="/settings/git">
-            <Button type="button" variant="ghost" disabled={isSubmitting}>
-              Cancel
+      <div className="grid gap-2">
+        <form
+          className="flex w-full flex-col gap-6"
+          onSubmit={form.handleSubmit(createRepository)}
+        >
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. tabby"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    autoComplete="off"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="gitUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Git URL</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. https://github.com/tabbyML/tabby"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="flex justify-end gap-4">
+            <Link href="/settings/git">
+              <Button type="button" variant="ghost" disabled={isSubmitting}>
+                Cancel
+              </Button>
+            </Link>
+            <Button type="submit" disabled={isSubmitting}>
+              Create
             </Button>
-          </Link>
-          <Button type="submit" disabled={isSubmitting}>
-            Create
-          </Button>
-        </div>
-      </form>
-      <FormMessage className="mt-2 text-center" />
+          </div>
+        </form>
+        <FormMessage className="text-center" />
+      </div>
     </Form>
   )
 }

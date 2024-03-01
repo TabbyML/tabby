@@ -143,22 +143,63 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
 
   return (
     <Form {...form}>
-      <form
-        className="flex flex-col items-start gap-6"
-        onSubmit={form.handleSubmit(onSubmit)}
-      >
-        <div className="flex flex-col gap-6 lg:flex-row">
+      <div className="grid gap-2">
+        <form
+          className="flex flex-col items-start gap-6"
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
+          <div className="flex flex-col gap-6 lg:flex-row">
+            <FormField
+              control={form.control}
+              name="smtpServer"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>SMTP Server Host</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. smtp.gmail.com"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      className="w-80 min-w-max"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="smtpPort"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>SMTP Server Port</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="e.g. 25"
+                      className="w-80 min-w-max"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <FormField
             control={form.control}
-            name="smtpServer"
+            name="fromAddress"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>SMTP Server Host</FormLabel>
+                <FormLabel required>From</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="e.g. smtp.gmail.com"
+                    placeholder="e.g. from@gmail.com"
+                    type="email"
                     autoCapitalize="none"
-                    autoComplete="off"
+                    autoComplete="email"
                     autoCorrect="off"
                     className="w-80 min-w-max"
                     {...field}
@@ -170,173 +211,136 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
           />
           <FormField
             control={form.control}
-            name="smtpPort"
+            name="authMethod"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>SMTP Server Port</FormLabel>
+                <FormLabel required>Authentication Method</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="e.g. 25"
-                    className="w-80 min-w-max"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="fromAddress"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel required>From</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="e.g. from@gmail.com"
-                  type="email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect="off"
-                  className="w-80 min-w-max"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="authMethod"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel required>Authentication Method</FormLabel>
-              <FormControl>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <SelectTrigger className="w-80 min-w-max">
-                    <SelectValue placeholder="Select a method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={AuthMethod.None}>NONE</SelectItem>
-                    <SelectItem value={AuthMethod.Plain}>PLAIN</SelectItem>
-                    <SelectItem value={AuthMethod.Login}>LOGIN</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <FormField
-            control={form.control}
-            name="smtpUsername"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>SMTP Username</FormLabel>
-                <FormControl>
-                  <Input
-                    type="string"
-                    placeholder="e.g. support@yourcompany.com"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    className="w-80 min-w-max"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="smtpPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>SMTP Password</FormLabel>
-                <FormControl>
-                  <Input
-                    type="password"
-                    autoCapitalize="none"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    className="w-80 min-w-max"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="encryption"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel required>Encryption</FormLabel>
-              <FormControl>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <SelectTrigger className="w-80 min-w-max">
-                    <SelectValue placeholder="Select an encryption" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={Encryption.None}>NONE</SelectItem>
-                    <SelectItem value={Encryption.SslTls}>SSL/TLS</SelectItem>
-                    <SelectItem value={Encryption.StartTls}>
-                      STARTTLS
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="flex items-center gap-4">
-          {!isNew && (
-            <AlertDialog
-              open={deleteAlertVisible}
-              onOpenChange={setDeleteAlertVisible}
-            >
-              <AlertDialogTrigger asChild>
-                <Button variant="hover-destructive">Delete</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. It will permanently delete the
-                    current setting.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className={buttonVariants({ variant: 'destructive' })}
-                    onClick={handleDelete}
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
                   >
-                    Yes, delete it
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          <Button type="submit" disabled={!isNew && !isDirty}>
-            {isNew ? 'Create' : 'Update'}
-          </Button>
-        </div>
-      </form>
-      <FormMessage className="mt-2 text-center" />
+                    <SelectTrigger className="w-80 min-w-max">
+                      <SelectValue placeholder="Select a method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={AuthMethod.None}>NONE</SelectItem>
+                      <SelectItem value={AuthMethod.Plain}>PLAIN</SelectItem>
+                      <SelectItem value={AuthMethod.Login}>LOGIN</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="flex flex-col gap-6 lg:flex-row">
+            <FormField
+              control={form.control}
+              name="smtpUsername"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>SMTP Username</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="string"
+                      placeholder="e.g. support@yourcompany.com"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      className="w-80 min-w-max"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="smtpPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>SMTP Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      className="w-80 min-w-max"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <FormField
+            control={form.control}
+            name="encryption"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Encryption</FormLabel>
+                <FormControl>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger className="w-80 min-w-max">
+                      <SelectValue placeholder="Select an encryption" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={Encryption.None}>NONE</SelectItem>
+                      <SelectItem value={Encryption.SslTls}>SSL/TLS</SelectItem>
+                      <SelectItem value={Encryption.StartTls}>
+                        STARTTLS
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="flex items-center gap-4">
+            {!isNew && (
+              <AlertDialog
+                open={deleteAlertVisible}
+                onOpenChange={setDeleteAlertVisible}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button variant="hover-destructive">Delete</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. It will permanently delete
+                      the current setting.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className={buttonVariants({ variant: 'destructive' })}
+                      onClick={handleDelete}
+                    >
+                      Yes, delete it
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <Button type="submit" disabled={!isNew && !isDirty}>
+              {isNew ? 'Create' : 'Update'}
+            </Button>
+          </div>
+        </form>
+        <FormMessage className="text-center" />
+      </div>
     </Form>
   )
 })

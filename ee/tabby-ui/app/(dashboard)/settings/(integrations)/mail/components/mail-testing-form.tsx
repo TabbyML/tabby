@@ -57,41 +57,47 @@ export default function MailTestingForm({
 
   return (
     <Form {...form}>
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={form.handleSubmit(onSubmit)}
-      >
-        <Label>Send Test Email To</Label>
-        <div className="flex gap-4">
-          <FormField
-            control={form.control}
-            name="to"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    placeholder={`e.g. ${PLACEHOLDER_EMAIL_FORM}`}
-                    type="email"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    autoCorrect="off"
-                    className="w-80"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button className="self-start" type="submit" disabled={isSubmitting}>
-            {isSubmitting && (
-              <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Send
-          </Button>
-        </div>
-      </form>
-      <FormMessage className="mt-2 text-center" />
+      <div className="grid gap-2">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
+          <Label>Send Test Email To</Label>
+          <div className="flex gap-4">
+            <FormField
+              control={form.control}
+              name="to"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      placeholder={`e.g. ${PLACEHOLDER_EMAIL_FORM}`}
+                      type="email"
+                      autoCapitalize="none"
+                      autoComplete="email"
+                      autoCorrect="off"
+                      className="w-80"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              className="self-start"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting && (
+                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Send
+            </Button>
+          </div>
+        </form>
+        <FormMessage className="text-center" />
+      </div>
     </Form>
   )
 }
