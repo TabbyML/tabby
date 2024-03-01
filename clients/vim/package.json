@@ -10,6 +10,6 @@
   "devDependencies": {
     "cpy-cli": "^4.2.0",
     "rimraf": "^5.0.1",
-    "tabby-agent": "1.4.0-dev"
+    "tabby-agent": "1.4.0"
   }
 }
