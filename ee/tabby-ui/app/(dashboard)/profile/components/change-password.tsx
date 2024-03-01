@@ -66,85 +66,83 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
 
   return (
     <Form {...form}>
-      <div className="flex flex-col gap-4">
-        <form
-          className="flex flex-col gap-8"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
-          {showOldPassword && (
-            <FormField
-              control={form.control}
-              name="oldPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel required>Old password</FormLabel>
-                  <FormControl>
-                    <Input
-                      className="w-[350px]"
-                      autoCapitalize="none"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      type="password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <form
+        className="flex flex-col gap-6"
+        onSubmit={form.handleSubmit(onSubmit)}
+      >
+        {showOldPassword && (
+          <FormField
+            control={form.control}
+            name="oldPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Old password</FormLabel>
+                <FormControl>
+                  <Input
+                    className="w-[350px]"
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    type="password"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        <FormField
+          control={form.control}
+          name="newPassword1"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel required>New password</FormLabel>
+              <FormControl>
+                <Input
+                  className="w-[350px]"
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  type="password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-          <FormField
-            control={form.control}
-            name="newPassword1"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>New password</FormLabel>
-                <FormControl>
-                  <Input
-                    className="w-[350px]"
-                    autoCapitalize="none"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    type="password"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+        />
+        <FormField
+          control={form.control}
+          name="newPassword2"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel required>Confirm new password</FormLabel>
+              <FormControl>
+                <Input
+                  className="w-[350px]"
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  type="password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormMessage />
+        <Separator />
+        <div className="flex">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && (
+              <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
-          />
-          <FormField
-            control={form.control}
-            name="newPassword2"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Confirm new password</FormLabel>
-                <FormControl>
-                  <Input
-                    className="w-[350px]"
-                    autoCapitalize="none"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    type="password"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormMessage />
-          <Separator />
-          <div className="flex">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && (
-                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Update password
-            </Button>
-          </div>
-        </form>
-      </div>
+            Update password
+          </Button>
+        </div>
+      </form>
     </Form>
   )
 }

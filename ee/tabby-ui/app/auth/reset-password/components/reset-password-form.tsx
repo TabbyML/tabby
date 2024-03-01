@@ -74,9 +74,9 @@ export function ResetPasswordForm({
   }
 
   return (
-    <div className={cn('grid gap-6', className)} {...props}>
+    <div className={cn(className)} {...props}>
       <Form {...form}>
-        <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
+        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
             name="password1"
@@ -121,7 +121,7 @@ export function ResetPasswordForm({
             Reset password
           </Button>
         </form>
-        <FormMessage className="text-center" />
+        <FormMessage className="mt-2 text-center" />
       </Form>
     </div>
   )

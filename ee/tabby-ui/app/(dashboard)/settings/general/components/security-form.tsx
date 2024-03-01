@@ -121,95 +121,93 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
 
   return (
     <Form {...form}>
-      <div className="flex flex-col gap-4">
-        <form
-          className="flex flex-col gap-8"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
-          <FormField
-            control={form.control}
-            name="disableClientSideTelemetry"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center gap-1">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel className="cursor-pointer">
-                    Disabling Client Side Telemetry
+      <form
+        className="flex flex-col gap-6"
+        onSubmit={form.handleSubmit(onSubmit)}
+      >
+        <FormField
+          control={form.control}
+          name="disableClientSideTelemetry"
+          render={({ field }) => (
+            <FormItem>
+              <div className="flex items-center gap-1">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel className="cursor-pointer">
+                  Disabling Client Side Telemetry
+                </FormLabel>
+              </div>
+              <FormDescription>
+                When activated, the client-side telemetry (IDE/Extensions) will
+                be disabled, regardless of the client-side settings.
+              </FormDescription>
+            </FormItem>
+          )}
+        />
+        <div>
+          {fields.map((field, index) => (
+            <FormField
+              control={form.control}
+              key={field.id}
+              name={`allowedRegisterDomainList.${index}.value`}
+              render={({ field: itemField }) => (
+                <FormItem>
+                  <FormLabel className={cn(index !== 0 && 'sr-only')}>
+                    Authentication Domains
                   </FormLabel>
-                </div>
-                <FormDescription>
-                  When activated, the client-side telemetry (IDE/Extensions)
-                  will be disabled, regardless of the client-side settings.
-                </FormDescription>
-              </FormItem>
-            )}
-          />
+                  <FormDescription className={cn(index !== 0 && 'sr-only')}>
+                    Enable users to sign up automatically with an email address
+                    on domains.
+                  </FormDescription>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. tabbyml.com"
+                        {...itemField}
+                        onKeyDown={handleDomainListKeyDown}
+                      />
+                    </FormControl>
+                    <Button
+                      variant="hover-destructive"
+                      onClick={e => onRemoveDomainItem(index)}
+                    >
+                      <IconTrash />
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ))}
           <div>
-            {fields.map((field, index) => (
-              <FormField
-                control={form.control}
-                key={field.id}
-                name={`allowedRegisterDomainList.${index}.value`}
-                render={({ field: itemField }) => (
-                  <FormItem>
-                    <FormLabel className={cn(index !== 0 && 'sr-only')}>
-                      Authentication Domains
-                    </FormLabel>
-                    <FormDescription className={cn(index !== 0 && 'sr-only')}>
-                      Enable users to sign up automatically with an email
-                      address on domains.
-                    </FormDescription>
-                    <div className="flex items-center gap-2">
-                      <FormControl>
-                        <Input
-                          placeholder="e.g. tabbyml.com"
-                          {...itemField}
-                          onKeyDown={handleDomainListKeyDown}
-                        />
-                      </FormControl>
-                      <Button
-                        variant="hover-destructive"
-                        onClick={e => onRemoveDomainItem(index)}
-                      >
-                        <IconTrash />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
-            <div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => append({ value: '' })}
-              >
-                Add domain
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => append({ value: '' })}
+            >
+              Add domain
+            </Button>
           </div>
-          <div className="mt-2 flex justify-end">
-            <LicenseGuard licenses={[LicenseType.Enterprise]}>
-              {({ hasValidLicense }) => {
-                return (
-                  <Button type="submit" disabled={!hasValidLicense || !isDirty}>
-                    Update
-                  </Button>
-                )
-              }}
-            </LicenseGuard>
-          </div>
-        </form>
-        <FormMessage className="text-center" />
-      </div>
+        </div>
+        <div className="mt-2 flex justify-end">
+          <LicenseGuard licenses={[LicenseType.Enterprise]}>
+            {({ hasValidLicense }) => {
+              return (
+                <Button type="submit" disabled={!hasValidLicense || !isDirty}>
+                  Update
+                </Button>
+              )
+            }}
+          </LicenseGuard>
+        </div>
+      </form>
+      <FormMessage className="mt-2 text-center" />
     </Form>
   )
 }

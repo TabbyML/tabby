@@ -74,42 +74,40 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 
   return (
     <Form {...form}>
-      <div className="flex flex-col gap-4">
-        <form
-          className="flex flex-col gap-8"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
-          <FormField
-            control={form.control}
-            name="externalUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>External URL</FormLabel>
-                <FormDescription>
-                  The external URL where user visits Tabby, must start with
-                  http:// or https://.
-                </FormDescription>
-                <FormControl>
-                  <Input
-                    placeholder="e.g. http://localhost:8080"
-                    autoCapitalize="none"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="mt-2 flex justify-end">
-            <Button type="submit" disabled={!isDirty}>
-              Update
-            </Button>
-          </div>
-        </form>
-        <FormMessage className="text-center" />
-      </div>
+      <form
+        className="flex flex-col gap-6"
+        onSubmit={form.handleSubmit(onSubmit)}
+      >
+        <FormField
+          control={form.control}
+          name="externalUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>External URL</FormLabel>
+              <FormDescription>
+                The external URL where user visits Tabby, must start with
+                http:// or https://.
+              </FormDescription>
+              <FormControl>
+                <Input
+                  placeholder="e.g. http://localhost:8080"
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="mt-2 flex justify-end">
+          <Button type="submit" disabled={!isDirty}>
+            Update
+          </Button>
+        </div>
+      </form>
+      <FormMessage className="mt-2 text-center" />
     </Form>
   )
 }

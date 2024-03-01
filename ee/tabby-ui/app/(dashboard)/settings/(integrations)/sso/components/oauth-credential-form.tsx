@@ -158,12 +158,12 @@ export default function OAuthCredentialForm({
   })
 
   return (
-    <div className={cn('grid gap-6', className)} {...props}>
+    <div className={cn(className)} {...props}>
       <Form {...form}>
-        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+        <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
           <SubTitle className="mt-2">Basic information</SubTitle>
           <FormItem>
-            <FormLabel>Type</FormLabel>
+            <Label>Type</Label>
             <RadioGroup defaultValue="oauth">
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="oauth" id="type_oauth" />
@@ -284,7 +284,7 @@ export default function OAuthCredentialForm({
               </FormItem>
             )}
           />
-          <div className="mt-1 flex justify-end gap-4">
+          <div className="flex justify-end gap-4">
             <Button
               type="button"
               variant="ghost"
@@ -342,7 +342,7 @@ export default function OAuthCredentialForm({
             </LicenseGuard>
           </div>
         </form>
-        <FormMessage className="text-center" />
+        <FormMessage className="mt-2 text-center" />
       </Form>
     </div>
   )

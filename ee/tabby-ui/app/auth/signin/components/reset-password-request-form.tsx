@@ -60,7 +60,7 @@ export const ResetPasswordRequestForm: React.FC<
 
   return (
     <Form {...form}>
-      <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
         <FormField
           control={form.control}
           name="email"
@@ -88,7 +88,7 @@ export const ResetPasswordRequestForm: React.FC<
           Send Email
         </Button>
       </form>
-      <FormMessage className="text-center" />
+      <FormMessage className="mt-2 text-center" />
     </Form>
   )
 }

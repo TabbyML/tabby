@@ -126,9 +126,9 @@ export function LicenseForm({
   }
 
   return (
-    <div className={cn('grid gap-6', className)} {...props}>
+    <div className={cn(className)} {...props}>
       <Form {...form}>
-        <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
+        <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
             name="license"

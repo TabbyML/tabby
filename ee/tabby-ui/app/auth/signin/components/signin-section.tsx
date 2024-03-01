@@ -41,8 +41,8 @@ export default function SigninSection() {
 
   return (
     <>
-      <div className="w-[350px] space-y-4">
-        <div className="mt-2 flex flex-col space-y-2 text-center">
+      <div className="w-[350px] space-y-6">
+        <div className="flex flex-col space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Sign In</h1>
           <p className="text-sm text-muted-foreground">
             Enter credentials to login to your account
