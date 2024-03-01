@@ -23,9 +23,13 @@ fn build_llama_cpp() {
     let mut config = Config::new("llama.cpp");
     config.define("LLAMA_NATIVE", "OFF");
     config.define("INS_ENB", "ON");
+    if cfg!(not(debug_assertions)) {
+        config.define("CMAKE_BUILD_TYPE", "Release");
+    }
 
     if cfg!(target_os = "macos") {
         config.define("LLAMA_METAL", "ON");
+        config.define("LLAMA_METAL_EMBED_LIBRARY", "ON");
         println!("cargo:rustc-link-lib=framework=Foundation");
         println!("cargo:rustc-link-lib=framework=Accelerate");
         println!("cargo:rustc-link-lib=framework=Metal");
