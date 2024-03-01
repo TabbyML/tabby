@@ -48,34 +48,36 @@ export default function CreateInvitationForm({
 
   return (
     <Form {...form}>
-      <form
-        className="flex w-full items-center gap-4"
-        onSubmit={form.handleSubmit(createInvitation)}
-      >
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input
-                  className="w-60"
-                  placeholder={`e.g. ${PLACEHOLDER_EMAIL_FORM}`}
-                  type="email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect="off"
-                  {...field}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <Button type="submit" disabled={isSubmitting}>
-          Invite
-        </Button>
-      </form>
-      <FormMessage className="mt-2" />
+      <div className="grid gap-2">
+        <form
+          className="flex w-full items-center gap-4"
+          onSubmit={form.handleSubmit(createInvitation)}
+        >
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input
+                    className="w-60"
+                    placeholder={`e.g. ${PLACEHOLDER_EMAIL_FORM}`}
+                    type="email"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    autoCorrect="off"
+                    {...field}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={isSubmitting}>
+            Invite
+          </Button>
+        </form>
+        <FormMessage />
+      </div>
     </Form>
   )
 }
