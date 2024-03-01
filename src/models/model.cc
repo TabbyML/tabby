@@ -423,7 +423,7 @@ namespace ctranslate2 {
 
       {
         // Check that the device and device index are valid.
-        ScopedDeviceSetter(device, device_index);
+        set_device_index(device, device_index);
       }
 
       std::unique_ptr<std::istream> model_file_ptr = model_reader.get_required_file(binary_file,
