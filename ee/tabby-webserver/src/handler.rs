@@ -29,14 +29,10 @@ pub async fn attach_webserver(
 ) -> (Router, Router) {
     let ctx = create_service_locator(logger, code, is_chat_enabled).await;
     let repository_cache = Arc::new(RepositoryCache::new_initialized(ctx.repository()).await);
-    cron::run_cron(
-        ctx.auth(),
-        ctx.job(),
-        ctx.worker(),
-        repository_cache.clone(),
-        local_port,
-    )
-    .await;
+    let listener = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
+    if let Some(receiver) = listener {
+        repository_cache.clone().start_reload_listener(receiver);
+    }
 
     let schema = Arc::new(create_schema());
     let rs = Arc::new(repository_cache);

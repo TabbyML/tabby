@@ -16,11 +16,12 @@ use axum::{
 use hyper::Body;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, SourceFile, Tag};
+use tokio::sync::broadcast::{error::RecvError, Receiver};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
-use crate::schema::repository::RepositoryService;
+use crate::{cron::SchedulerJobCompleteEvent, schema::repository::RepositoryService};
 
 pub struct RepositoryCache {
     repository_lookup: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
@@ -59,6 +60,27 @@ impl RepositoryCache {
         debug!("Reloading repositoriy metadata...");
         *repository_lookup = load_meta(new_repositories);
         Ok(())
+    }
+
+    pub fn start_reload_listener(
+        self: Arc<Self>,
+        mut receiver: Receiver<SchedulerJobCompleteEvent>,
+    ) {
+        tokio::spawn(async move {
+            loop {
+                match receiver.recv().await {
+                    Ok(_) => (),
+                    Err(RecvError::Closed) => break,
+                    Err(e) => {
+                        warn!("Error when receiving event: {e}");
+                        continue;
+                    }
+                };
+                if let Err(e) = self.reload().await {
+                    warn!("Error when reloading repository cache: {e}");
+                };
+            }
+        });
     }
 
     fn repositories(&self) -> impl Deref<Target = HashMap<RepositoryKey, RepositoryMeta>> + '_ {
