@@ -47,8 +47,8 @@ export default function MailTestingForm({
   const onSubmit = (values: FormValues) => {
     return sendTestEmail(values).then(res => {
       if (res?.data?.sendTestEmail) {
-        toast.success(
-          'A test email has been sent, please check your inbox to verify.'
+        toast.info(
+          'A test email has been sent. If your configuration is correct, you should receive an email shortly.',
         )
         onSuccess?.()
       }
