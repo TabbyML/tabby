@@ -37,6 +37,10 @@ pub async fn attach_webserver(
     let rs = Arc::new(repository_cache);
 
     let api = api
+        .route(
+            "/v1beta/server_setting",
+            routing::get(server_setting).with_state(ctx.clone()),
+        )
         .layer(from_fn_with_state(ctx.clone(), distributed_tabby_layer))
         .route(
             "/graphql",
@@ -47,10 +51,6 @@ pub async fn attach_webserver(
         .route(
             "/hub",
             routing::get(hub::ws_handler).with_state(ctx.clone()),
-        )
-        .route(
-            "/v1beta/server_setting",
-            routing::get(server_setting).with_state(ctx.clone()),
         )
         .nest(
             "/repositories",
