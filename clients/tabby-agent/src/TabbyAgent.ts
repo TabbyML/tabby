@@ -113,9 +113,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
     if (!this.api || !deepEqual(oldConfig.server, this.config.server)) {
       await this.setupApi();
-
-      // schedule fetch server config later, no await
-      this.fetchServerConfig();
     }
 
     if (!deepEqual(oldConfig.server, this.config.server)) {
