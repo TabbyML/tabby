@@ -48,7 +48,7 @@ export default function MailTestingForm({
     return sendTestEmail(values).then(res => {
       if (res?.data?.sendTestEmail) {
         toast.info(
-          'A test email has been sent. If your configuration is correct, you should receive an email shortly.',
+          'A test email has been sent. If your configuration is correct, you should receive an email shortly.'
         )
         onSuccess?.()
       }
