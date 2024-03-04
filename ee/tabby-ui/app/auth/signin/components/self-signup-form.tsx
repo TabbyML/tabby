@@ -65,35 +65,37 @@ export const SelfSignupForm: React.FC<SelfSignupFormProps> = ({
 
   return (
     <Form {...form}>
-      <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder={PLACEHOLDER_EMAIL_FORM}
-                  type="email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect="off"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="mt-2">
-          {isSubmitting && (
-            <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-          )}
-          Send Email
-        </Button>
-      </form>
-      <FormMessage className="text-center" />
+      <div className="grid gap-2">
+        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder={PLACEHOLDER_EMAIL_FORM}
+                    type="email"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    autoCorrect="off"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" className="mt-2">
+            {isSubmitting && (
+              <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Send Email
+          </Button>
+        </form>
+        <FormMessage className="text-center" />
+      </div>
     </Form>
   )
 }
