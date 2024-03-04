@@ -21,7 +21,7 @@ use tower_http::services::ServeDir;
 use tracing::{debug, error, warn};
 
 use crate::{
-    cron::{start_listener, CronEvents},
+    cron::{CronEvents, StartListener},
     schema::repository::RepositoryService,
 };
 
@@ -39,7 +39,10 @@ impl std::fmt::Debug for RepositoryCache {
 }
 
 impl RepositoryCache {
-    pub async fn new_initialized(service: Arc<dyn RepositoryService>) -> RepositoryCache {
+    pub async fn new_initialized(
+        service: Arc<dyn RepositoryService>,
+        events: &CronEvents,
+    ) -> Arc<RepositoryCache> {
         let cache = RepositoryCache {
             repository_lookup: Default::default(),
             service,
@@ -47,6 +50,8 @@ impl RepositoryCache {
         if let Err(e) = cache.reload().await {
             error!("Failed to load repositories: {e}");
         };
+        let cache = Arc::new(cache);
+        cache.start_reload_listener(&events);
         cache
     }
 
@@ -66,7 +71,7 @@ impl RepositoryCache {
 
     pub fn start_reload_listener(self: &Arc<Self>, events: &CronEvents) {
         let clone = self.clone();
-        start_listener(&events.scheduler_job_succeeded, move |_| {
+        events.scheduler_job_succeeded.start_listener(move |_| {
             let clone = clone.clone();
             async move {
                 if let Err(e) = clone.reload().await {
