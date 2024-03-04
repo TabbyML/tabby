@@ -18,7 +18,7 @@ use crate::{
     oauth,
     schema::{
         auth::{
-            generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
+            generate_jwt, validate_jwt, AuthenticationService, Invitation,
             JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
             RefreshTokenResponse, RegisterResponse, RequestInvitationInput, TokenAuthResponse,
             UpdateOAuthCredentialInput, User,
@@ -83,8 +83,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let user = self.db.get_user(id).await?.unwrap();
 
-        let refresh_token = generate_refresh_token();
-        self.db.create_refresh_token(id, &refresh_token).await?;
+        let refresh_token = self.db.create_refresh_token(id).await?;
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
@@ -182,9 +181,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("Password is not valid").into());
         }
 
-        let refresh_token = generate_refresh_token();
-        self.db
-            .create_refresh_token(user.id, &refresh_token)
+        let refresh_token = self.db
+            .create_refresh_token(user.id)
             .await?;
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
@@ -210,8 +208,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("User is disabled").into());
         }
 
-        let new_token = generate_refresh_token();
-        self.db.replace_refresh_token(&token, &new_token).await?;
+        let new_token = self.db.renew_refresh_token(refresh_token.id, &token).await?;
 
         // refresh token update is done, generate new access token based on user info
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
@@ -364,9 +361,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .context("Failed to read license info")?;
         let (user_id, is_admin) = get_or_create_oauth_user(&license, &self.db, &email).await?;
 
-        let refresh_token = generate_refresh_token();
-        self.db
-            .create_refresh_token(user_id, &refresh_token)
+        let refresh_token = self.db
+            .create_refresh_token(user_id)
             .await?;
 
         let access_token = generate_jwt(JWTPayload::new(user_id.as_id(), is_admin))
