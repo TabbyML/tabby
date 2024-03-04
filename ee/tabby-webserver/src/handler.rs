@@ -31,7 +31,6 @@ pub async fn attach_webserver(
     let ctx = create_service_locator(logger, code, is_chat_enabled).await;
     let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
     let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;
-    repository_cache.start_reload_listener(&events);
 
     let schema = Arc::new(create_schema());
     let rs = Arc::new(repository_cache);
