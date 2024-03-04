@@ -27,7 +27,7 @@ impl DbConn {
             Some(secret) => secret.to_string(),
             None => {
                 query_scalar!(
-                    "SELECT client_secret FROM github_oauth_credential WHERE id = ?",
+                    "SELECT client_secret FROM oauth_credential WHERE id = ? AND type = 'github'",
                     GITHUB_OAUTH_CREDENTIAL_ROW_ID
                 )
                 .fetch_one(&mut *transaction)
@@ -35,10 +35,10 @@ impl DbConn {
             }
         };
         query!(
-            r#"INSERT INTO github_oauth_credential (id, client_id, client_secret)
-                                VALUES ($1, $2, $3) ON CONFLICT(id) DO UPDATE
+            r#"INSERT INTO oauth_credential (type, id, client_id, client_secret)
+                                VALUES ('github', $1, $2, $3) ON CONFLICT(id) DO UPDATE
                                 SET client_id = $2, client_secret = $3, updated_at = datetime('now')
-                                WHERE id = $1"#,
+                                WHERE id = $1 AND type = 'github'"#,
             GITHUB_OAUTH_CREDENTIAL_ROW_ID,
             client_id,
             client_secret
@@ -51,7 +51,7 @@ impl DbConn {
 
     pub async fn delete_github_oauth_credential(&self) -> Result<()> {
         query!(
-            "DELETE FROM github_oauth_credential WHERE id = ?",
+            "DELETE FROM oauth_credential WHERE id = ? AND type = 'github'",
             GITHUB_OAUTH_CREDENTIAL_ROW_ID
         )
         .execute(&self.pool)
@@ -60,7 +60,7 @@ impl DbConn {
     }
 
     pub async fn read_github_oauth_credential(&self) -> Result<Option<GithubOAuthCredentialDAO>> {
-        let token = sqlx::query_as("SELECT client_id, client_secret, created_at, updated_at FROM github_oauth_credential WHERE id = ?")
+        let token = sqlx::query_as("SELECT client_id, client_secret, created_at, updated_at FROM oauth_credential WHERE id = ? AND type = 'github'")
             .bind(GITHUB_OAUTH_CREDENTIAL_ROW_ID)
             .fetch_optional(&self.pool).await?;
         Ok(token)

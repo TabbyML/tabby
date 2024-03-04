@@ -26,7 +26,7 @@ impl DbConn {
         let client_secret = match client_secret {
             Some(secret) => secret.to_string(),
             None => query_scalar!(
-                "SELECT client_secret FROM google_oauth_credential WHERE id = ?",
+                "SELECT client_secret FROM oauth_credential WHERE id = ? AND type = 'google'",
                 GOOGLE_OAUTH_CREDENTIAL_ROW_ID
             )
             .fetch_one(&mut *transaction)
@@ -34,10 +34,10 @@ impl DbConn {
             .map_err(|_| anyhow!("Must specify client secret when updating the OAuth credential for the first time"))?,
         };
         query!(
-            r#"INSERT INTO google_oauth_credential (id, client_id, client_secret)
-                                VALUES ($1, $2, $3) ON CONFLICT(id) DO UPDATE
+            r#"INSERT INTO oauth_credential (type, id, client_id, client_secret)
+                                VALUES ('google', $1, $2, $3) ON CONFLICT(id) DO UPDATE
                                 SET client_id = $2, client_secret = $3, updated_at = datetime('now')
-                                WHERE id = $1"#,
+                                WHERE id = $1 AND type = 'github'"#,
             GOOGLE_OAUTH_CREDENTIAL_ROW_ID,
             client_id,
             client_secret,
@@ -50,14 +50,14 @@ impl DbConn {
 
     pub async fn read_google_oauth_credential(&self) -> Result<Option<GoogleOAuthCredentialDAO>> {
         let token = sqlx::query_as(
-            r#"SELECT client_id, client_secret, created_at, updated_at FROM google_oauth_credential WHERE id = ?"#,
+            r#"SELECT client_id, client_secret, created_at, updated_at FROM oauth_credential WHERE id = ? AND type = 'google'"#,
         ).bind(GOOGLE_OAUTH_CREDENTIAL_ROW_ID).fetch_optional(&self.pool).await?;
         Ok(token)
     }
 
     pub async fn delete_google_oauth_credential(&self) -> Result<()> {
         query!(
-            "DELETE FROM google_oauth_credential WHERE id = ?",
+            "DELETE FROM oauth_credential WHERE id = ? AND type = 'google'",
             GOOGLE_OAUTH_CREDENTIAL_ROW_ID
         )
         .execute(&self.pool)
