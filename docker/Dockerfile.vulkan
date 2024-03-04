@@ -1,32 +1,12 @@
-ARG UBUNTU_VERSION=jammy
+ARG CONTAINER_PATH=quay.io/pypa/manylinux2014_x86_64
 
-FROM ubuntu:$UBUNTU_VERSION as build
+FROM $CONTAINER_PATH as build
 
 # Rust toolchain version
 ARG RUST_TOOLCHAIN=stable
 
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    curl \
-    pkg-config \
-    libssl-dev \
-    protobuf-compiler \
-    git \
-    cmake \
-    gnupg \
-    ca-certificates \
-    build-essential \
-    wget \
-    && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
 # setup vulkan
-RUN wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | apt-key add - && \
-    wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list && \
-    apt update -y && \
-    apt-get install -y vulkan-sdk
+RUN yum install -y vulkan
 
 # setup rust.
 RUN curl https://sh.rustup.rs -sSf | bash -s -- --default-toolchain ${RUST_TOOLCHAIN} -y
@@ -50,25 +30,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --features prod-db --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/tabby-cpu
 
-FROM ubuntu:$UBUNTU_VERSION AS runtime
+FROM $CONTAINER_PATH AS runtime
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    git \
-    openssh-client \
-    ca-certificates \
-    libssl3 \
-    wget \
-    gnupg \
-    && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# setup vulkan
-RUN wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | apt-key add - && \
-    wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list && \
-    apt update -y && \
-    apt-get install -y vulkan-sdk
+RUN yum install -y vulkan
 
 # Disable safe directory in docker
 # Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
