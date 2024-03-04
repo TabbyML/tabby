@@ -421,6 +421,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
     async fn get_user(&self, id: &ID) -> Result<User>;
+    async fn logout_all_sessions(&self, id: &ID) -> Result<()>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
     async fn request_invitation_email(&self, input: RequestInvitationInput) -> Result<Invitation>;

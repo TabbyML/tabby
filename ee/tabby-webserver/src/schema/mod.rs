@@ -390,6 +390,15 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn logout_all_devices(ctx: &Context) -> Result<bool> {
+        let claims = check_claims(ctx)?;
+        ctx.locator
+            .auth()
+            .logout_all_sessions(&claims.sub.0)
+            .await?;
+        Ok(true)
+    }
+
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
         check_admin(ctx)?;
         if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {

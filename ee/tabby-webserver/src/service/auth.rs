@@ -315,6 +315,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(self.db.reset_user_auth_token_by_id(id.as_rowid()?).await?)
     }
 
+    async fn logout_all_sessions(&self, id: &ID) -> Result<()> {
+        Ok(self.db.logout_all_sessions(id.as_rowid()?).await?)
+    }
+
     async fn list_users(
         &self,
         after: Option<String>,
