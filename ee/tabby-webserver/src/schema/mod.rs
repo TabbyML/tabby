@@ -8,6 +8,7 @@ pub mod worker;
 
 use std::sync::Arc;
 
+use anyhow::anyhow;
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
     TokenAuthResponse, User,
@@ -392,12 +393,18 @@ impl Mutation {
 
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
         check_admin(ctx)?;
+        if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
+            return Err(anyhow!("Cannot disable yourself").into());
+        }
         ctx.locator.auth().update_user_active(&id, active).await?;
         Ok(true)
     }
 
     async fn update_user_role(ctx: &Context, id: ID, is_admin: bool) -> Result<bool> {
         check_admin(ctx)?;
+        if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
+            return Err(anyhow!("Cannot change your own role").into());
+        }
         ctx.locator.auth().update_user_role(&id, is_admin).await?;
         Ok(true)
     }
