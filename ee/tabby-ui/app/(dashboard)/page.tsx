@@ -65,7 +65,7 @@ function MainPanel() {
         <Label>Token</Label>
         <span className="flex items-center gap-1">
           <Input
-            className="max-w-[320px] font-mono text-red-600"
+            className="max-w-[320px] font-mono"
             value={data.me.authToken}
             onChange={noop}
           />
