@@ -50,9 +50,9 @@ export default function CreateRepositoryForm({
 
   return (
     <Form {...form}>
-      <div className="flex flex-col items-start gap-2">
+      <div className="grid gap-2">
         <form
-          className="flex w-full flex-col gap-4"
+          className="grid gap-6"
           onSubmit={form.handleSubmit(createRepository)}
         >
           <FormField
@@ -92,7 +92,6 @@ export default function CreateRepositoryForm({
               </FormItem>
             )}
           />
-          <FormMessage className="text-center" />
           <div className="flex justify-end gap-4">
             <Link href="/settings/git">
               <Button type="button" variant="ghost" disabled={isSubmitting}>
@@ -104,6 +103,7 @@ export default function CreateRepositoryForm({
             </Button>
           </div>
         </form>
+        <FormMessage className="text-center" />
       </div>
     </Form>
   )

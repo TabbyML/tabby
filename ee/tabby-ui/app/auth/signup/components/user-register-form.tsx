@@ -78,9 +78,9 @@ export function UserAuthForm({
   })
 
   return (
-    <div className={cn('grid gap-6', className)} {...props}>
-      <Form {...form}>
-        <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
+    <Form {...form}>
+      <div className={cn('grid gap-2', className)} {...props}>
+        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
             name="email"
@@ -138,7 +138,7 @@ export function UserAuthForm({
               </FormItem>
             )}
           />
-          <Button type="submit" className="mt-1" disabled={isSubmitting}>
+          <Button type="submit" className="mt-2" disabled={isSubmitting}>
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
@@ -146,7 +146,7 @@ export function UserAuthForm({
           </Button>
         </form>
         <FormMessage className="text-center" />
-      </Form>
-    </div>
+      </div>
+    </Form>
   )
 }

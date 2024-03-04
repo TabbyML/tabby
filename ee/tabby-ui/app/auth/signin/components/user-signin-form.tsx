@@ -71,8 +71,8 @@ export default function UserSignInForm({
   })
 
   return (
-    <div className={cn('grid', className)} {...props}>
-      <Form {...form}>
+    <Form {...form}>
+      <div className={cn('grid gap-2', className)} {...props}>
         <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
@@ -116,7 +116,7 @@ export default function UserSignInForm({
               </FormItem>
             )}
           />
-          <Button type="submit" className="mt-1" disabled={isSubmitting}>
+          <Button type="submit" className="mt-2" disabled={isSubmitting}>
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
@@ -124,7 +124,7 @@ export default function UserSignInForm({
           </Button>
         </form>
         <FormMessage className="text-center" />
-      </Form>
-    </div>
+      </div>
+    </Form>
   )
 }

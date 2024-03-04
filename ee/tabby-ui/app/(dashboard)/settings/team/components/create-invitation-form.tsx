@@ -48,9 +48,9 @@ export default function CreateInvitationForm({
 
   return (
     <Form {...form}>
-      <div className="flex flex-col items-start gap-2">
+      <div className="grid gap-2">
         <form
-          className="flex w-full items-center gap-2"
+          className="flex w-full items-center gap-4"
           onSubmit={form.handleSubmit(createInvitation)}
         >
           <FormField
@@ -76,7 +76,7 @@ export default function CreateInvitationForm({
             Invite
           </Button>
         </form>
-        <FormMessage className="text-center" />
+        <FormMessage />
       </div>
     </Form>
   )
