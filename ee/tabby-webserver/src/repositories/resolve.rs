@@ -51,7 +51,7 @@ impl RepositoryCache {
             error!("Failed to load repositories: {e}");
         };
         let cache = Arc::new(cache);
-        cache.start_reload_listener(&events);
+        cache.start_reload_listener(events);
         cache
     }
 
