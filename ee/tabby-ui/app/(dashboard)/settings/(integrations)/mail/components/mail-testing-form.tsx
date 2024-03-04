@@ -58,10 +58,7 @@ export default function MailTestingForm({
   return (
     <Form {...form}>
       <div className="grid gap-2">
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
+        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <Label>Send Test Email To</Label>
           <div className="flex gap-4">
             <FormField

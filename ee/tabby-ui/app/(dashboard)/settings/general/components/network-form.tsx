@@ -75,10 +75,7 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
   return (
     <Form {...form}>
       <div className="grid gap-2">
-        <form
-          className="flex flex-col gap-6"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
+        <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
             name="externalUrl"

@@ -66,10 +66,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
 
   return (
     <Form {...form}>
-      <form
-        className="flex flex-col gap-6"
-        onSubmit={form.handleSubmit(onSubmit)}
-      >
+      <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
         {showOldPassword && (
           <FormField
             control={form.control}

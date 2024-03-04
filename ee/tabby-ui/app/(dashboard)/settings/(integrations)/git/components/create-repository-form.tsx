@@ -52,7 +52,7 @@ export default function CreateRepositoryForm({
     <Form {...form}>
       <div className="grid gap-2">
         <form
-          className="flex w-full flex-col gap-6"
+          className="grid gap-6"
           onSubmit={form.handleSubmit(createRepository)}
         >
           <FormField

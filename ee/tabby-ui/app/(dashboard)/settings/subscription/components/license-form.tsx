@@ -145,48 +145,54 @@ export function LicenseForm({
               </FormItem>
             )}
           />
-          <FormMessage />
-          <div className="mt-2 flex items-center justify-end gap-4">
-            <AlertDialog
-              open={resetDialogOpen}
-              onOpenChange={onResetDialogOpenChange}
-            >
-              {canReset && (
-                <AlertDialogTrigger asChild>
-                  <Button type="button" variant="hover-destructive">
-                    Reset
-                  </Button>
-                </AlertDialogTrigger>
-              )}
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. It will reset the current
-                    license.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className={buttonVariants({ variant: 'destructive' })}
-                    onClick={onReset}
-                    disabled={isResetting}
-                  >
-                    {isResetting && (
-                      <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Yes, reset it
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button type="submit" disabled={isSubmitting || !license}>
-              {isSubmitting && (
-                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Upload License
-            </Button>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <FormMessage />
+            </div>
+            <div className="flex items-center shrink-0 gap-4">
+              <AlertDialog
+                open={resetDialogOpen}
+                onOpenChange={onResetDialogOpenChange}
+              >
+                {canReset && (
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="hover-destructive">
+                      Reset
+                    </Button>
+                  </AlertDialogTrigger>
+                )}
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. It will reset the current
+                      license.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className={buttonVariants({ variant: 'destructive' })}
+                      onClick={onReset}
+                      disabled={isResetting}
+                    >
+                      {isResetting && (
+                        <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Yes, reset it
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button type="submit" disabled={isSubmitting || !license}>
+                {isSubmitting && (
+                  <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Upload License
+              </Button>
+            </div>
           </div>
         </form>
       </Form>

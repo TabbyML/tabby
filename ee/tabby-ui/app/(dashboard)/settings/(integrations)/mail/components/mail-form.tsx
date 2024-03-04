@@ -144,10 +144,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
   return (
     <Form {...form}>
       <div className="grid gap-2">
-        <form
-          className="flex flex-col items-start gap-6"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
+        <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-6 lg:flex-row">
             <FormField
               control={form.control}
