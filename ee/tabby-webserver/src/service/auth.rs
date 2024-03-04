@@ -132,6 +132,15 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let password_encrypted = password_hash(password).map_err(|_| anyhow!("Unknown error"))?;
 
         let user_id = self.db.verify_password_reset(code).await?;
+        let old_pass_encrypted = self
+            .db
+            .get_user(user_id as i32)
+            .await?
+            .expect("User must exist")
+            .password_encrypted;
+        if password_verify(password, &old_pass_encrypted) {
+            return Err(anyhow!("New password cannot match old password").into());
+        }
         self.db.delete_password_reset_by_user_id(user_id).await?;
         self.db
             .update_user_password(user_id as i32, password_encrypted)
@@ -158,6 +167,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
         };
         if !password_verified {
             return Err(anyhow!("Password is incorrect").into());
+        }
+
+        if old_password.is_some_and(|pass| pass == new_password) {
+            return Err(anyhow!("New password cannot match old password").into());
         }
 
         let new_password_encrypted =
