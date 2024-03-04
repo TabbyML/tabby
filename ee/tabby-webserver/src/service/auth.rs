@@ -1259,6 +1259,12 @@ mod tests {
             .update_user_password(&id, Some("newpass"), "newpass2")
             .await
             .is_ok());
+
+        // Cannot reset to same password
+        assert!(service
+            .update_user_password(&id, Some("newpass2"), "newpass2")
+            .await
+            .is_err());
     }
 
     #[tokio::test]
