@@ -70,7 +70,7 @@ export default function Workers() {
         <div className="flex items-center gap-1">
           Registration token:
           <Input
-            className="max-w-[320px] font-mono text-red-600"
+            className="max-w-[320px] font-mono"
             value={registrationTokenRes.registrationToken}
             onChange={noop}
           />
