@@ -393,7 +393,7 @@ impl Mutation {
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
         check_admin(ctx)?;
         if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
-            return Err(CoreError::Unauthorized("You cannot disable yourself"));
+            return Err(CoreError::Forbidden("You cannot change your own active status"));
         }
         ctx.locator.auth().update_user_active(&id, active).await?;
         Ok(true)
@@ -402,7 +402,7 @@ impl Mutation {
     async fn update_user_role(ctx: &Context, id: ID, is_admin: bool) -> Result<bool> {
         check_admin(ctx)?;
         if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
-            return Err(CoreError::Unauthorized("You cannot update your own role"));
+            return Err(CoreError::Forbidden("You cannot update your own role"));
         }
         ctx.locator.auth().update_user_role(&id, is_admin).await?;
         Ok(true)
