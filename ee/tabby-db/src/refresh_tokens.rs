@@ -129,4 +129,10 @@ mod tests {
         assert_eq!(token.user_id, 1);
         assert_eq!(token.token, new);
     }
+
+    #[tokio::test]
+    async fn test_delete_expired_token() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        assert!(conn.delete_expired_token().await.is_ok());
+    }
 }
