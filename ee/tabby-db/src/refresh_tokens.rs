@@ -14,7 +14,7 @@ pub struct RefreshTokenDAO {
     created_at: DateTime<Utc>,
 
     pub user_id: i32,
-    
+
     #[cfg(test)]
     token: String,
     pub expires_at: DateTime<Utc>,

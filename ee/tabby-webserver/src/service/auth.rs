@@ -18,9 +18,9 @@ use crate::{
     oauth,
     schema::{
         auth::{
-            generate_jwt, validate_jwt, AuthenticationService, Invitation,
-            JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
-            RefreshTokenResponse, RegisterResponse, RequestInvitationInput, TokenAuthResponse,
+            generate_jwt, validate_jwt, AuthenticationService, Invitation, JWTPayload,
+            OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenResponse,
+            RegisterResponse, RequestInvitationInput, TokenAuthResponse,
             UpdateOAuthCredentialInput, User,
         },
         email::EmailService,
@@ -181,9 +181,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("Password is not valid").into());
         }
 
-        let refresh_token = self.db
-            .create_refresh_token(user.id)
-            .await?;
+        let refresh_token = self.db.create_refresh_token(user.id).await?;
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
@@ -208,7 +206,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("User is disabled").into());
         }
 
-        let new_token = self.db.renew_refresh_token(refresh_token.id, &token).await?;
+        let new_token = self
+            .db
+            .renew_refresh_token(refresh_token.id, &token)
+            .await?;
 
         // refresh token update is done, generate new access token based on user info
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
@@ -361,9 +362,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .context("Failed to read license info")?;
         let (user_id, is_admin) = get_or_create_oauth_user(&license, &self.db, &email).await?;
 
-        let refresh_token = self.db
-            .create_refresh_token(user_id)
-            .await?;
+        let refresh_token = self.db.create_refresh_token(user_id).await?;
 
         let access_token = generate_jwt(JWTPayload::new(user_id.as_id(), is_admin))
             .map_err(|_| OAuthError::Unknown)?;
