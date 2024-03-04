@@ -149,7 +149,7 @@ export function LicenseForm({
             <div>
               <FormMessage />
             </div>
-            <div className="flex items-center shrink-0 gap-4">
+            <div className="flex shrink-0 items-center gap-4">
               <AlertDialog
                 open={resetDialogOpen}
                 onOpenChange={onResetDialogOpenChange}
