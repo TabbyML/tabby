@@ -19,6 +19,7 @@ type Mutation {
   passwordReset(input: PasswordResetInput!): Boolean!
   passwordChange(input: PasswordChangeInput!): Boolean!
   resetUserAuthToken: Boolean!
+  logoutAllDevices: Boolean!
   updateUserActive(id: ID!, active: Boolean!): Boolean!
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
   register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
