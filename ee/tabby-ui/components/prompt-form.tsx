@@ -212,7 +212,7 @@ function PromptFormRenderer(
                       if (has(e, 'target.value')) {
                         prevInputSelectionEnd.current = e.target.selectionEnd
                         setInput(e.target.value)
-                        handleSearchCompletion(e)
+                        // handleSearchCompletion(e)
                       } else {
                         prevInputSelectionEnd.current = undefined
                       }
