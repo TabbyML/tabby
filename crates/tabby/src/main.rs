@@ -87,7 +87,7 @@ pub enum Device {
     Metal,
 
     #[cfg(feature = "vulkan")]
-    #[strum(serialize = "metal")]
+    #[strum(serialize = "vulkan")]
     Vulkan,
 
     #[cfg(feature = "experimental-http")]
