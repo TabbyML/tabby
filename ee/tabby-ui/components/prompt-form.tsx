@@ -212,6 +212,7 @@ function PromptFormRenderer(
                       if (has(e, 'target.value')) {
                         prevInputSelectionEnd.current = e.target.selectionEnd
                         setInput(e.target.value)
+                        // TODO: Temporarily disabling the current search function. Will be replaced with a different search functionality in the future.
                         // handleSearchCompletion(e)
                       } else {
                         prevInputSelectionEnd.current = undefined
