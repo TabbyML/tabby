@@ -9,7 +9,7 @@ use argon2::{
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
-use tabby_db::{DbConn, InvitationDAO};
+use tabby_db::{DbConn, DbEnum, InvitationDAO};
 use tokio::task::JoinHandle;
 use tracing::warn;
 
@@ -395,17 +395,13 @@ impl AuthenticationService for AuthenticationServiceImpl {
         &self,
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
-        match provider {
-            OAuthProvider::Github => Ok(self
-                .db
-                .read_github_oauth_credential()
-                .await?
-                .map(|val| val.into())),
-            OAuthProvider::Google => Ok(self
-                .db
-                .read_google_oauth_credential()
-                .await?
-                .map(|val| val.into())),
+        let credential = self
+            .db
+            .read_oauth_credential(provider.as_enum_str())
+            .await?;
+        match credential {
+            Some(c) => Ok(Some(c.try_into()?)),
+            None => Ok(None),
         }
     }
 
@@ -419,24 +415,21 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_oauth_credential(&self, input: UpdateOAuthCredentialInput) -> Result<()> {
-        match input.provider {
-            OAuthProvider::Github => Ok(self
-                .db
-                .update_github_oauth_credential(&input.client_id, input.client_secret.as_deref())
-                .await?),
-            OAuthProvider::Google => Ok(self
-                .db
-                .update_google_oauth_credential(&input.client_id, input.client_secret.as_deref())
-                .await?),
-        }
+        self.db
+            .update_oauth_credential(
+                input.provider.as_enum_str(),
+                &input.client_id,
+                input.client_secret.as_deref(),
+            )
+            .await?;
+        Ok(())
     }
 
     async fn delete_oauth_credential(&self, provider: OAuthProvider) -> Result<()> {
-        let ret = match provider {
-            OAuthProvider::Github => self.db.delete_github_oauth_credential().await,
-            OAuthProvider::Google => self.db.delete_google_oauth_credential().await,
-        };
-        Ok(ret?)
+        self.db
+            .delete_oauth_credential(provider.as_enum_str())
+            .await?;
+        Ok(())
     }
 
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
