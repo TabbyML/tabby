@@ -15,39 +15,55 @@ use axum::{
 };
 use hyper::Body;
 use serde::{Deserialize, Serialize};
-use tabby_common::{
-    config::{Config, RepositoryConfig},
-    SourceFile, Tag,
-};
+use tabby_common::{config::RepositoryConfig, SourceFile, Tag};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-use tracing::debug;
+use tracing::{debug, error};
 
-#[derive(Debug)]
+use crate::schema::repository::RepositoryService;
+
 pub struct RepositoryCache {
-    repositories: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
-    configured_repositories: Vec<RepositoryConfig>,
+    repository_lookup: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
+    service: Arc<dyn RepositoryService>,
+}
+
+impl std::fmt::Debug for RepositoryCache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RepositoryCache")
+            .field("repository_lookup", &self.repository_lookup)
+            .finish()
+    }
 }
 
 impl RepositoryCache {
-    pub fn new_initialized(configured_repositories: Vec<RepositoryConfig>) -> RepositoryCache {
+    pub async fn new_initialized(service: Arc<dyn RepositoryService>) -> RepositoryCache {
         let cache = RepositoryCache {
-            repositories: Default::default(),
-            configured_repositories,
+            repository_lookup: Default::default(),
+            service,
         };
-        cache.reload();
+        if let Err(e) = cache.reload().await {
+            error!("Failed to load repositories: {e}");
+        };
         cache
     }
 
-    fn reload(&self) {
-        let mut repositories = self.repositories.write().unwrap();
+    async fn reload(&self) -> Result<()> {
+        let new_repositories = self
+            .service
+            .list_repositories(None, None, None, None)
+            .await?
+            .into_iter()
+            .map(|repository| RepositoryConfig::new_named(repository.name, repository.git_url))
+            .collect();
+        let mut repository_lookup = self.repository_lookup.write().unwrap();
         debug!("Reloading repositoriy metadata...");
-        *repositories = load_meta();
+        *repository_lookup = load_meta(new_repositories);
+        Ok(())
     }
 
     fn repositories(&self) -> impl Deref<Target = HashMap<RepositoryKey, RepositoryMeta>> + '_ {
-        self.repositories.read().unwrap()
+        self.repository_lookup.read().unwrap()
     }
 }
 
@@ -133,21 +149,18 @@ impl From<SourceFile> for RepositoryMeta {
     }
 }
 
-fn load_meta() -> HashMap<RepositoryKey, RepositoryMeta> {
+fn load_meta(repositories: Vec<RepositoryConfig>) -> HashMap<RepositoryKey, RepositoryMeta> {
     let mut dataset = HashMap::new();
-    let repo_conf = match Config::load() {
-        Ok(config) => config
-            .repositories
-            .into_iter()
-            .map(|repo| (repo.git_url.clone(), repo))
-            .collect::<HashMap<_, _>>(),
-        Err(_) => {
-            return dataset;
-        }
-    };
+    // Construct map of String -> &RepositoryConfig for lookup
+    let repo_conf = repositories
+        .iter()
+        .map(|repo| (repo.git_url.clone(), repo))
+        .collect::<HashMap<_, _>>();
     let Ok(iter) = SourceFile::all() else {
         return dataset;
     };
+    // Source files contain all metadata, read repository metadata from json
+    // (SourceFile can be converted into RepositoryMeta)
     for file in iter {
         if let Some(repo_name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
             let key = RepositoryKey {
@@ -184,7 +197,7 @@ impl RepositoryCache {
             let kind = if meta.is_dir() {
                 DirEntryKind::Dir
             } else if meta.is_file() {
-                let key = RepositoryKey {
+                let _key = RepositoryKey {
                     repo_name: repo.name_str().to_string(),
                     rel_path: basename.clone(),
                 };
@@ -234,11 +247,13 @@ impl RepositoryCache {
 
     pub fn resolve_all(&self) -> Result<Response> {
         let entries: Vec<_> = self
-            .configured_repositories
-            .iter()
+            .repository_lookup
+            .read()
+            .unwrap()
+            .keys()
             .map(|repo| DirEntry {
                 kind: DirEntryKind::Dir,
-                basename: repo.name(),
+                basename: repo.repo_name.clone(),
             })
             .collect();
 
@@ -249,14 +264,20 @@ impl RepositoryCache {
 
         Ok(resp)
     }
+
     pub async fn start_reload_job(self: &Arc<Self>) {
         let cache = self.clone();
         let scheduler = JobScheduler::new().await.unwrap();
         scheduler
             .add(
                 // Reload every 5 minutes
-                Job::new("0 1/5 * * * * *", move |_, _| {
-                    cache.reload();
+                Job::new_async("0 1/5 * * * * *", move |_, _| {
+                    let cache = cache.clone();
+                    Box::pin(async move {
+                        if let Err(e) = cache.reload().await {
+                            error!("Failed to load repositories: {e}");
+                        };
+                    })
                 })
                 .unwrap(),
             )
@@ -264,9 +285,16 @@ impl RepositoryCache {
             .unwrap();
         scheduler.start().await.unwrap();
     }
-    pub fn find_repository(&self, name: &str) -> Option<&RepositoryConfig> {
-        self.configured_repositories
-            .iter()
-            .find(|repo| repo.name() == name)
+
+    pub fn find_repository(&self, name: &str) -> Option<RepositoryConfig> {
+        let repository_lookup = self.repository_lookup.read().unwrap();
+        let key = repository_lookup
+            .keys()
+            .find(|repo| repo.repo_name == name)?;
+        let value = repository_lookup.get(key)?;
+        Some(RepositoryConfig::new_named(
+            key.repo_name.clone(),
+            value.git_url.clone(),
+        ))
     }
 }
