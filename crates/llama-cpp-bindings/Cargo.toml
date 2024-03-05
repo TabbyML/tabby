@@ -1,6 +1,6 @@
 [package]
 name = "llama-cpp-bindings"
-version = "0.9.0-rc.3"
+version = "0.9.0-rc.4"
 edition = "2021"
 
 [features]
