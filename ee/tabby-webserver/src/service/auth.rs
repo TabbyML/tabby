@@ -171,11 +171,11 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
         let Some(user) = self.db.get_user_by_email(&email).await? else {
-            return Err(anyhow!("Invalid username or password").into());
+            return Err(anyhow!("Invalid email address or password").into());
         };
 
         if !password_verify(&password, &user.password_encrypted) {
-            return Err(anyhow!("Invalid username or password").into());
+            return Err(anyhow!("Invalid email address or password").into());
         }
 
         if !user.active {
