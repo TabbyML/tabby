@@ -143,12 +143,9 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
 
   return (
     <Form {...form}>
-      <div className="flex flex-col items-start gap-4">
-        <form
-          className="flex flex-col items-start gap-4"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
-          <div className="flex flex-col gap-8 lg:flex-row">
+      <div className="grid gap-2">
+        <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="flex flex-col gap-6 lg:flex-row">
             <FormField
               control={form.control}
               name="smtpServer"
@@ -234,7 +231,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
               </FormItem>
             )}
           />
-          <div className="flex flex-col gap-8 lg:flex-row">
+          <div className="flex flex-col gap-6 lg:flex-row">
             <FormField
               control={form.control}
               name="smtpUsername"
@@ -303,7 +300,7 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
               </FormItem>
             )}
           />
-          <div className="mt-4 flex items-center gap-4">
+          <div className="flex items-center gap-4">
             {!isNew && (
               <AlertDialog
                 open={deleteAlertVisible}

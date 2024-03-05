@@ -8,7 +8,6 @@ import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -74,9 +73,9 @@ export function ResetPasswordForm({
   }
 
   return (
-    <div className={cn('grid gap-6', className)} {...props}>
-      <Form {...form}>
-        <form className="grid gap-2" onSubmit={form.handleSubmit(onSubmit)}>
+    <Form {...form}>
+      <div className="grid gap-2">
+        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
             name="password1"
@@ -122,7 +121,7 @@ export function ResetPasswordForm({
           </Button>
         </form>
         <FormMessage className="text-center" />
-      </Form>
-    </div>
+      </div>
+    </Form>
   )
 }
