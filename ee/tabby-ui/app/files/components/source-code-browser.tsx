@@ -189,7 +189,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath])
   const [fileViewType, setFileViewType] = React.useState<FileDisplayType>()
 
-  const isFileActive =
+  const isFileSelected =
     activePath && fileMap?.[activePath]?.file?.kind === 'file'
   const activeEntry = activePath ? fileMap?.[activePath]?.file : undefined
 
@@ -202,7 +202,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   // fetch raw file
   const { data: fileBlob } = useSWRImmutable(
-    isFileActive
+    isFileSelected
       ? `/repositories/${activeRepoName}/resolve/${activeBasename}`
       : null,
     (url: string) =>
@@ -213,7 +213,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   // fetch active file meta
   const { data: fileMeta } = useSWRImmutable(
-    isFileActive
+    isFileSelected
       ? `/repositories/${activeRepoName}/meta/${activeBasename}`
       : null,
     fetcher
@@ -291,12 +291,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       setFileViewType(displayType)
     }
 
-    if (isFileActive) {
+    if (isFileSelected) {
       calculateViewType()
     } else {
       setFileViewType('')
     }
-  }, [activePath, isFileActive, fileBlob])
+  }, [activePath, isFileSelected, fileBlob])
 
   return (
     <ResizablePanelGroup direction="horizontal" className={cn(className)}>
