@@ -316,7 +316,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn logout_all_sessions(&self, id: &ID) -> Result<()> {
-        Ok(self.db.delete_tokens_for_user(id.as_rowid()?).await?)
+        Ok(self.db.delete_tokens_by_user_id(id.as_rowid()?).await?)
     }
 
     async fn list_users(

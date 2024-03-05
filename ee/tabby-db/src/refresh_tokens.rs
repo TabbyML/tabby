@@ -72,7 +72,7 @@ impl DbConn {
         Ok(token)
     }
 
-    pub async fn delete_tokens_for_user(&self, id: i32) -> Result<()> {
+    pub async fn delete_tokens_by_user_id(&self, id: i32) -> Result<()> {
         query!("DELETE FROM refresh_tokens WHERE user_id = ?", id)
             .execute(&self.pool)
             .await?;
