@@ -1,6 +1,7 @@
-use crate::{DateTimeUtc, DbConn};
 use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query, query_scalar};
+
+use crate::{DateTimeUtc, DbConn};
 
 #[derive(FromRow)]
 pub struct OAuthCredentialDAO {
