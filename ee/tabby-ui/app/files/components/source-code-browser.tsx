@@ -207,7 +207,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       : null,
     (url: string) =>
       fetcher(url, {
-        format: 'blob'
+        responseFormat: 'blob'
       })
   )
 
