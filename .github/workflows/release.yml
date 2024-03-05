@@ -27,7 +27,7 @@ jobs:
     container: ${{ matrix.container }}
     strategy:
       matrix:
-        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-windows-msvc, x86_64-manylinux2014-cuda117, x86_64-manylinux2014-cuda122, x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122]
+        binary: [aarch64-apple-darwin, x86_64-manylinux2014, x86_64-windows-msvc, x86_64-manylinux2014-cuda117, x86_64-manylinux2014-cuda122, x86_64-windows-msvc-cuda117, x86_64-windows-msvc-cuda122, x86_64-manylinux2014-vulkan]
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
@@ -64,6 +64,11 @@ jobs:
             ext: .exe
             build_args: --features cuda,prod-db
             windows_cuda: '12.2.0'
+          - os: dimerun-k3-ubuntu2204
+            target: x86_64-unknown-linux-gnu
+            container: quay.io/pypa/manylinux2014_x86_64
+            build_args: --features vulkan,prod-db
+            binary: x86_64-manylinux2014-vulkan
 
     env:
       SCCACHE_GHA_ENABLED: true
