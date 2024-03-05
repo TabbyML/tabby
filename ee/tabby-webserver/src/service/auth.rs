@@ -139,7 +139,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .expect("User must exist")
             .password_encrypted;
         if password_verify(password, &old_pass_encrypted) {
-            return Err(anyhow!("New password cannot match old password").into());
+            return Err(anyhow!("New password cannot be the same as your current password").into());
         }
         self.db.delete_password_reset_by_user_id(user_id).await?;
         self.db
@@ -170,7 +170,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
 
         if old_password.is_some_and(|pass| pass == new_password) {
-            return Err(anyhow!("New password cannot match old password").into());
+            return Err(anyhow!("New password cannot be the same as your current password").into());
         }
 
         let new_password_encrypted =
