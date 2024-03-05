@@ -1259,12 +1259,37 @@ mod tests {
             .update_user_password(&id, Some("newpass"), "newpass2")
             .await
             .is_ok());
+    }
 
-        // Cannot reset to same password
+    #[tokio::test]
+    async fn test_cannot_reset_same_password() {
+        let (service, _mail) = test_authentication_service_with_mail().await;
+        let id = service
+            .db
+            .create_user(
+                "test@example.com".into(),
+                password_hash("pass").unwrap(),
+                true,
+            )
+            .await
+            .unwrap();
+
         assert!(service
-            .update_user_password(&id, Some("newpass2"), "newpass2")
+            .update_user_password(&id.as_id(), Some("pass"), "pass")
             .await
             .is_err());
+
+        service
+            .request_password_reset_email("test@example.com".into())
+            .await
+            .unwrap();
+        let reset = service
+            .db
+            .get_password_reset_by_user_id(id as i64)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(service.password_reset(&reset.code, "pass").await.is_err());
     }
 
     #[tokio::test]

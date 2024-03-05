@@ -369,10 +369,6 @@ impl Mutation {
 
     async fn password_change(ctx: &Context, input: PasswordChangeInput) -> Result<bool> {
         let claims = check_claims(ctx)?;
-        input
-            .old_password
-            .as_ref()
-            .is_some_and(|pass| pass == &input.new_password1);
         input.validate()?;
         ctx.locator
             .auth()
