@@ -4,7 +4,6 @@ import React, { PropsWithChildren } from 'react'
 import dynamic from 'next/dynamic'
 import filename2prism from 'filename2prism'
 import { compact, findIndex } from 'lodash-es'
-import mime from 'mime'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
@@ -163,6 +162,8 @@ interface SourceCodeBrowserProps {
   className?: string
 }
 
+type FileDisplayType = 'image' | 'text' | 'raw' | ''
+
 const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   className
 }) => {
@@ -186,17 +187,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const activeBasename = React.useMemo(() => {
     return resolveBasenameFromPath(activePath)
   }, [activePath])
+  const [fileViewType, setFileViewType] = React.useState<FileDisplayType>()
 
   const isFileActive =
     activePath && fileMap?.[activePath]?.file?.kind === 'file'
   const activeEntry = activePath ? fileMap?.[activePath]?.file : undefined
-  const showDirectoryPanel = activeEntry?.kind === 'dir' || activePath === ''
-  const fileDisplayType = React.useMemo(() => {
-    return activePath && isFileActive ? getFileDisplayType(activePath) : ''
-  }, [activePath, isFileActive])
-  const showCodeEditor = fileDisplayType === 'text'
-  const showRawFilePanel =
-    fileDisplayType === 'image' || fileDisplayType === 'raw'
+
   const shouldFetchSubDir = React.useMemo(() => {
     if (!initialized) return false
 
@@ -205,13 +201,13 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath, fileMap, initialized])
 
   // fetch raw file
-  const { data: fileContent } = useSWRImmutable(
+  const { data: fileBlob } = useSWRImmutable(
     isFileActive
       ? `/repositories/${activeRepoName}/resolve/${activeBasename}`
       : null,
     (url: string) =>
       fetcher(url, {
-        format: ['image', 'raw'].includes(fileDisplayType) ? 'blob' : 'text'
+        format: 'blob'
       })
   )
 
@@ -233,6 +229,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       : null,
     fetcher
   )
+
+  const showDirectoryPanel = activeEntry?.kind === 'dir' || activePath === ''
+
+  const showRawFilePanel = fileViewType === 'image' || fileViewType === 'raw'
+  const showCodeEditor = fileViewType === 'text'
 
   const onSelectTreeNode = (treeNode: TFileTreeNode) => {
     setActivePath(treeNode.fullPath)
@@ -284,6 +285,19 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     afterFetchSubTree()
   }, [subTree])
 
+  React.useEffect(() => {
+    const calculateViewType = async () => {
+      const displayType = await getFileViewType(activePath ?? '', fileBlob)
+      setFileViewType(displayType)
+    }
+
+    if (isFileActive) {
+      calculateViewType()
+    } else {
+      setFileViewType('')
+    }
+  }, [activePath, isFileActive, fileBlob])
+
   return (
     <ResizablePanelGroup direction="horizontal" className={cn(className)}>
       <ResizablePanel defaultSize={20} minSize={20}>
@@ -306,24 +320,27 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
           <FileDirectoryBreadcrumb className="sticky top-0 z-10 bg-background py-4" />
           <div className="flex-1">
-            <DirectoryPanel
-              loading={fetchingSubTree}
-              initialized={initialized}
-              className={`rounded-lg border ${
-                showDirectoryPanel ? 'block' : 'hidden'
-              }`}
-            />
+            {/* {isFileActive && fileViewType === '' && <ListSkeleton />} */}
+            {showDirectoryPanel && (
+              <DirectoryPanel
+                loading={fetchingSubTree}
+                initialized={initialized}
+                className={`rounded-lg border`}
+              />
+            )}
             {showCodeEditor && (
               <SourceCodeEditor
                 className={`rounded-lg border py-2`}
-                value={fileContent}
+                blob={fileBlob}
                 meta={fileMeta}
+                // key={activePath}
               />
             )}
-            {showRawFilePanel && (
+            {showRawFilePanel && fileBlob && (
               <RawContentPanel
-                className={`rounded-lg border py-2 `}
-                value={fileContent}
+                className={`rounded-lg border py-2`}
+                blob={fileBlob}
+                isImage={fileViewType === 'image'}
               />
             )}
           </div>
@@ -444,24 +461,49 @@ async function initFileMap(path?: string) {
   }
 }
 
-function getFileDisplayType(path: string) {
-  const mimeTextList = ['application/toml']
-  const mimeType = mime.getType(path)
+async function getFileViewType(
+  path: string,
+  blob: Blob | undefined
+): Promise<FileDisplayType> {
+  if (!blob) return ''
+  const mimeType = blob?.type
   const detectedLanguage = filename2prism(path)?.[0]
 
   if (mimeType?.startsWith('image')) return 'image'
-  // FIXME
-  if (
-    (!detectedLanguage && !mimeType) ||
-    detectedLanguage ||
-    mimeType?.startsWith('application') ||
-    mimeType?.startsWith('text') ||
-    (mimeType && mimeTextList.includes(mimeType))
-  )
-    return 'text'
-  return 'raw'
+  if (detectedLanguage || mimeType?.startsWith('text')) return 'text'
+
+  const isReadableText = await isReadableTextFile(blob)
+  return isReadableText ? 'text' : 'raw'
+}
+
+function isReadableTextFile(blob: Blob) {
+  return new Promise((resolve, reject) => {
+    const chunkSize = 1024
+    const blobPart = blob.slice(0, chunkSize)
+    const reader = new FileReader()
+
+    reader.onloadend = function (e) {
+      if (e?.target?.readyState === FileReader.DONE) {
+        const text = e.target.result
+        const nonPrintableRegex = /[\x00-\x08\x0E-\x1F\x7F-\x9F]/
+        if (typeof text !== 'string') {
+          resolve(false)
+        } else if (nonPrintableRegex.test(text)) {
+          resolve(false)
+        } else {
+          resolve(true)
+        }
+      }
+    }
+
+    reader.onerror = function () {
+      resolve(false)
+    }
+
+    reader.readAsText(blobPart, 'UTF-8') // 假设文件是 UTF-8 编码
+  })
 }
 
 export type { TFileMap, TFileMapItem }
 
-export { SourceCodeBrowserContext, SourceCodeBrowser, getFileDisplayType }
+export { SourceCodeBrowserContext, SourceCodeBrowser, getFileViewType }

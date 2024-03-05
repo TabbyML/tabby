@@ -10,7 +10,7 @@ import { client } from './gql'
 
 interface PendingRequest {
   url: string
-  init?: RequestInit & { format?: 'json' | 'text' | 'blob' }
+  init?: RequestInit & { format?: 'json' | 'blob' }
   resolve: Function
 }
 let refreshing = false
@@ -60,11 +60,7 @@ export default async function tokenFetcher(
       clearAuthToken()
     }
   } else {
-    return init?.format === 'blob'
-      ? response.blob()
-      : init?.format === 'text'
-      ? response.text()
-      : response.json()
+    return init?.format === 'blob' ? response.blob() : response.json()
   }
 }
 
@@ -94,10 +90,6 @@ async function refreshAuth(refreshToken: string) {
 
 function requestWithAuth(url: string, init?: PendingRequest['init']) {
   return fetch(url, addAuthToRequest(init)).then(response => {
-    return init?.format === 'blob'
-      ? response.blob()
-      : init?.format === 'text'
-      ? response.text()
-      : response.json()
+    return init?.format === 'blob' ? response.blob() : response.json()
   })
 }

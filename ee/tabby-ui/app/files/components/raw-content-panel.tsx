@@ -1,42 +1,31 @@
 import React, { useContext } from 'react'
 
 import { cn } from '@/lib/utils'
-import { ListSkeleton } from '@/components/skeleton'
 
-import {
-  getFileDisplayType,
-  SourceCodeBrowserContext
-} from './source-code-browser'
+import { SourceCodeBrowserContext } from './source-code-browser'
+import { resolveFileNameFromPath } from './utils'
 
 interface RawContentPanelProps extends React.HTMLAttributes<HTMLDivElement> {
-  value?: any
+  blob: Blob
+  isImage?: boolean
 }
 
 export const RawContentPanel: React.FC<RawContentPanelProps> = ({
   className,
-  value
+  blob,
+  isImage
 }) => {
   const { activePath } = useContext(SourceCodeBrowserContext)
-
-  const fileDisplayType = getFileDisplayType(activePath ?? '')
-  const isImage = fileDisplayType.startsWith('image')
-
-  if (!activePath || !value)
-    return (
-      <div className={cn(className)}>
-        <ListSkeleton />
-      </div>
-    )
 
   return (
     <div className={cn('text-center', className)}>
       {isImage ? (
-        <img className="mx-auto" src={URL.createObjectURL(value)} />
+        <img className="mx-auto" src={URL.createObjectURL(blob)} />
       ) : (
         <a
           className="text-primary hover:underline"
-          download={activePath}
-          href={URL.createObjectURL(value)}
+          download={resolveFileNameFromPath(activePath ?? '')}
+          href={URL.createObjectURL(blob)}
           target="_blank"
         >
           view raw

@@ -15,17 +15,18 @@ import { SourceCodeBrowserContext } from './source-code-browser'
 
 interface SourceCodeEditorProps {
   className?: string
-  value?: string
+  blob?: Blob
   meta?: TFileMeta
 }
 
 const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
   className,
-  value,
+  blob,
   meta
 }) => {
   const { activePath } = useContext(SourceCodeBrowserContext)
   const { theme } = useTheme()
+  const [value, setValue] = React.useState<string>()
 
   const detectedLanguage = activePath
     ? filename2prism(activePath)[0]
@@ -59,10 +60,24 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
     return result
   }, [value, tags])
 
+  React.useEffect(() => {
+    const blob2Text = async (b: Blob) => {
+      try {
+        const v = await b.text()
+        setValue(v)
+      } catch (e) {
+        setValue('')
+      }
+    }
+
+    if (blob) {
+      blob2Text(blob)
+    }
+  }, [blob])
+
   return (
     <div className={cn('source-code-browser', className)}>
       <CodeMirrorEditor
-        key={activePath}
         value={value}
         theme={theme}
         language={language}
