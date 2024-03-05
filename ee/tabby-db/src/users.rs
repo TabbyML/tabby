@@ -244,13 +244,6 @@ impl DbConn {
             })
             .await
     }
-
-    pub async fn logout_all_sessions(&self, id: i32) -> Result<()> {
-        query!("DELETE FROM refresh_tokens WHERE user_id = ?", id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
 }
 
 fn generate_auth_token() -> String {

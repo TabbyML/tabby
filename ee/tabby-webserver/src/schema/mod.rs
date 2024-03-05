@@ -390,7 +390,7 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn logout_all_devices(ctx: &Context) -> Result<bool> {
+    async fn logout_all_sessions(ctx: &Context) -> Result<bool> {
         let claims = check_claims(ctx)?;
         ctx.locator
             .auth()
