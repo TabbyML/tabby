@@ -66,9 +66,12 @@ impl DbConn {
         &self,
         provider: &str,
     ) -> Result<Option<OAuthCredentialDAO>> {
-        let token = sqlx::query_as(
+        let token = sqlx::query_as!(
+            OAuthCredentialDAO,
             "SELECT provider, client_id, client_secret, created_at, updated_at FROM oauth_credential WHERE id = ? AND provider = ?",
-        ).bind(OAUTH_CREDENTIAL_ROW_ID).bind(provider)
+            OAUTH_CREDENTIAL_ROW_ID,
+            provider
+        )
             .fetch_optional(&self.pool).await?;
         Ok(token)
     }
