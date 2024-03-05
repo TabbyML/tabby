@@ -28,7 +28,7 @@ export const RawContentPanel: React.FC<RawContentPanelProps> = ({
           href={URL.createObjectURL(blob)}
           target="_blank"
         >
-          view raw
+          View raw
         </a>
       )}
     </div>

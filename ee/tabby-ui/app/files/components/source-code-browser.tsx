@@ -485,7 +485,7 @@ function isReadableTextFile(blob: Blob) {
     reader.onloadend = function (e) {
       if (e?.target?.readyState === FileReader.DONE) {
         const text = e.target.result
-        const nonPrintableRegex = /[\x00-\x08\x0E-\x1F\x7F-\x9F]/
+        const nonPrintableRegex = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/
         if (typeof text !== 'string') {
           resolve(false)
         } else if (nonPrintableRegex.test(text)) {
