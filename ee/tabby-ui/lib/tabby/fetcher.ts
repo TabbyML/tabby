@@ -8,23 +8,36 @@ import {
 } from './auth'
 import { client } from './gql'
 
+interface FetcherOptions extends RequestInit {
+  format?: 'json' | 'text'
+  responseFormatter?: (response: Response) => any
+  customFetch?: (
+    input: RequestInfo | URL,
+    init?: RequestInit | undefined
+  ) => Promise<Response>
+}
 interface PendingRequest {
   url: string
-  init?: RequestInit & { responseFormat?: 'json' | 'blob' }
+  options?: FetcherOptions
   resolve: Function
 }
 let refreshing = false
 const queue: PendingRequest[] = []
 
-export default async function tokenFetcher(
+export default async function authEnhancedFetch(
   url: string,
-  init?: PendingRequest['init']
+  options?: FetcherOptions
 ): Promise<any> {
-  const response: Response = await fetch(url, addAuthToRequest(init))
+  const currentFetcher = options?.customFetch ?? window.fetch
+  const response: Response = await currentFetcher(
+    url,
+    addAuthToRequest(options)
+  )
+
   if (response.status === 401) {
     if (refreshing) {
       return new Promise(resolve => {
-        queue.push({ url, init, resolve })
+        queue.push({ url, options, resolve })
       })
     }
 
@@ -47,31 +60,29 @@ export default async function tokenFetcher(
       refreshing = false
       while (queue.length) {
         const q = queue.shift()
-        q?.resolve(requestWithAuth(q.url, q.init))
+        q?.resolve(requestWithAuth(q.url, q.options))
       }
 
-      return requestWithAuth(url, init)
+      return requestWithAuth(url, options)
     } else {
       refreshing = false
       queue.length = 0
       clearAuthToken()
     }
   } else {
-    return init?.responseFormat === 'blob' ? response.blob() : response.json()
+    return formatResponse(response, options)
   }
 }
 
-function addAuthToRequest(
-  init?: PendingRequest['init']
-): PendingRequest['init'] {
-  const headers = new Headers(init?.headers)
+function addAuthToRequest(options?: FetcherOptions): FetcherOptions {
+  const headers = new Headers(options?.headers)
 
   if (typeof window !== 'undefined') {
     headers.append('authorization', `Bearer ${getAuthToken()?.accessToken}`)
   }
 
   return {
-    ...(init || {}),
+    ...(options || {}),
     headers
   }
 }
@@ -85,8 +96,24 @@ async function refreshAuth(refreshToken: string) {
   return client.executeMutation(refreshAuth)
 }
 
-function requestWithAuth(url: string, init?: PendingRequest['init']) {
-  return fetch(url, addAuthToRequest(init)).then(response => {
-    return init?.responseFormat === 'blob' ? response.blob() : response.json()
+function requestWithAuth(url: string, options?: FetcherOptions) {
+  const currentFetcher = options?.customFetch ?? window.fetch
+  return currentFetcher(url, addAuthToRequest(options)).then(x => {
+    return formatResponse(x, options)
   })
+}
+
+function formatResponse(
+  response: Response,
+  options?: Pick<FetcherOptions, 'format' | 'responseFormatter'>
+) {
+  if (options?.responseFormatter) {
+    return options.responseFormatter(response)
+  }
+
+  if (options?.format === 'text') {
+    return response.text()
+  }
+
+  return response.json()
 }
