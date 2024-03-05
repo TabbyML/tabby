@@ -14,7 +14,8 @@ namespace ctranslate2 {
       , _activation_type(activation_type)
       , _ff1(model, scope + "/linear_0", &_activation_type)
       , _ff1_noact(build_optional_layer<Dense>(model, scope + "/linear_0_noact"))
-      , _ff2(model, scope + "/linear_1") {
+      , _ff2(model, scope + "/linear_1", nullptr, true)
+      , _tensor_parallel(model.tensor_parallel()) {
     }
 
     void FeedForwardNetwork::operator()(const StorageView& input, StorageView& output) const {
@@ -29,7 +30,6 @@ namespace ctranslate2 {
 
       StorageView inner(dtype, device);
       _ff1(*x, inner);
-
       if (_ff1_noact) {
         StorageView linear(dtype, device);
         (*_ff1_noact)(*x, linear);
@@ -37,6 +37,14 @@ namespace ctranslate2 {
       }
 
       _ff2(inner, output);
+
+      if (_tensor_parallel) {
+        Shape shape = output.shape();
+        StorageView tmp(std::move(shape), output.dtype(), output.device());
+        ops::ReduceAll red_op(ops::ReduceAll::RED_OP::SUM);
+        red_op(output, tmp);
+        output = std::move(tmp);
+      }
 
       if (_layer_norm) {
         ops::Add()(input, output, output);
@@ -250,6 +258,7 @@ namespace ctranslate2 {
       , _position_encoder(_layers.front()->get_self_attention().has_positional_embeddings()
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
+      , _tensor_parallel(model.tensor_parallel())
     {
     }
 
@@ -278,8 +287,12 @@ namespace ctranslate2 {
           padder->remove_padding(input);
         }
 
+        int num_heads = _num_heads;
+        if (_tensor_parallel) {
+          num_heads = SAFE_DIVIDE(num_heads, ScopedMPISetter::getNRanks());
+        }
         lengths_mask = std::make_unique<StorageView>(
-          layers::MultiHeadAttention::prepare_length_mask(*lengths, _num_heads, max_time));
+          layers::MultiHeadAttention::prepare_length_mask(*lengths, num_heads, max_time));
       }
 
       StorageView position_bias(output.dtype(), output.device());
@@ -334,7 +347,8 @@ namespace ctranslate2 {
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _with_encoder_attention(_layers.front()->has_cross_attention())
       , _proj(model, scope + "/projection")
-      , _sliding_window(model.get_attribute_with_default<int32_t>(scope + "/sliding_window", 0)) {
+      , _sliding_window(model.get_attribute_with_default<int32_t>(scope + "/sliding_window", 0))
+      , _tensor_parallel(model.tensor_parallel()) {
 
       dim_t alignment_layer = (
         model.get_attribute_with_default<int32_t>(scope + "/alignment_layer", -1));
@@ -497,12 +511,18 @@ namespace ctranslate2 {
           input_padder->remove_padding(layer_in);
         }
 
+        dim_t num_heads = _num_heads;
+        if (_tensor_parallel) {
+          num_heads = SAFE_DIVIDE(num_heads, ScopedMPISetter::getNRanks());
+        }
+
         StorageView lengths_mask = layers::MultiHeadAttention::prepare_length_mask(
           *lengths,
-          _num_heads,
+          num_heads,
           max_time,
           /*mask_future=*/true,
           multi_query);
+
 
         if (step > 0)
           ops::Add()(lengths_mask, StorageView(int32_t(step)), lengths_mask);
@@ -527,10 +547,14 @@ namespace ctranslate2 {
         }
 
         if (memory_lengths) {
+          dim_t num_heads = _num_heads;
+          if (_tensor_parallel) {
+            num_heads = SAFE_DIVIDE(num_heads, ScopedMPISetter::getNRanks());
+          }
           const dim_t beam_size = batch_size / memory_lengths->dim(0);
           memory_lengths_mask = std::make_unique<StorageView>(
             layers::MultiHeadAttention::prepare_length_mask(*memory_lengths,
-                                                            _num_heads,
+                                                            num_heads,
                                                             beam_size > 1 ? beam_size : max_time));
         }
       }
@@ -585,9 +609,13 @@ namespace ctranslate2 {
           if (i > 0) {
             auto max_tokens = _sliding_window + layer_in_chunk->dim(1);
             StorageView tmp_lengths = StorageView(Shape{layer_in_chunk->dim(0)}, int32_t(max_tokens), device);
+            int num_heads = _num_heads;
+            if (_tensor_parallel) {
+              num_heads = SAFE_DIVIDE(num_heads, ScopedMPISetter::getNRanks());
+            }
             StorageView lengths_mask = layers::MultiHeadAttention::prepare_length_mask(
               tmp_lengths,
-              _num_heads,
+              num_heads,
               max_tokens,
               /*mask_future=*/true,
               multi_query);

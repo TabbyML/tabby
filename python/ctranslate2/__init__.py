@@ -30,6 +30,7 @@ try:
         GenerationResult,
         GenerationStepResult,
         Generator,
+        MpiInfo,
         ScoringResult,
         StorageView,
         TranslationResult,

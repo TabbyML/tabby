@@ -343,7 +343,10 @@ namespace ctranslate2 {
       std::vector<Dense> layers;
       layers.reserve(num_linear_layers);
       for (dim_t i = 0; i < num_linear_layers; ++i)
-        layers.emplace_back(model, scope + "/linear_" + std::to_string(i));
+        if (i == (num_linear_layers - 1)) {
+          layers.emplace_back(model, scope + "/linear_" + std::to_string(i), nullptr, true);
+        } else
+          layers.emplace_back(model, scope + "/linear_" + std::to_string(i));
       return layers;
     }
 
@@ -376,11 +379,12 @@ namespace ctranslate2 {
                                            bool pre_norm,
                                            bool is_decoder,
                                            Alibi* alibi)
-      : _num_heads(num_heads)
+      : _tensor_parallel(model.tensor_parallel())
+      , _num_heads(_tensor_parallel ? SAFE_DIVIDE(num_heads, ScopedMPISetter::getNRanks()) : num_heads)
       , _self_attention(self_attention)
       , _is_decoder(is_decoder)
       , _linear(make_linear_layers(model, scope, self_attention))
-      , _d_model(_linear.back().output_size())
+      , _d_model(_tensor_parallel ? SAFE_DIVIDE(_linear.back().output_size(),  ScopedMPISetter::getNRanks()) : _linear.back().output_size())
       , _d_head(model.get_attribute_with_default<int32_t >(scope + "/head_dim", _d_model / _num_heads))
       , _pre_norm(pre_norm)
       , _layer_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
@@ -392,11 +396,13 @@ namespace ctranslate2 {
       , _queries_scale(model.get_attribute_with_default<float>(
                          scope + "/queries_scale",
                          1.f / std::sqrt(static_cast<float>(_d_head))))
-      , _num_heads_kv(model.get_flag_with_default(scope + "/multi_query", false)
+      , _multi_query(model.get_flag_with_default(scope + "/multi_query", false))
+      , _num_heads_kv(_multi_query
                       ? 1
-                      : model.get_attribute_with_default<int32_t>(scope + "/num_heads_kv",
-                                                                  _num_heads))
-      , _merge_time_and_head_dims(_num_heads_kv == 1
+                      : (_tensor_parallel ? model.get_attribute_with_default<int32_t>(scope + "/num_heads_kv",
+                                            _num_heads * ScopedMPISetter::getNRanks()) / ScopedMPISetter::getNRanks()
+                      : model.get_attribute_with_default<int32_t>(scope + "/num_heads_kv", _num_heads)))
+      , _merge_time_and_head_dims(_multi_query
                                   && !_relative_attention_bias
                                   && !_relative_position_keys
                                   && !_relative_position_values)
@@ -458,7 +464,7 @@ namespace ctranslate2 {
         if (cached_keys == nullptr || cached_keys->empty()) {
           _linear[1](values, fused_proj);
 
-          if (_num_heads_kv == 1) {
+          if (_multi_query) {
             if (values_padder)
               values_padder->add_padding(fused_proj);
             ops::Split(2, {_d_head, _d_head})(fused_proj, keys_proj, values_proj);
@@ -476,7 +482,7 @@ namespace ctranslate2 {
         if (queries_proj.dim(1) == 1 && cached_keys)
           beam_size = queries_proj.dim(0) / cached_keys->dim(0);
 
-        if (_num_heads_kv == 1) {
+        if (_multi_query) {
           if (queries_padder)
             queries_padder->add_padding(queries_proj);
           queries_proj.reshape({queries_proj.dim(0) / beam_size, -1, _d_head});
@@ -592,6 +598,13 @@ namespace ctranslate2 {
 
       _linear.back()(context, output);
 
+      if (_tensor_parallel) {
+        Shape shape = output.shape();
+        StorageView tmp(std::move(shape), output.dtype(), output.device());
+        ops::ReduceAll ops_reduce_all(ops::ReduceAll::RED_OP::SUM);
+        ops_reduce_all(output, tmp);
+        output = std::move(tmp);
+      }
       if (_layer_norm) {
         ops::Add()(queries, output, output);
 

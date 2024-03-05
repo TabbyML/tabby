@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "ctranslate2/types.h"
 
 namespace ctranslate2 {
 
@@ -92,5 +93,7 @@ namespace ctranslate2 {
 #endif
 #define THROW_RUNTIME_ERROR(MESSAGE) THROW_EXCEPTION(std::runtime_error, MESSAGE)
 #define THROW_INVALID_ARGUMENT(MESSAGE) THROW_EXCEPTION(std::invalid_argument, MESSAGE)
+#define SAFE_DIVIDE(x, y) ((y != 0 && (x % y == 0)) ? (x / y) : (throw std::runtime_error("Division has a remainder," \
+                              "Model can't be ran with the tensor parallel mode in " + std::to_string(y) + " nodes")))
 
 }

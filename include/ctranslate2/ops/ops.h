@@ -37,3 +37,4 @@
 #include "rotary.h"
 #include "alibi_add.h"
 #include "slide.h"
+#include "nccl_ops.h"

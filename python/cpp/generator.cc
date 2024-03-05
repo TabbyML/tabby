@@ -128,7 +128,7 @@ namespace ctranslate2 {
                 >>> generator.generate_batch([["<s>"]], max_length=50, sampling_topk=20)
         )pbdoc")
 
-        .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t, long, py::object>(),
+        .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t, long, bool, py::object>(),
              py::arg("model_path"),
              py::arg("device")="cpu",
              py::kw_only(),
@@ -137,6 +137,7 @@ namespace ctranslate2 {
              py::arg("inter_threads")=1,
              py::arg("intra_threads")=0,
              py::arg("max_queued_batches")=0,
+             py::arg("tensor_parallel")=false,
              py::arg("files")=py::none(),
              R"pbdoc(
                  Initializes the generator.
@@ -153,6 +154,7 @@ namespace ctranslate2 {
                    max_queued_batches: Maximum numbers of batches in the queue (-1 for unlimited,
                      0 for an automatic value). When the queue is full, future requests will block
                      until a free slot is available.
+                   tensor_parallel: run model with tensor parallel mode.
                    files: Load model files from the memory. This argument is a dictionary mapping
                      file names to file contents as file-like or bytes objects. If this is set,
                      :obj:`model_path` acts as an identifier for this model.
@@ -168,6 +170,8 @@ namespace ctranslate2 {
                                "Number of generators backing this instance.")
         .def_property_readonly("num_queued_batches", &GeneratorWrapper::num_queued_batches,
                                "Number of batches waiting to be processed.")
+        .def_property_readonly("tensor_parallel", &GeneratorWrapper::tensor_parallel,
+                               "Run model with tensor parallel mode.")
         .def_property_readonly("num_active_batches", &GeneratorWrapper::num_active_batches,
                                "Number of batches waiting to be processed or currently processed.")
 

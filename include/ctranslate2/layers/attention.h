@@ -43,7 +43,7 @@ namespace ctranslate2 {
       }
 
       bool multi_query() const {
-        return _num_heads_kv == 1;
+        return _multi_query;
       }
 
       static StorageView prepare_length_mask(const StorageView& lengths,
@@ -53,6 +53,7 @@ namespace ctranslate2 {
                                              const bool multi_query = false);
 
     private:
+      const bool _tensor_parallel;
       const dim_t _num_heads;
       const bool _self_attention;
       const bool _is_decoder;
@@ -68,6 +69,7 @@ namespace ctranslate2 {
       const StorageView* _relative_position_values;
       dim_t _maximum_relative_position;
       const float _queries_scale;
+      const bool _multi_query;
       const dim_t _num_heads_kv;
       const bool _merge_time_and_head_dims;
       const dim_t _cache_time_dim;

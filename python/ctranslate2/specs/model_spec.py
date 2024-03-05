@@ -291,6 +291,9 @@ class ModelConfig(FrozenAttr, metaclass=FrozenMeta):
             if not key.startswith("_")
         }
 
+    def add_attribute(self, key, value):
+        self.__dict__[key] = value
+
     def save_as_json(self, path):
         """Saves the configuration as a JSON file."""
         with open(path, "w", encoding="utf-8") as config_file:

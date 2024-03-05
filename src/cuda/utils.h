@@ -6,6 +6,10 @@
 #include <cublas_v2.h>
 #include <thrust/execution_policy.h>
 
+#ifdef CT2_WITH_TENSOR_PARALLEL
+#  include <cuda/mpi_stub.h>
+#  include <nccl.h>
+#endif
 #ifdef CT2_WITH_CUDNN
 #  include <cudnn.h>
 #endif
@@ -15,6 +19,24 @@
 
 namespace ctranslate2 {
   namespace cuda {
+
+#ifdef CT2_WITH_TENSOR_PARALLEL
+#define MPI_CHECK(ans)                                                  \
+  {                                                                     \
+    int e = ans;                                                        \
+    if( e != MPI_SUCCESS )                                              \
+      THROW_RUNTIME_ERROR("MPI failed with error "                      \
+                          + std::to_string(e));                         \
+  }
+
+#define NCCL_CHECK(ans)                                                 \
+  {                                                                     \
+    ncclResult_t r = ans;                                               \
+    if( r != ncclSuccess )                                              \
+      THROW_RUNTIME_ERROR("NCCL failed with error "                     \
+                          + std::to_string(r));                         \
+  }
+#endif
 
 #define CUDA_CHECK(ans)                                                 \
     {                                                                   \

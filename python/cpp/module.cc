@@ -87,4 +87,5 @@ PYBIND11_MODULE(_ext, m)
   ctranslate2::python::register_encoder(m);
   ctranslate2::python::register_whisper(m);
   ctranslate2::python::register_wav2vec2(m);
+  ctranslate2::python::register_mpi(m);
 }

@@ -35,6 +35,16 @@ RUN wget -q https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VER
     cd .. && \
     rm -r oneDNN-*
 
+ENV OPENMPI_VERSION=4.1.6
+RUN wget -q https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OPENMPI_VERSION}.tar.bz2 && \
+    tar xf *.tar.bz2 && \
+    rm *.tar.bz2 && \
+    cd openmpi-* && \
+    ./configure && \
+    make -j$(nproc) install && \
+    cd .. && \
+    rm -r openmpi-*
+
 COPY third_party third_party
 COPY cli cli
 COPY include include
@@ -50,13 +60,14 @@ ENV CUDA_NVCC_FLAGS=${CUDA_NVCC_FLAGS:-"-Xfatbin=-compress-all"}
 ARG CUDA_ARCH_LIST
 ENV CUDA_ARCH_LIST=${CUDA_ARCH_LIST:-"Common"}
 ENV CTRANSLATE2_ROOT=/opt/ctranslate2
+ENV LD_LIBRARY_PATH=/usr/local/lib/:${LD_LIBRARY_PATH}
 
-RUN mkdir build && \
-    cd build && \
+RUN mkdir build_tmp && \
+    cd build_tmp && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
           -DWITH_CUDA=ON -DWITH_CUDNN=ON -DWITH_MKL=ON -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
-          -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
+          -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" -DWITH_TENSOR_PARALLEL=ON .. && \
     VERBOSE=1 make -j$(nproc) install
 
 ENV LANG=en_US.UTF-8
@@ -74,6 +85,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         libcublas-12-2 \
         libcudnn8=8.9.7.29-1+cuda12.2 \
+        libnccl2=2.19.3-1+cuda12.2 \
+        libopenmpi3=4.0.3-0ubuntu1 \
+        openmpi-bin \
         libgomp1 \
         python3-pip \
         && \

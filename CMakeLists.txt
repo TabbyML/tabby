@@ -20,6 +20,7 @@ option(ENABLE_PROFILING "Compile with profiling support" OFF)
 option(BUILD_CLI "Compile the clients" ON)
 option(BUILD_TESTS "Compile the tests" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(WITH_TENSOR_PARALLEL "Compile with NCCL and MPI backend" OFF)
 
 if(ENABLE_PROFILING)
   message(STATUS "Enable profiling support")
@@ -179,6 +180,8 @@ set(SOURCES
   src/ops/topp_mask.cc
   src/ops/topp_mask_cpu.cc
   src/ops/transpose.cc
+  src/ops/nccl_ops.cc
+  src/ops/nccl_ops_cpu.cc
   src/padder.cc
   src/profiler.cc
   src/random.cc
@@ -191,7 +194,7 @@ set(SOURCES
   src/utils.cc
   src/vocabulary.cc
   src/vocabulary_map.cc
-  )
+)
 set(LIBRARIES
   ${CMAKE_THREAD_LIBS_INIT}
   spdlog::spdlog_header_only
@@ -419,6 +422,24 @@ endif()
 
 if (WITH_CUDA)
   find_package(CUDA 11.0 REQUIRED)
+  list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+  if (WITH_TENSOR_PARALLEL)
+    find_package(MPI REQUIRED)
+    find_package(NCCL REQUIRED)
+    include_directories(${NCCL_INCLUDE_DIR})
+    include_directories(${MPI_INCLUDE_PATH})
+    if(CUDA_DYNAMIC_LOADING)
+      list(APPEND SOURCES src/cuda/mpi_stub.cc)
+      list(APPEND SOURCES src/cuda/nccl_stub.cc)
+      add_definitions(-DCT2_WITH_CUDA_DYNAMIC_LOADING)
+    else ()
+      list(APPEND LIBRARIES ${NCCL_LIBRARY})
+      list(APPEND LIBRARIES ${MPI_LIBRARIES})
+    endif ()
+    add_definitions(-DCT2_WITH_TENSOR_PARALLEL)
+  endif ()
+  include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
+
   add_definitions(-DCT2_WITH_CUDA)
   if(MSVC)
     if(BUILD_SHARED_LIBS)
@@ -522,7 +543,8 @@ if (WITH_CUDA)
     src/ops/topk_gpu.cu
     src/ops/topp_mask_gpu.cu
     src/ops/quantize_gpu.cu
-    )
+    src/ops/nccl_ops_gpu.cu
+  )
 elseif(WITH_CUDNN)
   message(FATAL_ERROR "WITH_CUDNN=ON requires WITH_CUDA=ON")
 else()
@@ -545,6 +567,10 @@ target_include_directories(${PROJECT_NAME} BEFORE
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
   PRIVATE ${PRIVATE_INCLUDE_DIRECTORIES}
 )
+
+if (WITH_TENSOR_PARALLEL AND CUDA_DYNAMIC_LOADING)
+  target_compile_options(${PROJECT_NAME} PRIVATE -DOMPI_SKIP_MPICXX)
+endif()
 
 if(BUILD_TESTS)
   add_subdirectory(tests)
@@ -587,6 +613,11 @@ configure_file(cmake/${PROJECT_NAME}Config.cmake
   COPYONLY
 )
 
+configure_file(cmake/FindNCCL.cmake
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/FindNCCL.cmake"
+  COPYONLY
+)
+
 set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 if(BUILD_SHARED_LIBS)
@@ -603,6 +634,7 @@ endif()
 install(
   FILES
     cmake/${PROJECT_NAME}Config.cmake
+    cmake/FindNCCL.cmake
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
   DESTINATION
     ${ConfigPackageLocation}

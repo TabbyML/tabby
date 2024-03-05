@@ -45,6 +45,7 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
           rms_norm: Use the root mean square layer normalization.
           multi_query_attention: Use multi-query attention.
         """
+        self.multi_query_attention = multi_query_attention
         self.num_heads = np.dtype("int16").type(num_heads)
         self.pre_norm = pre_norm
         self.activation = np.dtype("int8").type(activation)
@@ -207,6 +208,9 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
             for _ in range(num_layers)
         ]
         self.start_from_zero_embedding = False
+        self.multi_query_attention = multi_query_attention or (
+            num_heads_kv != num_heads
+        )
 
         if project_in_out:
             self.project_in = common_spec.LinearSpec()
@@ -339,6 +343,9 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
+        self._config.add_attribute(
+            "multi_query_attention", self.encoder.multi_query_attention
+        )
 
     @classmethod
     def from_config(
@@ -467,6 +474,9 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
 
         super().__init__()
         self.decoder = decoder
+        self._config.add_attribute(
+            "multi_query_attention", self.decoder.multi_query_attention
+        )
 
     @classmethod
     def from_config(
@@ -608,6 +618,9 @@ class TransformerEncoderModelSpec(model_spec.LanguageModelSpec):
 
         super().__init__()
         self.encoder = encoder
+        self._config.add_attribute(
+            "multi_query_attention", self.encoder.multi_query_attention
+        )
 
         if pooling_layer:
             self.pooler_dense = common_spec.LinearSpec()

@@ -34,6 +34,7 @@ namespace ctranslate2 {
       const Dense _ff1;
       const std::unique_ptr<const Dense> _ff1_noact;
       const Dense _ff2;
+      const bool _tensor_parallel;
     };
 
     class TransformerEncoderLayer : public Layer
@@ -149,6 +150,7 @@ namespace ctranslate2 {
       const std::unique_ptr<const LayerNorm> _output_norm;
       const std::vector<std::unique_ptr<const TransformerEncoderLayer>> _layers;
       const std::unique_ptr<PositionEncoder> _position_encoder;
+      const bool _tensor_parallel;
     };
 
     class TransformerDecoder : public Decoder
@@ -211,6 +213,7 @@ namespace ctranslate2 {
       bool _average_alignment_heads;
       Dense _proj;
       const dim_t _sliding_window;
+      const bool _tensor_parallel;
     };
 
   }

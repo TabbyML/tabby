@@ -27,7 +27,8 @@ else
         cuda-cudart-devel-12-2-12.2.140-1 \
         libcurand-devel-12-2-10.3.3.141-1 \
         libcudnn8-devel-8.9.7.29-1.cuda12.2 \
-        libcublas-devel-12-2-12.2.5.6-1
+        libcublas-devel-12-2-12.2.5.6-1 \
+        libnccl-devel-2.19.3-1+cuda12.2
     ln -s cuda-12.2 /usr/local/cuda
 
     ONEAPI_VERSION=2023.2.0
@@ -44,6 +45,15 @@ else
     cd ..
     rm -r oneDNN-*
 
+    OPENMPI_VERSION=4.1.6
+    curl -L -O https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OPENMPI_VERSION}.tar.bz2
+    tar xf *.tar.bz2 && rm *.tar.bz2
+    cd openmpi-*
+    ./configure
+    make -j$(nproc) install
+    cd ..
+    rm -r openmpi-*
+    export LD_LIBRARY_PATH="/usr/local/lib/:$LD_LIBRARY_PATH"
 fi
 
 mkdir build-release && cd build-release
@@ -51,7 +61,7 @@ mkdir build-release && cd build-release
 if [ "$CIBW_ARCHS" == "aarch64" ]; then
     cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_CLI=OFF -DWITH_MKL=OFF -DOPENMP_RUNTIME=COMP -DCMAKE_PREFIX_PATH="/opt/OpenBLAS" -DWITH_OPENBLAS=ON -DWITH_RUY=ON ..
 else
-    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-msse4.1" -DBUILD_CLI=OFF -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP -DWITH_CUDA=ON -DWITH_CUDNN=ON -DCUDA_DYNAMIC_LOADING=ON -DCUDA_NVCC_FLAGS="-Xfatbin=-compress-all" -DCUDA_ARCH_LIST="Common" ..
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-msse4.1" -DBUILD_CLI=OFF -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP -DWITH_CUDA=ON -DWITH_CUDNN=ON -DCUDA_DYNAMIC_LOADING=ON -DCUDA_NVCC_FLAGS="-Xfatbin=-compress-all" -DCUDA_ARCH_LIST="Common"  -DWITH_TENSOR_PARALLEL=ON ..
 fi
 
 VERBOSE=1 make -j$(nproc) install

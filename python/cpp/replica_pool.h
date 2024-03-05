@@ -44,6 +44,7 @@ namespace ctranslate2 {
                         size_t inter_threads,
                         size_t intra_threads,
                         long max_queued_batches,
+                        bool tensor_parallel,
                         py::object files)
         : _model_loader(create_model_reader(model_path, files))
       {
@@ -53,6 +54,7 @@ namespace ctranslate2 {
         _model_loader.device_indices = std::visit(DeviceIndexResolver(), device_index);
         _model_loader.compute_type = std::visit(ComputeTypeResolver(device), compute_type);
         _model_loader.num_replicas_per_device = inter_threads;
+        _model_loader.tensor_parallel = tensor_parallel;
 
         _pool_config.num_threads_per_replica = intra_threads;
         _pool_config.max_queued_batches = max_queued_batches;
@@ -75,6 +77,10 @@ namespace ctranslate2 {
 
       std::string compute_type() const {
         return compute_type_to_str(model()->effective_compute_type());
+      }
+
+      bool tensor_parallel() const {
+        return _model_loader.tensor_parallel;
       }
 
       size_t num_replicas() const {

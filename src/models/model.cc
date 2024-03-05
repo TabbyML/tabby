@@ -5,6 +5,7 @@
 #include "ctranslate2/models/model_factory.h"
 #include "ctranslate2/ops/ops.h"
 #include "ctranslate2/utils.h"
+#include <regex>
 
 #ifdef CT2_WITH_CUDA
 #  include "cuda/utils.h"
@@ -17,6 +18,27 @@ namespace ctranslate2 {
 
     static const std::string binary_file = "model.bin";
     static const std::string config_file = "config.json";
+    enum class VARIABLE_TYPE {
+      ATTN_LINEAR_0_WEIGHT,
+      ATTN_LINEAR_0_WEIGHT_SCALE,
+      ATTN_LINEAR_0_BIAS,
+      ATTN_LINEAR_1_WEIGHT,
+      ATTN_LINEAR_1_WEIGHT_SCALE,
+      ATTN_LINEAR_1_BIAS,
+      ATTN_LINEAR_2_WEIGHT,
+      SELF_ATTN_LINEAR_0_WEIGHT,
+      SELF_ATTN_LINEAR_0_WEIGHT_SCALE,
+      SELF_ATTN_LINEAR_0_BIAS,
+      SELF_ATTN_LINEAR_1_WEIGHT,
+      FFN_LINEAR_0_WEIGHT,
+      FFN_LINEAR_0_BIAS,
+      FFN_LINEAR_0_WEIGHT_SCALE,
+      FFN_LINEAR_0_NOACT_WEIGHT,
+      FFN_LINEAR_0_NOACT_WEIGHT_SCALE,
+      FFN_LINEAR_0_NOACT_BIAS,
+      FFN_LINEAR_1_WEIGHT,
+      OTHERS,
+    };
 
     static inline void report_stream_error(const std::streampos position,
                                            const size_t read_size,
@@ -84,13 +106,13 @@ namespace ctranslate2 {
         return;
 
       // Move variables back to the CPU device.
-      if (src_device != Device::CPU) {
+      if (src_device != Device::CPU && dst_device == Device::CPU) {
         ScopedDeviceSetter scoped_device_setter(src_device, src_device_index);
         move_variables_to_device(variables, Device::CPU);
       }
 
       // Move variables to the destination device.
-      if (dst_device != Device::CPU) {
+      if (src_device == Device::CPU && dst_device != Device::CPU) {
         ScopedDeviceSetter scoped_device_setter(dst_device, dst_device_index);
         move_variables_to_device(variables, dst_device);
       }
@@ -389,6 +411,31 @@ namespace ctranslate2 {
       }
     }
 
+    static void split_variables(StorageView variable, int dim, std::vector<dim_t>& partitions_size, std::vector<StorageView>& outputs)
+    {
+      if (variable.rank() < 1 || variable.rank() > 2)
+        throw std::runtime_error("Unsupported split variables which has the rank of matrix more than 2."
+                                 "Current variable has the rank " + std::to_string(variable.rank()));
+
+      //std::vector<StorageView> outputs(num, StorageView(variable.dtype(), variable.device()));
+
+      size_t num = partitions_size.size();
+      std::vector<StorageView*> p_outputs(num);
+
+      for (int i = 0; i < num; ++i) {
+        p_outputs[i] = &outputs[i];
+      }
+      ops::Split(dim, partitions_size)(variable, p_outputs);
+    }
+
+    static bool replace(std::string& str, const std::string& from, const std::string& to) {
+      size_t start_pos = str.find(from);
+      if (start_pos == std::string::npos)
+        return false;
+      str.replace(start_pos, from.length(), to);
+      return true;
+    }
+
     static void check_version(const size_t saved_version,
                               const size_t current_version,
                               const std::string& version_type) {
@@ -403,22 +450,112 @@ namespace ctranslate2 {
                                  + "(Forward compatibility is not guaranteed.)");
     }
 
+    static VARIABLE_TYPE classify_variable(const std::string& name) {
+      std::regex pattern_self_attn("/self_attention/linear_(\\d+)/(\\w+)");
+      std::regex pattern_attn("/attention/linear_(\\d+)/(\\w+)");
+      std::regex pattern_ffn("/ffn/linear_(\\d+)(\\w*)/(\\w+)");
+
+      std::smatch match;
+
+      if (std::regex_search(name, match, pattern_self_attn)) {
+        int layer_number = std::stoi(match[1]);
+        std::string parameterName = match[2];
+
+        switch (layer_number) {
+          case 0:
+            if (parameterName == "bias")
+              return VARIABLE_TYPE::SELF_ATTN_LINEAR_0_BIAS;
+            if (parameterName == "weight")
+              return VARIABLE_TYPE::SELF_ATTN_LINEAR_0_WEIGHT;
+            else
+              return VARIABLE_TYPE::SELF_ATTN_LINEAR_0_WEIGHT_SCALE;
+	        case 1:
+            if (parameterName == "weight")
+              return VARIABLE_TYPE::SELF_ATTN_LINEAR_1_WEIGHT;
+          default:
+            return VARIABLE_TYPE::OTHERS;
+        };
+      }
+      else if (std::regex_search(name, match, pattern_attn)) {
+        int layer_number = std::stoi(match[1]);
+        std::string parameterName = match[2];
+
+        switch (layer_number) {
+          case 0:
+            if (parameterName == "bias")
+              return VARIABLE_TYPE::ATTN_LINEAR_0_BIAS;
+	          if (parameterName == "weight")
+              return VARIABLE_TYPE::ATTN_LINEAR_0_WEIGHT;
+            return VARIABLE_TYPE::ATTN_LINEAR_0_WEIGHT_SCALE;
+          case 1:
+            if (parameterName == "bias")
+              return VARIABLE_TYPE::ATTN_LINEAR_1_BIAS;
+            if (parameterName == "weight")
+              return VARIABLE_TYPE::ATTN_LINEAR_1_WEIGHT;
+            return VARIABLE_TYPE::ATTN_LINEAR_1_WEIGHT_SCALE;
+          case 2:
+            if (parameterName == "weight")
+              return VARIABLE_TYPE::ATTN_LINEAR_2_WEIGHT;
+          default:
+            return VARIABLE_TYPE::OTHERS;
+        };
+      }
+      else if (std::regex_search(name, match, pattern_ffn)) {
+        int layer_number = std::stoi(match[1]);
+        std::string noact = match[2];
+        std::string parameterName = match[3];
+
+        switch (layer_number) {
+          case 0:
+            if (noact == "noact" && parameterName == "bias")
+              return VARIABLE_TYPE::FFN_LINEAR_0_NOACT_BIAS;
+            if (noact == "noact" && parameterName == "weight")
+              return VARIABLE_TYPE::FFN_LINEAR_0_NOACT_WEIGHT;
+	          if (noact == "noact")
+              return VARIABLE_TYPE::FFN_LINEAR_0_NOACT_WEIGHT_SCALE;
+            if (parameterName == "bias")
+              return VARIABLE_TYPE::FFN_LINEAR_0_BIAS;
+            if (parameterName == "weight")
+              return VARIABLE_TYPE::FFN_LINEAR_0_WEIGHT;
+            return VARIABLE_TYPE::FFN_LINEAR_0_WEIGHT_SCALE;
+          case 1:
+            if (parameterName == "weight")
+              return VARIABLE_TYPE::FFN_LINEAR_1_WEIGHT;
+          default:
+            return VARIABLE_TYPE::OTHERS;
+        };
+      }
+
+      return VARIABLE_TYPE::OTHERS;
+    }
+
     std::shared_ptr<const Model> Model::load(const std::string& path,
                                              Device device,
                                              int device_index,
-                                             ComputeType compute_type) {
+                                             ComputeType compute_type,
+                                             bool tensor_parallel) {
       ModelFileReader model_reader(path);
-      return load(model_reader, device, device_index, compute_type);
+      return load(model_reader, device, device_index, compute_type, tensor_parallel);
     }
 
     std::shared_ptr<const Model> Model::load(ModelReader& model_reader,
                                              Device device,
                                              int device_index,
-                                             ComputeType compute_type) {
+                                             ComputeType compute_type,
+                                             bool tensor_parallel) {
       {
         // Log the system configuration the first time a model is loaded.
         static std::once_flag log_once;
         std::call_once(log_once, log_system_config);
+      }
+
+      int world_size;
+      int current_index;
+      if (tensor_parallel) {
+        ScopedMPISetter mpi_setter = ScopedMPISetter();
+        device_index = ScopedMPISetter::getLocalRank();
+        current_index = ScopedMPISetter::getCurRank();
+        world_size = ScopedMPISetter::getNRanks();
       }
 
       {
@@ -448,6 +585,7 @@ namespace ctranslate2 {
       auto model = create_model(spec);
       model->_binary_version = binary_version;
       model->_spec_revision = spec_revision;
+      model->_tensor_parallel = tensor_parallel;
 
       check_version(spec_revision, model->current_spec_revision(), "revision");
 
@@ -460,6 +598,19 @@ namespace ctranslate2 {
       // Load the variables.
       const auto num_variables = consume<uint32_t>(model_file);
       model->_variable_index.reserve(num_variables);
+
+      // check config for tensor parallel
+      bool multi_query_attention = false;
+      if (tensor_parallel)
+      {
+
+        if (model->config.contains("multi_query_attention"))
+          multi_query_attention = model->config["multi_query_attention"];
+        else
+          spdlog::warn("Running model in mode tensor parallel but missing multi_query_attention option in"
+                       " the config.json could lead to error! Try using the latest version of converters");
+      }
+
       for (uint32_t i = 0; i < num_variables; ++i) {
         auto name = consume<std::string>(model_file);
         const size_t rank = consume<uint8_t>(model_file);
@@ -481,6 +632,89 @@ namespace ctranslate2 {
 
         StorageView variable(std::move(shape), dtype);
         consume<char>(model_file, num_bytes, static_cast<char*>(variable.buffer()));
+        if (tensor_parallel) {
+          int outer_dim = 0;
+          int inner_dim = 1;
+          static dim_t model_dim = 0;
+          static dim_t total_dim = 0;
+
+          auto variable_type = classify_variable(name);
+          if (variable_type != VARIABLE_TYPE::OTHERS) {
+            std::vector<StorageView> outputs(world_size, StorageView(variable.dtype(), variable.device()));
+            switch (variable_type) {
+              case VARIABLE_TYPE::SELF_ATTN_LINEAR_1_WEIGHT:
+              case VARIABLE_TYPE::ATTN_LINEAR_2_WEIGHT:
+              case VARIABLE_TYPE::FFN_LINEAR_1_WEIGHT:
+              {
+                dim_t output_per_partition_dim = SAFE_DIVIDE(variable.dim(inner_dim), world_size);
+                std::vector<dim_t> partitions_size(world_size, output_per_partition_dim);
+                split_variables(std::move(variable), inner_dim, partitions_size, outputs);
+                break;
+              }
+              case VARIABLE_TYPE::SELF_ATTN_LINEAR_0_WEIGHT:
+              case VARIABLE_TYPE::SELF_ATTN_LINEAR_0_WEIGHT_SCALE:
+              case VARIABLE_TYPE::SELF_ATTN_LINEAR_0_BIAS:
+              {
+                std::vector<dim_t> partitions_size;
+                if (multi_query_attention) {
+                  if (model_dim == 0) {
+                    model_dim = variable.dim(-1);
+                    total_dim = variable.dim(outer_dim);
+		              }
+                  dim_t q_dim = SAFE_DIVIDE(model_dim, world_size);
+                  dim_t kv_dim = SAFE_DIVIDE((total_dim - model_dim), (2 * world_size));
+                  partitions_size = std::vector<dim_t>(world_size, q_dim);
+                  std::vector<dim_t> kv_part(world_size * 2, kv_dim);
+                  partitions_size.insert(partitions_size.end(), kv_part.begin(), kv_part.end());
+                }
+                else {
+                  dim_t dim_per_kqv_per_partition = SAFE_DIVIDE(variable.dim(outer_dim) / 3, world_size);
+                  partitions_size = std::vector<dim_t>(3 * world_size, dim_per_kqv_per_partition);
+                }
+                std::vector<StorageView> outputs_tmp = std::vector<StorageView>(partitions_size.size(),
+                                                                                StorageView(variable.dtype(),
+                                                                                            variable.device()));
+                split_variables(std::move(variable), outer_dim, partitions_size, outputs_tmp);
+                for (int i = 0; i < world_size; i++) {
+                  std::vector<const StorageView *> output_linear = {&outputs_tmp[i], &outputs_tmp[i + world_size],
+                                                                    &outputs_tmp[i + world_size * 2]};
+                  StorageView tmp(variable.dtype(), variable.device());
+                  ops::Concat(static_cast<int>(outer_dim))(output_linear, tmp);
+                  outputs[i] = std::move(tmp);
+                }
+                break;
+              }
+              case VARIABLE_TYPE::ATTN_LINEAR_1_WEIGHT:
+              case VARIABLE_TYPE::ATTN_LINEAR_1_WEIGHT_SCALE:
+              case VARIABLE_TYPE::ATTN_LINEAR_1_BIAS:
+              {
+                std::vector<dim_t> partitions_size;
+                dim_t dim_per_kqv_per_partition = SAFE_DIVIDE(variable.dim(outer_dim) / 2, world_size);
+                partitions_size = std::vector<dim_t>(2 * world_size, dim_per_kqv_per_partition);
+                std::vector<StorageView> outputs_tmp = std::vector<StorageView>(partitions_size.size(),
+                                                                                StorageView(variable.dtype(),
+                                                                                            variable.device()));
+                split_variables(std::move(variable), outer_dim, partitions_size, outputs_tmp);
+                for (int i = 0; i < world_size; i++) {
+                  std::vector<const StorageView *> output_linear = {&outputs_tmp[i], &outputs_tmp[i + world_size]};
+                  StorageView tmp(variable.dtype(), variable.device());
+                  ops::Concat(static_cast<int>(outer_dim))(output_linear, tmp);
+                  outputs[i] = std::move(tmp);
+                }
+                break;
+              }
+              default:
+              {
+                dim_t output_per_partition_dim = SAFE_DIVIDE(variable.dim(outer_dim), world_size);
+                std::vector<dim_t> partitions_size(world_size, output_per_partition_dim);
+                split_variables(std::move(variable), outer_dim, partitions_size, outputs);
+              }
+            };
+            if (outputs.size() > current_index && !outputs[current_index].empty())
+              variable = std::move(outputs[current_index]);
+          }
+        }
+
         model->register_variable(std::move(name), std::move(variable));
       }
 
@@ -558,16 +792,24 @@ namespace ctranslate2 {
       if (device == Device::CUDA && !cuda::have_same_compute_capability(device_indices))
         throw std::invalid_argument("Cannot use multiple GPUs with different Compute Capabilities "
                                     "for the same model");
+      if (tensor_parallel && device != Device::CUDA) {
+        throw std::invalid_argument("Tensor Parallel mode can run only on  cuda");
+      }
 #endif
 
       std::vector<std::shared_ptr<const Model>> models;
+      if (tensor_parallel && (device_indices.size() > 1)) {
+        spdlog::warn("Running model in mode tensor parallel does not support"
+                     " running independently a model in each device");
+      }
+
       models.reserve(device_indices.size() * num_replicas_per_device);
 
       for (const size_t device_index : device_indices) {
         std::shared_ptr<const Model> model;
 
         if (models.empty())
-          model = Model::load(*model_reader, device, device_index, compute_type);
+          model = Model::load(*model_reader, device, device_index, compute_type, tensor_parallel);
         else
           model = models.back()->copy_to(device, device_index);
 

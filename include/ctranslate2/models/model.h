@@ -26,11 +26,13 @@ namespace ctranslate2 {
       static std::shared_ptr<const Model> load(const std::string& path,
                                                Device device = Device::CPU,
                                                int device_index = 0,
-                                               ComputeType compute_type = ComputeType::DEFAULT);
+                                               ComputeType compute_type = ComputeType::DEFAULT,
+                                               bool tensor_parallel = false);
       static std::shared_ptr<const Model> load(ModelReader& model_reader,
                                                Device device = Device::CPU,
                                                int device_index = 0,
-                                               ComputeType compute_type = ComputeType::DEFAULT);
+                                               ComputeType compute_type = ComputeType::DEFAULT,
+                                               bool tensor_parallel = false);
 
       virtual std::unique_ptr<SequenceToSequenceReplica> as_sequence_to_sequence() const;
       virtual std::unique_ptr<SequenceGeneratorReplica> as_sequence_generator() const;
@@ -76,6 +78,10 @@ namespace ctranslate2 {
 
       bool round_before_cast_in_quantization() const {
         return _binary_version >= 5;
+      }
+
+      bool tensor_parallel() const {
+        return _tensor_parallel;
       }
 
       virtual bool use_global_int16_scale() const {
@@ -163,6 +169,7 @@ namespace ctranslate2 {
       ComputeType _effective_compute_type = ComputeType::DEFAULT;
       dim_t _preferred_size_multiple = 1;
       std::unordered_map<std::string, std::shared_ptr<StorageView>> _variable_index;
+      bool _tensor_parallel = false;
     };
 
     template<>
@@ -191,6 +198,7 @@ namespace ctranslate2 {
       std::vector<int> device_indices = {0};
       size_t num_replicas_per_device = 1;
       ComputeType compute_type = ComputeType::DEFAULT;
+      bool tensor_parallel = false;
     };
 
     // Base class for replicas.

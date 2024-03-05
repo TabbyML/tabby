@@ -265,7 +265,8 @@ namespace ctranslate2 {
 
     Dense::Dense(const models::Model& model,
                  const std::string& scope,
-                 const ops::ActivationType* activation_type)
+                 const ops::ActivationType* activation_type,
+                 const bool is_layer_out)
       : _packed_weight(false)
       , _weight(get_linear_weight(model, scope, &_packed_weight))
       , _bias(model.get_variable_if_exists(scope + "/bias"))
@@ -294,6 +295,7 @@ namespace ctranslate2 {
                      /*shift_to_uint8=*/bool(_u8_shift_compensation),
                      /*round_before_cast=*/model.round_before_cast_in_quantization())
       , _dequantize_op(activation_type)
+      , _is_layer_out(is_layer_out)
     {
     }
 
@@ -339,13 +341,50 @@ namespace ctranslate2 {
       const StorageView* compensation = (_partial_u8_shift_compensation.empty()
                                          ? _u8_shift_compensation
                                          : &_partial_u8_shift_compensation);
+
+      bool affected_by_tp = ScopedMPISetter::getNRanks() > 1 && _is_layer_out;
       if (_quantized_gemm) {
         const auto device = input.device();
         StorageView qinput(_weight.dtype(), device);
         StorageView qinput_scale(_qscale->dtype(), device);
         StorageView qoutput(DataType::INT32, device);
-        _quantize_op(input, qinput, qinput_scale);
+        const StorageView* pinput = &input;
+
+        if (affected_by_tp) {
+          StorageView input_reshaped(input.shape(), input.dtype(), input.device());
+          Shape shape = input.shape();
+          dim_t batch_size = shape[0];
+          dim_t depth = shape[shape.size() - 1];
+          dim_t length = shape[shape.size() - 2];
+          StorageView input_gather_all({1, depth * ScopedMPISetter::getNRanks(), batch_size * length}, input.dtype(), input.device());
+          ops::Transpose transpose_op({0, 2, 1});
+          // Transpose input B x L x D -> B x D x L
+          if (batch_size > 1) {
+            input_reshaped.shallow_copy(const_cast<StorageView&>(input));
+            input_reshaped.reshape({1, batch_size * length, depth});
+            pinput = &input_reshaped;
+          }
+          StorageView input_t(input.dtype(), input.device());
+          transpose_op(*pinput, input_t);
+          ops::GatherAll gather_ops;
+          gather_ops(input_t, input_gather_all);
+          input_t.resize({1, batch_size * length, depth * ScopedMPISetter::getNRanks()});
+          transpose_op(input_gather_all, input_t);
+          StorageView qinput_tmp(_weight.dtype(), device);
+          _quantize_op(input_t, qinput_tmp, qinput_scale);
+          dim_t index = _weight.dim(-1) * ScopedMPISetter::getCurRank();
+          dim_t size = _weight.dim(-1);
+          ops::Slide(-1, index, size)(qinput_tmp, qinput);
+          if (batch_size > 1)
+            qinput.reshape({batch_size, length, depth});
+        }
+        else {
+          _quantize_op(input, qinput, qinput_scale);
+        }
+
         _gemm_op(qinput, *weight, qoutput, compensation);
+        if (affected_by_tp && ScopedMPISetter::getCurRank() == 0)
+          bias = nullptr;
         _dequantize_op(qoutput,
                        qinput_scale,
                        *qscale,
@@ -354,6 +393,8 @@ namespace ctranslate2 {
                        output,
                        bias);
       } else {
+        if (affected_by_tp && ScopedMPISetter::getCurRank() == 0)
+          bias = nullptr;
         _gemm_op(input, *weight, output, nullptr, bias);
       }
     }

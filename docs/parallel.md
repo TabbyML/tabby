@@ -42,8 +42,50 @@ Parallelization with multiple Python threads is possible because all computation
 ```
 
 ## Model and tensor parallelism
+Models used with [`Translator`](python/ctranslate2.Translator.rst) and [`Generator`](python/ctranslate2.Generator.rst) can be split into multiple GPUs.
+This is very useful when the model is too big to be loaded in only 1 GPU.
 
-These types of parallelism are not yet implemented in CTranslate2.
+```python
+translator = ctranslate2.Translator(model_path, device="cuda", tensor_parallel=True)
+```
+
+Setup environment:
+* Install [open-mpi](https://www.open-mpi.org/)
+* Configure open-mpi by creating the config file like ``hostfile``:
+```bash
+[ipaddress or dns] slots=nbGPU1
+[other ipaddress or dns] slots=NbGPU2
+```
+
+Run:
+* Run the application in multiprocess to use tensor parallel:
+```bash
+mpirun -np nbGPUExpected -hostfile hostfile python3 script
+```
+
+If you're trying to use tensor parallelism in multiple machines, some additional configuration is needed:
+* Make sure Master and Slave can connect to each other as a pair with ssh + pubkey
+* Export all necessary environment variables from Master to Slave like the example below:
+```bash
+mpirun -x VIRTUAL_ENV_PROMPT -x PATH -x VIRTUAL_ENV -x _ -x LD_LIBRARY_PATH -np nbGPUExpected -hostfile hostfile python3 script
+```
+Read more [open-mpi docs](https://www.open-mpi.org/doc/) for more information.
+
+* In this mode, the application will run in multiprocess. We can filter out the master process by using:
+```python
+if ctranslate2.MpiInfo.getCurRank() == 0:
+    print(...)
+```
+
+```{note}
+Running model in tensor parallel mode in one machine can boost the performance but if the model shared between multiple machines
+could be slower because of the latency in the connectivity.
+```
+
+```{note}
+In mode tensor parallel, `inter_threads` is always supported to run multiple workers. Otherwise, `device_index` no longer has any effect
+because tensor parallel mode will check only for available gpus on the system and the number of gpus you want to use.
+```
 
 ## Asynchronous execution
 

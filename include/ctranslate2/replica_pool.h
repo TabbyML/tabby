@@ -34,11 +34,13 @@ namespace ctranslate2 {
                 const Device device,
                 const ComputeType compute_type = ComputeType::DEFAULT,
                 const std::vector<int>& device_indices = {0},
+                const bool tensor_parallel = false,
                 const ReplicaPoolConfig& config = {}) {
       models::ModelLoader model_loader(model_path);
       model_loader.device = device;
       model_loader.device_indices = device_indices;
       model_loader.compute_type = compute_type;
+      model_loader.tensor_parallel = tensor_parallel;
       initialize_pool(model_loader, config);
     }
 
