@@ -75,6 +75,7 @@ impl EventWriter {
                 .create(true)
                 .append(true)
                 .write(true)
+                .mode(0o600)
                 .open(self.events_dir.join(fname.to_string()))
                 .await
                 .ok()
