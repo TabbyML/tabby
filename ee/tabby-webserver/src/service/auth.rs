@@ -132,6 +132,15 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let password_encrypted = password_hash(password).map_err(|_| anyhow!("Unknown error"))?;
 
         let user_id = self.db.verify_password_reset(code).await?;
+        let old_pass_encrypted = self
+            .db
+            .get_user(user_id as i32)
+            .await?
+            .expect("User must exist")
+            .password_encrypted;
+        if password_verify(password, &old_pass_encrypted) {
+            return Err(anyhow!("New password cannot be the same as your current password").into());
+        }
         self.db.delete_password_reset_by_user_id(user_id).await?;
         self.db
             .update_user_password(user_id as i32, password_encrypted)
@@ -158,6 +167,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
         };
         if !password_verified {
             return Err(anyhow!("Password is incorrect").into());
+        }
+
+        if old_password.is_some_and(|pass| pass == new_password) {
+            return Err(anyhow!("New password cannot be the same as your current password").into());
         }
 
         let new_password_encrypted =
@@ -1246,6 +1259,37 @@ mod tests {
             .update_user_password(&id, Some("newpass"), "newpass2")
             .await
             .is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_cannot_reset_same_password() {
+        let (service, _mail) = test_authentication_service_with_mail().await;
+        let id = service
+            .db
+            .create_user(
+                "test@example.com".into(),
+                password_hash("pass").unwrap(),
+                true,
+            )
+            .await
+            .unwrap();
+
+        assert!(service
+            .update_user_password(&id.as_id(), Some("pass"), "pass")
+            .await
+            .is_err());
+
+        service
+            .request_password_reset_email("test@example.com".into())
+            .await
+            .unwrap();
+        let reset = service
+            .db
+            .get_password_reset_by_user_id(id as i64)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(service.password_reset(&reset.code, "pass").await.is_err());
     }
 
     #[tokio::test]
