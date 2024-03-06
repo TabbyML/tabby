@@ -69,7 +69,7 @@ impl RepositoryCache {
         Ok(())
     }
 
-    pub fn start_reload_listener(self: &Arc<Self>, events: &CronEvents) {
+    fn start_reload_listener(self: &Arc<Self>, events: &CronEvents) {
         let clone = self.clone();
         events.scheduler_job_succeeded.start_listener(move |_| {
             let clone = clone.clone();
