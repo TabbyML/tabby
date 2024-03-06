@@ -4282,6 +4282,11 @@ file-entry-cache@^6.0.1:
   dependencies:
     flat-cache "^3.0.4"
 
+filename2prism@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/filename2prism/-/filename2prism-3.0.0.tgz#a578ca00ba6f491199ab0081ad5899ac646cae0f"
+  integrity sha512-s++aGNJvllroqr9KHed8ne8UqOcOtOnYYBnh7j5nVlhdRCn1ayXuT+bwkuDQu0yknlNA5ai3CzAbDu3+ka6IKQ==
+
 fill-range@^7.0.1:
   version "7.0.1"
   resolved "https://registry.yarnpkg.com/fill-range/-/fill-range-7.0.1.tgz#1919a6a7c75fe38b2c7c77e5198535da9acdda40"

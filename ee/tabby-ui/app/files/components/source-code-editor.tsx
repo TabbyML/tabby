@@ -1,8 +1,10 @@
 import React, { useContext } from 'react'
 import { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
+import filename2prism from 'filename2prism'
 import { useTheme } from 'next-themes'
 
+import { TFileMeta } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { CodeMirrorEditor } from '@/components/codemirror/codemirror'
 import { markTagNameExtension } from '@/components/codemirror/name-tag-extension'
@@ -13,16 +15,24 @@ import { SourceCodeBrowserContext } from './source-code-browser'
 
 interface SourceCodeEditorProps {
   className?: string
+  blob?: Blob
+  meta?: TFileMeta
 }
 
-const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
-  const { activePath, codeMap, fileMetaMap } = useContext(
-    SourceCodeBrowserContext
-  )
+const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
+  className,
+  blob,
+  meta
+}) => {
+  const { activePath } = useContext(SourceCodeBrowserContext)
   const { theme } = useTheme()
-  const activeCodeContent = activePath ? codeMap?.[activePath] ?? '' : ''
-  const language = activePath ? fileMetaMap?.[activePath]?.language ?? '' : ''
-  const tags = activePath ? fileMetaMap?.[activePath]?.tags : undefined
+  const [value, setValue] = React.useState<string>()
+
+  const detectedLanguage = activePath
+    ? filename2prism(activePath)[0]
+    : undefined
+  const language = (meta?.language ?? detectedLanguage) || ''
+  const tags = meta?.tags
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -40,7 +50,7 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
         }
       })
     ]
-    if (activeCodeContent && tags) {
+    if (value && tags) {
       result.push(
         markTagNameExtension(tags),
         codeTagHoverTooltip(tags),
@@ -48,13 +58,27 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({ className }) => {
       )
     }
     return result
-  }, [activeCodeContent, tags])
+  }, [value, tags])
+
+  React.useEffect(() => {
+    const blob2Text = async (b: Blob) => {
+      try {
+        const v = await b.text()
+        setValue(v)
+      } catch (e) {
+        setValue('')
+      }
+    }
+
+    if (blob) {
+      blob2Text(blob)
+    }
+  }, [blob])
 
   return (
     <div className={cn('source-code-browser', className)}>
       <CodeMirrorEditor
-        key={activePath}
-        value={activeCodeContent}
+        value={value}
         theme={theme}
         language={language}
         readonly
