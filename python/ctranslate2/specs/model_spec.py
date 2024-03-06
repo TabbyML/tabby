@@ -730,7 +730,17 @@ class PyTorchVariable(Variable):
         return self.tensor.numel() * self.tensor.element_size()
 
     def to_bytes(self) -> bytes:
-        return ctypes.string_at(self.tensor.data_ptr(), self.num_bytes())
+        max_size = 2**31 - 1
+        num_bytes = self.num_bytes()
+        output = b""
+        offset = 0
+        while num_bytes > 0:
+            chunk_size = max_size if num_bytes > max_size else num_bytes
+            chunk = ctypes.string_at(self.tensor.data_ptr() + offset, chunk_size)
+            output += chunk
+            offset += chunk_size
+            num_bytes -= chunk_size
+        return output
 
     def _to(self, dtype: str) -> Variable:
         dtype = getattr(torch, dtype)
