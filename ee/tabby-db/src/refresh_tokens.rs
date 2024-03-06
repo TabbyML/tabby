@@ -1,17 +1,22 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use hash_ids::HashIds;
+use lazy_static::lazy_static;
 use sqlx::{query, FromRow};
+use uuid::Uuid;
 
 use super::DbConn;
 
 #[allow(unused)]
 #[derive(FromRow)]
 pub struct RefreshTokenDAO {
-    id: u32,
+    pub id: i32,
     created_at: DateTime<Utc>,
 
     pub user_id: i32,
-    pub token: String,
+
+    #[cfg(test)]
+    token: String,
     pub expires_at: DateTime<Utc>,
 }
 
@@ -24,7 +29,8 @@ impl RefreshTokenDAO {
 
 /// db read/write operations for `refresh_tokens` table
 impl DbConn {
-    pub async fn create_refresh_token(&self, user_id: i32, token: &str) -> Result<()> {
+    pub async fn create_refresh_token(&self, user_id: i32) -> Result<String> {
+        let token = generate_refresh_token(0);
         let res = query!(
             r#"INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, datetime('now', '+7 days'))"#,
             user_id,
@@ -35,14 +41,16 @@ impl DbConn {
             return Err(anyhow::anyhow!("failed to create refresh token"));
         }
 
-        Ok(())
+        Ok(token)
     }
 
-    pub async fn replace_refresh_token(&self, old: &str, new: &str) -> Result<()> {
+    pub async fn renew_refresh_token(&self, id: i32, old: &str) -> Result<String> {
+        let new = generate_refresh_token(id as i64);
         let res = query!(
-            "UPDATE refresh_tokens SET token = $1 WHERE token = $2",
+            "UPDATE refresh_tokens SET token = $1, expires_at = datetime('now', '+7 days') WHERE token = $2 AND id = $3",
             new,
-            old
+            old,
+            id
         )
         .execute(&self.pool)
         .await?;
@@ -51,7 +59,7 @@ impl DbConn {
             return Err(anyhow::anyhow!("failed to replace refresh token"));
         }
 
-        Ok(())
+        Ok(new)
     }
 
     pub async fn delete_expired_token(&self) -> Result<i32> {
@@ -80,6 +88,19 @@ impl DbConn {
     }
 }
 
+lazy_static! {
+    static ref HASHER: HashIds = HashIds::builder()
+        .with_salt("tabby-refresh-token")
+        .with_min_length(6)
+        .finish();
+}
+
+pub fn generate_refresh_token(id: i64) -> String {
+    let uuid = Uuid::new_v4().to_string().replace('-', "");
+    let id = HASHER.encode(&[id as u64]);
+    format!("{id}{uuid}")
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -91,28 +112,34 @@ mod tests {
     async fn test_create_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        conn.create_refresh_token(1, "test").await.unwrap();
+        let token = conn.create_refresh_token(1).await.unwrap();
 
-        let token = conn.get_refresh_token("test").await.unwrap().unwrap();
+        let dao = conn.get_refresh_token(&token).await.unwrap().unwrap();
 
-        assert_eq!(token.user_id, 1);
-        assert_eq!(token.token, "test");
-        assert!(token.expires_at > Utc::now().add(chrono::Duration::days(6)));
-        assert!(token.expires_at < Utc::now().add(chrono::Duration::days(7)));
+        assert_eq!(dao.user_id, 1);
+        assert_eq!(dao.token, token);
+        assert!(dao.expires_at > Utc::now().add(chrono::Duration::days(6)));
+        assert!(dao.expires_at < Utc::now().add(chrono::Duration::days(7)));
     }
 
     #[tokio::test]
     async fn test_replace_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        conn.create_refresh_token(1, "test").await.unwrap();
-        conn.replace_refresh_token("test", "test2").await.unwrap();
+        let old = conn.create_refresh_token(1).await.unwrap();
+        let new = conn.renew_refresh_token(1, &old).await.unwrap();
 
-        let token = conn.get_refresh_token("test").await.unwrap();
+        let token = conn.get_refresh_token(&old).await.unwrap();
         assert!(token.is_none());
 
-        let token = conn.get_refresh_token("test2").await.unwrap().unwrap();
+        let token = conn.get_refresh_token(&new).await.unwrap().unwrap();
         assert_eq!(token.user_id, 1);
-        assert_eq!(token.token, "test2");
+        assert_eq!(token.token, new);
+    }
+
+    #[tokio::test]
+    async fn test_delete_expired_token() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        assert!(conn.delete_expired_token().await.is_ok());
     }
 }

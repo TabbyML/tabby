@@ -57,10 +57,6 @@ fn jwt_token_secret() -> String {
     jwt_secret
 }
 
-pub fn generate_refresh_token() -> String {
-    Uuid::new_v4().to_string().replace('-', "")
-}
-
 #[derive(Debug, GraphQLObject)]
 pub struct RegisterResponse {
     access_token: String,
@@ -523,11 +519,5 @@ mod tests {
         let claims = validate_jwt(&token).unwrap();
         assert_eq!(claims.sub.0.to_string(), "test");
         assert!(!claims.is_admin);
-    }
-
-    #[test]
-    fn test_generate_refresh_token() {
-        let token = generate_refresh_token();
-        assert_eq!(token.len(), 32);
     }
 }
