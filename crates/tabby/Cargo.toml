@@ -21,7 +21,6 @@ tabby-common = { path = "../tabby-common" }
 tabby-scheduler = { path = "../tabby-scheduler" }
 tabby-download = { path = "../tabby-download" }
 tabby-inference = { path = "../tabby-inference" }
-tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
 axum.workspace = true
 hyper = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
@@ -53,6 +52,7 @@ regex.workspace = true
 llama-cpp-bindings = { path = "../llama-cpp-bindings" }
 futures.workspace = true
 async-trait.workspace = true
+tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
 thiserror.workspace = true
 chrono.workspace = true
 axum-prometheus = "0.4.0"
