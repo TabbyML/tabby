@@ -1308,4 +1308,26 @@ mod tests {
 
         assert!(service.refresh_token(token.refresh_token).await.is_err());
     }
+
+    #[tokio::test]
+    async fn test_oauth_credential() {
+        let service = test_authentication_service().await;
+        service
+            .update_oauth_credential(UpdateOAuthCredentialInput {
+                provider: OAuthProvider::Google,
+                client_id: "id".into(),
+                client_secret: Some("secret".into()),
+            })
+            .await
+            .unwrap();
+
+        let cred = service
+            .read_oauth_credential(OAuthProvider::Google)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(cred.provider, OAuthProvider::Google);
+        assert_eq!(cred.client_id, "id");
+        assert_eq!(cred.client_secret, Some("secret".into()));
+    }
 }

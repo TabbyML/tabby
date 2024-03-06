@@ -178,8 +178,8 @@ impl DbEnum for Encryption {
 impl DbEnum for OAuthProvider {
     fn as_enum_str(&self) -> &'static str {
         match self {
-            OAuthProvider::Google => "github",
-            OAuthProvider::Github => "google",
+            OAuthProvider::Google => "google",
+            OAuthProvider::Github => "github",
         }
     }
 
