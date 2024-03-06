@@ -53,21 +53,20 @@ impl<T: TextGenerationStream> TextGeneration for TextGenerationImpl<T> {
             );
 
             let mut text = String::new();
-            let mut stopped = false;
             for await new_text in self.imp.generate(&prompt, options).await {
                 let (should_stop, stop_length) = stop_condition.should_stop(&new_text);
                 text += &new_text;
                 yield (true, new_text);
                 if should_stop {
-                    stopped = true;
-                    yield (false, text[..(text.len() - stop_length)].to_owned());
-                    break;
+                    // stop condition matched against prompt + generated text. There's a chance that stop_length >= text.len();
+                    let new_text_length = text.len().checked_sub(stop_length).unwrap_or_default();
+                    text.truncate(new_text_length);
+                    yield (false, text);
+                    return
                 }
             }
 
-            if !stopped {
-                yield (false, text);
-            }
+            yield (false, text);
         };
         Box::pin(s)
     }
