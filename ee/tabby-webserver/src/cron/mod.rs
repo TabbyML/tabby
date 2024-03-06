@@ -87,3 +87,28 @@ pub async fn run_cron(
         scheduler_job_succeeded: receive_scheduler_complete,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use tokio::sync::Mutex;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_receiver_events() {
+        let (send, receive) = broadcast::channel(1);
+        let counter = Arc::new(Mutex::new(0));
+        let clone = counter.clone();
+        receive.start_listener(move |_| {
+            let clone = clone.clone();
+            async move {
+                *clone.lock().await += 1;
+            }
+        });
+        send.send(()).unwrap();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert_eq!(*counter.lock().await, 1);
+    }
+}

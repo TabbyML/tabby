@@ -55,7 +55,7 @@ impl RepositoryCache {
         cache
     }
 
-    pub async fn reload(&self) -> Result<()> {
+    async fn reload(&self) -> Result<()> {
         let new_repositories = self
             .service
             .list_repositories(None, None, None, None)
