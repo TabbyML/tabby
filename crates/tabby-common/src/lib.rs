@@ -74,7 +74,7 @@ pub struct Tag {
     pub syntax_type_name: String,
 }
 
-#[derive(Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct Package {
     pub language: String,
     pub name: String,

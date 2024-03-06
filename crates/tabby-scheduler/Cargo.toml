@@ -29,6 +29,8 @@ serdeconv.workspace = true
 cargo-lock = { version = "9.0.0", features = ["dependency-tree"] }
 tokio-cron-scheduler = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
+package-lock-json-parser = "0.4.0"
+npm-package-json = "0.1.3"
 
 [dev-dependencies]
 temp_testdir = "0.2"
