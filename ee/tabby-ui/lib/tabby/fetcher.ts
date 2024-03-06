@@ -9,7 +9,7 @@ import {
 import { client } from './gql'
 
 interface FetcherOptions extends RequestInit {
-  format?: 'json' | 'text'
+  responseFormat?: 'json' | 'blob'
   responseFormatter?: (response: Response) => any
   customFetch?: (
     input: RequestInfo | URL,
@@ -105,14 +105,14 @@ function requestWithAuth(url: string, options?: FetcherOptions) {
 
 function formatResponse(
   response: Response,
-  options?: Pick<FetcherOptions, 'format' | 'responseFormatter'>
+  options?: Pick<FetcherOptions, 'responseFormat' | 'responseFormatter'>
 ) {
   if (options?.responseFormatter) {
     return options.responseFormatter(response)
   }
 
-  if (options?.format === 'text') {
-    return response.text()
+  if (options?.responseFormat === 'blob') {
+    return response.blob()
   }
 
   return response.json()
