@@ -8,6 +8,7 @@ import { isClientSide } from '@/lib/utils'
 
 import { useMe } from '../hooks/use-me'
 import { useIsAdminInitialized } from '../hooks/use-server-info'
+import { useMutation } from './gql'
 
 interface AuthData {
   accessToken: string
@@ -130,12 +131,18 @@ const AuthContext = React.createContext<AuthContextValue>(
   {} as AuthContextValue
 )
 
-export const refreshTokenMutation = graphql(/* GraphQL */ `
+const refreshTokenMutation = graphql(/* GraphQL */ `
   mutation refreshToken($refreshToken: String!) {
     refreshToken(refreshToken: $refreshToken) {
       accessToken
       refreshToken
     }
+  }
+`)
+
+const logoutAllSessionsMutation = graphql(/* GraphQL */ `
+  mutation LogoutAllSessions {
+    logoutAllSessions
   }
 `)
 
@@ -250,12 +257,14 @@ function useSignIn(): (params: AuthData) => Promise<boolean> {
 }
 
 function useSignOut(): () => Promise<void> {
+  const logoutAllSessions = useMutation(logoutAllSessionsMutation)
   const { dispatch } = useAuthStore()
   const [authToken, setAuthToken] = useLocalStorage<AuthData | undefined>(
     AUTH_TOKEN_KEY,
     undefined
   )
   return async () => {
+    await logoutAllSessions()
     setAuthToken(undefined)
     dispatch({ type: AuthActionType.SignOut })
   }
@@ -325,5 +334,7 @@ export {
   getAuthToken,
   saveAuthToken,
   clearAuthToken,
-  AUTH_TOKEN_KEY
+  AUTH_TOKEN_KEY,
+  refreshTokenMutation,
+  logoutAllSessionsMutation
 }

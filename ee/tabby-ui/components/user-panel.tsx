@@ -13,13 +13,27 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 
-import { IconBackpack, IconChat, IconCode, IconLogout } from './ui/icons'
+import {
+  IconBackpack,
+  IconChat,
+  IconCode,
+  IconLogout,
+  IconSpinner
+} from './ui/icons'
 
 export default function UserPanel() {
   const signOut = useSignOut()
   const [{ data }] = useMe()
   const user = data?.me
   const isChatEnabled = useIsChatEnabled()
+  const [signOutLoading, setSignOutLoading] = React.useState(false)
+  const onSignOut: React.MouseEventHandler<HTMLDivElement> = async e => {
+    e.preventDefault()
+
+    setSignOutLoading(true)
+    await signOut()
+    setSignOutLoading(false)
+  }
 
   if (!user) {
     return
@@ -61,9 +75,10 @@ export default function UserPanel() {
           <span className="ml-2">API Docs</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut} className="cursor-pointer">
+        <DropdownMenuItem onClick={onSignOut} className="cursor-pointer">
           <IconLogout />
           <span className="ml-2">Logout</span>
+          {signOutLoading && <IconSpinner className="ml-1" />}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
