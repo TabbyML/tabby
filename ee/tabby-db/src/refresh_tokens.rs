@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc};
+use chrono::{Utc};
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use sqlx::{query, FromRow};
