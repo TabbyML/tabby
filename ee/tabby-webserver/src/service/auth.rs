@@ -18,13 +18,13 @@ use crate::{
     oauth,
     schema::{
         auth::{
-            generate_jwt, generate_refresh_token, validate_jwt, AuthenticationService, Invitation,
-            JWTPayload, OAuthCredential, OAuthError, OAuthProvider, OAuthResponse,
-            RefreshTokenResponse, RegisterResponse, RequestInvitationInput, TokenAuthResponse,
+            generate_jwt, validate_jwt, AuthenticationService, Invitation, JWTPayload,
+            OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenResponse,
+            RegisterResponse, RequestInvitationInput, TokenAuthResponse,
             UpdateOAuthCredentialInput, User,
         },
         email::EmailService,
-        license::LicenseService,
+        license::{LicenseInfo, LicenseService},
         setting::SettingService,
         CoreError, Result,
     },
@@ -83,8 +83,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let user = self.db.get_user(id).await?.unwrap();
 
-        let refresh_token = generate_refresh_token();
-        self.db.create_refresh_token(id, &refresh_token).await?;
+        let refresh_token = self.db.create_refresh_token(id).await?;
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
@@ -171,21 +170,18 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
         let Some(user) = self.db.get_user_by_email(&email).await? else {
-            return Err(anyhow!("User not found").into());
+            return Err(anyhow!("Invalid email address or password").into());
         };
+
+        if !password_verify(&password, &user.password_encrypted) {
+            return Err(anyhow!("Invalid email address or password").into());
+        }
 
         if !user.active {
             return Err(anyhow!("User is disabled").into());
         }
 
-        if !password_verify(&password, &user.password_encrypted) {
-            return Err(anyhow!("Password is not valid").into());
-        }
-
-        let refresh_token = generate_refresh_token();
-        self.db
-            .create_refresh_token(user.id, &refresh_token)
-            .await?;
+        let refresh_token = self.db.create_refresh_token(user.id).await?;
 
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
             return Err(anyhow!("Unknown error").into());
@@ -210,8 +206,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("User is disabled").into());
         }
 
-        let new_token = generate_refresh_token();
-        self.db.replace_refresh_token(&token, &new_token).await?;
+        let new_token = self
+            .db
+            .renew_refresh_token(refresh_token.id as i32, &token)
+            .await?;
 
         // refresh token update is done, generate new access token based on user info
         let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
@@ -315,6 +313,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(self.db.reset_user_auth_token_by_id(id.as_rowid()?).await?)
     }
 
+    async fn logout_all_sessions(&self, id: &ID) -> Result<()> {
+        Ok(self.db.delete_tokens_by_user_id(id.as_rowid()?).await?)
+    }
+
     async fn list_users(
         &self,
         after: Option<String>,
@@ -357,12 +359,14 @@ impl AuthenticationService for AuthenticationServiceImpl {
     ) -> std::result::Result<OAuthResponse, OAuthError> {
         let client = oauth::new_oauth_client(provider, Arc::new(self.clone()));
         let email = client.fetch_user_email(code).await?;
-        let (user_id, is_admin) = get_or_create_oauth_user(&self.db, &email).await?;
+        let license = self
+            .license
+            .read_license()
+            .await
+            .context("Failed to read license info")?;
+        let (user_id, is_admin) = get_or_create_oauth_user(&license, &self.db, &email).await?;
 
-        let refresh_token = generate_refresh_token();
-        self.db
-            .create_refresh_token(user_id, &refresh_token)
-            .await?;
+        let refresh_token = self.db.create_refresh_token(user_id).await?;
 
         let access_token = generate_jwt(JWTPayload::new(user_id.as_id(), is_admin))
             .map_err(|_| OAuthError::Unknown)?;
@@ -446,13 +450,23 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 }
 
-async fn get_or_create_oauth_user(db: &DbConn, email: &str) -> Result<(i32, bool), OAuthError> {
+async fn get_or_create_oauth_user(
+    license: &LicenseInfo,
+    db: &DbConn,
+    email: &str,
+) -> Result<(i32, bool), OAuthError> {
     if let Some(user) = db.get_user_by_email(email).await? {
         return user
             .active
             .then_some((user.id, user.is_admin))
             .ok_or(OAuthError::UserDisabled);
     }
+
+    // Check license before creating user.
+    if license.ensure_available_seats(1).is_err() {
+        return Err(OAuthError::InsufficientSeats);
+    }
+
     if db
         .read_security_setting()
         .await
@@ -843,6 +857,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_or_create_oauth_user() {
         let service = test_authentication_service().await;
+        let license = service.license.read_license().await.unwrap();
         let id = service
             .db
             .create_user("test@example.com".into(), "".into(), false)
@@ -850,9 +865,11 @@ mod tests {
             .unwrap();
         service.db.update_user_active(id, false).await.unwrap();
 
-        assert!(get_or_create_oauth_user(&service.db, "test@example.com")
-            .await
-            .is_err());
+        assert!(
+            get_or_create_oauth_user(&license, &service.db, "test@example.com")
+                .await
+                .is_err()
+        );
 
         service
             .db
@@ -860,12 +877,16 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(get_or_create_oauth_user(&service.db, "example@example.com")
-            .await
-            .is_ok());
-        assert!(get_or_create_oauth_user(&service.db, "example@gmail.com")
-            .await
-            .is_err());
+        assert!(
+            get_or_create_oauth_user(&license, &service.db, "example@example.com")
+                .await
+                .is_ok()
+        );
+        assert!(
+            get_or_create_oauth_user(&license, &service.db, "example@gmail.com")
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1225,5 +1246,29 @@ mod tests {
             .update_user_password(&id, Some("newpass"), "newpass2")
             .await
             .is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_logout_all_sessions() {
+        let service = test_authentication_service().await;
+
+        let id = service
+            .db
+            .create_user(
+                "test@example.com".into(),
+                password_hash("pass").unwrap(),
+                true,
+            )
+            .await
+            .unwrap();
+
+        let token = service
+            .token_auth("test@example.com".into(), "pass".into())
+            .await
+            .unwrap();
+
+        service.logout_all_sessions(&id.as_id()).await.unwrap();
+
+        assert!(service.refresh_token(token.refresh_token).await.is_err());
     }
 }

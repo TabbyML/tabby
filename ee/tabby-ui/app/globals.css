@@ -42,7 +42,7 @@
   }
 
   .dark {
-    --background: 20 14.3% 4.1%;
+    --background: 0 0 12%;
     --foreground: 39 3.2% 99.35%;
 
     --muted: 39 16% 26.1%;
@@ -66,7 +66,7 @@
     --accent: 39 16% 26.1%;
     --accent-foreground: 39 3.2% 99.35%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 3.2 36.95% 60.2%;
     --destructive-foreground: 39 3.2% 99.35%;
 
     --successful: 143.81 61.17% 20.2%;

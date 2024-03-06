@@ -57,10 +57,6 @@ fn jwt_token_secret() -> String {
     jwt_secret
 }
 
-pub fn generate_refresh_token() -> String {
-    Uuid::new_v4().to_string().replace('-', "")
-}
-
 #[derive(Debug, GraphQLObject)]
 pub struct RegisterResponse {
     access_token: String,
@@ -173,6 +169,9 @@ pub enum OAuthError {
 
     #[error("User is disabled, please contact admin for help")]
     UserDisabled,
+
+    #[error("Seat limit on license would be exceeded")]
+    InsufficientSeats,
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -418,6 +417,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;
     async fn get_user(&self, id: &ID) -> Result<User>;
+    async fn logout_all_sessions(&self, id: &ID) -> Result<()>;
 
     async fn create_invitation(&self, email: String) -> Result<Invitation>;
     async fn request_invitation_email(&self, input: RequestInvitationInput) -> Result<Invitation>;
@@ -519,11 +519,5 @@ mod tests {
         let claims = validate_jwt(&token).unwrap();
         assert_eq!(claims.sub.0.to_string(), "test");
         assert!(!claims.is_admin);
-    }
-
-    #[test]
-    fn test_generate_refresh_token() {
-        let token = generate_refresh_token();
-        assert_eq!(token.len(), 32);
     }
 }

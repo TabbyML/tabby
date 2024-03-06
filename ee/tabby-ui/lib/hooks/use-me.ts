@@ -5,6 +5,7 @@ import { graphql } from '@/lib/gql/generates'
 const meQuery = graphql(/* GraphQL */ `
   query MeQuery {
     me {
+      id
       authToken
       email
       isAdmin

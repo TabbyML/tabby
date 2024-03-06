@@ -362,7 +362,7 @@ struct BackendInitializer {
       g_llama_cpp_log_level = std::stoi(level);
     }
     llama_log_set(llama_log_callback, nullptr);
-    llama_backend_init(false);
+    llama_backend_init();
   }
 
   ~BackendInitializer() {

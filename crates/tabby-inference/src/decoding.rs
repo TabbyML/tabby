@@ -81,6 +81,7 @@ impl<'a> StopCondition<'a> {
     }
 
     pub fn should_stop(&mut self, new_text: &str) -> (bool, usize) {
+        self.num_decoded += 1;
         if !new_text.is_empty() {
             self.reversed_text = reverse(new_text) + &self.reversed_text;
 
@@ -89,19 +90,17 @@ impl<'a> StopCondition<'a> {
                 let matched_length = matches.into_iter().map(|x| x.len()).max();
                 if let Some(matched_length) = matched_length {
                     return (true, matched_length);
-                } else {
-                    return (false, 0);
-                };
+                }
             }
         }
-
-        self.num_decoded += 1;
         (self.num_decoded >= self.max_decoding_length, 0)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use tabby_common::languages::UNKNOWN_LANGUAGE;
+
     use super::*;
 
     #[test]
@@ -117,5 +116,19 @@ mod tests {
             "\nvoid".to_owned(),
         ]);
         assert!(!trie.common_prefix_search(&text).is_empty());
+    }
+
+    #[test]
+    fn test_stop_condition_max_length() {
+        let factory = StopConditionFactory::default();
+        let mut cond = factory.create("", 4, Some(&UNKNOWN_LANGUAGE));
+        let (should_stop, _) = cond.should_stop("1");
+        assert!(!should_stop);
+        let (should_stop, _) = cond.should_stop("2");
+        assert!(!should_stop);
+        let (should_stop, _) = cond.should_stop("3");
+        assert!(!should_stop);
+        let (should_stop, _) = cond.should_stop("4");
+        assert!(should_stop)
     }
 }
