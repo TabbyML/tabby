@@ -1,17 +1,15 @@
 import { useEffect } from 'react'
 import { OpenAIStream, StreamingTextResponse } from 'ai'
 
-import { useSession } from '../tabby/auth'
+import fetcher from '../tabby/fetcher'
 
 export function usePatchFetch() {
-  const { data } = useSession()
-
   useEffect(() => {
-    if (!(window as any)._originFetch) {
-      ;(window as any)._originFetch = window.fetch
+    if (!window._originFetch) {
+      window._originFetch = window.fetch
     }
 
-    const fetch = (window as any)._originFetch as typeof window.fetch
+    const fetch = window._originFetch
 
     window.fetch = async function (url, options) {
       if (url !== '/api/chat') {
@@ -22,18 +20,25 @@ export function usePatchFetch() {
         'Content-Type': 'application/json'
       }
 
-      if (data?.accessToken) {
-        headers['Authorization'] = `Bearer ${data?.accessToken}`
-      }
-
-      const res = await fetch(`/v1beta/chat/completions`, {
+      const res = await fetcher(`/v1beta/chat/completions`, {
         ...options,
         method: 'POST',
-        headers
+        headers,
+        customFetch: fetch,
+        responseFormatter(response) {
+          const stream = OpenAIStream(response, undefined)
+          return new StreamingTextResponse(stream)
+        }
       })
 
-      const stream = OpenAIStream(res, undefined)
-      return new StreamingTextResponse(stream)
+      return res
     }
-  }, [data?.accessToken])
+
+    return () => {
+      if (window?._originFetch) {
+        window.fetch = window._originFetch
+        window._originFetch = undefined
+      }
+    }
+  }, [])
 }
