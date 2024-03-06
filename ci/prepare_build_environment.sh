@@ -17,6 +17,7 @@ if [[ "$OSTYPE" == "linux"* ]]; then
   else
     # Build from manylinux2014 container
     yum -y install openblas-devel perl-IPC-Cmd unzip curl openssl-devel vulkan
+    ln -s /usr/lib64/libvulkan.so.1 /usr/lib64/libvulkan.so
 
     # Disable safe directory in docker
     git config --system --add safe.directory "*"

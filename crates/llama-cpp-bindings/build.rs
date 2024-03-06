@@ -92,7 +92,6 @@ fn build_llama_cpp() {
     if cfg!(feature = "vulkan") {
         config.define("LLAMA_VULKAN", "ON");
         println!("cargo:rustc-link-search=/usr/lib64");
-        println!("cargo:rustc-link-search=/lib64");
         println!("cargo:rustc-link-lib=vulkan");
     }
 
