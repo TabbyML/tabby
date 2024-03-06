@@ -2,8 +2,8 @@ use anyhow::anyhow;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    DbEnum, EmailSettingDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO, RepositoryDAO,
-    ServerSettingDAO, UserDAO,
+    EmailSettingDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO,
+    UserDAO,
 };
 
 use crate::schema::{
@@ -154,6 +154,11 @@ impl AsID for i32 {
     fn as_id(&self) -> juniper::ID {
         (*self as i64).as_id()
     }
+}
+
+pub trait DbEnum: Sized {
+    fn as_enum_str(&self) -> &'static str;
+    fn from_enum_str(s: &str) -> anyhow::Result<Self>;
 }
 
 impl DbEnum for Encryption {
