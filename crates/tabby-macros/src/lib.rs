@@ -38,8 +38,9 @@ mod kw {
 impl Parse for PaginationQueryInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let typ = input.parse()?;
-        input.parse::<kw::FROM>()?;
+        input.parse::<Token![,]>()?;
         let table_name = input.parse()?;
+        input.parse::<Token![,]>()?;
         let mut columns = vec![];
 
         let inner;
@@ -78,7 +79,7 @@ impl Parse for PaginationQueryInput {
 }
 
 #[proc_macro]
-pub fn pagination_query(input: TokenStream) -> TokenStream {
+pub fn query_paged_as(input: TokenStream) -> TokenStream {
     let input: PaginationQueryInput = parse_macro_input!(input);
 
     let typ = input.typ;

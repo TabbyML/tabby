@@ -49,23 +49,6 @@ pub struct DbConn {
     cache: Arc<DbCache>,
 }
 
-#[macro_export]
-macro_rules! pagination_query {
-    ($ty:ident FROM $table:literal: [ $($column:literal),+ & $last_column:literal ] $(COND $cond:literal)? ($limit:expr, $skip_id:expr, $backwards:expr)) => {
-        {
-            let _ = sqlx::query_as!($ty, "SELECT " + $($column + " AS \"" + $column + "!\", " +)+ $last_column + " AS \"" + $last_column + "!\" FROM " + $table + ";");
-            ($crate::make_pagination_query_with_condition(
-                $table,
-                &[ $($column),+ ],
-                $limit,
-                $skip_id,
-                $backwards,
-                [ $($cond.into())? ].into_iter().next()
-            ))
-        }
-    };
-}
-
 fn make_pagination_query_with_condition(
     table_name: &str,
     field_names: &[&str],
