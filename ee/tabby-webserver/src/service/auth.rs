@@ -315,6 +315,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(self.db.reset_user_auth_token_by_id(id.as_rowid()?).await?)
     }
 
+    async fn logout_all_sessions(&self, id: &ID) -> Result<()> {
+        Ok(self.db.delete_tokens_by_user_id(id.as_rowid()?).await?)
+    }
+
     async fn list_users(
         &self,
         after: Option<String>,
@@ -1247,5 +1251,29 @@ mod tests {
             .update_user_password(&id, Some("newpass"), "newpass2")
             .await
             .is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_logout_all_sessions() {
+        let service = test_authentication_service().await;
+
+        let id = service
+            .db
+            .create_user(
+                "test@example.com".into(),
+                password_hash("pass").unwrap(),
+                true,
+            )
+            .await
+            .unwrap();
+
+        let token = service
+            .token_auth("test@example.com".into(), "pass".into())
+            .await
+            .unwrap();
+
+        service.logout_all_sessions(&id.as_id()).await.unwrap();
+
+        assert!(service.refresh_token(token.refresh_token).await.is_err());
     }
 }
