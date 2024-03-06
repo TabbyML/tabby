@@ -27,7 +27,7 @@ export default function UserPanel() {
   const user = data?.me
   const isChatEnabled = useIsChatEnabled()
   const [signOutLoading, setSignOutLoading] = React.useState(false)
-  const onSignOut: React.MouseEventHandler<HTMLDivElement> = async e => {
+  const handleSignOut: React.MouseEventHandler<HTMLDivElement> = async e => {
     e.preventDefault()
 
     setSignOutLoading(true)
@@ -75,7 +75,7 @@ export default function UserPanel() {
           <span className="ml-2">API Docs</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onSignOut} className="cursor-pointer">
+        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
           <IconLogout />
           <span className="ml-2">Logout</span>
           {signOutLoading && <IconSpinner className="ml-1" />}
