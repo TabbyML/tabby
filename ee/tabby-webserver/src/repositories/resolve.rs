@@ -16,12 +16,14 @@ use axum::{
 use hyper::Body;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, SourceFile, Tag};
-use tokio_cron_scheduler::{Job, JobScheduler};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
-use crate::schema::repository::RepositoryService;
+use crate::{
+    cron::{CronEvents, StartListener},
+    schema::repository::RepositoryService,
+};
 
 pub struct RepositoryCache {
     repository_lookup: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
@@ -37,7 +39,10 @@ impl std::fmt::Debug for RepositoryCache {
 }
 
 impl RepositoryCache {
-    pub async fn new_initialized(service: Arc<dyn RepositoryService>) -> RepositoryCache {
+    pub async fn new_initialized(
+        service: Arc<dyn RepositoryService>,
+        events: &CronEvents,
+    ) -> Arc<RepositoryCache> {
         let cache = RepositoryCache {
             repository_lookup: Default::default(),
             service,
@@ -45,6 +50,8 @@ impl RepositoryCache {
         if let Err(e) = cache.reload().await {
             error!("Failed to load repositories: {e}");
         };
+        let cache = Arc::new(cache);
+        cache.start_reload_listener(events);
         cache
     }
 
@@ -60,6 +67,18 @@ impl RepositoryCache {
         debug!("Reloading repositoriy metadata...");
         *repository_lookup = load_meta(new_repositories);
         Ok(())
+    }
+
+    fn start_reload_listener(self: &Arc<Self>, events: &CronEvents) {
+        let clone = self.clone();
+        events.scheduler_job_succeeded.start_listener(move |_| {
+            let clone = clone.clone();
+            async move {
+                if let Err(e) = clone.reload().await {
+                    warn!("Error when reloading repository cache: {e}");
+                };
+            }
+        });
     }
 
     fn repositories(&self) -> impl Deref<Target = HashMap<RepositoryKey, RepositoryMeta>> + '_ {
@@ -263,27 +282,6 @@ impl RepositoryCache {
             .body(body.into_body())?;
 
         Ok(resp)
-    }
-
-    pub async fn start_reload_job(self: &Arc<Self>) {
-        let cache = self.clone();
-        let scheduler = JobScheduler::new().await.unwrap();
-        scheduler
-            .add(
-                // Reload every 5 minutes
-                Job::new_async("0 1/5 * * * * *", move |_, _| {
-                    let cache = cache.clone();
-                    Box::pin(async move {
-                        if let Err(e) = cache.reload().await {
-                            error!("Failed to load repositories: {e}");
-                        };
-                    })
-                })
-                .unwrap(),
-            )
-            .await
-            .unwrap();
-        scheduler.start().await.unwrap();
     }
 
     pub fn find_repository(&self, name: &str) -> Option<RepositoryConfig> {
