@@ -9,11 +9,11 @@ use argon2::{
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
-use tabby_db::{DbConn, DbEnum, InvitationDAO};
+use tabby_db::{DbConn, InvitationDAO};
 use tokio::task::JoinHandle;
 use tracing::warn;
 
-use super::{graphql_pagination_to_filter, AsID, AsRowid};
+use super::{dao::DbEnum, graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
     oauth,
     schema::{

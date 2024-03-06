@@ -30,11 +30,6 @@ use anyhow::Result;
 use sql_query_builder as sql;
 use sqlx::sqlite::SqliteConnectOptions;
 
-pub trait DbEnum: Sized {
-    fn as_enum_str(&self) -> &'static str;
-    fn from_enum_str(s: &str) -> anyhow::Result<Self>;
-}
-
 #[derive(Default)]
 pub struct DbCache {
     pub active_user_count: Cache<usize>,
