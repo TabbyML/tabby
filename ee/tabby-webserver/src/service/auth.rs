@@ -211,7 +211,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if refresh_token.is_expired() {
             return Err(anyhow!("Expired refresh token").into());
         }
-        let Some(user) = self.db.get_user(refresh_token.user_id).await? else {
+        let Some(user) = self.db.get_user(refresh_token.user_id as i32).await? else {
             return Err(anyhow!("User not found").into());
         };
 
@@ -221,7 +221,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let new_token = self
             .db
-            .renew_refresh_token(refresh_token.id, &token)
+            .renew_refresh_token(refresh_token.id as i32, &token)
             .await?;
 
         // refresh token update is done, generate new access token based on user info
@@ -229,7 +229,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("Unknown error").into());
         };
 
-        let resp = RefreshTokenResponse::new(access_token, new_token, refresh_token.expires_at);
+        let resp = RefreshTokenResponse::new(access_token, new_token, *refresh_token.expires_at);
 
         Ok(resp)
     }
