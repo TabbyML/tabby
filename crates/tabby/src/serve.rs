@@ -9,6 +9,7 @@ use tabby_common::{
     config::Config,
     usage,
 };
+#[cfg(feature = "ee")]
 use tabby_webserver::public::WebserverHandle;
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
