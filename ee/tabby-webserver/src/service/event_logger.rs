@@ -1,13 +1,13 @@
 use std::fmt::Display;
 
 use juniper::ID;
-use tabby_common::api::event::EventLogger;
+use tabby_common::api::event::RawEventLogger;
 use tabby_db::DbConn;
 use tracing::warn;
 
 use super::dao::AsRowid;
 
-struct EventLoggerImpl {
+struct DbEventLogger {
     db: DbConn,
 }
 
@@ -17,13 +17,17 @@ fn log_err<T, E: Display>(res: Result<T, E>) {
     }
 }
 
-pub fn new_event_logger(db: DbConn) -> impl EventLogger {
-    EventLoggerImpl { db }
+pub fn new_event_logger(db: DbConn) -> impl RawEventLogger {
+    DbEventLogger { db }
 }
 
-impl EventLogger for EventLoggerImpl {
-    fn log(&self, e: tabby_common::api::event::Event) {
-        match e {
+impl RawEventLogger for DbEventLogger {
+    fn log_raw(&self, content: String) {
+        let Ok(event) = serde_json::from_str(&content) else {
+            warn!("Invalid event JSON: {content}");
+            return;
+        };
+        match event {
             tabby_common::api::event::Event::View { completion_id, .. } => {
                 let db = self.db.clone();
                 tokio::spawn(async move {
@@ -75,12 +79,10 @@ impl EventLogger for EventLoggerImpl {
 mod tests {
     use std::time::Duration;
 
-    use tabby_common::api::event::{Event, Message};
+    use tabby_common::api::event::{Event, EventLogger, Message};
     use tabby_db::DbConn;
 
-    use crate::service::dao::AsID;
-
-    use super::*;
+    use crate::{public::new_event_logger, service::dao::AsID};
 
     async fn sleep_50() {
         tokio::time::sleep(Duration::from_millis(500)).await;

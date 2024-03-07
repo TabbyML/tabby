@@ -99,13 +99,14 @@ impl EventWriter {
 struct EventService;
 
 impl RawEventLogger for EventService {
-    fn log(&self, content: String) {
+    fn log_raw(&self, content: String) {
         if let Err(err) = WRITER.send(content) {
             error!("Failed to write event to file: {}", err);
         }
     }
 }
 
+#[cfg(not(feature = "ee"))]
 pub fn create_logger() -> impl RawEventLogger {
     EventService
 }

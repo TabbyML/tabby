@@ -28,17 +28,27 @@ use crate::{
 pub struct WebserverHandle {
     db: DbConn,
     event_logger: Arc<dyn EventLogger>,
+    raw_event_logger: Arc<dyn RawEventLogger>,
 }
 
 impl WebserverHandle {
     pub async fn new() -> Self {
         let db = DbConn::new().await.expect("Must be able to initialize db");
         let event_logger = Arc::new(new_event_logger(db.clone()));
-        WebserverHandle { db, event_logger }
+        let raw_event_logger = Arc::new(new_event_logger(db.clone()));
+        WebserverHandle {
+            db,
+            event_logger,
+            raw_event_logger,
+        }
     }
 
     pub fn logger(&self) -> Arc<dyn EventLogger> {
         self.event_logger.clone()
+    }
+
+    pub fn raw_logger(&self) -> Arc<dyn RawEventLogger> {
+        self.raw_event_logger.clone()
     }
 
     pub async fn attach_webserver(

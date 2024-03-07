@@ -71,7 +71,7 @@ pub async fn create_worker_client(
 }
 
 impl RawEventLogger for WorkerClient {
-    fn log(&self, content: String) {
+    fn log_raw(&self, content: String) {
         let context = tarpc::context::current();
         let client = self.0.clone();
 

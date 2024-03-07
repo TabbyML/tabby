@@ -26,12 +26,14 @@ use crate::{
         chat::create_chat_service,
         code::create_code_search,
         completion::{self, create_completion_service},
-        event::create_logger,
         health,
         model::download_model_if_needed,
     },
     Device,
 };
+
+#[cfg(not(feature = "ee"))]
+use crate::services::event::create_logger;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -121,13 +123,16 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(feature = "ee")]
     let ws = WebserverHandle::new().await;
     let logger;
+    let raw_logger;
     #[cfg(feature = "ee")]
     {
         logger = ws.logger();
+        raw_logger = ws.raw_logger();
     }
     #[cfg(not(feature = "ee"))]
     {
         logger = Arc::new(create_logger());
+        raw_logger = Arc::new(create_logger());
     }
     let code = Arc::new(create_code_search());
 
@@ -141,7 +146,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
             .attach_webserver(
                 api,
                 ui,
-                Arc::new(create_logger()),
+                raw_logger,
                 code,
                 args.chat_model.is_some(),
                 args.port,

@@ -17,19 +17,19 @@ pub struct LogEventRequest {
     pub elapsed: Option<u32>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Choice {
     pub index: u32,
     pub text: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectKind {
     Line,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Event {
     View {
@@ -77,13 +77,13 @@ pub enum Event {
     },
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Message {
     pub role: String,
     pub content: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Segments {
     pub prefix: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -92,7 +92,7 @@ pub struct Segments {
     pub clipboard: Option<String>,
 }
 
-pub trait EventLogger: Send + Sync {
+pub trait EventLogger: Send + Sync + RawEventLogger {
     fn log(&self, e: Event);
 }
 
@@ -103,7 +103,7 @@ struct Log {
 }
 
 pub trait RawEventLogger: Send + Sync {
-    fn log(&self, content: String);
+    fn log_raw(&self, content: String);
 }
 
 impl<T: RawEventLogger> EventLogger for T {
@@ -114,7 +114,7 @@ impl<T: RawEventLogger> EventLogger for T {
         })
         .unwrap();
 
-        self.log(content);
+        self.log_raw(content);
     }
 }
 
