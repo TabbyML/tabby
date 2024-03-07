@@ -19,6 +19,8 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
+#[cfg(not(feature = "ee"))]
+use crate::services::event::create_logger;
 use crate::{
     routes::{self, run_app},
     services::{
@@ -31,9 +33,6 @@ use crate::{
     },
     Device,
 };
-
-#[cfg(not(feature = "ee"))]
-use crate::services::event::create_logger;
 
 #[derive(OpenApi)]
 #[openapi(
