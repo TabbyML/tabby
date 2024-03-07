@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { isEmpty } from 'lodash-es'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
@@ -140,7 +141,7 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'relative flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'relative h-8 flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         isActive && 'bg-accent',
         className
       )}
@@ -313,20 +314,39 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 }
 
 const FileTreeRenderer: React.FC = () => {
-  const { fileTreeData, initialized } = React.useContext(FileTreeContext)
+  const { initialized, activePath, fileMap, fileTreeData } =
+    React.useContext(FileTreeContext)
+  const repoName = resolveRepoNameFromPath(activePath)
 
   if (!initialized) return <FileTreeSkeleton />
 
-  if (!fileTreeData?.length)
+  if (isEmpty(fileMap))
+    return (
+      <div className="flex h-full items-center justify-center">
+        No Indexed repository
+      </div>
+    )
+
+  if (repoName && !fileTreeData?.length) {
     return (
       <div className="flex h-full items-center justify-center">No Data</div>
     )
+  }
+
+  if (!repoName) {
+    return null
+  }
 
   return (
     <>
-      {fileTreeData?.map(node => (
-        <DirectoryTreeNode root level={0} node={node} key={node.fullPath} />
-      ))}
+      {fileTreeData?.map(node => {
+        const isFile = node?.file?.kind === 'file'
+        return isFile ? (
+          <FileTreeNode level={0} node={node} key={node.fullPath} />
+        ) : (
+          <DirectoryTreeNode level={0} node={node} key={node.fullPath} />
+        )
+      })}
     </>
   )
 }
@@ -400,11 +420,6 @@ function sortFileTree(tree: TFileTreeNode[]) {
   }
 
   return tree
-}
-
-function resolveRepositoryName(name: string) {
-  const repositoryName = /https_github.com_(\w+).git/.exec(name)?.[1]
-  return repositoryName || name
 }
 
 export type { TFileTreeNode }

@@ -19,12 +19,8 @@ import {
 
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryPanel } from './file-directory-panel'
-import {
-  mapToFileTree,
-  FileTree as RepositoriesFileTree,
-  sortFileTree,
-  type TFileTreeNode
-} from './file-tree'
+import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
+import { FileTreePanel } from './file-tree-panel'
 import { RawContentPanel } from './raw-content-panel'
 import {
   getDirectoriesFromPath,
@@ -169,15 +165,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 }) => {
   const {
     activePath,
-    setActivePath,
     updateFileMap,
     fileMap,
     initialized,
     setInitialized,
-    expandedKeys,
-    toggleExpandedKey,
-    setExpandedKeys,
-    fileTreeData
+    setExpandedKeys
   } = React.useContext(SourceCodeBrowserContext)
 
   const activeRepoName = React.useMemo(() => {
@@ -234,10 +226,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   const showRawFilePanel = fileViewType === 'image' || fileViewType === 'raw'
   const showCodeEditor = fileViewType === 'text'
-
-  const onSelectTreeNode = (treeNode: TFileTreeNode) => {
-    setActivePath(treeNode.fullPath)
-  }
 
   React.useEffect(() => {
     const init = async () => {
@@ -301,36 +289,24 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   return (
     <ResizablePanelGroup direction="horizontal" className={cn(className)}>
       <ResizablePanel defaultSize={20} minSize={20}>
-        <div className="h-full overflow-hidden py-2">
-          <RepositoriesFileTree
-            className="h-full overflow-y-auto overflow-x-hidden px-4"
-            onSelectTreeNode={onSelectTreeNode}
-            activePath={activePath}
-            fileMap={fileMap}
-            updateFileMap={updateFileMap}
-            expandedKeys={expandedKeys}
-            toggleExpandedKey={toggleExpandedKey}
-            initialized={initialized}
-            fileTreeData={fileTreeData}
-          />
-        </div>
+        <FileTreePanel />
       </ResizablePanel>
       <ResizableHandle className="w-1 hover:bg-card active:bg-card" />
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="sticky top-0 z-10 bg-background py-4" />
+          <FileDirectoryBreadcrumb className="py-4" />
           <div className="flex-1">
             {/* {isFileActive && fileViewType === '' && <ListSkeleton />} */}
             {showDirectoryPanel && (
               <DirectoryPanel
                 loading={fetchingSubTree}
                 initialized={initialized}
-                className={`rounded-lg border`}
+                className={`rounded-lg border pb-2`}
               />
             )}
             {showCodeEditor && (
               <SourceCodeEditor
-                className={`rounded-lg border py-2`}
+                className={`rounded-lg border pb-2`}
                 blob={fileBlob}
                 meta={fileMeta}
                 // key={activePath}
@@ -338,7 +314,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             )}
             {showRawFilePanel && fileBlob && (
               <RawContentPanel
-                className={`rounded-lg border py-2`}
+                className={`rounded-lg border pb-2`}
                 blob={fileBlob}
                 isImage={fileViewType === 'image'}
               />
@@ -428,7 +404,7 @@ async function initFileMap(path?: string) {
       const entries = await Promise.all(requests.map(fn => fn()))
       let result: TFile[] = []
       for (let entry of entries) {
-        if (entry.entries?.length) {
+        if (entry?.entries?.length) {
           result = [...result, ...entry.entries]
         }
       }

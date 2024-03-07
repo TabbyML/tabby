@@ -11,6 +11,7 @@ import { markTagNameExtension } from '@/components/codemirror/name-tag-extension
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
+import { BlobHeader } from './blob-header'
 import { SourceCodeBrowserContext } from './source-code-browser'
 
 interface SourceCodeEditorProps {
@@ -77,6 +78,7 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
 
   return (
     <div className={cn('source-code-browser', className)}>
+      <BlobHeader blob={blob} canCopy className="mb-2" />
       <CodeMirrorEditor
         value={value}
         theme={theme}

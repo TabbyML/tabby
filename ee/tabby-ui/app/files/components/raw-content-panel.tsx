@@ -2,6 +2,7 @@ import React, { useContext } from 'react'
 
 import { cn } from '@/lib/utils'
 
+import { BlobHeader } from './blob-header'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveFileNameFromPath } from './utils'
 
@@ -19,6 +20,7 @@ export const RawContentPanel: React.FC<RawContentPanelProps> = ({
 
   return (
     <div className={cn('text-center', className)}>
+      <BlobHeader blob={blob} className="mb-2" />
       {isImage ? (
         <img className="mx-auto" src={URL.createObjectURL(blob)} />
       ) : (

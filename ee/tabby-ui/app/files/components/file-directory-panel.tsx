@@ -7,6 +7,7 @@ import { IconDirectorySolid, IconFile } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 
+import { BlobHeader } from './blob-header'
 import { TFileTreeNode } from './file-tree'
 import { SourceCodeBrowserContext, TFileMapItem } from './source-code-browser'
 import { resolveFileNameFromPath } from './utils'
@@ -44,6 +45,7 @@ const DirectoryPanel: React.FC<DirectoryPanelProps> = ({
 
   return (
     <div className={cn('text-base', className)}>
+      <BlobHeader blob={undefined} hideBlobActions />
       {loading || !initialized ? (
         <FileTreeSkeleton />
       ) : fileTreeData?.length ? (
