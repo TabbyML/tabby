@@ -7,7 +7,6 @@ const useIsSticky = (ref: React.RefObject<HTMLElement>) => {
     const cachedRef = ref.current
     const observer = new IntersectionObserver(
       ([e]) => {
-        console.log('call====', e.intersectionRatio)
         setIsSticky(e.intersectionRatio < 1)
       },
       { threshold: [1] }

@@ -74,7 +74,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
             <div className="flex items-center gap-2">
               {canCopy && (
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" onClick={onCopy}>
                       {isCopied ? (
                         <IconCheck className="text-green-600" />
@@ -89,7 +89,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
               )}
               {!!blob && (
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <a
                       className={buttonVariants({
                         variant: 'ghost',
