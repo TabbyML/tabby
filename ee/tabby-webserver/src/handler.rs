@@ -18,10 +18,9 @@ use tracing::warn;
 
 use crate::{
     cron, hub, oauth,
-    public::new_event_logger,
     repositories::{self, RepositoryCache},
     schema::{create_schema, Schema, ServiceLocator},
-    service::create_service_locator,
+    service::{create_service_locator, event_logger::new_event_logger},
     ui,
 };
 
