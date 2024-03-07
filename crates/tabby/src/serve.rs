@@ -28,6 +28,7 @@ use crate::{
         chat::create_chat_service,
         code::create_code_search,
         completion::{self, create_completion_service},
+        event::wrap_logger_raw,
         health,
         model::download_model_if_needed,
     },
@@ -122,16 +123,13 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(feature = "ee")]
     let ws = WebserverHandle::new().await;
     let logger;
-    let raw_logger;
     #[cfg(feature = "ee")]
     {
         logger = ws.logger();
-        raw_logger = ws.raw_logger();
     }
     #[cfg(not(feature = "ee"))]
     {
         logger = Arc::new(create_logger());
-        raw_logger = Arc::new(create_logger());
     }
     let code = Arc::new(create_code_search());
 
@@ -145,7 +143,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
             .attach_webserver(
                 api,
                 ui,
-                raw_logger,
+                wrap_logger_raw(logger.clone()),
                 code,
                 args.chat_model.is_some(),
                 args.port,
