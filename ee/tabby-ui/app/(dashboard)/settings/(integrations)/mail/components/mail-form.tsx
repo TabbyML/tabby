@@ -212,21 +212,22 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel required>Authentication Method</FormLabel>
-                <FormControl>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  name={field.name}
+                >
+                  <FormControl>
                     <SelectTrigger className="w-80 min-w-max">
                       <SelectValue placeholder="Select a method" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={AuthMethod.None}>NONE</SelectItem>
-                      <SelectItem value={AuthMethod.Plain}>PLAIN</SelectItem>
-                      <SelectItem value={AuthMethod.Login}>LOGIN</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={AuthMethod.None}>NONE</SelectItem>
+                    <SelectItem value={AuthMethod.Plain}>PLAIN</SelectItem>
+                    <SelectItem value={AuthMethod.Login}>LOGIN</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -279,23 +280,24 @@ const MailForm = React.forwardRef<MailFormRef, MailFormProps>((props, ref) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel required>Encryption</FormLabel>
-                <FormControl>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  name={field.name}
+                >
+                  <FormControl>
                     <SelectTrigger className="w-80 min-w-max">
                       <SelectValue placeholder="Select an encryption" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={Encryption.None}>NONE</SelectItem>
-                      <SelectItem value={Encryption.SslTls}>SSL/TLS</SelectItem>
-                      <SelectItem value={Encryption.StartTls}>
-                        STARTTLS
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={Encryption.None}>NONE</SelectItem>
+                    <SelectItem value={Encryption.SslTls}>SSL/TLS</SelectItem>
+                    <SelectItem value={Encryption.StartTls}>
+                      STARTTLS
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

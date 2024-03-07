@@ -75,7 +75,11 @@ export default function UserPanel() {
           <span className="ml-2">API Docs</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+        <DropdownMenuItem
+          disabled={signOutLoading}
+          onClick={handleSignOut}
+          className="cursor-pointer"
+        >
           <IconLogout />
           <span className="ml-2">Logout</span>
           {signOutLoading && <IconSpinner className="ml-1" />}
