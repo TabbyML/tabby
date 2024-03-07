@@ -7,6 +7,9 @@ mod serve;
 #[cfg(feature = "ee")]
 mod worker;
 
+#[cfg(target_family = "unix")]
+use std::os::unix::fs::PermissionsExt;
+
 use clap::{Parser, Subcommand};
 use opentelemetry::{
     global,
@@ -134,6 +137,14 @@ async fn main() {
     init_logging(cli.otlp_endpoint);
 
     let config = Config::load().unwrap_or_default();
+    let root = tabby_common::path::tabby_root();
+    std::fs::create_dir_all(&root).expect("Must be able to create tabby root");
+    #[cfg(target_family = "unix")]
+    {
+        let mut permissions = std::fs::metadata(&root).unwrap().permissions();
+        permissions.set_mode(0o600);
+        std::fs::set_permissions(&root, permissions).unwrap();
+    }
 
     match cli.command {
         Commands::Serve(ref args) => serve::main(&config, args).await,
