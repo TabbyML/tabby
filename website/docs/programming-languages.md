@@ -31,7 +31,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Kotlin](https://www.kotlinlang.org/)
 * [C/C++](https://cplusplus.com/)
 * [PHP](https://www.php.net/)
-* [C#](https://learn.microsoft.com/en-us/dotnet/csharp/): Since v0.9.0
+* [C#](https://learn.microsoft.com/en-us/dotnet/csharp/)
 
 ## Languages Missing Certain Support
 
