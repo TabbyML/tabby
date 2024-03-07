@@ -113,11 +113,11 @@ impl RepositoryConfig {
     pub fn name(&self) -> String {
         self.name
             .clone()
-            .unwrap_or_else(|| clean_name(filenamify(&self.git_url)))
+            .unwrap_or_else(|| sanitize_name(filenamify(&self.git_url)))
     }
 }
 
-fn clean_name(s: String) -> String {
+fn sanitize_name(s: String) -> String {
     s.chars()
         .map(|c| match c {
             'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '-' => c,
@@ -156,7 +156,7 @@ impl RepositoryAccess for ConfigRepositoryAccess {
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, RepositoryConfig};
+    use super::{sanitize_name, Config, RepositoryConfig};
 
     #[test]
     fn it_parses_empty_config() {
@@ -198,5 +198,15 @@ mod tests {
         assert!(RepositoryConfig::validate_name(
             "https_github.com_TabbyML_tabby.git"
         ));
+    }
+
+    #[test]
+    fn test_sanitize_repository_name() {
+        assert_eq!(sanitize_name("abc@def".into()), "abc_def");
+        assert_eq!(sanitize_name("abcdef".into()), "abcdef");
+        assert_eq!(
+            sanitize_name("github.com/TabbyML/tabby.git".into()),
+            "github.com_TabbyML_tabby.git"
+        );
     }
 }
