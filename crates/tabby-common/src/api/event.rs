@@ -92,7 +92,7 @@ pub struct Segments {
     pub clipboard: Option<String>,
 }
 
-pub trait EventLogger: Send + Sync + RawEventLogger {
+pub trait EventLogger: Send + Sync {
     fn log(&self, e: Event);
 }
 
