@@ -11,13 +11,14 @@ use lettre::{
     },
     Address, AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
 };
-use tabby_db::{DbConn, DbEnum};
+use tabby_db::DbConn;
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::warn;
 mod templates;
 #[cfg(test)]
 pub mod testutils;
 
+use super::dao::DbEnum;
 use crate::schema::{
     email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
     setting::SettingService,

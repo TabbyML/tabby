@@ -4,10 +4,9 @@ use anyhow::anyhow;
 use cache::Cache;
 use chrono::{DateTime, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
-pub use github_oauth_credential::GithubOAuthCredentialDAO;
-pub use google_oauth_credential::GoogleOAuthCredentialDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
+pub use oauth_credential::OAuthCredentialDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{
@@ -17,10 +16,9 @@ pub use users::UserDAO;
 
 pub mod cache;
 mod email_setting;
-mod github_oauth_credential;
-mod google_oauth_credential;
 mod invitations;
 mod job_runs;
+mod oauth_credential;
 mod password_reset;
 mod path;
 mod refresh_tokens;
@@ -32,11 +30,6 @@ mod users;
 use anyhow::Result;
 use sql_query_builder as sql;
 use sqlx::sqlite::SqliteConnectOptions;
-
-pub trait DbEnum: Sized {
-    fn as_enum_str(&self) -> &'static str;
-    fn from_enum_str(s: &str) -> anyhow::Result<Self>;
-}
 
 #[derive(Default)]
 pub struct DbCache {

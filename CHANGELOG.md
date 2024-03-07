@@ -1,10 +1,16 @@
-# v0.9.0 [Unreleased]
+# v0.10.0 [UNRELEASED]
 
 ## Features
 
 ## Fixes and Improvements
 
-* The `user` field in the `~/tabby/events` log is now populated for users who authenticate via the `--webserver` feature.
+# v0.9.0
+
+## Features
+
+* Support for SMTP configuration in the user management system.
+* Support for SSO and team management as features in the Enterprise tier.
+* Fully managed repository indexing using `--webserver`, with job history logging available in the web interface.
 
 # v0.8.3
 

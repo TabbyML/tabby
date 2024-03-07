@@ -2,8 +2,8 @@ use anyhow::anyhow;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    DbEnum, EmailSettingDAO, GithubOAuthCredentialDAO, GoogleOAuthCredentialDAO, InvitationDAO,
-    JobRunDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
+    EmailSettingDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO,
+    UserDAO,
 };
 
 use crate::schema::{
@@ -57,27 +57,17 @@ impl From<UserDAO> for auth::User {
     }
 }
 
-impl From<GithubOAuthCredentialDAO> for OAuthCredential {
-    fn from(val: GithubOAuthCredentialDAO) -> Self {
-        OAuthCredential {
-            provider: OAuthProvider::Github,
-            client_id: val.client_id,
-            created_at: val.created_at,
-            updated_at: val.updated_at,
-            client_secret: Some(val.client_secret),
-        }
-    }
-}
+impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
+    type Error = anyhow::Error;
 
-impl From<GoogleOAuthCredentialDAO> for OAuthCredential {
-    fn from(val: GoogleOAuthCredentialDAO) -> Self {
-        OAuthCredential {
-            provider: OAuthProvider::Google,
+    fn try_from(val: OAuthCredentialDAO) -> Result<Self, Self::Error> {
+        Ok(OAuthCredential {
+            provider: OAuthProvider::from_enum_str(&val.provider)?,
             client_id: val.client_id,
-            created_at: val.created_at,
-            updated_at: val.updated_at,
+            created_at: *val.created_at,
+            updated_at: *val.updated_at,
             client_secret: Some(val.client_secret),
-        }
+        })
     }
 }
 
@@ -166,6 +156,11 @@ impl AsID for i32 {
     }
 }
 
+pub trait DbEnum: Sized {
+    fn as_enum_str(&self) -> &'static str;
+    fn from_enum_str(s: &str) -> anyhow::Result<Self>;
+}
+
 impl DbEnum for Encryption {
     fn as_enum_str(&self) -> &'static str {
         match self {
@@ -181,6 +176,23 @@ impl DbEnum for Encryption {
             "ssltls" => Ok(Encryption::SslTls),
             "none" => Ok(Encryption::None),
             _ => Err(anyhow!("{s} is not a valid value for Encryption")),
+        }
+    }
+}
+
+impl DbEnum for OAuthProvider {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            OAuthProvider::Google => "google",
+            OAuthProvider::Github => "github",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "github" => Ok(OAuthProvider::Github),
+            "google" => Ok(OAuthProvider::Google),
+            _ => Err(anyhow!("Invalid OAuth credential type")),
         }
     }
 }
