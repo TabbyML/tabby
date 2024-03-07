@@ -2,7 +2,6 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use filenamify::filenamify;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -113,11 +112,11 @@ impl RepositoryConfig {
     pub fn name(&self) -> String {
         self.name
             .clone()
-            .unwrap_or_else(|| sanitize_name(filenamify(&self.git_url)))
+            .unwrap_or_else(|| sanitize_name(&self.git_url))
     }
 }
 
-fn sanitize_name(s: String) -> String {
+fn sanitize_name(s: &str) -> String {
     s.chars()
         .map(|c| match c {
             'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '-' => c,
@@ -202,10 +201,10 @@ mod tests {
 
     #[test]
     fn test_sanitize_repository_name() {
-        assert_eq!(sanitize_name("abc@def".into()), "abc_def");
-        assert_eq!(sanitize_name("abcdef".into()), "abcdef");
+        assert_eq!(sanitize_name("abc@def"), "abc_def");
+        assert_eq!(sanitize_name("abcdef"), "abcdef");
         assert_eq!(
-            sanitize_name("github.com/TabbyML/tabby.git".into()),
+            sanitize_name("github.com/TabbyML/tabby.git"),
             "github.com_TabbyML_tabby.git"
         );
     }
