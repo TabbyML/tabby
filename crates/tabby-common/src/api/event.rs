@@ -103,7 +103,7 @@ struct Log {
 }
 
 pub trait RawEventLogger: Send + Sync {
-    fn log_raw(&self, content: String);
+    fn log(&self, content: String);
 }
 
 impl<T: RawEventLogger> EventLogger for T {
@@ -114,7 +114,7 @@ impl<T: RawEventLogger> EventLogger for T {
         })
         .unwrap();
 
-        self.log_raw(content);
+        self.log(content);
     }
 }
 

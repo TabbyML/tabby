@@ -1,17 +1,14 @@
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{path::PathBuf, time::Duration};
 
 use chrono::Utc;
 use lazy_static::lazy_static;
-use tabby_common::{
-    api::event::{EventLogger, RawEventLogger},
-    path,
-};
+use tabby_common::{api::event::RawEventLogger, path};
 use tokio::{
     io::AsyncWriteExt,
     sync::mpsc::{unbounded_channel, UnboundedSender},
     time::{self},
 };
-use tracing::{error, warn};
+use tracing::error;
 
 lazy_static! {
     static ref WRITER: UnboundedSender<String> = {
@@ -102,7 +99,7 @@ impl EventWriter {
 struct EventService;
 
 impl RawEventLogger for EventService {
-    fn log_raw(&self, content: String) {
+    fn log(&self, content: String) {
         if let Err(err) = WRITER.send(content) {
             error!("Failed to write event to file: {}", err);
         }
@@ -112,22 +109,6 @@ impl RawEventLogger for EventService {
 #[cfg(not(feature = "ee"))]
 pub fn create_logger() -> impl RawEventLogger {
     EventService
-}
-
-pub fn wrap_logger_raw(logger: Arc<dyn EventLogger>) -> Arc<dyn RawEventLogger> {
-    Arc::new(RawEventLoggerWrapper(logger))
-}
-
-struct RawEventLoggerWrapper(Arc<dyn EventLogger>);
-
-impl RawEventLogger for RawEventLoggerWrapper {
-    fn log_raw(&self, content: String) {
-        let Ok(event) = serde_json::from_str(&content) else {
-            warn!("Invalid event JSON: {content}");
-            return;
-        };
-        self.0.log(event);
-    }
 }
 
 #[cfg(test)]

@@ -19,8 +19,6 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-#[cfg(not(feature = "ee"))]
-use crate::services::event::create_logger;
 use crate::{
     routes::{self, run_app},
     services::{
@@ -28,12 +26,14 @@ use crate::{
         chat::create_chat_service,
         code::create_code_search,
         completion::{self, create_completion_service},
-        event::wrap_logger_raw,
         health,
         model::download_model_if_needed,
     },
     Device,
 };
+
+#[cfg(not(feature = "ee"))]
+use crate::services::event::create_logger;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -140,14 +140,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(feature = "ee")]
     let (api, ui) = if args.webserver {
         let (api, ui) = ws
-            .attach_webserver(
-                api,
-                ui,
-                wrap_logger_raw(logger.clone()),
-                code,
-                args.chat_model.is_some(),
-                args.port,
-            )
+            .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
             .await;
         (api, ui)
     } else {

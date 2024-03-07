@@ -22,7 +22,7 @@ pub fn new_event_logger(db: DbConn) -> impl RawEventLogger {
 }
 
 impl RawEventLogger for DbEventLogger {
-    fn log_raw(&self, content: String) {
+    fn log(&self, content: String) {
         let Ok(event) = serde_json::from_str(&content) else {
             warn!("Invalid event JSON: {content}");
             return;

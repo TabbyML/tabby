@@ -98,7 +98,7 @@ impl Drop for HubImpl {
 #[tarpc::server]
 impl Hub for Arc<HubImpl> {
     async fn log_event(self, _context: tarpc::context::Context, content: String) {
-        self.ctx.logger().log_raw(content)
+        self.ctx.logger().log(content)
     }
 
     async fn search(
