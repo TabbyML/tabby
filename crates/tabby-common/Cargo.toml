@@ -4,7 +4,6 @@ version = "0.10.0-dev.0"
 edition = "2021"
 
 [dependencies]
-filenamify = "0.1.0"
 home = "0.5.5"
 lazy_static = { workspace = true }
 serde = { workspace = true }

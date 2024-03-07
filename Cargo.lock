@@ -1175,15 +1175,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "filenamify"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b781e8974b2cc71ac3c587c881c11ee5fe9a379f43503674e1e1052647593b4c"
-dependencies = [
- "regex",
-]
-
-[[package]]
 name = "finl_unicode"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4468,7 +4459,6 @@ version = "0.10.0-dev.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "filenamify",
  "glob",
  "home",
  "lazy_static",

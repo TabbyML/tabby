@@ -2,7 +2,6 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use filenamify::filenamify;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -111,12 +110,22 @@ impl RepositoryConfig {
     }
 
     pub fn name(&self) -> String {
-        if let Some(name) = &self.name {
-            name.clone()
-        } else {
-            filenamify(&self.git_url)
-        }
+        self.name
+            .clone()
+            .unwrap_or_else(|| sanitize_name(&self.git_url))
     }
+}
+
+fn sanitize_name(s: &str) -> String {
+    let mut sanitized: Vec<char> = s
+        .chars()
+        .map(|c| match c {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '-' => c,
+            _ => '_',
+        })
+        .collect();
+    sanitized.dedup_by(|a, b| *a == '_' && *b == '_');
+    sanitized.into_iter().collect()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -149,7 +158,7 @@ impl RepositoryAccess for ConfigRepositoryAccess {
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, RepositoryConfig};
+    use super::{sanitize_name, Config, RepositoryConfig};
 
     #[test]
     fn it_parses_empty_config() {
@@ -191,5 +200,15 @@ mod tests {
         assert!(RepositoryConfig::validate_name(
             "https_github.com_TabbyML_tabby.git"
         ));
+    }
+
+    #[test]
+    fn test_sanitize_repository_name() {
+        assert_eq!(sanitize_name("abc@def"), "abc_def");
+        assert_eq!(sanitize_name("abcdef"), "abcdef");
+        assert_eq!(
+            sanitize_name("https://github.com/TabbyML/tabby.git"),
+            "https_github.com_TabbyML_tabby.git"
+        );
     }
 }
