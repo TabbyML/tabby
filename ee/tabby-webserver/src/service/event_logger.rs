@@ -82,7 +82,7 @@ mod tests {
     use tabby_common::api::event::{Event, EventLogger, Message};
     use tabby_db::DbConn;
 
-    use crate::{service::dao::AsID, service::event_logger::new_event_logger};
+    use crate::service::{dao::AsID, event_logger::new_event_logger};
 
     async fn sleep_50() {
         tokio::time::sleep(Duration::from_millis(500)).await;
