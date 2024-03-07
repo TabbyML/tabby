@@ -500,7 +500,7 @@ function isReadableTextFile(blob: Blob) {
       resolve(false)
     }
 
-    reader.readAsText(blobPart, 'UTF-8') // 假设文件是 UTF-8 编码
+    reader.readAsText(blobPart, 'UTF-8')
   })
 }
 
