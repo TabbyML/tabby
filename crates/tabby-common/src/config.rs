@@ -117,12 +117,15 @@ impl RepositoryConfig {
 }
 
 fn sanitize_name(s: &str) -> String {
-    s.chars()
+    let mut sanitized: Vec<char> = s
+        .chars()
         .map(|c| match c {
             'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '-' => c,
             _ => '_',
         })
-        .collect()
+        .collect();
+    sanitized.dedup_by(|a, b| *a == '_' && *b == '_');
+    sanitized.into_iter().collect()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -204,8 +207,8 @@ mod tests {
         assert_eq!(sanitize_name("abc@def"), "abc_def");
         assert_eq!(sanitize_name("abcdef"), "abcdef");
         assert_eq!(
-            sanitize_name("github.com/TabbyML/tabby.git"),
-            "github.com_TabbyML_tabby.git"
+            sanitize_name("https://github.com/TabbyML/tabby.git"),
+            "https_github.com_TabbyML_tabby.git"
         );
     }
 }
