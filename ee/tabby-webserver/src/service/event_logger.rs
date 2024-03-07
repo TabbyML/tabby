@@ -1,8 +1,11 @@
 use std::fmt::Display;
 
+use juniper::ID;
 use tabby_common::api::event::EventLogger;
 use tabby_db::DbConn;
 use tracing::warn;
+
+use super::dao::AsRowid;
 
 struct EventLoggerImpl {
     db: DbConn,
@@ -48,7 +51,11 @@ impl EventLogger for EventLoggerImpl {
                 let Some(user) = user else { return };
                 let db = self.db.clone();
                 tokio::spawn(async move {
-                    let user_db = db.get_user_by_email(&user).await;
+                    let Ok(id) = ID::new(&user).as_rowid() else {
+                        warn!("Invalid user ID");
+                        return;
+                    };
+                    let user_db = db.get_user(id).await;
                     let Ok(Some(user_db)) = user_db else {
                         warn!("Failed to retrieve user for {user}");
                         return;
@@ -71,6 +78,8 @@ mod tests {
     use tabby_common::api::event::{Event, Message};
     use tabby_db::DbConn;
 
+    use crate::service::dao::AsID;
+
     use super::*;
 
     async fn sleep_50() {
@@ -81,9 +90,12 @@ mod tests {
     async fn test_event_logger() {
         let db = DbConn::new_in_memory().await.unwrap();
         let logger = new_event_logger(db.clone());
-        db.create_user("testuser".into(), "pass".into(), true)
+        let user_id = db
+            .create_user("testuser".into(), "pass".into(), true)
             .await
             .unwrap();
+
+        let id = user_id.as_id();
 
         logger.log(Event::Completion {
             completion_id: "test_id".into(),
@@ -91,7 +103,7 @@ mod tests {
             prompt: "testprompt".into(),
             segments: None,
             choices: vec![],
-            user: Some("testuser".into()),
+            user: Some(id.to_string()),
         });
 
         sleep_50().await;
