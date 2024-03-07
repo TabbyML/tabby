@@ -34,3 +34,7 @@ pub fn test() -> String {
 pub fn password_reset(external_url: &str, email: &str, code: &str) -> String {
     template_email!(password_reset: external_url, email, code)
 }
+
+pub fn signup_success(external_url: &str, email: &str) -> String {
+    template_email!(signup_success: external_url, email)
+}

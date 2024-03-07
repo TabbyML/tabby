@@ -50,4 +50,5 @@ pub trait EmailService: Send + Sync {
     async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>>;
     async fn send_password_reset_email(&self, to: String, code: String) -> Result<JoinHandle<()>>;
     async fn send_invitation_email(&self, email: String, code: String) -> Result<JoinHandle<()>>;
+    async fn send_signup_email(&self, email: String) -> Result<JoinHandle<()>>;
 }
