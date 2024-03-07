@@ -24,6 +24,7 @@ mod path;
 mod refresh_tokens;
 mod repositories;
 mod server_setting;
+mod user_completions;
 mod users;
 
 use anyhow::Result;

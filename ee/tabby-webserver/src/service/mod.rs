@@ -1,6 +1,7 @@
 mod auth;
 mod dao;
 mod email;
+mod event_logger;
 mod job;
 mod license;
 mod proxy;
