@@ -67,7 +67,7 @@ impl Config {
 }
 
 lazy_static! {
-    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.-]+$").unwrap();
+    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.@-]+$").unwrap();
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -190,6 +190,9 @@ mod tests {
         assert!(RepositoryConfig::validate_name("tabby_ml"));
         assert!(RepositoryConfig::validate_name(
             "https_github.com_TabbyML_tabby.git"
+        ));
+        assert!(RepositoryConfig::validate_name(
+            "https_github_pat@github.com_xxx.git"
         ));
     }
 }
