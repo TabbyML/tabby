@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -115,6 +117,12 @@ impl<T: RawEventLogger> EventLogger for T {
         .unwrap();
 
         self.log(content);
+    }
+}
+
+impl RawEventLogger for Arc<dyn RawEventLogger> {
+    fn log(&self, content: String) {
+        (**self).log(content)
     }
 }
 

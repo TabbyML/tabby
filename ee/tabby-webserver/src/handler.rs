@@ -8,11 +8,7 @@ use axum::{
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::{graphiql, graphql, playground};
-use tabby_common::api::{
-    code::CodeSearch,
-    event::{EventLogger, RawEventLogger},
-    server_setting::ServerSetting,
-};
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger, server_setting::ServerSetting};
 use tabby_db::DbConn;
 use tracing::warn;
 
@@ -24,25 +20,9 @@ use crate::{
     ui,
 };
 
-fn wrap_logger_raw(logger: Arc<dyn EventLogger>) -> Arc<dyn RawEventLogger> {
-    Arc::new(RawEventLoggerWrapper(logger))
-}
-
-struct RawEventLoggerWrapper(Arc<dyn EventLogger>);
-
-impl RawEventLogger for RawEventLoggerWrapper {
-    fn log(&self, content: String) {
-        let Ok(event) = serde_json::from_str(&content) else {
-            warn!("Invalid event JSON: {content}");
-            return;
-        };
-        self.0.log(event);
-    }
-}
-
 pub struct WebserverHandle {
     db: DbConn,
-    event_logger: Arc<dyn EventLogger>,
+    event_logger: Arc<dyn RawEventLogger>,
 }
 
 impl WebserverHandle {
@@ -52,7 +32,7 @@ impl WebserverHandle {
         WebserverHandle { db, event_logger }
     }
 
-    pub fn logger(&self) -> Arc<dyn EventLogger> {
+    pub fn logger(&self) -> Arc<dyn RawEventLogger> {
         self.event_logger.clone()
     }
 
@@ -64,13 +44,8 @@ impl WebserverHandle {
         is_chat_enabled: bool,
         local_port: u16,
     ) -> (Router, Router) {
-        let ctx = create_service_locator(
-            wrap_logger_raw(self.logger()),
-            code,
-            self.db.clone(),
-            is_chat_enabled,
-        )
-        .await;
+        let ctx =
+            create_service_locator(self.logger(), code, self.db.clone(), is_chat_enabled).await;
         let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
         let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;

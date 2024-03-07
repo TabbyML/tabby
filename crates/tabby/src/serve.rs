@@ -133,7 +133,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
     let code = Arc::new(create_code_search());
 
-    let api = api_router(args, config, logger.clone(), code.clone()).await;
+    let api = api_router(args, config, Arc::new(logger.clone()), code.clone()).await;
     let ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
