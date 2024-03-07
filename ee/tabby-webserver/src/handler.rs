@@ -25,7 +25,7 @@ use crate::{
     ui,
 };
 
-pub fn wrap_logger_raw(logger: Arc<dyn EventLogger>) -> Arc<dyn RawEventLogger> {
+fn wrap_logger_raw(logger: Arc<dyn EventLogger>) -> Arc<dyn RawEventLogger> {
     Arc::new(RawEventLoggerWrapper(logger))
 }
 

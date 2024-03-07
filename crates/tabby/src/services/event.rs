@@ -106,7 +106,6 @@ impl RawEventLogger for EventService {
     }
 }
 
-#[cfg(not(feature = "ee"))]
 pub fn create_logger() -> impl RawEventLogger {
     EventService
 }

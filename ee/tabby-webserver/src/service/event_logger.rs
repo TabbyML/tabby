@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use juniper::ID;
-use tabby_common::api::event::{Log, RawEventLogger};
+use tabby_common::api::event::{EventLogger, Log, RawEventLogger};
 use tabby_db::DbConn;
 use tracing::warn;
 
@@ -17,7 +17,7 @@ fn log_err<T, E: Display>(res: Result<T, E>) {
     }
 }
 
-pub fn new_event_logger(db: DbConn) -> impl RawEventLogger {
+pub fn new_event_logger(db: DbConn) -> impl EventLogger {
     DbEventLogger { db }
 }
 
