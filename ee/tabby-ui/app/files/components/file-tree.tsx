@@ -141,7 +141,7 @@ const FileTreeNodeView: React.FC<
   return (
     <div
       className={cn(
-        'relative h-8 flex cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
+        'relative flex h-8 cursor-pointer items-stretch rounded-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground',
         isActive && 'bg-accent',
         className
       )}

@@ -36,7 +36,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   return (
     <div className={cn(className)} {...props}>
-      <div className="font-bold leading-8 py-4">Files</div>
+      <div className="py-4 font-bold leading-8">Files</div>
       <Select onValueChange={onSelectRepo} value={repoName}>
         <SelectTrigger>
           <SelectValue>

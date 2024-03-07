@@ -57,7 +57,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
       {...props}
     >
       {isSticky && (
-        <div className="px-2 bg-secondary">
+        <div className="bg-secondary px-2">
           <FileDirectoryBreadcrumb className="py-2" />
         </div>
       )}
@@ -66,7 +66,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
           {isSticky && <Separator />}
           <div
             className={cn(
-              'flex items-center justify-between bg-secondary text-secondary-foreground p-2 border-b',
+              'flex items-center justify-between border-b bg-secondary p-2 text-secondary-foreground',
               !isSticky && 'rounded-t-lg'
             )}
           >
