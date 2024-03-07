@@ -3,7 +3,7 @@ sidebar_position: 3
 ---
 
 # Windows
-Running Tabby on Windows without WSL or Docker.
+Running Tabby on Windows using Tabby's exe distribution.
 
 ## 1. Find the Windows release
 * Go to the Tabby release page: https://github.com/TabbyML/tabby/releases
@@ -12,7 +12,7 @@ Running Tabby on Windows without WSL or Docker.
 
 ## 2. Download the release
 * If you are using a CPU-only system, download the **tabby_x86_64-windows-msvc.exe file**.
-* If you are using a GPU-enabled system, download the **tabby_x86_64-windows-msvc-cuda{VERSION}.exe** file, replacing {VERSION} with the appropriate CUDA version for your system.
+* If you are using a GPU-enabled system, download the **tabby_x86_64-windows-msvc-cuda117.exe** file, In this example, we assume you are using CUDA 11.7.
 
 **Tips:**
 * Download the CUDA Toolkit from Nvidia: https://developer.nvidia.com/cuda-toolkit
@@ -24,5 +24,9 @@ nvcc --version
 ## 3. Running Tabby locally
 Open a command prompt or PowerShell window in the directory where you downloaded the Tabby executable. Run the following command:
 ```
-.\tabby_x86_64-windows-msvc-cuda{VERSION}.exe serve --device cuda
+.\tabby_x86_64-windows-msvc-cuda117.exe serve --model TabbyML/StarCoder-1B --device cuda
 ```
+You should see the following output if the command runs successfully:
+![Windows running output](./status.png)
+
+You can also go to `http://localhost:8080/swagger-ui/` to check the available API endpoints.
