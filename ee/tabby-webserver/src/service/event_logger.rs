@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use juniper::ID;
-use tabby_common::api::event::RawEventLogger;
+use tabby_common::api::event::{Log, RawEventLogger};
 use tabby_db::DbConn;
 use tracing::warn;
 
@@ -23,7 +23,7 @@ pub fn new_event_logger(db: DbConn) -> impl RawEventLogger {
 
 impl RawEventLogger for DbEventLogger {
     fn log(&self, content: String) {
-        let Ok(event) = serde_json::from_str(&content) else {
+        let Ok(Log { event, .. }) = serde_json::from_str(&content) else {
             warn!("Invalid event JSON: {content}");
             return;
         };

@@ -96,10 +96,10 @@ pub trait EventLogger: Send + Sync {
     fn log(&self, e: Event);
 }
 
-#[derive(Serialize)]
-struct Log {
-    ts: u128,
-    event: Event,
+#[derive(Serialize, Deserialize)]
+pub struct Log {
+    pub ts: u128,
+    pub event: Event,
 }
 
 pub trait RawEventLogger: Send + Sync {
