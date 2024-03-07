@@ -67,7 +67,7 @@ impl Config {
 }
 
 lazy_static! {
-    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.@-]+$").unwrap();
+    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.-]+$").unwrap();
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -111,12 +111,19 @@ impl RepositoryConfig {
     }
 
     pub fn name(&self) -> String {
-        if let Some(name) = &self.name {
-            name.clone()
-        } else {
-            filenamify(&self.git_url)
-        }
+        self.name
+            .clone()
+            .unwrap_or_else(|| clean_name(filenamify(&self.git_url)))
     }
+}
+
+fn clean_name(s: String) -> String {
+    s.chars()
+        .map(|c| match c {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '-' => c,
+            _ => '_',
+        })
+        .collect()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -190,9 +197,6 @@ mod tests {
         assert!(RepositoryConfig::validate_name("tabby_ml"));
         assert!(RepositoryConfig::validate_name(
             "https_github.com_TabbyML_tabby.git"
-        ));
-        assert!(RepositoryConfig::validate_name(
-            "https_github_pat@github.com_xxx.git"
         ));
     }
 }
