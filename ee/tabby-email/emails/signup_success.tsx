@@ -37,7 +37,7 @@ export const SignupSuccess = ({
 
 SignupSuccess.PreviewProps = {
   email: "user@tabbyml.com",
-  link: "http://localhost:8080/auth/reset-password?code={{CODE}}",
+  link: "http://localhost:8080/",
 } as SignupSuccess;
 
 export default SignupSuccess;
