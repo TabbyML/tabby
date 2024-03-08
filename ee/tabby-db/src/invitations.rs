@@ -23,8 +23,9 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<InvitationDAO>> {
-        let query = query_paged_as!(InvitationDAO, "invitations", ["id", "email", "code", "created_at"!], limit, skip_id, backwards);
-        let invitations = sqlx::query_as(&query).fetch_all(&self.pool).await?;
+        let invitations = query_paged_as!(InvitationDAO, "invitations", ["id", "email", "code", "created_at"!], limit, skip_id, backwards)
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok(invitations)
     }

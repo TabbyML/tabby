@@ -113,9 +113,9 @@ pub fn query_paged_as(input: TokenStream) -> TokenStream {
     let skip_id = input.skip_id;
     let backwards = input.backwards;
     quote! {
-        {
-            let _ = sqlx::query_as!(#typ, "SELECT " + #columns + " FROM " + #table_name + #where_clause);
-            crate::make_pagination_query_with_condition(#table_name, &[ #(#column_args),* ], #limit, #skip_id, #backwards, #condition)
-        }
+            sqlx::query_as(&crate::make_pagination_query_with_condition({
+                let _ = sqlx::query_as!(#typ, "SELECT " + #columns + " FROM " + #table_name + #where_clause);
+                &#table_name
+            }, &[ #(#column_args),* ], #limit, #skip_id, #backwards, #condition))
     }.into()
 }
