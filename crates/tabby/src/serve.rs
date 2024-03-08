@@ -5,7 +5,10 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api,
-    api::{code::CodeSearch, event::EventLogger},
+    api::{
+        code::CodeSearch,
+        event::{EventLogger, RawEventLogger},
+    },
     config::Config,
     usage,
 };
@@ -122,7 +125,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     let ws = WebserverHandle::new().await;
-    let logger;
+    let logger: Arc<dyn RawEventLogger>;
     #[cfg(feature = "ee")]
     {
         logger = ws.logger();

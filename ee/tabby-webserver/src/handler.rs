@@ -32,7 +32,7 @@ impl WebserverHandle {
         WebserverHandle { db, event_logger }
     }
 
-    pub fn logger(&self) -> Arc<dyn RawEventLogger> {
+    pub fn logger(&self) -> Arc<dyn RawEventLogger + 'static> {
         self.event_logger.clone()
     }
 
