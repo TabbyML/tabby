@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{bracketed, parse::Parse, parse_macro_input, Ident, LitStr, Token, Type};
 
+#[derive(Clone)]
 struct Column {
     name: LitStr,
     non_null: bool,
@@ -86,7 +87,7 @@ pub fn query_paged_as(input: TokenStream) -> TokenStream {
     let table_name = input.table_name;
     let columns = input
         .columns
-        .into_iter()
+        .iter()
         .map(|col| {
             let name = col.name.value();
             if col.non_null {
@@ -95,8 +96,9 @@ pub fn query_paged_as(input: TokenStream) -> TokenStream {
                 name
             }
         })
-        .collect::<Vec<_>>();
-    let columns_joined = columns.join(", ");
+        .collect::<Vec<_>>()
+        .join(", ");
+    let column_args: Vec<String> = input.columns.iter().map(|col| col.name.value()).collect();
     let where_clause = input
         .condition
         .clone()
@@ -112,8 +114,8 @@ pub fn query_paged_as(input: TokenStream) -> TokenStream {
     let backwards = input.backwards;
     quote! {
         {
-            let _ = sqlx::query_as!(#typ, "SELECT " + #columns_joined + " FROM " + #table_name + #where_clause);
-            crate::make_pagination_query_with_condition(#table_name, &[ #(#columns),* ], #limit, #skip_id, #backwards, #condition)
+            let _ = sqlx::query_as!(#typ, "SELECT " + #columns + " FROM " + #table_name + #where_clause);
+            crate::make_pagination_query_with_condition(#table_name, &[ #(#column_args),* ], #limit, #skip_id, #backwards, #condition)
         }
     }.into()
 }
