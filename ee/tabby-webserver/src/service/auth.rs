@@ -89,6 +89,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("Unknown error").into());
         };
 
+        if let Err(e) = self.mail.send_signup_email(email.clone()).await {
+            warn!("Failed to send signup email: {e}");
+        }
+
         let resp = RegisterResponse::new(access_token, refresh_token);
         Ok(resp)
     }
@@ -377,7 +381,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .read_license()
             .await
             .context("Failed to read license info")?;
-        let (user_id, is_admin) = get_or_create_oauth_user(&license, &self.db, &email).await?;
+        let (user_id, is_admin) =
+            get_or_create_oauth_user(&license, &self.db, &self.mail, &email).await?;
 
         let refresh_token = self.db.create_refresh_token(user_id).await?;
 
@@ -459,6 +464,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 async fn get_or_create_oauth_user(
     license: &LicenseInfo,
     db: &DbConn,
+    mail: &Arc<dyn EmailService>,
     email: &str,
 ) -> Result<(i32, bool), OAuthError> {
     if let Some(user) = db.get_user_by_email(email).await? {
@@ -483,11 +489,15 @@ async fn get_or_create_oauth_user(
         // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
         // 2. `password_verify` will always return false for empty password hash read from user table
         // so user created here is only able to login by github oauth, normal login won't work
-        Ok((
+        let res = (
             db.create_user(email.to_owned(), "".to_owned(), false)
                 .await?,
             false,
-        ))
+        );
+        if let Err(e) = mail.send_signup_email(email.to_string()).await {
+            warn!("Failed to send signup email: {e}");
+        }
+        Ok(res)
     } else {
         let Some(invitation) = db.get_invitation_by_email(email).await.ok().flatten() else {
             return Err(OAuthError::UserNotInvited);
@@ -861,8 +871,9 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_get_or_create_oauth_user() {
-        let service = test_authentication_service().await;
+        let (service, mail) = test_authentication_service_with_mail().await;
         let license = service.license.read_license().await.unwrap();
         let id = service
             .db
@@ -872,7 +883,7 @@ mod tests {
         service.db.update_user_active(id, false).await.unwrap();
 
         assert!(
-            get_or_create_oauth_user(&license, &service.db, "test@example.com")
+            get_or_create_oauth_user(&license, &service.db, &service.mail, "test@example.com")
                 .await
                 .is_err()
         );
@@ -883,16 +894,47 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(
-            get_or_create_oauth_user(&license, &service.db, "example@example.com")
-                .await
-                .is_ok()
-        );
-        assert!(
-            get_or_create_oauth_user(&license, &service.db, "example@gmail.com")
-                .await
-                .is_err()
-        );
+        assert!(get_or_create_oauth_user(
+            &license,
+            &service.db,
+            &service.mail,
+            "example@example.com"
+        )
+        .await
+        .is_ok());
+
+        tokio::time::sleep(Duration::milliseconds(50).to_std().unwrap()).await;
+
+        assert_eq!(mail.list_mail().await[0].subject, "Welcome to Tabby!");
+
+        assert!(get_or_create_oauth_user(
+            &license,
+            &service.db,
+            &service.mail,
+            "example@gmail.com"
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_register_email() {
+        let (service, mail) = test_authentication_service_with_mail().await;
+        let code = service
+            .db
+            .create_invitation("test@example.com".into())
+            .await
+            .unwrap();
+
+        service
+            .register("test@example.com".into(), "".into(), Some(code.code))
+            .await
+            .unwrap();
+
+        tokio::time::sleep(Duration::milliseconds(50).to_std().unwrap()).await;
+
+        assert_eq!(mail.list_mail().await[0].subject, "Welcome to Tabby!");
     }
 
     #[tokio::test]

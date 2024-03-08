@@ -231,6 +231,14 @@ impl EmailService for EmailServiceImpl {
         .await
     }
 
+    async fn send_signup_email(&self, email: String) -> Result<JoinHandle<()>> {
+        let external_url = self.db.read_network_setting().await?.external_url;
+
+        let body = templates::signup_success(&external_url, &email);
+        self.send_email_in_background(email, "Welcome to Tabby!".into(), body)
+            .await
+    }
+
     async fn send_password_reset_email(
         &self,
         email: String,
