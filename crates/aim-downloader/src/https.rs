@@ -130,8 +130,15 @@ impl HTTPSHandler {
             .basic_auth(parsed_address.username, Some(parsed_address.password))
             .send()
             .await
-            .map_err(|_| format!("Failed to GET from {} to {}", &input, &output))
-            .unwrap();
+            .and_then(|r| r.error_for_status())
+            .unwrap_or_else(|e| {
+                eprintln!(
+                    "Failed to download {input}: Server returned {:?}",
+                    e.status().unwrap_or_default()
+                );
+                std::process::exit(1);
+            });
+
         let total_size = downloaded + res.content_length().unwrap_or(0);
 
         bar.set_length(total_size);
