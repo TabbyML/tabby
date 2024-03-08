@@ -1,4 +1,4 @@
-## Creating email templates for Tabby
+## Add new email template for Tabby
 - Navigate to `ee/tabby-email/emails`
 - Run `yarn && yarn dev`
 - This will start a webserver and show a link where you can preview emails

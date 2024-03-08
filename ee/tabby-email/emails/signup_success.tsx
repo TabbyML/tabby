@@ -6,15 +6,15 @@ import {
 import * as React from "react";
 import RootLayout from "../components/root-layout";
 
-interface PasswordReset {
+interface SignupSuccess {
   email?: string;
-  resetLink?: string;
+  link?: string;
 }
 
-export const PasswordReset = ({
+export const SignupSuccess = ({
   email = "{{EMAIL}}",
   link = "{{EXTERNAL_URL}}",
-}: PasswordReset) => {
+}: SignupSuccess) => {
   const title = `Welcome to Tabby!`;
 
   return (
@@ -35,9 +35,9 @@ export const PasswordReset = ({
   );
 };
 
-PasswordReset.PreviewProps = {
+SignupSuccess.PreviewProps = {
   email: "user@tabbyml.com",
-  resetLink: "http://localhost:8080/auth/reset-password?code={{CODE}}",
-} as PasswordReset;
+  link: "http://localhost:8080/auth/reset-password?code={{CODE}}",
+} as SignupSuccess;
 
-export default PasswordReset;
+export default SignupSuccess;
