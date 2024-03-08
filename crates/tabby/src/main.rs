@@ -142,7 +142,7 @@ async fn main() {
     #[cfg(target_family = "unix")]
     {
         let mut permissions = std::fs::metadata(&root).unwrap().permissions();
-        permissions.set_mode(0o600);
+        permissions.set_mode(0o700);
         std::fs::set_permissions(&root, permissions).unwrap();
     }
 
