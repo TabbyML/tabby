@@ -41,7 +41,7 @@ dependencies = [
 
 [[package]]
 name = "aim-downloader"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "async-stream",
  "clap",
@@ -1175,15 +1175,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "filenamify"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b781e8974b2cc71ac3c587c881c11ee5fe9a379f43503674e1e1052647593b4c"
-dependencies = [
- "regex",
-]
-
-[[package]]
 name = "finl_unicode"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1634,7 +1625,7 @@ dependencies = [
 
 [[package]]
 name = "http-api-bindings"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "anyhow",
  "async-openai",
@@ -1985,7 +1976,7 @@ dependencies = [
 
 [[package]]
 name = "juniper-axum"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "axum",
  "juniper",
@@ -2142,7 +2133,7 @@ checksum = "da2479e8c062e40bf0066ffa0bc823de0a9368974af99c9f6df941d2c231e03f"
 
 [[package]]
 name = "llama-cpp-bindings"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -4410,7 +4401,7 @@ dependencies = [
 
 [[package]]
 name = "tabby"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "anyhow",
  "assert-json-diff",
@@ -4464,11 +4455,10 @@ dependencies = [
 
 [[package]]
 name = "tabby-common"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "filenamify",
  "glob",
  "home",
  "lazy_static",
@@ -4486,7 +4476,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-db"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -4503,7 +4493,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-download"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "aim-downloader",
  "anyhow",
@@ -4515,7 +4505,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-inference"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -4529,7 +4519,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-macros"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "quote",
  "syn 2.0.52",
@@ -4537,7 +4527,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-scheduler"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4574,7 +4564,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-webserver"
-version = "0.9.0-dev"
+version = "0.10.0-dev.0"
 dependencies = [
  "anyhow",
  "argon2",
