@@ -65,7 +65,10 @@ async fn download_file(url: &str, path: &Path) -> Result<()> {
 
     let mut bar = WrappedBar::new(0, url, false);
 
-    https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, "").await?;
+    if let Err(e) = https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, "").await {
+        eprintln!("Fetching model failed: {e}");
+        std::process::exit(1);
+    }
 
     fs::rename(intermediate_filename, filename)?;
     Ok(())
