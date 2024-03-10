@@ -163,7 +163,7 @@ impl WorkerService for ServerContext {
             .await
             .map_err(|_| RegisterWorkerError::RequiresEnterpriseLicense)?;
 
-        if license.check_node_limit(count_workers + 1) {
+        if !license.check_node_limit(count_workers + 1) {
             return Err(RegisterWorkerError::RequiresEnterpriseLicense);
         }
 
