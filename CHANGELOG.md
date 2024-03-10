@@ -4,7 +4,10 @@
 
 ## Fixes and Improvements
 
-# v0.9.0
+# v0.9.1 [UNRELEASED]
+
+## Fixes and Improvements
+* Fix worker registration check against enterprise licenses.
 
 ## Features
 
