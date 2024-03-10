@@ -9,6 +9,8 @@
 ## Fixes and Improvements
 * Fix worker registration check against enterprise licenses.
 
+# v0.9.0
+
 ## Features
 
 * Support for SMTP configuration in the user management system.
