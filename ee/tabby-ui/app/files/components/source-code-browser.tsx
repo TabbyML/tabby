@@ -1,9 +1,8 @@
 'use client'
 
 import React, { PropsWithChildren } from 'react'
-import dynamic from 'next/dynamic'
 import filename2prism from 'filename2prism'
-import { compact, findIndex } from 'lodash-es'
+import { compact, findIndex, toNumber } from 'lodash-es'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
@@ -18,24 +17,17 @@ import {
 } from '@/components/ui/resizable'
 
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
-import { DirectoryPanel } from './file-directory-panel'
-import {
-  mapToFileTree,
-  FileTree as RepositoriesFileTree,
-  sortFileTree,
-  type TFileTreeNode
-} from './file-tree'
-import { RawContentPanel } from './raw-content-panel'
+import { DirectoryView } from './file-directory-view'
+import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
+import { FileTreePanel } from './file-tree-panel'
+import { RawFileView } from './raw-file-view'
+import { TextFileView } from './text-file-view'
 import {
   getDirectoriesFromPath,
   resolveBasenameFromPath,
   resolveFileNameFromPath,
   resolveRepoNameFromPath
 } from './utils'
-
-const SourceCodeEditor = dynamic(() => import('./source-code-editor'), {
-  ssr: false
-})
 
 /**
  * FileMap example
@@ -74,16 +66,14 @@ type SourceCodeBrowserContextValue = {
   fileTreeData: TFileTreeNode[]
 }
 
-type SourceCodeBrowserProviderProps = {}
-
 const SourceCodeBrowserContext =
   React.createContext<SourceCodeBrowserContextValue>(
     {} as SourceCodeBrowserContextValue
   )
 
-const SourceCodeBrowserContextProvider: React.FC<
-  PropsWithChildren<SourceCodeBrowserProviderProps>
-> = ({ children }) => {
+const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
+  children
+}) => {
   const { searchParams, updateSearchParams } = useRouterStuff()
 
   const activePath = React.useMemo(() => {
@@ -169,15 +159,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 }) => {
   const {
     activePath,
-    setActivePath,
     updateFileMap,
     fileMap,
     initialized,
     setInitialized,
-    expandedKeys,
-    toggleExpandedKey,
-    setExpandedKeys,
-    fileTreeData
+    setExpandedKeys
   } = React.useContext(SourceCodeBrowserContext)
 
   const activeRepoName = React.useMemo(() => {
@@ -187,6 +173,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const activeBasename = React.useMemo(() => {
     return resolveBasenameFromPath(activePath)
   }, [activePath])
+
   const [fileViewType, setFileViewType] = React.useState<FileDisplayType>()
 
   const isFileSelected =
@@ -201,15 +188,34 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath, fileMap, initialized])
 
   // fetch raw file
-  const { data: fileBlob } = useSWRImmutable(
+  const { data: rawFileResponse } = useSWRImmutable<{
+    blob?: Blob
+    contentLength?: number
+  }>(
     isFileSelected
       ? `/repositories/${activeRepoName}/resolve/${activeBasename}`
       : null,
     (url: string) =>
       fetcher(url, {
-        responseFormat: 'blob'
-      })
+        responseFormatter: async response => {
+          if (!response.ok) return undefined
+
+          const contentLength = toNumber(response.headers.get('Content-Length'))
+          // todo abort big size request and truncate
+          const blob = await response.blob()
+          return {
+            contentLength,
+            blob
+          }
+        }
+      }),
+    {
+      keepPreviousData: true
+    }
   )
+
+  const fileBlob = rawFileResponse?.blob
+  const contentLength = rawFileResponse?.contentLength
 
   // fetch active file meta
   const { data: fileMeta } = useSWRImmutable(
@@ -230,14 +236,10 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     fetcher
   )
 
-  const showDirectoryPanel = activeEntry?.kind === 'dir' || activePath === ''
-
-  const showRawFilePanel = fileViewType === 'image' || fileViewType === 'raw'
-  const showCodeEditor = fileViewType === 'text'
-
-  const onSelectTreeNode = (treeNode: TFileTreeNode) => {
-    setActivePath(treeNode.fullPath)
-  }
+  const showDirectoryView = activeEntry?.kind === 'dir' || activePath === ''
+  const showTextFileView = isFileSelected && fileViewType === 'text'
+  const showRawFileView =
+    isFileSelected && (fileViewType === 'image' || fileViewType === 'raw')
 
   React.useEffect(() => {
     const init = async () => {
@@ -255,7 +257,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [])
 
   React.useEffect(() => {
-    const afterFetchSubTree = () => {
+    const onFetchSubTree = () => {
       if (subTree?.entries?.length && activePath) {
         const repoName = resolveRepoNameFromPath(activePath)
         let patchMap: TFileMap = {}
@@ -282,7 +284,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       }
     }
 
-    afterFetchSubTree()
+    onFetchSubTree()
   }, [subTree])
 
   React.useEffect(() => {
@@ -301,46 +303,32 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   return (
     <ResizablePanelGroup direction="horizontal" className={cn(className)}>
       <ResizablePanel defaultSize={20} minSize={20}>
-        <div className="h-full overflow-hidden py-2">
-          <RepositoriesFileTree
-            className="h-full overflow-y-auto overflow-x-hidden px-4"
-            onSelectTreeNode={onSelectTreeNode}
-            activePath={activePath}
-            fileMap={fileMap}
-            updateFileMap={updateFileMap}
-            expandedKeys={expandedKeys}
-            toggleExpandedKey={toggleExpandedKey}
-            initialized={initialized}
-            fileTreeData={fileTreeData}
-          />
-        </div>
+        <FileTreePanel />
       </ResizablePanel>
       <ResizableHandle className="w-1 hover:bg-card active:bg-card" />
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
-          <FileDirectoryBreadcrumb className="sticky top-0 z-10 bg-background py-4" />
-          <div className="flex-1">
-            {/* {isFileActive && fileViewType === '' && <ListSkeleton />} */}
-            {showDirectoryPanel && (
-              <DirectoryPanel
+          <FileDirectoryBreadcrumb className="py-4" />
+          <div>
+            {showDirectoryView && (
+              <DirectoryView
                 loading={fetchingSubTree}
                 initialized={initialized}
                 className={`rounded-lg border`}
               />
             )}
-            {showCodeEditor && (
-              <SourceCodeEditor
-                className={`rounded-lg border py-2`}
+            {showTextFileView && (
+              <TextFileView
                 blob={fileBlob}
                 meta={fileMeta}
-                // key={activePath}
+                contentLength={contentLength}
               />
             )}
-            {showRawFilePanel && fileBlob && (
-              <RawContentPanel
-                className={`rounded-lg border py-2`}
+            {showRawFileView && (
+              <RawFileView
                 blob={fileBlob}
                 isImage={fileViewType === 'image'}
+                contentLength={contentLength}
               />
             )}
           </div>
@@ -428,7 +416,7 @@ async function initFileMap(path?: string) {
       const entries = await Promise.all(requests.map(fn => fn()))
       let result: TFile[] = []
       for (let entry of entries) {
-        if (entry.entries?.length) {
+        if (entry?.entries?.length) {
           result = [...result, ...entry.entries]
         }
       }
