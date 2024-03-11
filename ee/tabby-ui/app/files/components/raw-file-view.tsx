@@ -23,7 +23,7 @@ export const RawFileView: React.FC<RawContentViewProps> = ({
   return (
     <div className={cn(className)}>
       <BlobHeader blob={blob} contentLength={contentLength} />
-      <div className="text-center border rounded-b-lg border-t-0 p-2">
+      <div className="rounded-b-lg border border-t-0 p-2 text-center">
         {isImage ? (
           <img
             className="mx-auto"

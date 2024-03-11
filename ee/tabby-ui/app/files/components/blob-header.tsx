@@ -59,7 +59,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   return (
     <div
       className={cn(
-        'sticky z-10 border -top-1',
+        'sticky -top-1 z-10 border',
         !isSticky && 'rounded-t-lg',
         className
       )}
@@ -81,7 +81,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
             !isSticky && 'rounded-t-lg'
           )}
         >
-          <div className="h-8 leading-8 flex items-center gap-4">
+          <div className="flex h-8 items-center gap-4 leading-8">
             {children}
             <span className="text-sm text-muted-foreground">
               {contentLengthText}

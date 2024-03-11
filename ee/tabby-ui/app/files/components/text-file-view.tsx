@@ -53,7 +53,7 @@ export const TextFileView: React.FC<TextFileViewProps> = ({
         contentLength={contentLength}
         canCopy
       ></BlobHeader>
-      <div className="border border-t-0 rounded-b-lg p-2">
+      <div className="rounded-b-lg border border-t-0 p-2">
         <SourceCodeEditor value={value} meta={meta} language={language} />
       </div>
     </div>
