@@ -34,7 +34,7 @@ The project is production-oriented and comes with [backward compatibility guaran
 * **Lightweight on disk**<br/>Quantization can make the models 4 times smaller on disk with minimal accuracy loss.
 * **Simple integration**<br/>The project has few dependencies and exposes simple APIs in [Python](https://opennmt.net/CTranslate2/python/overview.html) and C++ to cover most integration needs.
 * **Configurable and interactive decoding**<br/>[Advanced decoding features](https://opennmt.net/CTranslate2/decoding.html) allow autocompleting a partial sequence and returning alternatives at a specific location in the sequence.
-* **Support tensor parallelism for distributed inference.
+* **Support tensor parallelism for distributed inference**<br/>Very large model can be split into multiple GPUs. Following this [documentation](docs/parallel.md#model-and-tensor-parallelism) to set up the required environment.
 
 Some of these features are difficult to achieve with standard deep learning frameworks and are the motivation for this project.
 

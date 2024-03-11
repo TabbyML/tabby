@@ -4,6 +4,17 @@
 
 ### Fixes and improvements
 
+## [v4.1.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.1.0) (2024-03-11)
+
+### New features
+* Support Gemma Model (#1631)
+* Support Tensor Parallelism (#1599)
+
+### Fixes and improvements
+* Avoid initializing unused GPU (#1633)
+* Read very large tensor by chunk if the size > max value of int (#1636)
+* Update Readme
+
 ## [v4.0.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.0.0) (2024-02-15)
 
 This major version introduces the breaking change while updating to cuda 12.

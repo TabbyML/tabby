@@ -15,9 +15,9 @@ The Python wheels have the following requirements:
 * pip version: >= 19.3 to support `manylinux2014` wheels
 
 ```{admonition} GPU support
-The Linux and Windows Python wheels support GPU execution. Install [CUDA](https://developer.nvidia.com/cuda-toolkit) 11.x to use the GPU.
+The Linux and Windows Python wheels support GPU execution. Install [CUDA](https://developer.nvidia.com/cuda-toolkit) 12.x to use the GPU.
 
-If you plan to run models with convolutional layers (e.g. for speech recognition), you should also install [cuDNN 8](https://developer.nvidia.com/cudnn) for CUDA 11.x.
+If you plan to run models with convolutional layers (e.g. for speech recognition), you should also install [cuDNN 8](https://developer.nvidia.com/cudnn) for CUDA 12.x.
 ```
 
 ```{note}
@@ -42,6 +42,8 @@ The images include:
 ```bash
 docker run --rm ghcr.io/opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --help
 ```
+
+To update to the new version that supports CUDA 12.
 
 ```{admonition} GPU support
 The Docker image supports GPU execution. Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/overview.html) to use GPUs from Docker.

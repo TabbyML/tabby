@@ -137,14 +137,14 @@ Python wheels for Linux and Windows are compiled against NVIDIA libraries to sup
 To limit the size of the packages pushed to PyPI, some libraries are not included in the package and are dynamically loaded at runtime with `dlopen` (or `LoadLibraryA` on Windows).
 
 * `libcudart_static.a` (statically linked)
-* `libcublas.so.11` (dlopened at runtime in [`cublas_stub.cc`](https://github.com/OpenNMT/CTranslate2/blob/master/src/cuda/cublas_stub.cc))
+* `libcublas.so.12` (dlopened at runtime in [`cublas_stub.cc`](https://github.com/OpenNMT/CTranslate2/blob/master/src/cuda/cublas_stub.cc))
 * `libcudnn.so.8` (dynamically linked)
   * `libcudnn_ops_infer.so.8` (dlopened at runtime by `libcudnn.so.8`)
   * `libcudnn_cnn_infer.so.8` (dlopened at runtime by `libcudnn.so.8`)
 
-One of the benefits of this dynamic loading is that multiple versions of cuBLAS and cuDNN are supported by the same binary. In particular, users can install any CUDA 11.x version as long as it provides `libcublas.so.11`.
+One of the benefits of this dynamic loading is that multiple versions of cuBLAS and cuDNN are supported by the same binary. In particular, users can install any CUDA 12.x version as long as it provides `libcublas.so.12`.
 
-However, supporting a new major CUDA version (e.g. CUDA 11 to 12) requires updating the CUDA libraries used during compilation. This will be a breaking change for existing users since they would need to update their cuBLAS/cuDNN libraries and possibly [update their GPU driver](https://docs.nvidia.com/deploy/cuda-compatibility/).
+The Python library only support CUDA 12.x. C++ source code is always compatible with CUDA 11, possible to use CUDA 11 libraries during compilation to create CUDA 11.x support wheel.
 
 ### Updating other dependencies
 
