@@ -128,7 +128,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
     #[cfg(not(feature = "ee"))]
     {
-        logger = Arc::new(create_logger());
+        logger = Arc::new(crate::services::event::create_logger());
     }
     let code = Arc::new(create_code_search());
 
