@@ -12,12 +12,12 @@ import { TFileTreeNode } from './file-tree'
 import { SourceCodeBrowserContext, TFileMapItem } from './source-code-browser'
 import { resolveFileNameFromPath } from './utils'
 
-interface DirectoryPanelProps extends React.HTMLAttributes<HTMLDivElement> {
+interface DirectoryViewProps extends React.HTMLAttributes<HTMLDivElement> {
   loading: boolean
   initialized: boolean
 }
 
-const DirectoryPanel: React.FC<DirectoryPanelProps> = ({
+const DirectoryView: React.FC<DirectoryViewProps> = ({
   className,
   loading: propsLoading,
   initialized
@@ -45,7 +45,7 @@ const DirectoryPanel: React.FC<DirectoryPanelProps> = ({
 
   return (
     <div className={cn('text-base', className)}>
-      <BlobHeader blob={undefined} hideBlobActions />
+      <BlobHeader blob={undefined} hideBlobActions className="border-0" />
       {loading || !initialized ? (
         <FileTreeSkeleton />
       ) : fileTreeData?.length ? (
@@ -142,4 +142,4 @@ function getCurrentDirFromTree(
   }
 }
 
-export { DirectoryPanel }
+export { DirectoryView }

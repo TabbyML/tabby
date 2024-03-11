@@ -1,7 +1,6 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import filename2prism from 'filename2prism'
 import { useTheme } from 'next-themes'
 
 import { TFileMeta } from '@/lib/types'
@@ -11,28 +10,21 @@ import { markTagNameExtension } from '@/components/codemirror/name-tag-extension
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
-import { BlobHeader } from './blob-header'
-import { SourceCodeBrowserContext } from './source-code-browser'
-
 interface SourceCodeEditorProps {
   className?: string
-  blob?: Blob
+  value: string
   meta?: TFileMeta
+  language: string
 }
 
 const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
   className,
-  blob,
-  meta
+  value,
+  meta,
+  language
 }) => {
-  const { activePath } = useContext(SourceCodeBrowserContext)
   const { theme } = useTheme()
-  const [value, setValue] = React.useState<string>()
 
-  const detectedLanguage = activePath
-    ? filename2prism(activePath)[0]
-    : undefined
-  const language = (meta?.language ?? detectedLanguage) || ''
   const tags = meta?.tags
 
   const extensions = React.useMemo(() => {
@@ -61,24 +53,8 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
     return result
   }, [value, tags])
 
-  React.useEffect(() => {
-    const blob2Text = async (b: Blob) => {
-      try {
-        const v = await b.text()
-        setValue(v)
-      } catch (e) {
-        setValue('')
-      }
-    }
-
-    if (blob) {
-      blob2Text(blob)
-    }
-  }, [blob])
-
   return (
     <div className={cn('source-code-browser', className)}>
-      <BlobHeader blob={blob} canCopy className="mb-2" />
       <CodeMirrorEditor
         value={value}
         theme={theme}

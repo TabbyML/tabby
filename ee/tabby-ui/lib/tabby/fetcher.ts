@@ -107,6 +107,7 @@ function formatResponse(
   response: Response,
   options?: Pick<FetcherOptions, 'responseFormat' | 'responseFormatter'>
 ) {
+  if (!response?.ok) return undefined
   if (options?.responseFormatter) {
     return options.responseFormatter(response)
   }

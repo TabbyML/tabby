@@ -1,6 +1,8 @@
 'use client'
 
 import React from 'react'
+import { isNil } from 'lodash-es'
+import prettyBytes from 'pretty-bytes'
 import { toast } from 'sonner'
 
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
@@ -23,6 +25,8 @@ interface BlobHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   blob: Blob | undefined
   canCopy?: boolean
   hideBlobActions?: boolean
+  contentLength?: number
+  lines?: number
 }
 
 export const BlobHeader: React.FC<BlobHeaderProps> = ({
@@ -30,6 +34,8 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   className,
   canCopy,
   hideBlobActions,
+  contentLength,
+  children,
   ...props
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -46,67 +52,76 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
     }
   }
 
+  const contentLengthText = !isNil(contentLength)
+    ? prettyBytes(contentLength)
+    : ''
+
   return (
     <div
       className={cn(
-        'sticky -top-1 z-10',
-        isSticky && hideBlobActions && 'border-b',
+        'sticky z-10 border -top-1',
+        !isSticky && 'rounded-t-lg',
         className
       )}
       ref={containerRef}
       {...props}
     >
       {isSticky && (
-        <div className="bg-secondary px-2">
-          <FileDirectoryBreadcrumb className="py-2" />
-        </div>
+        <>
+          <div className="bg-secondary px-2">
+            <FileDirectoryBreadcrumb className="py-2" />
+          </div>
+          {isSticky && <Separator />}
+        </>
       )}
       {!hideBlobActions && (
-        <>
-          {isSticky && <Separator />}
-          <div
-            className={cn(
-              'flex items-center justify-between border-b bg-secondary p-2 text-secondary-foreground',
-              !isSticky && 'rounded-t-lg'
-            )}
-          >
-            <div>{/* todo title? */}</div>
-            <div className="flex items-center gap-2">
-              {canCopy && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={onCopy}>
-                      {isCopied ? (
-                        <IconCheck className="text-green-600" />
-                      ) : (
-                        <IconCopy />
-                      )}
-                      <span className="sr-only">Copy</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Copy raw file</TooltipContent>
-                </Tooltip>
-              )}
-              {!!blob && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <a
-                      className={buttonVariants({
-                        variant: 'ghost',
-                        size: 'icon'
-                      })}
-                      download={resolveFileNameFromPath(activePath ?? '')}
-                      href={URL.createObjectURL(blob)}
-                    >
-                      <IconDownload />
-                    </a>
-                  </TooltipTrigger>
-                  <TooltipContent>Download raw file</TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+        <div
+          className={cn(
+            'flex items-center justify-between bg-secondary p-2 text-secondary-foreground',
+            !isSticky && 'rounded-t-lg'
+          )}
+        >
+          <div className="h-8 leading-8 flex items-center gap-4">
+            {children}
+            <span className="text-sm text-muted-foreground">
+              {contentLengthText}
+            </span>
           </div>
-        </>
+          <div className="flex items-center gap-2">
+            {canCopy && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={onCopy}>
+                    {isCopied ? (
+                      <IconCheck className="text-green-600" />
+                    ) : (
+                      <IconCopy />
+                    )}
+                    <span className="sr-only">Copy</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copy raw file</TooltipContent>
+              </Tooltip>
+            )}
+            {!!blob && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    className={buttonVariants({
+                      variant: 'ghost',
+                      size: 'icon'
+                    })}
+                    download={resolveFileNameFromPath(activePath ?? '')}
+                    href={URL.createObjectURL(blob)}
+                  >
+                    <IconDownload />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>Download raw file</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
