@@ -12,8 +12,6 @@ use tabby_common::{
     config::Config,
     usage,
 };
-#[cfg(feature = "ee")]
-use tabby_webserver::public::WebserverHandle;
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
 use tracing::info;
@@ -23,8 +21,6 @@ use utoipa::{
 };
 use utoipa_swagger_ui::SwaggerUi;
 
-#[cfg(not(feature = "ee"))]
-use crate::services::event::create_logger;
 use crate::{
     routes::{self, run_app},
     services::{
@@ -124,7 +120,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might take a few minutes...");
 
     #[cfg(feature = "ee")]
-    let ws = WebserverHandle::new().await;
+    let ws = tabby_webserver::public::WebserverHandle::new().await;
     let logger: Arc<dyn RawEventLogger>;
     #[cfg(feature = "ee")]
     {
