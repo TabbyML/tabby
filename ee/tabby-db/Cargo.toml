@@ -10,7 +10,7 @@ testutils = []
 prod-db = []
 
 [dependencies]
-tabby-macros = { path = "../../crates/tabby-macros" }
+tabby-db-macros = { path = "../tabby-db-macros" }
 anyhow.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 hash-ids.workspace = true

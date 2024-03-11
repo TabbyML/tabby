@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query};
-use tabby_macros::query_paged_as;
+use tabby_db_macros::query_paged_as;
 use uuid::Uuid;
 
 use super::DbConn;

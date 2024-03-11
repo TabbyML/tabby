@@ -1,5 +1,5 @@
 [package]
-name = "tabby-macros"
+name = "tabby-db-macros"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
