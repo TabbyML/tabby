@@ -76,7 +76,7 @@ SelectLabel.displayName = SelectPrimitive.Label.displayName
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
-    emptyItem?: boolean
+   placeholder: boolean
   }
 >(({ className, children, emptyItem, ...props }, ref) => (
   <SelectPrimitive.Item
