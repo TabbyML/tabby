@@ -9,7 +9,7 @@ custom_error! {
 custom_error! {
     pub DownloadError
     Validate {source: ValidateError} = "{source}",
-    ServerError {name: String, code: String} = "Failed to download {name}: Server returned {code}",
+    HttpError {name: String, code: String} = "Failed to download {name}: Server returned {code}",
 }
 
 custom_error! {

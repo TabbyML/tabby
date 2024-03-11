@@ -136,7 +136,7 @@ impl HTTPSHandler {
             .send()
             .await
             .and_then(|r| r.error_for_status())
-            .map_err(|e| DownloadError::ServerError {
+            .map_err(|e| DownloadError::HttpError {
                 name: input.into(),
                 code: e.status().unwrap_or_default().to_string(),
             })?;
