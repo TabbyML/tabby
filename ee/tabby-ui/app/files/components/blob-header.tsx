@@ -83,7 +83,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
         >
           <div className="flex h-8 items-center gap-4 leading-8">
             {children}
-            <span className="text-sm text-muted-foreground">
+            <span className="ml-2 text-sm text-muted-foreground">
               {contentLengthText}
             </span>
           </div>
