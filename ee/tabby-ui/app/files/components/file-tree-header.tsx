@@ -50,7 +50,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
         </SelectTrigger>
         <SelectContent>
           {noIndexedRepo ? (
-            <SelectItem emptyItem value="" disabled>
+            <SelectItem isPlaceHolder value="" disabled>
               No indexed repository
             </SelectItem>
           ) : (

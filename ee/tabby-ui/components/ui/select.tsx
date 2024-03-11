@@ -76,9 +76,9 @@ SelectLabel.displayName = SelectPrimitive.Label.displayName
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
-   placeholder: boolean
+   isPlaceHolder?: boolean
   }
->(({ className, children, emptyItem, ...props }, ref) => (
+>(({ className, children, isPlaceHolder, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
@@ -87,7 +87,7 @@ const SelectItem = React.forwardRef<
     )}
     {...props}
   >
-    {!emptyItem && (
+    {!isPlaceHolder && (
       <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
           <IconCheck className="h-4 w-4" />
