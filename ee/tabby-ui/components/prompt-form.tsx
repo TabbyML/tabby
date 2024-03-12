@@ -45,6 +45,7 @@ function PromptFormRenderer(
   const [queryCompletionUrl, setQueryCompletionUrl] = React.useState<
     string | null
   >(null)
+  const [suggestionOpen, setSuggestionOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   // store the input selection for replacing inputValue
   const prevInputSelectionEnd = React.useRef<number>()
@@ -66,7 +67,9 @@ function PromptFormRenderer(
   )
 
   React.useEffect(() => {
-    setOptions(completionData?.hits ?? [])
+    const suggestions = completionData?.hits ?? []
+    setOptions(suggestions)
+    setSuggestionOpen(!!suggestions?.length)
   }, [completionData?.hits])
 
   React.useImperativeHandle(ref, () => {
@@ -109,6 +112,7 @@ function PromptFormRenderer(
         setQueryCompletionUrl(url)
       } else {
         setOptions([])
+        setSuggestionOpen(false)
       }
     }, 200)
   }, [])
@@ -132,6 +136,7 @@ function PromptFormRenderer(
       setInput(prevInput + replaceString + input.slice(selectionEnd))
     }
     setOptions([])
+    setSuggestionOpen(false)
   }
 
   const handlePromptSubmit: React.FormEventHandler<
@@ -170,6 +175,7 @@ function PromptFormRenderer(
       ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)
     ) {
       setOptions([])
+      setSuggestionOpen(false)
     } else {
       if (!isOpen && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
         ;(e as any).preventDownshiftDefault = true
@@ -181,9 +187,16 @@ function PromptFormRenderer(
   return (
     <form onSubmit={handlePromptSubmit} ref={formRef}>
       <Combobox
-        inputRef={inputRef}
         options={options}
         onSelect={handleCompletionSelect}
+        open={suggestionOpen}
+        onOpenChange={isOpen => {
+          if (isOpen && options?.length) {
+            setSuggestionOpen(isOpen)
+          } else {
+            setSuggestionOpen(false)
+          }
+        }}
       >
         {({ open, highlightedIndex }) => {
           const highlightedOption = options?.[highlightedIndex]
