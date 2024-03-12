@@ -16,6 +16,7 @@ import {
   CollapsibleTrigger
 } from '@/components/ui/collapsible'
 import {
+  IconBarChart,
   IconChevronRight,
   IconGear,
   IconHome,
@@ -69,6 +70,10 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   <SidebarButton href="/jobs">
                     <IconScrollText />
                     Jobs
+                  </SidebarButton>
+                  <SidebarButton href="/analytic">
+                    <IconBarChart />
+                    Analytic
                   </SidebarButton>
                   <SidebarCollapsible
                     title={
