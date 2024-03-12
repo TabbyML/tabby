@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { compare } from 'compare-versions'
 
+import { cn } from '@/lib/utils'
 import { useHealth } from '@/lib/hooks/use-health'
 import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
 import { buttonVariants } from '@/components/ui/button'
@@ -19,14 +20,14 @@ export function Header() {
   const newVersionAvailable = isNewVersionAvailable(version, latestRelease)
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center justify-between border-b px-10 backdrop-blur-xl">
       <div className="flex items-center">
         {newVersionAvailable && (
           <a
             target="_blank"
             href="https://github.com/TabbyML/tabby/releases/latest"
             rel="noopener noreferrer"
-            className={buttonVariants({ variant: 'ghost' })}
+            className={cn("-ml-4", buttonVariants({ variant: 'ghost' }))}
           >
             <IconNotice className="text-yellow-600 dark:text-yellow-400" />
             <span className="ml-2 hidden md:flex">

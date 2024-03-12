@@ -22,7 +22,7 @@ export default function ResetPasswordRequestSection() {
       <div className="w-[350px] space-y-6">
         <div className="flex flex-col space-y-2 text-center">
           <div className="flex justify-center">
-            <IconCheckCircled className="h-12 w-12 text-successful-foreground" />
+            <IconCheckCircled className="size-12 text-successful-foreground" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">
             Reset Password

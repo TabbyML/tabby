@@ -134,7 +134,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
         <div className="flex">
           <Button type="submit" disabled={isSubmitting} className="w-40">
             {isSubmitting && (
-              <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+              <IconSpinner className="mr-2 size-4 animate-spin" />
             )}
             Save Changes
           </Button>

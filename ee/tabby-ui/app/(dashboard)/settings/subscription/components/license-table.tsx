@@ -23,9 +23,9 @@ export const LicenseTable = () => {
     <Table className="border text-center">
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[40%]"></TableHead>
+          <TableHead className="w-2/5"></TableHead>
           {PLANS.map(({ name, pricing, limit }, i) => (
-            <TableHead className="w-[20%] text-center" key={i}>
+            <TableHead className="w-1/5 text-center" key={i}>
               <h1 className="py-4 text-2xl font-bold">{name}</h1>
               <p className="text-center font-semibold">{pricing}</p>
               <p className="pb-2 pt-1">{limit}</p>

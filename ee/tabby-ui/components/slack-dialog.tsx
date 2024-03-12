@@ -44,7 +44,7 @@ export default function SlackDialog() {
             href="https://links.tabbyml.com/join-slack-webserver"
             className={buttonVariants()}
           >
-            <IconSlack className="-ml-2 h-8 w-8" />
+            <IconSlack className="-ml-2 size-8" />
             Join us on Slack
           </a>
         </DialogFooter>

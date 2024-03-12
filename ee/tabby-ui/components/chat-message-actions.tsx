@@ -22,7 +22,7 @@ export function ChatMessageActions({
   return (
     <div
       className={cn(
-        'flex items-center justify-end transition-opacity group-hover:opacity-100 md:absolute md:-right-[5rem] md:-top-2 md:opacity-0',
+        'flex items-center justify-end transition-opacity group-hover:opacity-100 md:absolute md:-right-20 md:-top-2 md:opacity-0',
         className
       )}
       {...props}

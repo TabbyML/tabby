@@ -87,7 +87,7 @@ export default function MailTestingForm({
               disabled={isSubmitting}
             >
               {isSubmitting && (
-                <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                <IconSpinner className="mr-2 size-4 animate-spin" />
               )}
               Send
             </Button>

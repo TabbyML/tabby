@@ -36,7 +36,7 @@ export default function SigninSection() {
   }, [searchParams])
 
   if (displayLoading) {
-    return <IconSpinner className="h-8 w-8 animate-spin" />
+    return <IconSpinner className="size-8 animate-spin" />
   }
 
   return (
@@ -74,12 +74,12 @@ export default function SigninSection() {
       <div className="mx-auto flex items-center gap-6">
         {data?.includes('github') && (
           <a href={`/oauth/signin?provider=github`}>
-            <IconGithub className="h-8 w-8" />
+            <IconGithub className="size-8" />
           </a>
         )}
         {data?.includes('google') && (
           <a href={`/oauth/signin?provider=google`}>
-            <IconGoogle className="h-8 w-8" />
+            <IconGoogle className="size-8" />
           </a>
         )}
       </div>
