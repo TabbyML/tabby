@@ -13,7 +13,7 @@ install_protobuf_centos() {
 
 if [[ "$OSTYPE" == "linux"* ]]; then
   if command -v apt-get ; then
-    sudo apt-get -y install protobuf-compiler libopenblas-dev vulkan
+    sudo apt-get -y install protobuf-compiler libopenblas-dev libvulkan-dev
   else
     # Build from manylinux2014 container
     yum -y install openblas-devel perl-IPC-Cmd unzip curl openssl-devel vulkan
