@@ -5,7 +5,10 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api,
-    api::{code::CodeSearch, event::EventLogger},
+    api::{
+        code::CodeSearch,
+        event::{EventLogger, RawEventLogger},
+    },
     config::Config,
     usage,
 };
@@ -25,7 +28,6 @@ use crate::{
         chat::create_chat_service,
         code::create_code_search,
         completion::{self, create_completion_service},
-        event::create_logger,
         health,
         model::download_model_if_needed,
     },
@@ -117,24 +119,28 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     info!("Starting server, this might take a few minutes...");
 
-    let logger = Arc::new(create_logger());
+    #[cfg(feature = "ee")]
+    let ws = tabby_webserver::public::WebserverHandle::new().await;
+    let logger: Arc<dyn RawEventLogger>;
+    #[cfg(feature = "ee")]
+    {
+        logger = ws.logger();
+    }
+    #[cfg(not(feature = "ee"))]
+    {
+        logger = Arc::new(crate::services::event::create_logger());
+    }
     let code = Arc::new(create_code_search());
 
-    let api = api_router(args, config, logger.clone(), code.clone()).await;
+    let api = api_router(args, config, Arc::new(logger.clone()), code.clone()).await;
     let ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
     let (api, ui) = if args.webserver {
-        let (api, ui) = tabby_webserver::public::attach_webserver(
-            api,
-            ui,
-            logger,
-            code,
-            args.chat_model.is_some(),
-            args.port,
-        )
-        .await;
+        let (api, ui) = ws
+            .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
+            .await;
         (api, ui)
     } else {
         let ui = ui.fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });

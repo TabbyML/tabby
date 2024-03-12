@@ -12,12 +12,13 @@ mod ui;
 pub mod public {
 
     pub use super::{
-        handler::attach_webserver,
+        handler::WebserverHandle,
         /* used by tabby workers (consumer of /hub api) */
         hub::api::{
             create_scheduler_client, create_worker_client, RegisterWorkerRequest, SchedulerClient,
             WorkerClient, WorkerKind,
         },
-        /* used by examples/update-schema.rs */ schema::create_schema,
+        /* used by examples/update-schema.rs */
+        schema::create_schema,
     };
 }

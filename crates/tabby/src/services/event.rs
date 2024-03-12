@@ -106,7 +106,8 @@ impl RawEventLogger for EventService {
     }
 }
 
-pub fn create_logger() -> impl RawEventLogger {
+#[allow(unused)]
+pub fn create_logger() -> impl RawEventLogger + 'static {
     EventService
 }
 

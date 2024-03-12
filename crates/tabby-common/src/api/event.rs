@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -17,19 +19,19 @@ pub struct LogEventRequest {
     pub elapsed: Option<u32>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Choice {
     pub index: u32,
     pub text: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectKind {
     Line,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Event {
     View {
@@ -77,13 +79,13 @@ pub enum Event {
     },
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Message {
     pub role: String,
     pub content: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Segments {
     pub prefix: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -96,10 +98,10 @@ pub trait EventLogger: Send + Sync {
     fn log(&self, e: Event);
 }
 
-#[derive(Serialize)]
-struct Log {
-    ts: u128,
-    event: Event,
+#[derive(Serialize, Deserialize)]
+pub struct Log {
+    pub ts: u128,
+    pub event: Event,
 }
 
 pub trait RawEventLogger: Send + Sync {
@@ -115,6 +117,12 @@ impl<T: RawEventLogger> EventLogger for T {
         .unwrap();
 
         self.log(content);
+    }
+}
+
+impl RawEventLogger for Arc<dyn RawEventLogger> {
+    fn log(&self, content: String) {
+        (**self).log(content)
     }
 }
 

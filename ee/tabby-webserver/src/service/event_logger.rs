@@ -1,10 +1,13 @@
 use std::fmt::Display;
 
-use tabby_common::api::event::EventLogger;
+use juniper::ID;
+use tabby_common::api::event::{Log, RawEventLogger};
 use tabby_db::DbConn;
 use tracing::warn;
 
-struct EventLoggerImpl {
+use super::dao::AsRowid;
+
+struct DbEventLogger {
     db: DbConn,
 }
 
@@ -14,13 +17,17 @@ fn log_err<T, E: Display>(res: Result<T, E>) {
     }
 }
 
-pub fn new_event_logger(db: DbConn) -> impl EventLogger {
-    EventLoggerImpl { db }
+pub fn new_event_logger(db: DbConn) -> impl RawEventLogger {
+    DbEventLogger { db }
 }
 
-impl EventLogger for EventLoggerImpl {
-    fn log(&self, e: tabby_common::api::event::Event) {
-        match e {
+impl RawEventLogger for DbEventLogger {
+    fn log(&self, content: String) {
+        let Ok(Log { event, .. }) = serde_json::from_str(&content) else {
+            warn!("Invalid event JSON: {content}");
+            return;
+        };
+        match event {
             tabby_common::api::event::Event::View { completion_id, .. } => {
                 let db = self.db.clone();
                 tokio::spawn(async move {
@@ -48,7 +55,11 @@ impl EventLogger for EventLoggerImpl {
                 let Some(user) = user else { return };
                 let db = self.db.clone();
                 tokio::spawn(async move {
-                    let user_db = db.get_user_by_email(&user).await;
+                    let Ok(id) = ID::new(&user).as_rowid() else {
+                        warn!("Invalid user ID");
+                        return;
+                    };
+                    let user_db = db.get_user(id).await;
                     let Ok(Some(user_db)) = user_db else {
                         warn!("Failed to retrieve user for {user}");
                         return;
@@ -68,10 +79,10 @@ impl EventLogger for EventLoggerImpl {
 mod tests {
     use std::time::Duration;
 
-    use tabby_common::api::event::{Event, Message};
+    use tabby_common::api::event::{Event, EventLogger, Message};
     use tabby_db::DbConn;
 
-    use super::*;
+    use crate::service::{dao::AsID, event_logger::new_event_logger};
 
     async fn sleep_50() {
         tokio::time::sleep(Duration::from_millis(500)).await;
@@ -81,9 +92,12 @@ mod tests {
     async fn test_event_logger() {
         let db = DbConn::new_in_memory().await.unwrap();
         let logger = new_event_logger(db.clone());
-        db.create_user("testuser".into(), "pass".into(), true)
+        let user_id = db
+            .create_user("testuser".into(), "pass".into(), true)
             .await
             .unwrap();
+
+        let id = user_id.as_id();
 
         logger.log(Event::Completion {
             completion_id: "test_id".into(),
@@ -91,7 +105,7 @@ mod tests {
             prompt: "testprompt".into(),
             segments: None,
             choices: vec![],
-            user: Some("testuser".into()),
+            user: Some(id.to_string()),
         });
 
         sleep_50().await;
