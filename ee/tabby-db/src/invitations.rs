@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query};
+use tabby_db_macros::query_paged_as;
 use uuid::Uuid;
 
 use super::DbConn;
@@ -22,15 +23,9 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<InvitationDAO>> {
-        let query = Self::make_pagination_query(
-            "invitations",
-            &["id", "email", "code", "created_at"],
-            limit,
-            skip_id,
-            backwards,
-        );
-
-        let invitations = sqlx::query_as(&query).fetch_all(&self.pool).await?;
+        let invitations = query_paged_as!(InvitationDAO, "invitations", ["id", "email", "code", "created_at"!], limit, skip_id, backwards)
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok(invitations)
     }
