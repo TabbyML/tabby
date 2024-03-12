@@ -133,7 +133,7 @@ jobs:
         if: runner.os == 'Windows' && matrix.windows_cuda != ''
 
       - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.1.1
+        uses: icycodes/install-vulkan-sdk@main
         with:
           version: ${{ matrix.vulkan_sdk }}
           cache: true
