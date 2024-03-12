@@ -4,14 +4,14 @@ import React from 'react'
 import {
   Bar,
   BarChart,
+  Label,
   Legend,
   Line,
   LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis,
-  Label
+  YAxis
 } from 'recharts'
 
 import { Separator } from '@/components/ui/separator'
@@ -164,18 +164,10 @@ function CompletionsByDay() {
               style={{ textAnchor: 'middle' }}
             />
           </YAxis>
-          <Tooltip />
+          <Tooltip cursor={{ fill: 'hsl(var(--accent))' }} />
           <Legend />
-          <Bar
-            dataKey="VSCode"
-            fill="#8884d8"
-            radius={[2, 2, 0, 0]}
-          />
-          <Bar
-            dataKey="IntelliJ"
-            fill="#82ca9d"
-            radius={[2, 2, 0, 0]}
-          />
+          <Bar dataKey="VSCode" fill="#8884d8" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="IntelliJ" fill="#82ca9d" radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -207,7 +199,7 @@ function CompletionAcceptanceRate() {
               style={{ textAnchor: 'middle' }}
             />
           </YAxis>
-          <Tooltip />
+          <Tooltip cursor={{ fill: 'hsl(var(--accent))' }} />
           <Legend />
           <Line
             type="monotone"
