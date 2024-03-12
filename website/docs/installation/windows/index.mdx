@@ -1,0 +1,33 @@
+---
+sidebar_position: 3
+---
+
+# Windows
+Running Tabby on Windows using Tabby's exe distribution.
+
+## 1. Find the Windows release
+* Go to the Tabby release page: https://github.com/TabbyML/tabby/releases
+* Click on the **Assets** dropdown for a specific release to find the Windows executable (exe) files.
+![Windows release](./win-release.png)
+
+## 2. Download the release
+* If you are using a CPU-only system, download the **tabby_x86_64-windows-msvc.exe file**.
+* If you are using a GPU-enabled system, download the **tabby_x86_64-windows-msvc-cuda117.exe** file, In this example, we assume you are using CUDA 11.7.
+
+**Tips:**
+* Download the CUDA Toolkit from Nvidia: https://developer.nvidia.com/cuda-toolkit
+* Ensure that you have CUDA version 11 or higher installed.
+* Check your local CUDA version by running the following command in a command prompt or PowerShell window:
+```
+nvcc --version
+```
+
+## 3. Running Tabby locally
+Open a command prompt or PowerShell window in the directory where you downloaded the Tabby executable. Run the following command:
+```
+.\tabby_x86_64-windows-msvc-cuda117.exe serve --model TabbyML/StarCoder-1B --device cuda
+```
+You should see the following output if the command runs successfully:
+![Windows running output](./status.png)
+
+You can also go to `http://localhost:8080/swagger-ui/` to check the available API endpoints.
