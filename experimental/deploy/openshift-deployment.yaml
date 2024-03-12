@@ -1,0 +1,106 @@
+# PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tabby-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: <my-storage-class>
+  volumeName: <volume-name>
+---
+# Config Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tabby-config
+immutable: false
+data:
+  config.toml: |-
+    [logs]
+    level = "debug"
+---
+# Service Tabby
+apiVersion: v1
+kind: Service
+metadata:
+  name: tabby
+spec:
+  selector:
+    app: tabby
+  ports:
+    - name: frontend
+      protocol: TCP
+      port: 8080
+      targetPort: frontend
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tabby
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: tabby
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: tabby
+    spec:
+      containers:
+      - args:
+        - serve
+        - --model
+        - TabbyML/SantaCoder-1B
+        env:
+        - name: FOO
+          value: BAR
+        image: ghcr.io/tabbyml/tabby:latest
+        imagePullPolicy: Always
+        name: tabby
+        ports:
+        - containerPort: 8080
+          name: frontend
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: tabby-data
+        - mountPath: /.tabby/agent/config.toml
+          name: config-volume
+          subPath: config.toml
+      - image: corfr/tcpdump
+        name: tcpdump
+        command:
+          - /bin/sleep
+          - infinity
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: config-volume
+        configMap:
+          name: tabby-config
+      - name: tabby-data
+        persistentVolumeClaim:
+          claimName: tabby-data
