@@ -75,10 +75,9 @@ setup(
     url="https://opennmt.net",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
-        "Environment :: GPU :: NVIDIA CUDA :: 12.0",
-        "Environment :: GPU :: NVIDIA CUDA :: 12.1",
-        "Environment :: GPU :: NVIDIA CUDA :: 12.2",
-        "Environment :: GPU :: NVIDIA CUDA :: 12.3",
+        "Environment :: GPU :: NVIDIA CUDA :: 12 :: 12.0",
+        "Environment :: GPU :: NVIDIA CUDA :: 12 :: 12.1",
+        "Environment :: GPU :: NVIDIA CUDA :: 12 :: 12.2",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
