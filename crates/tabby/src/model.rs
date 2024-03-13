@@ -20,7 +20,7 @@ pub async fn main(args: ModelArgs) {
 }
 
 async fn delete_model(model: &str) {
-    let (registry, name) = parse_model_id(&model);
+    let (registry, name) = parse_model_id(model);
     let registry = ModelRegistry::new(registry).await;
     let path = registry.get_model_dir(name);
     if !path.exists() {
