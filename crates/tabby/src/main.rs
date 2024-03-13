@@ -2,6 +2,7 @@ mod routes;
 mod services;
 
 mod download;
+mod model;
 mod serve;
 
 #[cfg(feature = "ee")]
@@ -43,6 +44,10 @@ pub enum Commands {
 
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
+
+    /// Manage local models
+    #[command(subcommand)]
+    Model(model::ModelArgs),
 
     /// Run completion model as worker
     #[cfg(feature = "ee")]
@@ -173,6 +178,7 @@ async fn main() {
         Commands::WorkerChat(ref args) => {
             worker::main(tabby_webserver::public::WorkerKind::Chat, args).await
         }
+        Commands::Model(args) => model::main(args).await,
     }
 
     opentelemetry::global::shutdown_tracer_provider();
