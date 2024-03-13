@@ -30,7 +30,7 @@ interface CodeMirrorEditorProps {
 
 const External = Annotation.define<boolean>()
 
-export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
+const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   value,
   theme,
   language,
@@ -150,3 +150,5 @@ function SpaceDisplay({ spaceLength }: { spaceLength: number }) {
 
   return <p dangerouslySetInnerHTML={{ __html: spaces }}></p>
 }
+
+export default CodeMirrorEditor

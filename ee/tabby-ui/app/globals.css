@@ -87,3 +87,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+.prose-full-width {
+  max-width: none !important;
+}
