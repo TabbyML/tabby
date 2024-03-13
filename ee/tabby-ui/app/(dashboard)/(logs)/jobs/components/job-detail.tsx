@@ -58,7 +58,7 @@ export default function JobRunDetail() {
               <div className="flex gap-16 pb-6 pt-2">
                 <div>
                   <p
-                    className={`text- font-bold${findColorByExitCode(currentNode.exitCode)}`}>
+                    className={`text-${findColorByExitCode(currentNode.exitCode)} font-bold`}>
                       {findLabelByExitCode(currentNode.exitCode)}
                   </p>
                   <p className="text-sm text-muted-foreground">Status</p>
