@@ -68,10 +68,10 @@ async fn download_file(url: &str, path: &Path) -> Result<()> {
     if let Err(e) = https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, "").await {
         match e {
             DownloadError::HttpError { name, code } => {
-                bail!("Fetching file {name} failed: Server returned HTTP code {code}")
+                bail!("Fetching '{name}' failed: Server returned {code} HTTP status")
             }
             DownloadError::Validate { source } => {
-                bail!("Fetching file {source} failed: File failed to validate")
+                bail!("Failed to validate '{source}'")
             }
         }
     }
