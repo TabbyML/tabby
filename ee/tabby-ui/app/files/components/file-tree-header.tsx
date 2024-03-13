@@ -194,7 +194,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                         }
                       }}
                     />
-                    <div className="absolute top-0 right-2 flex items-center h-full">
+                    <div className="absolute right-2 top-0 flex h-full items-center">
                       {input ? (
                         <Button
                           variant="ghost"
@@ -210,7 +210,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                         </Button>
                       ) : (
                         <kbd
-                          className="border rounded-md px-1.5 leading-4 bg-secondary/50 text-muted-foreground text-xs shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
+                          className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
                           onClick={e => {
                             inputRef.current?.focus()
                           }}
