@@ -10,7 +10,8 @@ pub use oauth_credential::OAuthCredentialDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{
-    query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool, Type, Value, ValueRef,
+    database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite,
+    SqlitePool, Type, Value, ValueRef,
 };
 pub use users::UserDAO;
 
@@ -187,6 +188,61 @@ impl DbConn {
     }
 }
 
+#[derive(Default)]
+pub struct DbOption<T>(Option<T>);
+
+impl<T> Type<Sqlite> for DbOption<T>
+where
+    T: Type<Sqlite>,
+{
+    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
+        T::type_info()
+    }
+}
+
+impl<'a, T> sqlx::Decode<'a, Sqlite> for DbOption<T>
+where
+    T: sqlx::Decode<'a, Sqlite>,
+{
+    fn decode(
+        value: <Sqlite as HasValueRef<'a>>::ValueRef,
+    ) -> std::prelude::v1::Result<Self, sqlx::error::BoxDynError> {
+        if value.is_null() {
+            Ok(Self(None))
+        } else {
+            Ok(Self(Some(T::decode(value)?)))
+        }
+    }
+}
+
+impl<T, F> From<Option<F>> for DbOption<T>
+where
+    T: From<F>,
+{
+    fn from(value: Option<F>) -> Self {
+        DbOption(value.map(|v| T::from(v)))
+    }
+}
+
+impl<T> DbOption<T> {
+    pub fn into_option<V>(self) -> Option<V>
+    where
+        T: Into<V>,
+    {
+        self.0.map(Into::into)
+    }
+}
+
+impl<T> Clone for DbOption<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        self.0.clone().into()
+    }
+}
+
+#[derive(Default, Clone)]
 pub struct DateTimeUtc(DateTime<Utc>);
 
 impl From<DateTime<Utc>> for DateTimeUtc {
@@ -195,9 +251,15 @@ impl From<DateTime<Utc>> for DateTimeUtc {
     }
 }
 
+impl Into<DateTime<Utc>> for DateTimeUtc {
+    fn into(self) -> DateTime<Utc> {
+        *self
+    }
+}
+
 impl<'a> sqlx::Decode<'a, Sqlite> for DateTimeUtc {
     fn decode(
-        value: <Sqlite as sqlx::database::HasValueRef<'a>>::ValueRef,
+        value: <Sqlite as HasValueRef<'a>>::ValueRef,
     ) -> std::prelude::v1::Result<Self, sqlx::error::BoxDynError> {
         let time: NaiveDateTime = value.to_owned().decode();
         Ok(time.into())

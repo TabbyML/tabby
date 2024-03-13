@@ -1,23 +1,23 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc};
 use sqlx::{query, FromRow};
+use tabby_db_macros::query_paged_as;
 
 use super::DbConn;
-use crate::make_pagination_query_with_condition;
+use crate::{DateTimeUtc, DbOption};
 
 #[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {
-    pub id: i32,
+    pub id: i64,
     #[sqlx(rename = "job")]
     pub name: String,
-    pub exit_code: Option<i32>,
+    pub exit_code: Option<i64>,
     pub stdout: String,
     pub stderr: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
 
     #[sqlx(rename = "end_ts")]
-    pub finished_at: Option<DateTime<Utc>>,
+    pub finished_at: DbOption<DateTimeUtc>,
 }
 
 /// db read/write operations for `job_runs` table
@@ -72,26 +72,28 @@ impl DbConn {
         } else {
             None
         };
-        let query = make_pagination_query_with_condition(
+        let job_runs: Vec<JobRunDAO> = query_paged_as!(
+            JobRunDAO,
             "job_runs",
-            &[
+            [
                 "id",
-                "job",
+                "job" AS "name",
                 "exit_code",
                 "stdout",
                 "stderr",
-                "created_at",
-                "updated_at",
-                "end_ts",
+                "created_at"!,
+                "updated_at"!,
+                "end_ts" AS "finished_at"
             ],
             limit,
             skip_id,
             backwards,
-            condition,
-        );
+            condition
+        )
+        .fetch_all(&self.pool)
+        .await?;
 
-        let runs = sqlx::query_as(&query).fetch_all(&self.pool).await?;
-        Ok(runs)
+        Ok(job_runs)
     }
 
     pub async fn cleanup_stale_job_runs(&self) -> Result<()> {
