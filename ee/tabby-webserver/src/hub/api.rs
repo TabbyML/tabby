@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{
         code::{CodeSearch, CodeSearchError, SearchResponse},
-        event::RawEventLogger,
+        event::EventLogger,
     },
     config::{RepositoryAccess, RepositoryConfig},
 };
@@ -70,8 +70,8 @@ pub async fn create_worker_client(
     WorkerClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
 }
 
-impl RawEventLogger for WorkerClient {
-    fn log(&self, content: String) {
+impl EventLogger for WorkerClient {
+    fn log_raw(&self, content: String) {
         let context = tarpc::context::current();
         let client = self.0.clone();
 
