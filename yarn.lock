@@ -3844,10 +3844,10 @@ split@^1.0.1:
   dependencies:
     through "2"
 
-stats-logscale@^1.0.7:
-  version "1.0.7"
-  resolved "https://registry.yarnpkg.com/stats-logscale/-/stats-logscale-1.0.7.tgz#cfc32d42cc480575336f265d864cb819c6618eb5"
-  integrity sha512-Vwgch6DGsyBR7avsqyDlpgod8PjD0zY58UoAZHWAr7fMFrxTgBKkdlErk1mZk4hm85VLaRvoeEu6hS4ODseOnw==
+stats-logscale@^1.0.9:
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/stats-logscale/-/stats-logscale-1.0.9.tgz#2c95e3ded63f2140ba050ad63effb95ef7f623b9"
+  integrity sha512-vT0CmCjqwGO2ZTglgM2VUb4WEKzRKIMCRFsBW1G9rePWiq7jtzpHBUp++UBvG5JftjrBWpVztdHTUr4PG+y26g==
 
 statuses@2.0.1:
   version "2.0.1"
