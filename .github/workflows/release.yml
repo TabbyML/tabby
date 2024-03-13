@@ -133,7 +133,7 @@ jobs:
         if: runner.os == 'Windows' && matrix.windows_cuda != ''
 
       - name: Install Vulkan SDK
-        uses: icycodes/install-vulkan-sdk@main
+        uses: icycodes/install-vulkan-sdk@v1.1.1-patch
         with:
           version: ${{ matrix.vulkan_sdk }}
           cache: true
