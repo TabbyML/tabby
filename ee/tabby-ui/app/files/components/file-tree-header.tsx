@@ -188,7 +188,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                   align="start"
                   side="bottom"
                   onOpenAutoFocus={e => e.preventDefault()}
-                  className="min-w-[30vw] max-h-[50vh] overflow-y-scroll"
+                  className="max-h-[50vh] min-w-[30vw] overflow-y-scroll"
                 >
                   <>
                     {options?.length ? (
@@ -227,7 +227,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                         </ComboboxOption>
                       ))
                     ) : (
-                      <div className="h-16 flex items-center justify-center">
+                      <div className="flex h-16 items-center justify-center">
                         No matches found
                       </div>
                     )}
