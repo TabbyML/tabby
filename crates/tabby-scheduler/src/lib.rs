@@ -7,7 +7,7 @@ mod utils;
 
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info, warn};
@@ -16,10 +16,10 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) -> R
     if now {
         let repositories = access.list_repositories().await?;
         if !job_sync(&repositories) {
-            panic!("Sync job failed, exiting");
+            bail!("Sync job failed, exiting");
         }
         if !job_index(&repositories) {
-            panic!("Index job failed, exiting");
+            bail!("Index job failed, exiting");
         }
     } else {
         let access = Arc::new(access);
