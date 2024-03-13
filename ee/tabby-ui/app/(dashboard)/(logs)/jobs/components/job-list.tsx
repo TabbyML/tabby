@@ -6,8 +6,6 @@ import { useQuery } from 'urql'
 import { ListJobRunsQueryVariables } from '@/lib/gql/generates/graphql'
 import { useIsQueryInitialized } from '@/lib/tabby/gql'
 import { listJobRuns } from '@/lib/tabby/query'
-import { ListSkeleton } from '@/components/skeleton'
-
 import {
   Table,
   TableBody,
@@ -15,6 +13,8 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { ListSkeleton } from '@/components/skeleton'
+
 import JobListRow from './job-list-row'
 
 const PAGE_SIZE = 15
@@ -31,7 +31,7 @@ export function JobRuns() {
   const [initialized] = useIsQueryInitialized({ data, error, stale })
 
   const edges = data?.jobRuns?.edges
-  
+
   const displayJobs = React.useMemo(() => {
     return edges?.slice().reverse()
   }, [edges])
@@ -39,7 +39,7 @@ export function JobRuns() {
   return (
     <>
       {!initialized && <ListSkeleton />}
-      {initialized &&
+      {initialized && (
         <Table>
           <TableHeader>
             <TableRow>
@@ -53,7 +53,7 @@ export function JobRuns() {
             <JobListRow name="scheduler" jobs={displayJobs} />
           </TableBody>
         </Table>
-      }
+      )}
     </>
   )
 }
