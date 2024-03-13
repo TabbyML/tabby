@@ -3,18 +3,17 @@
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
-import { useQuery } from 'urql'
-import moment from 'moment'
 import humanizerDuration from 'humanize-duration'
+import moment from 'moment'
+import { useQuery } from 'urql'
 
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
-import { findLabelByExitCode, findColorByExitCode } from '../utils/state'
-
 import { IconAlertTriangle, IconTerminalSquare } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
+import { findColorByExitCode, findLabelByExitCode } from '../utils/state'
 
 export default function JobRunDetail() {
   const searchParams = useSearchParams()
@@ -50,7 +49,7 @@ export default function JobRunDetail() {
         <ListSkeleton />
       ) : (
         <div className="flex flex-1 flex-col items-stretch gap-2">
-          {currentNode &&
+          {currentNode && (
             <>
               <h1 className="text-4xl font-semibold tracking-tight first:mt-0">
                 {currentNode.job}
@@ -58,33 +57,42 @@ export default function JobRunDetail() {
               <div className="flex gap-16 pb-6 pt-2">
                 <div>
                   <p
-                    className={`text-${findColorByExitCode(currentNode.exitCode)} font-bold`}>
-                      {findLabelByExitCode(currentNode.exitCode)}
+                    className={`text-${findColorByExitCode(
+                      currentNode.exitCode
+                    )} font-bold`}
+                  >
+                    {findLabelByExitCode(currentNode.exitCode)}
                   </p>
                   <p className="text-sm text-muted-foreground">Status</p>
                 </div>
 
-                {currentNode.createdAt &&
-                   <div>
-                    <p
-                      >
-                        {moment(currentNode.createdAt).format('MMMM D, YYYY h:mm a')}
+                {currentNode.createdAt && (
+                  <div>
+                    <p>
+                      {moment(currentNode.createdAt).format(
+                        'MMMM D, YYYY h:mm a'
+                      )}
                     </p>
                     <p className="text-sm text-muted-foreground">Started At</p>
                   </div>
-                }
+                )}
 
-                {currentNode.createdAt && currentNode.finishedAt && 
-                   <div>
-                    <p
-                      >
-                        {humanizerDuration(moment
-                        .duration(moment(currentNode.finishedAt).diff(currentNode.createdAt))
-                        .asMilliseconds())}
+                {currentNode.createdAt && currentNode.finishedAt && (
+                  <div>
+                    <p>
+                      {humanizerDuration(
+                        moment
+                          .duration(
+                            moment(currentNode.finishedAt).diff(
+                              currentNode.createdAt
+                            )
+                          )
+                          .asMilliseconds()
+                      )}
                     </p>
                     <p className="text-sm text-muted-foreground">Duration</p>
                   </div>
-                }
+                )}
               </div>
               {/* <JobsTable jobs={edges?.slice(0, 1)} shouldRedirect={false} /> */}
               <Tabs defaultValue="stdout" className="flex flex-1 flex-col">
@@ -108,7 +116,7 @@ export default function JobRunDetail() {
                 </div>
               </Tabs>
             </>
-          }
+          )}
         </div>
       )}
     </>
