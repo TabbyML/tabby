@@ -3,7 +3,7 @@ use sqlx::{query, FromRow};
 use tabby_db_macros::query_paged_as;
 
 use super::DbConn;
-use crate::{DateTimeUtc, DbOption};
+use crate::{DateTimeUtc, DbNullable};
 
 #[derive(Default, Clone, FromRow)]
 pub struct JobRunDAO {
@@ -17,7 +17,7 @@ pub struct JobRunDAO {
     pub updated_at: DateTimeUtc,
 
     #[sqlx(rename = "end_ts")]
-    pub finished_at: DbOption<DateTimeUtc>,
+    pub finished_at: DbNullable<DateTimeUtc>,
 }
 
 /// db read/write operations for `job_runs` table

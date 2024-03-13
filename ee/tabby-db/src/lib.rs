@@ -189,9 +189,9 @@ impl DbConn {
 }
 
 #[derive(Default)]
-pub struct DbOption<T>(Option<T>);
+pub struct DbNullable<T>(Option<T>);
 
-impl<T> Type<Sqlite> for DbOption<T>
+impl<T> Type<Sqlite> for DbNullable<T>
 where
     T: Type<Sqlite>,
 {
@@ -200,7 +200,7 @@ where
     }
 }
 
-impl<'a, T> sqlx::Decode<'a, Sqlite> for DbOption<T>
+impl<'a, T> sqlx::Decode<'a, Sqlite> for DbNullable<T>
 where
     T: sqlx::Decode<'a, Sqlite>,
 {
@@ -215,16 +215,16 @@ where
     }
 }
 
-impl<T, F> From<Option<F>> for DbOption<T>
+impl<T, F> From<Option<F>> for DbNullable<T>
 where
     T: From<F>,
 {
     fn from(value: Option<F>) -> Self {
-        DbOption(value.map(|v| T::from(v)))
+        DbNullable(value.map(|v| T::from(v)))
     }
 }
 
-impl<T> DbOption<T> {
+impl<T> DbNullable<T> {
     pub fn into_option<V>(self) -> Option<V>
     where
         T: Into<V>,
@@ -233,7 +233,7 @@ impl<T> DbOption<T> {
     }
 }
 
-impl<T> Clone for DbOption<T>
+impl<T> Clone for DbNullable<T>
 where
     T: Clone,
 {
