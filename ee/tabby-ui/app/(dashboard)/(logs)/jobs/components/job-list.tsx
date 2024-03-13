@@ -8,8 +8,6 @@ import { useIsQueryInitialized } from '@/lib/tabby/gql'
 import { listJobRuns } from '@/lib/tabby/query'
 import { ListSkeleton } from '@/components/skeleton'
 
-
-
 import {
   Table,
   TableBody,
