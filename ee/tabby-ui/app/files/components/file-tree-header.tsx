@@ -102,6 +102,32 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     console.log(value)
   }
 
+  // shortcut 't'
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as Element
+      const tagName = target?.tagName?.toLowerCase()
+      if (
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select'
+      ) {
+        return
+      }
+
+      if (event.key === 't') {
+        event.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
   return (
     <div className={cn(className)} {...props}>
       <div className="py-4 font-bold leading-8">Files</div>
@@ -168,20 +194,31 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                         }
                       }}
                     />
-                    {!!input && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1.5 h-6 w-6 cursor-pointer"
-                        onClick={e => {
-                          setInput('')
-                          onClearInput()
-                          inputRef.current?.focus()
-                        }}
-                      >
-                        <IconClose />
-                      </Button>
-                    )}
+                    <div className="absolute top-0 right-2 flex items-center h-full">
+                      {input ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 cursor-pointer"
+                          onClick={e => {
+                            setInput('')
+                            onClearInput()
+                            inputRef.current?.focus()
+                          }}
+                        >
+                          <IconClose />
+                        </Button>
+                      ) : (
+                        <kbd
+                          className="border rounded-md px-1.5 leading-4 bg-secondary/50 text-muted-foreground text-xs shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
+                          onClick={e => {
+                            inputRef.current?.focus()
+                          }}
+                        >
+                          t
+                        </kbd>
+                      )}
+                    </div>
                   </div>
                 </ComboboxAnchor>
                 <ComboboxContent
