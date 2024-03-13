@@ -251,9 +251,9 @@ impl From<DateTime<Utc>> for DateTimeUtc {
     }
 }
 
-impl Into<DateTime<Utc>> for DateTimeUtc {
-    fn into(self) -> DateTime<Utc> {
-        *self
+impl From<DateTimeUtc> for DateTime<Utc> {
+    fn from(val: DateTimeUtc) -> Self {
+        *val
     }
 }
 
