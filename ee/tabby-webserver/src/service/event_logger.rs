@@ -93,7 +93,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let logger = new_event_logger(db.clone());
         let user_id = db
-            .create_user("testuser".into(), "pass".into(), true)
+            .create_user("testuser".into(), Some("pass".into()), true)
             .await
             .unwrap();
 

@@ -285,7 +285,7 @@ pub mod testutils {
     pub async fn create_user(conn: &DbConn) -> i32 {
         let email: &str = "test@example.com";
         let password: &str = "123456789";
-        conn.create_user(email.to_string(), password.to_string(), true)
+        conn.create_user(email.to_string(), Some(password.to_string()), true)
             .await
             .unwrap()
     }
