@@ -3,28 +3,29 @@
 import { useSearchParams } from 'next/navigation'
 
 import { UserAuthForm } from './user-register-form'
+import AdminRegister from './admin-register'
 
 export default function Signup() {
   const searchParams = useSearchParams()
   const invitationCode = searchParams.get('invitationCode') || undefined
   const isAdmin = searchParams.get('isAdmin') || false
-
-  const title = isAdmin ? 'Create an admin account' : 'Create an account'
-
-  const description = isAdmin
-    ? 'Your instance will be secured, only registered users can access it.'
-    : 'Fill form below to create your account'
-
-  if (isAdmin || invitationCode) {
-    return <Content title={title} description={description} show />
-  } else {
+  
+  if (isAdmin) return <AdminRegister />
+  if (invitationCode) {
     return (
       <Content
-        title="No invitation code"
-        description="Please contact your Tabby admin for an invitation code to register"
+        title="Create an account"
+        description="Fill form below to create your account"
+        show
       />
     )
   }
+  return (
+    <Content
+      title="No invitation code"
+      description="Please contact your Tabby admin for an invitation code to register"
+    />
+  )
 }
 
 function Content({
