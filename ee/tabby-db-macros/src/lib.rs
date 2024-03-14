@@ -17,8 +17,8 @@ impl Parse for Column {
             input.parse::<Token![!]>()?;
         }
         let mut rename = None;
-        if input.peek(kw::AS) {
-            input.parse::<kw::AS>()?;
+        if input.peek(Token![as]) {
+            input.parse::<Token![as]>()?;
             rename = Some(input.parse()?);
         }
         Ok(Column {
@@ -37,12 +37,6 @@ struct PaginationQueryInput {
     pub limit: Ident,
     pub skip_id: Ident,
     pub backwards: Ident,
-}
-
-mod kw {
-    use syn::custom_keyword;
-
-    custom_keyword!(AS);
 }
 
 impl Parse for PaginationQueryInput {

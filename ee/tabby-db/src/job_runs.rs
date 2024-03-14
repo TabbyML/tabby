@@ -77,13 +77,13 @@ impl DbConn {
             "job_runs",
             [
                 "id",
-                "job" AS "name",
+                "job" as "name",
                 "exit_code",
                 "stdout",
                 "stderr",
                 "created_at"!,
                 "updated_at"!,
-                "end_ts" AS "finished_at"
+                "end_ts" as "finished_at"
             ],
             limit,
             skip_id,
