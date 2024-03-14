@@ -98,7 +98,9 @@ apt-get install protobuf-compiler libopenblas-dev
 - 📚 [LinkedIn](https://www.linkedin.com/company/tabbyml/) - follow for the latest from the community 
 - 💌 [Newsletter](https://newsletter.tabbyml.com/archive) - subscribe to unlock Tabby insights and secrets
 
+### 🔆 Activity
 
+![Git Repository Activity](https://repobeats.axiom.co/api/embed/e4ef0fbd12e586ef9ea7d72d1fb4f5c5b88d78d5.svg "Repobeats analytics image")
 
 ### 🌟 Star History
 
