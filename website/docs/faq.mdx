@@ -49,3 +49,36 @@ For details on the registry format, please refer to [models.json](https://github
 Tabby also supports loading models from a local directory that follow our specifications as outlined in [MODEL_SPEC.md](https://github.com/TabbyML/tabby/blob/main/MODEL_SPEC.md).
 
 </Collapse>
+
+<Collapse title="The computer doesn't have internet access.">
+The plan is: we'll create a Docker image on a computer that's connected to the internet. Then, we'll copy the image to the computer that doesn't have internet access and run the Docker image there. Here are the steps:
+
+1. On a computer with internet access, create a new **Dockerfile**.
+```
+FROM tabbyml/tabby
+
+RUN /opt/tabby/bin/tabby-cpu download --model TabbyML/StarCoder-1B
+```
+2. Build the Docker image which containing the model
+```bash
+docker build -t tabby-offline .
+```
+3. Save the Docker image to a tar file:
+```bash
+docker save -o tabby-offline.tar tabby-offline
+```
+4. Copy the `tabby-offline.tar` file to the computer without internet access.
+5. On the offline computer, load the Docker image from the tar file:
+```bash
+docker load -i tabby-offline.tar
+```
+6. Run the Tabby container
+```bash
+docker run -it \
+  --gpus all -p 8080:8080 -v $HOME/.tabby:/data \
+  tabby-offline \
+  serve --model TabbyML/StarCoder-1B --device cuda
+```
+
+
+</Collapse>
