@@ -6,7 +6,12 @@ use reqwest::Client;
 use tokio_util::io::ReaderStream;
 
 use crate::{
-    address::ParsedAddress, bar::WrappedBar, consts::*, error::ValidateError, hash::HashChecker, io,
+    address::ParsedAddress,
+    bar::WrappedBar,
+    consts::*,
+    error::{DownloadError, ValidateError},
+    hash::HashChecker,
+    io,
 };
 
 pub struct HTTPSHandler;
@@ -16,9 +21,9 @@ impl HTTPSHandler {
         output: &str,
         bar: &mut WrappedBar,
         expected_sha256: &str,
-    ) -> Result<(), ValidateError> {
+    ) -> Result<(), DownloadError> {
         HTTPSHandler::_get(input, output, bar).await?;
-        HashChecker::check(output, expected_sha256)
+        Ok(HashChecker::check(output, expected_sha256)?)
     }
 
     pub async fn put(input: &str, output: &str, mut bar: WrappedBar) -> Result<(), ValidateError> {
@@ -113,7 +118,7 @@ impl HTTPSHandler {
         Ok(res)
     }
 
-    async fn _get(input: &str, output: &str, bar: &mut WrappedBar) -> Result<(), ValidateError> {
+    async fn _get(input: &str, output: &str, bar: &mut WrappedBar) -> Result<(), DownloadError> {
         let parsed_address = ParsedAddress::parse_address(input, bar.silent);
         let (mut out, mut downloaded) = io::get_output(output, bar.silent);
 
@@ -130,8 +135,12 @@ impl HTTPSHandler {
             .basic_auth(parsed_address.username, Some(parsed_address.password))
             .send()
             .await
-            .map_err(|_| format!("Failed to GET from {} to {}", &input, &output))
-            .unwrap();
+            .and_then(|r| r.error_for_status())
+            .map_err(|e| DownloadError::HttpError {
+                name: input.into(),
+                code: e.status().unwrap_or_default().to_string(),
+            })?;
+
         let total_size = downloaded + res.content_length().unwrap_or(0);
 
         bar.set_length(total_size);

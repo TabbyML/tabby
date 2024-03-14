@@ -1,8 +1,8 @@
 //! Responsible for downloading ML models for use with tabby.
 use std::{fs, path::Path};
 
-use aim_downloader::{bar::WrappedBar, https};
-use anyhow::{anyhow, Result};
+use aim_downloader::{bar::WrappedBar, error::DownloadError, https};
+use anyhow::{anyhow, bail, Result};
 use tabby_common::registry::{parse_model_id, ModelRegistry};
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
@@ -65,7 +65,16 @@ async fn download_file(url: &str, path: &Path) -> Result<()> {
 
     let mut bar = WrappedBar::new(0, url, false);
 
-    https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, "").await?;
+    if let Err(e) = https::HTTPSHandler::get(url, &intermediate_filename, &mut bar, "").await {
+        match e {
+            DownloadError::HttpError { name, code } => {
+                bail!("Fetching '{name}' failed: Server returned {code} HTTP status")
+            }
+            DownloadError::Validate { source } => {
+                bail!("Failed to validate '{source}'")
+            }
+        }
+    }
 
     fs::rename(intermediate_filename, filename)?;
     Ok(())
