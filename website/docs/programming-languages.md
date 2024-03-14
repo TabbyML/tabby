@@ -32,6 +32,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [C/C++](https://cplusplus.com/)
 * [PHP](https://www.php.net/)
 * [C#](https://learn.microsoft.com/en-us/dotnet/csharp/)
+* [Solidity](https://soliditylang.org/): Since v0.10.0
 
 ## Languages Missing Certain Support
 

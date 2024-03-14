@@ -153,6 +153,17 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "solidity",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_solidity::language(),
+                        include_str!("../../queries/solidity.scm"),
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
         ])
     };
 }

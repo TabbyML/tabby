@@ -197,3 +197,18 @@ top_level_keywords = [
     "trait",
     "use",
 ]
+
+
+[[config]]
+languages = ["solidity"]
+line_comment = "//"
+top_level_keywords = [
+    "contract",
+    "interface",
+    "error",
+    "library",
+    "struct",
+    "enum",
+    "function",
+    "type",
+]
