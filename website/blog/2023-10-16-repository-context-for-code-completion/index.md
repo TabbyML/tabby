@@ -10,7 +10,7 @@ image: ./whiteboard.jpg
 <div align="center">
 
 ![Whiteboard](./whiteboard.jpg)
-*Credit: [Elon Mask's tweet](https://twitter.com/elonmusk/status/1593899029531803649)*
+*Credit: [Elon Musk's tweet](https://twitter.com/elonmusk/status/1593899029531803649)*
 
 </div>
 
