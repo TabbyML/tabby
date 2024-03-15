@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import humanizerDuration from 'humanize-duration'
 import moment from 'moment'
+import { isNil } from 'lodash-es'
 
 import type { ListJobRunsQuery } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
@@ -12,7 +13,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-import { findColorByExitCode, findLabelByExitCode } from '../utils/state'
+import { getLabelByExitCode } from '../utils/state'
 
 type TJobRun = ListJobRunsQuery['jobRuns']['edges'][0]
 
@@ -27,7 +28,7 @@ export default function JobListRow({
 
   const lastJob = jobs[0]
   const lastFinishedJob = jobs?.find(job => Boolean(job.node.finishedAt))
-  const currentStatte = findLabelByExitCode(lastJob.node.exitCode)
+  const currentStatte = getLabelByExitCode(lastJob.node.exitCode)
   const lastSuccessAt = lastFinishedJob
     ? moment(lastFinishedJob.node.finishedAt).format('MMMM D, YYYY h:mm a')
     : null
@@ -49,7 +50,6 @@ export default function JobListRow({
                   .duration(moment(finishedAt).diff(createdAt))
                   .asMilliseconds()
               )
-            const color = findColorByExitCode(job.node.exitCode)
             return (
               <TooltipProvider delayDuration={0} key={job.node.id}>
                 <Tooltip>
@@ -58,7 +58,11 @@ export default function JobListRow({
                       href={`/jobs/detail?id=${job.node.id}`}
                       className={cn(
                         'mr-1 h-8 w-2 rounded-full hover:opacity-70',
-                        `bg-${color}`
+                        {
+                          'bg-orange-400': isNil(job.node.exitCode),
+                          'bg-green-400': job.node.exitCode === 0,
+                          'bg-red-400': job.node.exitCode === 1
+                        }
                       )}
                     />
                   </TooltipTrigger>
