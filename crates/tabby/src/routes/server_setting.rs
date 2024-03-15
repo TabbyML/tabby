@@ -15,7 +15,7 @@ use tabby_common::api::server_setting::ServerSetting;
 )]
 pub async fn setting() -> Json<ServerSetting> {
     let config = ServerSetting {
-        disable_client_side_telemetry: true,
+        disable_client_side_telemetry: false,
     };
     Json(config)
 }
