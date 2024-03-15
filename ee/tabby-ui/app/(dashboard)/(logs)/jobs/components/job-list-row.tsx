@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import humanizerDuration from 'humanize-duration'
-import moment from 'moment'
 import { isNil } from 'lodash-es'
+import moment from 'moment'
 
 import type { ListJobRunsQuery } from '@/lib/gql/generates/graphql'
 import { cn } from '@/lib/utils'
