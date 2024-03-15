@@ -53,6 +53,8 @@ const typeCheckSchema: Record<string, string> = {
   "completion.prompt.experimentalStripAutoClosingCharacters": "boolean",
   "completion.prompt.maxPrefixLines": "number",
   "completion.prompt.maxSuffixLines": "number",
+  "completion.prompt.fileInfo": "object",
+  "completion.prompt.fileInfo.experimentalEnabled": "boolean",
   "completion.prompt.clipboard": "object",
   "completion.prompt.clipboard.minChars": "number",
   "completion.prompt.clipboard.maxChars": "number",

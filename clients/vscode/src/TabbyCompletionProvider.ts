@@ -9,6 +9,8 @@ import {
   TextDocument,
   NotebookDocument,
   NotebookRange,
+  Uri,
+  extensions,
   window,
   workspace,
 } from "vscode";
@@ -96,6 +98,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       position: additionalContext.prefix.length + document.offsetAt(position),
       indentation: this.getEditorIndentation(),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
+      workspace: workspace.getWorkspaceFolder(document.uri)?.uri.fsPath,
+      git: this.getGitContext(document.uri),
     };
 
     const abortController = new AbortController();
@@ -281,5 +285,28 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         }
       })
       .join("\n\n");
+  }
+
+  private getGitContext(uri: Uri): CompletionRequest["git"] | undefined {
+    if (!agent().getConfig().completion.prompt.fileInfo.experimentalEnabled) {
+      return undefined;
+    }
+    const gitExt = extensions.getExtension("vscode.git");
+    if (!gitExt || !gitExt.isActive) {
+      return undefined;
+    }
+    // https://github.com/microsoft/vscode/blob/main/extensions/git/src/api/git.d.ts
+    const gitApi = gitExt.exports.getAPI(1); // version: 1
+    const repo = gitApi.getRepository(uri);
+    if (!repo) {
+      return undefined;
+    }
+    return {
+      root: repo.rootUri.fsPath,
+      remotes: repo.state.remotes.map((remote: { name: string; fetchUrl?: string }) => ({
+        name: remote.name,
+        url: remote.fetchUrl,
+      })),
+    };
   }
 }

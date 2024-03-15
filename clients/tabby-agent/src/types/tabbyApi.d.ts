@@ -146,6 +146,20 @@ export interface components {
       /** @description When true, disable retrieval augmented code completion. */
       disable_retrieval_augmented_code_completion?: boolean;
     };
+    FileInfo: {
+      /**
+       * @description The relative path of the file that is being edited.
+       * When git_url is set, this is the path of the file in the git repository.
+       * When git_url is not set, this is the path of the file in the workspace.
+       */
+      filepath: string;
+      /**
+       * @description The remote URL of the current git repository.
+       * Leave this empty if the file is not in a git repository,
+       * or the git repository does not have a remote URL.
+       */
+      git_url?: string | null;
+    };
     HealthState: {
       model?: string | null;
       chat_model?: string | null;
@@ -197,6 +211,7 @@ export interface components {
       prefix: string;
       /** @description Content that appears after the cursor in the editor window. */
       suffix?: string | null;
+      file_info?: components["schemas"]["FileInfo"] | null;
       /** @description Clipboard content when requesting code completion. */
       clipboard?: string | null;
     };
