@@ -6,6 +6,7 @@ import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
 import moment from 'moment'
 import { useQuery } from 'urql'
+import { isNil } from 'lodash-es'
 
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
@@ -13,7 +14,7 @@ import { IconAlertTriangle, IconTerminalSquare } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
-import { findColorByExitCode, findLabelByExitCode } from '../utils/state'
+import { getLabelByExitCode } from '../utils/state'
 
 export default function JobRunDetail() {
   const searchParams = useSearchParams()
@@ -42,7 +43,6 @@ export default function JobRunDetail() {
     }
   }, [currentNode])
 
-  console.log(currentNode)
   return (
     <>
       {fetching ? (
@@ -57,11 +57,13 @@ export default function JobRunDetail() {
               <div className="flex gap-16 pb-6 pt-2">
                 <div>
                   <p
-                    className={`text-${findColorByExitCode(
-                      currentNode.exitCode
-                    )} font-bold`}
+                    className={cn('font-bold', {
+                      'text-orange-400': isNil(currentNode.exitCode),
+                      'text-green-400': currentNode.exitCode === 0,
+                      'text-red-400': currentNode.exitCode === 1
+                    })}
                   >
-                    {findLabelByExitCode(currentNode.exitCode)}
+                    {getLabelByExitCode(currentNode.exitCode)}
                   </p>
                   <p className="text-sm text-muted-foreground">Status</p>
                 </div>
