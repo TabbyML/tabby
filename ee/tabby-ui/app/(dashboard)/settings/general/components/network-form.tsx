@@ -21,6 +21,7 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { ListSkeleton } from '@/components/skeleton'
 
 const updateNetworkSettingMutation = graphql(/* GraphQL */ `
   mutation updateNetworkSettingMutation($input: NetworkSettingInput!) {
@@ -112,15 +113,17 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 }
 
 export const GeneralNetworkForm = () => {
-  const [{ data }, reexecuteQuery] = useNetworkSetting()
+  const [{ data }, reexecuteQuery] = useNetworkSetting({
+    requestPolicy: 'network-only'
+  })
   const onSuccess = () => {
     toast.success('Network configuration is updated')
     reexecuteQuery()
   }
 
-  return (
-    data && (
-      <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
-    )
+  return data ? (
+    <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
+  ) : (
+    <ListSkeleton />
   )
 }

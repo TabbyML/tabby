@@ -1,5 +1,5 @@
 import React from 'react'
-import { useQuery } from 'urql'
+import { useQuery, UseQueryArgs } from 'urql'
 
 import { graphql } from '../gql/generates'
 import { isClientSide } from '../utils'
@@ -12,8 +12,10 @@ const networkSettingQuery = graphql(/* GraphQL */ `
   }
 `)
 
-const useNetworkSetting = () => {
-  return useQuery({ query: networkSettingQuery })
+const useNetworkSetting = (
+  options?: Pick<UseQueryArgs, 'requestPolicy' | 'pause'>
+) => {
+  return useQuery({ query: networkSettingQuery, ...options })
 }
 
 const useExternalURL = () => {
