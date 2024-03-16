@@ -14,7 +14,7 @@ pub struct UserDAO {
 
     pub id: i32,
     pub email: String,
-    pub password_encrypted: String,
+    pub password_encrypted: Option<String>,
     pub is_admin: bool,
 
     /// To authenticate IDE extensions / plugins to access code completion / chat api endpoints.
@@ -41,7 +41,7 @@ impl DbConn {
     pub async fn create_user(
         &self,
         email: String,
-        password_encrypted: String,
+        password_encrypted: Option<String>,
         is_admin: bool,
     ) -> Result<i32> {
         self.create_user_impl(email, password_encrypted, is_admin, None)
@@ -51,7 +51,7 @@ impl DbConn {
     pub async fn create_user_with_invitation(
         &self,
         email: String,
-        password_encrypted: String,
+        password_encrypted: Option<String>,
         is_admin: bool,
         invitation_id: i32,
     ) -> Result<i32> {
@@ -62,7 +62,7 @@ impl DbConn {
     async fn create_user_impl(
         &self,
         email: String,
-        password_encrypted: String,
+        password_encrypted: Option<String>,
         is_admin: bool,
         invitation_id: Option<i32>,
     ) -> Result<i32> {
@@ -395,7 +395,7 @@ mod tests {
         );
 
         let id1 = conn
-            .create_user("use1@example.com".into(), "123456".into(), false)
+            .create_user("use1@example.com".into(), Some("123456".into()), false)
             .await
             .unwrap();
 
@@ -464,19 +464,19 @@ mod tests {
         );
 
         let id2 = conn
-            .create_user("use2@example.com".into(), "123456".into(), false)
+            .create_user("use2@example.com".into(), Some("123456".into()), false)
             .await
             .unwrap();
         let id3 = conn
-            .create_user("use3@example.com".into(), "123456".into(), false)
+            .create_user("use3@example.com".into(), Some("123456".into()), false)
             .await
             .unwrap();
         let id4 = conn
-            .create_user("use4@example.com".into(), "123456".into(), false)
+            .create_user("use4@example.com".into(), Some("123456".into()), false)
             .await
             .unwrap();
         let id5 = conn
-            .create_user("use5@example.com".into(), "123456".into(), false)
+            .create_user("use5@example.com".into(), Some("123456".into()), false)
             .await
             .unwrap();
 
@@ -549,7 +549,7 @@ mod tests {
     async fn test_caching() {
         let db = DbConn::new_in_memory().await.unwrap();
 
-        db.create_user("example@example.com".into(), "".into(), true)
+        db.create_user("example@example.com".into(), None, true)
             .await
             .unwrap();
 
@@ -557,7 +557,7 @@ mod tests {
         assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
 
         let user2_id = db
-            .create_user("example2@example.com".into(), "".into(), false)
+            .create_user("example2@example.com".into(), None, false)
             .await
             .unwrap();
         assert_eq!(db.count_active_users().await.unwrap(), 2);
@@ -568,7 +568,7 @@ mod tests {
         assert_eq!(db.count_active_admin_users().await.unwrap(), 1);
 
         let user3_id = db
-            .create_user("example3@example.com".into(), "".into(), true)
+            .create_user("example3@example.com".into(), None, true)
             .await
             .unwrap();
         assert_eq!(db.count_active_users().await.unwrap(), 2);

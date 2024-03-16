@@ -70,14 +70,14 @@ impl AuthenticationService for AuthenticationServiceImpl {
             self.db
                 .create_user_with_invitation(
                     email.clone(),
-                    pwd_hash,
+                    Some(pwd_hash),
                     !is_admin_initialized,
                     invitation.id as i32,
                 )
                 .await?
         } else {
             self.db
-                .create_user(email.clone(), pwd_hash, !is_admin_initialized)
+                .create_user(email.clone(), Some(pwd_hash), !is_admin_initialized)
                 .await?
         };
 
@@ -142,7 +142,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .await?
             .expect("User must exist")
             .password_encrypted;
-        if password_verify(password, &old_pass_encrypted) {
+
+        if old_pass_encrypted.is_some_and(|old| password_verify(password, &old)) {
             return Err(anyhow!("New password cannot be the same as your current password").into());
         }
         self.db.delete_password_reset_by_user_id(user_id).await?;
@@ -164,10 +165,16 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .await?
             .ok_or_else(|| anyhow!("Invalid user"))?;
 
-        let password_verified = match (user.password_encrypted.is_empty(), old_password) {
-            (true, _) => true,
-            (false, None) => false,
-            (false, Some(old_password)) => password_verify(old_password, &user.password_encrypted),
+        let password_verified = match (user.password_encrypted, old_password) {
+            // If the user had no password previously and specified no new password, that's fine
+            (None, None) => true,
+            // If they had a previous password, they must specify what it was and it must match
+            (Some(user_password), Some(old_password)) => {
+                password_verify(old_password, &user_password)
+            }
+            // Otherwise, they must have either specified a password when they did not have one
+            // or failed to specify a password when they did have one
+            _ => false,
         };
         if !password_verified {
             return Err(anyhow!("Password is incorrect").into());
@@ -190,7 +197,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("Invalid email address or password").into());
         };
 
-        if !password_verify(&password, &user.password_encrypted) {
+        if !user
+            .password_encrypted
+            .is_some_and(|pass| password_verify(&password, &pass))
+        {
             return Err(anyhow!("Invalid email address or password").into());
         }
 
@@ -485,15 +495,11 @@ async fn get_or_create_oauth_user(
         .map_err(|x| OAuthError::Other(x.into()))?
         .can_register_without_invitation(email)
     {
-        // it's ok to set password to empty string here, because
+        // it's ok to set password to null here, because
         // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
         // 2. `password_verify` will always return false for empty password hash read from user table
         // so user created here is only able to login by github oauth, normal login won't work
-        let res = (
-            db.create_user(email.to_owned(), "".to_owned(), false)
-                .await?,
-            false,
-        );
+        let res = (db.create_user(email.to_owned(), None, false).await?, false);
         if let Err(e) = mail.send_signup_email(email.to_string()).await {
             warn!("Failed to send signup email: {e}");
         }
@@ -504,12 +510,7 @@ async fn get_or_create_oauth_user(
         };
         // safe to create with empty password for same reasons above
         let id = db
-            .create_user_with_invitation(
-                email.to_owned(),
-                "".to_owned(),
-                false,
-                invitation.id as i32,
-            )
+            .create_user_with_invitation(email.to_owned(), None, false, invitation.id as i32)
             .await?;
         let user = db.get_user(id).await?.unwrap();
         Ok((user.id, user.is_admin))
@@ -877,7 +878,7 @@ mod tests {
         let license = service.license.read_license().await.unwrap();
         let id = service
             .db
-            .create_user("test@example.com".into(), "".into(), false)
+            .create_user("test@example.com".into(), None, false)
             .await
             .unwrap();
         service.db.update_user_active(id, false).await.unwrap();
@@ -942,13 +943,13 @@ mod tests {
         let service = test_authentication_service().await;
         let _ = service
             .db
-            .create_user("admin@example.com".into(), "".into(), true)
+            .create_user("admin@example.com".into(), None, true)
             .await
             .unwrap();
 
         let user_id = service
             .db
-            .create_user("user@example.com".into(), "".into(), false)
+            .create_user("user@example.com".into(), None, false)
             .await
             .unwrap();
 
@@ -963,7 +964,7 @@ mod tests {
         let service = test_authentication_service().await;
         let admin_id = service
             .db
-            .create_user("admin@example.com".into(), "".into(), true)
+            .create_user("admin@example.com".into(), None, true)
             .await
             .unwrap();
 
@@ -986,7 +987,7 @@ mod tests {
         // Test first reset, ensure wrong code fails
         service
             .db
-            .create_user("user@example.com".into(), "pass".into(), true)
+            .create_user("user@example.com".into(), Some("pass".into()), true)
             .await
             .unwrap();
         let user = service.get_user_by_email("user@example.com").await.unwrap();
@@ -1018,7 +1019,7 @@ mod tests {
             .await
             .unwrap()
             .unwrap();
-        assert_ne!(user.password_encrypted, "pass");
+        assert_ne!(user.password_encrypted, Some("pass".into()));
 
         service
             .request_password_reset_email("user@example.com".into())
@@ -1045,7 +1046,7 @@ mod tests {
         // Test third reset, ensure inactive users cannot reset their password
         let user_id_2 = service
             .db
-            .create_user("user2@example.com".into(), "pass".into(), false)
+            .create_user("user2@example.com".into(), Some("pass".into()), false)
             .await
             .unwrap();
 
@@ -1090,17 +1091,17 @@ mod tests {
         let service = test_authentication_service().await;
         service
             .db
-            .create_user("a@example.com".into(), "pass".into(), false)
+            .create_user("a@example.com".into(), Some("pass".into()), false)
             .await
             .unwrap();
         service
             .db
-            .create_user("b@example.com".into(), "pass".into(), false)
+            .create_user("b@example.com".into(), Some("pass".into()), false)
             .await
             .unwrap();
         service
             .db
-            .create_user("c@example.com".into(), "pass".into(), false)
+            .create_user("c@example.com".into(), Some("pass".into()), false)
             .await
             .unwrap();
 
@@ -1223,17 +1224,17 @@ mod tests {
 
         let user1 = service
             .db
-            .create_user("b@example.com".into(), "pass".into(), false)
+            .create_user("b@example.com".into(), Some("pass".into()), false)
             .await
             .unwrap();
         let user2 = service
             .db
-            .create_user("c@example.com".into(), "pass".into(), false)
+            .create_user("c@example.com".into(), Some("pass".into()), false)
             .await
             .unwrap();
         let user3 = service
             .db
-            .create_user("d@example.com".into(), "pass".into(), false)
+            .create_user("d@example.com".into(), Some("pass".into()), false)
             .await
             .unwrap();
 
@@ -1274,7 +1275,7 @@ mod tests {
         let service = test_authentication_service().await;
         let id = service
             .db
-            .create_user("test@example.com".into(), "".into(), true)
+            .create_user("test@example.com".into(), None, true)
             .await
             .unwrap();
 
@@ -1301,11 +1302,7 @@ mod tests {
         let (service, _mail) = test_authentication_service_with_mail().await;
         let id = service
             .db
-            .create_user(
-                "test@example.com".into(),
-                password_hash("pass").unwrap(),
-                true,
-            )
+            .create_user("test@example.com".into(), password_hash("pass").ok(), true)
             .await
             .unwrap();
 
@@ -1333,11 +1330,7 @@ mod tests {
 
         let id = service
             .db
-            .create_user(
-                "test@example.com".into(),
-                password_hash("pass").unwrap(),
-                true,
-            )
+            .create_user("test@example.com".into(), password_hash("pass").ok(), true)
             .await
             .unwrap();
 
