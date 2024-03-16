@@ -97,6 +97,10 @@ pub struct ServeArgs {
     #[clap(long, default_value_t=Device::Cpu)]
     device: Device,
 
+    /// Device to run chat model [default equals --device arg]
+    #[clap(long, requires("chat_model"))]
+    chat_device: Option<Device>,
+
     /// Parallelism for model serving - increasing this number will have a significant impact on the
     /// memory requirement e.g., GPU vRAM.
     #[clap(long, default_value_t = 1)]
@@ -187,7 +191,13 @@ async fn api_router(
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
         Some(Arc::new(
-            create_chat_service(logger.clone(), chat_model, &args.device, args.parallelism).await,
+            create_chat_service(
+                logger.clone(),
+                chat_model,
+                args.chat_device.as_ref().unwrap_or(&args.device),
+                args.parallelism,
+            )
+            .await,
         ))
     } else {
         None
