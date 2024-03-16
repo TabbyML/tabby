@@ -1,6 +1,7 @@
 # v0.10.0 [UNRELEASED]
 
 ## Features
+* Added the --chat-device flag to override a device used to run chat model.
 
 ## Fixes and Improvements
 
