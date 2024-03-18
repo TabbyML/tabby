@@ -32,7 +32,7 @@ export interface SidebarProps {
 
 export default function Sidebar({ children, className }: SidebarProps) {
   const [{ data }] = useMe()
-  const isAdmin = data?.me?.isAdmin
+  const isAdmin = data?.me.isAdmin
   return (
     <div
       className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
