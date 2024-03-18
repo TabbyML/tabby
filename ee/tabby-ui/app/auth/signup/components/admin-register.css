@@ -1,5 +1,7 @@
 .admin-register-wrap {
   transition: transform 0.35s ease-out;
+  padding-top: 20vh;
+  padding-bottom: 20vh;
 }
 
 .step-mask {
@@ -21,6 +23,7 @@
     );
     pointer-events: none;
     z-index: 10;
+    width: 110%;
   }
 
   &.remote {
