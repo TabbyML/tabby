@@ -113,7 +113,7 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 }
 
 export const GeneralNetworkForm = () => {
-  const [{ data }, reexecuteQuery] = useNetworkSetting({
+  const [{ data, fetching, stale }, reexecuteQuery] = useNetworkSetting({
     requestPolicy: 'network-only'
   })
   const onSuccess = () => {
@@ -121,7 +121,7 @@ export const GeneralNetworkForm = () => {
     reexecuteQuery()
   }
 
-  return data ? (
+  return (data && !stale && !fetching) ? (
     <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
   ) : (
     <ListSkeleton />
