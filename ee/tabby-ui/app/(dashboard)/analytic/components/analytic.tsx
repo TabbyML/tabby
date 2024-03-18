@@ -108,19 +108,19 @@ function AnalyticSummary() {
   return (
     <div className="flex items-center space-x-8 text-sm">
       <div>
-        <div className="text-2xl text-[#70DAE8] text-center font-bold">
+        <div className="text-center text-2xl font-bold text-[#70DAE8]">
           6579
         </div>
         <div>Total accepted completions</div>
       </div>
       <Separator orientation="vertical" className="h-14" />
       <div>
-        <div className="text-2xl text-[#FF4F3A] text-center font-bold">2</div>
+        <div className="text-center text-2xl font-bold text-[#FF4F3A]">2</div>
         <div>Minutes saved per completion</div>
       </div>
       <Separator orientation="vertical" className="h-14" />
       <div>
-        <div className="text-2xl text-[#A110FE] text-center font-bold">100</div>
+        <div className="text-center text-2xl font-bold text-[#A110FE]">100</div>
         <div>Hours saved by completions</div>
       </div>
     </div>
@@ -130,7 +130,7 @@ function AnalyticSummary() {
 function CompletionsByDay() {
   return (
     <div className="space-y-4">
-      <h1 className="font-bold text-xl">Tabby completions by day</h1>
+      <h1 className="text-xl font-bold">Tabby completions by day</h1>
       <ResponsiveContainer width="100%" height={350}>
         <BarChart
           width={500}
@@ -165,7 +165,7 @@ function CompletionsByDay() {
 function CompletionAcceptanceRate() {
   return (
     <div className="space-y-4">
-      <h1 className="font-bold text-xl">Completion acceptance rate</h1>
+      <h1 className="text-xl font-bold">Completion acceptance rate</h1>
       <ResponsiveContainer width="100%" height={350}>
         <LineChart
           width={500}
