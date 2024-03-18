@@ -193,7 +193,8 @@ mod tests {
         Segments {
             prefix,
             suffix,
-            file_info: None,
+            filepath: None,
+            git_url: None,
             clipboard: None,
         }
     }
