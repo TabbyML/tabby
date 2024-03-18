@@ -190,6 +190,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
+    async fn update_user_avatar(&self, id: &ID, avatar: Option<String>) -> Result<()> {
+        let id = id.as_rowid()?;
+        self.db.update_user_avatar(id, avatar).await?;
+        Ok(())
+    }
+
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
         let Some(user) = self.db.get_user_by_email(&email).await? else {
             return Err(anyhow!("Invalid email address or password").into());

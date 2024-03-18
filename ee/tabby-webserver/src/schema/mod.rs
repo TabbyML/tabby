@@ -420,6 +420,17 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn update_user_avatar(ctx: &Context, id: ID, avatar: Option<String>) -> Result<bool> {
+        let claims = check_claims(ctx)?;
+        if claims.sub.0 != id && !check_admin(ctx).is_ok() {
+            return Err(CoreError::Unauthorized(
+                "You cannot change another user's avatar",
+            ));
+        }
+        ctx.locator.auth().update_user_avatar(&id, avatar).await?;
+        Ok(true)
+    }
+
     async fn register(
         ctx: &Context,
         email: String,

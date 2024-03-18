@@ -20,6 +20,7 @@ pub struct UserDAO {
     /// To authenticate IDE extensions / plugins to access code completion / chat api endpoints.
     pub auth_token: String,
     pub active: bool,
+    pub avatar: Option<String>,
 }
 
 static OWNER_USER_ID: i32 = 1;
@@ -130,6 +131,7 @@ impl DbConn {
                 "updated_at",
                 "auth_token",
                 "active",
+                "avatar",
             ],
             limit,
             skip_id,
@@ -214,6 +216,17 @@ impl DbConn {
         query!(
             "UPDATE users SET password_encrypted = ? WHERE id = ?",
             password_encrypted,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn update_user_avatar(&self, id: i32, avatar_base64: Option<String>) -> Result<()> {
+        query!(
+            "UPDATE users SET avatar = ? WHERE id = ?;",
+            avatar_base64,
             id
         )
         .execute(&self.pool)
