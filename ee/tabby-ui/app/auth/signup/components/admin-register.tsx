@@ -3,11 +3,31 @@
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation'
 
+import { cn } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button"
 import { UserAuthForm } from './user-register-form'
-import AdminRegisterStep from './admin-register-step'
 
 import './admin-register.css'
+
+function AdminRegisterStep ({
+  step,
+  currentStep,
+  children
+}: {
+  step: number;
+  currentStep: number;
+  children: React.ReactNode
+}) {
+  return (
+    <div id={`step-${step}`} className={cn('border-l border-foreground py-8 pl-12', {
+      'step-mask': step !== currentStep,
+      'remote': Math.abs(currentStep - step) > 1
+    })}>
+      {children}
+    </div>
+  )
+}
 
 export default function AdminRegister () {
   const router = useRouter()
@@ -19,7 +39,7 @@ export default function AdminRegister () {
   }, [currentStep])
 
   return (
-    <div className="admin-register-wrap w-[550px]">
+    <div className="admin-register-wrap h-screen w-[550px] overflow-hidden">
       <AdminRegisterStep step={1} currentStep={currentStep}>
         <h2 className="text-3xl font-semibold tracking-tight first:mt-0">
           Welcome To Tabby Enterprise
