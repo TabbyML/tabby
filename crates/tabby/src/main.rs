@@ -45,7 +45,7 @@ pub enum Commands {
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
 
-    /// Manage local models
+    /// Install, list, and delete models for local use
     #[command(subcommand)]
     Model(model::ModelArgs),
 

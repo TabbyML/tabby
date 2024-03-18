@@ -4,10 +4,13 @@ use tabby_common::registry::{parse_model_id, ModelRegistry, DEFAULT_MODEL_REGIST
 #[derive(Subcommand)]
 pub enum ModelArgs {
     #[clap(alias = "rm")]
+    /// Delete a locally-downloaded model
     Delete { model: String },
     #[clap(alias = "ls")]
+    /// List the available models specified by a registry
     List { registry: Option<String> },
-    #[clap(alias = "get")]
+    #[clap(alias = "get", alias = "install")]
+    /// Download a model by [registry/]name
     Download { model: String },
 }
 
