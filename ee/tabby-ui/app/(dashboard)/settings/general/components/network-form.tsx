@@ -121,7 +121,9 @@ export const GeneralNetworkForm = () => {
 
   const { data, fetching, stale } = queryState
 
+  // Use `useDebounceValue` to avoid flicker
   const [shouldInitializeForm] = useDebounceValue(
+    // Combine three variables to determine and ensure not to use cache.
     data && !stale && !fetching,
     SKELETON_DELAY
   )
