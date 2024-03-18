@@ -103,7 +103,7 @@ export function UserAuthForm({
                     autoComplete="email"
                     autoCorrect="off"
                     {...field}
-                    value={field.value ?? ""}
+                    value={field.value ?? ''}
                   />
                 </FormControl>
                 <FormMessage />
@@ -117,7 +117,7 @@ export function UserAuthForm({
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} value={field.value ?? ""} />
+                  <Input type="password" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -130,7 +130,7 @@ export function UserAuthForm({
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} value={field.value ?? ""} />
+                  <Input type="password" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
