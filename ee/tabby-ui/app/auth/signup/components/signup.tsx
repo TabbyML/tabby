@@ -2,14 +2,14 @@
 
 import { useSearchParams } from 'next/navigation'
 
-import { UserAuthForm } from './user-register-form'
 import AdminRegister from './admin-register'
+import { UserAuthForm } from './user-register-form'
 
 export default function Signup() {
   const searchParams = useSearchParams()
   const invitationCode = searchParams.get('invitationCode') || undefined
   const isAdmin = searchParams.get('isAdmin') || false
-  
+
   if (isAdmin) return <AdminRegister />
   if (invitationCode) {
     return (

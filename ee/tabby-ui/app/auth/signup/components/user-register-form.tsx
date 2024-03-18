@@ -50,9 +50,9 @@ const formSchema = z.object({
 })
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
-  invitationCode?: string;
-  onSuccess?: () => void;
-  buttonClass?: string;
+  invitationCode?: string
+  onSuccess?: () => void
+  buttonClass?: string
 }
 
 export function UserAuthForm({
@@ -148,8 +148,9 @@ export function UserAuthForm({
           />
           <Button
             type="submit"
-            className={cn("mt-2", buttonClass)}
-            disabled={isSubmitting}>
+            className={cn('mt-2', buttonClass)}
+            disabled={isSubmitting}
+          >
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}

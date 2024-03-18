@@ -1,41 +1,46 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
-import { Button } from "@/components/ui/button"
 import { UserAuthForm } from './user-register-form'
 
 import './admin-register.css'
 
-function AdminRegisterStep ({
+function AdminRegisterStep({
   step,
   currentStep,
   children
 }: {
-  step: number;
-  currentStep: number;
+  step: number
+  currentStep: number
   children: React.ReactNode
 }) {
   return (
-    <div id={`step-${step}`} className={cn('border-l border-foreground py-8 pl-12', {
-      'step-mask': step !== currentStep,
-      'remote': Math.abs(currentStep - step) > 1
-    })}>
+    <div
+      id={`step-${step}`}
+      className={cn('border-l border-foreground py-8 pl-12', {
+        'step-mask': step !== currentStep,
+        remote: Math.abs(currentStep - step) > 1
+      })}
+    >
       {children}
     </div>
   )
 }
 
-export default function AdminRegister () {
+export default function AdminRegister() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
 
   useEffect(() => {
     if (currentStep === 1) return
-    document.getElementById(`step-${currentStep}`)?.scrollIntoView({ behavior: 'smooth' });
+    document
+      .getElementById(`step-${currentStep}`)
+      ?.scrollIntoView({ behavior: 'smooth' })
   }, [currentStep])
 
   return (
@@ -50,10 +55,8 @@ export default function AdminRegister () {
         <p className="leading-7 text-muted-foreground">
           This will allow you to invite team members and manage your instance.
         </p>
-        <Button
-          className='mt-5 w-48'
-          onClick={() => setCurrentStep(2)}>
-            Create admin account
+        <Button className="mt-5 w-48" onClick={() => setCurrentStep(2)}>
+          Create admin account
         </Button>
       </AdminRegisterStep>
 
@@ -64,7 +67,10 @@ export default function AdminRegister () {
         <p className="mb-3 leading-7 text-muted-foreground">
           Your instance will be secured, only registered users can access it.
         </p>
-        <UserAuthForm onSuccess={() => setCurrentStep(3)} buttonClass="self-start w-48" />
+        <UserAuthForm
+          onSuccess={() => setCurrentStep(3)}
+          buttonClass="self-start w-48"
+        />
       </AdminRegisterStep>
 
       <AdminRegisterStep step={3} currentStep={currentStep}>
@@ -75,12 +81,11 @@ export default function AdminRegister () {
           Congratulations! You have successfully created an admin account.
         </p>
         <p className="mb-3 leading-7 text-muted-foreground">
-        To begin collaborating with your team, please open the dashboard and invite members to join your instance.
+          To begin collaborating with your team, please open the dashboard and
+          invite members to join your instance.
         </p>
-        <Button
-          className='mt-5 w-48'
-          onClick={() => router.replace("/")}>
-            Open the dashboard
+        <Button className="mt-5 w-48" onClick={() => router.replace('/')}>
+          Open the dashboard
         </Button>
       </AdminRegisterStep>
     </div>

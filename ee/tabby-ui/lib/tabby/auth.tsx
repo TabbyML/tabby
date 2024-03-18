@@ -289,12 +289,13 @@ function useAuthenticatedSession() {
     if (status === 'loading') return
     if (status === 'authenticated') return
     if (isAdminInitialized === undefined) return
-    
+
     if (!isAdminInitialized) {
       return router.replace('/auth/signup?isAdmin=true')
     }
- 
-    const isAdminSignup = pathName === '/auth/signup' && searchParams.get('isAdmin') === 'true'
+
+    const isAdminSignup =
+      pathName === '/auth/signup' && searchParams.get('isAdmin') === 'true'
     if (!redirectWhitelist.includes(pathName) || isAdminSignup) {
       router.replace('/auth/signin')
     }
