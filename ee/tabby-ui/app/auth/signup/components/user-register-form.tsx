@@ -65,9 +65,6 @@ export function UserAuthForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password1: "",
-      password2: "",
       invitationCode
     }
   })
@@ -106,6 +103,7 @@ export function UserAuthForm({
                     autoComplete="email"
                     autoCorrect="off"
                     {...field}
+                    value={field.value ?? ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -119,7 +117,7 @@ export function UserAuthForm({
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input type="password" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -132,7 +130,7 @@ export function UserAuthForm({
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input type="password" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
