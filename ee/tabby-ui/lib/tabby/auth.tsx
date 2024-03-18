@@ -253,7 +253,7 @@ function useSignOut(): () => Promise<void> {
   }
 }
 
-interface User {
+interface IJwtPayload {
   accessToken: string
 }
 
@@ -263,7 +263,7 @@ type Session =
       status: 'loading' | 'unauthenticated'
     }
   | {
-      data: User
+      data: IJwtPayload
       status: 'authenticated'
     }
 
@@ -304,7 +304,7 @@ function useAuthenticatedApi(path: string | null): string | null {
   return path && status === 'authenticated' ? path : null
 }
 
-export type { AuthStore, User, Session }
+export type { AuthStore, IJwtPayload, Session }
 
 export {
   AuthProvider,
