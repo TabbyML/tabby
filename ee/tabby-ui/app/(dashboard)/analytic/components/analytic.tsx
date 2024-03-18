@@ -20,89 +20,75 @@ const data = [
   {
     name: '1 Jan',
     IntelliJ: 4000,
-    VSCode: 2400,
-    amt: 2400
+    VSCode: 2400
   },
   {
     name: '2 Jan',
     IntelliJ: 3000,
-    VSCode: 1398,
-    amt: 2210
+    VSCode: 1398
   },
   {
     name: '3 Jan',
     IntelliJ: 2000,
-    VSCode: 9800,
-    amt: 2290
+    VSCode: 9800
   },
   {
     name: '4 Jan',
     IntelliJ: 2780,
-    VSCode: 3908,
-    amt: 2000
+    VSCode: 3908
   },
   {
     name: '5 Jan',
     IntelliJ: 1890,
-    VSCode: 4800,
-    amt: 2181
+    VSCode: 4800
   },
   {
     name: '6 Jan',
     IntelliJ: 2390,
-    VSCode: 3800,
-    amt: 3500
+    VSCode: 3800
   },
   {
     name: '7 Jan',
     IntelliJ: 3490,
-    VSCode: 4300,
-    amt: 2100
+    VSCode: 4300
   }
 ]
 
 const data_acceptance = [
   {
     name: '1 Jan',
-    IntelliJ: 4000,
-    VSCode: 2400,
-    amt: 2400
+    IntelliJ: 40,
+    VSCode: 24
   },
   {
     name: '2 Jan',
-    IntelliJ: 3000,
-    VSCode: 1398,
-    amt: 2210
+    IntelliJ: 30,
+    VSCode: 13
   },
   {
     name: '3 Jan',
-    IntelliJ: 2000,
-    VSCode: 9800,
-    amt: 2290
+    IntelliJ: 20,
+    VSCode: 98
   },
   {
     name: '4 Jan',
-    IntelliJ: 2780,
-    VSCode: 3908,
-    amt: 2000
+    IntelliJ: 27,
+    VSCode: 39
   },
   {
     name: '5 Jan',
-    IntelliJ: 1890,
-    VSCode: 4800,
-    amt: 2181
+    IntelliJ: 18,
+    VSCode: 48
   },
   {
     name: '6 Jan',
-    IntelliJ: 2390,
-    VSCode: 3800,
-    amt: 3500
+    IntelliJ: 23.9,
+    VSCode: 38
   },
   {
     name: '7 Jan',
-    IntelliJ: 3490,
-    VSCode: 4300,
-    amt: 2100
+    IntelliJ: 34.9,
+    VSCode: 43
   }
 ]
 
@@ -122,7 +108,9 @@ function AnalyticSummary() {
   return (
     <div className="flex items-center space-x-8 text-sm">
       <div>
-        <div className="text-2xl text-[#70DAE8] text-center font-bold">666</div>
+        <div className="text-2xl text-[#70DAE8] text-center font-bold">
+          6579
+        </div>
         <div>Total accepted completions</div>
       </div>
       <Separator orientation="vertical" className="h-14" />
@@ -132,7 +120,7 @@ function AnalyticSummary() {
       </div>
       <Separator orientation="vertical" className="h-14" />
       <div>
-        <div className="text-2xl text-[#A110FE] text-center font-bold">10</div>
+        <div className="text-2xl text-[#A110FE] text-center font-bold">100</div>
         <div>Hours saved by completions</div>
       </div>
     </div>
@@ -166,8 +154,8 @@ function CompletionsByDay() {
           </YAxis>
           <Tooltip cursor={{ fill: 'hsl(var(--accent))' }} />
           <Legend />
-          <Bar dataKey="VSCode" fill="#8884d8" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="IntelliJ" fill="#82ca9d" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="VSCode" fill="#8884d8" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="IntelliJ" fill="#82ca9d" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
