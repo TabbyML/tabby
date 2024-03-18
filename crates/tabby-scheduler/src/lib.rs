@@ -7,7 +7,7 @@ mod utils;
 
 use std::sync::Arc;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info, warn};
@@ -15,12 +15,8 @@ use tracing::{error, info, warn};
 pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) -> Result<()> {
     if now {
         let repositories = access.list_repositories().await?;
-        if !job_sync(&repositories) {
-            bail!("Sync job failed, exiting");
-        }
-        if !job_index(&repositories) {
-            bail!("Index job failed, exiting");
-        }
+        job_sync(&repositories)?;
+        job_index(&repositories)?;
     } else {
         let access = Arc::new(access);
         let scheduler = JobScheduler::new().await?;
@@ -41,8 +37,12 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) -> R
                         .list_repositories()
                         .await
                         .expect("Must be able to retrieve repositories for sync");
-                    job_sync(&repositories);
-                    job_index(&repositories);
+                    if let Err(e) = job_sync(&repositories) {
+                        error!("{e}");
+                    }
+                    if let Err(e) = job_index(&repositories) {
+                        error!("{e}")
+                    }
                 })
             })?)
             .await?;
@@ -57,29 +57,26 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) -> R
     Ok(())
 }
 
-fn job_index(repositories: &[RepositoryConfig]) -> bool {
+fn job_index(repositories: &[RepositoryConfig]) -> Result<()> {
     println!("Indexing repositories...");
     let ret = index::index_repositories(repositories);
     if let Err(err) = ret {
-        error!("Failed to index repositories, err: '{}'", err);
-        return false;
+        return Err(err.context("Failed to index repositories"));
     }
-    true
+    Ok(())
 }
 
-fn job_sync(repositories: &[RepositoryConfig]) -> bool {
+fn job_sync(repositories: &[RepositoryConfig]) -> Result<()> {
     println!("Syncing {} repositories...", repositories.len());
     let ret = repository::sync_repositories(repositories);
     if let Err(err) = ret {
-        error!("Failed to sync repositories, err: '{}'", err);
-        return false;
+        return Err(err.context("Failed to sync repositories"));
     }
 
     println!("Building dataset...");
     let ret = dataset::create_dataset(repositories);
     if let Err(err) = ret {
-        error!("Failed to build dataset, err: '{}'", err);
-        return false;
+        return Err(err.context("Failed to build dataset"));
     }
-    true
+    Ok(())
 }
