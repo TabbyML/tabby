@@ -8,8 +8,10 @@ import { toast } from 'sonner'
 import { useQuery } from 'urql'
 import * as z from 'zod'
 
+import { SKELETON_DELAY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { LicenseType } from '@/lib/gql/generates/graphql'
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -26,7 +28,7 @@ import {
 import { IconTrash } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { LicenseGuard } from '@/components/license-guard'
-import { ListSkeleton } from '@/components/skeleton'
+import { FormSkeleton } from '@/components/skeleton'
 
 const updateSecuritySettingMutation = graphql(/* GraphQL */ `
   mutation updateSecuritySetting($input: SecuritySettingInput!) {
@@ -241,9 +243,12 @@ export const GeneralSecurityForm = () => {
       data.securitySetting.allowedRegisterDomainList
     )
   }
-  return data ? (
+
+  const [initForm] = useDebounceValue(!!data, SKELETON_DELAY)
+
+  return initForm ? (
     <SecurityForm defaultValues={defaultValues} onSuccess={onSuccess} />
   ) : (
-    <ListSkeleton />
+    <FormSkeleton />
   )
 }

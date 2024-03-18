@@ -7,7 +7,9 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
+import { SKELETON_DELAY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useNetworkSetting } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
@@ -21,7 +23,7 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { ListSkeleton } from '@/components/skeleton'
+import { FormSkeleton } from '@/components/skeleton'
 
 const updateNetworkSettingMutation = graphql(/* GraphQL */ `
   mutation updateNetworkSettingMutation($input: NetworkSettingInput!) {
@@ -113,17 +115,25 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 }
 
 export const GeneralNetworkForm = () => {
-  const [{ data, fetching, stale }, reexecuteQuery] = useNetworkSetting({
+  const [queryState, reexecuteQuery] = useNetworkSetting({
     requestPolicy: 'network-only'
   })
+
+  const { data, fetching, stale } = queryState
+
+  const [initForm] = useDebounceValue(
+    data && !stale && !fetching,
+    SKELETON_DELAY
+  )
+
   const onSuccess = () => {
     toast.success('Network configuration is updated')
     reexecuteQuery()
   }
 
-  return (data && !stale && !fetching) ? (
+  return initForm && data ? (
     <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
   ) : (
-    <ListSkeleton />
+    <FormSkeleton />
   )
 }
