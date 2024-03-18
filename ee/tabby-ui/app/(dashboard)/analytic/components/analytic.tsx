@@ -189,12 +189,7 @@ function CompletionAcceptanceRate() {
           </YAxis>
           <Tooltip cursor={{ fill: 'hsl(var(--accent))' }} />
           <Legend />
-          <Line
-            type="monotone"
-            dataKey="VSCode"
-            stroke="#8884d8"
-            activeDot={{ r: 8 }}
-          />
+          <Line type="monotone" dataKey="VSCode" stroke="#8884d8" />
           <Line type="monotone" dataKey="IntelliJ" stroke="#82ca9d" />
         </LineChart>
       </ResponsiveContainer>
