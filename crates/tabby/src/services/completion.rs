@@ -108,6 +108,16 @@ pub struct Segments {
     /// Content that appears after the cursor in the editor window.
     suffix: Option<String>,
 
+    /// The relative path of the file that is being edited.
+    /// When git_url is set, this is the path of the file in the git repository.
+    /// When git_url is empty, this is the path of the file in the workspace.
+    filepath: Option<String>,
+
+    /// The remote URL of the current git repository.
+    /// Leave this empty if the file is not in a git repository,
+    /// or the git repository does not have a remote URL.
+    git_url: Option<String>,
+
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
 }
