@@ -253,7 +253,7 @@ function useSignOut(): () => Promise<void> {
   }
 }
 
-interface JwtInfo {
+interface JWTInfo {
   accessToken: string
 }
 
@@ -263,7 +263,7 @@ type Session =
       status: 'loading' | 'unauthenticated'
     }
   | {
-      data: JwtInfo
+      data: JWTInfo
       status: 'authenticated'
     }
 
@@ -304,7 +304,7 @@ function useAuthenticatedApi(path: string | null): string | null {
   return path && status === 'authenticated' ? path : null
 }
 
-export type { AuthStore, JwtInfo, Session }
+export type { AuthStore, JWTInfo, Session }
 
 export {
   AuthProvider,
