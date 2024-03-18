@@ -121,7 +121,7 @@ export const GeneralNetworkForm = () => {
 
   const { data, fetching, stale } = queryState
 
-  const [isInitializingForm] = useDebounceValue(
+  const [shouldInitializeForm] = useDebounceValue(
     data && !stale && !fetching,
     SKELETON_DELAY
   )
@@ -131,7 +131,7 @@ export const GeneralNetworkForm = () => {
     reexecuteQuery()
   }
 
-  return isInitializingForm && data ? (
+  return shouldInitializeForm && data ? (
     <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
   ) : (
     <FormSkeleton />

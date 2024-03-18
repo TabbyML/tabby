@@ -244,9 +244,9 @@ export const GeneralSecurityForm = () => {
     )
   }
 
-  const [isInitializingForm] = useDebounceValue(!!data, SKELETON_DELAY)
+  const [shouldInitializeForm] = useDebounceValue(!!data, SKELETON_DELAY)
 
-  return isInitializingForm ? (
+  return shouldInitializeForm ? (
     <SecurityForm defaultValues={defaultValues} onSuccess={onSuccess} />
   ) : (
     <FormSkeleton />
