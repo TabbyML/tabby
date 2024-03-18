@@ -3,6 +3,7 @@
 import React from 'react'
 import { OperationResult } from 'urql'
 
+import { SKELETON_DELAY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { EmailSettingQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
@@ -13,7 +14,6 @@ import { MailDeliveryHeader } from './header'
 import { MailForm } from './mail-form'
 import type { MailFormRef } from './mail-form'
 import MailTestingForm from './mail-testing-form'
-import { SKELETON_DELAY } from '@/lib/constants'
 
 const emailSetting = graphql(/* GraphQL */ `
   query emailSetting {
