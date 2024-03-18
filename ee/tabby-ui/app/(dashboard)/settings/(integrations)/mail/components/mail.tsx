@@ -13,6 +13,7 @@ import { MailDeliveryHeader } from './header'
 import { MailForm } from './mail-form'
 import type { MailFormRef } from './mail-form'
 import MailTestingForm from './mail-testing-form'
+import { SKELETON_DELAY } from '@/lib/constants'
 
 const emailSetting = graphql(/* GraphQL */ `
   query emailSetting {
@@ -33,7 +34,7 @@ export const Mail = () => {
   const [queryResult, setQueryResult] =
     React.useState<OperationResult<EmailSettingQuery, any>>()
   const [initialized, setInitialized] = React.useState(false)
-  const [debouncedInitialzed] = useDebounceValue(initialized, 200, {
+  const [debouncedInitialzed] = useDebounceValue(initialized, SKELETON_DELAY, {
     leading: true
   })
   const mailFormRef = React.useRef<MailFormRef>(null)
