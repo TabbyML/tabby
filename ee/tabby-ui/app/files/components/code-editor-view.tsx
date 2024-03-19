@@ -4,29 +4,24 @@ import { EditorView } from '@codemirror/view'
 import { useTheme } from 'next-themes'
 
 import { TFileMeta } from '@/lib/types'
-import { cn } from '@/lib/utils'
-import { CodeMirrorEditor } from '@/components/codemirror/codemirror'
+import CodeEditor from '@/components/codemirror/codemirror'
 import { markTagNameExtension } from '@/components/codemirror/name-tag-extension'
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
-interface SourceCodeEditorProps {
-  className?: string
+interface CodeEditorViewProps {
   value: string
   meta?: TFileMeta
   language: string
 }
 
-const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
-  className,
+const CodeEditorView: React.FC<CodeEditorViewProps> = ({
   value,
   meta,
   language
 }) => {
   const { theme } = useTheme()
-
   const tags = meta?.tags
-
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
       EditorView.baseTheme({
@@ -54,16 +49,14 @@ const SourceCodeEditor: React.FC<SourceCodeEditorProps> = ({
   }, [value, tags])
 
   return (
-    <div className={cn('source-code-browser', className)}>
-      <CodeMirrorEditor
-        value={value}
-        theme={theme}
-        language={language}
-        readonly
-        extensions={extensions}
-      />
-    </div>
+    <CodeEditor
+      value={value}
+      theme={theme}
+      language={language}
+      readonly
+      extensions={extensions}
+    />
   )
 }
 
-export default SourceCodeEditor
+export default CodeEditorView
