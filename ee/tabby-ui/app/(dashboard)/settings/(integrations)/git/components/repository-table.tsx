@@ -10,7 +10,7 @@ import {
   RepositoriesQueryVariables,
   RepositoryEdge
 } from '@/lib/gql/generates/graphql'
-import { useIsQueryInitialized, useMutation } from '@/lib/tabby/gql'
+import { useMutation } from '@/lib/tabby/gql'
 import { listRepositories } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import { IconTrash } from '@/components/ui/icons'
@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { ListSkeleton } from '@/components/skeleton'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 const deleteRepositoryMutation = graphql(/* GraphQL */ `
   mutation deleteRepository($id: ID!) {
@@ -40,11 +40,10 @@ const deleteRepositoryMutation = graphql(/* GraphQL */ `
 const PAGE_SIZE = DEFAULT_PAGE_SIZE
 export default function RepositoryTable() {
   const client = useClient()
-  const [{ data, error, fetching, stale }] = useQuery({
+  const [{ data, fetching }] = useQuery({
     query: listRepositories,
     variables: { first: PAGE_SIZE }
   })
-  const [initialized] = useIsQueryInitialized({ data, error, stale })
 
   const [currentPage, setCurrentPage] = React.useState(1)
   const edges = data?.repositories?.edges
@@ -115,75 +114,69 @@ export default function RepositoryTable() {
   }, [pageNum, currentPage])
 
   return (
-    <div>
-      {initialized ? (
-        <>
-          <Table className="table-fixed border-b">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[25%]">Name</TableHead>
-                <TableHead>Git URL</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {!currentPageRepos?.length && currentPage === 1 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="h-[100px] text-center">
-                    No Data
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <>
-                  {currentPageRepos?.map(x => {
-                    return (
-                      <TableRow key={x.node.id}>
-                        <TableCell className="truncate">
-                          {x.node.name}
-                        </TableCell>
-                        <TableCell className="truncate">
-                          {x.node.gitUrl}
-                        </TableCell>
-                        <TableCell className="flex justify-end">
-                          <div className="flex gap-1">
-                            <Button
-                              size="icon"
-                              variant="hover-destructive"
-                              onClick={() => handleDeleteRepository(x.node)}
-                            >
-                              <IconTrash />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </>
-              )}
-            </TableBody>
-          </Table>
-          {showPagination && (
-            <Pagination className="my-4">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    disabled={!hasPrevPage}
-                    onClick={handleNavToPrevPage}
-                  />
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext
-                    disabled={!hasNextPage}
-                    onClick={handleFetchNextPage}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+    <LoadingWrapper loading={fetching}>
+      <Table className="table-fixed border-b">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[25%]">Name</TableHead>
+            <TableHead>Git URL</TableHead>
+            <TableHead className="w-[100px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {!currentPageRepos?.length && currentPage === 1 ? (
+            <TableRow>
+              <TableCell colSpan={3} className="h-[100px] text-center">
+                No Data
+              </TableCell>
+            </TableRow>
+          ) : (
+            <>
+              {currentPageRepos?.map(x => {
+                return (
+                  <TableRow key={x.node.id}>
+                    <TableCell className="truncate">
+                      {x.node.name}
+                    </TableCell>
+                    <TableCell className="truncate">
+                      {x.node.gitUrl}
+                    </TableCell>
+                    <TableCell className="flex justify-end">
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="hover-destructive"
+                          onClick={() => handleDeleteRepository(x.node)}
+                        >
+                          <IconTrash />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </>
           )}
-        </>
-      ) : (
-        <ListSkeleton />
+        </TableBody>
+      </Table>
+      {showPagination && (
+        <Pagination className="my-4">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                disabled={!hasPrevPage}
+                onClick={handleNavToPrevPage}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                disabled={!hasNextPage}
+                onClick={handleFetchNextPage}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
-    </div>
+    </LoadingWrapper>
   )
 }

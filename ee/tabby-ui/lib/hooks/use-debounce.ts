@@ -12,7 +12,7 @@ type noop = (...args: any[]) => any
 
 function useDebounceCallback<T extends noop>(
   fn: T,
-  wait: number,
+  wait?: number,
   options?: DebounceSettings
 ) {
   const fnRef = useLatest(fn)
@@ -39,7 +39,7 @@ function useDebounceCallback<T extends noop>(
 
 function useDebounceValue<T>(
   value: T,
-  wait: number,
+  wait?: number,
   options?: DebounceSettings
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [debouncedValue, setDebouncedValue] = React.useState(value)

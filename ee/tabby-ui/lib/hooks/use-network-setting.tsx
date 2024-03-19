@@ -12,8 +12,8 @@ const networkSettingQuery = graphql(/* GraphQL */ `
   }
 `)
 
-const useNetworkSetting = () => {
-  return useQuery({ query: networkSettingQuery })
+const useNetworkSetting = (options?: any) => {
+  return useQuery({ query: networkSettingQuery, ...options })
 }
 
 const useExternalURL = () => {
