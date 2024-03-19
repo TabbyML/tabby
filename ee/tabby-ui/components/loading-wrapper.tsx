@@ -20,7 +20,7 @@ export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   children
 }) => {
   const [loaded, setLoaded] = React.useState(!loading)
-  const [debouncedLoaded] = useDebounceValue(loaded, delay)
+  const [debouncedLoaded] = useDebounceValue(loaded, delay ?? 200)
 
   React.useEffect(() => {
     if (!loading && !loaded) {
