@@ -22,7 +22,7 @@ function AdminRegisterStep({
   return (
     <div
       id={`step-${step}`}
-      className={cn('border-l border-foreground py-8 pl-12', {
+      className={cn('border-l border-foreground py-8 pl-12 pr-2', {
         'step-mask': step !== currentStep,
         remote: Math.abs(currentStep - step) > 1
       })}
@@ -44,7 +44,7 @@ export default function AdminRegister() {
   }, [currentStep])
 
   return (
-    <div className="admin-register-wrap h-screen w-[550px] overflow-hidden">
+    <div className="admin-register-wrap h-screen w-[600px] overflow-hidden">
       <AdminRegisterStep step={1} currentStep={currentStep}>
         <h2 className="text-3xl font-semibold tracking-tight first:mt-0">
           Welcome To Tabby Enterprise
