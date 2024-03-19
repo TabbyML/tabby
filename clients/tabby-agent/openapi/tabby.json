@@ -234,21 +234,6 @@
           }
         }
       },
-      "FileInfo": {
-        "type": "object",
-        "required": ["filepath"],
-        "properties": {
-          "filepath": {
-            "type": "string",
-            "description": "The relative path of the file that is being edited.\nWhen git_url is set, this is the path of the file in the git repository.\nWhen git_url is not set, this is the path of the file in the workspace."
-          },
-          "git_url": {
-            "type": "string",
-            "description": "The remote URL of the current git repository.\nLeave this empty if the file is not in a git repository,\nor the git repository does not have a remote URL.",
-            "nullable": true
-          }
-        }
-      },
       "HealthState": {
         "type": "object",
         "required": ["device", "arch", "cpu_info", "cpu_count", "cuda_devices", "version"],
@@ -322,7 +307,16 @@
             "description": "Content that appears after the cursor in the editor window.",
             "nullable": true
           },
-          "file_info": { "allOf": [{ "$ref": "#/components/schemas/FileInfo" }], "nullable": true },
+          "filepath": {
+            "type": "string",
+            "description": "The relative path of the file that is being edited.\nWhen git_url is set, this is the path of the file in the git repository.\nWhen git_url is empty, this is the path of the file in the workspace.",
+            "nullable": true
+          },
+          "git_url": {
+            "type": "string",
+            "description": "The remote URL of the current git repository.\nLeave this empty if the file is not in a git repository,\nor the git repository does not have a remote URL.",
+            "nullable": true
+          },
           "clipboard": {
             "type": "string",
             "description": "Clipboard content when requesting code completion.",
