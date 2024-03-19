@@ -3,10 +3,8 @@
 import React from 'react'
 import { OperationResult } from 'urql'
 
-import { SKELETON_DELAY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { EmailSettingQuery } from '@/lib/gql/generates/graphql'
-import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { client } from '@/lib/tabby/gql'
 import { ListSkeleton } from '@/components/skeleton'
 
@@ -34,9 +32,6 @@ export const Mail = () => {
   const [queryResult, setQueryResult] =
     React.useState<OperationResult<EmailSettingQuery, any>>()
   const [initialized, setInitialized] = React.useState(false)
-  const [debouncedInitialzed] = useDebounceValue(initialized, SKELETON_DELAY, {
-    leading: true
-  })
   const mailFormRef = React.useRef<MailFormRef>(null)
 
   const queryEmailSettings = () => {
@@ -85,7 +80,7 @@ export const Mail = () => {
   return (
     <>
       <MailDeliveryHeader />
-      {debouncedInitialzed ? (
+      {initialized ? (
         <div>
           <div className="mb-8 border-b pb-4">
             <MailForm

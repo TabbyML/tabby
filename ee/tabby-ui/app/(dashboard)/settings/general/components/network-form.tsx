@@ -7,9 +7,7 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
-import { SKELETON_DELAY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useNetworkSetting } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
@@ -44,14 +42,8 @@ interface NetworkFormProps {
 
 const NetworkForm: React.FC<NetworkFormProps> = ({
   onSuccess,
-  defaultValues: propsDefaultValues
+  defaultValues
 }) => {
-  const defaultValues = React.useMemo(() => {
-    return {
-      ...(propsDefaultValues || {})
-    }
-  }, [propsDefaultValues])
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues
@@ -115,25 +107,16 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 }
 
 export const GeneralNetworkForm = () => {
-  const [queryState, reexecuteQuery] = useNetworkSetting({
+  const [{ data, stale }, reexecuteQuery] = useNetworkSetting({
     requestPolicy: 'network-only'
   })
-
-  const { data, fetching, stale } = queryState
-
-  // Use `useDebounceValue` to avoid flicker
-  const [shouldInitializeForm] = useDebounceValue(
-    // Combine three variables to determine and ensure not to use cache.
-    data && !stale && !fetching,
-    SKELETON_DELAY
-  )
 
   const onSuccess = () => {
     toast.success('Network configuration is updated')
     reexecuteQuery()
   }
 
-  return shouldInitializeForm && data ? (
+  return data && !stale ? (
     <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
   ) : (
     <FormSkeleton />

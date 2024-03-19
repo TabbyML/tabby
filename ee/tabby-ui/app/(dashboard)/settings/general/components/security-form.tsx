@@ -8,10 +8,8 @@ import { toast } from 'sonner'
 import { useQuery } from 'urql'
 import * as z from 'zod'
 
-import { SKELETON_DELAY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { LicenseType } from '@/lib/gql/generates/graphql'
-import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -244,9 +242,7 @@ export const GeneralSecurityForm = () => {
     )
   }
 
-  const [shouldInitializeForm] = useDebounceValue(!!data, SKELETON_DELAY)
-
-  return shouldInitializeForm ? (
+  return data ? (
     <SecurityForm defaultValues={defaultValues} onSuccess={onSuccess} />
   ) : (
     <FormSkeleton />
