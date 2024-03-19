@@ -1,6 +1,5 @@
 ---
-slug: running-tabby-as-a-language-server
-title: "Running Tabby as a Language Server"
+title: "Create Tabby extension with Language Server Protocol"
 authors: [icycodes]
 tags: [editor integration]
 ---

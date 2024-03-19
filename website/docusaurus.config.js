@@ -76,7 +76,7 @@ const config = {
     ({
       image: 'img/tabby-social-card.png',
       navbar: {
-      logo: {
+        logo: {
           alt: 'Tabby',
           src: 'img/logo.png',
         },
@@ -87,14 +87,14 @@ const config = {
             position: 'left',
             label: 'Docs',
           },
-          {to: '/playground', label: 'Playground', position: 'left'},
-          {to: '/blog', label: 'Blog', position: 'left'},
-          {to: '/api', label: 'API', position: 'left'},
+          { to: '/playground', label: 'Playground', position: 'left' },
+          { to: '/blog', label: 'Blog', position: 'left' },
+          { to: '/api', label: 'API', position: 'left' },
           {
             href: 'https://github.com/TabbyML/tabby',
             label: 'GitHub',
             position: 'right',
-              className: "header-github-link",
+            className: "header-github-link",
 
           },
         ],
@@ -182,6 +182,17 @@ const config = {
         apiKey: "phc_aBzNGHzlOy2C8n1BBDtH7d4qQsIw9d8T0unVlnKfdxB",
         appUrl: "https://app.posthog.com",
         enableInDevelopment: false,
+      },
+    ],
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        redirects: [
+          {
+            to: '/blog/2024/02/05/create-tabby-extension-with-language-server-protocol',
+            from: '/blog/running-tabby-as-a-language-server'
+          },
+        ]
       },
     ],
   ],
