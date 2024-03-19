@@ -33,7 +33,7 @@ docker run --entrypoint /opt/tabby/bin/tabby-cpu \
   download --model TabbyML/StarCoder-1B
 ```
 
-Since we are only downloading the model file, we override the entrypoint to `tabby-cpu` to avoid the need for a GPU.
+Since we are only downloading the model file, we override the entrypoint to `tabby-cpu` to avoid the need for a GPU
 
 ## Step 3: Creating the Docker Compose File
 
@@ -79,7 +79,7 @@ services:
       - "8080:8080"
 ```
 
-Note that we have two worker nodes, and we are using the same model for both of them, with each assigned to a different GPU (0 and 1, respectively). If you have more GPUs, you can add more worker nodes and assign them to the available GPUs.
+Note that we have two worker nodes, and we are using the same model for both of them, with each assigned to a different GPU (0 and 1, respectively). If you have more GPUs, you can add more worker nodes and assign them to the available GPUs (remember to update the `Caddyfile` accordingly!).
 
 ## Step 4: Starting the Services
 
@@ -116,4 +116,5 @@ For those interested in securing their setup, consider using Caddy directives li
 
 And there you have it! You've successfully set up Tabby with Caddy as a reverse proxy. Happy coding with your new AI assistant!
 
-As an additional note, since the release of v0.9.0, Tabby enterprise edition now includes the built-in ability to handle replicas and load balancing. For more information, refer to the [official documentation (TBD: meng)](/docs/enterprise/orchestration) for details.
+As an additional note, since the release of v0.9.0, Tabby enterprise edition now includes the built-in ability to handle replicas and load balancing, with a integrate account management system.
+For more information, refer to the [official documentation (TBD: meng)](/docs/enterprise/orchestration) for details.
