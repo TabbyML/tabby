@@ -81,11 +81,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
                 .await?
         };
 
-        let user = self.db.get_user(id).await?.unwrap();
-
         let refresh_token = self.db.create_refresh_token(id).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(id.as_id(), user.is_admin)) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(id.as_id())) else {
             return Err(anyhow!("Unknown error").into());
         };
 
@@ -210,7 +208,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let refresh_token = self.db.create_refresh_token(user.id).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id())) else {
             return Err(anyhow!("Unknown error").into());
         };
 
@@ -239,7 +237,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .await?;
 
         // refresh token update is done, generate new access token based on user info
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id(), user.is_admin)) else {
+        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id())) else {
             return Err(anyhow!("Unknown error").into());
         };
 
@@ -391,13 +389,12 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .read_license()
             .await
             .context("Failed to read license info")?;
-        let (user_id, is_admin) =
-            get_or_create_oauth_user(&license, &self.db, &self.mail, &email).await?;
+        let user_id = get_or_create_oauth_user(&license, &self.db, &self.mail, &email).await?;
 
         let refresh_token = self.db.create_refresh_token(user_id).await?;
 
-        let access_token = generate_jwt(JWTPayload::new(user_id.as_id(), is_admin))
-            .map_err(|_| OAuthError::Unknown)?;
+        let access_token =
+            generate_jwt(JWTPayload::new(user_id.as_id())).map_err(|_| OAuthError::Unknown)?;
 
         let resp = OAuthResponse {
             access_token,
@@ -476,11 +473,11 @@ async fn get_or_create_oauth_user(
     db: &DbConn,
     mail: &Arc<dyn EmailService>,
     email: &str,
-) -> Result<(i32, bool), OAuthError> {
+) -> Result<i32, OAuthError> {
     if let Some(user) = db.get_user_by_email(email).await? {
         return user
             .active
-            .then_some((user.id, user.is_admin))
+            .then_some(user.id)
             .ok_or(OAuthError::UserDisabled);
     }
 
@@ -499,7 +496,7 @@ async fn get_or_create_oauth_user(
         // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
         // 2. `password_verify` will always return false for empty password hash read from user table
         // so user created here is only able to login by github oauth, normal login won't work
-        let res = (db.create_user(email.to_owned(), None, false).await?, false);
+        let res = db.create_user(email.to_owned(), None, false).await?;
         if let Err(e) = mail.send_signup_email(email.to_string()).await {
             warn!("Failed to send signup email: {e}");
         }
@@ -513,7 +510,7 @@ async fn get_or_create_oauth_user(
             .create_user_with_invitation(email.to_owned(), None, false, invitation.id as i32)
             .await?;
         let user = db.get_user(id).await?.unwrap();
-        Ok((user.id, user.is_admin))
+        Ok(user.id)
     }
 }
 

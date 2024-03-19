@@ -216,19 +216,15 @@ pub struct JWTPayload {
 
     /// User id string
     pub sub: IDWrapper,
-
-    /// Whether the user is admin.
-    pub is_admin: bool,
 }
 
 impl JWTPayload {
-    pub fn new(id: ID, is_admin: bool) -> Self {
+    pub fn new(id: ID) -> Self {
         let now = jwt::get_current_timestamp();
         Self {
             iat: now as i64,
             exp: (now + *JWT_DEFAULT_EXP) as i64,
             sub: IDWrapper(id),
-            is_admin,
         }
     }
 }
@@ -506,7 +502,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_generate_jwt() {
-        let claims = JWTPayload::new(ID::from("test".to_owned()), false);
+        let claims = JWTPayload::new(ID::from("test".to_owned()));
         let token = generate_jwt(claims).unwrap();
 
         assert!(!token.is_empty())
@@ -514,10 +510,9 @@ mod tests {
 
     #[test]
     fn test_validate_jwt() {
-        let claims = JWTPayload::new(ID::from("test".to_owned()), false);
+        let claims = JWTPayload::new(ID::from("test".to_owned()));
         let token = generate_jwt(claims).unwrap();
         let claims = validate_jwt(&token).unwrap();
         assert_eq!(claims.sub.0.to_string(), "test");
-        assert!(!claims.is_admin);
     }
 }

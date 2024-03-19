@@ -112,9 +112,10 @@ fn check_claims(ctx: &Context) -> Result<&JWTPayload, CoreError> {
         .ok_or(CoreError::Unauthorized("You're not logged in"))
 }
 
-fn check_admin(ctx: &Context) -> Result<(), CoreError> {
+async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
     let claims = check_claims(ctx)?;
-    if !claims.is_admin {
+    let user = ctx.locator.auth().get_user(&claims.sub.0).await?;
+    if !user.is_admin {
         return Err(CoreError::Forbidden("You must be admin to proceed"));
     }
 
@@ -139,13 +140,13 @@ pub struct Query;
 #[graphql_object(context = Context)]
 impl Query {
     async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         let workers = ctx.locator.worker().list_workers().await;
         return Ok(workers);
     }
 
     async fn registration_token(ctx: &Context) -> Result<String> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.worker().read_registration_token().await
     }
 
@@ -166,7 +167,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<User>> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         return relay::query_async(
             after,
             before,
@@ -194,7 +195,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<Invitation>> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         relay::query_async(
             after,
             before,
@@ -223,7 +224,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<JobRun>> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         relay::query_async(
             after,
             before,
@@ -241,7 +242,7 @@ impl Query {
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.email().read_email_setting().await
     }
 
@@ -252,12 +253,12 @@ impl Query {
     }
 
     async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.setting().read_network_setting().await
     }
 
     async fn security_setting(ctx: &Context) -> Result<SecuritySetting> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.setting().read_security_setting().await
     }
 
@@ -269,7 +270,7 @@ impl Query {
         first: Option<i32>,
         last: Option<i32>,
     ) -> FieldResult<Connection<Repository>> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         relay::query_async(
             after,
             before,
@@ -290,7 +291,7 @@ impl Query {
         ctx: &Context,
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         let Some(mut credentials) = ctx.locator.auth().read_oauth_credential(provider).await?
         else {
             return Ok(None);
@@ -302,7 +303,7 @@ impl Query {
     }
 
     async fn oauth_callback_url(ctx: &Context, provider: OAuthProvider) -> Result<String> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.auth().oauth_callback_url(provider).await
     }
 
@@ -334,7 +335,7 @@ pub struct Mutation;
 #[graphql_object(context = Context)]
 impl Mutation {
     async fn reset_registration_token(ctx: &Context) -> Result<String> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.worker().reset_registration_token().await
     }
 
@@ -400,7 +401,7 @@ impl Mutation {
     }
 
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
             return Err(CoreError::Forbidden(
                 "You cannot change your own active status",
@@ -411,7 +412,7 @@ impl Mutation {
     }
 
     async fn update_user_role(ctx: &Context, id: ID, is_admin: bool) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
             return Err(CoreError::Forbidden("You cannot update your own role"));
         }
@@ -462,19 +463,19 @@ impl Mutation {
     }
 
     async fn create_invitation(ctx: &Context, email: String) -> Result<ID> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         let invitation = ctx.locator.auth().create_invitation(email.clone()).await?;
         Ok(invitation.id)
     }
 
     async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.email().send_test_email(to).await?;
         Ok(true)
     }
 
     async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         let input = repository::CreateRepositoryInput { name, git_url };
         input.validate()?;
         ctx.locator
@@ -484,7 +485,7 @@ impl Mutation {
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.repository().delete_repository(&id).await
     }
 
@@ -494,7 +495,7 @@ impl Mutation {
         name: String,
         git_url: String,
     ) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator
             .repository()
             .update_repository(&id, name, git_url)
@@ -502,7 +503,7 @@ impl Mutation {
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.auth().delete_invitation(&id).await
     }
 
@@ -510,7 +511,7 @@ impl Mutation {
         ctx: &Context,
         input: UpdateOAuthCredentialInput,
     ) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         check_license(ctx, &[LicenseType::Enterprise]).await?;
         input.validate()?;
         ctx.locator.auth().update_oauth_credential(input).await?;
@@ -518,20 +519,20 @@ impl Mutation {
     }
 
     async fn delete_oauth_credential(ctx: &Context, provider: OAuthProvider) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.auth().delete_oauth_credential(provider).await?;
         Ok(true)
     }
 
     async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         input.validate()?;
         ctx.locator.email().update_email_setting(input).await?;
         Ok(true)
     }
 
     async fn update_security_setting(ctx: &Context, input: SecuritySettingInput) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         check_license(ctx, &[LicenseType::Enterprise]).await?;
         input.validate()?;
         ctx.locator.setting().update_security_setting(input).await?;
@@ -539,26 +540,26 @@ impl Mutation {
     }
 
     async fn update_network_setting(ctx: &Context, input: NetworkSettingInput) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         input.validate()?;
         ctx.locator.setting().update_network_setting(input).await?;
         Ok(true)
     }
 
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.email().delete_email_setting().await?;
         Ok(true)
     }
 
     async fn upload_license(ctx: &Context, license: String) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.license().update_license(license).await?;
         Ok(true)
     }
 
     async fn reset_license(ctx: &Context) -> Result<bool> {
-        check_admin(ctx)?;
+        check_admin(ctx).await?;
         ctx.locator.license().reset_license().await?;
         Ok(true)
     }
