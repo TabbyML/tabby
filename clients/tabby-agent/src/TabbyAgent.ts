@@ -338,9 +338,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
       return null;
     }
 
-    // fileInfo
-    let fileInfo: TabbyApiComponents["schemas"]["FileInfo"] | undefined = undefined;
-    if (this.config.completion.prompt.fileInfo.experimentalEnabled) {
+    // filepath
+    let filepathInfo: { filepath: string; git_url?: string } | undefined = undefined;
+    if (this.config.completion.prompt.filepath.experimentalEnabled) {
       const { filepath, workspace, git } = context;
       if (git && git.remotes.length > 0) {
         // find remote url: origin > upstream > first
@@ -349,15 +349,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
           git.remotes.find((remote) => remote.name === "upstream") ||
           git.remotes[0];
         if (remote) {
-          fileInfo = {
+          filepathInfo = {
             filepath: path.relative(git.root, filepath),
             git_url: remote.url,
           };
         }
       }
-      // if fileInfo is not set by git context, use path relative to workspace
-      if (!fileInfo && workspace) {
-        fileInfo = {
+      // if filepathInfo is not set by git context, use path relative to workspace
+      if (!filepathInfo && workspace) {
+        filepathInfo = {
           filepath: path.relative(workspace, filepath),
         };
       }
@@ -372,7 +372,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return {
       prefix,
       suffix,
-      file_info: fileInfo,
+      ...filepathInfo,
       clipboard,
     };
   }
