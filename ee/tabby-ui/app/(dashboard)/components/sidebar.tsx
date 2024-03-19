@@ -8,7 +8,7 @@ import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 import { cva } from 'class-variance-authority'
 
-import { useSession } from '@/lib/tabby/auth'
+import { useMe } from '@/lib/hooks/use-me'
 import { cn } from '@/lib/utils'
 import {
   Collapsible,
@@ -31,8 +31,8 @@ export interface SidebarProps {
 }
 
 export default function Sidebar({ children, className }: SidebarProps) {
-  const { data: session } = useSession()
-  const isAdmin = session?.isAdmin || false
+  const [{ data }] = useMe()
+  const isAdmin = data?.me.isAdmin
   return (
     <div
       className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}

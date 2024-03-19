@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { jwtDecode, JwtPayload } from 'jwt-decode'
 import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
@@ -183,27 +182,11 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
 
   const session: Session = React.useMemo(() => {
     if (authState?.status == 'authenticated') {
-      try {
-        const { is_admin } = jwtDecode<JwtPayload & { is_admin: boolean }>(
-          authState.data.accessToken
-        )
-        return {
-          data: {
-            isAdmin: is_admin,
-            accessToken: authState.data.accessToken
-          },
-          status: authState.status
-        }
-      } catch (e) {
-        console.error('jwt decode failed')
-        return {
-          status: authState?.status ?? 'loading',
-          data: {
-            email: '',
-            isAdmin: false,
-            accessToken: authState.data.accessToken
-          }
-        }
+      return {
+        data: {
+          accessToken: authState.data.accessToken
+        },
+        status: authState.status
       }
     }
 
@@ -270,8 +253,7 @@ function useSignOut(): () => Promise<void> {
   }
 }
 
-interface User {
-  isAdmin: boolean
+interface JWTInfo {
   accessToken: string
 }
 
@@ -281,7 +263,7 @@ type Session =
       status: 'loading' | 'unauthenticated'
     }
   | {
-      data: User
+      data: JWTInfo
       status: 'authenticated'
     }
 
@@ -322,7 +304,7 @@ function useAuthenticatedApi(path: string | null): string | null {
   return path && status === 'authenticated' ? path : null
 }
 
-export type { AuthStore, User, Session }
+export type { AuthStore, JWTInfo, Session }
 
 export {
   AuthProvider,
