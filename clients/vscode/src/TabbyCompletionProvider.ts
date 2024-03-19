@@ -288,7 +288,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
   }
 
   private getGitContext(uri: Uri): CompletionRequest["git"] | undefined {
-    if (!agent().getConfig().completion.prompt.fileInfo.experimentalEnabled) {
+    if (!agent().getConfig().completion.prompt.filepath.experimentalEnabled) {
       return undefined;
     }
     const gitExt = extensions.getExtension("vscode.git");
