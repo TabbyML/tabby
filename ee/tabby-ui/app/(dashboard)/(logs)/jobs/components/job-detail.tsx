@@ -58,9 +58,9 @@ export default function JobRunDetail() {
                 <div>
                   <p
                     className={cn('font-bold', {
-                      'text-orange-400': isNil(currentNode.exitCode),
-                      'text-green-400': currentNode.exitCode === 0,
-                      'text-red-400': currentNode.exitCode === 1
+                      'text-blue-500': isNil(currentNode.exitCode),
+                      'text-green-500': currentNode.exitCode === 0,
+                      'text-red-500': currentNode.exitCode === 1
                     })}
                   >
                     {getLabelByExitCode(currentNode.exitCode)}
