@@ -30,7 +30,7 @@ Now, execute the following Docker command to pre-download the model file:
 ```bash
 docker run --entrypoint /opt/tabby/bin/tabby-cpu \
   -v $HOME/.tabby:/data tabbyml/tabby \
-  download --model TabbyML/StarCoder-1B
+  download --model StarCoder-1B
 ```
 
 Since we are only downloading the model file, we override the entrypoint to `tabby-cpu` to avoid the need for a GPU
@@ -46,7 +46,7 @@ services:
   worker-0:
     restart: always
     image: tabbyml/tabby
-    command: serve --model TabbyML/StarCoder-1B --device cuda
+    command: serve --model StarCoder-1B --device cuda
     volumes:
       - "$HOME/.tabby:/data"
     deploy:
@@ -60,7 +60,7 @@ services:
   worker-1:
     restart: always
     image: tabbyml/tabby
-    command: serve --model TabbyML/StarCoder-1B --device cuda
+    command: serve --model StarCoder-1B --device cuda
     volumes:
       - "$HOME/.tabby:/data"
     deploy:
