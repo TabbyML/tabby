@@ -1,8 +1,8 @@
 import React from 'react'
 import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import rehypeSanitize from 'rehype-sanitize'
 
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
