@@ -118,6 +118,9 @@ pub struct Segments {
     /// or the git repository does not have a remote URL.
     git_url: Option<String>,
 
+    /// The code snippets that are related for code completion.
+    snippets: Option<Vec<Snippet>>,
+
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
 }
