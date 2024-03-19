@@ -317,6 +317,12 @@
             "description": "The remote URL of the current git repository.\nLeave this empty if the file is not in a git repository,\nor the git repository does not have a remote URL.",
             "nullable": true
           },
+          "snippets": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Snippet" },
+            "description": "The code snippets that are related for code completion.",
+            "nullable": true
+          },
           "clipboard": {
             "type": "string",
             "description": "Clipboard content when requesting code completion.",

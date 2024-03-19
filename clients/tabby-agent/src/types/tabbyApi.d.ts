@@ -209,6 +209,8 @@ export interface components {
        * or the git repository does not have a remote URL.
        */
       git_url?: string | null;
+      /** @description The code snippets that are related for code completion. */
+      snippets?: components["schemas"]["Snippet"][] | null;
       /** @description Clipboard content when requesting code completion. */
       clipboard?: string | null;
     };

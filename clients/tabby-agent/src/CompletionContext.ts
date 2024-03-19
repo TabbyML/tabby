@@ -1,6 +1,19 @@
 import { splitLines, regOnlyAutoClosingCloseChars } from "./utils";
 import hashObject from "object-hash";
 
+export type CodeReferenceCategory = "definition";
+
+export type CodeReference = {
+  filepath: string;
+  range?: {
+    start: { line: number; character: number };
+    end: { line: number; character: number };
+  };
+  text: string;
+  category: CodeReferenceCategory;
+  score: number;
+};
+
 export type CompletionRequest = {
   filepath: string;
   language: string;
@@ -17,6 +30,7 @@ export type CompletionRequest = {
       url: string;
     }[];
   };
+  snippets?: CodeReference[];
 };
 
 export type CompletionResponseChoice = {
@@ -64,6 +78,8 @@ export class CompletionContext {
     }[];
   };
 
+  snippets?: CodeReference[];
+
   // "default": the cursor is at the end of the line
   // "fill-in-line": the cursor is not at the end of the line, except auto closed characters
   //   In this case, we assume the completion should be a single line, so multiple lines completion will be dropped.
@@ -89,6 +105,8 @@ export class CompletionContext {
     this.workspace = request.workspace;
     this.git = request.git;
 
+    this.snippets = request.snippets;
+
     const lineEnd = isAtLineEndExcludingAutoClosedChar(this.suffixLines[0] ?? "");
     this.mode = lineEnd ? "default" : "fill-in-line";
     this.hash = hashObject({
@@ -97,6 +115,7 @@ export class CompletionContext {
       text: this.text,
       position: this.position,
       clipboard: this.clipboard,
+      snippets: this.snippets,
     });
   }
 }

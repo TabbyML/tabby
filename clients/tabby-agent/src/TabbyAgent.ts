@@ -363,6 +363,42 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     }
 
+    // snippets
+    const snippets: TabbyApiComponents["schemas"]["Snippet"][] = [];
+    const filteredSnippets =
+      context.snippets
+        ?.filter((s) => s.score >= this.config.completion.prompt.snippets.minScore)
+        .sort((a, b) => b.score - a.score) ?? [];
+    const toRelativeFilepath = (filepath: string) => {
+      if (filepathInfo?.git_url) {
+        return path.relative(filepathInfo.git_url, filepath);
+      } else if (context.workspace) {
+        return path.relative(context.workspace, filepath);
+      }
+      return filepath;
+    };
+    let snippetsChars = 0;
+    for (const snippet of filteredSnippets) {
+      if (snippetsChars > this.config.completion.prompt.snippets.maxTotalChars) {
+        break;
+      }
+      switch (snippet.category) {
+        case "definition": {
+          if (this.config.completion.prompt.snippets.experimentalDefinitionsEnabled) {
+            snippetsChars += snippet.text.length;
+            snippets.push({
+              filepath: toRelativeFilepath(snippet.filepath),
+              body: snippet.text,
+              score: snippet.score,
+            });
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
     // clipboard
     let clipboard = undefined;
     const clipboardConfig = this.config.completion.prompt.clipboard;

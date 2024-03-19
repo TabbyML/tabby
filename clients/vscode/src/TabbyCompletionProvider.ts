@@ -4,12 +4,14 @@ import {
   InlineCompletionItem,
   InlineCompletionItemProvider,
   InlineCompletionTriggerKind,
+  LocationLink,
   Position,
   Range,
   TextDocument,
   NotebookDocument,
   NotebookRange,
   Uri,
+  commands,
   extensions,
   window,
   workspace,
@@ -100,6 +102,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
       workspace: workspace.getWorkspaceFolder(document.uri)?.uri.fsPath,
       git: this.getGitContext(document.uri),
+      snippets: await this.collectSnippets(document.uri, position),
     };
 
     const abortController = new AbortController();
@@ -308,5 +311,34 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         url: remote.fetchUrl,
       })),
     };
+  }
+
+  private async collectSnippets(uri: Uri, position: Position): Promise<CompletionRequest["snippets"]> {
+    const snippets: CompletionRequest["snippets"] = [];
+    if (agent().getConfig().completion.prompt.snippets.experimentalDefinitionsEnabled) {
+      const definitions = await commands.executeCommand("vscode.executeDefinitionProvider", uri, position);
+      if (
+        Array.isArray(definitions) &&
+        definitions.length > 0 &&
+        "targetUri" in definitions[0] &&
+        "targetRange" in definitions[0]
+      ) {
+        const definition = definitions[0] as LocationLink;
+        const text = new TextDecoder()
+          .decode(await workspace.fs.readFile(definition.targetUri))
+          .split("\n")
+          .slice(definition.targetRange.start.line, definition.targetRange.end.line + 1)
+          .join("\n");
+        this.logger.debug("Collected definition snippets.", { definition, text });
+        snippets.push({
+          filepath: definition.targetUri.fsPath,
+          range: definition.targetRange,
+          text,
+          category: "definition",
+          score: 1, // A high score because it is provided by vscode language server
+        });
+      }
+    }
+    return snippets;
   }
 }
