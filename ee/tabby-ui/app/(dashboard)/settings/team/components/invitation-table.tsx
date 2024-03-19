@@ -32,9 +32,9 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { CopyButton } from '@/components/copy-button'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 import CreateInvitationForm from './create-invitation-form'
-import LoadingWrapper from '@/components/loading-wrapper'
 
 const deleteInvitationMutation = graphql(/* GraphQL */ `
   mutation DeleteInvitation($id: ID!) {
@@ -149,7 +149,7 @@ export default function InvitationTable() {
   return (
     <div>
       <CreateInvitationForm onCreated={handleInvitationCreated} />
-      <div className='mt-4'>
+      <div className="mt-4">
         <LoadingWrapper loading={fetching}>
           <Table className="border-b">
             {!!currentPageInvits?.length && (
@@ -167,7 +167,9 @@ export default function InvitationTable() {
                 return (
                   <TableRow key={x.node.id}>
                     <TableCell>{x.node.email}</TableCell>
-                    <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
+                    <TableCell>
+                      {moment.utc(x.node.createdAt).fromNow()}
+                    </TableCell>
                     <TableCell className="flex justify-end">
                       <div className="flex gap-1">
                         <CopyButton value={link} />

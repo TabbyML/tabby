@@ -1,8 +1,10 @@
 'use client'
 
 import React from 'react'
-import { ListSkeleton } from './skeleton'
+
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
+
+import { ListSkeleton } from './skeleton'
 
 interface LoadingWrapperProps {
   loading?: boolean
