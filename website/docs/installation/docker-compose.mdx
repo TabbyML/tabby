@@ -18,7 +18,7 @@ services:
   tabby:
     restart: always
     image: tabbyml/tabby
-    command: serve --model TabbyML/StarCoder-1B --device cuda
+    command: serve --model StarCoder-1B --device cuda
     volumes:
       - "$HOME/.tabby:/data"
     ports:
@@ -43,7 +43,7 @@ services:
     restart: always
     image: tabbyml/tabby
     entrypoint: /opt/tabby/bin/tabby-cpu
-    command: serve --model TabbyML/StarCoder-1B
+    command: serve --model StarCoder-1B
     volumes:
       - "$HOME/.tabby:/data"
     ports:
