@@ -8,7 +8,7 @@ filepath = 'checks.ts'
 language = 'typescript'
 # indentation = '  ' # not specified
 text = '''
-const log = ({ ok }: { ok:├ boolean }) => { ┤ }) => {
+const log = ({ ok }: { ok:├ boolean }) => {┤ }) => {
   console.log(ok);
 }
 '''
@@ -19,4 +19,3 @@ const log = ({ ok }: { ok:├ boolean┤ }) => {
   console.log(ok);
 }
 '''
-notEqual = true  # FIXME: fix bad case
