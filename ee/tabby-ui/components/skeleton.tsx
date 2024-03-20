@@ -1,10 +1,17 @@
 'use client'
 
+import { HTMLAttributes } from 'react'
+
+import { cn } from '@/lib/utils'
+
 import { Skeleton } from './ui/skeleton'
 
-export const ListSkeleton = () => {
+export const ListSkeleton: React.FC<HTMLAttributes<HTMLDivElement>> = ({
+  className,
+  ...props
+}) => {
   return (
-    <div className="space-y-3">
+    <div className={cn('space-y-3', className)} {...props}>
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-full" />
@@ -13,9 +20,12 @@ export const ListSkeleton = () => {
   )
 }
 
-export const FormSkeleton = () => {
+export const FormSkeleton: React.FC<HTMLAttributes<HTMLDivElement>> = ({
+  className,
+  ...props
+}) => {
   return (
-    <div className="flex flex-col gap-3">
+    <div className={cn('flex flex-col gap-3', className)} {...props}>
       <Skeleton className="h-4 w-[20%]" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-[20%]" />

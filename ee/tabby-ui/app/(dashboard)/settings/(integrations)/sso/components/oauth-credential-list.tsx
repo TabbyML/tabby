@@ -16,6 +16,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LicenseGuard } from '@/components/license-guard'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 import { PROVIDER_METAS } from './constant'
 import { SSOHeader } from './sso-header'
@@ -64,12 +65,15 @@ const OAuthCredentialList = () => {
     return (
       <div>
         <SSOHeader />
-        {isLoading ? (
-          <div className="flex flex-col gap-8">
-            <Skeleton className="h-[180px] w-full rounded-xl" />
-            <Skeleton className="h-[180px] w-full rounded-xl" />
-          </div>
-        ) : (
+        <LoadingWrapper
+          loading={isLoading}
+          fallback={
+            <div className="flex flex-col gap-8">
+              <Skeleton className="h-[180px] w-full rounded-xl" />
+              <Skeleton className="h-[180px] w-full rounded-xl" />
+            </div>
+          }
+        >
           <div className="flex flex-col items-center gap-4 rounded-lg border-4 border-dashed py-8">
             <div>No Data</div>
             <div className="flex justify-center">
@@ -81,7 +85,7 @@ const OAuthCredentialList = () => {
               </Link>
             </div>
           </div>
-        )}
+        </LoadingWrapper>
       </div>
     )
   }

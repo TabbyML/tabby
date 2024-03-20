@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 import { UpdateUserRoleDialog } from './user-role-dialog'
 
@@ -76,7 +77,7 @@ export default function UsersTable() {
   const [queryVariables, setQueryVariables] = React.useState<
     QueryVariables<typeof listUsers>
   >({ first: PAGE_SIZE })
-  const [{ data, error }, reexecuteQuery] = useQuery({
+  const [{ data, error, fetching }, reexecuteQuery] = useQuery({
     query: listUsers,
     variables: queryVariables
   })
@@ -131,125 +132,135 @@ export default function UsersTable() {
     )
 
   return (
-    !!users?.edges?.length && (
-      <>
-        <Table className="border-b">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[25%]">Email</TableHead>
-              <TableHead className="w-[15%]">Joined</TableHead>
-              <TableHead className="w-[20%] text-center">Status</TableHead>
-              <TableHead className="w-[20%] text-center">Level</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.edges.map(x => {
-              const showOperation =
-                !x.node.isOwner && me?.me && x.node.id !== me.me.id
-
-              return (
-                <TableRow key={x.node.id}>
-                  <TableCell>{x.node.email}</TableCell>
-                  <TableCell>
-                    {moment.utc(x.node.createdAt).fromNow()}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {x.node.active ? (
-                      <Badge variant="successful">Active</Badge>
-                    ) : (
-                      <Badge variant="secondary">Inactive</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {makeBadge(x.node)}
-                  </TableCell>
-                  <TableCell className="text-end">
-                    {showOperation && (
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost">
-                            <IconMore />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent collisionPadding={{ right: 16 }}>
-                          {!!x.node.active && (
-                            <DropdownMenuItem
-                              onSelect={() => onUpdateUserRole(x.node)}
-                              className="cursor-pointer"
-                            >
-                              <span className="ml-2">
-                                {x.node.isAdmin
-                                  ? 'Downgrade to member'
-                                  : 'Upgrade to admin'}
-                              </span>
-                            </DropdownMenuItem>
-                          )}
-                          {!!x.node.active && (
-                            <DropdownMenuItem
-                              onSelect={() => onUpdateUserActive(x.node, false)}
-                              className="cursor-pointer"
-                            >
-                              <span className="ml-2">Deactivate</span>
-                            </DropdownMenuItem>
-                          )}
-                          {!x.node.active && (
-                            <DropdownMenuItem
-                              onSelect={() => onUpdateUserActive(x.node, true)}
-                              className="cursor-pointer"
-                            >
-                              <span className="ml-2">Activate</span>
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </TableCell>
+    <>
+      <LoadingWrapper loading={fetching}>
+        {!!users?.edges?.length && (
+          <>
+            <Table className="border-b">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[25%]">Email</TableHead>
+                  <TableHead className="w-[15%]">Joined</TableHead>
+                  <TableHead className="w-[20%] text-center">Status</TableHead>
+                  <TableHead className="w-[20%] text-center">Level</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
                 </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-        {(pageInfo?.hasNextPage || pageInfo?.hasPreviousPage) && (
-          <Pagination className="my-4">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  disabled={!pageInfo?.hasPreviousPage}
-                  onClick={e =>
-                    setQueryVariables({
-                      last: PAGE_SIZE,
-                      before: pageInfo?.startCursor
-                    })
-                  }
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext
-                  disabled={!pageInfo?.hasNextPage}
-                  onClick={e =>
-                    setQueryVariables({
-                      first: PAGE_SIZE,
-                      after: pageInfo?.endCursor
-                    })
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
+              </TableHeader>
+              <TableBody>
+                {users.edges.map(x => {
+                  const showOperation =
+                    !x.node.isOwner && me?.me && x.node.id !== me.me.id
 
-        <UpdateUserRoleDialog
-          onSuccess={() => {
-            reexecuteQuery()
-            setUpdateRoleVisible(false)
-          }}
-          user={currentUser}
-          isPromote={isPromote}
-          open={updateRoleVisible}
-          onOpenChange={setUpdateRoleVisible}
-        />
-      </>
-    )
+                  return (
+                    <TableRow key={x.node.id}>
+                      <TableCell>{x.node.email}</TableCell>
+                      <TableCell>
+                        {moment.utc(x.node.createdAt).fromNow()}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {x.node.active ? (
+                          <Badge variant="successful">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {makeBadge(x.node)}
+                      </TableCell>
+                      <TableCell className="text-end">
+                        {showOperation && (
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost">
+                                <IconMore />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              collisionPadding={{ right: 16 }}
+                            >
+                              {!!x.node.active && (
+                                <DropdownMenuItem
+                                  onSelect={() => onUpdateUserRole(x.node)}
+                                  className="cursor-pointer"
+                                >
+                                  <span className="ml-2">
+                                    {x.node.isAdmin
+                                      ? 'Downgrade to member'
+                                      : 'Upgrade to admin'}
+                                  </span>
+                                </DropdownMenuItem>
+                              )}
+                              {!!x.node.active && (
+                                <DropdownMenuItem
+                                  onSelect={() =>
+                                    onUpdateUserActive(x.node, false)
+                                  }
+                                  className="cursor-pointer"
+                                >
+                                  <span className="ml-2">Deactivate</span>
+                                </DropdownMenuItem>
+                              )}
+                              {!x.node.active && (
+                                <DropdownMenuItem
+                                  onSelect={() =>
+                                    onUpdateUserActive(x.node, true)
+                                  }
+                                  className="cursor-pointer"
+                                >
+                                  <span className="ml-2">Activate</span>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+            {(pageInfo?.hasNextPage || pageInfo?.hasPreviousPage) && (
+              <Pagination className="my-4">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      disabled={!pageInfo?.hasPreviousPage}
+                      onClick={e =>
+                        setQueryVariables({
+                          last: PAGE_SIZE,
+                          before: pageInfo?.startCursor
+                        })
+                      }
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      disabled={!pageInfo?.hasNextPage}
+                      onClick={e =>
+                        setQueryVariables({
+                          first: PAGE_SIZE,
+                          after: pageInfo?.endCursor
+                        })
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
+        )}
+      </LoadingWrapper>
+
+      <UpdateUserRoleDialog
+        onSuccess={() => {
+          reexecuteQuery()
+          setUpdateRoleVisible(false)
+        }}
+        user={currentUser}
+        isPromote={isPromote}
+        open={updateRoleVisible}
+        onOpenChange={setUpdateRoleVisible}
+      />
+    </>
   )
 }

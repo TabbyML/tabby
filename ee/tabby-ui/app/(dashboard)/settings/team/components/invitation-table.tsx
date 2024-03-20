@@ -32,6 +32,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { CopyButton } from '@/components/copy-button'
+import LoadingWrapper from '@/components/loading-wrapper'
 
 import CreateInvitationForm from './create-invitation-form'
 
@@ -148,40 +149,46 @@ export default function InvitationTable() {
   return (
     <div>
       <CreateInvitationForm onCreated={handleInvitationCreated} />
-      <Table className="mt-4 border-b">
-        {!!currentPageInvits?.length && (
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[25%]">Invitee</TableHead>
-              <TableHead className="w-[45%]">Created</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-        )}
-        <TableBody>
-          {currentPageInvits?.map(x => {
-            const link = `${externalUrl}/auth/signup?invitationCode=${x.node.code}`
-            return (
-              <TableRow key={x.node.id}>
-                <TableCell>{x.node.email}</TableCell>
-                <TableCell>{moment.utc(x.node.createdAt).fromNow()}</TableCell>
-                <TableCell className="flex justify-end">
-                  <div className="flex gap-1">
-                    <CopyButton value={link} />
-                    <Button
-                      size="icon"
-                      variant="hover-destructive"
-                      onClick={() => handleDeleteInvatation(x.node)}
-                    >
-                      <IconTrash />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+      <div className="mt-4">
+        <LoadingWrapper loading={fetching}>
+          <Table className="border-b">
+            {!!currentPageInvits?.length && (
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[25%]">Invitee</TableHead>
+                  <TableHead className="w-[45%]">Created</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+            )}
+            <TableBody>
+              {currentPageInvits?.map(x => {
+                const link = `${externalUrl}/auth/signup?invitationCode=${x.node.code}`
+                return (
+                  <TableRow key={x.node.id}>
+                    <TableCell>{x.node.email}</TableCell>
+                    <TableCell>
+                      {moment.utc(x.node.createdAt).fromNow()}
+                    </TableCell>
+                    <TableCell className="flex justify-end">
+                      <div className="flex gap-1">
+                        <CopyButton value={link} />
+                        <Button
+                          size="icon"
+                          variant="hover-destructive"
+                          onClick={() => handleDeleteInvatation(x.node)}
+                        >
+                          <IconTrash />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </LoadingWrapper>
+      </div>
       {(hasNextPage || hasPrevPage) && (
         <Pagination className="my-4">
           <PaginationContent>
