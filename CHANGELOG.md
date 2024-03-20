@@ -5,10 +5,11 @@
 
 ## Fixes and Improvements
 
-# v0.9.1 [UNRELEASED]
+# v0.9.1
 
 ## Fixes and Improvements
 * Fix worker registration check against enterprise licenses.
+* Fix default value of `disable_client_side_telemetry` when `--webserver` is not used.
 
 # v0.9.0
 
