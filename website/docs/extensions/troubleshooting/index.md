@@ -57,7 +57,7 @@ is empty.
 ### Authentication Token
 
 If you have enabled authentication on your Tabby server, you will need to set
-the authentication token in the [config file](https://tabby.tabbyml.com/docs/extensions/configurations).
+the authentication token in the IDE or the [config file](https://tabby.tabbyml.com/docs/extensions/configurations).
 
 ### Verify Tabby Server Status
 
@@ -124,22 +124,19 @@ the server, make sure to specify the device in the arguments using  `--device cu
 ## Want to Deep Dive via Logs?
 
 If you cannot solve the issue using the previous steps, you may want to 
-investigate further by checking the debug logs.
+investigate further by checking the logs of Tabby extensions. 
+If you want help from the community, it is also recommended to share the logs 
+of the Tabby extensions.
 
-### Tabby Agent Debug Logs
+### VSCode
 
-To enable Tabby agent debug logs, editing the [config file](https://tabby.tabbyml.com/docs/extensions/configurations), uncomment the `logs` section and set `level` to `"debug"`. Save the file to apply the changes.
+For VSCode, you can check the `Output` window and select the `Tabby` channel or
+`Tabby Agent` channel.
+![VSCode Output View](./vscode-output-view.png)
+The default log level is `info`. To enable debug logs, you can use the command 
+`Developer: Set Log Level...` to set the log level to `debug`.
 
-Reproduce the issue you are facing and then check the logs located in `~/.tabby-client/agent/logs/`. 
-The logs are rotated, with the most recent log file named `tabby-agent.log`. 
-These logs are written using [pino](https://github.com/pinojs/pino), and you can 
-use `pino-pretty` to format the log file for easier readability.
-
-```shell
-tail -f ~/.tabby-client/agent/logs/tabby-agent.log | npx pino-pretty
-```
-
-### IntelliJ Platform IDEs Logs
+### IntelliJ Platform IDEs
 
 For IntelliJ Platform IDEs, you can check the logs for the IDE using `Help -> Show Log in Explorer|Finder|Files...`, 
 or follow [this document](https://intellij-support.jetbrains.com/hc/en-us/articles/207241085-Locating-IDE-log-files) to locate the log file.
@@ -147,6 +144,25 @@ This log file contains all the logs for the IDE, and you can filter them by sear
 keyword `com.tabbyml.intellijtabby`.
 You can also enable all level logs by editing `Help -> Diagnostic Tools -> Debug Log Settings...` and
 add `com.tabbyml.intellijtabby:all` to the list.
+
+### Tabby Agent Logs
+
+As the agent runs as a separate Node.js process for IntelliJ Platform IDEs plugin 
+and Vim/NeoVim plugin, its logs are written separately.
+
+By default, the agent logs are set to `"silent"`, which means the agent logs are 
+not written to disk. To enable Tabby agent debug logs, editing the 
+[config file](https://tabby.tabbyml.com/docs/extensions/configurations), 
+uncomment the `logs` section and set `level` to `"debug"`, then save the file 
+to apply the changes.
+ 
+You can find the agent logs in the `~/.tabby-client/agent/logs` directory. These 
+logs are written using [pino](https://github.com/pinojs/pino), and you can 
+use `pino-pretty` to format the log file for easier readability.
+
+```shell
+tail -f ~/.tabby-client/agent/logs/20240101.0.log | npx pino-pretty
+```
 
 ## Still Have Issues?
 
