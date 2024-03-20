@@ -420,7 +420,11 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn update_user_avatar(ctx: &Context, id: ID, avatar: Option<String>) -> Result<bool> {
+    async fn upload_user_avatar_base64(
+        ctx: &Context,
+        id: ID,
+        avatar: Option<String>,
+    ) -> Result<bool> {
         let claims = check_claims(ctx)?;
         if claims.sub.0 != id && check_admin(ctx).is_err() {
             return Err(CoreError::Unauthorized(

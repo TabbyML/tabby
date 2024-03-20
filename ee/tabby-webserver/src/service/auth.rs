@@ -191,9 +191,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(())
     }
 
-    async fn update_user_avatar(&self, id: &ID, avatar: Option<String>) -> Result<()> {
+    async fn update_user_avatar(&self, id: &ID, avatar_base64: Option<String>) -> Result<()> {
         let id = id.as_rowid()?;
-        let avatar = match avatar {
+        let avatar = match avatar_base64 {
             Some(avatar) => Some(
                 base64::prelude::BASE64_STANDARD
                     .decode(avatar.as_bytes())
