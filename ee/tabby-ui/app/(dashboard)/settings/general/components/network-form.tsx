@@ -21,6 +21,7 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { FormSkeleton } from '@/components/skeleton'
 
 const updateNetworkSettingMutation = graphql(/* GraphQL */ `
   mutation updateNetworkSettingMutation($input: NetworkSettingInput!) {
@@ -41,14 +42,8 @@ interface NetworkFormProps {
 
 const NetworkForm: React.FC<NetworkFormProps> = ({
   onSuccess,
-  defaultValues: propsDefaultValues
+  defaultValues
 }) => {
-  const defaultValues = React.useMemo(() => {
-    return {
-      ...(propsDefaultValues || {})
-    }
-  }, [propsDefaultValues])
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues
@@ -112,15 +107,16 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 }
 
 export const GeneralNetworkForm = () => {
-  const [{ data }, reexecuteQuery] = useNetworkSetting()
+  const [{ data, stale }, reexecuteQuery] = useNetworkSetting()
+
   const onSuccess = () => {
     toast.success('Network configuration is updated')
     reexecuteQuery()
   }
 
-  return (
-    data && (
-      <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
-    )
+  return data && !stale ? (
+    <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
+  ) : (
+    <FormSkeleton />
   )
 }
