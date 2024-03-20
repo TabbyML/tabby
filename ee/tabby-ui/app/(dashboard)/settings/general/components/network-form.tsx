@@ -107,9 +107,7 @@ const NetworkForm: React.FC<NetworkFormProps> = ({
 }
 
 export const GeneralNetworkForm = () => {
-  const [{ data, stale }, reexecuteQuery] = useNetworkSetting({
-    requestPolicy: 'network-only'
-  })
+  const [{ data, stale }, reexecuteQuery] = useNetworkSetting()
 
   const onSuccess = () => {
     toast.success('Network configuration is updated')

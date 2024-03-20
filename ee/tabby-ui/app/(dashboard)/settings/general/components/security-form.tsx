@@ -227,9 +227,8 @@ function buildListValuesFromField(fieldListValue?: Array<{ value: string }>) {
 }
 
 export const GeneralSecurityForm = () => {
-  const [{ data }, reexecuteQuery] = useQuery({
-    query: securitySetting,
-    requestPolicy: 'network-only'
+  const [{ data, stale }, reexecuteQuery] = useQuery({
+    query: securitySetting
   })
   const onSuccess = () => {
     toast.success('Security configuration is updated')
@@ -242,7 +241,7 @@ export const GeneralSecurityForm = () => {
     )
   }
 
-  return data ? (
+  return data && !stale ? (
     <SecurityForm defaultValues={defaultValues} onSuccess={onSuccess} />
   ) : (
     <FormSkeleton />
