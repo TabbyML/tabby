@@ -2,9 +2,9 @@
 sidebar_position: 98
 ---
 
-# Advanced Configuration
+# Configuration
 
-This document describes the available configurations for Tabby IDE extensions.
+This document describes the available configurations for [Tabby Agent](https://github.com/TabbyML/tabby/tree/main/clients/tabby-agent).
 
 ## Config File
 
