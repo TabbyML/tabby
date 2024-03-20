@@ -35,7 +35,7 @@ ENV TABBY_MODEL_CACHE_ROOT=/models
 RUN /opt/tabby/bin/tabby-cpu download --model StarCoder-1B
 ```
 
-The **TABBY_MODEL_CACHE_ROOT** env var sets the directory for saving downloaded models. Setting it to `/models` will store the model in the `/models` directory of the Docker container.
+The **TABBY_MODEL_CACHE_ROOT** env var sets the directory for saving downloaded models. By setting `ENV TABBY_MODEL_CACHE_ROOT=/models`, we instruct Tabby to save the downloaded model files in the `/models` directory within the Docker container during the build process.
 
 2. Build the Docker image which containing the model
 
