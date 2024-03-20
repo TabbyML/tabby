@@ -3,6 +3,10 @@ authors: [meng]
 tags: [deployment, reverse proxy]
 ---
 
+import CodeBlock from '@theme/CodeBlock';
+import Caddyfile from "raw-loader!./Caddyfile"
+import DockerComposeYaml from "raw-loader!./docker-compose.yml"
+
 # Deploying Tabby with Replicas and a Reverse Proxy
 
 Welcome to our tutorial on how to set up Tabby, the self-hosted AI coding assistant, with Caddy serving as a reverse proxy (load balancer). This guide assumes that you have a Linux machine with Docker, CUDA drivers, and the [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) already installed.
@@ -13,13 +17,9 @@ Let's dive in!
 
 Before configuring our services, we need to create a `Caddyfile` that will define how Caddy should handle incoming requests and reverse proxy them to Tabby:
 
-```
-http://*:8080 {
-  handle_path /* {
-    reverse_proxy worker-0:8080 worker-1:8080
-  }
-}
-```
+<CodeBlock title="Caddyfile">
+{Caddyfile}
+</CodeBlock>
 
 Note that we are assuming we have two GPUs in the machine; therefore, we should redirect traffic to two worker nodes.
 
@@ -39,45 +39,9 @@ Since we are only downloading the model file, we override the entrypoint to `tab
 
 Next, create a `docker-compose.yml` file to orchestrate the Tabby and Caddy services. Here is the configuration for both services:
 
-```yaml
-version: '3.5'
-
-services:
-  worker-0:
-    restart: always
-    image: tabbyml/tabby
-    command: serve --model StarCoder-1B --device cuda
-    volumes:
-      - "$HOME/.tabby:/data"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ["0"]
-              capabilities: [gpu]
-
-  worker-1:
-    restart: always
-    image: tabbyml/tabby
-    command: serve --model StarCoder-1B --device cuda
-    volumes:
-      - "$HOME/.tabby:/data"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ["1"]
-              capabilities: [gpu]
-
-  web:
-    image: caddy
-    volumes:
-      - "./Caddyfile:/etc/caddy/Caddyfile:ro"
-    ports:
-      - "8080:8080"
-```
+<CodeBlock title="docker-compose.yml" language="yaml">
+{DockerComposeYaml}
+</CodeBlock>
 
 Note that we have two worker nodes, and we are using the same model for both of them, with each assigned to a different GPU (0 and 1, respectively). If you have more GPUs, you can add more worker nodes and assign them to the available GPUs (remember to update the `Caddyfile` accordingly!).
 
