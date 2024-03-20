@@ -9,7 +9,11 @@ import DockerComposeYaml from "raw-loader!./docker-compose.yml"
 
 # Deploying Tabby with Replicas and a Reverse Proxy
 
-Welcome to our tutorial on how to set up Tabby, the self-hosted AI coding assistant, with Caddy serving as a reverse proxy (load balancer). This guide assumes that you have a Linux machine with Docker, CUDA drivers, and the [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) already installed.
+Tabby operates as a single process, typically utilizing resources from a single GPU.This setup is usually sufficient for a team of ~50 engineers.
+However, if you wish to scale this for a larger team, you'll need to harness compute resources from multiple GPUs.
+One approach to achieve this is by creating additional replicas of the Tabby service and employing a reverse proxy to distribute traffic among these replicas.
+
+This guide assumes that you have a Linux machine with Docker, CUDA drivers, and the [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) already installed.
 
 Let's dive in!
 
