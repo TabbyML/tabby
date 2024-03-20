@@ -21,6 +21,7 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import LoadingWrapper from '@/components/loading-wrapper'
 import { FormSkeleton } from '@/components/skeleton'
 
 const updateNetworkSettingMutation = graphql(/* GraphQL */ `
@@ -114,9 +115,14 @@ export const GeneralNetworkForm = () => {
     reexecuteQuery()
   }
 
-  return data && !stale ? (
-    <NetworkForm defaultValues={data.networkSetting} onSuccess={onSuccess} />
-  ) : (
-    <FormSkeleton />
+  return (
+    <div className="min-h-[160px]">
+      <LoadingWrapper loading={!data || stale} fallback={<FormSkeleton />}>
+        <NetworkForm
+          defaultValues={data?.networkSetting}
+          onSuccess={onSuccess}
+        />
+      </LoadingWrapper>
+    </div>
   )
 }

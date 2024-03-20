@@ -26,8 +26,8 @@ import {
 import { IconTrash } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { LicenseGuard } from '@/components/license-guard'
-import { FormSkeleton } from '@/components/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
+import { FormSkeleton } from '@/components/skeleton'
 
 const updateSecuritySettingMutation = graphql(/* GraphQL */ `
   mutation updateSecuritySetting($input: SecuritySettingInput!) {
@@ -228,7 +228,7 @@ function buildListValuesFromField(fieldListValue?: Array<{ value: string }>) {
 }
 
 export const GeneralSecurityForm = () => {
-  const [{ data, stale }, reexecuteQuery] = useQuery({
+  const [{ data, stale, fetching }, reexecuteQuery] = useQuery({
     query: securitySetting
   })
   const onSuccess = () => {
@@ -241,8 +241,9 @@ export const GeneralSecurityForm = () => {
       data.securitySetting.allowedRegisterDomainList
     )
   }
+
   return (
-    <LoadingWrapper loading={!!data && !stale} fallback={<FormSkeleton />}>
+    <LoadingWrapper loading={fetching || stale} fallback={<FormSkeleton />}>
       <SecurityForm defaultValues={defaultValues} onSuccess={onSuccess} />
     </LoadingWrapper>
   )
