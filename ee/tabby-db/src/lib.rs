@@ -10,8 +10,8 @@ pub use oauth_credential::OAuthCredentialDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{
-    database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite,
-    SqlitePool, Type, Value, ValueRef,
+    database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Decode, Encode, Pool,
+    Sqlite, SqlitePool, Type, Value, ValueRef,
 };
 pub use users::UserDAO;
 
@@ -188,21 +188,26 @@ impl DbConn {
     }
 }
 
+pub trait DbCustom: for<'a> Decode<'a, Sqlite> + for<'a> Encode<'a, Sqlite> + Type<Sqlite> {}
+impl DbCustom for DateTimeUtc {}
+
 #[derive(Default)]
-pub struct DbNullable<T>(Option<T>);
+pub struct DbNullable<T>(Option<T>)
+where
+    T: DbCustom;
 
 impl<T> Type<Sqlite> for DbNullable<T>
 where
-    T: Type<Sqlite>,
+    T: Type<Sqlite> + DbCustom,
 {
     fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
         T::type_info()
     }
 }
 
-impl<'a, T> sqlx::Decode<'a, Sqlite> for DbNullable<T>
+impl<'a, T> Decode<'a, Sqlite> for DbNullable<T>
 where
-    T: sqlx::Decode<'a, Sqlite>,
+    T: DbCustom,
 {
     fn decode(
         value: <Sqlite as HasValueRef<'a>>::ValueRef,
@@ -217,14 +222,17 @@ where
 
 impl<T, F> From<Option<F>> for DbNullable<T>
 where
-    T: From<F>,
+    T: From<F> + DbCustom,
 {
     fn from(value: Option<F>) -> Self {
         DbNullable(value.map(|v| T::from(v)))
     }
 }
 
-impl<T> DbNullable<T> {
+impl<T> DbNullable<T>
+where
+    T: DbCustom,
+{
     pub fn into_option<V>(self) -> Option<V>
     where
         T: Into<V>,
@@ -235,7 +243,7 @@ impl<T> DbNullable<T> {
 
 impl<T> Clone for DbNullable<T>
 where
-    T: Clone,
+    T: Clone + DbCustom,
 {
     fn clone(&self) -> Self {
         self.0.clone().into()
@@ -257,7 +265,7 @@ impl From<DateTimeUtc> for DateTime<Utc> {
     }
 }
 
-impl<'a> sqlx::Decode<'a, Sqlite> for DateTimeUtc {
+impl<'a> Decode<'a, Sqlite> for DateTimeUtc {
     fn decode(
         value: <Sqlite as HasValueRef<'a>>::ValueRef,
     ) -> std::prelude::v1::Result<Self, sqlx::error::BoxDynError> {
@@ -272,7 +280,7 @@ impl Type<Sqlite> for DateTimeUtc {
     }
 }
 
-impl<'a> sqlx::Encode<'a, Sqlite> for DateTimeUtc {
+impl<'a> Encode<'a, Sqlite> for DateTimeUtc {
     fn encode_by_ref(
         &self,
         buf: &mut <Sqlite as sqlx::database::HasArguments<'a>>::ArgumentBuffer,
