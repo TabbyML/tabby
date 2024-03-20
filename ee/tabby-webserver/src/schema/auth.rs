@@ -465,6 +465,7 @@ pub trait AuthenticationService: Send + Sync {
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()>;
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()>;
     async fn update_user_avatar(&self, id: &ID, avatar: Option<String>) -> Result<()>;
+    async fn get_user_avatar(&self, id: &ID) -> Result<Option<Box<[u8]>>>;
 }
 
 fn validate_password(value: &str) -> Result<(), validator::ValidationError> {

@@ -17,7 +17,7 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-pub(in crate::service) use dao::{AsID, AsRowid};
+pub(crate) use dao::{AsID, AsRowid};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper::ID;
 use tabby_common::{

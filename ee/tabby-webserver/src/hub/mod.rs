@@ -9,17 +9,18 @@ use std::{
 use api::{ConnectHubRequest, Hub};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
+    middleware::Next,
     response::IntoResponse,
     TypedHeader,
 };
-use hyper::{Body, StatusCode};
+use hyper::{Body, Request, StatusCode};
 use juniper_axum::extract::AuthBearer;
 use tabby_common::{api::code::SearchResponse, config::RepositoryConfig};
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
 use websocket::WebSocketTransport;
 
-use crate::schema::ServiceLocator;
+use crate::schema::{auth::AuthenticationService, ServiceLocator};
 
 pub(crate) async fn ws_handler(
     ws: WebSocketUpgrade,
@@ -48,6 +49,29 @@ pub(crate) async fn ws_handler(
 
     ws.on_upgrade(move |socket| handle_socket(state, socket, addr.ip(), request))
         .into_response()
+}
+
+pub(crate) async fn require_login_middleware(
+    State(auth): State<Arc<dyn AuthenticationService>>,
+    AuthBearer(token): AuthBearer,
+    request: Request<Body>,
+    next: Next<Body>,
+) -> axum::response::Response {
+    let unauthorized = axum::response::Response::builder()
+        .status(StatusCode::UNAUTHORIZED)
+        .body(Body::empty())
+        .unwrap()
+        .into_response();
+
+    let Some(token) = token else {
+        return unauthorized;
+    };
+
+    let Ok(_) = auth.verify_access_token(&token).await else {
+        return unauthorized;
+    };
+
+    next.run(request).await
 }
 
 async fn handle_socket(

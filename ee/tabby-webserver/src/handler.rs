@@ -13,7 +13,7 @@ use tabby_db::DbConn;
 use tracing::warn;
 
 use crate::{
-    cron, hub, oauth,
+    avatar, cron, hub, oauth,
     repositories::{self, RepositoryCache},
     schema::{create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::new_event_logger},
@@ -77,6 +77,7 @@ impl WebserverHandle {
                 "/repositories",
                 repositories::routes(rs.clone(), ctx.auth()),
             )
+            .nest("/avatar", avatar::routes(ctx.auth()))
             .nest("/oauth", oauth::routes(ctx.auth()));
 
         let ui = ui.route("/graphiql", routing::get(graphiql("/graphql", None)));

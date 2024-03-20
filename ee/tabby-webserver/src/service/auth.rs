@@ -7,6 +7,7 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
 };
 use async_trait::async_trait;
+use base64::Engine;
 use chrono::{Duration, Utc};
 use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
@@ -192,8 +193,21 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn update_user_avatar(&self, id: &ID, avatar: Option<String>) -> Result<()> {
         let id = id.as_rowid()?;
+        let avatar = match avatar {
+            Some(avatar) => Some(
+                base64::prelude::BASE64_STANDARD
+                    .decode(avatar.as_bytes())
+                    .map_err(anyhow::Error::from)?
+                    .into_boxed_slice(),
+            ),
+            None => None,
+        };
         self.db.update_user_avatar(id, avatar).await?;
         Ok(())
+    }
+
+    async fn get_user_avatar(&self, id: &ID) -> Result<Option<Box<[u8]>>> {
+        Ok(self.db.get_user_avatar(id.as_rowid()?).await?)
     }
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {

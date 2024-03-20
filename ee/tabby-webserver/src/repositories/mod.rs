@@ -5,17 +5,16 @@ use std::sync::Arc;
 use anyhow::Result;
 use axum::{
     extract::{Path, State},
-    http::{Request, StatusCode},
-    middleware::{from_fn_with_state, Next},
-    response::{IntoResponse, Response},
+    http::StatusCode,
+    middleware::from_fn_with_state,
+    response::Response,
     routing, Json, Router,
 };
-use hyper::Body;
-use juniper_axum::extract::AuthBearer;
 pub use resolve::RepositoryCache;
 use tracing::{instrument, warn};
 
 use crate::{
+    hub::require_login_middleware,
     repositories::resolve::{RepositoryMeta, ResolveParams},
     schema::auth::AuthenticationService,
 };
@@ -35,29 +34,6 @@ pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Ro
         .with_state(rs.clone())
         .fallback(not_found)
         .layer(from_fn_with_state(auth, require_login_middleware))
-}
-
-async fn require_login_middleware(
-    State(auth): State<Arc<dyn AuthenticationService>>,
-    AuthBearer(token): AuthBearer,
-    request: Request<Body>,
-    next: Next<Body>,
-) -> axum::response::Response {
-    let unauthorized = axum::response::Response::builder()
-        .status(StatusCode::UNAUTHORIZED)
-        .body(Body::empty())
-        .unwrap()
-        .into_response();
-
-    let Some(token) = token else {
-        return unauthorized;
-    };
-
-    let Ok(_) = auth.verify_access_token(&token).await else {
-        return unauthorized;
-    };
-
-    next.run(request).await
 }
 
 async fn not_found() -> StatusCode {
