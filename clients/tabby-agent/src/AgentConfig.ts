@@ -10,6 +10,14 @@ export type AgentConfig = {
       experimentalStripAutoClosingCharacters: boolean;
       maxPrefixLines: number;
       maxSuffixLines: number;
+      filepath: {
+        experimentalEnabled: boolean;
+      };
+      snippets: {
+        maxTotalChars: number;
+        minScore: number;
+        experimentalDefinitionsEnabled: boolean;
+      };
       clipboard: {
         minChars: number;
         maxChars: number;
@@ -70,6 +78,14 @@ export const defaultAgentConfig: AgentConfig = {
       experimentalStripAutoClosingCharacters: false,
       maxPrefixLines: 20,
       maxSuffixLines: 20,
+      filepath: {
+        experimentalEnabled: false,
+      },
+      snippets: {
+        maxTotalChars: 4096,
+        minScore: 0,
+        experimentalDefinitionsEnabled: false,
+      },
       clipboard: {
         minChars: 3,
         maxChars: 2000,
