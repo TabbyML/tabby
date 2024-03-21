@@ -1,0 +1,39 @@
+.admin-register-wrap {
+  transition: transform 0.35s ease-out;
+  padding-top: 20vh;
+  padding-bottom: 20vh;
+}
+
+.step-mask {
+  position: relative;
+  pointer-events: none;
+  user-select: none;
+  border-color: hsl(var(--muted-foreground) / 0.1);
+  
+}
+.step-mask:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(
+    0deg,
+    hsl(var(--background) / 1) 0%,
+    hsl(var(--background) / 1) 30%,
+    hsl(var(--background) / 0.5) 100%
+  );
+  pointer-events: none;
+  user-select: none;
+  z-index: 10;
+  width: 110%;
+}
+.step-mask.remote:before {
+  background: linear-gradient(
+    0deg,
+    hsl(var(--background) / 1) 0%,
+    hsl(var(--background) / 1) 30%,
+    hsl(var(--background) / 0.9) 100%
+  );
+}

@@ -51,11 +51,15 @@ const formSchema = z.object({
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   invitationCode?: string
+  onSuccess?: () => void
+  buttonClass?: string
 }
 
 export function UserAuthForm({
   className,
   invitationCode,
+  onSuccess,
+  buttonClass,
   ...props
 }: UserAuthFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
@@ -71,7 +75,11 @@ export function UserAuthForm({
   const onSubmit = useMutation(registerUser, {
     async onCompleted(values) {
       if (await signIn(values?.register)) {
-        router.replace('/')
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          router.replace('/')
+        }
       }
     },
     form
@@ -95,6 +103,7 @@ export function UserAuthForm({
                     autoComplete="email"
                     autoCorrect="off"
                     {...field}
+                    value={field.value ?? ''}
                   />
                 </FormControl>
                 <FormMessage />
@@ -108,7 +117,7 @@ export function UserAuthForm({
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input type="password" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -121,7 +130,7 @@ export function UserAuthForm({
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input type="password" {...field} value={field.value ?? ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -138,7 +147,11 @@ export function UserAuthForm({
               </FormItem>
             )}
           />
-          <Button type="submit" className="mt-2" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className={cn('mt-2', buttonClass)}
+            disabled={isSubmitting}
+          >
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}

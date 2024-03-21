@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
@@ -282,6 +282,7 @@ function useAuthenticatedSession() {
   const isAdminInitialized = useIsAdminInitialized()
   const router = useRouter()
   const pathName = usePathname()
+  const searchParams = useSearchParams()
   const { data: session, status } = useSession()
 
   React.useEffect(() => {
@@ -290,8 +291,12 @@ function useAuthenticatedSession() {
     if (isAdminInitialized === undefined) return
 
     if (!isAdminInitialized) {
-      router.replace('/auth/signup?isAdmin=true')
-    } else if (!redirectWhitelist.includes(pathName)) {
+      return router.replace('/auth/signup?isAdmin=true')
+    }
+
+    const isAdminSignup =
+      pathName === '/auth/signup' && searchParams.get('isAdmin') === 'true'
+    if (!redirectWhitelist.includes(pathName) || isAdminSignup) {
       router.replace('/auth/signin')
     }
   }, [isAdminInitialized, status])
