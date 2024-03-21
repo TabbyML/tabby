@@ -45,7 +45,12 @@ pub enum Commands {
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
 
-    /// Install, list, and delete models for local use
+    /// Install, list, and delete models for local use.
+    /// Subcommands generally take a model ID, formatted as [registry/]model.
+    /// Examples: TabbyML/StarCoder-1B, or StarCoder-1B.
+    /// TabbyML will be used as the default registry if none is specified.
+    /// Registries are pulled from GitHub (https://github.com/REGISTRY/registry-tabby) by default.
+    /// If the registry is not available on GitHub, the Tabby data directory (~/.tabby/models/REGISTRY) will be used.
     #[command(subcommand)]
     Model(model::ModelArgs),
 
