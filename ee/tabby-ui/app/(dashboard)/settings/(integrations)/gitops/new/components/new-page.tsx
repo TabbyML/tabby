@@ -85,7 +85,7 @@ export const NewProvider = () => {
         })}
       </Steps>
       <Form {...form}>
-        <form className="mt-4" onSubmit={form.handleSubmit(handleSubmit)}>
+        <form className="mt-6" onSubmit={form.handleSubmit(handleSubmit)}>
           {currentStep === 0 && (
             <BasicInfoForm form={form as UseFormReturn<any>} />
           )}
