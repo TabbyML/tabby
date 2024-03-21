@@ -53,7 +53,6 @@ impl From<UserDAO> for auth::User {
             created_at: val.created_at,
             active: val.active,
             is_password_set: val.password_encrypted.is_some(),
-            avatar: val.avatar,
         }
     }
 }

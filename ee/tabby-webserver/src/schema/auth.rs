@@ -240,7 +240,6 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     pub active: bool,
     pub is_password_set: bool,
-    pub avatar: Option<String>,
 }
 
 impl relay::NodeType for User {

@@ -20,14 +20,13 @@ pub struct UserDAO {
     /// To authenticate IDE extensions / plugins to access code completion / chat api endpoints.
     pub auth_token: String,
     pub active: bool,
-    pub avatar: Option<String>,
 }
 
 static OWNER_USER_ID: i32 = 1;
 
 impl UserDAO {
     fn select(clause: &str) -> String {
-        r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active, avatar FROM users WHERE "#
+        r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active, FROM users WHERE "#
             .to_owned()
             + clause
     }
@@ -131,7 +130,6 @@ impl DbConn {
                 "updated_at",
                 "auth_token",
                 "active",
-                "avatar",
             ],
             limit,
             skip_id,
