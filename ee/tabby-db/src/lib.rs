@@ -188,26 +188,29 @@ impl DbConn {
     }
 }
 
-pub trait DbCustom: for<'a> Decode<'a, Sqlite> + for<'a> Encode<'a, Sqlite> + Type<Sqlite> {}
-impl DbCustom for DateTimeUtc {}
+pub trait DbNullable:
+    for<'a> Decode<'a, Sqlite> + for<'a> Encode<'a, Sqlite> + Type<Sqlite>
+{
+}
+impl DbNullable for DateTimeUtc {}
 
 #[derive(Default)]
-pub struct DbNullable<T>(Option<T>)
+pub struct DbOption<T>(Option<T>)
 where
-    T: DbCustom;
+    T: DbNullable;
 
-impl<T> Type<Sqlite> for DbNullable<T>
+impl<T> Type<Sqlite> for DbOption<T>
 where
-    T: Type<Sqlite> + DbCustom,
+    T: Type<Sqlite> + DbNullable,
 {
     fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
         T::type_info()
     }
 }
 
-impl<'a, T> Decode<'a, Sqlite> for DbNullable<T>
+impl<'a, T> Decode<'a, Sqlite> for DbOption<T>
 where
-    T: DbCustom,
+    T: DbNullable,
 {
     fn decode(
         value: <Sqlite as HasValueRef<'a>>::ValueRef,
@@ -220,18 +223,18 @@ where
     }
 }
 
-impl<T, F> From<Option<F>> for DbNullable<T>
+impl<T, F> From<Option<F>> for DbOption<T>
 where
-    T: From<F> + DbCustom,
+    T: From<F> + DbNullable,
 {
     fn from(value: Option<F>) -> Self {
-        DbNullable(value.map(|v| T::from(v)))
+        DbOption(value.map(|v| T::from(v)))
     }
 }
 
-impl<T> DbNullable<T>
+impl<T> DbOption<T>
 where
-    T: DbCustom,
+    T: DbNullable,
 {
     pub fn into_option<V>(self) -> Option<V>
     where
@@ -241,9 +244,9 @@ where
     }
 }
 
-impl<T> Clone for DbNullable<T>
+impl<T> Clone for DbOption<T>
 where
-    T: Clone + DbCustom,
+    T: Clone + DbNullable,
 {
     fn clone(&self) -> Self {
         self.0.clone().into()
