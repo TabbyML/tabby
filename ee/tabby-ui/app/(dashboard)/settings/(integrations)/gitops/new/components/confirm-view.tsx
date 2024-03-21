@@ -57,10 +57,8 @@ function InfoItem({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex items-center gap-6 py-2">
-      <div className="w-[30%] text-right text-muted-foreground font-semibold">
-        {title}
-      </div>
+    <div className="flex items-center gap-6 py-2 text-sm">
+      <div className="w-[30%] text-right text-muted-foreground">{title}</div>
       <div>{children}</div>
     </div>
   )

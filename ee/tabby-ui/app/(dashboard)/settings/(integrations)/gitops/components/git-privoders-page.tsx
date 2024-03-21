@@ -69,19 +69,19 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
             </CardHeader>
             <CardContent className="p-4 text-sm">
               <div className="flex border-b py-2">
-                <span className="w-[30%] text-muted-foreground font-semibold">
+                <span className="w-[30%] text-muted-foreground">
                   Instance URL
                 </span>
                 <span>{item.instanceUrl}</span>
               </div>
               <div className="flex py-3 border-b">
-                <span className="w-[30%] text-muted-foreground font-semibold shrink-0">
+                <span className="w-[30%] text-muted-foreground shrink-0">
                   Application ID
                 </span>
                 <span className="truncate">{item.applicationId}</span>
               </div>
               <div className="flex py-3">
-                <span className="w-[30%] text-muted-foreground font-semibold shrink-0">
+                <span className="w-[30%] text-muted-foreground shrink-0">
                   Linked repositories
                 </span>
                 <span className="truncate">2</span>
