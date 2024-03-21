@@ -6,9 +6,12 @@ use axum::{
     response::Response,
     routing, Router,
 };
-use hyper::{Body, StatusCode};
+use hyper::{header::CONTENT_TYPE, Body, StatusCode};
+use tracing::error;
 
-use crate::{hub::require_login_middleware, schema::auth::AuthenticationService, service::AsID};
+use crate::{
+    handler::require_login_middleware, schema::auth::AuthenticationService, service::AsID,
+};
 
 pub fn routes(auth: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
@@ -24,7 +27,14 @@ pub async fn avatar(
     let avatar = state
         .get_user_avatar(&id.as_id())
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .map_err(|e| {
+            error!("Failed to retrieve avatar: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
         .ok_or(StatusCode::NOT_FOUND)?;
-    Ok(Response::new(Body::from(avatar.into_vec())))
+    let mut response = Response::new(Body::from(avatar.into_vec()));
+    response
+        .headers_mut()
+        .insert(CONTENT_TYPE, "image/jpeg".parse().unwrap());
+    Ok(response)
 }

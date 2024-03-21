@@ -4,10 +4,11 @@ use axum::{
     extract::State,
     http::Request,
     middleware::{from_fn_with_state, Next},
+    response::IntoResponse,
     routing, Extension, Json, Router,
 };
 use hyper::{Body, StatusCode};
-use juniper_axum::{graphiql, graphql, playground};
+use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
 use tabby_common::api::{code::CodeSearch, event::RawEventLogger, server_setting::ServerSetting};
 use tabby_db::DbConn;
 use tracing::warn;
@@ -15,7 +16,7 @@ use tracing::warn;
 use crate::{
     avatar, cron, hub, oauth,
     repositories::{self, RepositoryCache},
-    schema::{create_schema, Schema, ServiceLocator},
+    schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::new_event_logger},
     ui,
 };
@@ -77,7 +78,7 @@ impl WebserverHandle {
                 "/repositories",
                 repositories::routes(rs.clone(), ctx.auth()),
             )
-            .nest("/avatar", avatar::routes(ctx.auth()))
+            .nest("/avatar/:id", avatar::routes(ctx.auth()))
             .nest("/oauth", oauth::routes(ctx.auth()));
 
         let ui = ui.route("/graphiql", routing::get(graphiql("/graphql", None)));
@@ -86,6 +87,29 @@ impl WebserverHandle {
 
         (api, ui)
     }
+}
+
+pub(crate) async fn require_login_middleware(
+    State(auth): State<Arc<dyn AuthenticationService>>,
+    AuthBearer(token): AuthBearer,
+    request: Request<Body>,
+    next: Next<Body>,
+) -> axum::response::Response {
+    let unauthorized = axum::response::Response::builder()
+        .status(StatusCode::UNAUTHORIZED)
+        .body(Body::empty())
+        .unwrap()
+        .into_response();
+
+    let Some(token) = token else {
+        return unauthorized;
+    };
+
+    let Ok(_) = auth.verify_access_token(&token).await else {
+        return unauthorized;
+    };
+
+    next.run(request).await
 }
 
 async fn distributed_tabby_layer(

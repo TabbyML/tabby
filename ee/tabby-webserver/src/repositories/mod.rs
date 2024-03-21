@@ -14,7 +14,7 @@ pub use resolve::RepositoryCache;
 use tracing::{instrument, warn};
 
 use crate::{
-    hub::require_login_middleware,
+    handler::require_login_middleware,
     repositories::resolve::{RepositoryMeta, ResolveParams},
     schema::auth::AuthenticationService,
 };

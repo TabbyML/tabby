@@ -22,7 +22,7 @@ type Mutation {
   logoutAllSessions: Boolean!
   updateUserActive(id: ID!, active: Boolean!): Boolean!
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
-  updateUserAvatar(id: ID!, avatar: String): Boolean!
+  uploadUserAvatarBase64(id: ID!, avatar: String): Boolean!
   register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): Boolean!
@@ -231,7 +231,6 @@ type User {
   createdAt: DateTimeUtc!
   active: Boolean!
   isPasswordSet: Boolean!
-  avatar: String
 }
 
 type Worker {
