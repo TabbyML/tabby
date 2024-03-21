@@ -50,10 +50,12 @@ export default function AdminRegister() {
           Welcome!
         </h2>
         <p className="mt-2 leading-7 text-muted-foreground">
-          Your tabby server is live and ready to use. This step by step guide will help you set up your admin account.
+          Your tabby server is live and ready to use. This step by step guide
+          will help you set up your admin account.
         </p>
         <p className="leading-7 text-muted-foreground">
-          Admin account is the highest level of access in your server. Once created, you can invite other members to join your server.
+          Admin account is the highest level of access in your server. Once
+          created, you can invite other members to join your server.
         </p>
         <Button className="mt-5 w-48" onClick={() => setCurrentStep(2)}>
           Start
@@ -65,7 +67,8 @@ export default function AdminRegister() {
           Create Admin Account
         </h3>
         <p className="mb-3 leading-7 text-muted-foreground">
-          Please store your password in a safe place. We do not store your password and cannot recover it for you.
+          Please store your password in a safe place. We do not store your
+          password and cannot recover it for you.
         </p>
         <UserAuthForm
           onSuccess={() => setCurrentStep(3)}
@@ -81,7 +84,8 @@ export default function AdminRegister() {
           You have successfully created an admin account.
         </p>
         <p className="mb-3 leading-7 text-muted-foreground">
-          To start, navigate to the dashboard and invite other members to join your server.
+          To start, navigate to the dashboard and invite other members to join
+          your server.
         </p>
         <Button className="mt-5 w-48" onClick={() => router.replace('/')}>
           Go to dashboard
