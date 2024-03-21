@@ -1,0 +1,146 @@
+---
+authors: [icycodes]
+tags: [deployment, repository context]
+---
+
+# Utilizing Your Private Git Repository Context for Enhanced Code Completion
+
+A few months back, we published a blog [Repository context for LLM assisted code completion](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion), introducing the `Repository Context` feature in Tabby. 
+
+In this blog, I will guide you through the process of setting up a Tabby server configured with a private Git repositories context.
+
+## Generating a Personal Access Token for Your Private Git Repository
+
+In order to provide the Tabby server with access to your private Git repositories, it is essential to create a Personal Access Token (PAT) specific to your Git provider. The following steps outline the process with GitHub as a reference:
+
+1. Visit [GitHub Personal Access Tokens Settings](https://github.com/settings/tokens?type=beta) and select `Generate new token`.
+  ![GitHub PAT Generate New Token](./github-pat-generate-new-token.png)
+2. Enter the `Token name`, specify an `Expiration` date, an optional `Description`, and select the repositories you wish to grant access to.
+  ![GitHub PAT Filling Info](./github-pat-filling-info.png)
+3. Within the `Permissions` section, ensure that `Contents` is configured for `Read-only` access.
+  ![GitHub PAT Contents Access](./github-pat-contents-access.png)
+4. Click `Generate token` to generate the new PAT. Remember to make a copy of the PAT before closing the webpage.
+  ![GitHub PAT Generate Token](./github-pat-generate-token.png)
+
+For additional information, please consult the documentation on [Managing your personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+
+**Note**: For users of GitLab, guidance on creating a personal access token can be found in the documentation [Personal access tokens - GitLab](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#create-a-personal-access-token).
+
+## Creating a Configuration File for Tabby Server
+
+To configure the Tabby server with your private Git repositories, you need to provide the required settings in a YAML file. Create and edit a configuration file located at `~/.tabby/config.yaml`:
+
+```yaml
+## Add the private repository
+[[repositories]]
+name = "my_private_project"
+git_url = "https://<PAT>@github.com/icycodes/my_private_project.git"
+
+## More repositories can be added like this
+[[repositories]]
+name = "another_project"
+git_url = "https://<PAT>@github.com/icycodes/another_project.git"
+```
+
+For more detailed about the configuration file, you can refer to the [configuration documentation](https://tabby.tabbyml.com/docs/configuration).
+
+**Note:** The URL format for GitLab repositories may vary, you can check the [official documentation](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#clone-repository-using-personal-access-token) for specific guidelines.
+
+## Building the Index and Starting the Server
+
+:::tip
+The commands provided in this section are based on a Linux environment and assume the pre-installation of Docker with CUDA drivers. Adjust the commands as necessary if you are running Tabby on a different setup.
+:::
+
+Once the configuration file is set up, proceed with running the `scheduler` to synchronize git repositories and construct the index. In this scenario, utilizing the `tabby-cpu` entrypoint will avoid the requirement for GPU resources.
+
+```bash
+docker run -it --entrypoint /opt/tabby/bin/tabby-cpu -v $HOME/.tabby:/data tabbyml/tabby scheduler --now
+```
+
+The expected output looks like this:
+
+```console
+icy@Icys-Ubuntu:~$ docker run -it --entrypoint /opt/tabby/bin/tabby-cpu -v $HOME/.tabby:/data tabbyml/tabby scheduler --now
+Syncing 1 repositories...
+Cloning into '/data/repositories/my_private_project'...
+remote: Enumerating objects: 51, done.
+remote: Total 51 (delta 0), reused 0 (delta 0), pack-reused 51
+Receiving objects: 100% (51/51), 7.16 KiB | 2.38 MiB/s, done.
+Resolving deltas: 100% (18/18), done.
+Building dataset...
+100%|████████████████████████████████████████| 12/12 [00:00<00:00, 55.56it/s]
+Indexing repositories...       
+100%|████████████████████████████████████████| 12/12 [00:00<00:00, 73737.70it/s]
+```
+
+Subsequently, launch the server using the following command:
+
+```bash
+docker run -it --gpus all -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model StarCoder-1B --device cuda
+```
+
+The expected output upon successful initiation of the server should like this:
+
+```console
+icy@Icys-Ubuntu:~$ docker run -it --gpus all -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model StarCoder-1B --device cuda
+2024-03-21T16:16:47.189632Z  INFO tabby::serve: crates/tabby/src/serve.rs:118: Starting server, this might take a few minutes...
+2024-03-21T16:16:47.190764Z  INFO tabby::services::code: crates/tabby/src/services/code.rs:53: Index is ready, enabling server...    
+ggml_init_cublas: GGML_CUDA_FORCE_MMQ:   no
+ggml_init_cublas: CUDA_USE_TENSOR_CORES: yes
+ggml_init_cublas: found 1 CUDA devices:
+  Device 0: NVIDIA GeForce RTX 4090, compute capability 8.9, VMM: yes
+2024-03-21T16:16:52.464116Z  INFO tabby::routes: crates/tabby/src/routes/mod.rs:35: Listening at 0.0.0.0:8080
+```
+
+Notably, the line `Index is ready, enabling server...` signifies that the server has been successfully launched with the constructed index.
+
+### Automated Scheduler Execution (Optional)
+
+By excluding the `--now` flag from the `scheduler` command, you can configure the scheduler to run automatically at intervals, typically every 10 minutes by default.
+
+To integrate the scheduler with the server, a Docker Compose file can be created as shown below:
+
+```yaml
+version: '3.5'
+name: tabby
+services:
+  serve:
+    restart: always
+    image: tabbyml/tabby
+    command: serve --model StarCoder-1B --device cuda
+    ports:
+      - "8080:8080"
+    volumes:
+      - "~/.tabby:/data"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+  scheduler:
+    restart: always
+    image: tabbyml/tabby
+    entrypoint: /opt/tabby/bin/tabby-cpu
+    command: scheduler
+    volumes:
+      - "~/.tabby:/data"
+```
+
+## Verifying Indexing Results
+
+To confirm that the code completion is effectively utilizing the built index, you can employ the code search feature to validate the indexing process:
+
+1. Access the Swagger UI page: `http://localhost:8080/swagger-ui/#/v1beta/search`.
+2. Click on the `Try it out` button, and input the query parameter `q`, such as `get`.
+3. Click the `Execute` button to trigger the search and see if there are any indexed symbols.
+
+Alternatively, if you have utilized the code completion with the constructed index, you can examine the server log located in `~/.tabby/events` to inspect how the prompt is enhanced during code completion.
+
+## Additional Information on Tabby Enterprise Edition
+
+Starting from version v0.9.0, Tabby Enterprise Edition offers a web UI to manage your git repository contexts. Additionally, a scheduler job management system has been integrated, streamlining the process of monitoring scheduler job statuses. With these enhancements, you can save a lot of effort in maintaining yaml config files and docker compose configurations. Furthermore, users can easily monitor visualized indexing results through the built-in code browser.
+
+For further details and guidance, please refer to our enterprise edition documentation.
