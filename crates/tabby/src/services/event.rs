@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::Duration};
 
 use chrono::Utc;
 use lazy_static::lazy_static;
-use tabby_common::{api::event::EventLogger, path};
+use tabby_common::{api::event::RawEventLogger, path};
 use tokio::{
     io::AsyncWriteExt,
     sync::mpsc::{unbounded_channel, UnboundedSender},
@@ -98,7 +98,7 @@ impl EventWriter {
 
 struct EventService;
 
-impl EventLogger for EventService {
+impl RawEventLogger for EventService {
     fn log_raw(&self, content: String) {
         if let Err(err) = WRITER.send(content) {
             error!("Failed to write event to file: {}", err);
@@ -107,7 +107,7 @@ impl EventLogger for EventService {
 }
 
 #[allow(unused)]
-pub fn create_logger() -> impl EventLogger + 'static {
+pub fn create_logger() -> impl RawEventLogger + 'static {
     EventService
 }
 

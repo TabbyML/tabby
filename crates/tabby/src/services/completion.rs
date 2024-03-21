@@ -7,7 +7,7 @@ use tabby_common::{
     api,
     api::{
         code::CodeSearch,
-        event::{Event, EventLogger},
+        event::{Event, RawEventLogger},
     },
     languages::get_language,
 };
@@ -175,7 +175,7 @@ pub struct DebugData {
 
 pub struct CompletionService {
     engine: Arc<dyn TextGeneration>,
-    logger: Arc<dyn EventLogger>,
+    logger: Arc<dyn RawEventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
 }
 
@@ -183,7 +183,7 @@ impl CompletionService {
     fn new(
         engine: Arc<dyn TextGeneration>,
         code: Arc<dyn CodeSearch>,
-        logger: Arc<dyn EventLogger>,
+        logger: Arc<dyn RawEventLogger>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {
@@ -289,7 +289,7 @@ impl CompletionService {
 
 pub async fn create_completion_service(
     code: Arc<dyn CodeSearch>,
-    logger: Arc<dyn EventLogger>,
+    logger: Arc<dyn RawEventLogger>,
     model: &str,
     device: &Device,
     parallelism: u8,

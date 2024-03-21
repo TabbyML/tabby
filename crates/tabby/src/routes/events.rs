@@ -5,7 +5,7 @@ use axum::{
     Json,
 };
 use hyper::StatusCode;
-use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
+use tabby_common::api::event::{Event, LogEventRequest, RawEventLogger, SelectKind};
 
 #[utoipa::path(
     post,
@@ -22,7 +22,7 @@ use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
     )
 )]
 pub async fn log_event(
-    State(logger): State<Arc<dyn EventLogger>>,
+    State(logger): State<Arc<dyn RawEventLogger>>,
     Query(params): Query<HashMap<String, String>>,
     Json(request): Json<LogEventRequest>,
 ) -> StatusCode {

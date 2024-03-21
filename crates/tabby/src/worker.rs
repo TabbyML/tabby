@@ -2,7 +2,7 @@ use std::{env::consts::ARCH, net::IpAddr, sync::Arc};
 
 use axum::{routing, Router};
 use clap::Args;
-use tabby_common::api::{code::CodeSearch, event::EventLogger};
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tabby_webserver::public::{RegisterWorkerRequest, WorkerClient, WorkerKind};
 use tracing::info;
 
@@ -47,7 +47,7 @@ pub struct WorkerArgs {
     parallelism: u8,
 }
 
-async fn make_chat_route(logger: Arc<dyn EventLogger>, args: &WorkerArgs) -> Router {
+async fn make_chat_route(logger: Arc<dyn RawEventLogger>, args: &WorkerArgs) -> Router {
     let chat_state =
         Arc::new(create_chat_service(logger, &args.model, &args.device, args.parallelism).await);
 
@@ -59,7 +59,7 @@ async fn make_chat_route(logger: Arc<dyn EventLogger>, args: &WorkerArgs) -> Rou
 
 async fn make_completion_route(
     code: Arc<dyn CodeSearch>,
-    logger: Arc<dyn EventLogger>,
+    logger: Arc<dyn RawEventLogger>,
     args: &WorkerArgs,
 ) -> Router {
     let completion_state = Arc::new(

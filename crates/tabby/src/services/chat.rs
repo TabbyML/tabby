@@ -5,7 +5,7 @@ use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 use tabby_common::api::{
     chat::Message,
-    event::{Event, EventLogger},
+    event::{Event, RawEventLogger},
 };
 use tabby_inference::chat::{ChatCompletionOptionsBuilder, ChatCompletionStream};
 use tracing::warn;
@@ -74,11 +74,11 @@ impl ChatCompletionChunk {
 
 pub struct ChatService {
     engine: Arc<dyn ChatCompletionStream>,
-    logger: Arc<dyn EventLogger>,
+    logger: Arc<dyn RawEventLogger>,
 }
 
 impl ChatService {
-    fn new(engine: Arc<dyn ChatCompletionStream>, logger: Arc<dyn EventLogger>) -> Self {
+    fn new(engine: Arc<dyn ChatCompletionStream>, logger: Arc<dyn RawEventLogger>) -> Self {
         Self { engine, logger }
     }
 
@@ -151,7 +151,7 @@ fn convert_messages(input: &[Message]) -> Vec<tabby_common::api::event::Message>
 }
 
 pub async fn create_chat_service(
-    logger: Arc<dyn EventLogger>,
+    logger: Arc<dyn RawEventLogger>,
     model: &str,
     device: &Device,
     parallelism: u8,

@@ -21,7 +21,7 @@ use juniper_axum::{
     relay::{self, Connection},
     FromAuth,
 };
-use tabby_common::api::{code::CodeSearch, event::EventLogger};
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
@@ -44,7 +44,7 @@ pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
     fn worker(&self) -> Arc<dyn WorkerService>;
     fn code(&self) -> Arc<dyn CodeSearch>;
-    fn logger(&self) -> Arc<dyn EventLogger>;
+    fn logger(&self) -> Arc<dyn RawEventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
     fn repository(&self) -> Arc<dyn RepositoryService>;
     fn email(&self) -> Arc<dyn EmailService>;

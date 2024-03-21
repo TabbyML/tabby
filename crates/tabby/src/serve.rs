@@ -5,7 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api,
-    api::{code::CodeSearch, event::EventLogger},
+    api::{code::CodeSearch, event::RawEventLogger},
     config::Config,
     usage,
 };
@@ -118,7 +118,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     let ws = tabby_webserver::public::WebserverHandle::new().await;
-    let logger: Arc<dyn EventLogger>;
+    let logger: Arc<dyn RawEventLogger>;
     #[cfg(feature = "ee")]
     {
         logger = ws.logger();
@@ -164,7 +164,7 @@ async fn load_model(args: &ServeArgs) {
 async fn api_router(
     args: &ServeArgs,
     config: &Config,
-    logger: Arc<dyn EventLogger>,
+    logger: Arc<dyn RawEventLogger>,
     code: Arc<dyn CodeSearch>,
 ) -> Router {
     let completion_state = if let Some(model) = &args.model {

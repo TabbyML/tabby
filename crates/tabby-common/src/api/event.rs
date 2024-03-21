@@ -92,7 +92,7 @@ pub struct Segments {
     pub clipboard: Option<String>,
 }
 
-pub trait EventLogger: Send + Sync {
+pub trait RawEventLogger: Send + Sync {
     fn log(&self, e: Event) {
         let content = serdeconv::to_json_string(&Log {
             ts: timestamp(),

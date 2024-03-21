@@ -8,7 +8,7 @@ use axum::{
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::{graphiql, graphql, playground};
-use tabby_common::api::{code::CodeSearch, event::EventLogger, server_setting::ServerSetting};
+use tabby_common::api::{code::CodeSearch, event::RawEventLogger, server_setting::ServerSetting};
 use tabby_db::DbConn;
 use tracing::warn;
 
@@ -22,7 +22,7 @@ use crate::{
 
 pub struct WebserverHandle {
     db: DbConn,
-    event_logger: Arc<dyn EventLogger>,
+    event_logger: Arc<dyn RawEventLogger>,
 }
 
 impl WebserverHandle {
@@ -32,7 +32,7 @@ impl WebserverHandle {
         WebserverHandle { db, event_logger }
     }
 
-    pub fn logger(&self) -> Arc<dyn EventLogger + 'static> {
+    pub fn logger(&self) -> Arc<dyn RawEventLogger + 'static> {
         self.event_logger.clone()
     }
 
