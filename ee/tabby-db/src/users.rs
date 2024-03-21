@@ -26,7 +26,7 @@ static OWNER_USER_ID: i32 = 1;
 
 impl UserDAO {
     fn select(clause: &str) -> String {
-        r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active, FROM users WHERE "#
+        r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active FROM users WHERE "#
             .to_owned()
             + clause
     }

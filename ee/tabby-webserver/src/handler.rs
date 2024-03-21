@@ -78,7 +78,7 @@ impl WebserverHandle {
                 "/repositories",
                 repositories::routes(rs.clone(), ctx.auth()),
             )
-            .nest("/avatar/:id", avatar::routes(ctx.auth()))
+            .nest("/avatar", avatar::routes(ctx.auth()))
             .nest("/oauth", oauth::routes(ctx.auth()));
 
         let ui = ui.route("/graphiql", routing::get(graphiql("/graphql", None)));
