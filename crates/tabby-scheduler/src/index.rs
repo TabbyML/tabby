@@ -73,17 +73,17 @@ struct IndexedDocument {
     kind: String,
 }
 
-fn get_tag(filename: &str, content: &str, range: Range<usize>) -> String {
+fn read_range_or_panic(filename: &str, content: &str, range: Range<usize>) -> String {
     content
         .get(range.clone())
-        .unwrap_or_else(|| panic!("Failed to retrieve bytes {range:?} from {filename}"))
+        .unwrap_or_else(|| panic!("Failed to read content '{range:?}' from '{filename}'"))
         .to_owned()
 }
 
 fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
     file.tags.into_iter().filter_map(move |tag| {
-        let name = get_tag(&file.filepath, &file.content, tag.name_range);
-        let body = get_tag(&file.filepath, &file.content, tag.range);
+        let name = read_range_or_panic(&file.filepath, &file.content, tag.name_range);
+        let body = read_range_or_panic(&file.filepath, &file.content, tag.range);
 
         if body.lines().collect::<Vec<_>>().len() > MAX_BODY_LINES_THRESHOLD {
             return None;
