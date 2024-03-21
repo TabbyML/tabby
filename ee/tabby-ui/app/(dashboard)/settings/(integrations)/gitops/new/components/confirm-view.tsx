@@ -58,7 +58,7 @@ function InfoItem({
 }) {
   return (
     <div className="flex items-center gap-6 py-2">
-      <div className="w-[30%] text-right text-muted-foreground font-semibold">
+      <div className="w-[30%] text-right font-semibold text-muted-foreground">
         {title}
       </div>
       <div>{children}</div>

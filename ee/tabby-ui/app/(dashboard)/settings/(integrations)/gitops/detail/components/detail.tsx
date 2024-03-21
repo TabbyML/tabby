@@ -68,7 +68,7 @@ const DetailPage: React.FC = () => {
         <CardTitle className="flex items-center justify-between">
           <span>Provider information</span>
           <div className="flex items-center gap-2 text-base">
-            <IconGitHub className="w-6 h-6" />
+            <IconGitHub className="h-6 w-6" />
             GitHub.com
           </div>
         </CardTitle>
@@ -85,7 +85,7 @@ const DetailPage: React.FC = () => {
         </LoadingWrapper>
       </CardContent>
 
-      <CardHeader className="pl-0 pt-0 mt-8">
+      <CardHeader className="mt-8 pl-0 pt-0">
         <CardTitle className="flex items-center justify-between">
           <span>Linked repositories</span>
           <Dialog open={open} onOpenChange={setOpen}>

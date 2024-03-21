@@ -78,7 +78,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
             <Button variant="ghost" onClick={() => onBack()}>
               Back to providers
             </Button>
-            <div className="flex items-cetner gap-4">
+            <div className="items-cetner flex gap-4">
               <AlertDialog
                 open={deleteAlertVisible}
                 onOpenChange={setDeleteAlertVisible}

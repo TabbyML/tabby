@@ -115,7 +115,7 @@ export default function LinkRepositoryForm({
                     </FormControl>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="p-0 w-[var(--radix-popover-trigger-width)]"
+                    className="w-[var(--radix-popover-trigger-width)] p-0"
                     align="start"
                   >
                     <Command>

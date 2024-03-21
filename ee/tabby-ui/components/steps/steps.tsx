@@ -74,14 +74,14 @@ const StepItem = React.forwardRef<HTMLDivElement, StepItemProps>(
     return (
       <div
         ref={ref}
-        className={cn('flex-1 steps-item', className)}
+        className={cn('steps-item flex-1', className)}
         data-state={props.status}
         {...props}
       >
         <div className="flex gap-2 overflow-x-hidden">
           <StepIcon status={props.status} index={props.index} />
           <div className="flex flex-col gap-1">
-            <div className="leading-8 steps-item-title pr-4">{props.title}</div>
+            <div className="steps-item-title pr-4 leading-8">{props.title}</div>
             <div>{props.description}</div>
           </div>
         </div>
