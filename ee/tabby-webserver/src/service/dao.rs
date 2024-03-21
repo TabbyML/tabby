@@ -31,10 +31,10 @@ impl From<JobRunDAO> for job::JobRun {
         Self {
             id: run.id.as_id(),
             job: run.name,
-            created_at: run.created_at,
-            updated_at: run.updated_at,
-            finished_at: run.finished_at,
-            exit_code: run.exit_code,
+            created_at: *run.created_at,
+            updated_at: *run.updated_at,
+            finished_at: run.finished_at.into_option(),
+            exit_code: run.exit_code.map(|i| i as i32),
             stdout: run.stdout,
             stderr: run.stderr,
         }
