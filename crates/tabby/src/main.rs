@@ -51,6 +51,7 @@ pub enum Commands {
     /// TabbyML will be used as the default registry if none is specified.
     /// Registries are pulled from GitHub (https://github.com/REGISTRY/registry-tabby) by default.
     /// If the registry is not available on GitHub, the Tabby data directory (~/.tabby/models/REGISTRY) will be used.
+    /// For more information on the registry format, see https://github.com/TabbyML/tabby/blob/main/MODEL_SPEC.md.
     #[command(subcommand)]
     Model(model::ModelArgs),
 
