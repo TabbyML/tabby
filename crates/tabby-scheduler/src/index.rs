@@ -1,4 +1,4 @@
-use std::{fs, io::IsTerminal};
+use std::{fs, io::IsTerminal, ops::Range};
 
 use anyhow::Result;
 use kdam::BarExt;
@@ -73,18 +73,17 @@ struct IndexedDocument {
     kind: String,
 }
 
+fn read_range_or_panic(filename: &str, content: &str, range: Range<usize>) -> String {
+    content
+        .get(range.clone())
+        .unwrap_or_else(|| panic!("Failed to read content '{range:?}' from '{filename}'"))
+        .to_owned()
+}
+
 fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
     file.tags.into_iter().filter_map(move |tag| {
-        let name = file
-            .content
-            .get(tag.name_range)
-            .expect("Range is known valid")
-            .to_owned();
-        let body = file
-            .content
-            .get(tag.range)
-            .expect("Range is known valid")
-            .to_owned();
+        let name = read_range_or_panic(&file.filepath, &file.content, tag.name_range);
+        let body = read_range_or_panic(&file.filepath, &file.content, tag.range);
 
         if body.lines().collect::<Vec<_>>().len() > MAX_BODY_LINES_THRESHOLD {
             return None;
