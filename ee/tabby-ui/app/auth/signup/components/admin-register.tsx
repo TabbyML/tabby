@@ -47,16 +47,16 @@ export default function AdminRegister() {
     <div className="admin-register-wrap h-screen w-[600px] overflow-hidden">
       <AdminRegisterStep step={1} currentStep={currentStep}>
         <h2 className="text-3xl font-semibold tracking-tight first:mt-0">
-          Welcome To Tabby Enterprise
+          Welcome!
         </h2>
         <p className="mt-2 leading-7 text-muted-foreground">
-          To get started, please create an admin account for your instance.
+          Your tabby server is live and ready to use. This step by step guide will help you set up your admin account.
         </p>
         <p className="leading-7 text-muted-foreground">
-          This will allow you to invite team members and manage your instance.
+          Admin account is the highest level of access in your server. Once created, you can invite other members to join your server.
         </p>
         <Button className="mt-5 w-48" onClick={() => setCurrentStep(2)}>
-          Create admin account
+          Start
         </Button>
       </AdminRegisterStep>
 
@@ -65,7 +65,7 @@ export default function AdminRegister() {
           Create Admin Account
         </h3>
         <p className="mb-3 leading-7 text-muted-foreground">
-          Your instance will be secured, only registered users can access it.
+          Please store your password in a safe place. We do not store your password and cannot recover it for you.
         </p>
         <UserAuthForm
           onSuccess={() => setCurrentStep(3)}
@@ -75,17 +75,16 @@ export default function AdminRegister() {
 
       <AdminRegisterStep step={3} currentStep={currentStep}>
         <h3 className="text-2xl font-semibold tracking-tight">
-          Enter The Instance
+          Congratulations!
         </h3>
         <p className="leading-7 text-muted-foreground">
-          Congratulations! You have successfully created an admin account.
+          You have successfully created an admin account.
         </p>
         <p className="mb-3 leading-7 text-muted-foreground">
-          To begin collaborating with your team, please open the dashboard and
-          invite members to join your instance.
+          To start, navigate to the dashboard and invite other members to join your server.
         </p>
         <Button className="mt-5 w-48" onClick={() => router.replace('/')}>
-          Open the dashboard
+          Go to dashboard
         </Button>
       </AdminRegisterStep>
     </div>
