@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { CopyButton } from '@/components/copy-button'
 
 import { SourceCodeBrowserContext } from './source-code-browser'
+import { resolveBasenameFromPath } from './utils'
 
 interface FileDirectoryBreadcrumbProps
   extends React.HTMLAttributes<HTMLDivElement> {}
@@ -13,6 +14,10 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
 }) => {
   const { currentFileRoutes, setActivePath, activePath } = React.useContext(
     SourceCodeBrowserContext
+  )
+  const basename = React.useMemo(
+    () => resolveBasenameFromPath(activePath),
+    [activePath]
   )
 
   return (
@@ -49,8 +54,8 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
           )
         })}
       </div>
-      {!!currentFileRoutes?.length && !!activePath && (
-        <CopyButton className="shrink-0" value={activePath} />
+      {!!currentFileRoutes?.length && !!basename && (
+        <CopyButton className="shrink-0" value={basename} />
       )}
     </div>
   )
