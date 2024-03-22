@@ -67,6 +67,7 @@
     "openai-edge": "^0.5.1",
     "pretty-bytes": "^6.1.1",
     "react": "^18.2.0",
+    "react-activity-calendar": "^2.2.8",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.48.2",
     "react-intersection-observer": "^9.4.4",
