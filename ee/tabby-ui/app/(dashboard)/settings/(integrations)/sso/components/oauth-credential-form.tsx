@@ -317,7 +317,7 @@ export default function OAuthCredentialForm({
                       onClick={onDelete}
                     >
                       {isDeleting && (
-                        <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                        <IconSpinner className="mr-2 size-4 animate-spin" />
                       )}
                       Yes, delete it
                     </AlertDialogAction>
@@ -334,7 +334,7 @@ export default function OAuthCredentialForm({
                   }
                 >
                   {isSubmitting && (
-                    <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+                    <IconSpinner className="mr-2 size-4 animate-spin" />
                   )}
                   {isNew ? 'Create' : 'Update'}
                 </Button>

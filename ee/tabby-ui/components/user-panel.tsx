@@ -44,7 +44,7 @@ export default function UserPanel() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <span className="flex h-10 w-10 rounded-full border">
+        <span className="flex size-10 rounded-full border">
           <NiceAvatar className="w-full" {...config} />
         </span>
       </DropdownMenuTrigger>

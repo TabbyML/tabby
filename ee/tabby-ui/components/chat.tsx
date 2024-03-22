@@ -129,7 +129,7 @@ export function Chat({ id, initialMessages, loading, className }: ChatProps) {
           {loading ? (
             <div className="group relative mb-4 flex animate-pulse items-start md:-ml-12">
               <div className="shrink-0">
-                <span className="block h-8 w-8 rounded-md bg-gray-200 dark:bg-gray-700"></span>
+                <span className="block size-8 rounded-md bg-gray-200 dark:bg-gray-700"></span>
               </div>
               <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
                 <ListSkeleton />

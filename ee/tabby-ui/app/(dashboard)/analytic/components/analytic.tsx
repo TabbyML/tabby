@@ -1,56 +1,88 @@
 'use client'
 
-import React from 'react'
+import moment from 'moment'
+
 import {
   Bar,
   BarChart,
-  Label,
   Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
+  PieChart, Pie, Cell
 } from 'recharts'
-
-import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import DatePickerWithRange from '@/components/date-range-picker'
+import ActivityCalendar from '@/components/activity-calendar'
 
 const data = [
   {
     name: '1 Jan',
-    IntelliJ: 4000,
-    VSCode: 2400
+    value: 4000
   },
   {
     name: '2 Jan',
-    IntelliJ: 3000,
-    VSCode: 1398
+    value: 3000
   },
   {
     name: '3 Jan',
-    IntelliJ: 2000,
-    VSCode: 9800
+    value: 2000
   },
   {
     name: '4 Jan',
-    IntelliJ: 2780,
-    VSCode: 3908
+    value: 2780
   },
   {
     name: '5 Jan',
-    IntelliJ: 1890,
-    VSCode: 4800
+    value: 1890
   },
   {
     name: '6 Jan',
-    IntelliJ: 2390,
-    VSCode: 3800
+    value: 2390
   },
   {
     name: '7 Jan',
-    IntelliJ: 3490,
-    VSCode: 4300
+    value: 3490
+  },
+  {
+    name: '8 Jan',
+    value: 4000
+  },
+  {
+    name: '9 Jan',
+    value: 3000
+  },
+  {
+    name: '10 Jan',
+    value: 2000
+  },
+  {
+    name: '11 Jan',
+    value: 2780
+  },
+  {
+    name: '12 Jan',
+    value: 1890
+  },
+  {
+    name: '13 Jan',
+    value: 2390
+  },
+  {
+    name: '14 Jan',
+    value: 3490
+  },
+  {
+    name: '15 Jan',
+    value: 490
   }
 ]
 
@@ -96,41 +128,110 @@ export function Analytic() {
   // todo query
 
   return (
-    <div className="space-y-10">
+    <div>
+      <AnalyticHeader />
       <AnalyticSummary />
-      <CompletionsByDay />
-      <CompletionAcceptanceRate />
+      <CompletionsChartSection />
+      <div className="flex gap-x-5">
+        <div className="flex-1">
+          <AcceptanceChartSection />
+        </div>
+        <div style={{ flex: 3 }}>
+          <ActivityChartSection />
+        </div>
+      </div>
+     
+    </div>
+  )
+}
+
+function AnalyticHeader() {
+  return (
+    <div className="mb-6 flex items-center justify-between">
+      <div>
+        <h1 className="mb-1.5 scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+          Analytics
+        </h1>
+        <p className="text-muted-foreground">Overview of code completion usage</p>
+      </div>
+
+      <div className="flex space-x-4">
+        <Select defaultValue='all'>
+          <SelectTrigger className="w-[180px]" >
+            <div className="flex w-full items-center truncate ">
+              <span className="mr-1.5 hidden text-muted-foreground sm:inline-block">
+                Member:
+              </span>
+              <div className="overflow-hidden text-ellipsis">
+                <SelectValue />
+              </div>
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="jueliang">Jueliang</SelectItem>
+              <SelectItem value="wayne">Wayne</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        
+        <Select defaultValue='all'>
+          <SelectTrigger className="w-[180px]" >
+            <div className="flex w-full items-center truncate">
+              <span className="mr-1.5 hidden text-muted-foreground sm:inline-block">
+                Language:
+              </span>
+              <div className="overflow-hidden text-ellipsis">
+                <SelectValue />
+              </div>
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="python">Python</SelectItem>
+              <SelectItem value="rust">Rust</SelectItem>
+              <SelectItem value="javascript">Javascript</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+
+        <DatePickerWithRange
+          buttonClassName="h-full"
+          contentAlign="end" />
+      </div>
     </div>
   )
 }
 
 function AnalyticSummary() {
   return (
-    <div className="flex items-center space-x-8 text-sm">
-      <div>
-        <div className="text-center text-2xl font-bold text-[#70DAE8]">
-          6579
-        </div>
-        <div>Total accepted completions</div>
+    <div className="mb-5 flex items-center space-x-4">
+      <div className="w-60 space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4">
+        <p className="text-sm text-muted-foreground">Total completions</p>
+        <p className="text-3xl font-bold">
+          6,579
+        </p>
       </div>
-      <Separator orientation="vertical" className="h-14" />
-      <div>
-        <div className="text-center text-2xl font-bold text-[#FF4F3A]">2</div>
-        <div>Minutes saved per completion</div>
+
+      <div className="w-60 space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4">
+        <p className="text-sm text-muted-foreground">Minutes saved / completion</p>
+        <p className=" text-3xl font-bold">2</p>
       </div>
-      <Separator orientation="vertical" className="h-14" />
-      <div>
-        <div className="text-center text-2xl font-bold text-[#A110FE]">100</div>
-        <div>Hours saved by completions</div>
+
+      <div className="w-60 space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4">
+        <p className="text-sm text-muted-foreground">Hours saved in total</p>
+        <p className=" text-3xl font-bold">100</p>
       </div>
     </div>
   )
 }
 
-function CompletionsByDay() {
+function CompletionsChartSection() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">Tabby completions by day</h1>
+    <div className="mb-5 rounded-lg border bg-primary-foreground/30 p-4">
+      <h1 className="mb-5 text-xl font-bold">Completions</h1>
       <ResponsiveContainer width="100%" height={350}>
         <BarChart
           width={500}
@@ -138,61 +239,102 @@ function CompletionsByDay() {
           data={data}
           margin={{
             top: 5,
-            right: 30,
+            right: 20,
             left: 20,
             bottom: 5
           }}
         >
+          <Bar dataKey="value" fill="#8884d8" />
           <XAxis dataKey="name" fontSize={12} />
-          <YAxis fontSize={12}>
-            <Label
-              value="Completion events"
-              position="insideLeft"
-              angle={-90}
-              style={{ textAnchor: 'middle' }}
-            />
-          </YAxis>
+          <YAxis fontSize={12} />
           <Tooltip cursor={{ fill: 'hsl(var(--accent))' }} />
-          <Legend />
-          <Bar dataKey="VSCode" fill="#8884d8" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="IntelliJ" fill="#82ca9d" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   )
 }
 
-function CompletionAcceptanceRate() {
+function AcceptanceChartSection() {
+  const data = [
+    { name: 'Accept', value: 512},
+    { name: 'Pending', value: 1013},
+  ];
+  
+  const COLORS = ['#8884d8', '#b9b7e2'];
+  
+  const RADIAN = Math.PI / 180;
+  const renderCustomizedLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+    name
+  }: {
+    cx: number;
+    cy: number;
+    midAngle: number;
+    innerRadius: number;
+    outerRadius: number;
+    percent: number;
+    name: string;
+  }) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.4;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  
+    if (name.toLocaleLowerCase() === 'accept') {
+      return (
+        <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={15}>
+          {`${(percent * 100).toFixed(0)}%`}
+        </text>
+      );
+    }
+    return
+  };
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">Completion acceptance rate</h1>
-      <ResponsiveContainer width="100%" height={350}>
-        <LineChart
-          width={500}
-          height={300}
-          data={data_acceptance}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5
-          }}
-        >
-          <XAxis dataKey="name" fontSize={12} />
-          <YAxis fontSize={12}>
-            <Label
-              value="Rate"
-              position="insideLeft"
-              angle={-90}
-              style={{ textAnchor: 'middle' }}
-            />
-          </YAxis>
-          <Tooltip cursor={{ fill: 'hsl(var(--accent))' }} />
+    <div className="rounded-lg border bg-primary-foreground/30 p-4">
+      <h1 className="text-xl font-bold">Acceptance</h1>
+      <p className="mt-0.5 text-xs text-muted-foreground">Jan 1, 2024 - Jan 15, 2024</p>
+      <ResponsiveContainer width="100%" height={250}>
+        <PieChart width={700} height={400}>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={renderCustomizedLabel}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
           <Legend />
-          <Line type="monotone" dataKey="VSCode" stroke="#8884d8" />
-          <Line type="monotone" dataKey="IntelliJ" stroke="#82ca9d" />
-        </LineChart>
+        </PieChart>
       </ResponsiveContainer>
     </div>
   )
+}
+
+function ActivityChartSection () {
+  const data = new Array(365).fill("").map((_, idx) => ({
+    date: moment().subtract(idx, 'days').format('YYYY-MM-DD'),
+    count: Math.round(Math.random() * 20),
+    level: Math.floor(Math.random() * 5)
+  }))
+
+  return (
+    <div className="flex h-full flex-col rounded-lg border bg-primary-foreground/30 p-4">
+      <h1 className="text-xl font-bold">Activity</h1>
+      <p className="mt-0.5 text-xs text-muted-foreground">5944 completions in the last year</p>
+      <div className="flex flex-1 items-center justify-center">
+        <ActivityCalendar data={data} />
+      </div>
+    </div>
+  );
 }

@@ -75,7 +75,7 @@ const PaginationPrevious = ({
     )}
     {...props}
   >
-    <IconChevronLeft className="h-4 w-4" />
+    <IconChevronLeft className="size-4" />
     <span>Previous</span>
   </PaginationLink>
 )
@@ -97,7 +97,7 @@ const PaginationNext = ({
     {...props}
   >
     <span>Next</span>
-    <IconChevronRight className="h-4 w-4" />
+    <IconChevronRight className="size-4" />
   </PaginationLink>
 )
 PaginationNext.displayName = 'PaginationNext'
@@ -108,10 +108,10 @@ const PaginationEllipsis = ({
 }: React.ComponentProps<'span'>) => (
   <span
     aria-hidden
-    className={cn('flex h-9 w-9 items-center justify-center', className)}
+    className={cn('flex size-9 items-center justify-center', className)}
     {...props}
   >
-    <IconMore className="h-4 w-4" />
+    <IconMore className="size-4" />
     <span className="sr-only">More pages</span>
   </span>
 )

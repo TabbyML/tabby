@@ -195,7 +195,7 @@ function PromptFormRenderer(
                   <span
                     className={cn(
                       buttonVariants({ size: 'sm', variant: 'ghost' }),
-                      'absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 hover:bg-background sm:left-4'
+                      'absolute left-0 top-4 size-8 rounded-full bg-background p-0 hover:bg-background sm:left-4'
                     )}
                   >
                     <IconEdit />

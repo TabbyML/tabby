@@ -10,7 +10,7 @@ export const Avatar = () => {
   const config = genConfig(data?.me?.email)
 
   return (
-    <div className="flex h-16 w-16 rounded-full border">
+    <div className="flex size-16 rounded-full border">
       <NiceAvatar className="w-full" {...config} />
     </div>
   )

@@ -38,7 +38,7 @@ export default function RunnerCard({
         <Info>
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className=" h-5 w-5"
+            className=" size-5"
             width="24"
             height="24"
             viewBox="0 0 24 24"
@@ -60,7 +60,7 @@ export default function RunnerCard({
         </Info>
         <Info>
           <svg
-            className=" h-5 w-5"
+            className=" size-5"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -91,7 +91,7 @@ export default function RunnerCard({
           cudaDevices.map((x, i) => (
             <Info key={i}>
               <svg
-                className=" h-5 w-5"
+                className=" size-5"
                 fill="none"
                 height="24"
                 stroke="currentColor"

@@ -3,7 +3,7 @@ import { IconExternalLink } from '@/components/ui/icons'
 
 export const SSOHeader = ({ className }: { className?: string }) => {
   return (
-    <div className={cn('min-h-8 mb-4 flex items-center gap-4', className)}>
+    <div className={cn('mb-4 flex min-h-8 items-center gap-4', className)}>
       <div className="flex-1 text-sm text-muted-foreground">
         Single Sign-On (SSO) is an authentication method that enables users to
         authenticate with multiple applications and websites via a single set of

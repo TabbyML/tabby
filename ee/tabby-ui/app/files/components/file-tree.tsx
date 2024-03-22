@@ -150,7 +150,7 @@ const FileTreeNodeView: React.FC<
       {isActive && <ActiveViewBar />}
       <GridArea level={level} />
       <div className="flex flex-nowrap items-center gap-2 truncate whitespace-nowrap">
-        <div className="h-4 w-4 shrink-0"></div>
+        <div className="size-4 shrink-0"></div>
         {children}
       </div>
     </div>
