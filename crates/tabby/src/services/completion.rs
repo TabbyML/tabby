@@ -118,8 +118,9 @@ pub struct Segments {
     /// or the git repository does not have a remote URL.
     git_url: Option<String>,
 
-    /// The code snippets that are related for code completion.
-    snippets: Option<Vec<Snippet>>,
+    /// The relevant declarations for the current code completion request.
+    /// For example, the client could request a language server to find relevant declarations.
+    declarations: Option<Vec<Declaration>>,
 
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
@@ -151,6 +152,19 @@ impl Choice {
 pub struct Snippet {
     filepath: String,
     body: String,
+    score: f32,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct Declaration {
+    /// The relative path of the file where the declaration is located.
+    filepath: String,
+
+    /// The declaration content.
+    body: String,
+
+    /// A higher score means that the declaration is more relevant.
+    /// Normalized into [0, 1] range.
     score: f32,
 }
 
