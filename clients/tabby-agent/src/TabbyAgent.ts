@@ -340,27 +340,25 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
     // filepath
     let filepathInfo: { filepath: string; git_url?: string } | undefined = undefined;
-    if (this.config.completion.prompt.filepath.experimentalEnabled) {
-      const { filepath, workspace, git } = context;
-      if (git && git.remotes.length > 0) {
-        // find remote url: origin > upstream > first
-        const remote =
-          git.remotes.find((remote) => remote.name === "origin") ||
-          git.remotes.find((remote) => remote.name === "upstream") ||
-          git.remotes[0];
-        if (remote) {
-          filepathInfo = {
-            filepath: path.relative(git.root, filepath),
-            git_url: remote.url,
-          };
-        }
-      }
-      // if filepathInfo is not set by git context, use path relative to workspace
-      if (!filepathInfo && workspace) {
+    const { filepath, workspace, git } = context;
+    if (git && git.remotes.length > 0) {
+      // find remote url: origin > upstream > first
+      const remote =
+        git.remotes.find((remote) => remote.name === "origin") ||
+        git.remotes.find((remote) => remote.name === "upstream") ||
+        git.remotes[0];
+      if (remote) {
         filepathInfo = {
-          filepath: path.relative(workspace, filepath),
+          filepath: path.relative(git.root, filepath),
+          git_url: remote.url,
         };
       }
+    }
+    if (!filepathInfo && workspace) {
+      // if filepathInfo is not set by git context, use path relative to workspace
+      filepathInfo = {
+        filepath: path.relative(workspace, filepath),
+      };
     }
 
     // clipboard
