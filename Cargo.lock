@@ -4560,6 +4560,7 @@ dependencies = [
  "tree-sitter-rust",
  "tree-sitter-tags",
  "tree-sitter-typescript",
+ "yarn-lock-parser",
 ]
 
 [[package]]
@@ -6137,6 +6138,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
+]
+
+[[package]]
+name = "yarn-lock-parser"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d0603904f8482a1a2a038c9f89c75b0e435392513c3abd3d284123381bbe51f"
+dependencies = [
+ "nom",
+ "thiserror",
 ]
 
 [[package]]
