@@ -71,7 +71,7 @@ pub async fn create_worker_client(
 }
 
 impl EventLogger for WorkerClient {
-    fn log(&self, x: LogEntry) {
+    fn write(&self, x: LogEntry) {
         let context = tarpc::context::current();
         let client = self.0.clone();
         tokio::spawn(async move { client.write_log(context, x).await });

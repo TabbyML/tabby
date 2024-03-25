@@ -22,7 +22,7 @@ pub fn new_event_logger(db: DbConn) -> impl EventLogger + 'static {
 }
 
 impl EventLogger for DbEventLogger {
-    fn log(&self, x: LogEntry) {
+    fn write(&self, x: LogEntry) {
         match x.event {
             Event::View { completion_id, .. } => {
                 let db = self.db.clone();
@@ -104,29 +104,23 @@ mod tests {
 
         let id = user_id.as_id();
 
-        logger.log(
-            Event::Completion {
-                completion_id: "test_id".into(),
-                language: "rust".into(),
-                prompt: "testprompt".into(),
-                segments: None,
-                choices: vec![],
-                user: Some(id.to_string()),
-            }
-            .into(),
-        );
+        logger.log(Event::Completion {
+            completion_id: "test_id".into(),
+            language: "rust".into(),
+            prompt: "testprompt".into(),
+            segments: None,
+            choices: vec![],
+            user: Some(id.to_string()),
+        });
 
         sleep_50().await;
         assert!(db.fetch_one_user_completion().await.unwrap().is_some());
 
-        logger.log(
-            Event::View {
-                completion_id: "test_id".into(),
-                choice_index: 0,
-                view_id: None,
-            }
-            .into(),
-        );
+        logger.log(Event::View {
+            completion_id: "test_id".into(),
+            choice_index: 0,
+            view_id: None,
+        });
 
         sleep_50().await;
         assert_eq!(
@@ -134,15 +128,12 @@ mod tests {
             1
         );
 
-        logger.log(
-            Event::Dismiss {
-                completion_id: "test_id".into(),
-                choice_index: 0,
-                view_id: None,
-                elapsed: None,
-            }
-            .into(),
-        );
+        logger.log(Event::Dismiss {
+            completion_id: "test_id".into(),
+            choice_index: 0,
+            view_id: None,
+            elapsed: None,
+        });
 
         sleep_50().await;
         assert_eq!(
@@ -154,16 +145,13 @@ mod tests {
             1
         );
 
-        logger.log(
-            Event::Select {
-                completion_id: "test_id".into(),
-                choice_index: 0,
-                view_id: None,
-                kind: None,
-                elapsed: None,
-            }
-            .into(),
-        );
+        logger.log(Event::Select {
+            completion_id: "test_id".into(),
+            choice_index: 0,
+            view_id: None,
+            kind: None,
+            elapsed: None,
+        });
 
         sleep_50().await;
         assert_eq!(
@@ -181,32 +169,26 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let logger = new_event_logger(db.clone());
 
-        logger.log(
-            Event::Completion {
-                completion_id: "test_id".into(),
-                language: "rust".into(),
-                prompt: "testprompt".into(),
-                segments: None,
-                choices: vec![],
-                user: Some("testuser".into()),
-            }
-            .into(),
-        );
+        logger.log(Event::Completion {
+            completion_id: "test_id".into(),
+            language: "rust".into(),
+            prompt: "testprompt".into(),
+            segments: None,
+            choices: vec![],
+            user: Some("testuser".into()),
+        });
 
         sleep_50().await;
         assert!(db.fetch_one_user_completion().await.unwrap().is_none());
 
-        logger.log(
-            Event::Completion {
-                completion_id: "test_id".into(),
-                language: "rust".into(),
-                prompt: "testprompt".into(),
-                segments: None,
-                choices: vec![],
-                user: None,
-            }
-            .into(),
-        );
+        logger.log(Event::Completion {
+            completion_id: "test_id".into(),
+            language: "rust".into(),
+            prompt: "testprompt".into(),
+            segments: None,
+            choices: vec![],
+            user: None,
+        });
 
         sleep_50().await;
         assert!(db.fetch_one_user_completion().await.unwrap().is_none());
@@ -217,17 +199,14 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let logger = new_event_logger(db.clone());
 
-        logger.log(
-            Event::ChatCompletion {
-                completion_id: "test_id".into(),
-                input: vec![],
-                output: Message {
-                    role: "user".into(),
-                    content: "test".into(),
-                },
-            }
-            .into(),
-        );
+        logger.log(Event::ChatCompletion {
+            completion_id: "test_id".into(),
+            input: vec![],
+            output: Message {
+                role: "user".into(),
+                content: "test".into(),
+            },
+        });
 
         sleep_50().await;
         assert!(db.fetch_one_user_completion().await.unwrap().is_none());

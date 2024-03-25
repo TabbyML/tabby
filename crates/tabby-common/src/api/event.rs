@@ -117,5 +117,8 @@ fn timestamp() -> u128 {
 }
 
 pub trait EventLogger: Send + Sync {
-    fn log(&self, x: LogEntry);
+    fn log(&self, x: Event) {
+        self.write(x.into())
+    }
+    fn write(&self, x: LogEntry);
 }

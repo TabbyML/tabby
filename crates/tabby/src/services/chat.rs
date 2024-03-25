@@ -126,7 +126,7 @@ impl ChatService {
                 completion_id,
                 input: convert_messages(&request.messages),
                 output: create_assistant_message(output)
-            }.into());
+            });
         };
 
         Box::pin(s)

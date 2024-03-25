@@ -102,7 +102,7 @@ impl EventWriter {
 struct EventService;
 
 impl EventLogger for EventService {
-    fn log(&self, x: LogEntry) {
+    fn write(&self, x: LogEntry) {
         let json = match serdeconv::to_json_string(&x) {
             Ok(json) => json,
             Err(err) => {

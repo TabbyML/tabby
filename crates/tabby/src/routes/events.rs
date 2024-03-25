@@ -27,45 +27,36 @@ pub async fn log_event(
     Json(request): Json<LogEventRequest>,
 ) -> StatusCode {
     if request.event_type == "view" {
-        logger.log(
-            Event::View {
-                completion_id: request.completion_id,
-                choice_index: request.choice_index,
-                view_id: request.view_id,
-            }
-            .into(),
-        );
+        logger.log(Event::View {
+            completion_id: request.completion_id,
+            choice_index: request.choice_index,
+            view_id: request.view_id,
+        });
         StatusCode::OK
     } else if request.event_type == "select" {
         let is_line = params
             .get("select_kind")
             .map(|x| x == "line")
             .unwrap_or(false);
-        logger.log(
-            Event::Select {
-                completion_id: request.completion_id,
-                choice_index: request.choice_index,
-                kind: if is_line {
-                    Some(SelectKind::Line)
-                } else {
-                    None
-                },
-                view_id: request.view_id,
-                elapsed: request.elapsed,
-            }
-            .into(),
-        );
+        logger.log(Event::Select {
+            completion_id: request.completion_id,
+            choice_index: request.choice_index,
+            kind: if is_line {
+                Some(SelectKind::Line)
+            } else {
+                None
+            },
+            view_id: request.view_id,
+            elapsed: request.elapsed,
+        });
         StatusCode::OK
     } else if request.event_type == "dismiss" {
-        logger.log(
-            Event::Dismiss {
-                completion_id: request.completion_id,
-                choice_index: request.choice_index,
-                view_id: request.view_id,
-                elapsed: request.elapsed,
-            }
-            .into(),
-        );
+        logger.log(Event::Dismiss {
+            completion_id: request.completion_id,
+            choice_index: request.choice_index,
+            view_id: request.view_id,
+            elapsed: request.elapsed,
+        });
         StatusCode::OK
     } else {
         StatusCode::BAD_REQUEST

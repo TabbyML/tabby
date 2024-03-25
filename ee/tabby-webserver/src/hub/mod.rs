@@ -101,7 +101,7 @@ impl Drop for HubImpl {
 #[tarpc::server]
 impl Hub for Arc<HubImpl> {
     async fn write_log(self, _context: tarpc::context::Context, x: LogEntry) {
-        self.ctx.logger().log(x)
+        self.ctx.logger().write(x)
     }
 
     async fn search(
