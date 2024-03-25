@@ -14,9 +14,12 @@ use axum::{
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
-use tabby_common::{api::code::SearchResponse, config::RepositoryConfig};
+use tabby_common::{
+    api::{code::SearchResponse, event::Event},
+    config::RepositoryConfig,
+};
 use tarpc::server::{BaseChannel, Channel};
-use tracing::warn;
+use tracing::{error, warn};
 use websocket::WebSocketTransport;
 
 use crate::schema::ServiceLocator;
@@ -98,7 +101,15 @@ impl Drop for HubImpl {
 #[tarpc::server]
 impl Hub for Arc<HubImpl> {
     async fn log_event(self, _context: tarpc::context::Context, content: String) {
-        self.ctx.logger().log(content)
+        let json = match serde_json::from_str::<Event>(&content) {
+            Ok(x) => x,
+            Err(err) => {
+                error!("Failed to parse Event {}", err);
+                return;
+            }
+        };
+
+        self.ctx.logger().log(json)
     }
 
     async fn search(

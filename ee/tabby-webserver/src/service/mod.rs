@@ -21,7 +21,7 @@ pub(in crate::service) use dao::{AsID, AsRowid};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper::ID;
 use tabby_common::{
-    api::{code::CodeSearch, event::RawEventLogger},
+    api::{code::CodeSearch, event::EventLogger},
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::DbConn;
@@ -50,7 +50,7 @@ struct ServerContext {
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
 
-    logger: Arc<dyn RawEventLogger>,
+    logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
 
     is_chat_enabled_locally: bool,
@@ -58,7 +58,7 @@ struct ServerContext {
 
 impl ServerContext {
     pub async fn new(
-        logger: Arc<dyn RawEventLogger>,
+        logger: Arc<dyn EventLogger>,
         code: Arc<dyn CodeSearch>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
@@ -261,7 +261,7 @@ impl ServiceLocator for Arc<ServerContext> {
         self.code.clone()
     }
 
-    fn logger(&self) -> Arc<dyn RawEventLogger> {
+    fn logger(&self) -> Arc<dyn EventLogger> {
         self.logger.clone()
     }
 
@@ -287,7 +287,7 @@ impl ServiceLocator for Arc<ServerContext> {
 }
 
 pub async fn create_service_locator(
-    logger: Arc<dyn RawEventLogger>,
+    logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
     db: DbConn,
     is_chat_enabled: bool,

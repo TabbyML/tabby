@@ -2,7 +2,10 @@ use std::{path::PathBuf, time::Duration};
 
 use chrono::Utc;
 use lazy_static::lazy_static;
-use tabby_common::{api::event::RawEventLogger, path};
+use tabby_common::{
+    api::event::{Event, EventLogger},
+    path,
+};
 use tokio::{
     io::AsyncWriteExt,
     sync::mpsc::{unbounded_channel, UnboundedSender},
@@ -98,16 +101,24 @@ impl EventWriter {
 
 struct EventService;
 
-impl RawEventLogger for EventService {
-    fn log(&self, content: String) {
-        if let Err(err) = WRITER.send(content) {
+impl EventLogger for EventService {
+    fn log(&self, e: Event) {
+        let json = match e.into_json_string() {
+            Ok(json) => json,
+            Err(err) => {
+                error!("Failed to serialize event into json {}", err);
+                return;
+            }
+        };
+
+        if let Err(err) = WRITER.send(json) {
             error!("Failed to write event to file: {}", err);
         }
     }
 }
 
 #[allow(unused)]
-pub fn create_logger() -> impl RawEventLogger + 'static {
+pub fn create_logger() -> impl EventLogger + 'static {
     EventService
 }
 

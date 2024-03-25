@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use juniper::ID;
-use tabby_common::api::event::{Log, RawEventLogger};
+use tabby_common::api::event::{Event, EventLogger};
 use tabby_db::DbConn;
 use tracing::warn;
 
@@ -17,36 +17,32 @@ fn log_err<T, E: Display>(res: Result<T, E>) {
     }
 }
 
-pub fn new_event_logger(db: DbConn) -> impl RawEventLogger {
+pub fn new_event_logger(db: DbConn) -> impl EventLogger + 'static {
     DbEventLogger { db }
 }
 
-impl RawEventLogger for DbEventLogger {
-    fn log(&self, content: String) {
-        let Ok(Log { event, .. }) = serde_json::from_str(&content) else {
-            warn!("Invalid event JSON: {content}");
-            return;
-        };
-        match event {
-            tabby_common::api::event::Event::View { completion_id, .. } => {
+impl EventLogger for DbEventLogger {
+    fn log(&self, e: Event) {
+        match e {
+            Event::View { completion_id, .. } => {
                 let db = self.db.clone();
                 tokio::spawn(async move {
                     log_err(db.add_to_user_completion(&completion_id, 1, 0, 0).await)
                 });
             }
-            tabby_common::api::event::Event::Select { completion_id, .. } => {
+            Event::Select { completion_id, .. } => {
                 let db = self.db.clone();
                 tokio::spawn(async move {
                     log_err(db.add_to_user_completion(&completion_id, 0, 1, 0).await)
                 });
             }
-            tabby_common::api::event::Event::Dismiss { completion_id, .. } => {
+            Event::Dismiss { completion_id, .. } => {
                 let db = self.db.clone();
                 tokio::spawn(async move {
                     log_err(db.add_to_user_completion(&completion_id, 0, 0, 1).await)
                 });
             }
-            tabby_common::api::event::Event::Completion {
+            Event::Completion {
                 completion_id,
                 language,
                 user,
@@ -70,7 +66,7 @@ impl RawEventLogger for DbEventLogger {
                     );
                 });
             }
-            tabby_common::api::event::Event::ChatCompletion { .. } => {}
+            Event::ChatCompletion { .. } => {}
         }
     }
 }

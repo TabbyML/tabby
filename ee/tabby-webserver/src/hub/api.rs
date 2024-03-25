@@ -8,12 +8,13 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{
         code::{CodeSearch, CodeSearchError, SearchResponse},
-        event::RawEventLogger,
+        event::{Event, EventLogger},
     },
     config::{RepositoryAccess, RepositoryConfig},
 };
 use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
+use tracing::error;
 
 use super::websocket::WebSocketTransport;
 use crate::schema::worker::Worker;
@@ -70,12 +71,19 @@ pub async fn create_worker_client(
     WorkerClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
 }
 
-impl RawEventLogger for WorkerClient {
-    fn log(&self, content: String) {
+impl EventLogger for WorkerClient {
+    fn log(&self, e: Event) {
+        let json = match e.into_json_string() {
+            Ok(json) => json,
+            Err(err) => {
+                error!("Failed to serialize event into json {}", err);
+                return;
+            }
+        };
+
         let context = tarpc::context::current();
         let client = self.0.clone();
-
-        tokio::spawn(async move { client.log_event(context, content).await });
+        tokio::spawn(async move { client.log_event(context, json).await });
     }
 }
 

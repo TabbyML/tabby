@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -94,6 +92,16 @@ pub struct Segments {
     pub clipboard: Option<String>,
 }
 
+impl Event {
+    pub fn into_json_string(self) -> anyhow::Result<String> {
+        let content = serdeconv::to_json_string(&Log {
+            ts: timestamp(),
+            event: self,
+        })?;
+        Ok(content)
+    }
+}
+
 pub trait EventLogger: Send + Sync {
     fn log(&self, e: Event);
 }
@@ -104,6 +112,7 @@ pub struct Log {
     pub event: Event,
 }
 
+/*
 pub trait RawEventLogger: Send + Sync {
     fn log(&self, content: String);
 }
@@ -118,13 +127,7 @@ impl<T: RawEventLogger> EventLogger for T {
 
         self.log(content);
     }
-}
-
-impl RawEventLogger for Arc<dyn RawEventLogger> {
-    fn log(&self, content: String) {
-        (**self).log(content)
-    }
-}
+} */
 
 fn timestamp() -> u128 {
     use std::time::{SystemTime, UNIX_EPOCH};
