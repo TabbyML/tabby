@@ -1,0 +1,5 @@
+http://*:8080 {
+	handle_path /* {
+		reverse_proxy worker-0:8080 worker-1:8080
+	}
+}

@@ -1,0 +1,37 @@
+version: '3.5'
+
+services:
+  worker-0:
+    restart: always
+    image: tabbyml/tabby
+    command: serve --model TabbyML/StarCoder-1B --device cuda
+    volumes:
+      - "$HOME/.tabby:/data"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]
+              capabilities: [gpu]
+
+  worker-1:
+    restart: always
+    image: tabbyml/tabby
+    command: serve --model TabbyML/StarCoder-1B --device cuda
+    volumes:
+      - "$HOME/.tabby:/data"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["1"]
+              capabilities: [gpu]
+
+  web:
+    image: caddy
+    volumes:
+      - "./Caddyfile:/etc/caddy/Caddyfile:ro"
+    ports:
+      - "8080:8080"
