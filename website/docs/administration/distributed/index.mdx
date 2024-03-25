@@ -1,0 +1,65 @@
+import CompletionWorkerUrl from "./completion-worker.png";
+import ChatPlaygroundUrl from "./chat-playground.png";
+
+# Multi-node and Load Balancing
+
+:::subscription
+This feature is available in the **Team** and **Enterprise** Plans.
+:::
+
+Tabby provides built-in distributed support for multi-node setups. This allows you to scale your Tabby deployment horizontally and distribute the workload across multiple GPU workers.
+
+## Start the Web Server Independently
+
+Start the web server using the following command:
+
+```bash
+tabby serve --webserver
+```
+
+By doing so, the web server will operate without a model attached to it. If you send a POST request to `/v1/completions`, you will receive a `501 Not Implemented` error.
+
+## Check the Cluster Information
+
+In the `Cluster Information` tab of the admin panel, you can see that there are no workers connected to the Tabby instance, except for the local code index.
+
+![Cluster Information](./cluster-information.png)
+
+You'll also notice the `Registration Token` displayed on this page. This token is used to authenticate the worker nodes with the Tabby instance and will be referred to as `TABBY_REGISTRATION_TOKEN` in the following sections.
+
+## Register a Completion Worker
+
+To register a worker, you need to run the following command:
+
+```bash
+# In this tutorial, we'll start the worker on the same machine as the web server.
+export TABBY_WEBSERVER_URL=127.0.0.1:8080
+export TABBY_REGISTRATION_TOKEN=<token from the admin panel>
+
+tabby worker::completion \
+  --model StarCoder-1B \
+  --url $TABBY_WEBSERVER_URL \
+  --token $TABBY_REGISTRATION_TOKEN \
+  --port 8081
+```
+
+After this command executes successfully, you should see the new worker in the `Cluster Information` tab.
+More workers can be added by running the same command on different machines to improve the concurrency of the system.
+
+<img src={CompletionWorkerUrl} width={720} />
+
+## (Optional) Register a Chat Worker
+
+Similarly, you can register a chat worker by running the following command to enable the chat playground.
+
+```bash
+tabby worker::chat \
+  --model Mistral-7B \
+  --url $TABBY_WEBSERVER_URL \
+  --token $TABBY_REGISTRATION_TOKEN \
+  --port 8082
+```
+
+Once it's registered, you should see the `Chat Playground` entry under the avatar menu.
+
+<img src={ChatPlaygroundUrl} width={360} />

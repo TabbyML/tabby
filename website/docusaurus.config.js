@@ -53,6 +53,10 @@ const config = {
           // Remove this to remove the "edit this page" links.
           editUrl:
             'https://github.com/TabbyML/tabby/edit/main/website',
+          admonitions: {
+            tag: ':::',
+            keywords: ['note', 'tip', 'info', 'caution', 'danger', 'subscription'],
+          },
         },
         api: {
           path: "static/openapi.json",

@@ -1,3 +1,7 @@
+---
+sidebar_position: 5
+---
+
 # Mail Delivery
 
 Tabby uses an SMTP server of your choice to send emails. Some functionaties like password reset, email notifications, etc. require an SMTP server to be configured.
