@@ -112,23 +112,6 @@ pub struct Log {
     pub event: Event,
 }
 
-/*
-pub trait RawEventLogger: Send + Sync {
-    fn log(&self, content: String);
-}
-
-impl<T: RawEventLogger> EventLogger for T {
-    fn log(&self, e: Event) {
-        let content = serdeconv::to_json_string(&Log {
-            ts: timestamp(),
-            event: e,
-        })
-        .unwrap();
-
-        self.log(content);
-    }
-} */
-
 fn timestamp() -> u128 {
     use std::time::{SystemTime, UNIX_EPOCH};
     let start = SystemTime::now();
