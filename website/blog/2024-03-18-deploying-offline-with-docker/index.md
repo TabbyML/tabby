@@ -3,27 +3,30 @@ authors: [wwayne]
 tags: [deployment]
 ---
 
+import noInternetImg from './no-internet.png';
+import cliOutputImg from './cli-output.png';
+
 # Deploying offline with Docker
 
 <div align="center">
-
-![No internet access](./no-internet.png)
-
+  <img src={noInternetImg} alt="No internet access" style={{ width: 400 }} />
 </div>
 
-Are you facing a situation where your work environment lacks internet access, and you're wondering if you can still deploy Tabby? Fear not, because the answer is YES! 🐱📣
+Are you working in an air-gapped environment, and wondering if you can still deploy Tabby? Fear not, because the answer is YES! 🐱📣
 
 ## Prerequisite📋
 
 * Docker installed on both the internet-connected computer and the offline computer.
 
-## The Game Plan🚀
+## Offline Deployment Guide🐾
+
+Here's how we'll deploy Tabby in an offline environment:
 
 * Create a Docker image on a computer with internet access. 
 * Transfer the image to your offline computer.
 * Run the Docker image and let Tabby work its magic! ✨
 
-## Step-by-Step Guide🐾
+Now, let's dive into the detailed steps:
 
 1. Create a new **Dockerfile** on a computer with internet access.
 
@@ -65,5 +68,9 @@ docker run -it \
   tabby-offline \
   serve --model StarCoder-1B --device cuda
 ```
+
+Once the container is running successfully, you should see the CLI output similar to the screenshot below:
+
+![Tabby Cli Output](./cli-output.png)
 
 If you encounter any further issues or have questions, feel free to explore our [community](https://slack.tabbyml.com/). Our friendly Tabby enthusiasts are always ready to lend a helping paw and guide you to the answers you seek! 😸💡
