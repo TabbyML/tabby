@@ -1,5 +1,6 @@
-import { ExtensionContext, workspace, window, env, version } from "vscode";
+import { ExtensionContext, workspace, env, version } from "vscode";
 import { TabbyAgent, AgentInitOptions, PartialAgentConfig, ClientProperties, DataStore } from "tabby-agent";
+import { getLogChannel } from "./logger";
 
 function buildInitOptions(context: ExtensionContext): AgentInitOptions {
   const configuration = workspace.getConfiguration("tabby");
@@ -55,7 +56,7 @@ function buildInitOptions(context: ExtensionContext): AgentInitOptions {
     },
   };
   const dataStore = env.appHost === "desktop" ? undefined : extensionDataStore;
-  const loggers = [window.createOutputChannel("Tabby Agent", { log: true })];
+  const loggers = [getLogChannel()];
   return { config, clientProperties, dataStore, loggers };
 }
 
