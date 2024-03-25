@@ -343,6 +343,8 @@ namespace ctranslate2 {
                                          : &_partial_u8_shift_compensation);
 
       bool affected_by_tp = ScopedMPISetter::getNRanks() > 1 && _is_layer_out;
+      if (affected_by_tp && ScopedMPISetter::getCurRank() != 0)
+        bias = nullptr;
       if (_quantized_gemm) {
         const auto device = input.device();
         StorageView qinput(_weight.dtype(), device);
@@ -383,8 +385,6 @@ namespace ctranslate2 {
         }
 
         _gemm_op(qinput, *weight, qoutput, compensation);
-        if (affected_by_tp && ScopedMPISetter::getCurRank() == 0)
-          bias = nullptr;
         _dequantize_op(qoutput,
                        qinput_scale,
                        *qscale,
@@ -393,8 +393,6 @@ namespace ctranslate2 {
                        output,
                        bias);
       } else {
-        if (affected_by_tp && ScopedMPISetter::getCurRank() == 0)
-          bias = nullptr;
         _gemm_op(input, *weight, output, nullptr, bias);
       }
     }
