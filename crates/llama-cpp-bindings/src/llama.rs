@@ -5,6 +5,7 @@ use tokio::sync::{
     mpsc::{channel, unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender},
     RwLock,
 };
+use tracing::debug;
 
 use crate::ffi;
 
@@ -40,7 +41,19 @@ impl LlamaInitRequest {
     }
 
     pub(crate) fn step(&self, token: &str) -> bool {
-        self.tx.send(token.to_owned()).is_err()
+        match self.tx.send(token.to_owned()) {
+            Ok(_) => false,
+            Err(err) => {
+                debug!("Request <{}> is cancelled: `{}`", self.id, err);
+                true
+            }
+        }
+    }
+}
+
+impl Drop for LlamaInitRequest {
+    fn drop(&mut self) {
+        debug!("Request <{}> is done", self.id)
     }
 }
 
@@ -64,9 +77,11 @@ impl LlamaServiceImpl {
         } {
             // Drop canceled requests.
             if req.tx.is_closed() {
+                debug!("Request <{}> is cancelled before it got started", req.id);
                 continue;
             }
 
+            debug!("Request <{}> started", req.id);
             self.engine.as_mut().unwrap().add_request(Box::new(req));
         }
 
