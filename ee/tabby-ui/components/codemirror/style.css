@@ -9,6 +9,7 @@
     --tag-blue-border: 211.7, 96.36%, 78.43%;
     /* --tag-blue-text: 29 78 216; */
     --tag-blue-text: 224.28, 76.33%, 48.04%;
+    --cm-selection-bg: 214, 81%, 85%;
 
   }
 
@@ -19,5 +20,6 @@
     --tag-blue-border: 217.22, 91.22%, 59.8%;
     /* --tag-blue-text: 96 165 250; */
     --tag-blue-text: 213.12, 93.9%, 67.84%;
+    --cm-selection-bg: 216, 29%, 35%;
   }
 }
