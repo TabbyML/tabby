@@ -3,13 +3,13 @@ authors: [icycodes]
 tags: [deployment, repository context]
 ---
 
-# Utilizing Your Private Git Repository Context for Enhanced Code Completion
+# Connect Private Github Repository to Tabby
 
 A few months back, we published a blog [Repository context for LLM assisted code completion](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion), introducing the `Repository Context` feature in Tabby. 
 
 In this blog, I will guide you through the process of setting up a Tabby server configured with a private Git repositories context.
 
-## Generating a Personal Access Token for Your Private Git Repository
+## Generating a Personal Access Token
 
 In order to provide the Tabby server with access to your private Git repositories, it is essential to create a Personal Access Token (PAT) specific to your Git provider. The following steps outline the process with GitHub as a reference:
 
@@ -26,7 +26,7 @@ For additional information, please consult the documentation on [Managing your p
 
 **Note**: For users of GitLab, guidance on creating a personal access token can be found in the documentation [Personal access tokens - GitLab](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#create-a-personal-access-token).
 
-## Creating a Configuration File for Tabby Server
+## Configuration
 
 To configure the Tabby server with your private Git repositories, you need to provide the required settings in a YAML file. Create and edit a configuration file located at `~/.tabby/config.yaml`:
 
@@ -46,7 +46,7 @@ For more detailed about the configuration file, you can refer to the [configurat
 
 **Note:** The URL format for GitLab repositories may vary, you can check the [official documentation](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#clone-repository-using-personal-access-token) for specific guidelines.
 
-## Building the Index and Starting the Server
+## Building the index
 
 :::tip
 The commands provided in this section are based on a Linux environment and assume the pre-installation of Docker with CUDA drivers. Adjust the commands as necessary if you are running Tabby on a different setup.
@@ -95,39 +95,6 @@ ggml_init_cublas: found 1 CUDA devices:
 
 Notably, the line `Index is ready, enabling server...` signifies that the server has been successfully launched with the constructed index.
 
-### Automated Scheduler Execution (Optional)
-
-By excluding the `--now` flag from the `scheduler` command, you can configure the scheduler to run automatically at intervals, typically every 10 minutes by default.
-
-To integrate the scheduler with the server, a Docker Compose file can be created as shown below:
-
-```yaml
-version: '3.5'
-name: tabby
-services:
-  serve:
-    restart: always
-    image: tabbyml/tabby
-    command: serve --model StarCoder-1B --device cuda
-    ports:
-      - "8080:8080"
-    volumes:
-      - "~/.tabby:/data"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-  scheduler:
-    restart: always
-    image: tabbyml/tabby
-    entrypoint: /opt/tabby/bin/tabby-cpu
-    command: scheduler
-    volumes:
-      - "~/.tabby:/data"
-```
 
 ## Verifying Indexing Results
 
@@ -139,8 +106,8 @@ To confirm that the code completion is effectively utilizing the built index, yo
 
 Alternatively, if you have utilized the code completion with the constructed index, you can examine the server log located in `~/.tabby/events` to inspect how the prompt is enhanced during code completion.
 
-## Additional Information on Tabby Enterprise Edition
+## Additional Notes
 
-Starting from version v0.9.0, Tabby Enterprise Edition offers a web UI to manage your git repository contexts. Additionally, a scheduler job management system has been integrated, streamlining the process of monitoring scheduler job statuses. With these enhancements, you can save a lot of effort in maintaining yaml config files and docker compose configurations. Furthermore, users can easily monitor visualized indexing results through the built-in code browser.
+Starting from version v0.9, Tabby Enterprise Edition offers a web UI to manage your git repository contexts. Additionally, a scheduler job management system has been integrated, streamlining the process of monitoring scheduler job statuses. With these enhancements, you can save a lot of effort in maintaining yaml config files and docker compose configurations. Furthermore, users can easily monitor visualized indexing results through the built-in code browser.
 
 For further details and guidance, please refer to our enterprise edition documentation.
