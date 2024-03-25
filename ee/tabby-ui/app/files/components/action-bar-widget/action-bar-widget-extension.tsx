@@ -3,9 +3,10 @@ import { StateField } from '@codemirror/state'
 import type { Tooltip } from '@codemirror/view'
 import { showTooltip } from '@codemirror/view'
 import ReactDOM from 'react-dom/client'
-import { CompletionWidget } from './completion-widget'
 
-function CompletionWidgetExtension(): Extension {
+import { ActionBarWidget } from './action-bar-widget'
+
+function ActionBarWidgetExtension(): Extension {
   return StateField.define<Tooltip | null>({
     create() {
       return null
@@ -15,8 +16,8 @@ function CompletionWidgetExtension(): Extension {
         return null
       }
       if (transaction.selection) {
-        if (shouldShowCompletionWidget(transaction)) {
-          const tooltip = createCompletionWidget(transaction.state)
+        if (shouldShowActionBarWidget(transaction)) {
+          const tooltip = createActionBarWidget(transaction.state)
           return tooltip?.pos !== value?.pos ? tooltip : value
         }
         return null
@@ -27,7 +28,7 @@ function CompletionWidgetExtension(): Extension {
   })
 }
 
-function createCompletionWidget(state: EditorState): Tooltip {
+function createActionBarWidget(state: EditorState): Tooltip {
   const { selection } = state
   const lineFrom = state.doc.lineAt(selection.main.from)
   const lineTo = state.doc.lineAt(selection.main.to)
@@ -44,15 +45,14 @@ function createCompletionWidget(state: EditorState): Tooltip {
       dom.style.background = 'transparent'
       // dom.style.border = 'none'
       const root = ReactDOM.createRoot(dom)
-      dom.onclick = (e) => e.stopImmediatePropagation()
-      root.render(<CompletionWidget />)
+      dom.onclick = e => e.stopImmediatePropagation()
+      root.render(<ActionBarWidget />)
       return { dom }
     }
   }
 }
 
-
-function shouldShowCompletionWidget(transaction: Transaction): boolean {
+function shouldShowActionBarWidget(transaction: Transaction): boolean {
   return (
     !!transaction.selection &&
     !transaction.selection.main.empty &&
@@ -61,13 +61,4 @@ function shouldShowCompletionWidget(transaction: Transaction): boolean {
   )
 }
 
-// function _shouldShowCompletionWidget(update: ViewUpdate): boolean {
-//   return (
-//     !!update.selectionSet &&
-//     !update.state.selection.main.empty &&
-//     transaction.isUserEvent('select') &&
-//     !transaction.isUserEvent('select.search')
-//   )
-// }
-
-export { CompletionWidgetExtension }
+export { ActionBarWidgetExtension }

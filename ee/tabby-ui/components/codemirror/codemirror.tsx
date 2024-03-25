@@ -56,11 +56,11 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       background: 'hsl(var(--background))'
     },
     '&.cm-focused .cm-selectionLayer .cm-selectionBackground': {
-      backgroundColor: 'hsl(var(--cm-selection-bg)) !important',
+      backgroundColor: 'hsl(var(--cm-selection-bg)) !important'
     },
     '.cm-selectionLayer .cm-selectionBackground': {
-      backgroundColor: 'hsl(var(--cm-selection-bg)) !important',
-    },
+      backgroundColor: 'hsl(var(--cm-selection-bg)) !important'
+    }
   })
   const extensions = [
     defaultThemeOption,

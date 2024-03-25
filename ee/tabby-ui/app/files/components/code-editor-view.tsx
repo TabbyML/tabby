@@ -1,6 +1,6 @@
 import React from 'react'
 import { Extension } from '@codemirror/state'
-import { EditorView, drawSelection } from '@codemirror/view'
+import { drawSelection, EditorView } from '@codemirror/view'
 import { useTheme } from 'next-themes'
 
 import { TFileMeta } from '@/lib/types'
@@ -8,7 +8,8 @@ import CodeEditor from '@/components/codemirror/codemirror'
 import { markTagNameExtension } from '@/components/codemirror/name-tag-extension'
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
-import { CompletionWidgetExtension } from './completion-widget/completion-widget-extension'
+
+import { ActionBarWidgetExtension } from './action-bar-widget/action-bar-widget-extension'
 
 interface CodeEditorViewProps {
   value: string
@@ -39,7 +40,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
         }
       }),
       drawSelection(),
-      CompletionWidgetExtension()
+      ActionBarWidgetExtension()
     ]
     if (value && tags) {
       result.push(
