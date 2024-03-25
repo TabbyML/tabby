@@ -17,7 +17,7 @@ export const ActionBarWidget: React.FC<CompletionWidgetProps> = ({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 px-2 py-1 rounded-md bg-background border rounded-md',
+        'flex items-center gap-2 rounded-md border bg-background px-2 py-1',
         className
       )}
       {...props}
