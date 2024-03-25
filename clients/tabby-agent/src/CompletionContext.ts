@@ -9,6 +9,14 @@ export type CompletionRequest = {
   indentation?: string;
   clipboard?: string;
   manually?: boolean;
+  workspace?: string;
+  git?: {
+    root: string;
+    remotes: {
+      name: string;
+      url: string;
+    }[];
+  };
 };
 
 export type CompletionResponseChoice = {
@@ -47,6 +55,15 @@ export class CompletionContext {
 
   clipboard: string;
 
+  workspace?: string;
+  git?: {
+    root: string;
+    remotes: {
+      name: string;
+      url: string;
+    }[];
+  };
+
   // "default": the cursor is at the end of the line
   // "fill-in-line": the cursor is not at the end of the line, except auto closed characters
   //   In this case, we assume the completion should be a single line, so multiple lines completion will be dropped.
@@ -68,6 +85,9 @@ export class CompletionContext {
     this.currentLineSuffix = this.suffixLines[0] ?? "";
 
     this.clipboard = request.clipboard?.trim() ?? "";
+
+    this.workspace = request.workspace;
+    this.git = request.git;
 
     const lineEnd = isAtLineEndExcludingAutoClosedChar(this.suffixLines[0] ?? "");
     this.mode = lineEnd ? "default" : "fill-in-line";
