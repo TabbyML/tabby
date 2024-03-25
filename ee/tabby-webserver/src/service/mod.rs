@@ -182,7 +182,7 @@ impl WorkerService for ServerContext {
         } else if self.completion.unregister(worker_addr).await {
             WorkerKind::Completion
         } else {
-            warn!("Trying to unregister a worker missing in registry");
+            warn!("Trying to unregister a worker missing in registry {}", worker_addr);
             return;
         };
 

@@ -3,7 +3,10 @@
 ## Features
 * Added the --chat-device flag to override a device used to run chat model.
 
+# v0.9.2 [UNRELEASED]
+
 ## Fixes and Improvements
+* Fix worker unregisteration misfunctioning caused by unmatched address.
 
 # v0.9.1
 

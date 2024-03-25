@@ -140,7 +140,7 @@ pub struct RegisterWorkerRequest {
 }
 
 impl RegisterWorkerRequest {
-    pub fn into_worker(self, addr: IpAddr) -> Worker {
+    pub fn create_worker(self, addr: IpAddr) -> Worker {
         let port = self.port;
         let addr = format!("http://{addr}:{port}");
         Worker {
