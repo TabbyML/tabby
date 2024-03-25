@@ -38,7 +38,10 @@ use self::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
 };
-use crate::schema::auth::{JWTPayload, OAuthCredential, OAuthProvider};
+use crate::schema::{
+    auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    job::JobStats,
+};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
@@ -219,6 +222,7 @@ impl Query {
     async fn job_runs(
         ctx: &Context,
         ids: Option<Vec<ID>>,
+        jobs: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -234,11 +238,15 @@ impl Query {
                 Ok(ctx
                     .locator
                     .job()
-                    .list_job_runs(ids, after, before, first, last)
+                    .list_job_runs(ids, jobs, after, before, first, last)
                     .await?)
             },
         )
         .await
+    }
+
+    async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> FieldResult<JobStats> {
+        Ok(ctx.locator.job().compute_job_run_stats(jobs).await?)
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
@@ -318,6 +326,10 @@ impl Query {
 
     async fn license(ctx: &Context) -> Result<LicenseInfo> {
         ctx.locator.license().read_license().await
+    }
+
+    async fn jobs() -> Result<Vec<String>> {
+        Ok(vec!["sync".into(), "index".into()])
     }
 }
 

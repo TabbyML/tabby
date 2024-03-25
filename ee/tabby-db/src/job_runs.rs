@@ -61,17 +61,26 @@ impl DbConn {
     pub async fn list_job_runs_with_filter(
         &self,
         ids: Option<Vec<i32>>,
+        jobs: Option<Vec<String>>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<JobRunDAO>> {
-        let condition = if let Some(ids) = ids {
+        let mut conditions = vec![];
+
+        if let Some(ids) = ids {
             let ids: Vec<String> = ids.iter().map(i32::to_string).collect();
             let ids = ids.join(", ");
-            Some(format!("id in ({ids})"))
-        } else {
-            None
-        };
+            conditions.push(format!("id in ({ids})"));
+        }
+
+        if let Some(jobs) = jobs {
+            let jobs: Vec<String> = jobs.iter().map(|s| format!("{s:?}")).collect();
+            let jobs = jobs.join(", ");
+            conditions.push(format!("job in ({jobs})"));
+        }
+
+        let condition = (!conditions.is_empty()).then_some(conditions.join(" AND "));
         let job_runs: Vec<JobRunDAO> = query_paged_as!(
             JobRunDAO,
             "job_runs",

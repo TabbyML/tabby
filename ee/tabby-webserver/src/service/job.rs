@@ -4,7 +4,7 @@ use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
-    job::{JobRun, JobService},
+    job::{JobRun, JobService, JobStats},
     Result,
 };
 
@@ -37,6 +37,7 @@ impl JobService for DbConn {
     async fn list_job_runs(
         &self,
         ids: Option<Vec<ID>>,
+        jobs: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -45,11 +46,36 @@ impl JobService for DbConn {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let rowids = ids.map(|ids| ids.into_iter().filter_map(|x| x.as_rowid().ok()).collect());
         Ok(self
-            .list_job_runs_with_filter(rowids, limit, skip_id, backwards)
+            .list_job_runs_with_filter(rowids, jobs, limit, skip_id, backwards)
             .await?
             .into_iter()
             .map(Into::into)
             .collect())
+    }
+
+    async fn compute_job_run_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats> {
+        let jobs = self
+            .list_job_runs(None, jobs, None, None, None, None)
+            .await?;
+        let mut stats = JobStats {
+            success: 0,
+            failed: 0,
+            pending: 0,
+        };
+
+        for job in jobs {
+            if job.finished_at.is_none() {
+                stats.pending += 1;
+                continue;
+            }
+            if job.exit_code == Some(0) {
+                stats.success += 1;
+                continue;
+            }
+            stats.failed += 1;
+        }
+
+        Ok(stats)
     }
 }
 
@@ -71,7 +97,7 @@ mod tests {
         svc.complete_job_run(&id, 0).await.unwrap();
 
         let job = svc
-            .list_job_runs(None, None, None, None, None)
+            .list_job_runs(None, None, None, None, None, None)
             .await
             .unwrap();
         let job = job.first().unwrap();
@@ -81,7 +107,7 @@ mod tests {
         assert_eq!(job.exit_code, Some(0));
 
         let job = svc
-            .list_job_runs(Some(vec![id]), None, None, None, None)
+            .list_job_runs(Some(vec![id]), None, None, None, None, None)
             .await
             .unwrap();
         assert_eq!(job.len(), 1)
