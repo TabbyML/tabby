@@ -12,6 +12,7 @@ use axum::{
     response::IntoResponse,
     TypedHeader,
 };
+
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
 use tabby_common::{api::code::SearchResponse, config::RepositoryConfig};
@@ -63,12 +64,13 @@ async fn handle_socket(
         ConnectHubRequest::Worker(worker) => {
             let worker = worker.create_worker(addr);
             let addr = worker.addr.clone();
-            state
-                .worker()
-                .register_worker(worker)
-                .await
-                .unwrap();
-            Some(addr)
+            match state.worker().register_worker(worker).await {
+                Ok(_) => Some(addr),
+                Err(err) => {
+                    warn!("Failed to register worker: {}", err);
+                    return;
+                }
+            }
         }
     };
     let imp = Arc::new(HubImpl::new(state.clone(), addr));

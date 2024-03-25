@@ -30,8 +30,8 @@ pub enum RegisterWorkerError {
     #[error("Invalid token")]
     InvalidToken(String),
 
-    #[error("Feature requires enterprise license")]
-    RequiresEnterpriseLicense,
+    #[error("Feature requires team or enterprise license")]
+    RequiresTeamOrEnterpriseLicense,
 
     #[error("Each hub client should only calls register_worker once")]
     RegisterWorkerOnce,

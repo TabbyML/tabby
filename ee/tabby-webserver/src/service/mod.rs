@@ -162,10 +162,10 @@ impl WorkerService for ServerContext {
             .license
             .read_license()
             .await
-            .map_err(|_| RegisterWorkerError::RequiresEnterpriseLicense)?;
+            .map_err(|_| RegisterWorkerError::RequiresTeamOrEnterpriseLicense)?;
 
         if !license.check_node_limit(count_workers + 1) {
-            return Err(RegisterWorkerError::RequiresEnterpriseLicense);
+            return Err(RegisterWorkerError::RequiresTeamOrEnterpriseLicense);
         }
 
         let worker = worker_group.register(worker).await;
@@ -182,7 +182,10 @@ impl WorkerService for ServerContext {
         } else if self.completion.unregister(worker_addr).await {
             WorkerKind::Completion
         } else {
-            warn!("Trying to unregister a worker missing in registry {}", worker_addr);
+            warn!(
+                "Trying to unregister a worker missing in registry {}",
+                worker_addr
+            );
             return;
         };
 
