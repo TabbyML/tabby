@@ -19,7 +19,7 @@ use tabby_common::{
     config::RepositoryConfig,
 };
 use tarpc::server::{BaseChannel, Channel};
-use tracing::{error, warn};
+use tracing::{warn};
 use websocket::WebSocketTransport;
 
 use crate::schema::ServiceLocator;

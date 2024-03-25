@@ -92,16 +92,6 @@ pub struct Segments {
     pub clipboard: Option<String>,
 }
 
-impl Event {
-    pub fn into_json_string(self) -> anyhow::Result<String> {
-        let content = serdeconv::to_json_string(&Log {
-            ts: timestamp(),
-            event: self,
-        })?;
-        Ok(content)
-    }
-}
-
 pub trait EventLogger: Send + Sync {
     fn log(&self, e: Event);
 }

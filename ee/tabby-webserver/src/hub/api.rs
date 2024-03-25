@@ -8,13 +8,13 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{
         code::{CodeSearch, CodeSearchError, SearchResponse},
-        event::{Event, EventLogger, LogEventRequest},
+        event::{Event, EventLogger},
     },
     config::{RepositoryAccess, RepositoryConfig},
 };
 use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
-use tracing::error;
+
 
 use super::websocket::WebSocketTransport;
 use crate::schema::worker::Worker;

@@ -103,7 +103,10 @@ struct EventService;
 
 impl EventLogger for EventService {
     fn log(&self, e: Event) {
-        let json = match e.into_json_string() {
+        let json = match serdeconv::to_json_string(&Log {
+            ts: timestamp(),
+            event: self,
+        }) {
             Ok(json) => json,
             Err(err) => {
                 error!("Failed to serialize event into json {}", err);
