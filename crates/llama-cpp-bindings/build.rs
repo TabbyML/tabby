@@ -21,8 +21,35 @@ fn main() {
 
 fn build_llama_cpp() {
     let mut config = Config::new("llama.cpp");
-    config.define("LLAMA_NATIVE", "OFF");
-    config.define("INS_ENB", "ON");
+
+    if cfg!(not(feature = "native")) {
+        config.define("LLAMA_NATIVE", "OFF");
+    }
+
+    if cfg!(feature = "avx") {
+        config.define("LLAMA_AVX2", "ON");
+    }
+
+    if cfg!(not(feature = "avx2")) {
+        config.define("LLAMA_AVX2", "OFF");
+    }
+
+    if cfg!(feature = "avx_512") {
+        config.define("LLAMA_AVX512", "ON");
+    }
+
+    if cfg!(feature = "avx_512_vbmi") {
+        config.define("LLAMA_AVX512_VBMI", "ON");
+    }
+
+    if cfg!(feature = "avx_512_vnni") {
+        config.define("LLAMA_AVX512_VNNI", "ON");
+    }
+
+    if cfg!(not(feature = "fma")) {
+        config.define("LLAMA_FMA", "OFF");
+    }
+
     if cfg!(not(debug_assertions)) {
         config.define("CMAKE_BUILD_TYPE", "Release");
     }
