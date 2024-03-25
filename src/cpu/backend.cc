@@ -81,7 +81,7 @@ namespace ctranslate2 {
 #endif
 
 #ifdef CT2_WITH_RUY
-      if (is_int8) {
+      if (is_int8 || compute_type == ComputeType::FLOAT32) {
         return GemmBackend::RUY;
       }
 #endif
