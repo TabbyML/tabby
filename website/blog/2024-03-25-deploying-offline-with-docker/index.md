@@ -5,7 +5,7 @@ tags: [deployment]
 
 import noInternetImg from './no-internet.png';
 
-# Deploying offline with Docker
+# Deploy Tabby in Air-Gapped Environment
 
 <div align="center">
   <img src={noInternetImg} alt="No internet access" style={{ width: 400 }} />
@@ -72,4 +72,4 @@ Once the container is running successfully, you should see the CLI output simila
 
 ![Tabby Cli Output](./cli-output.png)
 
-If you encounter any further issues or have questions, feel free to explore our [community](https://slack.tabbyml.com/). Our friendly Tabby enthusiasts are always ready to lend a helping paw and guide you to the answers you seek! 😸💡
+If you encounter any further issues or have questions, consider join our [slack community](https://links.tabbyml.com/join-slack). Our friendly Tabby enthusiasts are always ready to lend a helping paw and guide you to the answers you seek! 😸💡
