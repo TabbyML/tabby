@@ -5,7 +5,7 @@ tags: [deployment]
 
 import noInternetImg from './no-internet.png';
 
-# Deploy Tabby in Air-Gapped Environment
+# Deploy Tabby in Air-Gapped Environment with Docker
 
 <div align="center">
   <img src={noInternetImg} alt="No internet access" style={{ width: 400 }} />
