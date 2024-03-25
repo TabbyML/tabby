@@ -12,7 +12,6 @@ use axum::{
     response::IntoResponse,
     TypedHeader,
 };
-
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
 use tabby_common::{api::code::SearchResponse, config::RepositoryConfig};
