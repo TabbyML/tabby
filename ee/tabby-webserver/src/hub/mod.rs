@@ -100,16 +100,8 @@ impl Drop for HubImpl {
 
 #[tarpc::server]
 impl Hub for Arc<HubImpl> {
-    async fn log_event(self, _context: tarpc::context::Context, content: String) {
-        let json = match serde_json::from_str::<Event>(&content) {
-            Ok(x) => x,
-            Err(err) => {
-                error!("Failed to parse Event {}", err);
-                return;
-            }
-        };
-
-        self.ctx.logger().log(json)
+    async fn log_event(self, _context: tarpc::context::Context, e: Event) {
+        self.ctx.logger().log(e)
     }
 
     async fn search(

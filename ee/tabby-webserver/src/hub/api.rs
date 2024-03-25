@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{
         code::{CodeSearch, CodeSearchError, SearchResponse},
-        event::{Event, EventLogger},
+        event::{Event, EventLogger, LogEventRequest},
     },
     config::{RepositoryAccess, RepositoryConfig},
 };
@@ -22,7 +22,7 @@ pub use crate::schema::worker::WorkerKind;
 
 #[tarpc::service]
 pub trait Hub {
-    async fn log_event(content: String);
+    async fn log_event(e: Event);
 
     async fn search(q: String, limit: usize, offset: usize) -> SearchResponse;
 
@@ -73,17 +73,9 @@ pub async fn create_worker_client(
 
 impl EventLogger for WorkerClient {
     fn log(&self, e: Event) {
-        let json = match e.into_json_string() {
-            Ok(json) => json,
-            Err(err) => {
-                error!("Failed to serialize event into json {}", err);
-                return;
-            }
-        };
-
         let context = tarpc::context::current();
         let client = self.0.clone();
-        tokio::spawn(async move { client.log_event(context, json).await });
+        tokio::spawn(async move { client.log_event(context, e).await });
     }
 }
 

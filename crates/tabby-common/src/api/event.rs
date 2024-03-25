@@ -17,19 +17,19 @@ pub struct LogEventRequest {
     pub elapsed: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Choice {
     pub index: u32,
     pub text: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectKind {
     Line,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Event {
     View {
@@ -77,13 +77,13 @@ pub enum Event {
     },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
     pub role: String,
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Segments {
     pub prefix: String,
     #[serde(skip_serializing_if = "Option::is_none")]
