@@ -3,7 +3,7 @@ use std::{path::PathBuf, time::Duration};
 use chrono::Utc;
 use lazy_static::lazy_static;
 use tabby_common::{
-    api::event::{Event, EventLogger},
+    api::event::{EventLogger, LogEntry},
     path,
 };
 use tokio::{
@@ -102,11 +102,8 @@ impl EventWriter {
 struct EventService;
 
 impl EventLogger for EventService {
-    fn log(&self, e: Event) {
-        let json = match serdeconv::to_json_string(&Log {
-            ts: timestamp(),
-            event: self,
-        }) {
+    fn log(&self, x: LogEntry) {
+        let json = match serdeconv::to_json_string(&x) {
             Ok(json) => json,
             Err(err) => {
                 error!("Failed to serialize event into json {}", err);

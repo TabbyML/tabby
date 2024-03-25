@@ -92,14 +92,19 @@ pub struct Segments {
     pub clipboard: Option<String>,
 }
 
-pub trait EventLogger: Send + Sync {
-    fn log(&self, e: Event);
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Log {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct LogEntry {
     pub ts: u128,
     pub event: Event,
+}
+
+impl From<Event> for LogEntry {
+    fn from(event: Event) -> Self {
+        Self {
+            ts: timestamp(),
+            event,
+        }
+    }
 }
 
 fn timestamp() -> u128 {
@@ -109,4 +114,8 @@ fn timestamp() -> u128 {
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
         .as_millis()
+}
+
+pub trait EventLogger: Send + Sync {
+    fn log(&self, x: LogEntry);
 }
