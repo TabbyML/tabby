@@ -159,7 +159,38 @@ namespace ctranslate2 {
         return vmaxvq_f32(a);
       }
 
-    };
+      static inline value_type round(value_type v) {
+#ifdef __aarch64__
+        return vrndiq_f32(v);
+#else
+        float temp[4] = {std::nearbyintf(v[0]), std::nearbyintf(v[1]), std::nearbyintf(v[2]), std::nearbyintf(v[3])};
+        return load(temp);
+#endif
+      }
 
-  }
+      static inline void convert_and_store(value_type v, int8_t *a, dim_t count) {
+        //convert float32x4_t to int32x4_t
+        auto i32x4 = vcvtq_s32_f32(v);
+        //then convert to int16x4_t
+        auto i16x4 = vqmovn_s32(i32x4);
+        //finally convert to int8x4_t
+        auto i8x8 = vqmovn_s16(vcombine_s16(i16x4, vdup_n_s16(0)));
+        int8_t tmp[8];
+        vst1_s8(tmp, i8x8);
+        std::copy(tmp, tmp + count, a);
+      }
+
+      static inline void convert_and_store(value_type v, uint8_t *a, dim_t count) {
+        //convert float32x4_t to uint32x4_t
+        auto u32x4 = vcvtq_u32_f32(v);
+        //then convert to uint16x4_t
+        auto u16x4 = vqmovn_u32(u32x4);
+        //finally convert to uint8x8_t
+        auto u8x8 = vqmovn_u16(vcombine_u16(u16x4, vdup_n_u16(0)));
+        uint8_t tmp[8];
+        vst1_u8(tmp, u8x8);
+        std::copy(tmp, tmp + count, a);
+      }
+  };
+}
 }

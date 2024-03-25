@@ -9,7 +9,11 @@ namespace ctranslate2 {
     void Conv1D::compute(const StorageView& input,
                          const StorageView& weight,
                          const StorageView* bias,
-                         StorageView& output) const {
+                         StorageView& output,
+                         const StorageView* qscale) const {
+      if (qscale)
+        throw std::runtime_error("Quantization is not supported in this Conv1D implementation");
+
 #ifndef CT2_WITH_CUDNN
       (void)input;
       (void)weight;
@@ -144,7 +148,8 @@ namespace ctranslate2 {
     Conv1D::compute<Device::CUDA, T>(const StorageView& input,          \
                                      const StorageView& weight,         \
                                      const StorageView* bias,           \
-                                     StorageView& output) const;
+                                     StorageView& output,               \
+                                     const StorageView* qscale) const;
 
     DECLARE_IMPL(float)
     DECLARE_IMPL(float16_t)

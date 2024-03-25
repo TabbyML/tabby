@@ -180,6 +180,7 @@ namespace ctranslate2 {
       const ops::Conv1D _conv_op;
       const StorageView& _weight;
       const StorageView* _bias;
+      const StorageView* _qscale;
     };
 
   }

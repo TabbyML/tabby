@@ -220,12 +220,20 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
                     "int8_bfloat16",
                 ):
                     value = value.to("float32").numpy()
+                    # For conv1d layer we need to reshape to 2D before calculating scale
+                    old_shape = None
+                    if len(value.shape) == 3:
+                        old_shape = value.shape
+                        value = value.reshape(value.shape[0], -1)
                     amax = np.amax(np.absolute(value), axis=1)
                     amax[amax == 0] = 127.0
                     scale = 127.0 / amax
                     value *= np.expand_dims(scale, 1)
                     value = np.rint(value)
                     value = value.astype(np.int8)
+                    # reshape back to old shape
+                    if old_shape:
+                        value = value.reshape(old_shape)
                     scale = NumpyVariable(scale)
                     value = NumpyVariable(value)
                 elif quantization in ("float16", "bfloat16", "float32"):

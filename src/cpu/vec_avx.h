@@ -189,6 +189,17 @@ namespace ctranslate2 {
         return reduce_m256(a, max);
       }
 
+      static inline value_type round(value_type a) {
+          return _mm256_round_ps(a, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC);
+      }
+
+      template<typename T>
+      static void convert_and_store(value_type v, T* a, dim_t count) {
+        auto i32 = _mm256_cvttps_epi32(v);
+        int32_t  tmp[8];
+        _mm256_storeu_si256(reinterpret_cast<__m256i *>(tmp), i32);
+        std::copy(tmp, tmp + count, a);
+      }
     };
 
   }

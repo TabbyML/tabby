@@ -435,7 +435,8 @@ namespace ctranslate2 {
                    dim_t dilation)
       : _conv_op(stride, padding, dilation)
       , _weight(model.get_variable(scope + "/weight"))
-      , _bias(model.get_variable_if_exists(scope + "/bias")) {
+      , _bias(model.get_variable_if_exists(scope + "/bias"))
+      , _qscale(model.get_variable_if_exists(scope + "/weight_scale")) {
     }
 
     DataType Conv1D::output_type() const {
@@ -452,9 +453,9 @@ namespace ctranslate2 {
 
     void Conv1D::operator()(const StorageView& input, StorageView& output) const {
       if (_bias)
-        _conv_op(input, _weight, *_bias, output);
+        _conv_op(input, _weight, *_bias, output, _qscale);
       else
-        _conv_op(input, _weight, output);
+        _conv_op(input, _weight, output, _qscale);
     }
 
   }

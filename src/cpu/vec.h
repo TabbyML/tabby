@@ -140,6 +140,14 @@ namespace ctranslate2 {
         return a;
       }
 
+      static inline float round(float a) {
+          return std::nearbyintf(a);
+      }
+
+      template<typename U>
+      static inline void convert_and_store(float v, U* a, dim_t count) {
+          *a = v;
+      }
     };
 
     template <typename T, CpuIsa ISA = CpuIsa::GENERIC>

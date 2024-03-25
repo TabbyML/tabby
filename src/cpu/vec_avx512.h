@@ -143,6 +143,19 @@ namespace ctranslate2 {
         return _mm512_reduce_max_ps(a);
       }
 
+      static inline value_type round(value_type a) {
+          return _mm512_roundscale_ps(a, _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC);
+      }
+
+      static inline void convert_and_store(value_type v, int8_t* a, const dim_t count) {
+          auto i32 = _mm512_cvttps_epi32(v);
+          _mm512_mask_cvtsepi32_storeu_epi8(a,  get_length_mask(count), i32);
+      }
+
+      static inline void convert_and_store(value_type v, uint8_t* a, const dim_t count) {
+          auto u32 = _mm512_cvttps_epu32(v);
+          _mm512_mask_cvtusepi32_storeu_epi8(a,  get_length_mask(count), u32);
+      }
     };
 
   }

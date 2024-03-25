@@ -45,6 +45,7 @@ class LinearSpec(model_spec.LayerSpec):
 class Conv1DSpec(model_spec.LayerSpec):
     def __init__(self):
         self.weight = None
+        self.weight_scale = model_spec.OPTIONAL
         self.bias = model_spec.OPTIONAL
 
 

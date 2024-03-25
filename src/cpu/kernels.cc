@@ -572,14 +572,35 @@ namespace ctranslate2 {
 
       const auto amax = reduce_amax<TARGET_ISA>(x, depth);
       const auto scale = (amax != 0.f ? int8_max / amax : 1.f);
+      using VecType = Vec<float, TARGET_ISA>;
+      const dim_t remaining = depth % VecType::width;
+      depth -= remaining;
+      auto vec_a_scale = VecType::load(scale);
 
       if (shift_to_uint8) {
+        auto vec_int8_min = VecType::load(int8_min);
         auto* dst = reinterpret_cast<uint8_t*>(y);
-        for (dim_t j = 0; j < depth; ++j)
-          dst[j] = round_func(x[j] * scale - int8_min);
+        for (dim_t j = 0; j < depth; j += VecType::width) {
+          auto v = VecType::load(x + j);
+          v = round_func(VecType::sub(VecType::mul(v, vec_a_scale), vec_int8_min));
+          VecType::convert_and_store(v, dst + j, VecType::width);
+        }
+        if (remaining) {
+          auto v = VecType::load(x + depth, remaining);
+          v = round_func(VecType::sub(VecType::mul(v, vec_a_scale), vec_int8_min));
+          VecType::convert_and_store(v, dst + depth, remaining);
+        }
       } else {
-        for (dim_t j = 0; j < depth; ++j)
-          y[j] = round_func(x[j] * scale);
+        for (dim_t j = 0; j < depth; j += VecType::width) {
+          auto v = VecType::load(x + j);
+          v = round_func(VecType::mul(v, vec_a_scale));
+          VecType::convert_and_store(v, y + j, VecType::width);
+        }
+        if (remaining) {
+          auto v = VecType::load(x + depth, remaining);
+          v = round_func(VecType::mul(v, vec_a_scale));
+          VecType::convert_and_store(v, y + depth, remaining);
+        }
       }
 
       return scale;
@@ -612,7 +633,7 @@ namespace ctranslate2 {
                                  bool shift_to_uint8,
                                  bool round_before_cast) {
       if (round_before_cast)
-        quantize_s8_batch(x, y, scales, batch_size, depth, shift_to_uint8, std::nearbyintf);
+        quantize_s8_batch(x, y, scales, batch_size, depth, shift_to_uint8, Vec<float, TARGET_ISA>::round);
       else
         quantize_s8_batch(x, y, scales, batch_size, depth, shift_to_uint8, identity());
     }

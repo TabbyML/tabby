@@ -13,11 +13,13 @@ namespace ctranslate2 {
       void operator()(const StorageView& input,
                       const StorageView& weight,
                       const StorageView& bias,
-                      StorageView& output) const;
+                      StorageView& output,
+                      const StorageView* qscale = nullptr) const;
 
       void operator()(const StorageView& input,
                       const StorageView& weight,
-                      StorageView& output) const;
+                      StorageView& output,
+                      const StorageView* qscale = nullptr) const;
 
     private:
       dim_t _stride;
@@ -27,17 +29,20 @@ namespace ctranslate2 {
       void operator()(const StorageView& input,
                       const StorageView& weight,
                       const StorageView* bias,
-                      StorageView& output) const;
+                      StorageView& output,
+                      const StorageView* qscale) const;
 
       template <Device D, typename T>
       void compute(const StorageView& input,
                    const StorageView& weight,
                    const StorageView* bias,
-                   StorageView& output) const;
+                   StorageView& output,
+                   const StorageView* qscale = nullptr) const;
 
-      void compute_with_gemm(const StorageView& input, const StorageView& weight, StorageView& output) const;
+      void compute_with_gemm(const StorageView& input, const StorageView& weight, StorageView& output,
+                             const StorageView* qscale) const;
 
-      void im2col(const StorageView& input, StorageView& output, dim_t kernel_size) const;
+      void im2col_transposed(const StorageView& input, StorageView& output, dim_t kernel_size) const;
     };
 
   }
