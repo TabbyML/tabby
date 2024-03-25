@@ -1,3 +1,8 @@
+enum OAuthProvider {
+  GITHUB
+  GOOGLE
+}
+
 input RequestInvitationInput {
   email: String!
 }
@@ -68,7 +73,8 @@ type Query {
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
-  jobRuns(ids: [ID!], after: String, before: String, first: Int, last: Int): JobRunConnection!
+  jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
+  jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting
   isEmailConfigured: Boolean! @deprecated
   networkSetting: NetworkSetting!
@@ -78,6 +84,7 @@ type Query {
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
   license: LicenseInfo!
+  jobs: [String!]!
 }
 
 input NetworkSettingInput {
@@ -248,9 +255,10 @@ type InvitationEdge {
   cursor: String!
 }
 
-enum OAuthProvider {
-  GITHUB
-  GOOGLE
+type JobStats {
+  success: Int!
+  failed: Int!
+  pending: Int!
 }
 
 type PageInfo {
