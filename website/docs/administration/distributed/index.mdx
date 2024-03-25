@@ -9,7 +9,7 @@ This feature is available in the **Team** and **Enterprise** Plans.
 
 Tabby provides built-in distributed support for multi-node setups. This allows you to scale your Tabby deployment horizontally and distribute the workload across multiple GPU workers.
 
-## Start the Web Server Independently
+## Start the Webserver
 
 Start the web server using the following command:
 
@@ -45,6 +45,7 @@ tabby worker::completion \
 
 After this command executes successfully, you should see the new worker in the `Cluster Information` tab.
 More workers can be added by running the same command on different machines to improve the concurrency of the system.
+Tabby will distribute the workload across all the workers.
 
 <img src={CompletionWorkerUrl} width={720} />
 
