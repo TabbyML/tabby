@@ -216,7 +216,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           }
         }),
       {
-        keepPreviousData: true,
         onError(err) {
           toast.error('Fail to fetch')
         }

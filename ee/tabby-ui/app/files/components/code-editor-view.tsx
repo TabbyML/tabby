@@ -11,7 +11,7 @@ import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
 interface CodeEditorViewProps {
   value: string
-  meta?: TFileMeta
+  meta: TFileMeta | undefined
   language: string
 }
 
