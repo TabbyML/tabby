@@ -4,7 +4,6 @@ tags: [deployment]
 ---
 
 import noInternetImg from './no-internet.png';
-import cliOutputImg from './cli-output.png';
 
 # Deploying offline with Docker
 
