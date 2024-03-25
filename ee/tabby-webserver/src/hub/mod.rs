@@ -15,10 +15,7 @@ use axum::{
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
 use tabby_common::{
-    api::{
-        code::SearchResponse,
-        event::{LogEntry},
-    },
+    api::{code::SearchResponse, event::LogEntry},
     config::RepositoryConfig,
 };
 use tarpc::server::{BaseChannel, Channel};
