@@ -1,4 +1,4 @@
-import { useExperimentalFlagStore } from "./exp-flag-store";
+import { useExperimentalFlagStore } from './exp-flag-store'
 
 const set = useExperimentalFlagStore.setState
 

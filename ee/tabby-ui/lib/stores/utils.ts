@@ -18,8 +18,8 @@ export const createStoreWithHydrated = ({
   storeName,
   excludeFromState
 }: {
-  initialState: Record<string, any>;
-  storeName: string;
+  initialState: Record<string, any>
+  storeName: string
   excludeFromState?: string[]
 }) => {
   return create<typeof initialState>()(

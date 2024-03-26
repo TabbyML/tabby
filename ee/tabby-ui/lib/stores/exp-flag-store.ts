@@ -1,4 +1,4 @@
-import { createStoreWithHydrated } from "./utils";
+import { createStoreWithHydrated } from './utils'
 
 export const useExperimentalFlagStore = createStoreWithHydrated({
   initialState: {
