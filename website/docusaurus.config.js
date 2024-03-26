@@ -55,7 +55,7 @@ const config = {
             'https://github.com/TabbyML/tabby/edit/main/website',
           admonitions: {
             tag: ':::',
-            keywords: ['note', 'tip', 'info', 'caution', 'danger', 'subscription'],
+            keywords: ['note', 'tip', 'info', 'caution', 'warning', 'danger', 'subscription'],
           },
         },
         api: {
