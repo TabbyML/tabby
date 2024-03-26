@@ -10,7 +10,8 @@ pub use oauth_credential::OAuthCredentialDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{
-    query, query_scalar, sqlite::SqliteQueryResult, Pool, Sqlite, SqlitePool, Type, Value, ValueRef,
+    database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Decode, Encode, Pool,
+    Sqlite, SqlitePool, Type, Value, ValueRef,
 };
 pub use users::UserDAO;
 
@@ -187,6 +188,72 @@ impl DbConn {
     }
 }
 
+pub trait DbNullable:
+    for<'a> Decode<'a, Sqlite> + for<'a> Encode<'a, Sqlite> + Type<Sqlite>
+{
+}
+impl DbNullable for DateTimeUtc {}
+
+#[derive(Default)]
+pub struct DbOption<T>(Option<T>)
+where
+    T: DbNullable;
+
+impl<T> Type<Sqlite> for DbOption<T>
+where
+    T: Type<Sqlite> + DbNullable,
+{
+    fn type_info() -> <Sqlite as sqlx::Database>::TypeInfo {
+        T::type_info()
+    }
+}
+
+impl<'a, T> Decode<'a, Sqlite> for DbOption<T>
+where
+    T: DbNullable,
+{
+    fn decode(
+        value: <Sqlite as HasValueRef<'a>>::ValueRef,
+    ) -> std::prelude::v1::Result<Self, sqlx::error::BoxDynError> {
+        if value.is_null() {
+            Ok(Self(None))
+        } else {
+            Ok(Self(Some(T::decode(value)?)))
+        }
+    }
+}
+
+impl<T, F> From<Option<F>> for DbOption<T>
+where
+    T: From<F> + DbNullable,
+{
+    fn from(value: Option<F>) -> Self {
+        DbOption(value.map(|v| T::from(v)))
+    }
+}
+
+impl<T> DbOption<T>
+where
+    T: DbNullable,
+{
+    pub fn into_option<V>(self) -> Option<V>
+    where
+        T: Into<V>,
+    {
+        self.0.map(Into::into)
+    }
+}
+
+impl<T> Clone for DbOption<T>
+where
+    T: Clone + DbNullable,
+{
+    fn clone(&self) -> Self {
+        self.0.clone().into()
+    }
+}
+
+#[derive(Default, Clone)]
 pub struct DateTimeUtc(DateTime<Utc>);
 
 impl From<DateTime<Utc>> for DateTimeUtc {
@@ -195,9 +262,15 @@ impl From<DateTime<Utc>> for DateTimeUtc {
     }
 }
 
-impl<'a> sqlx::Decode<'a, Sqlite> for DateTimeUtc {
+impl From<DateTimeUtc> for DateTime<Utc> {
+    fn from(val: DateTimeUtc) -> Self {
+        *val
+    }
+}
+
+impl<'a> Decode<'a, Sqlite> for DateTimeUtc {
     fn decode(
-        value: <Sqlite as sqlx::database::HasValueRef<'a>>::ValueRef,
+        value: <Sqlite as HasValueRef<'a>>::ValueRef,
     ) -> std::prelude::v1::Result<Self, sqlx::error::BoxDynError> {
         let time: NaiveDateTime = value.to_owned().decode();
         Ok(time.into())
@@ -210,7 +283,7 @@ impl Type<Sqlite> for DateTimeUtc {
     }
 }
 
-impl<'a> sqlx::Encode<'a, Sqlite> for DateTimeUtc {
+impl<'a> Encode<'a, Sqlite> for DateTimeUtc {
     fn encode_by_ref(
         &self,
         buf: &mut <Sqlite as sqlx::database::HasArguments<'a>>::ArgumentBuffer,

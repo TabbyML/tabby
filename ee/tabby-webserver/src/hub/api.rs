@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{
         code::{CodeSearch, CodeSearchError, SearchResponse},
-        event::RawEventLogger,
+        event::{EventLogger, LogEntry},
     },
     config::{RepositoryAccess, RepositoryConfig},
 };
@@ -21,7 +21,7 @@ pub use crate::schema::worker::WorkerKind;
 
 #[tarpc::service]
 pub trait Hub {
-    async fn log_event(content: String);
+    async fn write_log(x: LogEntry);
 
     async fn search(q: String, limit: usize, offset: usize) -> SearchResponse;
 
@@ -70,12 +70,11 @@ pub async fn create_worker_client(
     WorkerClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
 }
 
-impl RawEventLogger for WorkerClient {
-    fn log(&self, content: String) {
+impl EventLogger for WorkerClient {
+    fn write(&self, x: LogEntry) {
         let context = tarpc::context::current();
         let client = self.0.clone();
-
-        tokio::spawn(async move { client.log_event(context, content).await });
+        tokio::spawn(async move { client.write_log(context, x).await });
     }
 }
 
@@ -140,7 +139,7 @@ pub struct RegisterWorkerRequest {
 }
 
 impl RegisterWorkerRequest {
-    pub fn into_worker(self, addr: IpAddr) -> Worker {
+    pub fn create_worker(self, addr: IpAddr) -> Worker {
         let port = self.port;
         let addr = format!("http://{addr}:{port}");
         Worker {

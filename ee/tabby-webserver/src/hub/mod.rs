@@ -14,7 +14,10 @@ use axum::{
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
-use tabby_common::{api::code::SearchResponse, config::RepositoryConfig};
+use tabby_common::{
+    api::{code::SearchResponse, event::LogEntry},
+    config::RepositoryConfig,
+};
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
 use websocket::WebSocketTransport;
@@ -61,12 +64,15 @@ async fn handle_socket(
     let addr = match req {
         ConnectHubRequest::Scheduler => None,
         ConnectHubRequest::Worker(worker) => {
-            state
-                .worker()
-                .register_worker(worker.into_worker(addr))
-                .await
-                .unwrap();
-            Some(addr.to_string())
+            let worker = worker.create_worker(addr);
+            let addr = worker.addr.clone();
+            match state.worker().register_worker(worker).await {
+                Ok(_) => Some(addr),
+                Err(err) => {
+                    warn!("Failed to register worker: {}", err);
+                    return;
+                }
+            }
         }
     };
     let imp = Arc::new(HubImpl::new(state.clone(), addr));
@@ -97,8 +103,8 @@ impl Drop for HubImpl {
 
 #[tarpc::server]
 impl Hub for Arc<HubImpl> {
-    async fn log_event(self, _context: tarpc::context::Context, content: String) {
-        self.ctx.logger().log(content)
+    async fn write_log(self, _context: tarpc::context::Context, x: LogEntry) {
+        self.ctx.logger().write(x)
     }
 
     async fn search(

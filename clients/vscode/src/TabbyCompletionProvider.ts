@@ -9,11 +9,14 @@ import {
   TextDocument,
   NotebookDocument,
   NotebookRange,
+  Uri,
+  extensions,
   window,
   workspace,
 } from "vscode";
 import { EventEmitter } from "events";
 import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-agent";
+import { API as GitAPI } from "./types/git";
 import { logger } from "./logger";
 import { agent } from "./agent";
 
@@ -29,6 +32,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
   private onGoingRequestAbortController: AbortController | null = null;
   private loading: boolean = false;
   private displayedCompletion: DisplayedCompletion | null = null;
+  private gitApi: GitAPI | null = null;
 
   public constructor() {
     super();
@@ -38,6 +42,11 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         this.updateConfiguration();
       }
     });
+
+    const gitExt = extensions.getExtension("vscode.git");
+    if (gitExt && gitExt.isActive) {
+      this.gitApi = gitExt.exports.getAPI(1); // version: 1
+    }
   }
 
   public getTriggerMode(): "automatic" | "manual" | "disabled" {
@@ -96,6 +105,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       position: additionalContext.prefix.length + document.offsetAt(position),
       indentation: this.getEditorIndentation(),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
+      workspace: workspace.getWorkspaceFolder(document.uri)?.uri.fsPath,
+      git: this.getGitContext(document.uri),
     };
 
     const abortController = new AbortController();
@@ -281,5 +292,23 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         }
       })
       .join("\n\n");
+  }
+
+  private getGitContext(uri: Uri): CompletionRequest["git"] | undefined {
+    const repo = this.gitApi?.getRepository(uri);
+    if (!repo) {
+      return undefined;
+    }
+    return {
+      root: repo.rootUri.fsPath,
+      remotes: repo.state.remotes
+        .map((remote) => ({
+          name: remote.name,
+          url: remote.fetchUrl ?? remote.pushUrl ?? "",
+        }))
+        .filter((remote) => {
+          return remote.url.length > 0;
+        }),
+    };
   }
 }

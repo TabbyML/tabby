@@ -1,4 +1,6 @@
-use anyhow::Result;
+use std::time::Duration;
+
+use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 
@@ -21,15 +23,21 @@ pub struct UserCompletionDAO {
 impl DbConn {
     pub async fn create_user_completion(
         &self,
+        ts: u128,
         user_id: i32,
         completion_id: String,
         language: String,
     ) -> Result<i32> {
+        let duration = Duration::from_millis(ts as u64);
+        let created_at =
+            DateTime::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
+                .context("Invalid created_at timestamp")?;
         let res = query!(
-            "INSERT INTO user_completions (user_id, completion_id, language) VALUES (?, ?, ?);",
+            "INSERT INTO user_completions (user_id, completion_id, language, created_at) VALUES (?, ?, ?, ?);",
             user_id,
             completion_id,
-            language
+            language,
+            created_at
         )
         .execute(&self.pool)
         .await?;
@@ -38,13 +46,18 @@ impl DbConn {
 
     pub async fn add_to_user_completion(
         &self,
+        ts: u128,
         completion_id: &str,
         views: i64,
         selects: i64,
         dismisses: i64,
     ) -> Result<()> {
-        query!("UPDATE user_completions SET views = views + ?, selects = selects + ?, dismisses = dismisses + ? WHERE completion_id = ?",
-            views, selects, dismisses, completion_id).execute(&self.pool).await?;
+        let duration = Duration::from_millis(ts as u64);
+        let updated_at =
+            DateTime::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
+                .context("Invalid updated_at timestamp")?;
+        query!("UPDATE user_completions SET views = views + ?, selects = selects + ?, dismisses = dismisses + ?, updated_at = ? WHERE completion_id = ?",
+            views, selects, dismisses, updated_at, completion_id).execute(&self.pool).await?;
         Ok(())
     }
 

@@ -1,11 +1,12 @@
 import { EventEmitter } from "events";
+import path from "path";
 import { v4 as uuid } from "uuid";
 import deepEqual from "deep-equal";
 import { deepmerge } from "deepmerge-ts";
 import { getProperty, setProperty, deleteProperty } from "dot-prop";
 import createClient from "openapi-fetch";
 import type { ParseAs } from "openapi-fetch";
-import type { paths as TabbyApi } from "./types/tabbyApi";
+import type { paths as TabbyApi, components as TabbyApiComponents } from "./types/tabbyApi";
 import type {
   Agent,
   AgentStatus,
@@ -321,7 +322,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
   }
 
-  private createSegments(context: CompletionContext): { prefix: string; suffix: string; clipboard?: string } {
+  private async createSegments(context: CompletionContext): Promise<TabbyApiComponents["schemas"]["Segments"] | null> {
     // max lines in prefix and suffix configurable
     const maxPrefixLines = this.config.completion.prompt.maxPrefixLines;
     const maxSuffixLines = this.config.completion.prompt.maxSuffixLines;
@@ -333,13 +334,45 @@ export class TabbyAgent extends EventEmitter implements Agent {
     } else {
       suffix = suffixLines.slice(0, maxSuffixLines).join("");
     }
+    if (isBlank(prefix)) {
+      return null;
+    }
 
+    // filepath
+    let filepathInfo: { filepath: string; git_url?: string } | undefined = undefined;
+    const { filepath, workspace, git } = context;
+    if (git && git.remotes.length > 0) {
+      // find remote url: origin > upstream > first
+      const remote =
+        git.remotes.find((remote) => remote.name === "origin") ||
+        git.remotes.find((remote) => remote.name === "upstream") ||
+        git.remotes[0];
+      if (remote) {
+        filepathInfo = {
+          filepath: path.relative(git.root, filepath),
+          git_url: remote.url,
+        };
+      }
+    }
+    if (!filepathInfo && workspace) {
+      // if filepathInfo is not set by git context, use path relative to workspace
+      filepathInfo = {
+        filepath: path.relative(workspace, filepath),
+      };
+    }
+
+    // clipboard
     let clipboard = undefined;
     const clipboardConfig = this.config.completion.prompt.clipboard;
     if (context.clipboard.length >= clipboardConfig.minChars && context.clipboard.length <= clipboardConfig.maxChars) {
       clipboard = context.clipboard;
     }
-    return { prefix, suffix, clipboard };
+    return {
+      prefix,
+      suffix,
+      ...filepathInfo,
+      clipboard,
+    };
   }
 
   public async initialize(options: AgentInitOptions): Promise<boolean> {
@@ -547,11 +580,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
       } else {
         // Cache miss
         stats.cacheHit = false;
-        const segments = this.createSegments(context);
-        if (isBlank(segments.prefix)) {
-          // Empty prompt
-          stats = undefined; // no need to record stats for empty prompt
-          this.logger.debug("Segment prefix is blank, returning empty completion response");
+        const segments = await this.createSegments(context);
+        if (!segments) {
+          stats = undefined; // no need to record stats when no segments
+          this.logger.debug("Can not build segments, returning empty completion response");
           completionResponse = {
             id: "agent-" + uuid(),
             choices: [],

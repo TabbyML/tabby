@@ -4,7 +4,7 @@
     "title": "Tabby Server",
     "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)\n[![Join Slack](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://links.tabbyml.com/join-slack)\n\nInstall following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).\n* [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)\n* [VIM Extension](https://github.com/TabbyML/tabby/tree/main/clients/vim)\n* [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij) – Install from the [marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)\n",
     "license": { "name": "Apache 2.0", "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE" },
-    "version": "0.9.0-dev"
+    "version": "0.10.0-dev.0"
   },
   "servers": [{ "url": "/", "description": "Server" }],
   "paths": {
@@ -305,6 +305,16 @@
           "suffix": {
             "type": "string",
             "description": "Content that appears after the cursor in the editor window.",
+            "nullable": true
+          },
+          "filepath": {
+            "type": "string",
+            "description": "The relative path of the file that is being edited.\nWhen git_url is set, this is the path of the file in the git repository.\nWhen git_url is empty, this is the path of the file in the workspace.",
+            "nullable": true
+          },
+          "git_url": {
+            "type": "string",
+            "description": "The remote URL of the current git repository.\nLeave this empty if the file is not in a git repository,\nor the git repository does not have a remote URL.",
             "nullable": true
           },
           "clipboard": {
