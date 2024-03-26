@@ -1,12 +1,57 @@
+use std::path::Path;
+
 use async_trait::async_trait;
+use futures::StreamExt;
 use juniper::ID;
+use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
-    repository::{Repository, RepositoryService},
+    repository::{FileEntry, Repository, RepositoryService},
     Result,
 };
+
+fn match_glob(path: &str, glob: &str) -> bool {
+    let glob = glob.to_lowercase();
+    let mut path = &*path.to_lowercase();
+    // Current behavior: Find each "word" (any substring separated by whitespace) appearing in the same order
+    // they were entered within the path. If one cannot be found or they are out-of-order, it will not match.
+    // To change this behavior, change `.split_whitespace()` to `.chars()` to make it match the characters in
+    // order, or `.replace(' ', "").chars()` to do the same while ignoring spaces
+    for part in glob.split_whitespace() {
+        let Some((_, rest)) = path.split_once(part) else {
+            return false;
+        };
+        path = rest;
+    }
+    true
+}
+
+async fn find_glob(base: &Path, glob: &str, limit: usize) -> Result<Vec<FileEntry>, anyhow::Error> {
+    let mut paths = vec![];
+    let mut walk = async_walkdir::WalkDir::new(base);
+    while let Some(path) = walk.next().await.transpose()? {
+        let full_path = path.path();
+        let full_path = full_path.strip_prefix(base)?;
+        let name = full_path.to_string_lossy();
+        if !match_glob(&name, glob) {
+            continue;
+        }
+        paths.push(FileEntry {
+            r#type: if path.file_type().await?.is_dir() {
+                "dir".into()
+            } else {
+                "file".into()
+            },
+            path: name.to_string(),
+        });
+        if paths.len() >= limit {
+            break;
+        }
+    }
+    Ok(paths)
+}
 
 #[async_trait]
 impl RepositoryService for DbConn {
@@ -25,17 +70,38 @@ impl RepositoryService for DbConn {
     }
 
     async fn create_repository(&self, name: String, git_url: String) -> Result<ID> {
-        Ok(self.create_repository(name, git_url).await?.as_id())
+        Ok((self as &DbConn)
+            .create_repository(name, git_url)
+            .await?
+            .as_id())
     }
 
     async fn delete_repository(&self, id: &ID) -> Result<bool> {
-        Ok(self.delete_repository(id.as_rowid()? as i64).await?)
+        Ok((self as &DbConn).delete_repository(id.as_rowid()?).await?)
     }
 
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
-        self.update_repository(id.as_rowid()? as i64, name, git_url)
+        (self as &DbConn)
+            .update_repository(id.as_rowid()?, name, git_url)
             .await?;
         Ok(true)
+    }
+
+    async fn search_files(
+        &self,
+        name: String,
+        path_glob: String,
+        top_n: usize,
+    ) -> Result<Vec<FileEntry>> {
+        if path_glob.trim().is_empty() {
+            return Ok(vec![]);
+        }
+        let git_url = self.get_repository_by_name(name.clone()).await?.git_url;
+        let config = RepositoryConfig::new_named(name, git_url);
+        let matching = find_glob(&config.dir(), &path_glob, top_n)
+            .await
+            .map_err(anyhow::Error::from)?;
+        Ok(matching)
     }
 }
 

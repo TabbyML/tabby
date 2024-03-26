@@ -17,6 +17,11 @@ enum WorkerKind {
   CHAT
 }
 
+type FileEntry {
+  type: String!
+  path: String!
+}
+
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
@@ -81,6 +86,7 @@ type Query {
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
+  repositorySearch(repository: String!, filter: String!): [FileEntry!]!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!

@@ -1,6 +1,9 @@
+
+
 use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
 use juniper_axum::relay::NodeType;
+
 use validator::Validate;
 
 use super::{Context, Result};
@@ -23,6 +26,12 @@ pub struct Repository {
     pub id: juniper::ID,
     pub name: String,
     pub git_url: String,
+}
+
+#[derive(GraphQLObject, Debug)]
+pub struct FileEntry {
+    pub r#type: String,
+    pub path: String,
 }
 
 impl NodeType for Repository {
@@ -54,4 +63,11 @@ pub trait RepositoryService: Send + Sync {
     async fn create_repository(&self, name: String, git_url: String) -> Result<ID>;
     async fn delete_repository(&self, id: &ID) -> Result<bool>;
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
+
+    async fn search_files(
+        &self,
+        name: String,
+        path_glob: String,
+        top_n: usize,
+    ) -> Result<Vec<FileEntry>>;
 }

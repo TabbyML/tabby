@@ -66,6 +66,15 @@ impl DbConn {
             Err(anyhow!("failed to update: repository not found"))
         }
     }
+
+    pub async fn get_repository_by_name(&self, name: String) -> Result<RepositoryDAO> {
+        let repository =
+            sqlx::query_as("SELECT id, name, git_url FROM repositories WHERE name = ?;")
+                .bind(name)
+                .fetch_one(&self.pool)
+                .await?;
+        Ok(repository)
+    }
 }
 
 #[cfg(test)]
@@ -101,5 +110,12 @@ mod tests {
             .unwrap()[0];
         assert_eq!(repository.git_url, "testurl2");
         assert_eq!(repository.name, "test2");
+        assert_eq!(
+            conn.get_repository_by_name("test2".into())
+                .await
+                .unwrap()
+                .git_url,
+            repository.git_url
+        );
     }
 }

@@ -12,6 +12,7 @@ prod-db = ['tabby-db/prod-db']
 anyhow.workspace = true
 argon2 = "0.5.1"
 async-trait.workspace = true
+async-walkdir = "1.0.0"
 axum = { workspace = true, features = ["ws", "headers"] }
 base64 = "0.22.0"
 bincode = "1.3.3"
