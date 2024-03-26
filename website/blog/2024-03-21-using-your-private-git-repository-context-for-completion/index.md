@@ -108,5 +108,6 @@ Alternatively, if you have utilized the code completion with the constructed ind
 ## Additional Notes
 
 Starting from version v0.9, Tabby Enterprise Edition offers a web UI to manage your git repository contexts. Additionally, a scheduler job management system has been integrated, streamlining the process of monitoring scheduler job statuses. With these enhancements, you can save a lot of effort in maintaining yaml config files and docker compose configurations. Furthermore, users can easily monitor visualized indexing results through the built-in code browser.
+In the upcoming v0.10, a new feature will be introduced that enables a direct connection to GitHub, simplifying and securing your access to private GitHub repositories.
 
 For further details and guidance, please refer to our enterprise edition documentation.
