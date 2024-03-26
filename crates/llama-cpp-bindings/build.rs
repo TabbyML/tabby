@@ -94,7 +94,11 @@ fn build_llama_cpp() {
             println!("cargo:rustc-link-search={}/lib", vulkan_sdk_path);
         }
         config.define("LLAMA_VULKAN", "ON");
-        println!("cargo:rustc-link-lib=vulkan");
+        if cfg!(target_os = "windows") {
+            println!("cargo:rustc-link-lib=vulkan-1");
+        } else {
+            println!("cargo:rustc-link-lib=vulkan");
+        }
     }
 
     // By default, this value is automatically inferred from Rust’s compilation profile.
