@@ -1,3 +1,6 @@
+import Image from 'next/image'
+import tabbyLogo from '@/assets/tabby.png'
+
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -7,8 +10,6 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { IconChevronUpDown } from '@/components/ui/icons'
-import tabbyLogo from '@/assets/tabby.png'
-import Image from 'next/image'
 
 interface CompletionWidgetProps extends React.HTMLAttributes<HTMLDivElement> {}
 
