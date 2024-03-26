@@ -1,18 +1,8 @@
-import { create } from 'zustand'
-import { persist, createJSONStorage  } from 'zustand/middleware'
+import { createStoreWithHydrated } from "./utils";
 
-export const useExperimentalFlag = create<{
-  quickActionBarInCode: boolean;
-  toggleQuickActionBarInCode: () => void
-}>()(
-  persist(
-    (set, get) => ({
-      quickActionBarInCode: false,
-      toggleQuickActionBarInCode: () => set({ quickActionBarInCode: !get().quickActionBarInCode }),
-    }),
-    {
-      name: 'exp-flag',
-      storage: createJSONStorage(() => localStorage)
-    },
-  ),
-)
+export const useExperimentalFlagStore = createStoreWithHydrated({
+  initialState: {
+    quickActionBarInCode: false
+  },
+  storeName: 'exp-flags'
+})
