@@ -67,6 +67,12 @@ To run Tabby locally with ROCm (AMD):
 cargo run --features rocm serve --model TabbyML/StarCoder-1B --device rocm
 ```
 
+To run Tabby locally with Vulkan:
+
+```
+cargo run --features vulkan serve --model TabbyML/StarCoder-1B --device vulkan
+```
+
 To run Tabby locally with Metal (Apple M1/M2):
 
 ```
