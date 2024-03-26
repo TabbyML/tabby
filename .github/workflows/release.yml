@@ -34,6 +34,7 @@ jobs:
           - x86_64-manylinux2014-cuda122
           - x86_64-manylinux2014-vulkan
           - x86_64-windows-msvc
+          - x86_64-windows-msvc-vulkan
           - x86_64-windows-msvc-cuda117
           - x86_64-windows-msvc-cuda122
         include:
@@ -66,6 +67,12 @@ jobs:
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc
             ext: .exe
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: x86_64-windows-msvc-vulkan
+            ext: .exe
+            build_args: --features vulkan,prod-db
+            vulkan_sdk: '1.3.280.0'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-cuda117
