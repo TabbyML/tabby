@@ -426,7 +426,7 @@ impl Mutation {
         avatar: Option<String>,
     ) -> Result<bool> {
         let claims = check_claims(ctx)?;
-        if claims.sub.0 != id && check_admin(ctx).await.is_err() {
+        if claims.sub.0 != id {
             return Err(CoreError::Unauthorized(
                 "You cannot change another user's avatar",
             ));
