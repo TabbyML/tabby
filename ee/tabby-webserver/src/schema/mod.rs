@@ -38,7 +38,10 @@ use self::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
 };
-use crate::schema::auth::{JWTPayload, OAuthCredential, OAuthProvider};
+use crate::schema::{
+    auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    repository::{FileEntry, RepositoryMeta},
+};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
@@ -285,6 +288,31 @@ impl Query {
             },
         )
         .await
+    }
+
+    async fn repository_search(
+        ctx: &Context,
+        repository: String,
+        filter: Option<String>,
+        top_n: i32,
+    ) -> FieldResult<Vec<FileEntry>> {
+        Ok(ctx
+            .locator
+            .repository()
+            .search_files(repository, filter.unwrap_or_default(), top_n as usize)
+            .await?)
+    }
+
+    async fn repository_meta(
+        ctx: &Context,
+        repository: String,
+        path: String,
+    ) -> FieldResult<RepositoryMeta> {
+        Ok(ctx
+            .locator
+            .repository()
+            .repository_meta(repository, path)
+            .await?)
     }
 
     async fn oauth_credential(
