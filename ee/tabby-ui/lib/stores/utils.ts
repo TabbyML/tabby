@@ -18,25 +18,26 @@ export const createStoreWithHydrated = <T extends Record<string, any>>({
   storeName,
   excludeFromState
 }: {
-  initialState: T;
-  storeName: string;
+  initialState: T
+  storeName: string
   excludeFromState?: string[]
 }) => {
-  
-  return create<T & {
-    _hasHydrated: boolean;
-    setHasHydrated: (state: boolean) => void;
-  }>()(
+  return create<
+    T & {
+      _hasHydrated: boolean
+      setHasHydrated: (state: boolean) => void
+    }
+  >()(
     persist(
       set => {
         return {
           ...initialState,
           _hasHydrated: false as boolean,
           setHasHydrated: (newState: boolean) => {
-            set((state) => ({
+            set(state => ({
               ...state,
               _hasHydrated: newState
-            }));
+            }))
           }
         }
       },
