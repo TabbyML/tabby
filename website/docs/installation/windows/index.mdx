@@ -12,7 +12,8 @@ Running Tabby on Windows using Tabby's exe distribution.
 
 ## 2. Download the release
 * If you are using a CPU-only system, download the **tabby_x86_64-windows-msvc.exe file**.
-* If you are using a GPU-enabled system, download the **tabby_x86_64-windows-msvc-cuda117.exe** file, In this example, we assume you are using CUDA 11.7.
+* If you are using an Nvidia GPU, download the **tabby_x86_64-windows-msvc-cuda117.exe** file, In this example, we assume you are using CUDA 11.7.
+* If you are using a different GPU with Vulkan support, download the **tabby_x86_64-windows-msvc-vulkan.exe** file.
 
 **Tips:**
 * Download the CUDA Toolkit from Nvidia: https://developer.nvidia.com/cuda-toolkit
@@ -26,6 +27,10 @@ nvcc --version
 Open a command prompt or PowerShell window in the directory where you downloaded the Tabby executable. Run the following command:
 ```
 .\tabby_x86_64-windows-msvc-cuda117.exe serve --model StarCoder-1B --device cuda
+```
+or
+```
+.\tabby_x86_64-windows-msvc-vulkan.exe serve --model StarCoder-1B --device vulkan
 ```
 You should see the following output if the command runs successfully:
 ![Windows running output](./status.png)
