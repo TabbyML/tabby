@@ -61,12 +61,15 @@ async fn handle_socket(
     let addr = match req {
         ConnectHubRequest::Scheduler => None,
         ConnectHubRequest::Worker(worker) => {
-            state
-                .worker()
-                .register_worker(worker.into_worker(addr))
-                .await
-                .unwrap();
-            Some(addr.to_string())
+            let worker = worker.create_worker(addr);
+            let addr = worker.addr.clone();
+            match state.worker().register_worker(worker).await {
+                Ok(_) => Some(addr),
+                Err(err) => {
+                    warn!("Failed to register worker: {}", err);
+                    return;
+                }
+            }
         }
     };
     let imp = Arc::new(HubImpl::new(state.clone(), addr));
