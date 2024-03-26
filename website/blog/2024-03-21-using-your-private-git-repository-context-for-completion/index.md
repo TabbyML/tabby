@@ -3,9 +3,9 @@ authors: [icycodes]
 tags: [deployment, repository context]
 ---
 
-# Connect Private Github Repository to Tabby
+# Connect Private GitHub Repository to Tabby
 
-A few months back, we published a blog [Repository context for LLM assisted code completion](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion), introducing the `Repository Context` feature in Tabby. 
+A few months back, we published a blog [Repository context for LLM assisted code completion](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion), introducing the `Repository Context` feature in Tabby.
 
 In this blog, I will guide you through the process of setting up a Tabby server configured with a private Git repositories context.
 
@@ -14,13 +14,13 @@ In this blog, I will guide you through the process of setting up a Tabby server 
 In order to provide the Tabby server with access to your private Git repositories, it is essential to create a Personal Access Token (PAT) specific to your Git provider. The following steps outline the process with GitHub as a reference:
 
 1. Visit [GitHub Personal Access Tokens Settings](https://github.com/settings/tokens?type=beta) and select `Generate new token`.
-  ![GitHub PAT Generate New Token](./github-pat-generate-new-token.png)
+   ![GitHub PAT Generate New Token](./github-pat-generate-new-token.png)
 2. Enter the `Token name`, specify an `Expiration` date, an optional `Description`, and select the repositories you wish to grant access to.
-  ![GitHub PAT Filling Info](./github-pat-filling-info.png)
+   ![GitHub PAT Filling Info](./github-pat-filling-info.png)
 3. Within the `Permissions` section, ensure that `Contents` is configured for `Read-only` access.
-  ![GitHub PAT Contents Access](./github-pat-contents-access.png)
+   ![GitHub PAT Contents Access](./github-pat-contents-access.png)
 4. Click `Generate token` to generate the new PAT. Remember to make a copy of the PAT before closing the webpage.
-  ![GitHub PAT Generate Token](./github-pat-generate-token.png)
+   ![GitHub PAT Generate Token](./github-pat-generate-token.png)
 
 For additional information, please consult the documentation on [Managing your personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 
@@ -46,7 +46,7 @@ For more detailed about the configuration file, you can refer to the [configurat
 
 **Note:** The URL format for GitLab repositories may vary, you can check the [official documentation](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#clone-repository-using-personal-access-token) for specific guidelines.
 
-## Building the index
+## Building the Index
 
 :::tip
 The commands provided in this section are based on a Linux environment and assume the pre-installation of Docker with CUDA drivers. Adjust the commands as necessary if you are running Tabby on a different setup.
@@ -70,7 +70,7 @@ Receiving objects: 100% (51/51), 7.16 KiB | 2.38 MiB/s, done.
 Resolving deltas: 100% (18/18), done.
 Building dataset...
 100%|████████████████████████████████████████| 12/12 [00:00<00:00, 55.56it/s]
-Indexing repositories...       
+Indexing repositories...
 100%|████████████████████████████████████████| 12/12 [00:00<00:00, 73737.70it/s]
 ```
 
@@ -85,7 +85,7 @@ The expected output upon successful initiation of the server should like this:
 ```console
 icy@Icys-Ubuntu:~$ docker run -it --gpus all -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model StarCoder-1B --device cuda
 2024-03-21T16:16:47.189632Z  INFO tabby::serve: crates/tabby/src/serve.rs:118: Starting server, this might take a few minutes...
-2024-03-21T16:16:47.190764Z  INFO tabby::services::code: crates/tabby/src/services/code.rs:53: Index is ready, enabling server...    
+2024-03-21T16:16:47.190764Z  INFO tabby::services::code: crates/tabby/src/services/code.rs:53: Index is ready, enabling server...
 ggml_init_cublas: GGML_CUDA_FORCE_MMQ:   no
 ggml_init_cublas: CUDA_USE_TENSOR_CORES: yes
 ggml_init_cublas: found 1 CUDA devices:
@@ -94,7 +94,6 @@ ggml_init_cublas: found 1 CUDA devices:
 ```
 
 Notably, the line `Index is ready, enabling server...` signifies that the server has been successfully launched with the constructed index.
-
 
 ## Verifying Indexing Results
 
