@@ -96,6 +96,8 @@ function IconTabby() {
       style={{ borderRadius: 4, backgroundColor: '#E8E2D2' }}
       src={tabbyLogo}
       alt="tabby"
+      width="128"
+      height="128"
     />
   )
 }
