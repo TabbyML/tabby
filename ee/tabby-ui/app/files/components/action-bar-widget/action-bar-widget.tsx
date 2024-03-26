@@ -7,6 +7,8 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { IconChevronUpDown } from '@/components/ui/icons'
+import tabbyLogo from '@/assets/tabby.png'
+import Image from 'next/image'
 
 interface CompletionWidgetProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -22,6 +24,7 @@ export const ActionBarWidget: React.FC<CompletionWidgetProps> = ({
       )}
       {...props}
     >
+      <Image src={tabbyLogo} width={32} alt="logo" />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button size="sm" variant="outline">
