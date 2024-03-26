@@ -57,7 +57,7 @@ impl DbConn {
             DateTime::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
                 .context("Invalid updated_at timestamp")?;
         query!("UPDATE user_completions SET views = views + ?, selects = selects + ?, dismisses = dismisses + ?, updated_at = ? WHERE completion_id = ?",
-            views, selects, dismisses, completion_id, updated_at).execute(&self.pool).await?;
+            views, selects, dismisses, updated_at, completion_id).execute(&self.pool).await?;
         Ok(())
     }
 
