@@ -1,9 +1,9 @@
-mod auth;
+pub(crate) mod auth;
 mod dao;
-mod email;
+pub(crate) mod email;
 pub mod event_logger;
 mod job;
-mod license;
+pub(crate) mod license;
 mod proxy;
 mod repository;
 mod setting;
