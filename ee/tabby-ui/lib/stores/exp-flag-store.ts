@@ -1,6 +1,10 @@
 import { createStoreWithHydrated } from './utils'
 
-export const useExperimentalFlagStore = createStoreWithHydrated({
+interface InitialState {
+  quickActionBarInCode: boolean
+}
+
+export const useExperimentalFlagStore = createStoreWithHydrated<InitialState>({
   initialState: {
     quickActionBarInCode: false
   },

@@ -13,25 +13,30 @@ export const getChatById = (
 
 // @reference:
 // https://github.com/pmndrs/zustand/blob/main/docs/integrations/persisting-store-data.md#hydration-and-asynchronous-storages
-export const createStoreWithHydrated = ({
+export const createStoreWithHydrated = <T extends Record<string, any>>({
   initialState,
   storeName,
   excludeFromState
 }: {
-  initialState: Record<string, any>
-  storeName: string
+  initialState: T;
+  storeName: string;
   excludeFromState?: string[]
 }) => {
-  return create<typeof initialState>()(
+  
+  return create<T & {
+    _hasHydrated: boolean;
+    setHasHydrated: (state: boolean) => void;
+  }>()(
     persist(
       set => {
         return {
           ...initialState,
-          _hasHydrated: false,
-          setHasHydrated: (state: boolean) => {
-            set({
-              _hasHydrated: state
-            })
+          _hasHydrated: false as boolean,
+          setHasHydrated: (newState: boolean) => {
+            set((state) => ({
+              ...state,
+              _hasHydrated: newState
+            }));
           }
         }
       },
