@@ -1,12 +1,13 @@
+import { EXPERIMENTAL_FALG } from '@/lib/constants'
 import { createStoreWithHydrated } from './utils'
 
-interface InitialState {
-  quickActionBarInCode: boolean
+interface ExperimentalFlagInitialState {
+  [EXPERIMENTAL_FALG.QUICK_ACTION_BAR]: boolean
 }
 
-export const useExperimentalFlagStore = createStoreWithHydrated<InitialState>({
+export const useExperimentalFlagStore = createStoreWithHydrated<ExperimentalFlagInitialState>({
   initialState: {
-    quickActionBarInCode: false
+    [EXPERIMENTAL_FALG.QUICK_ACTION_BAR]: false
   },
   storeName: 'exp-flags'
 })
