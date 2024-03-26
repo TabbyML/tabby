@@ -65,6 +65,7 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc
+            build_args: --features prod-db
             ext: .exe
           - os: windows-latest
             target: x86_64-pc-windows-msvc
