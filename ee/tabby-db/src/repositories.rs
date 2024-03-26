@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use sqlx::{prelude::FromRow, query};
+use sqlx::{prelude::FromRow, query, query_scalar};
 
 use crate::{make_pagination_query, DbConn, SQLXResultExt};
 
@@ -63,6 +63,13 @@ impl DbConn {
         } else {
             Err(anyhow!("failed to update: repository not found"))
         }
+    }
+
+    pub async fn get_repository_git_url(&self, name: String) -> Result<String> {
+        let url = query_scalar!("SELECT git_url FROM repositories WHERE name = ?", name)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(url)
     }
 }
 
