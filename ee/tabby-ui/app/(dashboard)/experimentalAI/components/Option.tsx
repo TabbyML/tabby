@@ -1,13 +1,13 @@
 'use client'
 
-import { Switch } from "@/components/ui/switch"
+import { Switch } from '@/components/ui/switch'
 
-export default function ExperimentalAIOption ({
+export default function ExperimentalAIOption({
   title,
   description
 }: {
-  title: string;
-  description: string;
+  title: string
+  description: string
 }) {
   return (
     <div className="flex items-center space-x-4 rounded-md border p-4">

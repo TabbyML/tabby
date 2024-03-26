@@ -15,7 +15,8 @@ export default function IndexPage() {
 
       <ExperimentalAIOption
         title="Quick Action Bar"
-        description="Enable Quick Action Bar to display a convenient toolbar when you select code, offering options to explain the code, add unit tests, and more." />
+        description="Enable Quick Action Bar to display a convenient toolbar when you select code, offering options to explain the code, add unit tests, and more."
+      />
     </div>
   )
 }

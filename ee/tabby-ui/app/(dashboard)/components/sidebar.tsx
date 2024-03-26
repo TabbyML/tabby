@@ -22,8 +22,8 @@ import {
   IconLightingBolt,
   IconNetwork,
   IconScrollText,
-  IconUser,
-  IconSparkles
+  IconSparkles,
+  IconUser
 } from '@/components/ui/icons'
 
 export interface SidebarProps {
