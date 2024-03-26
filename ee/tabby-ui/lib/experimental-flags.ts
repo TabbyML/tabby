@@ -1,38 +1,44 @@
-import useLocalStorage from "use-local-storage";
+import useLocalStorage from 'use-local-storage'
 
 type DefineExperimentalFlagResponse = [
   ExperimentalFlag,
   () => {
     flag: {
-      value: boolean;
-      description: string;
-    };
-    toggleFlag: () => void;
+      value: boolean
+      description: string
+    }
+    toggleFlag: () => void
   }
 ]
 
 class ExperimentalFlag {
-  constructor (
+  constructor(
     private storageKey: string,
     readonly description: string,
-    readonly defaultValue: boolean,
+    readonly defaultValue: boolean
   ) {}
 
-  get value () {
+  get value() {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       const storageValue = localStorage.getItem(this.storageKey)
       if (storageValue) {
         return storageValue === 'true'
       }
     }
-    
+
     return this.defaultValue
   }
 }
 
-const defineExperimentalFlagHook = (storageKey: string, flag: ExperimentalFlag) => {
+const defineExperimentalFlagHook = (
+  storageKey: string,
+  flag: ExperimentalFlag
+) => {
   return () => {
-    const [storageValue, setStorageValue] = useLocalStorage(storageKey, flag.defaultValue);
+    const [storageValue, setStorageValue] = useLocalStorage(
+      storageKey,
+      flag.defaultValue
+    )
     const toggleFlag = () => {
       setStorageValue(!storageValue)
     }
@@ -49,7 +55,7 @@ const defineExperimentalFlagHook = (storageKey: string, flag: ExperimentalFlag) 
 const defineExperimentalFlag = (
   storageKey: string,
   description: string,
-  defaultValue?: boolean,
+  defaultValue?: boolean
 ): DefineExperimentalFlagResponse => {
   const flagDefaultValue = defaultValue ?? false
   const flag = new ExperimentalFlag(storageKey, description, flagDefaultValue)
@@ -57,7 +63,14 @@ const defineExperimentalFlag = (
   return [flag, useFlagHook]
 }
 
-const [EXP_enable_code_browser_quick_action_bar, useEnableCodeBrowserQuickActionBar] = defineExperimentalFlag('enable_code_browser_quick_action_bar', 'Show a quick action popup upon selecting code snippets', false)
+const [
+  EXP_enable_code_browser_quick_action_bar,
+  useEnableCodeBrowserQuickActionBar
+] = defineExperimentalFlag(
+  'enable_code_browser_quick_action_bar',
+  'Show a quick action popup upon selecting code snippets',
+  false
+)
 
 export {
   EXP_enable_code_browser_quick_action_bar,
