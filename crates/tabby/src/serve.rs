@@ -5,10 +5,7 @@ use clap::Args;
 use hyper::StatusCode;
 use tabby_common::{
     api,
-    api::{
-        code::CodeSearch,
-        event::{EventLogger, RawEventLogger},
-    },
+    api::{code::CodeSearch, event::EventLogger},
     config::Config,
     usage,
 };
@@ -125,7 +122,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     let ws = tabby_webserver::public::WebserverHandle::new().await;
-    let logger: Arc<dyn RawEventLogger>;
+
+    let logger: Arc<dyn EventLogger>;
     #[cfg(feature = "ee")]
     {
         logger = ws.logger();
@@ -134,9 +132,9 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     {
         logger = Arc::new(crate::services::event::create_logger());
     }
-    let code = Arc::new(create_code_search());
 
-    let api = api_router(args, config, Arc::new(logger.clone()), code.clone()).await;
+    let code = Arc::new(create_code_search());
+    let api = api_router(args, config, logger.clone(), code.clone()).await;
     let ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 

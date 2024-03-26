@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -19,19 +17,19 @@ pub struct LogEventRequest {
     pub elapsed: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Choice {
     pub index: u32,
     pub text: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectKind {
     Line,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Event {
     View {
@@ -79,13 +77,13 @@ pub enum Event {
     },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
     pub role: String,
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Segments {
     pub prefix: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -94,35 +92,18 @@ pub struct Segments {
     pub clipboard: Option<String>,
 }
 
-pub trait EventLogger: Send + Sync {
-    fn log(&self, e: Event);
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Log {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct LogEntry {
     pub ts: u128,
     pub event: Event,
 }
 
-pub trait RawEventLogger: Send + Sync {
-    fn log(&self, content: String);
-}
-
-impl<T: RawEventLogger> EventLogger for T {
-    fn log(&self, e: Event) {
-        let content = serdeconv::to_json_string(&Log {
+impl From<Event> for LogEntry {
+    fn from(event: Event) -> Self {
+        Self {
             ts: timestamp(),
-            event: e,
-        })
-        .unwrap();
-
-        self.log(content);
-    }
-}
-
-impl RawEventLogger for Arc<dyn RawEventLogger> {
-    fn log(&self, content: String) {
-        (**self).log(content)
+            event,
+        }
     }
 }
 
@@ -133,4 +114,11 @@ fn timestamp() -> u128 {
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
         .as_millis()
+}
+
+pub trait EventLogger: Send + Sync {
+    fn log(&self, x: Event) {
+        self.write(x.into())
+    }
+    fn write(&self, x: LogEntry);
 }

@@ -14,7 +14,10 @@ use axum::{
 };
 use hyper::{Body, StatusCode};
 use juniper_axum::extract::AuthBearer;
-use tabby_common::{api::code::SearchResponse, config::RepositoryConfig};
+use tabby_common::{
+    api::{code::SearchResponse, event::LogEntry},
+    config::RepositoryConfig,
+};
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
 use websocket::WebSocketTransport;
@@ -100,8 +103,8 @@ impl Drop for HubImpl {
 
 #[tarpc::server]
 impl Hub for Arc<HubImpl> {
-    async fn log_event(self, _context: tarpc::context::Context, content: String) {
-        self.ctx.logger().log(content)
+    async fn write_log(self, _context: tarpc::context::Context, x: LogEntry) {
+        self.ctx.logger().write(x)
     }
 
     async fn search(
