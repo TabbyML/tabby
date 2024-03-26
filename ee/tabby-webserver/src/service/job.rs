@@ -54,28 +54,12 @@ impl JobService for DbConn {
     }
 
     async fn compute_job_run_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats> {
-        let jobs = self
-            .list_job_runs(None, jobs, None, None, None, None)
-            .await?;
-        let mut stats = JobStats {
-            success: 0,
-            failed: 0,
-            pending: 0,
-        };
-
-        for job in jobs {
-            if job.finished_at.is_none() {
-                stats.pending += 1;
-                continue;
-            }
-            if job.exit_code == Some(0) {
-                stats.success += 1;
-                continue;
-            }
-            stats.failed += 1;
-        }
-
-        Ok(stats)
+        let stats = (self as &DbConn).compute_job_stats(jobs).await?;
+        Ok(JobStats {
+            success: stats.success,
+            failed: stats.failed,
+            pending: stats.pending,
+        })
     }
 }
 
@@ -111,5 +95,34 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(job.len(), 1)
+    }
+
+    #[tokio::test]
+    async fn test_job_stats() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let jobs: Box<dyn JobService> = Box::new(db);
+
+        let id = jobs.create_job_run("test-job".into()).await.unwrap();
+        jobs.complete_job_run(&id, 0).await.unwrap();
+
+        let id2 = jobs.create_job_run("test-job".into()).await.unwrap();
+        jobs.complete_job_run(&id2, 1).await.unwrap();
+
+        jobs.create_job_run("pending-job".into()).await.unwrap();
+
+        let stats = jobs.compute_job_run_stats(None).await.unwrap();
+
+        assert_eq!(stats.success, 1);
+        assert_eq!(stats.failed, 1);
+        assert_eq!(stats.pending, 1);
+
+        let stats = jobs
+            .compute_job_run_stats(Some(vec!["test-job".into()]))
+            .await
+            .unwrap();
+
+        assert_eq!(stats.success, 1);
+        assert_eq!(stats.failed, 1);
+        assert_eq!(stats.pending, 0);
     }
 }

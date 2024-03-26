@@ -329,7 +329,7 @@ impl Query {
     }
 
     async fn jobs() -> Result<Vec<String>> {
-        Ok(vec!["sync".into(), "index".into()])
+        Ok(vec!["scheduler".into()])
     }
 }
 

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use chrono::{Duration, Utc};
 use sqlx::{query, FromRow};
 use tabby_db_macros::query_paged_as;
 
@@ -18,6 +19,13 @@ pub struct JobRunDAO {
 
     #[sqlx(rename = "end_ts")]
     pub finished_at: DbOption<DateTimeUtc>,
+}
+
+#[derive(FromRow)]
+pub struct JobStatsDAO {
+    pub success: i32,
+    pub failed: i32,
+    pub pending: i32,
 }
 
 /// db read/write operations for `job_runs` table
@@ -103,6 +111,31 @@ impl DbConn {
         .await?;
 
         Ok(job_runs)
+    }
+
+    pub async fn compute_job_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStatsDAO> {
+        let condition = match jobs {
+            Some(jobs) => {
+                let jobs: Vec<_> = jobs.into_iter().map(|s| format!("{s:?}")).collect();
+                let jobs = jobs.join(", ");
+                format!("AND job IN ({jobs})")
+            }
+            None => "".into(),
+        };
+
+        let cutoff = Utc::now() - Duration::days(7);
+
+        let stats = sqlx::query_as(&format!(
+            r#"SELECT
+                SUM(exit_code == 0) AS success,
+                SUM(exit_code != 0 AND exit_code IS NOT NULL) AS failed,
+                SUM(exit_code IS NULL) AS pending FROM job_runs
+                WHERE start_ts > ? {condition};"#
+        ))
+        .bind(cutoff)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(stats)
     }
 
     pub async fn cleanup_stale_job_runs(&self) -> Result<()> {
