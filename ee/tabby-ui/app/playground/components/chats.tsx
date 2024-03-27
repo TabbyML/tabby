@@ -19,7 +19,7 @@ const emptyMessages: Message[] = []
 
 export default function Chats() {
   const { searchParams, updateSearchParams } = useRouterStuff()
-  const defaultPrompt = searchParams.get('prompt')?.toString()
+  const defaultPrompt = searchParams.get('initialMessage')?.toString()
   const shouldConsumeDefaultPrompt = React.useRef(!!defaultPrompt)
   const chatRef = React.useRef<ChatRef>(null)
 
