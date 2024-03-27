@@ -22,16 +22,45 @@ fn main() {
 fn build_llama_cpp() {
     let mut config = Config::new("llama.cpp");
 
-    if cfg!(not(feature = "native")) {
+    if cfg!(feature = "native") {
+        config.define("LLAMA_NATIVE", "ON");
+
+        if cfg!(not(feature = "avx")) {
+            config.define("LLAMA_AVX2", "OFF");
+        }
+
+        if cfg!(not(feature = "avx2")) {
+            config.define("LLAMA_AVX2", "OFF");
+        }
+
+        if cfg!(not(feature = "fma")) {
+            config.define("LLAMA_FMA", "OFF");
+        }
+
+        if cfg!(not(feature = "f16c")) {
+            config.define("LLAMA_F16C", "OFF");
+        }
+
+    }
+    else {
         config.define("LLAMA_NATIVE", "OFF");
-    }
 
-    if cfg!(feature = "avx") {
-        config.define("LLAMA_AVX2", "ON");
-    }
+        if cfg!(feature = "avx") {
+            config.define("LLAMA_AVX2", "ON");
+        }
 
-    if cfg!(not(feature = "avx2")) {
-        config.define("LLAMA_AVX2", "OFF");
+        if cfg!(feature = "avx2") {
+            config.define("LLAMA_AVX2", "ON");
+        }
+
+        if cfg!(feature = "fma") {
+            config.define("LLAMA_FMA", "ON");
+        }
+
+        if cfg!(feature = "f16c") {
+            config.define("LLAMA_F16C", "ON");
+        }
+
     }
 
     if cfg!(feature = "avx_512") {
@@ -44,10 +73,6 @@ fn build_llama_cpp() {
 
     if cfg!(feature = "avx_512_vnni") {
         config.define("LLAMA_AVX512_VNNI", "ON");
-    }
-
-    if cfg!(not(feature = "fma")) {
-        config.define("LLAMA_FMA", "OFF");
     }
 
     if cfg!(not(debug_assertions)) {
