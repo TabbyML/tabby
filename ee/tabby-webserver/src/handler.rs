@@ -13,10 +13,9 @@ use tabby_db::DbConn;
 use tracing::warn;
 
 use crate::{
-    cron, hub, oauth,
-    repositories::{self, RepositoryCache},
+    cron, hub, oauth, repositories,
     schema::{create_schema, Schema, ServiceLocator},
-    service::{create_service_locator, event_logger::new_event_logger},
+    service::{create_service_locator, event_logger::new_event_logger, start_reload_listener},
     ui,
 };
 
@@ -48,10 +47,10 @@ impl WebserverHandle {
             create_service_locator(self.logger(), code, self.db.clone(), is_chat_enabled).await;
         let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
-        let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;
+        start_reload_listener(ctx.repository(), &events);
 
         let schema = Arc::new(create_schema());
-        let rs = Arc::new(repository_cache);
+        let rs = ctx.repository();
 
         let api = api
             .route(

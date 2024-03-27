@@ -1,5 +1,3 @@
-mod resolve;
-
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -12,17 +10,16 @@ use axum::{
 };
 use hyper::Body;
 use juniper_axum::extract::AuthBearer;
-pub use resolve::RepositoryCache;
-use tracing::{instrument, warn};
+use tracing::warn;
 
-use crate::{
-    repositories::resolve::{RepositoryMeta, ResolveParams},
-    schema::auth::AuthenticationService,
+use crate::schema::{
+    auth::AuthenticationService,
+    repository::{RepositoryMeta, RepositoryService, ResolveParams},
 };
 
-pub type ResolveState = Arc<RepositoryCache>;
+pub type ResolveState = Arc<dyn RepositoryService>;
 
-pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Router {
+pub fn routes(rs: ResolveState, auth: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
         .route("/resolve", routing::get(resolve))
         .route("/resolve/", routing::get(resolve))
@@ -64,12 +61,11 @@ async fn not_found() -> StatusCode {
     StatusCode::NOT_FOUND
 }
 
-#[instrument(skip(repo))]
 async fn resolve_path(
-    State(rs): State<Arc<ResolveState>>,
+    State(rs): State<ResolveState>,
     Path(repo): Path<ResolveParams>,
 ) -> Result<Response, StatusCode> {
-    let Some(conf) = rs.find_repository(repo.name_str()) else {
+    let Some(conf) = rs.find_repository(repo.name_str()).await else {
         return Err(StatusCode::NOT_FOUND);
     };
     let root = conf.dir();
@@ -98,18 +94,17 @@ async fn resolve_path(
     }
 }
 
-#[instrument(skip(repo))]
 async fn meta(
-    State(rs): State<Arc<ResolveState>>,
+    State(rs): State<ResolveState>,
     Path(repo): Path<ResolveParams>,
 ) -> Result<Json<RepositoryMeta>, StatusCode> {
     let key = repo.dataset_key();
-    if let Some(resp) = rs.resolve_meta(&key) {
+    if let Some(resp) = rs.resolve_meta(&key).await {
         return Ok(Json(resp));
     }
     Err(StatusCode::NOT_FOUND)
 }
 
-async fn resolve(State(rs): State<Arc<ResolveState>>) -> Result<Response, StatusCode> {
-    rs.resolve_all().map_err(|_| StatusCode::NOT_FOUND)
+async fn resolve(State(rs): State<ResolveState>) -> Result<Response, StatusCode> {
+    rs.resolve_all().await.map_err(|_| StatusCode::NOT_FOUND)
 }

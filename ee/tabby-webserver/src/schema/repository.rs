@@ -1,12 +1,16 @@
-use std::ops::Range;
+use std::{ops::Range, path::PathBuf};
 
 use async_trait::async_trait;
+use axum::response::Response;
 use juniper::{GraphQLObject, ID};
 use juniper_axum::relay::NodeType;
-use tabby_common::SourceFile;
+use serde::{Deserialize, Serialize};
+use tabby_common::{config::RepositoryConfig, SourceFile};
 use validator::Validate;
 
 use super::{Context, Result};
+
+pub const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
 #[derive(Validate)]
 pub struct CreateRepositoryInput {
@@ -28,13 +32,68 @@ pub struct Repository {
     pub git_url: String,
 }
 
+#[derive(Hash, PartialEq, Eq, Debug)]
+pub struct RepositoryKey {
+    pub repo_name: String,
+    pub rel_path: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ResolveParams {
+    pub name: String,
+    pub path: Option<String>,
+}
+
+impl ResolveParams {
+    pub fn dataset_key(&self) -> RepositoryKey {
+        RepositoryKey {
+            repo_name: self.name.clone(),
+            rel_path: self.os_path(),
+        }
+    }
+
+    pub fn name_str(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn path_str(&self) -> &str {
+        self.path.as_deref().unwrap_or("")
+    }
+
+    pub fn os_path(&self) -> String {
+        if cfg!(target_os = "windows") {
+            self.path.clone().unwrap_or_default().replace('/', r"\")
+        } else {
+            self.path.clone().unwrap_or_default()
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct ListDir {
+    pub entries: Vec<DirEntry>,
+}
+
+#[derive(Serialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum DirEntryKind {
+    File,
+    Dir,
+}
+
+#[derive(Serialize)]
+pub struct DirEntry {
+    pub kind: DirEntryKind,
+    pub basename: String,
+}
+
 #[derive(GraphQLObject, Debug)]
 pub struct FileEntry {
     pub r#type: String,
     pub path: String,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone, Serialize, Deserialize)]
 pub struct RepositoryMeta {
     pub git_url: String,
     pub filepath: String,
@@ -72,7 +131,7 @@ impl From<SourceFile> for RepositoryMeta {
     }
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone, Serialize, Deserialize)]
 pub struct Tag {
     pub range: IntRange,
     pub name_range: IntRange,
@@ -84,7 +143,7 @@ pub struct Tag {
     pub syntax_type_name: String,
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone, Serialize, Deserialize)]
 pub struct Point {
     pub row: i32,
     pub col: i32,
@@ -105,7 +164,7 @@ impl From<Range<tabby_common::Point>> for PointRange {
     }
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone, Serialize, Deserialize)]
 pub struct IntRange {
     pub start: i32,
     pub end: i32,
@@ -120,7 +179,7 @@ impl From<Range<usize>> for IntRange {
     }
 }
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Clone, Serialize, Deserialize)]
 pub struct PointRange {
     pub start: Point,
     pub end: Point,
@@ -163,4 +222,16 @@ pub trait RepositoryService: Send + Sync {
         top_n: usize,
     ) -> Result<Vec<FileEntry>>;
     async fn repository_meta(&self, name: String, path: String) -> Result<RepositoryMeta>;
+
+    async fn resolve_dir(
+        &self,
+        repo: &ResolveParams,
+        root: PathBuf,
+        full_path: PathBuf,
+    ) -> Result<Response>;
+    async fn resolve_file(&self, root: PathBuf, repo: &ResolveParams) -> Result<Response>;
+    async fn resolve_meta(&self, key: &RepositoryKey) -> Option<RepositoryMeta>;
+    async fn resolve_all(&self) -> Result<Response>;
+    async fn find_repository(&self, name: &str) -> Option<RepositoryConfig>;
+    async fn reload(&self) -> Result<()>;
 }

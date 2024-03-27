@@ -294,12 +294,11 @@ impl Query {
         ctx: &Context,
         repository: String,
         filter: Option<String>,
-        top_n: i32,
     ) -> FieldResult<Vec<FileEntry>> {
         Ok(ctx
             .locator
             .repository()
-            .search_files(repository, filter.unwrap_or_default(), top_n as usize)
+            .search_files(repository, filter.unwrap_or_default(), 40)
             .await?)
     }
 
