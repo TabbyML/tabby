@@ -157,9 +157,7 @@ impl RepositoryService for RepositoryServiceImpl {
             .read()
             .await
             .values()
-            .filter_map(|file| {
-                (file.filepath == path && file.git_url == git_url).then(move || file.clone())
-            })
+            .filter(|&file| (file.filepath == path && file.git_url == git_url)).cloned()
             .next()
             .ok_or_else(|| anyhow!("File not found").into())
     }

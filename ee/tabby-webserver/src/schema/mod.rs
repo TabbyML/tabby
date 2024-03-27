@@ -41,8 +41,8 @@ use self::{
 };
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
-    repository::{FileEntry, RepositoryMeta},
     job::JobStats,
+    repository::{FileEntry, RepositoryMeta},
 };
 
 pub trait ServiceLocator: Send + Sync {
