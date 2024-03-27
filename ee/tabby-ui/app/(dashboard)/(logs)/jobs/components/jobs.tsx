@@ -4,7 +4,6 @@ import { Metadata } from 'next'
 import { useQuery } from 'urql'
 
 import { listJobs } from '@/lib/tabby/query'
-
 import {
   Table,
   TableBody,
@@ -13,6 +12,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import LoadingWrapper from '@/components/loading-wrapper'
+
 import JobRow from './job-row'
 
 export const metadata: Metadata = {
@@ -37,9 +37,7 @@ export default function JobRunsPage() {
         </TableHeader>
         <TableBody>
           {data?.jobs.map(jobName => {
-            return (
-              <JobRow key={jobName} name={jobName} />
-            )
+            return <JobRow key={jobName} name={jobName} />
           })}
         </TableBody>
       </Table>
