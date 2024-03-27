@@ -29,10 +29,21 @@ import {
 
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepoNameFromPath } from './utils'
+import { graphql } from '@/lib/gql/generates'
+import { useQuery } from 'urql'
 
-interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> { }
 
-type SearchOption = { entry: string; type: 'dir' | 'file'; id: string }
+type SearchOption = { path: string; type: string; id: string }
+
+const repositorySearch = graphql(/* GraphQL */ `
+  query RepositorySearch($repository: String!, $filter: String, $topN: Int!) {
+    repositorySearch(repository: $repository, filter: $filter, topN: $topN) {
+      type
+      path
+    }
+  }
+`)
 
 const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   className,
@@ -55,40 +66,59 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   const noIndexedRepo = initialized && !fileTreeData?.length
 
+
+  const [{ data }] = useQuery({
+    query: repositorySearch,
+    // todo
+    pause: !searchFileter,
+    variables: { repository: curerntRepoName, filter: searchFileter, topN: 20 }
+  })
+
+  React.useEffect(() => {
+    const _options = data?.repositorySearch?.map(option => ({
+      ...option,
+      id: option.path
+    })) ?? []
+    setOptions(_options)
+    setOptionsVisible(!!_options?.length)
+  }, [data?.repositorySearch])
+
+
   const onSelectRepo = (name: string) => {
     setActivePath(name)
   }
 
   const memoizedMatchedIndices = React.useMemo(() => {
     return options?.map(option =>
-      searchFileter ? getMatchedIndices(searchFileter, option.entry) : []
+      searchFileter ? getMatchedIndices(searchFileter, option.path) : []
     )
   }, [options, searchFileter])
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
     if (!v) {
       ignoreFetchResultRef.current = true
-      setOptions([])
+      setSearchFilter('')
       setOptionsVisible(false)
     } else {
       ignoreFetchResultRef.current = false
+      setSearchFilter(v)
       // if (v === 'test-not-found') {
       //   ignoreFetchResultRef.current = true
       //   setOptions([])
       //   setOptionsVisible(true)
       // }
-      setTimeout(() => {
-        if (!ignoreFetchResultRef.current) {
-          let ops: SearchOption[] = [
-            { entry: 'test1', type: 'file', id: 'test1' },
-            { entry: 'test2', type: 'file', id: 'test2' },
-            { entry: 'path/to/test', type: 'dir', id: 'path/to/test' }
-          ]
-          setSearchFilter(v)
-          setOptions(ops)
-          setOptionsVisible(true)
-        }
-      }, 100)
+      // setTimeout(() => {
+      //   if (!ignoreFetchResultRef.current) {
+      //     let ops: SearchOption[] = [
+      //       { entry: 'test1', type: 'file', id: 'test1' },
+      //       { entry: 'test2', type: 'file', id: 'test2' },
+      //       { entry: 'path/to/test', type: 'dir', id: 'path/to/test' }
+      //     ]
+      //     setSearchFilter(v)
+      //     setOptions(ops)
+      //     setOptionsVisible(true)
+      //   }
+      // }, 100)
     }
   }, 300)
 
@@ -251,7 +281,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                                 memoizedMatchedIndices?.[index] ?? []
                               }
                             >
-                              {item.entry}
+                              {item.path}
                             </HighlightMatches>
                           </div>
                           {highlightedIndex === index && (
