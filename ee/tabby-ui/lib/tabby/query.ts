@@ -88,7 +88,7 @@ export const listJobRuns = graphql(/* GraphQL */ `
 `)
 
 export const queryJobRunStats = graphql(/* GraphQL */ `
-  query jobRunStats(
+  query GetJobRunStats(
     $jobs: [String!]
   ) {
     jobRunStats(
@@ -102,7 +102,7 @@ export const queryJobRunStats = graphql(/* GraphQL */ `
 `)
 
 export const listJobs = graphql(/* GraphQL */ `
-  query listJobs {
+  query ListJobs {
     jobs
   }
 `)
