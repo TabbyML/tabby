@@ -12,6 +12,7 @@ use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
     TokenAuthResponse, User,
 };
+use base64::Engine;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
@@ -417,6 +418,28 @@ impl Mutation {
             return Err(CoreError::Forbidden("You cannot update your own role"));
         }
         ctx.locator.auth().update_user_role(&id, is_admin).await?;
+        Ok(true)
+    }
+
+    async fn upload_user_avatar_base64(
+        ctx: &Context,
+        id: ID,
+        avatar_base64: Option<String>,
+    ) -> Result<bool> {
+        let claims = check_claims(ctx)?;
+        if claims.sub.0 != id {
+            return Err(CoreError::Unauthorized(
+                "You cannot change another user's avatar",
+            ));
+        }
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+        let avatar = avatar_base64
+            .map(|avatar| base64::prelude::BASE64_STANDARD.decode(avatar.as_bytes()))
+            .transpose()
+            .context("avatar is not valid base64 string")?
+            .map(Vec::into_boxed_slice);
+        ctx.locator.auth().update_user_avatar(&id, avatar).await?;
         Ok(true)
     }
 

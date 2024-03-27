@@ -9,6 +9,9 @@ mod schema;
 mod service;
 mod ui;
 
+#[cfg(test)]
+pub use service::*;
+
 pub mod public {
 
     pub use super::{
