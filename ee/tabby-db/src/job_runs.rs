@@ -130,7 +130,7 @@ impl DbConn {
                 SUM(exit_code == 0) AS success,
                 SUM(exit_code != 0 AND exit_code IS NOT NULL) AS failed,
                 SUM(exit_code IS NULL) AS pending FROM job_runs
-                WHERE start_ts > ? {condition};"#
+                WHERE created_at > ? {condition};"#
         ))
         .bind(cutoff)
         .fetch_one(&self.pool)

@@ -90,11 +90,25 @@ mod tests {
         assert_eq!(job.stderr, "stderr");
         assert_eq!(job.exit_code, Some(0));
 
-        let job = svc
+        let jobs = svc
             .list_job_runs(Some(vec![id]), None, None, None, None, None)
             .await
             .unwrap();
-        assert_eq!(job.len(), 1)
+        assert_eq!(jobs.len(), 1);
+
+        svc.create_job_run("another-job".into()).await.unwrap();
+        let jobs = svc
+            .list_job_runs(
+                None,
+                Some(vec!["another-job".into()]),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        assert_eq!(jobs.len(), 1);
     }
 
     #[tokio::test]

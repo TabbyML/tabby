@@ -1,1 +1,1 @@
-CREATE INDEX idx_job ON job_runs(job);
+CREATE INDEX idx_job_created_at ON job_runs(job, created_at);
