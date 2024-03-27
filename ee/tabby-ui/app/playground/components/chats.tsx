@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { useSearchParams } from 'next/navigation'
 import type { Message } from 'ai'
 
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
 import { addChat } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
@@ -18,7 +18,7 @@ import { ChatSessions } from './chat-sessions'
 const emptyMessages: Message[] = []
 
 export default function Chats() {
-  const searchParams = useSearchParams()
+  const { searchParams, updateSearchParams } = useRouterStuff()
   const defaultPrompt = searchParams.get('prompt')?.toString()
   const shouldConsumeDefaultPrompt = React.useRef(!!defaultPrompt)
   const chatRef = React.useRef<ChatRef>(null)
@@ -34,10 +34,17 @@ export default function Chats() {
 
     if (activeChatId && defaultPrompt) {
       // append default prompt
-      chatRef.current.append({
-        role: 'user',
-        content: defaultPrompt
-      })
+      chatRef.current
+        .append({
+          role: 'user',
+          content: defaultPrompt
+        })
+        .then(() => {
+          // Remove the prompt params after the request is completed.
+          updateSearchParams({
+            del: 'prompt'
+          })
+        })
       // store as a new chat
       addChat(activeChatId, truncateText(defaultPrompt))
 
