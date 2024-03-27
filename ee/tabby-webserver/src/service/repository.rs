@@ -156,9 +156,7 @@ impl RepositoryService for RepositoryServiceImpl {
         self.cache
             .read()
             .await
-            .values()
-            .filter(|&file| (file.filepath == path && file.git_url == git_url)).cloned()
-            .next()
+            .values().find(|&file| (file.filepath == path && file.git_url == git_url)).cloned()
             .ok_or_else(|| anyhow!("File not found").into())
     }
 
