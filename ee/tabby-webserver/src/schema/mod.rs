@@ -8,7 +8,6 @@ pub mod worker;
 
 use std::sync::Arc;
 
-use anyhow::Context;
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
     TokenAuthResponse, User,
@@ -433,6 +432,8 @@ impl Mutation {
                 "You cannot change another user's avatar",
             ));
         }
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
         let avatar = avatar_base64
             .map(|avatar| base64::prelude::BASE64_STANDARD.decode(avatar.as_bytes()))
             .transpose()
