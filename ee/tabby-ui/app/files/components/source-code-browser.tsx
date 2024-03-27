@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
+import { emitter } from '@/lib/events'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/resizable'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
+import { CompletionPanel } from './completion-panel'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
@@ -54,6 +56,11 @@ type TFileMapItem = {
 }
 type TFileMap = Record<string, TFileMapItem>
 
+enum CompletionPanelView {
+  CHAT,
+  SESSIONS
+}
+
 type SourceCodeBrowserContextValue = {
   activePath: string | undefined
   setActivePath: (path: string | undefined) => void
@@ -66,6 +73,15 @@ type SourceCodeBrowserContextValue = {
   initialized: boolean
   setInitialized: React.Dispatch<React.SetStateAction<boolean>>
   fileTreeData: TFileTreeNode[]
+  // for completion panel
+  completionPanelVisible: boolean
+  setCompletionPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  completionPanelViewType: CompletionPanelView
+  setCompletionPanelViewType: React.Dispatch<
+    React.SetStateAction<CompletionPanelView>
+  >
+  pendingEvent: { name: string; payload: string } | undefined
+  setPendingEvent: (d: { name: string; payload: string } | undefined) => void
 }
 
 const SourceCodeBrowserContext =
@@ -93,6 +109,14 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const [initialized, setInitialized] = React.useState(false)
   const [fileMap, setFileMap] = React.useState<TFileMap>({})
   const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(new Set())
+  const [completionPanelVisible, setCompletionPanelVisible] =
+    React.useState(false)
+  const [completionPanelViewType, setCompletionPanelViewType] = React.useState(
+    CompletionPanelView.CHAT
+  )
+  const [pendingEvent, setPendingEvent] = React.useState<
+    { name: string; payload: string } | undefined
+  >()
 
   const updateFileMap = (map: TFileMap) => {
     if (!map) return
@@ -142,7 +166,13 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         setExpandedKeys,
         toggleExpandedKey,
         currentFileRoutes,
-        fileTreeData
+        fileTreeData,
+        completionPanelVisible,
+        setCompletionPanelVisible,
+        completionPanelViewType,
+        setCompletionPanelViewType,
+        pendingEvent,
+        setPendingEvent
       }}
     >
       {children}
@@ -165,9 +195,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     fileMap,
     initialized,
     setInitialized,
-    setExpandedKeys
+    setExpandedKeys,
+    completionPanelVisible,
+    setCompletionPanelVisible,
+    setPendingEvent
   } = React.useContext(SourceCodeBrowserContext)
-  const { progress, setProgress } = useTopbarProgress()
+  const { setProgress } = useTopbarProgress()
 
   const activeRepoName = React.useMemo(() => {
     return resolveRepoNameFromPath(activePath)
@@ -222,8 +255,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         }
       }
     )
-
-  React.useEffect(() => {}, [activePath])
 
   React.useEffect(() => {
     if (isRawFileLoading) {
@@ -319,6 +350,19 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }, [activePath, isFileSelected, fileBlob])
 
+  React.useEffect(() => {
+    const onCallCompletion = (payload: string) => {
+      setCompletionPanelVisible(true)
+      console.log('====call emtter')
+      setPendingEvent({ name: 'code_browser_action_prompt', payload })
+    }
+    emitter.on('code_browser_action_prompt', onCallCompletion)
+
+    return () => {
+      emitter.off('code_browser_action_prompt', onCallCompletion)
+    }
+  }, [])
+
   return (
     <ResizablePanelGroup direction="horizontal" className={cn(className)}>
       <ResizablePanel defaultSize={20} minSize={20}>
@@ -353,6 +397,14 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           </div>
         </div>
       </ResizablePanel>
+      {completionPanelVisible && (
+        <>
+          <ResizableHandle className="w-1 bg-border/40 hover:bg-border active:bg-border" />
+          <ResizablePanel defaultSize={30}>
+            <CompletionPanel />
+          </ResizablePanel>
+        </>
+      )}
     </ResizablePanelGroup>
   )
 }
@@ -513,4 +565,9 @@ function isReadableTextFile(blob: Blob) {
 
 export type { TFileMap, TFileMapItem }
 
-export { SourceCodeBrowserContext, SourceCodeBrowser, getFileViewType }
+export {
+  SourceCodeBrowserContext,
+  SourceCodeBrowser,
+  getFileViewType,
+  CompletionPanelView
+}

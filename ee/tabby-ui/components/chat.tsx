@@ -154,7 +154,10 @@ function ChatRenderer(
         </div>
         <ChatPanel
           onSubmit={handleSubmit}
-          className="fixed inset-x-0 bottom-0 lg:ml-[280px]"
+          className={cn(
+            'fixed inset-x-0 bottom-0 lg:ml-[280px]',
+            chatPanelClassName
+          )}
           id={id}
           isLoading={isLoading}
           stop={stop}

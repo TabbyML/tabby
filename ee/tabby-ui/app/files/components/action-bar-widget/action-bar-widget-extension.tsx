@@ -1,7 +1,7 @@
-import type { EditorState, Extension, Transaction } from '@codemirror/state'
 import { StateField } from '@codemirror/state'
-import type { Tooltip } from '@codemirror/view'
+import type { EditorState, Extension, Transaction } from '@codemirror/state'
 import { showTooltip } from '@codemirror/view'
+import type { Tooltip } from '@codemirror/view'
 import ReactDOM from 'react-dom/client'
 
 import { ActionBarWidget } from './action-bar-widget'
@@ -41,7 +41,6 @@ function createActionBarWidget(state: EditorState): Tooltip {
   const lineTo = state.doc.lineAt(selection.main.to)
   const isMultiline = lineFrom.number !== lineTo.number
   const pos = isMultiline ? lineTo.from : selection.main.from
-
   return {
     pos,
     above: false,
