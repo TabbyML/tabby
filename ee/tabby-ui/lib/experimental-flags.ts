@@ -24,25 +24,18 @@ class RuntimeFlagFactory {
   private description: string
   private defaultValue: boolean
 
-  constructor(
-    storageKey: string,
-    description: string,
-    defaultValue?: boolean
-  ) {
+  constructor(storageKey: string, description: string, defaultValue?: boolean) {
     this.storageKey = `EXP_${storageKey}`
     this.description = description
     this.defaultValue = defaultValue ?? false
   }
 
-  defineGlobalVarAccess () {
+  defineGlobalVarAccess() {
     return new FeatureFlag(this.storageKey, this.description, this.defaultValue)
   }
 
-  defineHookAccess () {
-    return (): [
-      { value: boolean, description: string },
-      () => void
-    ] => {
+  defineHookAccess() {
+    return (): [{ value: boolean; description: string }, () => void] => {
       const [storageValue, setStorageValue] = useLocalStorage(
         this.storageKey,
         this.defaultValue
@@ -67,5 +60,7 @@ const quickActionBarFlag = new RuntimeFlagFactory(
   false
 )
 
-export const EXP_enable_code_browser_quick_action_bar = quickActionBarFlag.defineGlobalVarAccess()
-export const useEnableCodeBrowserQuickActionBar = quickActionBarFlag.defineHookAccess()
+export const EXP_enable_code_browser_quick_action_bar =
+  quickActionBarFlag.defineGlobalVarAccess()
+export const useEnableCodeBrowserQuickActionBar =
+  quickActionBarFlag.defineHookAccess()
