@@ -34,7 +34,6 @@ mod tests {
     use std::sync::Arc;
 
     use axum::extract::{Path, State};
-    use base64::Engine;
     use hyper::body::to_bytes;
 
     use super::avatar;
@@ -62,8 +61,12 @@ mod tests {
             .as_id();
 
         let test_avatar = "test";
-        let encoded = base64::prelude::BASE64_STANDARD.encode(test_avatar);
-        auth.update_user_avatar(&id, Some(encoded)).await.unwrap();
+        auth.update_user_avatar(
+            &id,
+            Some(test_avatar.as_bytes().to_vec().into_boxed_slice()),
+        )
+        .await
+        .unwrap();
         let avatar = avatar(State(auth), Path(id)).await.unwrap().into_body();
         let avatar = to_bytes(avatar).await.unwrap();
         assert_eq!(avatar, test_avatar.as_bytes());

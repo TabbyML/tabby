@@ -12,6 +12,7 @@ use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
     TokenAuthResponse, User,
 };
+use base64::Engine;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
@@ -423,7 +424,7 @@ impl Mutation {
     async fn upload_user_avatar_base64(
         ctx: &Context,
         id: ID,
-        avatar: Option<String>,
+        avatar_base64: Option<String>,
     ) -> Result<bool> {
         let claims = check_claims(ctx)?;
         if claims.sub.0 != id {
@@ -431,6 +432,11 @@ impl Mutation {
                 "You cannot change another user's avatar",
             ));
         }
+        let avatar = avatar_base64
+            .map(|avatar| base64::prelude::BASE64_STANDARD.decode(avatar.as_bytes()))
+            .transpose()
+            .map_err(anyhow::Error::from)?
+            .map(Vec::into_boxed_slice);
         ctx.locator.auth().update_user_avatar(&id, avatar).await?;
         Ok(true)
     }
