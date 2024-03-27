@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useChat } from 'ai/react'
-import type { Message } from 'ai/react'
+import type { Message, UseChatHelpers } from 'ai/react'
 import { find, findIndex } from 'lodash-es'
 import { toast } from 'sonner'
 
@@ -16,27 +16,22 @@ import { ChatList } from '@/components/chat-list'
 import { ChatPanel } from '@/components/chat-panel'
 import { ChatScrollAnchor } from '@/components/chat-scroll-anchor'
 import { EmptyScreen } from '@/components/empty-screen'
-import { ListSkeleton } from '@/components/skeleton'
 
 export interface ChatProps extends React.ComponentProps<'div'> {
   initialMessages?: Message[]
   id?: string
-  loading?: boolean
 }
 
-export function Chat({ id, initialMessages, loading, className }: ChatProps) {
+export interface ChatRef extends UseChatHelpers {}
+
+function ChatRenderer(
+  { id, initialMessages, className }: ChatProps,
+  ref: React.ForwardedRef<ChatRef>
+) {
   usePatchFetch()
   const chats = useStore(useChatStore, state => state.chats)
-  const {
-    messages,
-    append,
-    reload,
-    stop,
-    isLoading,
-    input,
-    setInput,
-    setMessages
-  } = useChat({
+
+  const useChatHelpers = useChat({
     initialMessages,
     id,
     body: {
@@ -48,6 +43,17 @@ export function Chat({ id, initialMessages, loading, className }: ChatProps) {
       }
     }
   })
+
+  const {
+    messages,
+    append,
+    reload,
+    stop,
+    isLoading,
+    input,
+    setInput,
+    setMessages
+  } = useChatHelpers
 
   const [selectedMessageId, setSelectedMessageId] = React.useState<string>()
 
@@ -122,20 +128,19 @@ export function Chat({ id, initialMessages, loading, className }: ChatProps) {
     return () => stop()
   }, [])
 
+  React.useImperativeHandle(
+    ref,
+    () => {
+      return useChatHelpers
+    },
+    [useChatHelpers]
+  )
+
   return (
     <div className="flex justify-center overflow-x-hidden">
       <div className="w-full max-w-2xl px-4">
         <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
-          {loading ? (
-            <div className="group relative mb-4 flex animate-pulse items-start md:-ml-12">
-              <div className="shrink-0">
-                <span className="block h-8 w-8 rounded-md bg-gray-200 dark:bg-gray-700"></span>
-              </div>
-              <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
-                <ListSkeleton />
-              </div>
-            </div>
-          ) : messages.length ? (
+          {messages.length ? (
             <>
               <ChatList
                 messages={messages}
@@ -163,3 +168,5 @@ export function Chat({ id, initialMessages, loading, className }: ChatProps) {
     </div>
   )
 }
+
+export const Chat = React.forwardRef<ChatRef, ChatProps>(ChatRenderer)
