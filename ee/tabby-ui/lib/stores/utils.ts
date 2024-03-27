@@ -1,4 +1,3 @@
-
 import { Chat } from '@/lib/types'
 
 export const getChatById = (

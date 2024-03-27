@@ -31,7 +31,11 @@ class ExperimentFlagFactory {
   }
 
   defineGlobalVar() {
-    return new ExperimentFlag(this.storageKey, this.description, this.defaultValue)
+    return new ExperimentFlag(
+      this.storageKey,
+      this.description,
+      this.defaultValue
+    )
   }
 
   defineHook() {
@@ -60,5 +64,7 @@ const enableCodeBrowserQuickActionBarFactory = new ExperimentFlagFactory(
   false
 )
 
-export const EXP_enable_code_browser_quick_action_bar = enableCodeBrowserQuickActionBarFactory.defineGlobalVar()
-export const useEnableCodeBrowserQuickActionBar = enableCodeBrowserQuickActionBarFactory.defineHook()
+export const EXP_enable_code_browser_quick_action_bar =
+  enableCodeBrowserQuickActionBarFactory.defineGlobalVar()
+export const useEnableCodeBrowserQuickActionBar =
+  enableCodeBrowserQuickActionBarFactory.defineHook()
