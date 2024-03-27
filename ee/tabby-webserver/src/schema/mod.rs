@@ -8,6 +8,7 @@ pub mod worker;
 
 use std::sync::Arc;
 
+use anyhow::Context;
 use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
     TokenAuthResponse, User,
@@ -435,7 +436,7 @@ impl Mutation {
         let avatar = avatar_base64
             .map(|avatar| base64::prelude::BASE64_STANDARD.decode(avatar.as_bytes()))
             .transpose()
-            .map_err(anyhow::Error::from)?
+            .context("avatar is not valid base64 string")?
             .map(Vec::into_boxed_slice);
         ctx.locator.auth().update_user_avatar(&id, avatar).await?;
         Ok(true)

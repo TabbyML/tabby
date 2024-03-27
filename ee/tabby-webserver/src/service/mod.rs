@@ -1,9 +1,9 @@
-pub(crate) mod auth;
+mod auth;
 mod dao;
-pub(crate) mod email;
+mod email;
 pub mod event_logger;
 mod job;
-pub(crate) mod license;
+mod license;
 mod proxy;
 mod repository;
 mod setting;
@@ -17,7 +17,7 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-pub(crate) use dao::{AsID, AsRowid};
+pub(in crate::service) use dao::{AsID, AsRowid};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper::ID;
 use tabby_common::{

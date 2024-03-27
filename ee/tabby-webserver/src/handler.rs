@@ -1,20 +1,21 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::Request,
     middleware::{from_fn_with_state, Next},
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     routing, Extension, Json, Router,
 };
-use hyper::{Body, StatusCode};
+use hyper::{header::CONTENT_TYPE, Body, StatusCode};
+use juniper::ID;
 use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
 use tabby_common::api::{code::CodeSearch, event::EventLogger, server_setting::ServerSetting};
 use tabby_db::DbConn;
-use tracing::warn;
+use tracing::{error, warn};
 
 use crate::{
-    avatar, cron, hub, oauth,
+    cron, hub, oauth,
     repositories::{self, RepositoryCache},
     schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::new_event_logger},
@@ -80,7 +81,7 @@ impl WebserverHandle {
             )
             .route(
                 "/avatar/:id",
-                routing::get(avatar::avatar)
+                routing::get(avatar)
                     .with_state(ctx.auth())
                     .layer(from_fn_with_state(ctx.auth(), require_login_middleware)),
             )
@@ -139,4 +140,23 @@ async fn server_setting(
     Ok(Json(ServerSetting {
         disable_client_side_telemetry: security_setting.disable_client_side_telemetry,
     }))
+}
+
+async fn avatar(
+    State(state): State<Arc<dyn AuthenticationService>>,
+    Path(id): Path<ID>,
+) -> Result<Response<Body>, StatusCode> {
+    let avatar = state
+        .get_user_avatar(&id)
+        .await
+        .map_err(|e| {
+            error!("Failed to retrieve avatar: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let mut response = Response::new(Body::from(avatar.into_vec()));
+    response
+        .headers_mut()
+        .insert(CONTENT_TYPE, "image/*".parse().unwrap());
+    Ok(response)
 }
