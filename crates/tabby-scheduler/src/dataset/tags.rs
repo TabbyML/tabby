@@ -153,6 +153,17 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "haskell",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_haskell::language(),
+                        include_str!("../../queries/haskell.scm"),
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
         ])
     };
 }

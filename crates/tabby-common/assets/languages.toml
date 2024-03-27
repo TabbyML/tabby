@@ -197,3 +197,38 @@ top_level_keywords = [
     "trait",
     "use",
 ]
+
+[[config]]
+languages = ["haskell"]
+line_comment = "--"
+top_level_keywords = [
+    "module",
+    "where",
+    "import",
+    "qualified",
+    "as",
+    "hiding",
+    "data",
+    "type",
+    "newtype",
+    "class",
+    "instance",
+    "deriving",
+    "default",
+    "foreign",
+    "export",
+    "do",
+    "if",
+    "then",
+    "else",
+    "case",
+    "of",
+    "let",
+    "in",
+    "forall",
+    "existential",
+    "pure",
+    "return",
+    "bind",
+    "label",
+]

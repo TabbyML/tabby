@@ -189,6 +189,7 @@ lazy_static! {
             ),
             ("tex", vec!["tex"]),
             ("vb", vec!["vb"]),
+            ("haskell", vec!["hs"]),
         ])
     };
     static ref EXTENSION_LANGUAGE: HashMap<&'static str, &'static str> = {
