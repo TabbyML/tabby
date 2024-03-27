@@ -223,15 +223,21 @@ pub trait RepositoryService: Send + Sync {
     ) -> Result<Vec<FileEntry>>;
     async fn repository_meta(&self, name: String, path: String) -> Result<RepositoryMeta>;
 
+    #[deprecated]
     async fn resolve_dir(
         &self,
         repo: &ResolveParams,
         root: PathBuf,
         full_path: PathBuf,
     ) -> Result<Response>;
+    #[deprecated]
     async fn resolve_file(&self, root: PathBuf, repo: &ResolveParams) -> Result<Response>;
+    #[deprecated]
     async fn resolve_meta(&self, key: &RepositoryKey) -> Option<RepositoryMeta>;
+    #[deprecated]
     async fn resolve_all(&self) -> Result<Response>;
+    #[deprecated]
     async fn find_repository(&self, name: &str) -> Option<RepositoryConfig>;
-    async fn reload(&self) -> Result<()>;
+    #[deprecated]
+    async fn refresh_cache(&self) -> Result<()>;
 }

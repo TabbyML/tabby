@@ -30,7 +30,7 @@ use crate::{
 };
 
 fn glob_matches(glob: &str, mut input: &str) -> bool {
-    for part in glob.split('*') {
+    for part in glob.split(' ') {
         let Some((_, rest)) = input.split_once(part) else {
             return false;
         };
@@ -74,7 +74,7 @@ pub async fn new_repository_service(db: DbConn, initialize: bool) -> impl Reposi
         cache: Default::default(),
     };
     if initialize {
-        if let Err(e) = service.reload().await {
+        if let Err(e) = service.refresh_cache().await {
             error!("Failed to initialize repository cache: {e}");
         }
     }
@@ -85,7 +85,7 @@ pub fn start_reload_listener(service: Arc<dyn RepositoryService>, events: &CronE
     events.scheduler_job_succeeded.start_listener(move |_| {
         let clone = service.clone();
         async move {
-            if let Err(e) = clone.reload().await {
+            if let Err(e) = clone.refresh_cache().await {
                 warn!("Error when reloading repository cache: {e}");
             };
         }
@@ -131,13 +131,16 @@ impl RepositoryService for RepositoryServiceImpl {
         top_n: usize,
     ) -> Result<Vec<FileEntry>> {
         let git_url = self.db.get_repository_git_url(name).await?;
-        let matching = SourceFile::all()
-            .anyhow()?
+        let matching = self
+            .cache
+            .read()
+            .await
+            .values()
             .filter_map(|file| {
                 if file.git_url == git_url && glob_matches(&path_glob, &file.filepath) {
                     Some(FileEntry {
                         r#type: "file".into(), // Directories are not currently stored in files.jsonl
-                        path: file.filepath,
+                        path: file.filepath.clone(),
                     })
                 } else {
                     None
@@ -150,10 +153,12 @@ impl RepositoryService for RepositoryServiceImpl {
 
     async fn repository_meta(&self, name: String, path: String) -> Result<RepositoryMeta> {
         let git_url = self.db.get_repository_git_url(name).await?;
-        SourceFile::all()
-            .anyhow()?
+        self.cache
+            .read()
+            .await
+            .values()
             .filter_map(|file| {
-                (file.filepath == path && file.git_url == git_url).then(move || file.into())
+                (file.filepath == path && file.git_url == git_url).then(move || file.clone())
             })
             .next()
             .ok_or_else(|| anyhow!("File not found").into())
@@ -264,7 +269,7 @@ impl RepositoryService for RepositoryServiceImpl {
         ))
     }
 
-    async fn reload(&self) -> Result<()> {
+    async fn refresh_cache(&self) -> Result<()> {
         let new_repositories = self
             .list_repositories(None, None, None, None)
             .await?
