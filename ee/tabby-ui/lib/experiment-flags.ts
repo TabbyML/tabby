@@ -1,4 +1,5 @@
-import useLocalStorage from 'use-local-storage'
+import { useState, useEffect } from 'react'
+
 
 class ExperimentFlag {
   constructor(
@@ -39,18 +40,29 @@ class ExperimentFlagFactory {
   }
 
   defineHook() {
-    return (): [{ value: boolean; description: string }, () => void] => {
-      const [storageValue, setStorageValue] = useLocalStorage(
-        this.storageKey,
-        this.defaultValue
-      )
+    return (): [{ value: boolean; description: string, loading: boolean }, () => void] => {
+      const [storageValue, setStorageValue] = useState(this.defaultValue)
+      const [loading, setLoading] = useState(true)
+
+      useEffect(() => {
+        const value = localStorage.getItem(this.storageKey)
+        if (value) {
+          setStorageValue(value === 'true')
+        }
+        setLoading(false)
+      }, [])
+
       const toggleFlag = () => {
-        setStorageValue(!storageValue)
+        const newStorageValue = !storageValue
+        setStorageValue(newStorageValue)
+        localStorage.setItem(this.storageKey, String(newStorageValue))
       }
+
       return [
         {
           value: storageValue,
-          description: this.description
+          description: this.description,
+          loading
         },
         toggleFlag
       ]
