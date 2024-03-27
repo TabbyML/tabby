@@ -20,7 +20,6 @@ import { EmptyScreen } from '@/components/empty-screen'
 export interface ChatProps extends React.ComponentProps<'div'> {
   initialMessages?: Message[]
   id?: string
-  defaultPrompt?: string | string
 }
 
 export interface ChatRef extends UseChatHelpers {}

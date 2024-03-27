@@ -19,8 +19,8 @@ const emptyMessages: Message[] = []
 
 export default function Chats() {
   const { searchParams, updateSearchParams } = useRouterStuff()
-  const defaultPrompt = searchParams.get('initialMessage')?.toString()
-  const shouldConsumeDefaultPrompt = React.useRef(!!defaultPrompt)
+  const initialMessage = searchParams.get('initialMessage')?.toString()
+  const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
   const chatRef = React.useRef<ChatRef>(null)
 
   const _hasHydrated = useStore(useChatStore, state => state._hasHydrated)
@@ -29,26 +29,26 @@ export default function Chats() {
   const chat = getChatById(chats, activeChatId)
 
   React.useEffect(() => {
-    if (!shouldConsumeDefaultPrompt.current) return
+    if (!shouldConsumeInitialMessage.current) return
     if (!chatRef.current?.append) return
 
-    if (activeChatId && defaultPrompt) {
-      // append default prompt
+    if (activeChatId && initialMessage) {
+      // request initialMessage
       chatRef.current
         .append({
           role: 'user',
-          content: defaultPrompt
+          content: initialMessage
         })
         .then(() => {
-          // Remove the prompt params after the request is completed.
+          // Remove the initialMessage params after the request is completed.
           updateSearchParams({
-            del: 'prompt'
+            del: 'initialMessage'
           })
         })
       // store as a new chat
-      addChat(activeChatId, truncateText(defaultPrompt))
+      addChat(activeChatId, truncateText(initialMessage))
 
-      shouldConsumeDefaultPrompt.current = false
+      shouldConsumeInitialMessage.current = false
     }
   }, [chatRef.current?.append])
 
