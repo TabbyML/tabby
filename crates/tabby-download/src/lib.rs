@@ -42,7 +42,7 @@ async fn download_model_impl(
     }
 
     if !model_info.segmented_urls.is_empty() {
-        return download_split_model(&model_info, &model_path).await;
+        return download_split_model(model_info, &model_path).await;
     }
 
     let registry = std::env::var("TABBY_DOWNLOAD_HOST").unwrap_or("huggingface.co".to_owned());
@@ -72,7 +72,7 @@ async fn download_split_model(model_info: &ModelInfo, model_path: &Path) -> Resu
         let ext = format!(
             "{}.{}",
             model_path.extension().unwrap_or_default().to_string_lossy(),
-            index.to_string()
+            index
         );
         let path = model_path.with_extension(ext);
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
