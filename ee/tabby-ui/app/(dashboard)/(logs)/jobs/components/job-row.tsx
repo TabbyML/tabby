@@ -2,43 +2,47 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { useQuery } from 'urql'
-import moment from 'moment'
 import humanizerDuration from 'humanize-duration'
 import { isNil } from 'lodash-es'
+import moment from 'moment'
+import { useQuery } from 'urql'
 
-import { cn } from '@/lib/utils'
 import { listJobRuns, queryJobRunStats } from '@/lib/tabby/query'
-
+import { cn } from '@/lib/utils'
 import { IconExternalLink } from '@/components/ui/icons'
-import { TableRow, TableCell } from '@/components/ui/table'
+import { TableCell, TableRow } from '@/components/ui/table'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { ListRowSkeleton } from '@/components/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
+import { ListRowSkeleton } from '@/components/skeleton'
 
-function JobAggregateState ({
+function JobAggregateState({
   count,
   activeClass,
-  tooltip,
+  tooltip
 }: {
-  count?: number;
-  activeClass: string;
-  tooltip: string;
+  count?: number
+  activeClass: string
+  tooltip: string
 }) {
   return (
     <TooltipProvider delayDuration={0}>
       <Tooltip>
         <TooltipTrigger>
-          <div className={cn("flex h-8 w-8 cursor-default items-center justify-center rounded-full border-2", {
-            [activeClass]: count,
-            "border-muted text-muted": !count
-          })}>
-            {count || ""}
+          <div
+            className={cn(
+              'flex h-8 w-8 cursor-default items-center justify-center rounded-full border-2',
+              {
+                [activeClass]: count,
+                'border-muted text-muted': !count
+              }
+            )}
+          >
+            {count || ''}
           </div>
         </TooltipTrigger>
         <TooltipContent>
@@ -49,11 +53,7 @@ function JobAggregateState ({
   )
 }
 
-function JobRunState ({
-  name
-}: {
-  name: string
-}) {
+function JobRunState({ name }: { name: string }) {
   const [{ data, fetching }] = useQuery({
     query: queryJobRunStats,
     variables: {
@@ -63,30 +63,30 @@ function JobRunState ({
   return (
     <LoadingWrapper
       loading={fetching}
-      fallback={<ListRowSkeleton className="w-1/3" />}>
+      fallback={<ListRowSkeleton className="w-1/3" />}
+    >
       <div className="flex items-center gap-3">
         <JobAggregateState
           count={data?.jobRunStats.success}
           activeClass="border-green-500 text-xs text-green-500"
-          tooltip="Success" />
+          tooltip="Success"
+        />
         <JobAggregateState
           count={data?.jobRunStats.pending}
           activeClass="border-blue-500 text-xs text-blue-500"
-          tooltip="Pending" />
+          tooltip="Pending"
+        />
         <JobAggregateState
           count={data?.jobRunStats.failed}
           activeClass="border-red-500 text-xs text-red-500"
-          tooltip="Failed" />
+          tooltip="Failed"
+        />
       </div>
     </LoadingWrapper>
   )
 }
 
-export default function JobRow ({
-  name
-}: {
-  name: string
-}) {
+export default function JobRow({ name }: { name: string }) {
   const RECENT_DISPLAYED_SIZE = 10
 
   const [{ data, fetching }] = useQuery({
@@ -115,7 +115,8 @@ export default function JobRow ({
             <ListRowSkeleton />
           </TableCell>
         </TableRow>
-    }>
+      }
+    >
       <TableRow className="h-16">
         <TableCell className="font-bold">{name}</TableCell>
         <TableCell>
@@ -161,7 +162,8 @@ export default function JobRow ({
         <TableCell>
           <Link
             href={`/jobs/detail?id=${lastJob?.node.id}`}
-            className="flex items-center hover:underline">
+            className="flex items-center hover:underline"
+          >
             <p>{lastSuccessAt}</p>
             <IconExternalLink className="ml-1" />
           </Link>

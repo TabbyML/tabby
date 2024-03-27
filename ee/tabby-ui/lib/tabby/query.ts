@@ -88,12 +88,8 @@ export const listJobRuns = graphql(/* GraphQL */ `
 `)
 
 export const queryJobRunStats = graphql(/* GraphQL */ `
-  query GetJobRunStats(
-    $jobs: [String!]
-  ) {
-    jobRunStats(
-      jobs: $jobs
-    ) {
+  query GetJobRunStats($jobs: [String!]) {
+    jobRunStats(jobs: $jobs) {
       success
       failed
       pending
