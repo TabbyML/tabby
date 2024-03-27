@@ -39,7 +39,6 @@ function ChatRenderer(
       id
     },
     onResponse(response) {
-      console.log('=====call onresponse', response)
       if (response.status === 401) {
         toast.error(response.statusText)
       }
