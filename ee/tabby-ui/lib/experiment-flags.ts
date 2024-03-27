@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'
-
+import { useEffect, useState } from 'react'
 
 class ExperimentFlag {
   constructor(
@@ -40,7 +39,10 @@ class ExperimentFlagFactory {
   }
 
   defineHook() {
-    return (): [{ value: boolean; description: string, loading: boolean }, () => void] => {
+    return (): [
+      { value: boolean; description: string; loading: boolean },
+      () => void
+    ] => {
       const [storageValue, setStorageValue] = useState(this.defaultValue)
       const [loading, setLoading] = useState(true)
 
