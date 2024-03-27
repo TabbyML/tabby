@@ -20,6 +20,8 @@ import { Label } from '@/components/ui/label'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
 
+import ProfileOverview from './components/profile-overview'
+
 export default function Home() {
   return (
     <div>
@@ -48,8 +50,10 @@ function MainPanel() {
 
   return (
     <div>
-      <CardHeader className="px-0 pt-0">
-        <CardTitle>Getting Started</CardTitle>
+      <ProfileOverview />
+
+      <CardHeader className="mt-20 px-0 pt-0">
+        <CardTitle>My configuration</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 px-0">
         <Label>Endpoint URL</Label>
