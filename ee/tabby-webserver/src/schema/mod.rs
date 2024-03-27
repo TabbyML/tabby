@@ -12,6 +12,7 @@ use auth::{
     validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
     TokenAuthResponse, User,
 };
+use base64::Engine;
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
@@ -41,6 +42,7 @@ use self::{
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
     repository::{FileEntry, RepositoryMeta},
+    job::JobStats,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -222,6 +224,7 @@ impl Query {
     async fn job_runs(
         ctx: &Context,
         ids: Option<Vec<ID>>,
+        jobs: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -237,11 +240,15 @@ impl Query {
                 Ok(ctx
                     .locator
                     .job()
-                    .list_job_runs(ids, after, before, first, last)
+                    .list_job_runs(ids, jobs, after, before, first, last)
                     .await?)
             },
         )
         .await
+    }
+
+    async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> FieldResult<JobStats> {
+        Ok(ctx.locator.job().compute_job_run_stats(jobs).await?)
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
@@ -346,6 +353,10 @@ impl Query {
     async fn license(ctx: &Context) -> Result<LicenseInfo> {
         ctx.locator.license().read_license().await
     }
+
+    async fn jobs() -> Result<Vec<String>> {
+        Ok(vec!["scheduler".into()])
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -444,6 +455,28 @@ impl Mutation {
             return Err(CoreError::Forbidden("You cannot update your own role"));
         }
         ctx.locator.auth().update_user_role(&id, is_admin).await?;
+        Ok(true)
+    }
+
+    async fn upload_user_avatar_base64(
+        ctx: &Context,
+        id: ID,
+        avatar_base64: Option<String>,
+    ) -> Result<bool> {
+        let claims = check_claims(ctx)?;
+        if claims.sub.0 != id {
+            return Err(CoreError::Unauthorized(
+                "You cannot change another user's avatar",
+            ));
+        }
+        // ast-grep-ignore: use-schema-result
+        use anyhow::Context;
+        let avatar = avatar_base64
+            .map(|avatar| base64::prelude::BASE64_STANDARD.decode(avatar.as_bytes()))
+            .transpose()
+            .context("avatar is not valid base64 string")?
+            .map(Vec::into_boxed_slice);
+        ctx.locator.auth().update_user_avatar(&id, avatar).await?;
         Ok(true)
     }
 

@@ -1,20 +1,22 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::Request,
     middleware::{from_fn_with_state, Next},
+    response::{IntoResponse, Response},
     routing, Extension, Json, Router,
 };
-use hyper::{Body, StatusCode};
-use juniper_axum::{graphiql, graphql, playground};
+use hyper::{header::CONTENT_TYPE, Body, StatusCode};
+use juniper::ID;
+use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
 use tabby_common::api::{code::CodeSearch, event::EventLogger, server_setting::ServerSetting};
 use tabby_db::DbConn;
-use tracing::warn;
+use tracing::{error, warn};
 
 use crate::{
     cron, hub, oauth, repositories,
-    schema::{create_schema, Schema, ServiceLocator},
+    schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::new_event_logger, start_reload_listener},
     ui,
 };
@@ -76,6 +78,12 @@ impl WebserverHandle {
                 "/repositories",
                 repositories::routes(rs.clone(), ctx.auth()),
             )
+            .route(
+                "/avatar/:id",
+                routing::get(avatar)
+                    .with_state(ctx.auth())
+                    .layer(from_fn_with_state(ctx.auth(), require_login_middleware)),
+            )
             .nest("/oauth", oauth::routes(ctx.auth()));
 
         let ui = ui.route("/graphiql", routing::get(graphiql("/graphql", None)));
@@ -84,6 +92,29 @@ impl WebserverHandle {
 
         (api, ui)
     }
+}
+
+pub(crate) async fn require_login_middleware(
+    State(auth): State<Arc<dyn AuthenticationService>>,
+    AuthBearer(token): AuthBearer,
+    request: Request<Body>,
+    next: Next<Body>,
+) -> axum::response::Response {
+    let unauthorized = axum::response::Response::builder()
+        .status(StatusCode::UNAUTHORIZED)
+        .body(Body::empty())
+        .unwrap()
+        .into_response();
+
+    let Some(token) = token else {
+        return unauthorized;
+    };
+
+    let Ok(_) = auth.verify_access_token(&token).await else {
+        return unauthorized;
+    };
+
+    next.run(request).await
 }
 
 async fn distributed_tabby_layer(
@@ -108,4 +139,23 @@ async fn server_setting(
     Ok(Json(ServerSetting {
         disable_client_side_telemetry: security_setting.disable_client_side_telemetry,
     }))
+}
+
+async fn avatar(
+    State(state): State<Arc<dyn AuthenticationService>>,
+    Path(id): Path<ID>,
+) -> Result<Response<Body>, StatusCode> {
+    let avatar = state
+        .get_user_avatar(&id)
+        .await
+        .map_err(|e| {
+            error!("Failed to retrieve avatar: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let mut response = Response::new(Body::from(avatar.into_vec()));
+    response
+        .headers_mut()
+        .insert(CONTENT_TYPE, "image/*".parse().unwrap());
+    Ok(response)
 }

@@ -221,6 +221,20 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_user_avatar(&self, id: i32, avatar: Option<Box<[u8]>>) -> Result<()> {
+        query!("UPDATE users SET avatar = ? WHERE id = ?;", avatar, id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_user_avatar(&self, id: i32) -> Result<Option<Box<[u8]>>> {
+        let avatar = query_scalar!("SELECT avatar FROM users WHERE id = ?", id)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(avatar.map(Vec::into_boxed_slice))
+    }
+
     pub async fn count_active_users(&self) -> Result<usize> {
         self.cache
             .active_user_count

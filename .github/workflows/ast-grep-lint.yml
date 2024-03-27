@@ -11,3 +11,5 @@ jobs:
 
       - name: ast-grep lint step
         uses: ast-grep/action@v1.4
+        with:
+          version: 0.20.1

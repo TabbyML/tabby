@@ -1,0 +1,295 @@
+enum OAuthProvider {
+  GITHUB
+  GOOGLE
+}
+
+input RequestInvitationInput {
+  email: String!
+}
+
+type TokenAuthResponse {
+  accessToken: String!
+  refreshToken: String!
+}
+
+enum WorkerKind {
+  COMPLETION
+  CHAT
+}
+
+type Mutation {
+  resetRegistrationToken: String!
+  requestInvitationEmail(input: RequestInvitationInput!): Invitation!
+  requestPasswordResetEmail(input: RequestPasswordResetEmailInput!): Boolean!
+  passwordReset(input: PasswordResetInput!): Boolean!
+  passwordChange(input: PasswordChangeInput!): Boolean!
+  resetUserAuthToken: Boolean!
+  logoutAllSessions: Boolean!
+  updateUserActive(id: ID!, active: Boolean!): Boolean!
+  updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
+  uploadUserAvatarBase64(id: ID!, avatarBase64: String): Boolean!
+  register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
+  tokenAuth(email: String!, password: String!): TokenAuthResponse!
+  verifyToken(token: String!): Boolean!
+  refreshToken(refreshToken: String!): RefreshTokenResponse!
+  createInvitation(email: String!): ID!
+  sendTestEmail(to: String!): Boolean!
+  createRepository(name: String!, gitUrl: String!): ID!
+  deleteRepository(id: ID!): Boolean!
+  updateRepository(id: ID!, name: String!, gitUrl: String!): Boolean!
+  deleteInvitation(id: ID!): ID!
+  updateOauthCredential(input: UpdateOAuthCredentialInput!): Boolean!
+  deleteOauthCredential(provider: OAuthProvider!): Boolean!
+  updateEmailSetting(input: EmailSettingInput!): Boolean!
+  updateSecuritySetting(input: SecuritySettingInput!): Boolean!
+  updateNetworkSetting(input: NetworkSettingInput!): Boolean!
+  deleteEmailSetting: Boolean!
+  uploadLicense(license: String!): Boolean!
+  resetLicense: Boolean!
+}
+
+type RepositoryEdge {
+  node: Repository!
+  cursor: String!
+}
+
+"DateTime"
+scalar DateTimeUtc
+
+type JobRun {
+  id: ID!
+  job: String!
+  createdAt: DateTimeUtc!
+  updatedAt: DateTimeUtc!
+  finishedAt: DateTimeUtc
+  exitCode: Int
+  stdout: String!
+  stderr: String!
+}
+
+type Query {
+  workers: [Worker!]!
+  registrationToken: String!
+  isAdminInitialized: Boolean! @deprecated
+  me: User!
+  users(after: String, before: String, first: Int, last: Int): UserConnection!
+  invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
+  jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
+  jobRunStats(jobs: [String!]): JobStats!
+  emailSetting: EmailSetting
+  isEmailConfigured: Boolean! @deprecated
+  networkSetting: NetworkSetting!
+  securitySetting: SecuritySetting!
+  repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
+  oauthCredential(provider: OAuthProvider!): OAuthCredential
+  oauthCallbackUrl(provider: OAuthProvider!): String!
+  serverInfo: ServerInfo!
+  license: LicenseInfo!
+  jobs: [String!]!
+}
+
+input NetworkSettingInput {
+  externalUrl: String!
+}
+
+enum Encryption {
+  START_TLS
+  SSL_TLS
+  NONE
+}
+
+enum AuthMethod {
+  NONE
+  PLAIN
+  LOGIN
+}
+
+type UserEdge {
+  node: User!
+  cursor: String!
+}
+
+type JobRunConnection {
+  edges: [JobRunEdge!]!
+  pageInfo: PageInfo!
+}
+
+type RefreshTokenResponse {
+  accessToken: String!
+  refreshToken: String!
+  refreshExpiresAt: DateTimeUtc!
+}
+
+type RegisterResponse {
+  accessToken: String!
+  refreshToken: String!
+}
+
+type RepositoryConnection {
+  edges: [RepositoryEdge!]!
+  pageInfo: PageInfo!
+}
+
+enum LicenseStatus {
+  OK
+  EXPIRED
+  SEATS_EXCEEDED
+}
+
+input RequestPasswordResetEmailInput {
+  email: String!
+}
+
+type LicenseInfo {
+  type: LicenseType!
+  status: LicenseStatus!
+  seats: Int!
+  seatsUsed: Int!
+  issuedAt: DateTimeUtc
+  expiresAt: DateTimeUtc
+}
+
+input EmailSettingInput {
+  smtpUsername: String!
+  fromAddress: String!
+  smtpServer: String!
+  smtpPort: Int!
+  encryption: Encryption!
+  authMethod: AuthMethod!
+  smtpPassword: String
+}
+
+input SecuritySettingInput {
+  allowedRegisterDomainList: [String!]!
+  disableClientSideTelemetry: Boolean!
+}
+
+enum LicenseType {
+  COMMUNITY
+  TEAM
+  ENTERPRISE
+}
+
+type SecuritySetting {
+  allowedRegisterDomainList: [String!]!
+  disableClientSideTelemetry: Boolean!
+}
+
+type UserConnection {
+  edges: [UserEdge!]!
+  pageInfo: PageInfo!
+}
+
+input UpdateOAuthCredentialInput {
+  provider: OAuthProvider!
+  clientId: String!
+  clientSecret: String
+}
+
+type OAuthCredential {
+  provider: OAuthProvider!
+  clientId: String!
+  clientSecret: String
+  createdAt: DateTimeUtc!
+  updatedAt: DateTimeUtc!
+}
+
+type ServerInfo {
+  isAdminInitialized: Boolean!
+  isChatEnabled: Boolean!
+  isEmailConfigured: Boolean!
+  allowSelfSignup: Boolean!
+}
+
+input PasswordResetInput {
+  code: String!
+  password1: String!
+  password2: String!
+}
+
+input PasswordChangeInput {
+  oldPassword: String
+  newPassword1: String!
+  newPassword2: String!
+}
+
+type Invitation {
+  id: ID!
+  email: String!
+  code: String!
+  createdAt: DateTimeUtc!
+}
+
+type EmailSetting {
+  smtpUsername: String!
+  smtpServer: String!
+  smtpPort: Int!
+  fromAddress: String!
+  encryption: Encryption!
+  authMethod: AuthMethod!
+}
+
+type User {
+  id: ID!
+  email: String!
+  isAdmin: Boolean!
+  isOwner: Boolean!
+  authToken: String!
+  createdAt: DateTimeUtc!
+  active: Boolean!
+  isPasswordSet: Boolean!
+}
+
+type Worker {
+  kind: WorkerKind!
+  name: String!
+  addr: String!
+  device: String!
+  arch: String!
+  cpuInfo: String!
+  cpuCount: Int!
+  cudaDevices: [String!]!
+}
+
+type InvitationEdge {
+  node: Invitation!
+  cursor: String!
+}
+
+type JobStats {
+  success: Int!
+  failed: Int!
+  pending: Int!
+}
+
+type PageInfo {
+  hasPreviousPage: Boolean!
+  hasNextPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type NetworkSetting {
+  externalUrl: String!
+}
+
+type JobRunEdge {
+  node: JobRun!
+  cursor: String!
+}
+
+type Repository {
+  id: ID!
+  name: String!
+  gitUrl: String!
+}
+
+type InvitationConnection {
+  edges: [InvitationEdge!]!
+  pageInfo: PageInfo!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

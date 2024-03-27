@@ -4,7 +4,7 @@ use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
-    job::{JobRun, JobService},
+    job::{JobRun, JobService, JobStats},
     Result,
 };
 
@@ -37,6 +37,7 @@ impl JobService for DbConn {
     async fn list_job_runs(
         &self,
         ids: Option<Vec<ID>>,
+        jobs: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -45,11 +46,20 @@ impl JobService for DbConn {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let rowids = ids.map(|ids| ids.into_iter().filter_map(|x| x.as_rowid().ok()).collect());
         Ok(self
-            .list_job_runs_with_filter(rowids, limit, skip_id, backwards)
+            .list_job_runs_with_filter(rowids, jobs, limit, skip_id, backwards)
             .await?
             .into_iter()
             .map(Into::into)
             .collect())
+    }
+
+    async fn compute_job_run_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats> {
+        let stats = (self as &DbConn).compute_job_stats(jobs).await?;
+        Ok(JobStats {
+            success: stats.success,
+            failed: stats.failed,
+            pending: stats.pending,
+        })
     }
 }
 
@@ -71,7 +81,7 @@ mod tests {
         svc.complete_job_run(&id, 0).await.unwrap();
 
         let job = svc
-            .list_job_runs(None, None, None, None, None)
+            .list_job_runs(None, None, None, None, None, None)
             .await
             .unwrap();
         let job = job.first().unwrap();
@@ -80,10 +90,53 @@ mod tests {
         assert_eq!(job.stderr, "stderr");
         assert_eq!(job.exit_code, Some(0));
 
-        let job = svc
-            .list_job_runs(Some(vec![id]), None, None, None, None)
+        let jobs = svc
+            .list_job_runs(Some(vec![id]), None, None, None, None, None)
             .await
             .unwrap();
-        assert_eq!(job.len(), 1)
+        assert_eq!(jobs.len(), 1);
+
+        svc.create_job_run("another-job".into()).await.unwrap();
+        let jobs = svc
+            .list_job_runs(
+                None,
+                Some(vec!["another-job".into()]),
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        assert_eq!(jobs.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_job_stats() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let jobs: Box<dyn JobService> = Box::new(db);
+
+        let id = jobs.create_job_run("test-job".into()).await.unwrap();
+        jobs.complete_job_run(&id, 0).await.unwrap();
+
+        let id2 = jobs.create_job_run("test-job".into()).await.unwrap();
+        jobs.complete_job_run(&id2, 1).await.unwrap();
+
+        jobs.create_job_run("pending-job".into()).await.unwrap();
+
+        let stats = jobs.compute_job_run_stats(None).await.unwrap();
+
+        assert_eq!(stats.success, 1);
+        assert_eq!(stats.failed, 1);
+        assert_eq!(stats.pending, 1);
+
+        let stats = jobs
+            .compute_job_run_stats(Some(vec!["test-job".into()]))
+            .await
+            .unwrap();
+
+        assert_eq!(stats.success, 1);
+        assert_eq!(stats.failed, 1);
+        assert_eq!(stats.pending, 0);
     }
 }
