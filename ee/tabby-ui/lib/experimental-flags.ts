@@ -1,17 +1,6 @@
 import useLocalStorage from 'use-local-storage'
 
-type DefineExperimentalFlagResponse = [
-  ExperimentalFlag,
-  () => {
-    flag: {
-      value: boolean
-      description: string
-    }
-    toggleFlag: () => void
-  }
-]
-
-class ExperimentalFlag {
+class FeatureFlag {
   constructor(
     private storageKey: string,
     readonly description: string,
@@ -30,49 +19,53 @@ class ExperimentalFlag {
   }
 }
 
-const defineExperimentalFlagHook = (
-  storageKey: string,
-  flag: ExperimentalFlag
-) => {
-  return () => {
-    const [storageValue, setStorageValue] = useLocalStorage(
-      storageKey,
-      flag.defaultValue
-    )
-    const toggleFlag = () => {
-      setStorageValue(!storageValue)
-    }
-    return {
-      flag: {
-        value: storageValue,
-        description: flag.description
-      },
-      toggleFlag
+class RuntimeFlagFactory {
+  private storageKey: string
+  private description: string
+  private defaultValue: boolean
+
+  constructor(
+    storageKey: string,
+    description: string,
+    defaultValue?: boolean
+  ) {
+    this.storageKey = `EXP_${storageKey}`
+    this.description = description
+    this.defaultValue = defaultValue ?? false
+  }
+
+  defineGlobalVarAccess () {
+    return new FeatureFlag(this.storageKey, this.description, this.defaultValue)
+  }
+
+  defineHookAccess () {
+    return (): [
+      { value: boolean, description: string },
+      () => void
+    ] => {
+      const [storageValue, setStorageValue] = useLocalStorage(
+        this.storageKey,
+        this.defaultValue
+      )
+      const toggleFlag = () => {
+        setStorageValue(!storageValue)
+      }
+      return [
+        {
+          value: storageValue,
+          description: this.description
+        },
+        toggleFlag
+      ]
     }
   }
 }
 
-const defineExperimentalFlag = (
-  storageKey: string,
-  description: string,
-  defaultValue?: boolean
-): DefineExperimentalFlagResponse => {
-  const flagDefaultValue = defaultValue ?? false
-  const flag = new ExperimentalFlag(storageKey, description, flagDefaultValue)
-  const useFlagHook = defineExperimentalFlagHook(storageKey, flag)
-  return [flag, useFlagHook]
-}
-
-const [
-  EXP_enable_code_browser_quick_action_bar,
-  useEnableCodeBrowserQuickActionBar
-] = defineExperimentalFlag(
+const quickActionBarFlag = new RuntimeFlagFactory(
   'enable_code_browser_quick_action_bar',
   'Show a quick action popup upon selecting code snippets',
   false
 )
 
-export {
-  EXP_enable_code_browser_quick_action_bar,
-  useEnableCodeBrowserQuickActionBar
-}
+export const EXP_enable_code_browser_quick_action_bar = quickActionBarFlag.defineGlobalVarAccess()
+export const useEnableCodeBrowserQuickActionBar = quickActionBarFlag.defineHookAccess()
