@@ -20,6 +20,13 @@ pub struct JobRun {
     pub stderr: String,
 }
 
+#[derive(Debug, GraphQLObject)]
+pub struct JobStats {
+    pub success: i32,
+    pub failed: i32,
+    pub pending: i32,
+}
+
 impl relay::NodeType for JobRun {
     type Cursor = String;
 
@@ -47,9 +54,11 @@ pub trait JobService: Send + Sync {
     async fn list_job_runs(
         &self,
         ids: Option<Vec<ID>>,
+        jobs: Option<Vec<String>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<JobRun>>;
+    async fn compute_job_run_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats>;
 }
