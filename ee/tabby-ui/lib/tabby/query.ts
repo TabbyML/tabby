@@ -51,6 +51,7 @@ export const listRepositories = graphql(/* GraphQL */ `
 export const listJobRuns = graphql(/* GraphQL */ `
   query ListJobRuns(
     $ids: [ID!]
+    $jobs: [String!]
     $after: String
     $before: String
     $first: Int
@@ -58,6 +59,7 @@ export const listJobRuns = graphql(/* GraphQL */ `
   ) {
     jobRuns(
       ids: $ids
+      jobs: $jobs
       after: $after
       before: $before
       first: $first
@@ -82,5 +84,25 @@ export const listJobRuns = graphql(/* GraphQL */ `
         endCursor
       }
     }
+  }
+`)
+
+export const queryJobRunStats = graphql(/* GraphQL */ `
+  query jobRunStats(
+    $jobs: [String!]
+  ) {
+    jobRunStats(
+      jobs: $jobs
+    ) {
+      success
+      failed
+      pending
+    }
+  }
+`)
+
+export const listJobs = graphql(/* GraphQL */ `
+  query listJobs {
+    jobs
   }
 `)
