@@ -1,6 +1,6 @@
 import useLocalStorage from 'use-local-storage'
 
-class FeatureFlag {
+class ExperimentFlag {
   constructor(
     private storageKey: string,
     readonly description: string,
@@ -19,7 +19,7 @@ class FeatureFlag {
   }
 }
 
-class RuntimeFlagFactory {
+class ExperimentFlagFactory {
   private storageKey: string
   private description: string
   private defaultValue: boolean
@@ -30,11 +30,11 @@ class RuntimeFlagFactory {
     this.defaultValue = defaultValue ?? false
   }
 
-  defineGlobalVarAccess() {
-    return new FeatureFlag(this.storageKey, this.description, this.defaultValue)
+  defineGlobalVar() {
+    return new ExperimentFlag(this.storageKey, this.description, this.defaultValue)
   }
 
-  defineHookAccess() {
+  defineHook() {
     return (): [{ value: boolean; description: string }, () => void] => {
       const [storageValue, setStorageValue] = useLocalStorage(
         this.storageKey,
@@ -54,13 +54,11 @@ class RuntimeFlagFactory {
   }
 }
 
-const quickActionBarFlag = new RuntimeFlagFactory(
+const enableCodeBrowserQuickActionBarFactory = new ExperimentFlagFactory(
   'enable_code_browser_quick_action_bar',
   'Show a quick action popup upon selecting code snippets',
   false
 )
 
-export const EXP_enable_code_browser_quick_action_bar =
-  quickActionBarFlag.defineGlobalVarAccess()
-export const useEnableCodeBrowserQuickActionBar =
-  quickActionBarFlag.defineHookAccess()
+export const EXP_enable_code_browser_quick_action_bar = enableCodeBrowserQuickActionBarFactory.defineGlobalVar()
+export const useEnableCodeBrowserQuickActionBar = enableCodeBrowserQuickActionBarFactory.defineHook()
