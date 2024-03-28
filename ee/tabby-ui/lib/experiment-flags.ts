@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 
-const useLocalStorageForExperimentFlag = (storageKey: string, defaultValue: boolean): [
-  boolean,
-  (value: boolean) => void,
-  boolean
-] => {
+const useLocalStorageForExperimentFlag = (
+  storageKey: string,
+  defaultValue: boolean
+): [boolean, (value: boolean) => void, boolean] => {
   const [storageValue, setStorageValue] = useState(defaultValue)
   const [loading, setLoading] = useState(true)
 
@@ -50,7 +49,12 @@ class ExperimentFlagFactory {
   private description: string
   private defaultValue: boolean
 
-  constructor(storageKey: string, title: string, description: string, defaultValue?: boolean) {
+  constructor(
+    storageKey: string,
+    title: string,
+    description: string,
+    defaultValue?: boolean
+  ) {
     this.storageKey = `EXP_${storageKey}`
     this.title = title
     this.description = description
@@ -71,7 +75,8 @@ class ExperimentFlagFactory {
       { value: boolean; title: string; description: string; loading: boolean },
       () => void
     ] => {
-      const [storageValue, setStorageValue, loading] = useLocalStorageForExperimentFlag(this.storageKey, this.defaultValue)
+      const [storageValue, setStorageValue, loading] =
+        useLocalStorageForExperimentFlag(this.storageKey, this.defaultValue)
 
       const toggleFlag = () => {
         setStorageValue(!storageValue)
