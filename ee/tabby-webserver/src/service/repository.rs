@@ -1,7 +1,10 @@
+use std::path::Path;
+
 use anyhow::anyhow;
 use async_trait::async_trait;
+use futures::StreamExt;
 use juniper::ID;
-use tabby_common::SourceFile;
+use tabby_common::{config::RepositoryConfig, SourceFile};
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
@@ -10,14 +13,45 @@ use crate::schema::{
     Result,
 };
 
-fn glob_matches(glob: &str, mut input: &str) -> bool {
-    for part in glob.split('*') {
-        let Some((_, rest)) = input.split_once(part) else {
+fn match_glob(path: &str, glob: &str) -> bool {
+    let glob = glob.to_lowercase();
+    let mut path = &*path.to_lowercase();
+    // Current behavior: Find each "word" (any substring separated by whitespace) appearing in the same order
+    // they were entered within the path. If one cannot be found or they are out-of-order, it will not match.
+    // To change this behavior, change `.split_whitespace()` to `.chars()` to make it match the characters in
+    // order, or `.replace(' ', "").chars()` to do the same while ignoring spaces
+    for part in glob.split_whitespace() {
+        let Some((_, rest)) = path.split_once(part) else {
             return false;
         };
-        input = rest;
+        path = rest;
     }
     true
+}
+
+async fn find_glob(base: &Path, glob: &str, limit: usize) -> Result<Vec<FileEntry>, anyhow::Error> {
+    let mut paths = vec![];
+    let mut walk = async_walkdir::WalkDir::new(base);
+    while let Some(path) = walk.next().await.transpose()? {
+        let full_path = path.path();
+        let full_path = full_path.strip_prefix(base)?;
+        let name = full_path.to_string_lossy();
+        if !match_glob(&name, glob) {
+            continue;
+        }
+        paths.push(FileEntry {
+            r#type: if path.file_type().await?.is_dir() {
+                "dir".into()
+            } else {
+                "file".into()
+            },
+            path: name.to_string(),
+        });
+        if paths.len() >= limit {
+            break;
+        }
+    }
+    Ok(paths)
 }
 
 #[async_trait]
@@ -60,21 +94,11 @@ impl RepositoryService for DbConn {
         path_glob: String,
         top_n: usize,
     ) -> Result<Vec<FileEntry>> {
-        let git_url = self.get_repository_git_url(name).await?;
-        let matching = SourceFile::all()
-            .map_err(anyhow::Error::from)?
-            .filter_map(|file| {
-                if file.git_url == git_url && glob_matches(&path_glob, &file.filepath) {
-                    Some(FileEntry {
-                        r#type: "file".into(), // Directories are not currently stored in files.jsonl
-                        path: file.filepath,
-                    })
-                } else {
-                    None
-                }
-            })
-            .take(top_n)
-            .collect();
+        let git_url = self.get_repository_git_url(name.clone()).await?;
+        let config = RepositoryConfig::new_named(name, git_url);
+        let matching = find_glob(&config.dir(), &path_glob, top_n)
+            .await
+            .map_err(anyhow::Error::from)?;
         Ok(matching)
     }
 
