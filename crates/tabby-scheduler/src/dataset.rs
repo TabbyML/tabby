@@ -180,6 +180,7 @@ lazy_static! {
             ("python", vec!["py"]),
             ("ruby", vec!["rb"]),
             ("rust", vec!["rs"]),
+            ("solidity", vec!["sol"]),
             ("sql", vec!["sql"]),
             ("scala", vec!["scala"]),
             ("shellscript", vec!["sh", "bash", "command", "zsh"]),
