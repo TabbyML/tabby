@@ -48,8 +48,6 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
         }
       }),
       drawSelection()
-      // quick action bar
-      // ActionBarWidgetExtension()
     ]
     if (EXP_enable_code_browser_quick_action_bar.value && isChatEnabled) {
       result.push(ActionBarWidgetExtension())
