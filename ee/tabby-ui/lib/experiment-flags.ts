@@ -1,8 +1,33 @@
 import { useEffect, useState } from 'react'
 
+const useLocalStorageForExperimentFlag = (storageKey: string, defaultValue: boolean): [
+  boolean,
+  (value: boolean) => void,
+  boolean
+] => {
+  const [storageValue, setStorageValue] = useState(defaultValue)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const value = localStorage.getItem(storageKey)
+    if (value) {
+      setStorageValue(JSON.parse(value))
+    }
+    setLoading(false)
+  }, [])
+
+  const upateStorageValue = (newValue: boolean) => {
+    setStorageValue(newValue)
+    localStorage.setItem(storageKey, JSON.stringify(newValue))
+  }
+
+  return [storageValue, upateStorageValue, loading]
+}
+
 class ExperimentFlag {
   constructor(
     private storageKey: string,
+    readonly title: string,
     readonly description: string,
     readonly defaultValue: boolean
   ) {}
@@ -21,11 +46,13 @@ class ExperimentFlag {
 
 class ExperimentFlagFactory {
   private storageKey: string
+  private title: string
   private description: string
   private defaultValue: boolean
 
-  constructor(storageKey: string, description: string, defaultValue?: boolean) {
+  constructor(storageKey: string, title: string, description: string, defaultValue?: boolean) {
     this.storageKey = `EXP_${storageKey}`
+    this.title = title
     this.description = description
     this.defaultValue = defaultValue ?? false
   }
@@ -33,6 +60,7 @@ class ExperimentFlagFactory {
   defineGlobalVar() {
     return new ExperimentFlag(
       this.storageKey,
+      this.title,
       this.description,
       this.defaultValue
     )
@@ -40,29 +68,19 @@ class ExperimentFlagFactory {
 
   defineHook() {
     return (): [
-      { value: boolean; description: string; loading: boolean },
+      { value: boolean; title: string; description: string; loading: boolean },
       () => void
     ] => {
-      const [storageValue, setStorageValue] = useState(this.defaultValue)
-      const [loading, setLoading] = useState(true)
-
-      useEffect(() => {
-        const value = localStorage.getItem(this.storageKey)
-        if (value) {
-          setStorageValue(value === 'true')
-        }
-        setLoading(false)
-      }, [])
+      const [storageValue, setStorageValue, loading] = useLocalStorageForExperimentFlag(this.storageKey, this.defaultValue)
 
       const toggleFlag = () => {
-        const newStorageValue = !storageValue
-        setStorageValue(newStorageValue)
-        localStorage.setItem(this.storageKey, String(newStorageValue))
+        setStorageValue(!storageValue)
       }
 
       return [
         {
           value: storageValue,
+          title: this.title,
           description: this.description,
           loading
         },
@@ -74,7 +92,8 @@ class ExperimentFlagFactory {
 
 const enableCodeBrowserQuickActionBarFactory = new ExperimentFlagFactory(
   'enable_code_browser_quick_action_bar',
-  'Show a quick action popup upon selecting code snippets',
+  'Quick Action Bar',
+  'Enable Quick Action Bar to display a convenient toolbar when you select code, offering options to explain the code, add unit tests, and more.',
   false
 )
 

@@ -22,7 +22,6 @@ import {
   IconLightingBolt,
   IconNetwork,
   IconScrollText,
-  IconSparkles,
   IconUser
 } from '@/components/ui/icons'
 
@@ -61,9 +60,6 @@ export default function Sidebar({ children, className }: SidebarProps) {
               </SidebarButton>
               <SidebarButton href="/profile">
                 <IconUser /> Profile
-              </SidebarButton>
-              <SidebarButton href="/experiments">
-                <IconSparkles /> Experimental AI
               </SidebarButton>
               {isAdmin && (
                 <>
