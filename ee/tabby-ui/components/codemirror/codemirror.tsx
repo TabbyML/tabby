@@ -163,6 +163,8 @@ const CodeMirrorEditor = React.forwardRef<
   return <div className="codemirror-editor h-full" ref={containerRef}></div>
 })
 
+CodeMirrorEditor.displayName = 'CodeMirrorEditor'
+
 function getLanguage(lang: LanguageName | string, ext?: string) {
   switch (lang) {
     case 'javascript-typescript':
