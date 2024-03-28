@@ -1,6 +1,6 @@
 //! Responsible for downloading ML models for use with tabby.
 use std::{
-    fs::{self, File},
+    fs::{self, File, OpenOptions},
     io::{BufRead, BufReader, Write},
     path::Path,
 };
@@ -41,12 +41,17 @@ async fn download_model_impl(
         }
     }
 
-    if !model_info.segmented_urls.is_empty() {
+    if !model_info.segmented_urls.is_none() {
         return download_split_model(&model_info, &model_path).await;
     }
 
     let registry = std::env::var("TABBY_DOWNLOAD_HOST").unwrap_or("huggingface.co".to_owned());
-    let Some(model_url) = model_info.urls.iter().find(|x| x.contains(&registry)) else {
+    let Some(model_url) = model_info
+        .urls
+        .iter()
+        .flatten()
+        .find(|x| x.contains(&registry))
+    else {
         return Err(anyhow!(
             "Invalid mirror <{}> for model urls: {:?}",
             registry,
@@ -55,33 +60,43 @@ async fn download_model_impl(
     };
 
     let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
-    let download_job = Retry::spawn(strategy, || download_file(model_url, model_path.as_path()));
+    let download_job = Retry::spawn(strategy, || download_file(&model_url, model_path.as_path()));
     download_job.await?;
     Ok(())
 }
 
 async fn download_split_model(model_info: &ModelInfo, model_path: &Path) -> Result<()> {
-    if !model_info.urls.is_empty() {
+    if !model_info.urls.is_none() {
         return Err(anyhow!(
             "{}: Cannot specify both `urls` and `segmented_urls`",
             model_info.name
         ));
     }
     let mut paths = vec![];
-    for (index, url) in model_info.segmented_urls.iter().enumerate() {
+    let segmented_urls = model_info.segmented_urls.clone().unwrap_or_default();
+    for (index, url) in segmented_urls.iter().enumerate() {
         let ext = format!(
             "{}.{}",
             model_path.extension().unwrap_or_default().to_string_lossy(),
             index.to_string()
         );
         let path = model_path.with_extension(ext);
+        info!(
+            "Downloading {path:?} ({index} / {total})",
+            index = index + 1,
+            total = segmented_urls.len()
+        );
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
         let download_job = Retry::spawn(strategy, || download_file(url, &path));
         download_job.await?;
         paths.push(path);
     }
     info!("Merging split model files...");
-    let mut file = File::open(model_path)?;
+    println!("{model_path:?}");
+    let mut file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(model_path)?;
     for path in paths {
         let mut reader = BufReader::new(File::open(&path)?);
         loop {
