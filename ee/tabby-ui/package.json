@@ -60,6 +60,7 @@
     "humanize-duration": "^3.31.0",
     "jwt-decode": "^4.0.0",
     "lodash-es": "^4.17.21",
+    "mitt": "^3.0.1",
     "moment": "^2.29.4",
     "nanoid": "^4.0.2",
     "next": "^13.4.7",
