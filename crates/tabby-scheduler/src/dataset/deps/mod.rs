@@ -19,6 +19,10 @@ pub fn collect(path: &Path, file: &mut DependencyFile) {
         file.direct.append(&mut deps);
     }
 
+    if let Ok(mut deps) = javascript::process_yarn_lock(path) {
+        file.direct.append(&mut deps);
+    }
+
     // Remove duplicates across sources.
     let deps = file.direct.clone().into_iter().collect::<HashSet<_>>();
     file.direct = deps.into_iter().collect();
