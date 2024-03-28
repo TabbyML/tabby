@@ -3,6 +3,9 @@
 import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
+import humanizerDuration from 'humanize-duration'
+import { isNil } from 'lodash-es'
+import moment from 'moment'
 import { useQuery } from 'urql'
 
 import { listJobRuns } from '@/lib/tabby/query'
@@ -11,7 +14,7 @@ import { IconAlertTriangle, IconTerminalSquare } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
-import { JobsTable } from './jobs-table'
+import { getLabelByExitCode } from '../utils/state'
 
 export default function JobRunDetail() {
   const searchParams = useSearchParams()
@@ -46,27 +49,76 @@ export default function JobRunDetail() {
         <ListSkeleton />
       ) : (
         <div className="flex flex-1 flex-col items-stretch gap-2">
-          <JobsTable jobs={edges?.slice(0, 1)} shouldRedirect={false} />
-          <Tabs defaultValue="stdout" className="flex flex-1 flex-col">
-            <TabsList className="grid w-[400px] grid-cols-2">
-              <TabsTrigger value="stdout">
-                <IconTerminalSquare className="mr-1" />
-                stdout
-              </TabsTrigger>
-              <TabsTrigger value="stderr">
-                <IconAlertTriangle className="mr-1" />
-                stderr
-              </TabsTrigger>
-            </TabsList>
-            <div className="flex flex-1 flex-col">
-              <TabsContent value="stdout">
-                <StdoutView value={currentNode?.stdout} />
-              </TabsContent>
-              <TabsContent value="stderr">
-                <StdoutView value={currentNode?.stderr} />
-              </TabsContent>
-            </div>
-          </Tabs>
+          {currentNode && (
+            <>
+              <h1 className="text-4xl font-semibold tracking-tight first:mt-0">
+                {currentNode.job}
+              </h1>
+              <div className="flex gap-16 pb-6 pt-2">
+                <div>
+                  <p
+                    className={cn('font-bold', {
+                      'text-blue-500': isNil(currentNode.exitCode),
+                      'text-green-500': currentNode.exitCode === 0,
+                      'text-red-500': currentNode.exitCode === 1
+                    })}
+                  >
+                    {getLabelByExitCode(currentNode.exitCode)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                </div>
+
+                {currentNode.createdAt && (
+                  <div>
+                    <p>
+                      {moment(currentNode.createdAt).format(
+                        'MMMM D, YYYY h:mm a'
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Started At</p>
+                  </div>
+                )}
+
+                {currentNode.createdAt && currentNode.finishedAt && (
+                  <div>
+                    <p>
+                      {humanizerDuration(
+                        moment
+                          .duration(
+                            moment(currentNode.finishedAt).diff(
+                              currentNode.createdAt
+                            )
+                          )
+                          .asMilliseconds()
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Duration</p>
+                  </div>
+                )}
+              </div>
+              {/* <JobsTable jobs={edges?.slice(0, 1)} shouldRedirect={false} /> */}
+              <Tabs defaultValue="stdout" className="flex flex-1 flex-col">
+                <TabsList className="grid w-[400px] grid-cols-2">
+                  <TabsTrigger value="stdout">
+                    <IconTerminalSquare className="mr-1" />
+                    stdout
+                  </TabsTrigger>
+                  <TabsTrigger value="stderr">
+                    <IconAlertTriangle className="mr-1" />
+                    stderr
+                  </TabsTrigger>
+                </TabsList>
+                <div className="flex flex-1 flex-col">
+                  <TabsContent value="stdout">
+                    <StdoutView value={currentNode?.stdout} />
+                  </TabsContent>
+                  <TabsContent value="stderr">
+                    <StdoutView value={currentNode?.stderr} />
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </>
+          )}
         </div>
       )}
     </>
