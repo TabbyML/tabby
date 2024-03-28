@@ -92,7 +92,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
         id: option.path
       })) ?? []
     setOptions(_options)
-    setOptionsVisible(!!_options?.length)
+    setOptionsVisible(!!repositorySearchFilter)
   }, [repositorySearchData?.repositorySearch])
 
   const onSelectRepo = (name: string) => {
@@ -116,7 +116,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       ignoreFetchResultRef.current = false
       setRepositorySearchFilter(v)
     }
-  }, 500)
+  }, 300)
 
   const onClearInput = () => {
     onInputValueChange.run('')
