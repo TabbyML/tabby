@@ -14,6 +14,10 @@ use tokio_retry::{
 };
 use tracing::{info, warn};
 
+fn download_host() -> String {
+    std::env::var("TABBY_DOWNLOAD_HOST").unwrap_or("huggingface.co".to_owned())
+}
+
 async fn download_model_impl(
     registry: &ModelRegistry,
     name: &str,
@@ -45,7 +49,7 @@ async fn download_model_impl(
         return download_split_model(&model_info, &model_path).await;
     }
 
-    let registry = std::env::var("TABBY_DOWNLOAD_HOST").unwrap_or("huggingface.co".to_owned());
+    let registry = download_host();
     let Some(model_url) = model_info
         .urls
         .iter()
@@ -74,7 +78,20 @@ async fn download_split_model(model_info: &ModelInfo, model_path: &Path) -> Resu
     }
     let mut paths = vec![];
     let partition_urls = model_info.partition_urls.clone().unwrap_or_default();
-    for (index, url) in partition_urls.iter().enumerate() {
+    let mirror = download_host();
+
+    let Some(urls) = partition_urls
+        .iter()
+        .find(|urls| urls.iter().all(|url| url.contains(&mirror)))
+    else {
+        return Err(anyhow!(
+            "Invalid mirror <{}> for model urls: {:?}",
+            mirror,
+            partition_urls
+        ));
+    };
+
+    for (index, url) in urls.iter().enumerate() {
         let ext = format!(
             "{}.{}",
             model_path.extension().unwrap_or_default().to_string_lossy(),
