@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 
-import FeatureList from './components/FeatureList'
+import FeatureList from './components/feature-list'
 
 export const metadata: Metadata = {
   title: 'Experimental AI'

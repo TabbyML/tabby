@@ -62,7 +62,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
               <SidebarButton href="/profile">
                 <IconUser /> Profile
               </SidebarButton>
-              <SidebarButton href="/experimentalAI">
+              <SidebarButton href="/experiments">
                 <IconSparkles /> Experimental AI
               </SidebarButton>
               {isAdmin && (
