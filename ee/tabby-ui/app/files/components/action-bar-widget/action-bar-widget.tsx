@@ -12,9 +12,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { IconChevronUpDown } from '@/components/ui/icons'
 
-interface CompletionWidgetProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface ActionBarWidgetProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-export const ActionBarWidget: React.FC<CompletionWidgetProps> = ({
+export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
   className,
   ...props
 }) => {
