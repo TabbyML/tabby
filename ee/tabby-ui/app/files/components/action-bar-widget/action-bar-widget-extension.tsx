@@ -6,6 +6,8 @@ import ReactDOM from 'react-dom/client'
 
 import { ActionBarWidget } from './action-bar-widget'
 
+let delayTimer: number
+
 function ActionBarWidgetExtension(): Extension {
   return StateField.define<Tooltip | null>({
     create() {
@@ -13,6 +15,7 @@ function ActionBarWidgetExtension(): Extension {
     },
     update(value, transaction) {
       if (transaction.newSelection.main.empty) {
+        clearTimeout(delayTimer)
         return null
       }
       if (transaction.selection) {
@@ -22,6 +25,8 @@ function ActionBarWidgetExtension(): Extension {
           // return tooltip?.pos !== value?.pos ? tooltip : value
           return tooltip
         }
+
+        clearTimeout(delayTimer)
         return null
       }
       return value
@@ -29,8 +34,6 @@ function ActionBarWidgetExtension(): Extension {
     provide: field => showTooltip.compute([field], state => state.field(field))
   })
 }
-
-let delayTimer: number
 
 function createActionBarWidget(state: EditorState): Tooltip {
   const { selection } = state
