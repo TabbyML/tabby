@@ -16,7 +16,7 @@ function resolveFileNameFromPath(path: string) {
   return pathSegments[pathSegments.length - 1]
 }
 
-function getDirectoriesFromPath(path: string, isDir?: boolean): string[] {
+function getDirectoriesFromBasename(path: string, isDir?: boolean): string[] {
   if (isNil(path)) return []
 
   let result = ['']
@@ -33,5 +33,5 @@ export {
   resolveRepoNameFromPath,
   resolveBasenameFromPath,
   resolveFileNameFromPath,
-  getDirectoriesFromPath
+  getDirectoriesFromBasename
 }
