@@ -1,13 +1,16 @@
 'use client'
 
-import { ChangeEvent } from 'react'
+import { useState, ChangeEvent } from 'react'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMe } from '@/lib/hooks/use-me'
 import { useMutation } from '@/lib/tabby/gql'
-import { cn } from '@/lib/utils'
-import { buttonVariants } from '@/components/ui/button'
+import { delay } from '@/lib/utils'
+
+import { IconSpinner, IconCloudUpload } from '@/components/ui/icons'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { mutateAvatar, UserAvatar } from '@/components/user-avatar'
 
 const uploadUserAvatarMutation = graphql(/* GraphQL */ `
@@ -17,64 +20,94 @@ const uploadUserAvatarMutation = graphql(/* GraphQL */ `
 `)
 
 export const Avatar = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [uploadedImgString, setUploadedImgString] = useState("")
   const [{ data }] = useMe()
   const uploadUserAvatar = useMutation(uploadUserAvatarMutation)
   if (!data?.me?.email) return null
 
-  const onUploadAvatar = (e: ChangeEvent<HTMLInputElement>) => {
+  const onPreviewAvatar = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files ? e.target.files[0] : null
     if (file) {
       const reader = new FileReader()
 
-      reader.onloadend = async () => {
-        try {
-          const imageString = reader.result as string
-          const mimeHeaderMatcher = new RegExp('^data:image/.+;base64,')
-          const avatarBase64 = imageString.replace(mimeHeaderMatcher, '')
-
-          const response = await uploadUserAvatar({
-            avatarBase64,
-            id: data.me.id
-          })
-          if (response?.error) throw response.error
-          if (response?.data?.uploadUserAvatarBase64 === false)
-            throw new Error('Upload failed')
-          mutateAvatar(data.me.id)
-          toast.success('Avatar uploaded successfully.')
-        } catch (err: any) {
-          toast.error(err.message || 'Upload failed')
-        }
+      reader.onloadend = () => {
+        const imageString = reader.result as string
+        setUploadedImgString(imageString)
       }
 
       reader.readAsDataURL(file)
     }
   }
 
-  return (
-    <div className="flex items-center">
-      <UserAvatar className="h-16 w-16 border" />
+  const onUploadAvatar = async () => {
+    setIsSubmitting(true)
+    try {
+      const mimeHeaderMatcher = new RegExp('^data:image/.+;base64,')
+      const avatarBase64 = uploadedImgString.replace(mimeHeaderMatcher, '')
 
-      <div className="ml-3">
+      const response = await uploadUserAvatar({
+        avatarBase64,
+        id: data.me.id
+      })
+      if (response?.error) throw response.error
+      if (response?.data?.uploadUserAvatarBase64 === false)
+        throw new Error('Upload failed')
+      await delay(1000)
+      mutateAvatar(data.me.id)
+      toast.success('Avatar uploaded successfully.')
+      await delay(200)
+      setUploadedImgString("")
+    } catch (err: any) {
+      toast.error(err.message || 'Upload failed')
+    }
+    setIsSubmitting(false)
+  }
+
+  return (
+    <div className="grid gap-6">
+      <div className="relative">
         <label
           htmlFor="avatar-file"
-          className={cn(
-            'relative cursor-pointer',
-            buttonVariants({ variant: 'outline' })
-          )}
+          className='absolute left-0 top-0 z-20 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full bg-background/90 opacity-0 transition-all hover:opacity-100'
         >
-          Upload new picture
+          <IconCloudUpload />
         </label>
         <input
           id="avatar-file"
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={onUploadAvatar}
+          onChange={onPreviewAvatar}
         />
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          Recommended: Square JPG, PNG, at least 1,000 pixels per side.
+        {uploadedImgString &&
+          <img
+            src={uploadedImgString}
+            className="absolute left-0 top-0 z-10 h-16 w-16 rounded-full border object-cover"
+            alt="Upload image preview" />
+        }
+        <UserAvatar className="relative h-16 w-16 border" />
+      </div>
+
+      <Separator />
+
+      <div className="flex justify-between">
+        <Button
+          type="submit"
+          disabled={!uploadedImgString || isSubmitting}
+          onClick={onUploadAvatar}
+          className="w-40">
+          {isSubmitting && (
+            <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
+          )}
+          Update avatar
+        </Button>
+
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Square image recommended. Accept file types: .png, .jpg.
         </p>
       </div>
     </div>
+    
   )
 }

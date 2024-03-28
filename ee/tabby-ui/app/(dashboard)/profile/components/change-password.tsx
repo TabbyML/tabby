@@ -132,7 +132,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
         <FormMessage />
         <Separator />
         <div className="flex">
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="w-40">
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}

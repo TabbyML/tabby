@@ -72,3 +72,9 @@ export function truncateText(
 export const isClientSide = () => {
   return typeof window !== 'undefined'
 }
+
+export const delay = (ms: number) => {
+  return new Promise(resolve => {
+    setTimeout(() => resolve(null), ms)
+  })
+}

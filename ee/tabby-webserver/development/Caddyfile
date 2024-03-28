@@ -8,7 +8,7 @@
 		path /hub
 		path /repositories/*
 		path /oauth/*
-    path /avatar/*
+		path /avatar/*
 
 		path /swagger-ui
 		path /swagger-ui/*
