@@ -1,5 +1,8 @@
 import { isNil } from 'lodash-es'
 
+import fetcher from '@/lib/tabby/fetcher'
+import { ResolveEntriesResponse, TFile } from '@/lib/types'
+
 function resolveRepoNameFromPath(path: string | undefined) {
   if (!path) return ''
   return path.split('/')?.[0]
@@ -16,7 +19,7 @@ function resolveFileNameFromPath(path: string) {
   return pathSegments[pathSegments.length - 1]
 }
 
-function getDirectoriesFromPath(path: string, isDir?: boolean): string[] {
+function getDirectoriesFromBasename(path: string, isDir?: boolean): string[] {
   if (isNil(path)) return []
 
   let result = ['']
@@ -29,9 +32,32 @@ function getDirectoriesFromPath(path: string, isDir?: boolean): string[] {
   return result
 }
 
+async function fetchEntriesFromPath(path: string | undefined) {
+  if (!path) return []
+  const repoName = resolveRepoNameFromPath(path)
+  const basename = resolveBasenameFromPath(path)
+  // array of dir basename that do not include the repo name.
+  const directoryPaths = getDirectoriesFromBasename(basename)
+  // fetch all dirs from path
+  const requests: Array<() => Promise<ResolveEntriesResponse>> =
+    directoryPaths.map(
+      dir => () =>
+        fetcher(`/repositories/${repoName}/resolve/${dir}`).catch(e => [])
+    )
+  const entries = await Promise.all(requests.map(fn => fn()))
+  let result: TFile[] = []
+  for (let entry of entries) {
+    if (entry?.entries?.length) {
+      result = [...result, ...entry.entries]
+    }
+  }
+  return result
+}
+
 export {
   resolveRepoNameFromPath,
   resolveBasenameFromPath,
   resolveFileNameFromPath,
-  getDirectoriesFromPath
+  getDirectoriesFromBasename,
+  fetchEntriesFromPath
 }
