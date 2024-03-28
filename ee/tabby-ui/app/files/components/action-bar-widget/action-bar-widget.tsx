@@ -25,7 +25,7 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 rounded-md border bg-background px-2 py-1',
+        'flex items-center gap-2 rounded-md border bg-background px-2 py-1 mt-2',
         className
       )}
       {...props}

@@ -18,7 +18,9 @@ function ActionBarWidgetExtension(): Extension {
       if (transaction.selection) {
         if (shouldShowActionBarWidget(transaction)) {
           const tooltip = createActionBarWidget(transaction.state)
-          return tooltip?.pos !== value?.pos ? tooltip : value
+          // avoid flickering
+          // return tooltip?.pos !== value?.pos ? tooltip : value
+          return tooltip
         }
         return null
       }
@@ -27,6 +29,8 @@ function ActionBarWidgetExtension(): Extension {
     provide: field => showTooltip.compute([field], state => state.field(field))
   })
 }
+
+let delayTimer: number
 
 function createActionBarWidget(state: EditorState): Tooltip {
   const { selection } = state
@@ -43,10 +47,15 @@ function createActionBarWidget(state: EditorState): Tooltip {
     create() {
       const dom = document.createElement('div')
       dom.style.background = 'transparent'
-      // dom.style.border = 'none'
+      dom.style.border = 'none'
       const root = ReactDOM.createRoot(dom)
       dom.onclick = e => e.stopImmediatePropagation()
-      root.render(<ActionBarWidget />)
+      // delay popup
+      if (delayTimer) clearTimeout(delayTimer)
+      delayTimer = window.setTimeout(() => {
+        root.render(<ActionBarWidget />)
+      }, 500)
+
       return { dom }
     }
   }
