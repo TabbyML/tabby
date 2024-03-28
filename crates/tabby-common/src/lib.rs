@@ -39,7 +39,7 @@ impl SourceFile {
     }
 
     pub fn all() -> Result<impl Iterator<Item = Self>, Error> {
-        let files = glob::glob(format!("{}*", Self::files_jsonl().display()).as_str()).unwrap();
+        let files = glob::glob(&format!("{}*", Self::files_jsonl().display())).unwrap();
         let iter = files.filter_map(|x| x.ok()).flat_map(|path| {
             let fp = BufReader::new(File::open(path).unwrap());
             let reader = JsonLinesReader::new(fp);
@@ -85,4 +85,17 @@ pub struct Package {
 #[derive(Default, Serialize, Deserialize)]
 pub struct DependencyFile {
     pub direct: Vec<Package>,
+}
+
+pub trait Anyhow<T> {
+    fn anyhow(self) -> Result<T, anyhow::Error>;
+}
+
+impl<T, E> Anyhow<T> for Result<T, E>
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    fn anyhow(self) -> Result<T, anyhow::Error> {
+        self.map_err(anyhow::Error::from)
+    }
 }

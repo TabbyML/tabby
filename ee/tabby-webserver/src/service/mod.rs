@@ -20,6 +20,7 @@ use axum::{
 pub(in crate::service) use dao::{AsID, AsRowid};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper::ID;
+pub(crate) use repository::start_reload_listener;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     constants::USER_HEADER_FIELD_NAME,
@@ -29,6 +30,7 @@ use tracing::{info, warn};
 
 use self::{
     auth::new_authentication_service, email::new_email_service, license::new_license_service,
+    repository::new_repository_service,
 };
 use crate::schema::{
     auth::AuthenticationService,
@@ -49,6 +51,7 @@ struct ServerContext {
     mail: Arc<dyn EmailService>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
+    repository: Arc<dyn RepositoryService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -73,20 +76,23 @@ impl ServerContext {
                 .await
                 .expect("failed to initialize license service"),
         );
+        let auth = Arc::new(new_authentication_service(
+            db_conn.clone(),
+            mail.clone(),
+            license.clone(),
+        ));
+        let repository = Arc::new(new_repository_service(db_conn.clone(), true).await);
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
-            mail: mail.clone(),
-            auth: Arc::new(new_authentication_service(
-                db_conn.clone(),
-                mail,
-                license.clone(),
-            )),
+            mail,
+            auth,
             license,
             db_conn,
             logger,
             code,
+            repository,
             is_chat_enabled_locally,
         }
     }
@@ -273,7 +279,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn repository(&self) -> Arc<dyn RepositoryService> {
-        Arc::new(self.db_conn.clone())
+        self.repository.clone()
     }
 
     fn email(&self) -> Arc<dyn EmailService> {

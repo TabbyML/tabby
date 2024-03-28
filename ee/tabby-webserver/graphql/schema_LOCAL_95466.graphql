@@ -94,12 +94,6 @@ type TokenAuthResponse {
   refreshToken: String!
 }
 
-type JobStats {
-  success: Int!
-  failed: Int!
-  pending: Int!
-}
-
 type NetworkSetting {
   externalUrl: String!
 }
@@ -140,7 +134,6 @@ type Mutation {
   logoutAllSessions: Boolean!
   updateUserActive(id: ID!, active: Boolean!): Boolean!
   updateUserRole(id: ID!, isAdmin: Boolean!): Boolean!
-  uploadUserAvatarBase64(id: ID!, avatarBase64: String): Boolean!
   register(email: String!, password1: String!, password2: String!, invitationCode: String): RegisterResponse!
   tokenAuth(email: String!, password: String!): TokenAuthResponse!
   verifyToken(token: String!): Boolean!
@@ -180,20 +173,18 @@ type Query {
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
-  jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
-  jobRunStats(jobs: [String!]): JobStats!
+  jobRuns(ids: [ID!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   emailSetting: EmailSetting
   isEmailConfigured: Boolean! @deprecated
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
-  repositorySearch(repository: String!, filter: String): [FileEntry!]!
+  repositorySearch(repository: String!, filter: String, topN: Int!): [FileEntry!]!
   repositoryMeta(repository: String!, path: String!): RepositoryMeta!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
   license: LicenseInfo!
-  jobs: [String!]!
 }
 
 enum Encryption {
@@ -299,14 +290,14 @@ type Worker {
   cudaDevices: [String!]!
 }
 
-enum OAuthProvider {
-  GITHUB
-  GOOGLE
-}
-
 type InvitationEdge {
   node: Invitation!
   cursor: String!
+}
+
+enum OAuthProvider {
+  GITHUB
+  GOOGLE
 }
 
 type IntRange {
