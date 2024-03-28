@@ -237,12 +237,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                   <div className="relative">
                     <ComboboxInput
                       className="pr-8"
-                      // placeholder="Go to file"
-                      placeholder={
-                        repoName
-                          ? 'Go to file'
-                          : 'Go to file (pick a repository first)'
-                      }
+                      placeholder="Go to file"
                       spellCheck={false}
                       value={input}
                       ref={inputRef}
