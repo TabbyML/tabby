@@ -1,5 +1,3 @@
-'use client'
-
 import NiceAvatar, { genConfig } from 'react-nice-avatar'
 import { mutate } from 'swr';
 import useSWRImmutable from 'swr/immutable'
