@@ -4,9 +4,18 @@ version = "0.10.0-dev.0"
 edition = "2021"
 
 [features]
+default = ["native", "avx", "fma"]
 cuda = []
 rocm = []
 vulkan = []
+native = []
+avx = []
+avx2 = []
+avx512 = []
+avx512_vbmi = []
+avx512_vnni = []
+fma = []
+f16c = []
 
 [build-dependencies]
 cxx-build = "1.0"
