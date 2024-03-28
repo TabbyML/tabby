@@ -41,8 +41,8 @@ interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 type SearchOption = { path: string; type: string; id: string }
 
 const repositorySearch = graphql(/* GraphQL */ `
-  query RepositorySearch($repository: String!, $filter: String, $topN: Int!) {
-    repositorySearch(repository: $repository, filter: $filter, topN: $topN) {
+  query RepositorySearch($repository: String!, $filter: String) {
+    repositorySearch(repository: $repository, filter: $filter) {
       type
       path
     }
@@ -79,8 +79,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     query: repositorySearch,
     variables: {
       repository: curerntRepoName,
-      filter: repositorySearchFilter,
-      topN: 20
+      filter: repositorySearchFilter
     },
     pause: !repositorySearchFilter
   })
