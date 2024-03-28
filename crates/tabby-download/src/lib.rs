@@ -41,7 +41,7 @@ async fn download_model_impl(
         }
     }
 
-    if !model_info.segmented_urls.is_none() {
+    if !model_info.partition_urls.is_none() {
         return download_split_model(&model_info, &model_path).await;
     }
 
@@ -68,13 +68,13 @@ async fn download_model_impl(
 async fn download_split_model(model_info: &ModelInfo, model_path: &Path) -> Result<()> {
     if !model_info.urls.is_none() {
         return Err(anyhow!(
-            "{}: Cannot specify both `urls` and `segmented_urls`",
+            "{}: Cannot specify both `urls` and `partition_urls`",
             model_info.name
         ));
     }
     let mut paths = vec![];
-    let segmented_urls = model_info.segmented_urls.clone().unwrap_or_default();
-    for (index, url) in segmented_urls.iter().enumerate() {
+    let partition_urls = model_info.partition_urls.clone().unwrap_or_default();
+    for (index, url) in partition_urls.iter().enumerate() {
         let ext = format!(
             "{}.{}",
             model_path.extension().unwrap_or_default().to_string_lossy(),
@@ -84,7 +84,7 @@ async fn download_split_model(model_info: &ModelInfo, model_path: &Path) -> Resu
         info!(
             "Downloading {path:?} ({index} / {total})",
             index = index + 1,
-            total = segmented_urls.len()
+            total = partition_urls.len()
         );
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
         let download_job = Retry::spawn(strategy, || download_file(url, &path));

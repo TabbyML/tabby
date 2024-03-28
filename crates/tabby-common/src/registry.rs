@@ -15,7 +15,7 @@ pub struct ModelInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub urls: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub segmented_urls: Option<Vec<String>>,
+    pub partition_urls: Option<Vec<String>>,
     pub sha256: String,
 }
 
