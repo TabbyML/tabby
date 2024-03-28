@@ -45,8 +45,8 @@ async fn download_model_impl(
         }
     }
 
-    if !model_info.partition_urls.is_none() {
-        return download_split_model(&model_info, &model_path).await;
+    if model_info.partition_urls.is_some() {
+        return download_split_model(model_info, &model_path).await;
     }
 
     let registry = download_host();
@@ -64,13 +64,13 @@ async fn download_model_impl(
     };
 
     let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
-    let download_job = Retry::spawn(strategy, || download_file(&model_url, model_path.as_path()));
+    let download_job = Retry::spawn(strategy, || download_file(model_url, model_path.as_path()));
     download_job.await?;
     Ok(())
 }
 
 async fn download_split_model(model_info: &ModelInfo, model_path: &Path) -> Result<()> {
-    if !model_info.urls.is_none() {
+    if model_info.urls.is_some() {
         return Err(anyhow!(
             "{}: Cannot specify both `urls` and `partition_urls`",
             model_info.name
@@ -95,7 +95,7 @@ async fn download_split_model(model_info: &ModelInfo, model_path: &Path) -> Resu
         let ext = format!(
             "{}.{}",
             model_path.extension().unwrap_or_default().to_string_lossy(),
-            index.to_string()
+            index
         );
         let path = model_path.with_extension(ext);
         info!(
