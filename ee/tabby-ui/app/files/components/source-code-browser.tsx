@@ -28,6 +28,7 @@ import { FileTreePanel } from './file-tree-panel'
 import { RawFileView } from './raw-file-view'
 import { TextFileView } from './text-file-view'
 import {
+  fetchEntriesFromPath,
   getDirectoriesFromBasename,
   resolveBasenameFromPath,
   resolveFileNameFromPath,
@@ -285,7 +286,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     const init = async () => {
-      const { patchMap, expandedKeys } = await getInitialFileMap(activePath)
+      const { patchMap, expandedKeys } = await getInitialFileData(activePath)
       if (patchMap) {
         updateFileMap(patchMap)
       }
@@ -430,7 +431,7 @@ const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
   )
 }
 
-async function getInitialFileMap(path?: string) {
+async function getInitialFileData(path?: string) {
   const initialRepositoryName = resolveRepoNameFromPath(path)
   const initialBasename = resolveBasenameFromPath(path)
 
@@ -506,27 +507,6 @@ async function getInitialFileMap(path?: string) {
     }
     return result
   }
-}
-
-async function fetchEntriesFromPath(path: string | undefined) {
-  if (!path) return []
-  const repoName = resolveRepoNameFromPath(path)
-  const basename = resolveBasenameFromPath(path)
-  // array of dir basename that do not include the repo name.
-  const directoryPaths = getDirectoriesFromBasename(basename)
-  // fetch all dirs from path
-  const requests: Array<() => Promise<ResolveEntriesResponse>> =
-    directoryPaths.map(
-      dir => () => fetcher(`/repositories/${repoName}/resolve/${dir}`).catch(e => [])
-    )
-  const entries = await Promise.all(requests.map(fn => fn()))
-  let result: TFile[] = []
-  for (let entry of entries) {
-    if (entry?.entries?.length) {
-      result = [...result, ...entry.entries]
-    }
-  }
-  return result
 }
 
 function isReadableTextFile(blob: Blob) {

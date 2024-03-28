@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useContext } from 'react'
+import { useQuery } from 'urql'
 
+import { graphql } from '@/lib/gql/generates'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
-import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,12 +28,15 @@ import {
   SelectValue
 } from '@/components/ui/select'
 
-import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveRepoNameFromPath } from './utils'
-import { graphql } from '@/lib/gql/generates'
-import { useQuery } from 'urql'
+import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
+import {
+  fetchEntriesFromPath,
+  getDirectoriesFromBasename,
+  resolveFileNameFromPath,
+  resolveRepoNameFromPath
+} from './utils'
 
-interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> { }
+interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 type SearchOption = { path: string; type: string; id: string }
 
@@ -49,16 +53,21 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   className,
   ...props
 }) => {
-  const { activePath, fileTreeData, setActivePath, initialized } = useContext(
-    SourceCodeBrowserContext
-  )
-  const { updateSearchParams } = useRouterStuff()
+  const {
+    activePath,
+    fileTreeData,
+    setActivePath,
+    initialized,
+    updateFileMap,
+    setExpandedKeys
+  } = useContext(SourceCodeBrowserContext)
   const curerntRepoName = resolveRepoNameFromPath(activePath)
 
   const inputRef = React.useRef<HTMLInputElement>(null)
   const ignoreFetchResultRef = React.useRef(false)
   const [input, setInput] = React.useState<string>()
-  const [searchFileter, setSearchFilter] = React.useState<string>()
+  const [repositorySearchFilter, setRepositorySearchFilter] =
+    React.useState<string>()
   const [options, setOptions] = React.useState<Array<SearchOption>>()
   const [optionsVisible, setOptionsVisible] = React.useState(false)
 
@@ -66,23 +75,25 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   const noIndexedRepo = initialized && !fileTreeData?.length
 
-
-  const [{ data }] = useQuery({
+  const [{ data: repositorySearchData }] = useQuery({
     query: repositorySearch,
-    // todo
-    pause: !searchFileter,
-    variables: { repository: curerntRepoName, filter: searchFileter, topN: 20 }
+    variables: {
+      repository: curerntRepoName,
+      filter: repositorySearchFilter,
+      topN: 20
+    },
+    pause: !repositorySearchFilter
   })
 
   React.useEffect(() => {
-    const _options = data?.repositorySearch?.map(option => ({
-      ...option,
-      id: option.path
-    })) ?? []
+    const _options =
+      repositorySearchData?.repositorySearch?.map(option => ({
+        ...option,
+        id: option.path
+      })) ?? []
     setOptions(_options)
     setOptionsVisible(!!_options?.length)
-  }, [data?.repositorySearch])
-
+  }, [repositorySearchData?.repositorySearch])
 
   const onSelectRepo = (name: string) => {
     setActivePath(name)
@@ -90,46 +101,63 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   const memoizedMatchedIndices = React.useMemo(() => {
     return options?.map(option =>
-      searchFileter ? getMatchedIndices(searchFileter, option.path) : []
+      repositorySearchFilter
+        ? getMatchedIndices(repositorySearchFilter, option.path)
+        : []
     )
-  }, [options, searchFileter])
+  }, [options, repositorySearchFilter])
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
     if (!v) {
       ignoreFetchResultRef.current = true
-      setSearchFilter('')
+      setRepositorySearchFilter('')
       setOptionsVisible(false)
     } else {
       ignoreFetchResultRef.current = false
-      setSearchFilter(v)
-      // if (v === 'test-not-found') {
-      //   ignoreFetchResultRef.current = true
-      //   setOptions([])
-      //   setOptionsVisible(true)
-      // }
-      // setTimeout(() => {
-      //   if (!ignoreFetchResultRef.current) {
-      //     let ops: SearchOption[] = [
-      //       { entry: 'test1', type: 'file', id: 'test1' },
-      //       { entry: 'test2', type: 'file', id: 'test2' },
-      //       { entry: 'path/to/test', type: 'dir', id: 'path/to/test' }
-      //     ]
-      //     setSearchFilter(v)
-      //     setOptions(ops)
-      //     setOptionsVisible(true)
-      //   }
-      // }, 100)
+      setRepositorySearchFilter(v)
     }
-  }, 300)
+  }, 500)
 
   const onClearInput = () => {
     onInputValueChange.run('')
     onInputValueChange.flush()
   }
 
-  const onSelectFile = (value: SearchOption) => {
-    // todo fetch dirs and then update activePath, or implement this logic in code borwser fetcher
-    console.log(value)
+  const onSelectFile = async (value: SearchOption) => {
+    const path = value.path
+    if (!path) return
+
+    const fullPath = `${repoName}/${path}`
+    const entries = await fetchEntriesFromPath(fullPath)
+    const initialExpandedDirs = getDirectoriesFromBasename(path)
+
+    const patchMap: TFileMap = {}
+    // fetch dirs
+    for (const entry of entries) {
+      const path = `${repoName}/${entry.basename}`
+      patchMap[path] = {
+        file: entry,
+        name: resolveFileNameFromPath(path),
+        fullPath: path,
+        treeExpanded: initialExpandedDirs.includes(entry.basename)
+      }
+    }
+    const expandedKeys = initialExpandedDirs.map(dir =>
+      [repoName, dir].filter(Boolean).join('/')
+    )
+    if (patchMap) {
+      updateFileMap(patchMap)
+    }
+    if (expandedKeys?.length) {
+      setExpandedKeys(prevKeys => {
+        const newSet = new Set(prevKeys)
+        for (const k of expandedKeys) {
+          newSet.add(k)
+        }
+        return newSet
+      })
+    }
+    setActivePath(fullPath)
   }
 
   // shortcut 't'
@@ -210,10 +238,16 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                   <div className="relative">
                     <ComboboxInput
                       className="pr-8"
-                      placeholder="Go to file"
+                      // placeholder="Go to file"
+                      placeholder={
+                        repoName
+                          ? 'Go to file'
+                          : 'Go to file (pick a repository first)'
+                      }
                       spellCheck={false}
                       value={input}
                       ref={inputRef}
+                      disabled={!repoName}
                       onChange={e => {
                         let value = e.target.value
                         setInput(value)
