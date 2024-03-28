@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 type JobRun {
   id: ID!
   job: String!
@@ -27,6 +28,14 @@ enum LicenseStatus {
 }
 
 input RequestPasswordResetEmailInput {
+=======
+enum OAuthProvider {
+  GITHUB
+  GOOGLE
+}
+
+input RequestInvitationInput {
+>>>>>>> 3c32788596c38e84b4f0a334c32fcd7c5958c419
   email: String!
 }
 
@@ -92,12 +101,6 @@ type EmailSetting {
 type TokenAuthResponse {
   accessToken: String!
   refreshToken: String!
-}
-
-type JobStats {
-  success: Int!
-  failed: Int!
-  pending: Int!
 }
 
 type NetworkSetting {
@@ -187,7 +190,7 @@ type Query {
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
-  repositorySearch(repository: String!, filter: String): [FileEntry!]!
+  repositorySearch(repository: String!, filter: String, topN: Int!): [FileEntry!]!
   repositoryMeta(repository: String!, path: String!): RepositoryMeta!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
@@ -299,14 +302,15 @@ type Worker {
   cudaDevices: [String!]!
 }
 
-enum OAuthProvider {
-  GITHUB
-  GOOGLE
-}
-
 type InvitationEdge {
   node: Invitation!
   cursor: String!
+}
+
+type JobStats {
+  success: Int!
+  failed: Int!
+  pending: Int!
 }
 
 type IntRange {
