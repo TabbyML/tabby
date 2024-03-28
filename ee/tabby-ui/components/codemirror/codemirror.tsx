@@ -28,19 +28,29 @@ interface CodeMirrorEditorProps {
   extensions?: Extension[]
 }
 
+export interface CodeMirrorEditorRef {
+  editorView: EditorView | null
+}
+
 const External = Annotation.define<boolean>()
 
-const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
-  value,
-  theme,
-  language,
-  readonly = true,
-  extensions: propsExtensions,
-  height = null,
-  width = null
-}) => {
-  const ref = React.useRef<HTMLDivElement>(null)
-  const editor = React.useRef<EditorView | null>(null)
+const CodeMirrorEditor = React.forwardRef<
+  CodeMirrorEditorRef,
+  CodeMirrorEditorProps
+>((props, ref) => {
+  const {
+    value,
+    theme,
+    language,
+    readonly = true,
+    extensions: propsExtensions,
+    height = null,
+    width = null
+  } = props
+
+  const initialized = React.useRef(false)
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [editorView, setEditorView] = React.useState<EditorView | null>(null)
 
   const defaultThemeOption = EditorView.theme({
     '&': {
@@ -62,6 +72,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       backgroundColor: 'hsl(var(--cm-selection-bg)) !important'
     }
   })
+
   const extensions = [
     defaultThemeOption,
     basicSetup,
@@ -86,32 +97,30 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   React.useEffect(() => {
     const initEditor = () => {
-      if (ref.current) {
+      if (initialized.current) return
+
+      if (containerRef.current) {
+        initialized.current = true
         let startState = EditorState.create({
           doc: value,
-          extensions
+          extensions: getExtensions()
         })
 
-        editor.current = new EditorView({
+        const _view = new EditorView({
           state: startState,
-          parent: ref.current
+          parent: containerRef.current
         })
+        setEditorView(_view)
       }
     }
 
     initEditor()
-
-    return () => {
-      if (editor.current) {
-        editor.current.destroy()
-      }
-    }
   }, [])
 
   // refresh extension
   React.useEffect(() => {
-    if (editor.current) {
-      editor.current.dispatch({
+    if (editorView) {
+      editorView.dispatch({
         effects: StateEffect.reconfigure.of(getExtensions())
       })
     }
@@ -119,14 +128,11 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   React.useEffect(() => {
     const resetValue = () => {
-      if (value === undefined || !editor.current) {
-        return
-      }
-      const currentValue = editor.current
-        ? editor.current.state.doc.toString()
-        : ''
-      if (editor.current && value !== currentValue) {
-        editor.current.dispatch({
+      if (value === undefined || !editorView) return
+
+      const currentValue = editorView ? editorView.state.doc.toString() : ''
+      if (editorView && value !== currentValue) {
+        editorView.dispatch({
           changes: { from: 0, to: currentValue.length, insert: value || '' },
           annotations: [External.of(true)]
         })
@@ -136,8 +142,26 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     resetValue()
   }, [value])
 
-  return <div className="codemirror-editor h-full" ref={ref}></div>
-}
+  React.useEffect(
+    () => () => {
+      if (editorView) {
+        editorView.destroy()
+        setEditorView(null)
+      }
+    },
+    [editorView]
+  )
+
+  React.useImperativeHandle(
+    ref,
+    () => {
+      return { editorView }
+    },
+    [editorView]
+  )
+
+  return <div className="codemirror-editor h-full" ref={containerRef}></div>
+})
 
 function getLanguage(lang: LanguageName | string, ext?: string) {
   switch (lang) {
@@ -149,12 +173,6 @@ function getLanguage(lang: LanguageName | string, ext?: string) {
     default:
       return lang as LanguageName
   }
-}
-
-function SpaceDisplay({ spaceLength }: { spaceLength: number }) {
-  const spaces = Array(spaceLength).fill('&nbsp;').join('')
-
-  return <p dangerouslySetInnerHTML={{ __html: spaces }}></p>
 }
 
 export default CodeMirrorEditor

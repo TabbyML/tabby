@@ -3,8 +3,12 @@ import { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
 import { useTheme } from 'next-themes'
 
+import { CodeBrowserQuickAction, emitter } from '@/lib/event-emitter'
+import { EXP_enable_code_browser_quick_action_bar } from '@/lib/experiment-flags'
 import { TFileMeta } from '@/lib/types'
-import CodeEditor from '@/components/codemirror/codemirror'
+import CodeEditor, {
+  CodeMirrorEditorRef
+} from '@/components/codemirror/codemirror'
 import { markTagNameExtension } from '@/components/codemirror/name-tag-extension'
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
@@ -24,6 +28,8 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
 }) => {
   const { theme } = useTheme()
   const tags = meta?.tags
+  const editorRef = React.useRef<CodeMirrorEditorRef>(null)
+
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
       EditorView.baseTheme({
@@ -39,9 +45,13 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
           borderRight: 'none'
         }
       }),
-      drawSelection(),
-      ActionBarWidgetExtension()
+      drawSelection()
+      // quick action bar
+      // ActionBarWidgetExtension()
     ]
+    if (EXP_enable_code_browser_quick_action_bar.value) {
+      result.push(ActionBarWidgetExtension())
+    }
     if (value && tags) {
       result.push(
         markTagNameExtension(tags),
@@ -50,7 +60,47 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
       )
     }
     return result
-  }, [value, tags])
+  }, [value, tags, editorRef.current])
+
+  React.useEffect(() => {
+    const quickActionBarCallback = (action: CodeBrowserQuickAction) => {
+      let builtInPrompt = ''
+      switch (action) {
+        case 'explain_detail':
+          builtInPrompt = 'Explain the following code:'
+          break
+        case 'generate_unit-test':
+          builtInPrompt = 'Generate a unit test for the following code:'
+          break
+        case 'generate_doc':
+          builtInPrompt = 'Generate documentation for the following code:'
+          break
+        default:
+          break
+      }
+      const view = editorRef.current?.editorView
+      const text =
+        view?.state.doc.sliceString(
+          view?.state.selection.main.from,
+          view?.state.selection.main.to
+        ) || ''
+
+      const initialMessage = `${builtInPrompt}\n${'```'}${
+        language ?? ''
+      }\n${text}\n${'```'}\n`
+      if (initialMessage) {
+        window.open(
+          `/playground?initialMessage=${encodeURIComponent(initialMessage)}`
+        )
+      }
+    }
+
+    emitter.on('code_browser_quick_action', quickActionBarCallback)
+
+    return () => {
+      emitter.off('code_browser_quick_action', quickActionBarCallback)
+    }
+  }, [])
 
   return (
     <CodeEditor
@@ -59,6 +109,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
       language={language}
       readonly
       extensions={extensions}
+      ref={editorRef}
     />
   )
 }

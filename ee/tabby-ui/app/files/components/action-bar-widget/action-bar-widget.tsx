@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 
+import { CodeBrowserQuickAction, emitter } from '@/lib/event-emitter'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +18,10 @@ export const ActionBarWidget: React.FC<CompletionWidgetProps> = ({
   className,
   ...props
 }) => {
+  const handleAction = (action: CodeBrowserQuickAction) => {
+    emitter.emit('code_browser_quick_action', action)
+  }
+
   return (
     <div
       className={cn(
@@ -34,7 +39,10 @@ export const ActionBarWidget: React.FC<CompletionWidgetProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={() => handleAction('explain_detail')}
+          >
             Detailed
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -47,8 +55,17 @@ export const ActionBarWidget: React.FC<CompletionWidgetProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={() => handleAction('generate_unit-test')}
+          >
             A unit test
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={() => handleAction('generate_doc')}
+          >
+            A doc
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
