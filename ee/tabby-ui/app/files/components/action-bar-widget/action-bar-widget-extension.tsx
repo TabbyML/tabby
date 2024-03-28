@@ -1,6 +1,6 @@
 import type { EditorState, Extension, Transaction } from '@codemirror/state'
 import { StateField } from '@codemirror/state'
-import type { EditorView, Tooltip } from '@codemirror/view'
+import type { Tooltip } from '@codemirror/view'
 import { showTooltip } from '@codemirror/view'
 import ReactDOM from 'react-dom/client'
 

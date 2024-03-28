@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes'
 
 import { CodeBrowserQuickAction, emitter } from '@/lib/event-emitter'
 import { EXP_enable_code_browser_quick_action_bar } from '@/lib/experiment-flags'
+import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { TFileMeta } from '@/lib/types'
 import CodeEditor, {
   CodeMirrorEditorRef
@@ -14,7 +15,6 @@ import { highlightTagExtension } from '@/components/codemirror/tag-range-highlig
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
 import { ActionBarWidgetExtension } from './action-bar-widget/action-bar-widget-extension'
-import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 
 interface CodeEditorViewProps {
   value: string
