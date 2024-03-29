@@ -191,6 +191,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_user_avatar(&self, id: &ID, avatar: Option<Box<[u8]>>) -> Result<()> {
+        if avatar.as_ref().is_some_and(|v| v.len() > 512 * 1024) {
+            return Err(anyhow!("Avatar cannot be larger than 512KB").into());
+        }
         let id = id.as_rowid()?;
         self.db.update_user_avatar(id, avatar).await?;
         Ok(())
