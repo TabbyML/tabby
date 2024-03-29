@@ -6,7 +6,7 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["native", "avx", "fma"]
+default = ["avx", "avx2", "fma", "f16c"]
 cuda = []
 rocm = []
 vulkan = []
