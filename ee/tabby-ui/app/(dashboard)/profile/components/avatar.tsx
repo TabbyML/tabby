@@ -33,7 +33,7 @@ export const Avatar = () => {
 
   const onPreviewAvatar = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files ? e.target.files[0] : null
-    
+
     if (file) {
       const fileSizeInKB = parseFloat((file.size / 1024).toFixed(2))
       if (fileSizeInKB > MAX_UPLOAD_SIZE_KB) {
