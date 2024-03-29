@@ -195,6 +195,7 @@ mod tests {
             suffix,
             filepath: None,
             git_url: None,
+            declarations: None,
             clipboard: None,
         }
     }

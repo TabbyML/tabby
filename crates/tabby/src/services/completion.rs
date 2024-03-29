@@ -109,8 +109,8 @@ pub struct Segments {
     suffix: Option<String>,
 
     /// The relative path of the file that is being edited.
-    /// When git_url is set, this is the path of the file in the git repository.
-    /// When git_url is empty, this is the path of the file in the workspace.
+    /// - When `git_url` is set, this is the path of the file in the git repository.
+    /// - When `git_url` is empty, this is the path of the file in the workspace.
     filepath: Option<String>,
 
     /// The remote URL of the current git repository.
@@ -118,8 +118,26 @@ pub struct Segments {
     /// or the git repository does not have a remote URL.
     git_url: Option<String>,
 
+    /// The relevant declaration code snippets provided by editor.
+    /// It'll contains declarations extracted from `prefix` segments using LSP.
+    declarations: Option<Vec<Declaration>>,
+
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
+}
+
+/// A snippet of declaration code that is relevant to the current completion request.
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct Declaration {
+    /// Filepath of the file where the snippet is from.
+    /// - When the file belongs to the same workspace as the current file,
+    ///   this is a relative filepath, that has the same root as the current file.
+    /// - When the file located outside the workspace, such as in a dependency package,
+    ///   this is a file URI with an absolute filepath.
+    filepath: String,
+
+    /// Body of the snippet.
+    body: String,
 }
 
 impl From<Segments> for api::event::Segments {
