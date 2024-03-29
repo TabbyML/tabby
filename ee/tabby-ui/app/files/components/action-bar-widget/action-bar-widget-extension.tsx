@@ -57,7 +57,7 @@ function createActionBarWidget(state: EditorState): Tooltip {
       if (delayTimer) clearTimeout(delayTimer)
       delayTimer = window.setTimeout(() => {
         root.render(<ActionBarWidget />)
-      }, 500)
+      }, 1000)
 
       return { dom }
     }
