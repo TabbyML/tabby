@@ -5,11 +5,11 @@ type CodeBrowserQuickAction =
   | 'generate_unit-test'
   | 'generate_doc'
 
-type Events = {
+type CodeBrowserQuickActionEvents = {
   code_browser_quick_action: CodeBrowserQuickAction
 }
 
-const emitter = mitt<Events>()
+const emitter = mitt<CodeBrowserQuickActionEvents>()
 
 export type { CodeBrowserQuickAction }
 export { emitter }
