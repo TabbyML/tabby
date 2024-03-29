@@ -22,7 +22,11 @@ export const Avatar = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadedImgString, setUploadedImgString] = useState('')
   const [{ data }] = useMe()
-  const uploadUserAvatar = useMutation(uploadUserAvatarMutation)
+  const uploadUserAvatar = useMutation(uploadUserAvatarMutation, {
+    onError(err) {
+      toast.error(err.message)
+    }
+  })
   if (!data?.me?.email) return null
 
   const onPreviewAvatar = (e: ChangeEvent<HTMLInputElement>) => {
@@ -42,24 +46,20 @@ export const Avatar = () => {
   const onUploadAvatar = async () => {
     setIsSubmitting(true)
 
-    try {
-      const response = await uploadUserAvatar({
-        avatarBase64: uploadedImgString.split(',')[1],
-        id: data.me.id
-      })
-      if (response?.error?.message) throw new Error(response?.error?.message)
-      if (response?.data?.uploadUserAvatarBase64 !== true) throw new Error("Oops! There was an issue uploading your image. Please try again.")
-      
+    const response = await uploadUserAvatar({
+      avatarBase64: uploadedImgString.split(',')[1],
+      id: data.me.id
+    })
+
+    if (response?.data?.uploadUserAvatarBase64 === true) {
       await delay(1000)
       mutateAvatar(data.me.id)
       toast.success('Successfully updated your profile picture!')
 
       await delay(200)
       setUploadedImgString('')
-    } catch (err) {
-      toast.error((err as Error).message)
     }
-
+    
     setIsSubmitting(false)
   }
 
