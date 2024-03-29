@@ -56,14 +56,13 @@ export default function JobRunDetail() {
               </h1>
               <div className="flex gap-16 pb-6 pt-2">
                 <div>
-                  <p
-                    className={cn('font-bold', {
-                      'text-blue-500': isNil(currentNode.exitCode),
-                      'text-green-500': currentNode.exitCode === 0,
-                      'text-red-500': currentNode.exitCode === 1
-                    })}
-                  >
-                    {getLabelByExitCode(currentNode.exitCode)}
+                  <p className="flex gap-0.5">
+                    <span>
+                      {isNil(currentNode.exitCode) && "▶️"}
+                      {currentNode.exitCode === 0 && "✅️"}
+                      {currentNode.exitCode === 1 && "⚠️"}
+                    </span>
+                    <span>{getLabelByExitCode(currentNode.exitCode)}</span>
                   </p>
                   <p className="text-sm text-muted-foreground">Status</p>
                 </div>
@@ -71,9 +70,7 @@ export default function JobRunDetail() {
                 {currentNode.createdAt && (
                   <div>
                     <p>
-                      {moment(currentNode.createdAt).format(
-                        'MMMM D, YYYY h:mm a'
-                      )}
+                      {moment(currentNode.createdAt).format('YYYY-MM-DD HH:mm')}
                     </p>
                     <p className="text-sm text-muted-foreground">Started At</p>
                   </div>
@@ -96,7 +93,6 @@ export default function JobRunDetail() {
                   </div>
                 )}
               </div>
-              {/* <JobsTable jobs={edges?.slice(0, 1)} shouldRedirect={false} /> */}
               <Tabs defaultValue="stdout" className="flex flex-1 flex-col">
                 <TabsList className="grid w-[400px] grid-cols-2">
                   <TabsTrigger value="stdout">

@@ -29,10 +29,10 @@ export default function JobRunsPage() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[20%]">Name</TableHead>
+            <TableHead className="w-[20%]">Job</TableHead>
             <TableHead>Recent Tasks</TableHead>
             <TableHead className="w-[20%]">Last Run</TableHead>
-            <TableHead className="w-[30%]">Aggregate Runs</TableHead>
+            <TableHead className="w-[20%]">Job Runs</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

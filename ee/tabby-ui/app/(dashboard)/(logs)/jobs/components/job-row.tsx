@@ -9,7 +9,6 @@ import { useQuery } from 'urql'
 
 import { listJobRuns, queryJobRunStats } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
-import { IconExternalLink } from '@/components/ui/icons'
 import { TableCell, TableRow } from '@/components/ui/table'
 import {
   Tooltip,
@@ -68,17 +67,17 @@ function JobRunState({ name }: { name: string }) {
       <div className="flex items-center gap-3">
         <JobAggregateState
           count={data?.jobRunStats.success}
-          activeClass="border-green-500 text-xs text-green-500"
+          activeClass="border-green-600 dark:border-green-500 text-xs text-green-600 dark:text-green-500"
           tooltip="Success"
         />
         <JobAggregateState
           count={data?.jobRunStats.pending}
-          activeClass="border-blue-500 text-xs text-blue-500"
+          activeClass="border-blue-600 dark:border-blue-500 text-xs text-blue-600 dark:text-blue-500"
           tooltip="Pending"
         />
         <JobAggregateState
           count={data?.jobRunStats.failed}
-          activeClass="border-red-500 text-xs text-red-500"
+          activeClass="border-red-600 dark:border-red-500 text-xs text-red-600 dark:text-red-500"
           tooltip="Failed"
         />
       </div>
@@ -120,11 +119,11 @@ export default function JobRow({ name }: { name: string }) {
       <TableRow className="h-16">
         <TableCell className="font-bold">{name}</TableCell>
         <TableCell>
-          <div className="flex">
+          <div className="flex gap-0.5">
             {displayJobs?.map(job => {
               const { createdAt, finishedAt } = job.node
               const startAt =
-                createdAt && moment(createdAt).format('MMMM D, YYYY h:mm a')
+                createdAt && moment(createdAt).format('YYYY-MM-DD HH:mm')
               const duration =
                 createdAt &&
                 finishedAt &&
@@ -140,11 +139,11 @@ export default function JobRow({ name }: { name: string }) {
                       <Link
                         href={`/jobs/detail?id=${job.node.id}`}
                         className={cn(
-                          'mr-1 h-6 w-2 rounded-full hover:opacity-70',
+                          'mr-1 h-6 w-6 rounded-full border-2 hover:opacity-70',
                           {
-                            'bg-blue-500': isNil(job.node.exitCode),
-                            'bg-green-500': job.node.exitCode === 0,
-                            'bg-red-500': job.node.exitCode === 1
+                            'border-blue-600 dark:border-blue-500': isNil(job.node.exitCode),
+                            'border-green-600 dark:border-green-500': job.node.exitCode === 0,
+                            'border-red-600 dark:border-red-500': job.node.exitCode === 1
                           }
                         )}
                       />
@@ -162,10 +161,9 @@ export default function JobRow({ name }: { name: string }) {
         <TableCell>
           <Link
             href={`/jobs/detail?id=${lastJob?.node.id}`}
-            className="flex items-center hover:underline"
+            className="flex items-center underline"
           >
             <p>{lastSuccessAt}</p>
-            <IconExternalLink className="ml-1" />
           </Link>
         </TableCell>
         <TableCell>
