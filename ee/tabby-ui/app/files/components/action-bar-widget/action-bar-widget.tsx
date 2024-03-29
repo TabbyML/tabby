@@ -60,7 +60,7 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
             className="cursor-pointer"
             onSelect={() => handleAction('generate_unit-test')}
           >
-            A unit test
+            Unit Test
           </DropdownMenuItem>
           <DropdownMenuItem
             className="cursor-pointer"
