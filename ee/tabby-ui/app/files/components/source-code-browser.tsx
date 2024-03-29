@@ -7,7 +7,6 @@ import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
-import { emitter } from '@/lib/events'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
@@ -32,6 +31,7 @@ import {
   resolveFileNameFromPath,
   resolveRepoNameFromPath
 } from './utils'
+import { emitter } from '../lib/event-emitter'
 
 /**
  * FileMap example
@@ -353,13 +353,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   React.useEffect(() => {
     const onCallCompletion = (payload: string) => {
       setCompletionPanelVisible(true)
-      console.log('====call emtter')
       setPendingEvent({ name: 'code_browser_action_prompt', payload })
     }
-    emitter.on('code_browser_action_prompt', onCallCompletion)
+    emitter.on('code_browser_quick_action', onCallCompletion)
 
     return () => {
-      emitter.off('code_browser_action_prompt', onCallCompletion)
+      emitter.off('code_browser_quick_action', onCallCompletion)
     }
   }, [])
 

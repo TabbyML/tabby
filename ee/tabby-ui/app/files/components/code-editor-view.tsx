@@ -62,45 +62,39 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
     return result
   }, [value, tags, editorRef.current])
 
-  React.useEffect(() => {
-    const quickActionBarCallback = (action: CodeBrowserQuickAction) => {
-      let builtInPrompt = ''
-      switch (action) {
-        case 'explain':
-          builtInPrompt = 'Explain the following code:'
-          break
-        case 'generate_unittest':
-          builtInPrompt = 'Generate a unit test for the following code:'
-          break
-        case 'generate_doc':
-          builtInPrompt = 'Generate documentation for the following code:'
-          break
-        default:
-          break
-      }
-      const view = editorRef.current?.editorView
-      const text =
-        view?.state.doc.sliceString(
-          view?.state.selection.main.from,
-          view?.state.selection.main.to
-        ) || ''
+  // React.useEffect(() => {
+  //   const quickActionBarCallback = (action: CodeBrowserQuickAction) => {
+  //     let builtInPrompt = ''
+  //     switch (action) {
+  //       case 'explain':
+  //         builtInPrompt = 'Explain the following code:'
+  //         break
+  //       case 'generate_unittest':
+  //         builtInPrompt = 'Generate a unit test for the following code:'
+  //         break
+  //       case 'generate_doc':
+  //         builtInPrompt = 'Generate documentation for the following code:'
+  //         break
+  //       default:
+  //         break
+  //     }
+  //     const view = editorRef.current?.editorView
+  //     const text =
+  //       view?.state.doc.sliceString(
+  //         view?.state.selection.main.from,
+  //         view?.state.selection.main.to
+  //       ) || ''
 
-      const initialMessage = `${builtInPrompt}\n${'```'}${
-        language ?? ''
-      }\n${text}\n${'```'}\n`
-      if (initialMessage) {
-        window.open(
-          `/playground?initialMessage=${encodeURIComponent(initialMessage)}`
-        )
-      }
-    }
-
-    emitter.on('code_browser_quick_action', quickActionBarCallback)
-
-    return () => {
-      emitter.off('code_browser_quick_action', quickActionBarCallback)
-    }
-  }, [])
+  //     const initialMessage = `${builtInPrompt}\n${'```'}${
+  //       language ?? ''
+  //     }\n${text}\n${'```'}\n`
+  //     if (initialMessage) {
+  //       window.open(
+  //         `/playground?initialMessage=${encodeURIComponent(initialMessage)}`
+  //       )
+  //     }
+  //   }
+  // }, [])
 
   return (
     <CodeEditor

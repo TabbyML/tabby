@@ -2,7 +2,6 @@ import React from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 
-import { emitter } from '@/lib/events'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,7 +18,6 @@ interface ActionBarWidgetProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
   className,
-  text,
   ...props
 }) => {
   const handleAction = (action: CodeBrowserQuickAction) => {

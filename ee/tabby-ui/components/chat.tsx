@@ -20,12 +20,13 @@ import { EmptyScreen } from '@/components/empty-screen'
 export interface ChatProps extends React.ComponentProps<'div'> {
   initialMessages?: Message[]
   id?: string
+  chatPanelClassName?: string
 }
 
 export interface ChatRef extends UseChatHelpers {}
 
 function ChatRenderer(
-  { id, initialMessages, className }: ChatProps,
+  { id, initialMessages, className, chatPanelClassName }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
   usePatchFetch()

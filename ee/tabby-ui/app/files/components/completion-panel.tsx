@@ -30,6 +30,8 @@ import { EditChatTitleDialog } from '@/components/edit-chat-title-dialog'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { SourceCodeBrowserContext } from './source-code-browser'
+import LoadingWrapper from '@/components/loading-wrapper'
+import { CodeBrowserQuickAction } from '../lib/event-emitter'
 
 interface CompletionPanelProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
@@ -62,6 +64,38 @@ export const CompletionPanel: React.FC<CompletionPanelProps> = ({
   const chatRef = React.useRef<ChatRef>(null)
   const appending = React.useRef(false)
 
+  const quickActionBarCallback = (action: CodeBrowserQuickAction) => {
+    let builtInPrompt = ''
+    switch (action) {
+      case 'explain':
+        builtInPrompt = 'Explain the following code:'
+        break
+      case 'generate_unittest':
+        builtInPrompt = 'Generate a unit test for the following code:'
+        break
+      case 'generate_doc':
+        builtInPrompt = 'Generate documentation for the following code:'
+        break
+      default:
+        break
+    }
+    const view = editorRef.current?.editorView
+    const text =
+      view?.state.doc.sliceString(
+        view?.state.selection.main.from,
+        view?.state.selection.main.to
+      ) || ''
+
+    const initialMessage = `${builtInPrompt}\n${'```'}${
+      language ?? ''
+    }\n${text}\n${'```'}\n`
+    if (initialMessage) {
+      window.open(
+        `/playground?initialMessage=${encodeURIComponent(initialMessage)}`
+      )
+    }
+  }
+
   React.useEffect(() => {
     if (chatRef.current && pendingEvent) {
       // debugger
@@ -81,23 +115,25 @@ export const CompletionPanel: React.FC<CompletionPanelProps> = ({
       }
     }
 
-    return () => {
-      chatRef.current?.stop()
-    }
+    // return () => {
+    //   chatRef.current?.stop()
+    // }
   }, [pendingEvent])
 
   return (
     <div className={cn('h-full overflow relative', className)} {...props}>
       <Header />
       {completionPanelViewType === CompletionPanelView.CHAT && (
-        <Chat
-          id={activeChatId}
-          // loading={_hasHydrated}
-          chatPanelClassName="w-full bottom-0 absolute lg:ml-0"
-          initialMessages={chat?.messages ?? emptyMessages}
-          key={activeChatId}
-          ref={chatRef}
-        />
+        <LoadingWrapper loading={!activeChatId}>
+          <Chat
+            id={activeChatId}
+            // loading={_hasHydrated}
+            chatPanelClassName="w-full bottom-0 absolute lg:ml-0"
+            initialMessages={chat?.messages ?? emptyMessages}
+            key={activeChatId}
+            ref={chatRef}
+          />
+        </LoadingWrapper>
       )}
       {completionPanelViewType === CompletionPanelView.SESSIONS && (
         <ChatSessions />
