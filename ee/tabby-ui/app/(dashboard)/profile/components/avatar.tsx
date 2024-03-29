@@ -18,6 +18,8 @@ const uploadUserAvatarMutation = graphql(/* GraphQL */ `
   }
 `)
 
+const MAX_UPLOAD_SIZE_KB = 500
+
 export const Avatar = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [uploadedImgString, setUploadedImgString] = useState('')
@@ -31,7 +33,13 @@ export const Avatar = () => {
 
   const onPreviewAvatar = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files ? e.target.files[0] : null
+    
     if (file) {
+      const fileSizeInKB = parseFloat((file.size / 1024).toFixed(2))
+      if (fileSizeInKB > MAX_UPLOAD_SIZE_KB) {
+        return toast.error(`The image you are attempting to upload is too large. Please ensure the file size is under ${MAX_UPLOAD_SIZE_KB}KB and try again.`)
+      }
+
       const reader = new FileReader()
 
       reader.onloadend = () => {
@@ -59,7 +67,7 @@ export const Avatar = () => {
       await delay(200)
       setUploadedImgString('')
     }
-    
+
     setIsSubmitting(false)
   }
 
@@ -106,7 +114,7 @@ export const Avatar = () => {
 
         <div className="mt-1.5 flex flex-1 justify-end">
           <p className=" text-xs text-muted-foreground lg:text-sm">
-            Square image recommended. Accepted file types: .png, .jpg. Max file size: 500KB.
+            {`Square image recommended. Accepted file types: .png, .jpg. Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
           </p>
         </div>
       </div>
