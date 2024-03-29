@@ -55,7 +55,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completion::CompletionRequest,
         completion::CompletionResponse,
         completion::Segments,
-        completion::RelevantSnippet,
+        completion::Declaration,
         completion::Choice,
         completion::Snippet,
         completion::DebugOptions,
