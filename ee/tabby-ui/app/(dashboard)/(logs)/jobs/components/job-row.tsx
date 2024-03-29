@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { isNil } from 'lodash-es'
 import moment from 'moment'
 import { useQuery } from 'urql'
+import humanizerDuration from 'humanize-duration'
 
 import { listJobRuns, queryJobRunStats } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
-import { IconChevronLeft } from '@/components/ui/icons'
 import { TableCell, TableRow } from '@/components/ui/table'
 import {
   Tooltip,
@@ -124,24 +124,46 @@ export default function JobRow({ name }: { name: string }) {
               const { createdAt, finishedAt } = job.node
               const startAt =
                 createdAt && moment(createdAt).format('YYYY-MM-DD HH:mm')
-              const durationInMinute: number | null =
+              const duration: string | null =
                 (createdAt &&
                   finishedAt &&
-                  moment
+                  humanizerDuration.humanizer({
+                    language: "shortEn",
+                    languages: {
+                      shortEn: {
+                        d: () => "d",
+                        h: () => "h",
+                        m: () => "m",
+                        s: () => "s",
+                      },
+                    }
+                  })(
+                    moment
                     .duration(moment(finishedAt).diff(createdAt))
-                    .asMinutes()) ??
+                    .asMilliseconds(),
+                    {
+                      units: ["d", "h", "m", "s"],
+                      round: true,
+                      largest: 1,
+                      spacer: "",
+                      language: "shortEn"
+                    }
+                  )
+                ) ??
                 null
+                
+              let displayedDuration = ""
+              if (duration !== null) {
+                const isSecond = duration.endsWith('s')
+                if (isSecond) {
+                  displayedDuration = duration
+                } else {
+                  const unit = duration.charAt(duration.length - 1)
+                  const roundNumber = parseInt(duration) + 1
+                  displayedDuration = roundNumber + unit
+                }
+              }
 
-              const displayedDuration =
-                durationInMinute === null ? (
-                  ''
-                ) : durationInMinute < 1 ? (
-                  <div className="-ml-1 flex items-center">
-                    <IconChevronLeft className="h-3 w-3" /> 1
-                  </div>
-                ) : (
-                  String(durationInMinute)
-                )
               return (
                 <TooltipProvider delayDuration={0} key={job.node.id}>
                   <Tooltip>
