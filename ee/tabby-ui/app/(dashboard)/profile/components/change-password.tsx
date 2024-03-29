@@ -136,7 +136,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             {isSubmitting && (
               <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Update password
+            Save Changes
           </Button>
         </div>
       </form>

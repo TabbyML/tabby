@@ -41,25 +41,25 @@ export const Avatar = () => {
 
   const onUploadAvatar = async () => {
     setIsSubmitting(true)
-    try {
-      const mimeHeaderMatcher = new RegExp('^data:image/.+;base64,')
-      const avatarBase64 = uploadedImgString.replace(mimeHeaderMatcher, '')
 
+    try {
       const response = await uploadUserAvatar({
-        avatarBase64,
+        avatarBase64: uploadedImgString.split(',')[1],
         id: data.me.id
       })
-      if (response?.error) throw response.error
-      if (response?.data?.uploadUserAvatarBase64 === false)
-        throw new Error('Upload failed')
+      if (response?.error?.message) throw new Error(response?.error?.message)
+      if (response?.data?.uploadUserAvatarBase64 !== true) throw new Error("Oops! There was an issue uploading your image. Please try again.")
+      
       await delay(1000)
       mutateAvatar(data.me.id)
-      toast.success('Avatar uploaded successfully.')
+      toast.success('Successfully updated your profile picture!')
+
       await delay(200)
       setUploadedImgString('')
-    } catch (err: any) {
-      toast.error(err.message || 'Upload failed')
+    } catch (err) {
+      toast.error((err as Error).message)
     }
+
     setIsSubmitting(false)
   }
 
@@ -83,7 +83,7 @@ export const Avatar = () => {
           <img
             src={uploadedImgString}
             className="absolute left-0 top-0 z-10 h-16 w-16 rounded-full border object-cover"
-            alt="Upload image preview"
+            alt="avatar to be uploaded"
           />
         )}
         <UserAvatar className="relative h-16 w-16 border" />
@@ -91,22 +91,24 @@ export const Avatar = () => {
 
       <Separator />
 
-      <div className="flex justify-between">
+      <div className="flex items-center justify-between">
         <Button
           type="submit"
           disabled={!uploadedImgString || isSubmitting}
           onClick={onUploadAvatar}
-          className="w-40"
+          className="mr-5 w-40"
         >
           {isSubmitting && (
             <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
           )}
-          Update avatar
+          Save Changes
         </Button>
 
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Square image recommended. Accept file types: .png, .jpg.
-        </p>
+        <div className="mt-1.5 flex flex-1 justify-end">
+          <p className=" text-xs text-muted-foreground lg:text-sm">
+            Square image recommended. Accepted file types: .png, .jpg. Max file size: 500KB.
+          </p>
+        </div>
       </div>
     </div>
   )
