@@ -119,7 +119,7 @@ pub struct Segments {
     git_url: Option<String>,
 
     /// The relevant declaration code snippets provided by editor.
-    /// The editor could invoke the language server to get relevant declarations.
+    /// It'll contains declarations extracted from `prefix` segments using LSP.
     declarations: Option<Vec<Declaration>>,
 
     /// Clipboard content when requesting code completion.
@@ -130,7 +130,6 @@ pub struct Segments {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Declaration {
     /// Filepath of the file where the snippet is from.
-    /// This filepath is never the same as the current file (`segments.filepath`).
     /// - When the file belongs to the same workspace as the current file,
     ///   this is a relative filepath, that has the same root as the current file.
     /// - When the file located outside the workspace, such as in a dependency package,
