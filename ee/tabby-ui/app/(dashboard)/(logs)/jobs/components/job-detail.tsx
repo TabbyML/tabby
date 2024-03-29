@@ -4,13 +4,12 @@ import React from 'react'
 import { useSearchParams } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
-import { isNil } from 'lodash-es'
 import moment from 'moment'
 import { useQuery } from 'urql'
 
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
-import { IconAlertTriangle, IconTerminalSquare } from '@/components/ui/icons'
+import { IconAlertTriangle, IconTerminalSquare, IconHistory, IconRotate, IconClock } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
@@ -51,45 +50,34 @@ export default function JobRunDetail() {
         <div className="flex flex-1 flex-col items-stretch gap-2">
           {currentNode && (
             <>
-              <h1 className="text-4xl font-semibold tracking-tight first:mt-0">
+              <h2 className="scroll-m-20 text-3xl font-bold tracking-tight first:mt-0">
                 {currentNode.job}
-              </h1>
-              <div className="flex gap-16 pb-6 pt-2">
-                <div>
-                  <p className="flex gap-0.5">
-                    <span>
-                      {isNil(currentNode.exitCode) && '▶️'}
-                      {currentNode.exitCode === 0 && '✅️'}
-                      {currentNode.exitCode === 1 && '⚠️'}
-                    </span>
-                    <span>{getLabelByExitCode(currentNode.exitCode)}</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground">Status</p>
+              </h2>
+              <div className="mb-8 flex gap-x-5 text-sm text-muted-foreground lg:gap-x-10">
+                <div className="flex items-center gap-1">
+                  <IconRotate />
+                  <p>State: {getLabelByExitCode(currentNode.exitCode)}</p>
                 </div>
-
+                
                 {currentNode.createdAt && (
-                  <div>
-                    <p>
-                      {moment(currentNode.createdAt).format('YYYY-MM-DD HH:mm')}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Started At</p>
+                  <div className="flex items-center gap-1">
+                    <IconClock />
+                    <p>Started: {moment(currentNode.createdAt).format('YYYY-MM-DD HH:mm')}</p>
                   </div>
                 )}
 
                 {currentNode.createdAt && currentNode.finishedAt && (
-                  <div>
-                    <p>
-                      {humanizerDuration(
-                        moment
-                          .duration(
-                            moment(currentNode.finishedAt).diff(
-                              currentNode.createdAt
-                            )
+                  <div className="flex items-center gap-1">
+                    <IconHistory />
+                    <p>Duration: {humanizerDuration(
+                      moment
+                        .duration(
+                          moment(currentNode.finishedAt).diff(
+                            currentNode.createdAt
                           )
-                          .asMilliseconds()
-                      )}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Duration</p>
+                        )
+                        .asMilliseconds()
+                    )}</p>
                   </div>
                 )}
               </div>

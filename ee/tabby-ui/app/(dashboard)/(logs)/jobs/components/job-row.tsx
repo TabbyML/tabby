@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
-import humanizerDuration from 'humanize-duration'
 import { isNil } from 'lodash-es'
 import moment from 'moment'
 import { useQuery } from 'urql'
@@ -16,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { IconChevronLeft } from "@/components/ui/icons"
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListRowSkeleton } from '@/components/skeleton'
 
@@ -67,17 +67,17 @@ function JobRunState({ name }: { name: string }) {
       <div className="flex items-center gap-3">
         <JobAggregateState
           count={data?.jobRunStats.success}
-          activeClass="bg-green-600 text-xs text-white"
+          activeClass="bg-green-700 text-xs text-white"
           tooltip="Success"
         />
         <JobAggregateState
           count={data?.jobRunStats.pending}
-          activeClass="bg-blue-600 text-xs text-white"
+          activeClass="bg-blue-700 text-xs text-white"
           tooltip="Pending"
         />
         <JobAggregateState
           count={data?.jobRunStats.failed}
-          activeClass="bg-red-600 text-xs text-white"
+          activeClass="bg-red-700 text-xs text-white"
           tooltip="Failed"
         />
       </div>
@@ -119,19 +119,18 @@ export default function JobRow({ name }: { name: string }) {
       <TableRow className="h-16">
         <TableCell className="font-bold">{name}</TableCell>
         <TableCell>
-          <div className="flex gap-0.5">
+          <div className="grid grid-cols-5 flex-wrap gap-1.5  xl:flex">
             {displayJobs?.map(job => {
               const { createdAt, finishedAt } = job.node
               const startAt =
                 createdAt && moment(createdAt).format('YYYY-MM-DD HH:mm')
-              const duration =
-                createdAt &&
-                finishedAt &&
-                humanizerDuration(
-                  moment
-                    .duration(moment(finishedAt).diff(createdAt))
-                    .asMilliseconds()
-                )
+              const durationInMinute: number | null = (createdAt && finishedAt && moment.duration(moment(finishedAt).diff(createdAt)).asMinutes()) ?? null
+              
+              const displayedDuration = durationInMinute === null
+                ? ""
+                : durationInMinute < 1
+                  ? (<div className="-ml-1 flex items-center"><IconChevronLeft className="h-3 w-3" /> 1</div>)
+                  : String(durationInMinute)
               return (
                 <TooltipProvider delayDuration={0} key={job.node.id}>
                   <Tooltip>
@@ -139,20 +138,19 @@ export default function JobRow({ name }: { name: string }) {
                       <Link
                         href={`/jobs/detail?id=${job.node.id}`}
                         className={cn(
-                          'mr-1 flex h-8 w-8 items-center justify-center rounded text-xs text-white hover:opacity-70',
+                          'flex h-8 w-8 items-center justify-center rounded text-xs text-white hover:opacity-70',
                           {
-                            'bg-blue-600': isNil(job.node.exitCode),
-                            'bg-green-600': job.node.exitCode === 0,
-                            'bg-red-600': job.node.exitCode === 1
+                            'bg-blue-700': isNil(job.node.exitCode),
+                            'bg-green-700': job.node.exitCode === 0,
+                            'bg-red-700': job.node.exitCode === 1
                           }
                         )}
                       >
-                        {parseInt(duration, 10)}
+                        {displayedDuration}
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent>
                       {startAt && <p>{startAt}</p>}
-                      {duration && <p>Duration: {duration}</p>}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
