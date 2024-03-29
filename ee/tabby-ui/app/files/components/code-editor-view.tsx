@@ -66,10 +66,10 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
     const quickActionBarCallback = (action: CodeBrowserQuickAction) => {
       let builtInPrompt = ''
       switch (action) {
-        case 'explain_detail':
+        case 'explain':
           builtInPrompt = 'Explain the following code:'
           break
-        case 'generate_unit-test':
+        case 'generate_unittest':
           builtInPrompt = 'Generate a unit test for the following code:'
           break
         case 'generate_doc':

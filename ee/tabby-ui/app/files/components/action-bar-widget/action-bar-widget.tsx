@@ -32,22 +32,13 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
       {...props}
     >
       <Image src={tabbyLogo} width={32} alt="logo" />
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button size="sm" variant="outline">
-            Explain
-            <IconChevronUpDown className="ml-1" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onSelect={() => handleAction('explain_detail')}
-          >
-            Detailed
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={e => handleAction('explain')}
+      >
+        Explain
+      </Button>
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button size="sm" variant="outline">
@@ -58,7 +49,7 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
         <DropdownMenuContent align="start">
           <DropdownMenuItem
             className="cursor-pointer"
-            onSelect={() => handleAction('generate_unit-test')}
+            onSelect={() => handleAction('generate_unittest')}
           >
             Unit Test
           </DropdownMenuItem>
