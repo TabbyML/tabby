@@ -37,7 +37,9 @@ export const Avatar = () => {
     if (file) {
       const fileSizeInKB = parseFloat((file.size / 1024).toFixed(2))
       if (fileSizeInKB > MAX_UPLOAD_SIZE_KB) {
-        return toast.error(`The image you are attempting to upload is too large. Please ensure the file size is under ${MAX_UPLOAD_SIZE_KB}KB and try again.`)
+        return toast.error(
+          `The image you are attempting to upload is too large. Please ensure the file size is under ${MAX_UPLOAD_SIZE_KB}KB and try again.`
+        )
       }
 
       const reader = new FileReader()
