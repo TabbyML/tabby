@@ -162,5 +162,4 @@ pub trait RepositoryService: Send + Sync {
         path_glob: String,
         top_n: usize,
     ) -> Result<Vec<FileEntry>>;
-    async fn repository_meta(&self, name: String, path: String) -> Result<RepositoryMeta>;
 }

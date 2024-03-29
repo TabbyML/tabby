@@ -1,15 +1,14 @@
 use std::path::Path;
 
-use anyhow::anyhow;
 use async_trait::async_trait;
 use futures::StreamExt;
 use juniper::ID;
-use tabby_common::{config::RepositoryConfig, SourceFile};
+use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
-    repository::{FileEntry, Repository, RepositoryMeta, RepositoryService},
+    repository::{FileEntry, Repository, RepositoryService},
     Result,
 };
 
@@ -94,23 +93,15 @@ impl RepositoryService for DbConn {
         path_glob: String,
         top_n: usize,
     ) -> Result<Vec<FileEntry>> {
+        if path_glob.trim().is_empty() {
+            return Ok(vec![]);
+        }
         let git_url = self.get_repository_git_url(name.clone()).await?;
         let config = RepositoryConfig::new_named(name, git_url);
         let matching = find_glob(&config.dir(), &path_glob, top_n)
             .await
             .map_err(anyhow::Error::from)?;
         Ok(matching)
-    }
-
-    async fn repository_meta(&self, name: String, path: String) -> Result<RepositoryMeta> {
-        let git_url = self.get_repository_git_url(name).await?;
-        SourceFile::all()
-            .map_err(anyhow::Error::from)?
-            .filter_map(|file| {
-                (file.filepath == path && file.git_url == git_url).then(move || file.into())
-            })
-            .next()
-            .ok_or_else(|| anyhow!("File not found").into())
     }
 }
 

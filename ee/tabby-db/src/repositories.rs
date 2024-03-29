@@ -106,5 +106,9 @@ mod tests {
             .unwrap()[0];
         assert_eq!(repository.git_url, "testurl2");
         assert_eq!(repository.name, "test2");
+        assert_eq!(
+            conn.get_repository_git_url("test2".into()).await.unwrap(),
+            repository.git_url
+        );
     }
 }

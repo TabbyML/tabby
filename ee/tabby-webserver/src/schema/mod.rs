@@ -42,7 +42,7 @@ use self::{
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
     job::JobStats,
-    repository::{FileEntry, RepositoryMeta},
+    repository::FileEntry,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -300,24 +300,12 @@ impl Query {
     async fn repository_search(
         ctx: &Context,
         repository: String,
-        filter: Option<String>,
+        filter: String,
     ) -> FieldResult<Vec<FileEntry>> {
         Ok(ctx
             .locator
             .repository()
-            .search_files(repository, filter.unwrap_or_default(), 40)
-            .await?)
-    }
-
-    async fn repository_meta(
-        ctx: &Context,
-        repository: String,
-        path: String,
-    ) -> FieldResult<RepositoryMeta> {
-        Ok(ctx
-            .locator
-            .repository()
-            .repository_meta(repository, path)
+            .search_files(repository, filter, 40)
             .await?)
     }
 
