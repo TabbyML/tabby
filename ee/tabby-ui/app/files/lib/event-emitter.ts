@@ -2,7 +2,7 @@ import mitt from 'mitt'
 
 type CodeBrowserQuickAction =
   | 'explain_detail'
-  | 'generate_unit-test'
+  | 'generate_unittest'
   | 'generate_doc'
 
 type CodeBrowserQuickActionEvents = {
