@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
 import moment from 'moment'
@@ -14,7 +14,8 @@ import {
   IconClock,
   IconHistory,
   IconStopWatch,
-  IconTerminalSquare
+  IconTerminalSquare,
+  IconChevronLeft
 } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
@@ -22,6 +23,7 @@ import { ListSkeleton } from '@/components/skeleton'
 import { getLabelByExitCode } from '../utils/state'
 
 export default function JobRunDetail() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
   const [{ data, error, fetching }, reexecuteQuery] = useQuery({
@@ -56,9 +58,12 @@ export default function JobRunDetail() {
         <div className="flex flex-1 flex-col items-stretch gap-2">
           {currentNode && (
             <>
-              <h2 className="scroll-m-20 text-3xl font-bold tracking-tight first:mt-0">
-                {currentNode.job}
-              </h2>
+              <div onClick={() => router.back()} className="-ml-1 flex cursor-pointer items-center transition-opacity hover:opacity-60">
+                <IconChevronLeft className="mr-1 h-6 w-6" />
+                <h2 className="scroll-m-20 text-3xl font-bold tracking-tight first:mt-0">
+                  {currentNode.job}
+                </h2>
+              </div>
               <div className="mb-8 flex gap-x-5 text-sm text-muted-foreground lg:gap-x-10">
                 <div className="flex items-center gap-1">
                   <IconStopWatch />
