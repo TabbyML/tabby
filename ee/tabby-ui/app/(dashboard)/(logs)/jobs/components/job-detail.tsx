@@ -13,7 +13,7 @@ import {
   IconAlertTriangle,
   IconClock,
   IconHistory,
-  IconRotate,
+  IconStopWatch,
   IconTerminalSquare
 } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -61,7 +61,7 @@ export default function JobRunDetail() {
               </h2>
               <div className="mb-8 flex gap-x-5 text-sm text-muted-foreground lg:gap-x-10">
                 <div className="flex items-center gap-1">
-                  <IconRotate />
+                  <IconStopWatch />
                   <p>State: {getLabelByExitCode(currentNode.exitCode)}</p>
                 </div>
 
