@@ -109,8 +109,8 @@ pub struct Segments {
     suffix: Option<String>,
 
     /// The relative path of the file that is being edited.
-    /// When git_url is set, this is the path of the file in the git repository.
-    /// When git_url is empty, this is the path of the file in the workspace.
+    /// - When `git_url` is set, this is the path of the file in the git repository.
+    /// - When `git_url` is empty, this is the path of the file in the workspace.
     filepath: Option<String>,
 
     /// The remote URL of the current git repository.
@@ -118,8 +118,44 @@ pub struct Segments {
     /// or the git repository does not have a remote URL.
     git_url: Option<String>,
 
+    /// The relevant code snippets provided by editor.
+    relevant_snippets: Option<Vec<RelevantSnippet>>,
+
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
+}
+
+/// A snippet of code that is relevant to the current completion request.
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct RelevantSnippet {
+    /// Filepath of the file where the snippet is from.
+    /// This filepath is never the same as the current file (`segments.filepath`).
+    /// - When the file belongs to the same workspace as the current file,
+    ///   this is a relative filepath, that has the same root as the current file.
+    /// - When the file located outside the workspace, such as in a dependency package,
+    ///   this is a file URI with an absolute filepath.
+    filepath: String,
+
+    /// Body of the snippet.
+    body: String,
+
+    /// The provider of the snippet, one of the following:
+    /// - language_server/declaration:
+    ///     invokes the language server to get relevant declarations.
+    /// - language_server/reference:
+    ///     invokes the language server to find relevant references.
+    /// - code_search/recent_changed:
+    ///     searches the recently edited files for relevant snippets.
+    #[schema(example = "language_server/declaration")]
+    provider: String,
+
+    /// The kind of the snippet, which comes from tree-sitter node type, such as `function_declaration`.
+    /// Only provided when the provider is powered by tree-sitter syntax parser.
+    kind: Option<String>,
+
+    /// A higher score means that the declaration is more relevant, normalized in [0, 1].
+    /// Only provided when the provider supports a score, such as `code_search`.
+    score: Option<f32>,
 }
 
 impl From<Segments> for api::event::Segments {
