@@ -1,5 +1,4 @@
 import React from 'react'
-import NiceAvatar, { genConfig } from 'react-nice-avatar'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -12,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { UserAvatar } from '@/components/user-avatar'
 
 import {
   IconBackpack,
@@ -39,14 +39,10 @@ export default function UserPanel() {
     return
   }
 
-  const config = genConfig(user.email)
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <span className="flex h-10 w-10 rounded-full border">
-          <NiceAvatar className="w-full" {...config} />
-        </span>
+        <UserAvatar className="h-10 w-10 border" />
       </DropdownMenuTrigger>
       <DropdownMenuContent collisionPadding={{ right: 16 }}>
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
