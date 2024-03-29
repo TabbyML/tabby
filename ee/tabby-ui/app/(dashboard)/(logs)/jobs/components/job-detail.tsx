@@ -58,9 +58,9 @@ export default function JobRunDetail() {
                 <div>
                   <p className="flex gap-0.5">
                     <span>
-                      {isNil(currentNode.exitCode) && "▶️"}
-                      {currentNode.exitCode === 0 && "✅️"}
-                      {currentNode.exitCode === 1 && "⚠️"}
+                      {isNil(currentNode.exitCode) && '▶️'}
+                      {currentNode.exitCode === 0 && '✅️'}
+                      {currentNode.exitCode === 1 && '⚠️'}
                     </span>
                     <span>{getLabelByExitCode(currentNode.exitCode)}</span>
                   </p>
