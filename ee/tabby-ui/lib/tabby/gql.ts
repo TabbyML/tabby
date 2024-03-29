@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { authExchange } from '@urql/exchange-auth'
 import { cacheExchange } from '@urql/exchange-graphcache'
@@ -90,33 +89,6 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
   }
 }
 
-function useIsQueryInitialized({
-  data,
-  error,
-  stale
-}: {
-  data?: any
-  error?: CombinedError
-  stale?: boolean
-}): [boolean, React.Dispatch<React.SetStateAction<boolean>>] {
-  const isDataExist = (data?: any, error?: CombinedError) => {
-    return !isNil(data) || !isNil(error)
-  }
-  const [initialized, setInitialized] = useState(
-    isDataExist(data, error) && !!stale
-  )
-
-  useEffect(() => {
-    if (initialized) return
-
-    if (isDataExist(data, error)) {
-      setInitialized(true)
-    }
-  }, [data, error])
-
-  return [initialized, setInitialized]
-}
-
 const isTokenExpired = (exp: number) => {
   return Date.now() > exp * 1000
 }
@@ -128,8 +100,7 @@ const client = new Client({
       resolvers: {
         Query: {
           invitations: relayPagination(),
-          repositories: relayPagination(),
-          jobRuns: relayPagination()
+          repositories: relayPagination()
         }
       },
       updates: {
@@ -292,4 +263,4 @@ export type {
   QueryVariables,
   QueryResponseData
 }
-export { client, useMutation, useIsQueryInitialized }
+export { client, useMutation }

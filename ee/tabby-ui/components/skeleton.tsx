@@ -20,6 +20,13 @@ export const ListSkeleton: React.FC<HTMLAttributes<HTMLDivElement>> = ({
   )
 }
 
+export const ListRowSkeleton: React.FC<HTMLAttributes<HTMLDivElement>> = ({
+  className,
+  ...props
+}) => {
+  return <Skeleton className={cn('h-4 w-full', className)} {...props} />
+}
+
 export const FormSkeleton: React.FC<HTMLAttributes<HTMLDivElement>> = ({
   className,
   ...props
