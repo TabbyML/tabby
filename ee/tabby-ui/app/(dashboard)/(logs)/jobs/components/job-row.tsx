@@ -2,10 +2,10 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
+import humanizerDuration from 'humanize-duration'
 import { isNil } from 'lodash-es'
 import moment from 'moment'
 import { useQuery } from 'urql'
-import humanizerDuration from 'humanize-duration'
 
 import { listJobRuns, queryJobRunStats } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
@@ -128,31 +128,30 @@ export default function JobRow({ name }: { name: string }) {
                 (createdAt &&
                   finishedAt &&
                   humanizerDuration.humanizer({
-                    language: "shortEn",
+                    language: 'shortEn',
                     languages: {
                       shortEn: {
-                        d: () => "d",
-                        h: () => "h",
-                        m: () => "m",
-                        s: () => "s",
-                      },
+                        d: () => 'd',
+                        h: () => 'h',
+                        m: () => 'm',
+                        s: () => 's'
+                      }
                     }
                   })(
                     moment
-                    .duration(moment(finishedAt).diff(createdAt))
-                    .asMilliseconds(),
+                      .duration(moment(finishedAt).diff(createdAt))
+                      .asMilliseconds(),
                     {
-                      units: ["d", "h", "m", "s"],
+                      units: ['d', 'h', 'm', 's'],
                       round: true,
                       largest: 1,
-                      spacer: "",
-                      language: "shortEn"
+                      spacer: '',
+                      language: 'shortEn'
                     }
-                  )
-                ) ??
+                  )) ??
                 null
-                
-              let displayedDuration = ""
+
+              let displayedDuration = ''
               if (duration !== null) {
                 const isSecond = duration.endsWith('s')
                 if (isSecond) {
