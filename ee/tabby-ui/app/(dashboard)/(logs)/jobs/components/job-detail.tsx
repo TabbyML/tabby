@@ -9,7 +9,13 @@ import { useQuery } from 'urql'
 
 import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
-import { IconAlertTriangle, IconTerminalSquare, IconHistory, IconRotate, IconClock } from '@/components/ui/icons'
+import {
+  IconAlertTriangle,
+  IconClock,
+  IconHistory,
+  IconRotate,
+  IconTerminalSquare
+} from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
@@ -58,26 +64,32 @@ export default function JobRunDetail() {
                   <IconRotate />
                   <p>State: {getLabelByExitCode(currentNode.exitCode)}</p>
                 </div>
-                
+
                 {currentNode.createdAt && (
                   <div className="flex items-center gap-1">
                     <IconClock />
-                    <p>Started: {moment(currentNode.createdAt).format('YYYY-MM-DD HH:mm')}</p>
+                    <p>
+                      Started:{' '}
+                      {moment(currentNode.createdAt).format('YYYY-MM-DD HH:mm')}
+                    </p>
                   </div>
                 )}
 
                 {currentNode.createdAt && currentNode.finishedAt && (
                   <div className="flex items-center gap-1">
                     <IconHistory />
-                    <p>Duration: {humanizerDuration(
-                      moment
-                        .duration(
-                          moment(currentNode.finishedAt).diff(
-                            currentNode.createdAt
+                    <p>
+                      Duration:{' '}
+                      {humanizerDuration(
+                        moment
+                          .duration(
+                            moment(currentNode.finishedAt).diff(
+                              currentNode.createdAt
+                            )
                           )
-                        )
-                        .asMilliseconds()
-                    )}</p>
+                          .asMilliseconds()
+                      )}
+                    </p>
                   </div>
                 )}
               </div>

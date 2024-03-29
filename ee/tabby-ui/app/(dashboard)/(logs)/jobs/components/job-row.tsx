@@ -8,6 +8,7 @@ import { useQuery } from 'urql'
 
 import { listJobRuns, queryJobRunStats } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
+import { IconChevronLeft } from '@/components/ui/icons'
 import { TableCell, TableRow } from '@/components/ui/table'
 import {
   Tooltip,
@@ -15,7 +16,6 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { IconChevronLeft } from "@/components/ui/icons"
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListRowSkeleton } from '@/components/skeleton'
 
@@ -124,13 +124,24 @@ export default function JobRow({ name }: { name: string }) {
               const { createdAt, finishedAt } = job.node
               const startAt =
                 createdAt && moment(createdAt).format('YYYY-MM-DD HH:mm')
-              const durationInMinute: number | null = (createdAt && finishedAt && moment.duration(moment(finishedAt).diff(createdAt)).asMinutes()) ?? null
-              
-              const displayedDuration = durationInMinute === null
-                ? ""
-                : durationInMinute < 1
-                  ? (<div className="-ml-1 flex items-center"><IconChevronLeft className="h-3 w-3" /> 1</div>)
-                  : String(durationInMinute)
+              const durationInMinute: number | null =
+                (createdAt &&
+                  finishedAt &&
+                  moment
+                    .duration(moment(finishedAt).diff(createdAt))
+                    .asMinutes()) ??
+                null
+
+              const displayedDuration =
+                durationInMinute === null ? (
+                  ''
+                ) : durationInMinute < 1 ? (
+                  <div className="-ml-1 flex items-center">
+                    <IconChevronLeft className="h-3 w-3" /> 1
+                  </div>
+                ) : (
+                  String(durationInMinute)
+                )
               return (
                 <TooltipProvider delayDuration={0} key={job.node.id}>
                   <Tooltip>
