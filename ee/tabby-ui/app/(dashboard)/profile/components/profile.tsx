@@ -20,7 +20,7 @@ export default function Profile() {
       <ProfileCard
         title="Your Avatar"
         description="This is your avatar image."
-        footer="The avatar customization feature will be available in a future release."
+        footerClassname="pb-0"
       >
         <Avatar />
       </ProfileCard>
