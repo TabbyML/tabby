@@ -86,7 +86,7 @@ export const TextFileView: React.FC<TextFileViewProps> = ({
           {showMarkdown ? (
             <MarkdownView value={value} />
           ) : (
-            <CodeEditorView value={value} language={language} />
+            <CodeEditorView value={value} language={language} meta={meta} />
           )}
         </Suspense>
       </div>
