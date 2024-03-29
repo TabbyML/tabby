@@ -41,6 +41,11 @@ function createActionBarWidget(state: EditorState): Tooltip {
   const lineTo = state.doc.lineAt(selection.main.to)
   const isMultiline = lineFrom.number !== lineTo.number
   const pos = isMultiline ? lineTo.from : selection.main.from
+  const text = state.doc.sliceString(
+    state.selection.main.from,
+    state.selection.main.to
+  ) || ''
+
   return {
     pos,
     above: false,
@@ -55,7 +60,7 @@ function createActionBarWidget(state: EditorState): Tooltip {
       // delay popup
       if (delayTimer) clearTimeout(delayTimer)
       delayTimer = window.setTimeout(() => {
-        root.render(<ActionBarWidget />)
+        root.render(<ActionBarWidget text={text} />)
       }, 1000)
 
       return { dom }

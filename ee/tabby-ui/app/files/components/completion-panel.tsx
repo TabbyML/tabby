@@ -5,13 +5,14 @@ import { Message } from 'ai'
 
 import { useStore } from '@/lib/hooks/use-store'
 import {
+  addChat,
   clearChats,
   deleteChat,
   setActiveChatId
 } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
-import { cn, nanoid } from '@/lib/utils'
+import { cn, nanoid, truncateText } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   IconClose,
@@ -64,7 +65,39 @@ export const CompletionPanel: React.FC<CompletionPanelProps> = ({
   const chatRef = React.useRef<ChatRef>(null)
   const appending = React.useRef(false)
 
-  const quickActionBarCallback = (action: CodeBrowserQuickAction) => {
+  // const quickActionBarCallback = (action: CodeBrowserQuickAction) => {
+  //   let builtInPrompt = ''
+  //   switch (action) {
+  //     case 'explain':
+  //       builtInPrompt = 'Explain the following code:'
+  //       break
+  //     case 'generate_unittest':
+  //       builtInPrompt = 'Generate a unit test for the following code:'
+  //       break
+  //     case 'generate_doc':
+  //       builtInPrompt = 'Generate documentation for the following code:'
+  //       break
+  //     default:
+  //       break
+  //   }
+  //   const view = editorRef.current?.editorView
+  //   const text =
+  //     view?.state.doc.sliceString(
+  //       view?.state.selection.main.from,
+  //       view?.state.selection.main.to
+  //     ) || ''
+
+  //   const initialMessage = `${builtInPrompt}\n${'```'}${
+  //     language ?? ''
+  //   }\n${text}\n${'```'}\n`
+  //   if (initialMessage) {
+  //     window.open(
+  //       `/playground?initialMessage=${encodeURIComponent(initialMessage)}`
+  //     )
+  //   }
+  // }
+
+  const getPrompt = ({ action, payload }: { action: CodeBrowserQuickAction, payload: string }) => {
     let builtInPrompt = ''
     switch (action) {
       case 'explain':
@@ -79,46 +112,32 @@ export const CompletionPanel: React.FC<CompletionPanelProps> = ({
       default:
         break
     }
-    const view = editorRef.current?.editorView
-    const text =
-      view?.state.doc.sliceString(
-        view?.state.selection.main.from,
-        view?.state.selection.main.to
-      ) || ''
-
-    const initialMessage = `${builtInPrompt}\n${'```'}${
-      language ?? ''
-    }\n${text}\n${'```'}\n`
-    if (initialMessage) {
-      window.open(
-        `/playground?initialMessage=${encodeURIComponent(initialMessage)}`
-      )
-    }
+    return `${builtInPrompt}\n${'```'}\n${payload}\n${'```'}\n`
   }
 
   React.useEffect(() => {
-    if (chatRef.current && pendingEvent) {
-      // debugger
+    if (chatRef.current?.append && pendingEvent) {
       setCompletionPanelViewType(CompletionPanelView.CHAT)
       if (!appending.current) {
-        console.log('call event cb====', pendingEvent)
         appending.current = true
+
+        const prompt = getPrompt(pendingEvent as any)
+
         chatRef.current
           ?.append({
             role: 'user',
-            content: pendingEvent['payload']
+            content: prompt
           })
           .then(() => {
             setPendingEvent(undefined)
             appending.current = false
           })
+        if (!chat) {
+          addChat(activeChatId, truncateText(prompt))
+        }
       }
     }
-
-    // return () => {
-    //   chatRef.current?.stop()
-    // }
-  }, [pendingEvent])
+  }, [pendingEvent, chatRef.current?.append])
 
   return (
     <div className={cn('h-full overflow relative', className)} {...props}>

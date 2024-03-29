@@ -80,8 +80,8 @@ type SourceCodeBrowserContextValue = {
   setCompletionPanelViewType: React.Dispatch<
     React.SetStateAction<CompletionPanelView>
   >
-  pendingEvent: { name: string; payload: string } | undefined
-  setPendingEvent: (d: { name: string; payload: string } | undefined) => void
+  pendingEvent: { action: string; payload: string } | undefined
+  setPendingEvent: (d: { action: string; payload: string } | undefined) => void
 }
 
 const SourceCodeBrowserContext =
@@ -115,7 +115,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     CompletionPanelView.CHAT
   )
   const [pendingEvent, setPendingEvent] = React.useState<
-    { name: string; payload: string } | undefined
+    { action: string; payload: string } | undefined
   >()
 
   const updateFileMap = (map: TFileMap) => {
@@ -351,9 +351,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath, isFileSelected, fileBlob])
 
   React.useEffect(() => {
-    const onCallCompletion = (payload: string) => {
+    const onCallCompletion = (payload: any) => {
       setCompletionPanelVisible(true)
-      setPendingEvent({ name: 'code_browser_action_prompt', payload })
+      setPendingEvent(payload)
     }
     emitter.on('code_browser_quick_action', onCallCompletion)
 
