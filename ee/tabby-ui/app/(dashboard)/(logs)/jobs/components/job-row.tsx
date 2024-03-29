@@ -34,10 +34,10 @@ function JobAggregateState({
         <TooltipTrigger>
           <div
             className={cn(
-              'flex h-8 w-8 cursor-default items-center justify-center rounded-full border-2',
+              'flex h-8 w-8 cursor-default items-center justify-center rounded-full',
               {
                 [activeClass]: count,
-                'border-muted text-muted': !count
+                'bg-muted text-muted': !count
               }
             )}
           >
@@ -67,17 +67,17 @@ function JobRunState({ name }: { name: string }) {
       <div className="flex items-center gap-3">
         <JobAggregateState
           count={data?.jobRunStats.success}
-          activeClass="border-green-600 dark:border-green-500 text-xs text-green-600 dark:text-green-500"
+          activeClass="bg-green-600 text-xs text-white"
           tooltip="Success"
         />
         <JobAggregateState
           count={data?.jobRunStats.pending}
-          activeClass="border-blue-600 dark:border-blue-500 text-xs text-blue-600 dark:text-blue-500"
+          activeClass="bg-blue-600 text-xs text-white"
           tooltip="Pending"
         />
         <JobAggregateState
           count={data?.jobRunStats.failed}
-          activeClass="border-red-600 dark:border-red-500 text-xs text-red-600 dark:text-red-500"
+          activeClass="bg-red-600 text-xs text-white"
           tooltip="Failed"
         />
       </div>
@@ -139,14 +139,16 @@ export default function JobRow({ name }: { name: string }) {
                       <Link
                         href={`/jobs/detail?id=${job.node.id}`}
                         className={cn(
-                          'mr-1 h-6 w-6 rounded-full border-2 hover:opacity-70',
+                          'mr-1 flex h-8 w-8 items-center justify-center rounded text-xs text-white hover:opacity-70',
                           {
-                            'border-blue-600 dark:border-blue-500': isNil(job.node.exitCode),
-                            'border-green-600 dark:border-green-500': job.node.exitCode === 0,
-                            'border-red-600 dark:border-red-500': job.node.exitCode === 1
+                            'bg-blue-600': isNil(job.node.exitCode),
+                            'bg-green-600': job.node.exitCode === 0,
+                            'bg-red-600': job.node.exitCode === 1
                           }
                         )}
-                      />
+                      >
+                        {parseInt(duration, 10)}
+                      </Link>
                     </TooltipTrigger>
                     <TooltipContent>
                       {startAt && <p>{startAt}</p>}
