@@ -66,7 +66,7 @@ export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
             className="cursor-pointer"
             onSelect={() => handleAction('generate_doc')}
           >
-            A doc
+            Documentation
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
