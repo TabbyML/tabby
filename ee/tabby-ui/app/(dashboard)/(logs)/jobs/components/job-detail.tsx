@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Ansi from '@curvenote/ansi-to-react'
 import humanizerDuration from 'humanize-duration'
 import moment from 'moment'
@@ -11,11 +11,11 @@ import { listJobRuns } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import {
   IconAlertTriangle,
+  IconChevronLeft,
   IconClock,
   IconHistory,
   IconStopWatch,
-  IconTerminalSquare,
-  IconChevronLeft
+  IconTerminalSquare
 } from '@/components/ui/icons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
@@ -58,7 +58,10 @@ export default function JobRunDetail() {
         <div className="flex flex-1 flex-col items-stretch gap-2">
           {currentNode && (
             <>
-              <div onClick={() => router.back()} className="-ml-1 flex cursor-pointer items-center transition-opacity hover:opacity-60">
+              <div
+                onClick={() => router.back()}
+                className="-ml-1 flex cursor-pointer items-center transition-opacity hover:opacity-60"
+              >
                 <IconChevronLeft className="mr-1 h-6 w-6" />
                 <h2 className="scroll-m-20 text-3xl font-bold tracking-tight first:mt-0">
                   {currentNode.job}
