@@ -1,14 +1,22 @@
 //! Responsible for downloading ML models for use with tabby.
-use std::{fs, path::Path};
+use std::{
+    fs::{self, File, OpenOptions},
+    io::{BufRead, BufReader, Write},
+    path::Path,
+};
 
 use aim_downloader::{bar::WrappedBar, error::DownloadError, https};
 use anyhow::{anyhow, bail, Result};
-use tabby_common::registry::{parse_model_id, ModelRegistry};
+use tabby_common::registry::{parse_model_id, ModelInfo, ModelRegistry};
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
 };
 use tracing::{info, warn};
+
+fn download_host() -> String {
+    std::env::var("TABBY_DOWNLOAD_HOST").unwrap_or("huggingface.co".to_owned())
+}
 
 async fn download_model_impl(
     registry: &ModelRegistry,
@@ -37,8 +45,17 @@ async fn download_model_impl(
         }
     }
 
-    let registry = std::env::var("TABBY_DOWNLOAD_HOST").unwrap_or("huggingface.co".to_owned());
-    let Some(model_url) = model_info.urls.iter().find(|x| x.contains(&registry)) else {
+    if model_info.partition_urls.is_some() {
+        return download_split_model(model_info, &model_path).await;
+    }
+
+    let registry = download_host();
+    let Some(model_url) = model_info
+        .urls
+        .iter()
+        .flatten()
+        .find(|x| x.contains(&registry))
+    else {
         return Err(anyhow!(
             "Invalid mirror <{}> for model urls: {:?}",
             registry,
@@ -49,6 +66,67 @@ async fn download_model_impl(
     let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
     let download_job = Retry::spawn(strategy, || download_file(model_url, model_path.as_path()));
     download_job.await?;
+    Ok(())
+}
+
+async fn download_split_model(model_info: &ModelInfo, model_path: &Path) -> Result<()> {
+    if model_info.urls.is_some() {
+        return Err(anyhow!(
+            "{}: Cannot specify both `urls` and `partition_urls`",
+            model_info.name
+        ));
+    }
+    let mut paths = vec![];
+    let partition_urls = model_info.partition_urls.clone().unwrap_or_default();
+    let mirror = download_host();
+
+    let Some(urls) = partition_urls
+        .iter()
+        .find(|urls| urls.iter().all(|url| url.contains(&mirror)))
+    else {
+        return Err(anyhow!(
+            "Invalid mirror <{}> for model urls: {:?}",
+            mirror,
+            partition_urls
+        ));
+    };
+
+    for (index, url) in urls.iter().enumerate() {
+        let ext = format!(
+            "{}.{}",
+            model_path.extension().unwrap_or_default().to_string_lossy(),
+            index
+        );
+        let path = model_path.with_extension(ext);
+        info!(
+            "Downloading {path:?} ({index} / {total})",
+            index = index + 1,
+            total = partition_urls.len()
+        );
+        let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
+        let download_job = Retry::spawn(strategy, || download_file(url, &path));
+        download_job.await?;
+        paths.push(path);
+    }
+    info!("Merging split model files...");
+    println!("{model_path:?}");
+    let mut file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(model_path)?;
+    for path in paths {
+        let mut reader = BufReader::new(File::open(&path)?);
+        loop {
+            let buffer = reader.fill_buf()?;
+            file.write_all(buffer)?;
+            let len = buffer.len();
+            reader.consume(len);
+            if len == 0 {
+                break;
+            }
+        }
+        std::fs::remove_file(path)?;
+    }
     Ok(())
 }
 
