@@ -1,7 +1,6 @@
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
 
-import { CodeBrowserQuickAction, emitter } from '@/lib/event-emitter'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +10,8 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { IconChevronUpDown } from '@/components/ui/icons'
+
+import { CodeBrowserQuickAction, emitter } from '../../lib/event-emitter'
 
 interface ActionBarWidgetProps extends React.HTMLAttributes<HTMLDivElement> {}
 
