@@ -6,7 +6,8 @@ import { toast } from 'sonner'
 import { graphql } from '@/lib/gql/generates'
 import { useMe } from '@/lib/hooks/use-me'
 import { useMutation } from '@/lib/tabby/gql'
-import { delay } from '@/lib/utils'
+import { delay, cn } from '@/lib/utils'
+
 import { Button } from '@/components/ui/button'
 import { IconCloudUpload, IconSpinner } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
@@ -65,11 +66,10 @@ export const Avatar = () => {
       await delay(1000)
       mutateAvatar(data.me.id)
       toast.success('Successfully updated your profile picture!')
-
       await delay(200)
-      setUploadedImgString('')
     }
-
+    
+    setUploadedImgString('')
     setIsSubmitting(false)
   }
 
@@ -96,7 +96,10 @@ export const Avatar = () => {
             alt="avatar to be uploaded"
           />
         )}
-        <UserAvatar className="relative h-16 w-16 border" />
+        <UserAvatar
+          className={cn("relative h-16 w-16 border", {
+            'opacity-0': uploadedImgString
+          })} />
       </div>
 
       <Separator />
@@ -114,7 +117,7 @@ export const Avatar = () => {
           Save Changes
         </Button>
 
-        <div className="mt-1.5 flex flex-1 justify-end">
+        <div className="flex flex-1 justify-end">
           <p className=" text-xs text-muted-foreground lg:text-sm">
             {`Square image recommended. Accepted file types: .png, .jpg. Max file size: ${MAX_UPLOAD_SIZE_KB}KB.`}
           </p>
