@@ -423,7 +423,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       <>
         <ResizableHandle
           className={cn(
-            'w-1 bg-border/40 hover:bg-border active:bg-border hidden',
+            'hidden w-1 bg-border/40 hover:bg-border active:bg-border',
             completionPanelVisible && 'block'
           )}
         />

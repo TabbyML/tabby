@@ -13,7 +13,6 @@ import { markTagNameExtension } from '@/components/codemirror/name-tag-extension
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
-import { CodeBrowserQuickAction, emitter } from '../lib/event-emitter'
 import { ActionBarWidgetExtension } from './action-bar-widget/action-bar-widget-extension'
 
 interface CodeEditorViewProps {

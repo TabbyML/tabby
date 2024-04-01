@@ -17,7 +17,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
 
   return (
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
-      <div className="flex items-center gap-1 flex-1 truncate">
+      <div className="flex flex-1 items-center gap-1 truncate">
         <div
           className="cursor-pointer font-medium text-primary hover:underline"
           onClick={e => setActivePath(undefined)}

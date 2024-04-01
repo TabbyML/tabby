@@ -1,34 +1,25 @@
 import React from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
-import { Message } from 'ai'
 
 import { useStore } from '@/lib/hooks/use-store'
 import {
-  addChat,
   clearChats,
   deleteChat,
   setActiveChatId
 } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
-import { cn, nanoid, truncateText } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import {
-  IconClose,
-  IconHistory,
-  IconPlus,
-  IconTrash
-} from '@/components/ui/icons'
+import { IconClose, IconTrash } from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { Chat, ChatRef } from '@/components/chat'
 import { ClearChatsButton } from '@/components/clear-chats-button'
 import { EditChatTitleDialog } from '@/components/edit-chat-title-dialog'
-import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { CodeBrowserQuickAction } from '../lib/event-emitter'
@@ -98,12 +89,12 @@ export const CompletionPanel: React.FC<CompletionPanelProps> = ({
   }, [pendingEvent, iframeRef.current?.contentWindow])
 
   return (
-    <div className={cn('h-full flex flex-col', className)} {...props}>
+    <div className={cn('flex h-full flex-col', className)} {...props}>
       <Header />
       {completionPanelViewType === CompletionPanelView.CHAT && (
         <iframe
           src={`/playground`}
-          className="border-0 w-full flex-1"
+          className="w-full flex-1 border-0"
           key={activeChatId}
           ref={iframeRef}
         />
@@ -221,7 +212,7 @@ function Header() {
   // }
 
   return (
-    <div className="flex items-center justify-between bg-secondary px-2 py-1 sticky top-0">
+    <div className="sticky top-0 flex items-center justify-between bg-secondary px-2 py-1">
       {/* <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
