@@ -1,11 +1,5 @@
-
-
 use anyhow::Result;
-use sqlx::{
-    query, query_as,
-    sqlite::{SqliteConnectOptions},
-    Pool, Sqlite, SqlitePool,
-};
+use sqlx::{query, query_as, sqlite::SqliteConnectOptions, Pool, Sqlite, SqlitePool};
 use tabby_common::Tag;
 
 pub struct RepositoryCache {
