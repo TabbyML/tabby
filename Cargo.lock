@@ -4552,6 +4552,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabby-repositories"
+version = "0.10.0-dev.0"
+dependencies = [
+ "anyhow",
+ "serde_json",
+ "sqlx",
+ "tabby-common",
+]
+
+[[package]]
 name = "tabby-scheduler"
 version = "0.10.0-dev.0"
 dependencies = [

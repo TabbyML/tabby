@@ -6,12 +6,13 @@ members = [
     "crates/tabby-scheduler",
     "crates/tabby-download",
     "crates/tabby-inference",
+    "crates/tabby-repositories",
     "crates/llama-cpp-bindings",
     "crates/http-api-bindings",
     "crates/aim-downloader",
     "crates/juniper-axum",
     "ee/tabby-webserver",
-    "ee/tabby-db", "ee/tabby-db-macros",
+    "ee/tabby-db", "ee/tabby-db-macros", "crates/tabby-repositories",
 ]
 
 [workspace.package]
@@ -21,6 +22,7 @@ authors = ["Meng Zhang"]
 homepage = "https://github.com/TabbyML/tabby"
 
 [workspace.dependencies]
+sqlx = { version = "0.7.3", features = ["sqlite", "chrono", "runtime-tokio", "macros"] }
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
