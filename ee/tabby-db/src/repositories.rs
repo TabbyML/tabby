@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use sqlx::{prelude::FromRow, query, query_scalar};
+use sqlx::{prelude::FromRow, query};
 
 use crate::{make_pagination_query, DbConn, SQLXResultExt};
 
@@ -65,11 +65,13 @@ impl DbConn {
         }
     }
 
-    pub async fn get_repository_git_url(&self, name: String) -> Result<String> {
-        let url = query_scalar!("SELECT git_url FROM repositories WHERE name = ?", name)
-            .fetch_one(&self.pool)
-            .await?;
-        Ok(url)
+    pub async fn get_repository_by_name(&self, name: String) -> Result<RepositoryDAO> {
+        let repository =
+            sqlx::query_as("SELECT id, name, git_url FROM repositories WHERE name = ?;")
+                .bind(name)
+                .fetch_one(&self.pool)
+                .await?;
+        Ok(repository)
     }
 }
 
@@ -107,7 +109,10 @@ mod tests {
         assert_eq!(repository.git_url, "testurl2");
         assert_eq!(repository.name, "test2");
         assert_eq!(
-            conn.get_repository_git_url("test2".into()).await.unwrap(),
+            conn.get_repository_by_name("test2".into())
+                .await
+                .unwrap()
+                .git_url,
             repository.git_url
         );
     }

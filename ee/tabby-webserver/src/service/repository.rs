@@ -96,7 +96,7 @@ impl RepositoryService for DbConn {
         if path_glob.trim().is_empty() {
             return Ok(vec![]);
         }
-        let git_url = self.get_repository_git_url(name.clone()).await?;
+        let git_url = self.get_repository_by_name(name.clone()).await?.git_url;
         let config = RepositoryConfig::new_named(name, git_url);
         let matching = find_glob(&config.dir(), &path_glob, top_n)
             .await
