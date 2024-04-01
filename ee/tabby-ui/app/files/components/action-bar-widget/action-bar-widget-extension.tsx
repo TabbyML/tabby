@@ -41,10 +41,9 @@ function createActionBarWidget(state: EditorState): Tooltip {
   const lineTo = state.doc.lineAt(selection.main.to)
   const isMultiline = lineFrom.number !== lineTo.number
   const pos = isMultiline ? lineTo.from : selection.main.from
-  const text = state.doc.sliceString(
-    state.selection.main.from,
-    state.selection.main.to
-  ) || ''
+  const text =
+    state.doc.sliceString(state.selection.main.from, state.selection.main.to) ||
+    ''
 
   return {
     pos,

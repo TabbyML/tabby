@@ -3,7 +3,7 @@ import type { UseChatHelpers } from 'ai/react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { IconRefresh, IconStop } from '@/components/ui/icons'
+import { IconRefresh, IconStop, IconTrash } from '@/components/ui/icons'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
 import { FooterText } from '@/components/footer'
 import { PromptForm, PromptFormRef } from '@/components/prompt-form'
@@ -18,6 +18,7 @@ export interface ChatPanelProps
     | 'stop'
     | 'input'
     | 'setInput'
+    | 'setMessages'
   > {
   id?: string
   className?: string
@@ -34,12 +35,18 @@ export function ChatPanel({
   setInput,
   messages,
   className,
-  onSubmit
+  onSubmit,
+  setMessages
 }: ChatPanelProps) {
   const promptFormRef = React.useRef<PromptFormRef>(null)
   React.useEffect(() => {
     promptFormRef?.current?.focus()
   }, [id])
+
+  const onClearContext = () => {
+    stop()
+    setMessages([])
+  }
 
   return (
     <div
@@ -50,7 +57,7 @@ export function ChatPanel({
     >
       <ButtonScrollToBottom />
       <div className="mx-auto sm:max-w-2xl sm:px-4">
-        <div className="flex h-10 items-center justify-center">
+        <div className="flex h-10 items-center justify-center gap-2">
           {isLoading ? (
             <Button
               variant="outline"
@@ -71,6 +78,16 @@ export function ChatPanel({
                 Regenerate response
               </Button>
             )
+          )}
+          {messages?.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => onClearContext()}
+              className="bg-background lg:hidden"
+            >
+              <IconTrash className="mr-2" />
+              Clear
+            </Button>
           )}
         </div>
         <div className="space-y-4 border-t bg-background px-4 py-2 shadow-lg sm:rounded-t-xl sm:border md:py-4">

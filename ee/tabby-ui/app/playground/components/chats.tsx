@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import type { Message } from 'ai'
+import { nanoid, type Message } from 'ai'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
@@ -51,6 +51,35 @@ export default function Chats() {
       shouldConsumeInitialMessage.current = false
     }
   }, [chatRef.current?.append])
+
+  React.useEffect(() => {
+    const onMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.origin || !event.data) {
+        return
+      }
+      if (!chatRef.current || chatRef.current.isLoading) return
+
+      const { data } = event
+      if (data.action === 'append') {
+        chatRef.current.append({
+          id: nanoid(),
+          role: 'user',
+          content: data.payload
+        })
+        return
+      }
+
+      if (data.action === 'stop') {
+        chatRef.current.stop()
+      }
+    }
+
+    window.addEventListener('message', onMessage)
+
+    return () => {
+      window.removeEventListener('message', onMessage)
+    }
+  }, [chatRef.current])
 
   return (
     <div className="grid flex-1 overflow-hidden lg:grid-cols-[280px_1fr]">

@@ -3,6 +3,7 @@
 import React, { PropsWithChildren } from 'react'
 import filename2prism from 'filename2prism'
 import { compact, findIndex, toNumber } from 'lodash-es'
+import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/resizable'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
+import { CodeBrowserQuickAction, emitter } from '../lib/event-emitter'
 import { CompletionPanel } from './completion-panel'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'
@@ -31,7 +33,6 @@ import {
   resolveFileNameFromPath,
   resolveRepoNameFromPath
 } from './utils'
-import { emitter } from '../lib/event-emitter'
 
 /**
  * FileMap example
@@ -80,8 +81,10 @@ type SourceCodeBrowserContextValue = {
   setCompletionPanelViewType: React.Dispatch<
     React.SetStateAction<CompletionPanelView>
   >
-  pendingEvent: { action: string; payload: string } | undefined
-  setPendingEvent: (d: { action: string; payload: string } | undefined) => void
+  pendingEvent: { action: CodeBrowserQuickAction; payload: string } | undefined
+  setPendingEvent: (
+    d: { action: CodeBrowserQuickAction; payload: string } | undefined
+  ) => void
 }
 
 const SourceCodeBrowserContext =
@@ -115,7 +118,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     CompletionPanelView.CHAT
   )
   const [pendingEvent, setPendingEvent] = React.useState<
-    { action: string; payload: string } | undefined
+    { action: CodeBrowserQuickAction; payload: string } | undefined
   >()
 
   const updateFileMap = (map: TFileMap) => {
@@ -201,6 +204,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     setPendingEvent
   } = React.useContext(SourceCodeBrowserContext)
   const { setProgress } = useTopbarProgress()
+  const completionPanelRef = React.useRef<ImperativePanelHandle>(null)
+  const [completionPanelSize, setCompletionPanelSize] = React.useState(30)
 
   const activeRepoName = React.useMemo(() => {
     return resolveRepoNameFromPath(activePath)
@@ -291,6 +296,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const showRawFileView =
     isFileSelected && (fileViewType === 'image' || fileViewType === 'raw')
 
+  const onPanelLayout = (sizes: number[]) => {
+    if (sizes?.[2]) {
+      setCompletionPanelSize(sizes[2])
+    }
+  }
+
   React.useEffect(() => {
     const init = async () => {
       const { patchMap, expandedKeys } = await initFileMap(activePath)
@@ -362,8 +373,21 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }, [])
 
+  React.useEffect(() => {
+    if (completionPanelVisible) {
+      completionPanelRef.current?.expand()
+      completionPanelRef.current?.resize(completionPanelSize)
+    } else {
+      completionPanelRef.current?.collapse()
+    }
+  }, [completionPanelVisible])
+
   return (
-    <ResizablePanelGroup direction="horizontal" className={cn(className)}>
+    <ResizablePanelGroup
+      direction="horizontal"
+      className={cn(className)}
+      onLayout={onPanelLayout}
+    >
       <ResizablePanel defaultSize={20} minSize={20}>
         <FileTreePanel />
       </ResizablePanel>
@@ -396,14 +420,17 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           </div>
         </div>
       </ResizablePanel>
-      {completionPanelVisible && (
-        <>
-          <ResizableHandle className="w-1 bg-border/40 hover:bg-border active:bg-border" />
-          <ResizablePanel defaultSize={30}>
-            <CompletionPanel />
-          </ResizablePanel>
-        </>
-      )}
+      <>
+        <ResizableHandle
+          className={cn(
+            'w-1 bg-border/40 hover:bg-border active:bg-border hidden',
+            completionPanelVisible && 'block'
+          )}
+        />
+        <ResizablePanel defaultSize={0} collapsible ref={completionPanelRef}>
+          <CompletionPanel />
+        </ResizablePanel>
+      </>
     </ResizablePanelGroup>
   )
 }
