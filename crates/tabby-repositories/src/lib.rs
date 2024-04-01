@@ -1,6 +1,6 @@
 use anyhow::Result;
 use sqlx::sqlite::SqlitePoolOptions;
-use sqlx::{query, SqlitePool};
+use sqlx::{query, query_as, SqlitePool};
 use sqlx::{sqlite::SqliteConnectOptions, Pool, Sqlite};
 use std::str::FromStr;
 use tabby_common::Tag;
@@ -13,9 +13,9 @@ struct RepositoryMetaDAO {
     git_url: String,
     filepath: String,
     language: String,
-    max_line_length: usize,
-    avg_line_length: f32,
-    alphanum_fraction: f32,
+    max_line_length: i64,
+    avg_line_length: f64,
+    alphanum_fraction: f64,
     tags: String,
 }
 
@@ -53,5 +53,19 @@ impl RepositoryCache {
                 git_url, filepath, language, max_line_length, avg_line_length, alphanum_fraction, tags
         ).execute(&self.pool).await?;
         Ok(())
+    }
+
+    pub async fn get_repository_meta(
+        &self,
+        git_url: String,
+        filepath: String,
+    ) -> Result<RepositoryMetaDAO> {
+        // TODO(boxbeam): Conversion from RepositoryMetaDAO to RepositoryMeta / SourceFile to never expose RepositoryMetaDAO
+        let meta = query_as!(
+            RepositoryMetaDAO,
+            "SELECT git_url, filepath, language, max_line_length, avg_line_length, alphanum_fraction, tags FROM repository_meta WHERE git_url = ? AND filepath = ?",
+            git_url, filepath
+        ).fetch_one(&self.pool).await?;
+        Ok(meta)
     }
 }
