@@ -124,7 +124,7 @@ const OauthCredentialCard = ({
           </CardTitle>
           <Link
             href={`/settings/sso/detail/${data?.provider.toLowerCase()}`}
-            className={buttonVariants({ variant: 'default' })}
+            className={buttonVariants({ variant: 'secondary' })}
           >
             View
           </Link>
