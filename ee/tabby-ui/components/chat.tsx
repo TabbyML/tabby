@@ -20,13 +20,12 @@ import { EmptyScreen } from '@/components/empty-screen'
 export interface ChatProps extends React.ComponentProps<'div'> {
   initialMessages?: Message[]
   id?: string
-  chatPanelClassName?: string
 }
 
 export interface ChatRef extends UseChatHelpers {}
 
 function ChatRenderer(
-  { id, initialMessages, className, chatPanelClassName }: ChatProps,
+  { id, initialMessages, className }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
   usePatchFetch()
@@ -155,10 +154,7 @@ function ChatRenderer(
         </div>
         <ChatPanel
           onSubmit={handleSubmit}
-          className={cn(
-            'fixed inset-x-0 bottom-0 lg:ml-[280px]',
-            chatPanelClassName
-          )}
+          className={cn('fixed inset-x-0 bottom-0 lg:ml-[280px]')}
           id={id}
           isLoading={isLoading}
           stop={stop}
