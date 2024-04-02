@@ -1,3 +1,4 @@
+pub mod analytic;
 pub mod auth;
 pub mod email;
 pub mod job;
@@ -13,6 +14,7 @@ use auth::{
     TokenAuthResponse, User,
 };
 use base64::Engine;
+use chrono::{DateTime, Utc};
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
@@ -28,11 +30,15 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
+    analytic::AnalyticService,
+    analytic::CompletionStats,
+    auth::{JWTPayload, OAuthCredential, OAuthProvider},
     auth::{
         PasswordChangeInput, PasswordResetInput, RequestInvitationInput,
         RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
+    job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{Repository, RepositoryService},
     setting::{
@@ -55,6 +61,7 @@ pub trait ServiceLocator: Send + Sync {
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
+    fn analytic(&self) -> Arc<dyn AnalyticService>;
 }
 
 pub struct Context {
@@ -611,6 +618,30 @@ impl Mutation {
         check_admin(ctx).await?;
         ctx.locator.license().reset_license().await?;
         Ok(true)
+    }
+
+    async fn annual_activity(ctx: &Context) -> Result<Vec<CompletionStats>> {
+        check_admin(ctx).await?;
+        ctx.locator.analytic().annual_activity().await
+    }
+
+    async fn daily_report(
+        ctx: &Context,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+        users: Option<Vec<ID>>,
+        languages: Option<Vec<analytic::Language>>,
+    ) -> Result<CompletionStats> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .analytic()
+            .daily_report(
+                start,
+                end,
+                users.unwrap_or_default(),
+                languages.unwrap_or_default(),
+            )
+            .await
     }
 }
 

@@ -8,6 +8,7 @@ mod proxy;
 mod repository;
 mod setting;
 mod worker;
+mod analytic;
 
 use std::{net::SocketAddr, sync::Arc};
 
@@ -28,17 +29,10 @@ use tabby_db::DbConn;
 use tracing::{info, warn};
 
 use self::{
-    auth::new_authentication_service, email::new_email_service, license::new_license_service,
+    analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service, license::new_license_service
 };
 use crate::schema::{
-    auth::AuthenticationService,
-    email::EmailService,
-    job::JobService,
-    license::{IsLicenseValid, LicenseService},
-    repository::RepositoryService,
-    setting::SettingService,
-    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    CoreError, Result, ServiceLocator,
+    analytic::AnalyticService, auth::AuthenticationService, email::EmailService, job::JobService, license::{IsLicenseValid, LicenseService}, repository::RepositoryService, setting::SettingService, worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService}, CoreError, Result, ServiceLocator
 };
 
 struct ServerContext {
@@ -286,6 +280,10 @@ impl ServiceLocator for Arc<ServerContext> {
 
     fn license(&self) -> Arc<dyn LicenseService> {
         self.license.clone()
+    }
+
+    fn analytic(&self) -> Arc<dyn AnalyticService> {
+        new_analytic_service()
     }
 }
 
