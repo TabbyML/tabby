@@ -31,7 +31,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
 
   return (
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
-      <div className="flex flex-1 items-center gap-1 truncate">
+      <div className="flex flex-1 items-center gap-1 overflow-x-auto">
         <div
           className="cursor-pointer font-medium text-primary hover:underline"
           onClick={e => setActivePath(undefined)}
@@ -47,6 +47,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
             <React.Fragment key={route.fullPath}>
               <div
                 className={cn(
+                  'whitespace-nowrap',
                   isRepo || isActiveFile ? 'font-bold' : 'font-medium',
                   isActiveFile
                     ? ''
