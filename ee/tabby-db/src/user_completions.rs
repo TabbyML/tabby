@@ -105,8 +105,8 @@ impl DbConn {
                SUM(selects) as selects
         FROM user_completions
         WHERE created_at >= ? AND created_at < ?
-        AND (? = '' OR user_id IN (?))
-        AND (? = '' OR language IN (?))
+            AND (? = '' OR user_id IN (?))
+            AND (? = '' OR language IN (?))
         GROUP BY 1
         ORDER BY 1 ASC
         "#,
