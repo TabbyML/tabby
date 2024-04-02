@@ -37,9 +37,14 @@ impl PromptBuilder {
         strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
     }
 
-    pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
+    pub async fn collect(
+        &self,
+        git_url: &str,
+        language: &str,
+        segments: &Segments,
+    ) -> Vec<Snippet> {
         if let Some(code) = &self.code {
-            collect_snippets(code.as_ref(), language, &segments.prefix).await
+            collect_snippets(code.as_ref(), git_url, language, &segments.prefix).await
         } else {
             vec![]
         }
@@ -99,12 +104,17 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> Vec<Snippet> {
+async fn collect_snippets(
+    code: &dyn CodeSearch,
+    git_url: &str,
+    language: &str,
+    text: &str,
+) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
     let serp = match code
-        .search_in_language(language, &tokens, MAX_SNIPPETS_TO_FETCH, 0)
+        .search_in_language(git_url, language, &tokens, MAX_SNIPPETS_TO_FETCH, 0)
         .await
     {
         Ok(serp) => serp,

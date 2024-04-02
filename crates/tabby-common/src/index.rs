@@ -79,14 +79,11 @@ impl Default for CodeSearchSchema {
 
 impl CodeSearchSchema {
     pub fn language_query(&self, language: &str) -> Box<TermQuery> {
-        let language = if language == "javascript"
-            || language == "typescript"
-            || language == "javascriptreact"
-            || language == "typescriptreact"
-        {
-            "javascript-typescript"
-        } else {
-            language
+        let language = match language {
+            "javascript" | "typescript" | "javascriptreact" | "typescriptreact" => {
+                "javascript-typescript"
+            }
+            _ => language,
         };
         Box::new(TermQuery::new(
             Term::from_field_text(self.field_language, language),
@@ -99,6 +96,13 @@ impl CodeSearchSchema {
             tokens
                 .iter()
                 .map(|x| Term::from_field_text(self.field_body, x)),
+        ))
+    }
+
+    pub fn git_url_query(&self, git_url: &str) -> Box<TermQuery> {
+        Box::new(TermQuery::new(
+            Term::from_field_text(self.field_git_url, git_url),
+            IndexRecordOption::WithFreqsAndPositions,
         ))
     }
 }

@@ -113,6 +113,7 @@ impl CodeSearch for CodeSearchImpl {
 
     async fn search_in_language(
         &self,
+        git_url: &str,
         language: &str,
         tokens: &[String],
         limit: usize,
@@ -120,9 +121,11 @@ impl CodeSearch for CodeSearchImpl {
     ) -> Result<SearchResponse, CodeSearchError> {
         let language_query = self.schema.language_query(language);
         let body_query = self.schema.body_query(tokens);
+        let git_url_query = self.schema.git_url_query(git_url);
         let query = BooleanQuery::new(vec![
             (Occur::Must, language_query),
             (Occur::Must, body_query),
+            (Occur::Must, git_url_query),
         ]);
         self.search_with_query(&query, limit, offset).await
     }
@@ -177,13 +180,14 @@ impl CodeSearch for CodeSearchService {
 
     async fn search_in_language(
         &self,
+        git_url: &str,
         language: &str,
         tokens: &[String],
         limit: usize,
         offset: usize,
     ) -> Result<SearchResponse, CodeSearchError> {
         if let Some(imp) = self.search.lock().await.as_ref() {
-            imp.search_in_language(language, tokens, limit, offset)
+            imp.search_in_language(git_url, language, tokens, limit, offset)
                 .await
         } else {
             Err(CodeSearchError::NotReady)
