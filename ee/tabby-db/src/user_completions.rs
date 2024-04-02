@@ -69,7 +69,8 @@ impl DbConn {
     }
 
     pub async fn compute_annual_activity(&self) -> Result<Vec<UserCompletionDailyStatsDAO>> {
-        Ok(sqlx::query_as(r#"
+        Ok(sqlx::query_as(
+            r#"
         SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
                SUM(1) as completions,
                SUM(selects) as selects
@@ -77,9 +78,47 @@ impl DbConn {
         WHERE created_at >= DATE('now', '-1 year')
         GROUP BY 1
         ORDER BY 1 ASC
-        "#)
-            .fetch_all(&self.pool)
-            .await?)
+        "#,
+        )
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
+    pub async fn compute_daily_report(
+        &self,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+        users: Vec<i32>,
+        languages: Vec<String>,
+    ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
+        let users = users
+            .iter()
+            .map(|u| u.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let languages = languages.join(",");
+        let res = sqlx::query_as(
+            r#"
+        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+               SUM(1) as completions,
+               SUM(selects) as selects
+        FROM user_completions
+        WHERE created_at >= ? AND created_at < ?
+        AND (? = '' OR user_id IN (?))
+        AND (? = '' OR language IN (?))
+        GROUP BY 1
+        ORDER BY 1 ASC
+        "#,
+        )
+        .bind(start)
+        .bind(end)
+        .bind(&users)
+        .bind(&users)
+        .bind(&languages)
+        .bind(&languages)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(res)
     }
 
     #[cfg(any(test, feature = "testutils"))]

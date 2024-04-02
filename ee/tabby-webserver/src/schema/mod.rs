@@ -631,7 +631,7 @@ impl Mutation {
         end: DateTime<Utc>,
         users: Option<Vec<ID>>,
         languages: Option<Vec<analytic::Language>>,
-    ) -> Result<CompletionStats> {
+    ) -> Result<Vec<CompletionStats>> {
         check_admin(ctx).await?;
         ctx.locator
             .analytic()

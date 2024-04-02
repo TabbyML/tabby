@@ -1,9 +1,11 @@
+use std::fmt::Display;
+
 use crate::schema::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 
-#[derive(GraphQLObject)]
+#[derive(GraphQLObject, Debug)]
 pub struct CompletionStats {
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
@@ -12,11 +14,20 @@ pub struct CompletionStats {
     pub selects: i32,
 }
 
+// FIXME(boxbeam): Adding more languages.
 #[derive(GraphQLEnum, Clone, Debug)]
 pub enum Language {
     RUST,
     PYTHON,
-    OTHER,
+}
+
+impl Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Language::RUST => write!(f, "rust"),
+            Language::PYTHON => write!(f, "python"),
+        }
+    }
 }
 
 #[async_trait]
@@ -37,5 +48,5 @@ pub trait AnalyticService: Send + Sync {
         end: DateTime<Utc>,
         users: Vec<ID>,
         languages: Vec<Language>,
-    ) -> Result<CompletionStats>;
+    ) -> Result<Vec<CompletionStats>>;
 }
