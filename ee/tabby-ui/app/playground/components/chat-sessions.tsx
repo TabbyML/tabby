@@ -19,9 +19,10 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { ClearChatsButton } from '@/components/clear-chats-button'
-import { EditChatTitleDialog } from '@/components/edit-chat-title-dialog'
 import { ListSkeleton } from '@/components/skeleton'
+
+import { ClearChatsButton } from './clear-chats-button'
+import { EditChatTitleDialog } from './edit-chat-title-dialog'
 
 interface ChatSessionsProps {
   className?: string

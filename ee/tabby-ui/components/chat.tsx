@@ -25,7 +25,7 @@ export interface ChatProps extends React.ComponentProps<'div'> {
 export interface ChatRef extends UseChatHelpers {}
 
 function ChatRenderer(
-  { id, initialMessages }: ChatProps,
+  { id, initialMessages, className }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
   usePatchFetch()
@@ -139,7 +139,7 @@ function ChatRenderer(
   return (
     <div className="flex justify-center overflow-x-hidden">
       <div className="w-full max-w-2xl px-4">
-        <div className="pb-[200px] pt-4 md:pt-10">
+        <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
           {messages.length ? (
             <>
               <ChatList
@@ -154,7 +154,7 @@ function ChatRenderer(
         </div>
         <ChatPanel
           onSubmit={handleSubmit}
-          className={cn('fixed inset-x-0 bottom-0 lg:ml-[280px]')}
+          className="fixed inset-x-0 bottom-0 lg:ml-[280px]"
           id={id}
           isLoading={isLoading}
           stop={stop}

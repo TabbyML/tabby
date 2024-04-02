@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { type Message } from 'ai'
+import type { Message } from 'ai'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
