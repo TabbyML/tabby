@@ -1,8 +1,7 @@
-CREATE TABLE github_provider (
-    id INTEGER NOT NULL PRIMARY KEY,
-    name TEXT NOT NULL,
-    github_url TEXT NOT NULL,
+CREATE TABLE github_repository_provider (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    display_name TEXT NOT NULL,
     application_id TEXT NOT NULL,
     secret TEXT NOT NULL,
-    CONSTRAINT `idx_name` UNIQUE (`name`)
+    CONSTRAINT `idx_application_id` UNIQUE (`application_id`)
 );

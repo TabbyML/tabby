@@ -17,7 +17,7 @@ pub use users::UserDAO;
 
 pub mod cache;
 mod email_setting;
-mod github_provider;
+mod github_repository_provider;
 mod invitations;
 mod job_runs;
 mod oauth_credential;
