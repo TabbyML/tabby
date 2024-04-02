@@ -113,7 +113,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         };
 
         let id = user.id.as_rowid()?;
-        let existing = self.db.get_password_reset_by_user_id(id as i64).await?;
+        let existing = self.db.get_password_reset_by_user_id(id).await?;
         if let Some(existing) = existing {
             if Utc::now().signed_duration_since(*existing.created_at) < Duration::minutes(5) {
                 return Err(anyhow!(
@@ -122,7 +122,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
                 .into());
             }
         }
-        let code = self.db.create_password_reset(id as i64).await?;
+        let code = self.db.create_password_reset(id).await?;
         let handle = self
             .mail
             .send_password_reset_email(user.email, code.clone())
@@ -159,7 +159,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     ) -> Result<()> {
         let user = self
             .db
-            .get_user(id.as_rowid()? as i64)
+            .get_user(id.as_rowid()?)
             .await?
             .ok_or_else(|| anyhow!("Invalid user"))?;
 
@@ -194,13 +194,13 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if avatar.as_ref().is_some_and(|v| v.len() > 512 * 1024) {
             return Err(anyhow!("The image you are attempting to upload is too large. Please ensure the file size is under 512KB").into());
         }
-        let id = id.as_rowid()? as i64;
+        let id = id.as_rowid()?;
         self.db.update_user_avatar(id, avatar).await?;
         Ok(())
     }
 
     async fn get_user_avatar(&self, id: &ID) -> Result<Option<Box<[u8]>>> {
-        Ok(self.db.get_user_avatar(id.as_rowid()? as i64).await?)
+        Ok(self.db.get_user_avatar(id.as_rowid()?).await?)
     }
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
@@ -286,7 +286,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             license.ensure_admin_seats(num_admins + 1)?;
         }
 
-        let id = id.as_rowid()? as i64;
+        let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
             return Err(anyhow!("The owner's admin status cannot be changed").into());
@@ -304,7 +304,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn get_user(&self, id: &ID) -> Result<User> {
-        let user = self.db.get_user(id.as_rowid()? as i64).await?;
+        let user = self.db.get_user(id.as_rowid()?).await?;
         if let Some(user) = user {
             Ok(user.into())
         } else {
@@ -344,20 +344,20 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn delete_invitation(&self, id: &ID) -> Result<ID> {
-        Ok((self.db.delete_invitation(id.as_rowid()? as i64).await?).as_id())
+        Ok((self.db.delete_invitation(id.as_rowid()?).await?).as_id())
     }
 
     async fn reset_user_auth_token(&self, id: &ID) -> Result<()> {
         Ok(self
             .db
-            .reset_user_auth_token_by_id(id.as_rowid()? as i64)
+            .reset_user_auth_token_by_id(id.as_rowid()?)
             .await?)
     }
 
     async fn logout_all_sessions(&self, id: &ID) -> Result<()> {
         Ok(self
             .db
-            .delete_tokens_by_user_id(id.as_rowid()? as i64)
+            .delete_tokens_by_user_id(id.as_rowid()?)
             .await?)
     }
 
@@ -471,7 +471,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             license.ensure_available_seats(1)?;
         }
 
-        let id = id.as_rowid()? as i64;
+        let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
             return Err(anyhow!("The owner's active status cannot be changed").into());
@@ -1020,7 +1020,7 @@ mod tests {
 
         let reset = service
             .db
-            .get_password_reset_by_user_id(user.id.as_rowid().unwrap() as i64)
+            .get_password_reset_by_user_id(user.id.as_rowid().unwrap())
             .await
             .unwrap()
             .unwrap();
@@ -1043,7 +1043,7 @@ mod tests {
             .unwrap();
         let reset = service
             .db
-            .get_password_reset_by_user_id(user.id as i64)
+            .get_password_reset_by_user_id(user.id)
             .await
             .unwrap()
             .unwrap();
@@ -1072,7 +1072,7 @@ mod tests {
             .unwrap();
         let reset = service
             .db
-            .get_password_reset_by_user_id(user_id_2 as i64)
+            .get_password_reset_by_user_id(user_id_2)
             .await
             .unwrap()
             .unwrap();

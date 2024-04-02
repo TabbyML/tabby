@@ -74,7 +74,7 @@ impl DbConn {
         if Utc::now().signed_duration_since(*password_reset.created_at) > Duration::minutes(15) {
             Err(anyhow!("Invalid code"))
         } else {
-            Ok(user_res.id as i64)
+            Ok(user_res.id)
         }
     }
 
