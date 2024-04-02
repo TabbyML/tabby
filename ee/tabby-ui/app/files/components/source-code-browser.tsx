@@ -405,7 +405,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       <>
         <ResizableHandle
           className={cn(
-            'hidden w-1 bg-border/40 hover:bg-border active:bg-border',
+            'hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500',
             chatSideBarVisible && 'block'
           )}
         />
