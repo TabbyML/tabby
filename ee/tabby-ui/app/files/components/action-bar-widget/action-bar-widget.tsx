@@ -13,14 +13,19 @@ import { IconChevronUpDown } from '@/components/ui/icons'
 
 import { CodeBrowserQuickAction, emitter } from '../../lib/event-emitter'
 
-interface ActionBarWidgetProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface ActionBarWidgetProps extends React.HTMLAttributes<HTMLDivElement> {
+  text: string
+  language?: string
+}
 
 export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
   className,
+  text,
+  language,
   ...props
 }) => {
   const handleAction = (action: CodeBrowserQuickAction) => {
-    emitter.emit('code_browser_quick_action', action)
+    emitter.emit('code_browser_quick_action', { action, code: text, language })
   }
 
   return (

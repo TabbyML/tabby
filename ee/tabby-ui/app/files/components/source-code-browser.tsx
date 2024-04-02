@@ -3,6 +3,7 @@
 import React, { PropsWithChildren } from 'react'
 import filename2prism from 'filename2prism'
 import { compact, findIndex, toNumber } from 'lodash-es'
+import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
@@ -18,6 +19,8 @@ import {
 } from '@/components/ui/resizable'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
+import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
+import { ChatSideBar } from './chat-side-bar'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
@@ -66,6 +69,10 @@ type SourceCodeBrowserContextValue = {
   initialized: boolean
   setInitialized: React.Dispatch<React.SetStateAction<boolean>>
   fileTreeData: TFileTreeNode[]
+  chatSideBarVisible: boolean
+  setChatSideBarVisible: React.Dispatch<React.SetStateAction<boolean>>
+  pendingEvent: QuickActionEventPayload | undefined
+  setPendingEvent: (d: QuickActionEventPayload | undefined) => void
 }
 
 const SourceCodeBrowserContext =
@@ -93,6 +100,10 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const [initialized, setInitialized] = React.useState(false)
   const [fileMap, setFileMap] = React.useState<TFileMap>({})
   const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(new Set())
+  const [chatSideBarVisible, setChatSideBarVisible] = React.useState(false)
+  const [pendingEvent, setPendingEvent] = React.useState<
+    QuickActionEventPayload | undefined
+  >()
 
   const updateFileMap = (map: TFileMap) => {
     if (!map) return
@@ -142,7 +153,11 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         setExpandedKeys,
         toggleExpandedKey,
         currentFileRoutes,
-        fileTreeData
+        fileTreeData,
+        chatSideBarVisible,
+        setChatSideBarVisible,
+        pendingEvent,
+        setPendingEvent
       }}
     >
       {children}
@@ -165,9 +180,14 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     fileMap,
     initialized,
     setInitialized,
-    setExpandedKeys
+    setExpandedKeys,
+    chatSideBarVisible,
+    setChatSideBarVisible,
+    setPendingEvent
   } = React.useContext(SourceCodeBrowserContext)
-  const { progress, setProgress } = useTopbarProgress()
+  const { setProgress } = useTopbarProgress()
+  const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
+  const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
 
   const activeRepoName = React.useMemo(() => {
     return resolveRepoNameFromPath(activePath)
@@ -223,8 +243,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       }
     )
 
-  React.useEffect(() => {}, [activePath])
-
   React.useEffect(() => {
     if (isRawFileLoading) {
       setProgress(true)
@@ -259,6 +277,12 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const showTextFileView = isFileSelected && fileViewType === 'text'
   const showRawFileView =
     isFileSelected && (fileViewType === 'image' || fileViewType === 'raw')
+
+  const onPanelLayout = (sizes: number[]) => {
+    if (sizes?.[2]) {
+      setChatSideBarPanelSize(sizes[2])
+    }
+  }
 
   React.useEffect(() => {
     const init = async () => {
@@ -319,12 +343,37 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }, [activePath, isFileSelected, fileBlob])
 
+  React.useEffect(() => {
+    const onCallCompletion = (data: QuickActionEventPayload) => {
+      setChatSideBarVisible(true)
+      setPendingEvent(data)
+    }
+    emitter.on('code_browser_quick_action', onCallCompletion)
+
+    return () => {
+      emitter.off('code_browser_quick_action', onCallCompletion)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (chatSideBarVisible) {
+      chatSideBarPanelRef.current?.expand()
+      chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
+    } else {
+      chatSideBarPanelRef.current?.collapse()
+    }
+  }, [chatSideBarVisible])
+
   return (
-    <ResizablePanelGroup direction="horizontal" className={cn(className)}>
-      <ResizablePanel defaultSize={20} minSize={20}>
+    <ResizablePanelGroup
+      direction="horizontal"
+      className={cn(className)}
+      onLayout={onPanelLayout}
+    >
+      <ResizablePanel defaultSize={20} minSize={20} maxSize={40}>
         <FileTreePanel />
       </ResizablePanel>
-      <ResizableHandle className="w-1 bg-border/40 hover:bg-border active:bg-border" />
+      <ResizableHandle className="w-1 bg-border/40 hover:bg-border active:bg-blue-500" />
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
           <FileDirectoryBreadcrumb className="py-4" />
@@ -353,6 +402,23 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           </div>
         </div>
       </ResizablePanel>
+      <>
+        <ResizableHandle
+          className={cn(
+            'hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500',
+            chatSideBarVisible && 'block'
+          )}
+        />
+        <ResizablePanel
+          collapsible
+          collapsedSize={0}
+          defaultSize={0}
+          minSize={25}
+          ref={chatSideBarPanelRef}
+        >
+          <ChatSideBar />
+        </ResizablePanel>
+      </>
     </ResizablePanelGroup>
   )
 }

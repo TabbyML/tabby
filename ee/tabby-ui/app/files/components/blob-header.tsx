@@ -1,12 +1,16 @@
 'use client'
 
 import React from 'react'
+import Image from 'next/image'
+import tabbyLogo from '@/assets/tabby.png'
 import { isNil } from 'lodash-es'
 import prettyBytes from 'pretty-bytes'
 import { toast } from 'sonner'
 
+import { useEnableCodeBrowserQuickActionBar } from '@/lib/experiment-flags'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useIsSticky } from '@/lib/hooks/use-is-sticky'
+import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { IconCheck, IconCopy, IconDownload } from '@/components/ui/icons'
@@ -38,10 +42,25 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   children,
   ...props
 }) => {
+  const isChatEnabled = useIsChatEnabled()
+  const { chatSideBarVisible, setChatSideBarVisible } = React.useContext(
+    SourceCodeBrowserContext
+  )
+  const [enableCodeBrowserQuickActionBar] = useEnableCodeBrowserQuickActionBar()
   const containerRef = React.useRef<HTMLDivElement>(null)
   const { activePath } = React.useContext(SourceCodeBrowserContext)
   const { isCopied, copyToClipboard } = useCopyToClipboard({ timeout: 2000 })
   const isSticky = useIsSticky(containerRef)
+
+  const showChatPanelTrigger =
+    isChatEnabled &&
+    enableCodeBrowserQuickActionBar.value &&
+    !chatSideBarVisible
+
+  const contentLengthText = !isNil(contentLength)
+    ? prettyBytes(contentLength)
+    : ''
+
   const onCopy: React.MouseEventHandler<HTMLButtonElement> = async () => {
     if (isCopied || !blob) return
     try {
@@ -51,10 +70,6 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
       toast.error('Something went wrong. Please try again.')
     }
   }
-
-  const contentLengthText = !isNil(contentLength)
-    ? prettyBytes(contentLength)
-    : ''
 
   return (
     <div
@@ -118,6 +133,21 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
                   </a>
                 </TooltipTrigger>
                 <TooltipContent>Download raw file</TooltipContent>
+              </Tooltip>
+            )}
+            {showChatPanelTrigger && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="flex shrink-0 items-center gap-1 px-2"
+                    onClick={e => setChatSideBarVisible(!chatSideBarVisible)}
+                  >
+                    <Image alt="Tabby logo" src={tabbyLogo} width={24} />
+                    Ask Tabby
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Open chat panel</TooltipContent>
               </Tooltip>
             )}
           </div>

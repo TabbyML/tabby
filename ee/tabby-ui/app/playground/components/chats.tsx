@@ -8,7 +8,7 @@ import { useStore } from '@/lib/hooks/use-store'
 import { addChat } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
-import { truncateText } from '@/lib/utils'
+import { nanoid, truncateText } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
@@ -51,6 +51,35 @@ export default function Chats() {
       shouldConsumeInitialMessage.current = false
     }
   }, [chatRef.current?.append])
+
+  React.useEffect(() => {
+    const onMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.origin || !event.data) {
+        return
+      }
+      if (!chatRef.current || chatRef.current.isLoading) return
+
+      const { data } = event
+      if (data.action === 'append') {
+        chatRef.current.append({
+          id: nanoid(),
+          role: 'user',
+          content: data.payload
+        })
+        return
+      }
+
+      if (data.action === 'stop') {
+        chatRef.current.stop()
+      }
+    }
+
+    window.addEventListener('message', onMessage)
+
+    return () => {
+      window.removeEventListener('message', onMessage)
+    }
+  }, [chatRef.current])
 
   return (
     <div className="grid flex-1 overflow-hidden lg:grid-cols-[280px_1fr]">

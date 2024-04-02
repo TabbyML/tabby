@@ -13,7 +13,6 @@ import { markTagNameExtension } from '@/components/codemirror/name-tag-extension
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
-import { CodeBrowserQuickAction, emitter } from '../lib/event-emitter'
 import { ActionBarWidgetExtension } from './action-bar-widget/action-bar-widget-extension'
 
 interface CodeEditorViewProps {
@@ -50,7 +49,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
       drawSelection()
     ]
     if (EXP_enable_code_browser_quick_action_bar.value && isChatEnabled) {
-      result.push(ActionBarWidgetExtension())
+      result.push(ActionBarWidgetExtension({ language }))
     }
     if (value && tags) {
       result.push(
@@ -60,47 +59,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({
       )
     }
     return result
-  }, [value, tags, editorRef.current])
-
-  React.useEffect(() => {
-    const quickActionBarCallback = (action: CodeBrowserQuickAction) => {
-      let builtInPrompt = ''
-      switch (action) {
-        case 'explain':
-          builtInPrompt = 'Explain the following code:'
-          break
-        case 'generate_unittest':
-          builtInPrompt = 'Generate a unit test for the following code:'
-          break
-        case 'generate_doc':
-          builtInPrompt = 'Generate documentation for the following code:'
-          break
-        default:
-          break
-      }
-      const view = editorRef.current?.editorView
-      const text =
-        view?.state.doc.sliceString(
-          view?.state.selection.main.from,
-          view?.state.selection.main.to
-        ) || ''
-
-      const initialMessage = `${builtInPrompt}\n${'```'}${
-        language ?? ''
-      }\n${text}\n${'```'}\n`
-      if (initialMessage) {
-        window.open(
-          `/playground?initialMessage=${encodeURIComponent(initialMessage)}`
-        )
-      }
-    }
-
-    emitter.on('code_browser_quick_action', quickActionBarCallback)
-
-    return () => {
-      emitter.off('code_browser_quick_action', quickActionBarCallback)
-    }
-  }, [])
+  }, [value, tags, language, editorRef.current])
 
   return (
     <CodeEditor

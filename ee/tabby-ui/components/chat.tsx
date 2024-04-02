@@ -163,6 +163,7 @@ function ChatRenderer(
           messages={messages}
           input={input}
           setInput={setInput}
+          setMessages={setMessages}
         />
       </div>
     </div>
