@@ -20,7 +20,10 @@ import { ClearChatsButton } from '@/components/clear-chats-button'
 import { EditChatTitleDialog } from '@/components/edit-chat-title-dialog'
 import { ListSkeleton } from '@/components/skeleton'
 
-import { CodeBrowserQuickAction } from '../lib/event-emitter'
+import {
+  CodeBrowserQuickAction,
+  QuickActionEventPayload
+} from '../lib/event-emitter'
 import { SourceCodeBrowserContext } from './source-code-browser'
 
 interface CompletionPanelProps
@@ -48,13 +51,7 @@ export const CompletionPanel: React.FC<CompletionPanelProps> = ({
   const appending = React.useRef(false)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
 
-  const getPrompt = ({
-    action,
-    payload
-  }: {
-    action: CodeBrowserQuickAction
-    payload: string
-  }) => {
+  const getPrompt = ({ action, code, language }: QuickActionEventPayload) => {
     let builtInPrompt = ''
     switch (action) {
       case 'explain':
@@ -69,7 +66,7 @@ export const CompletionPanel: React.FC<CompletionPanelProps> = ({
       default:
         break
     }
-    return `${builtInPrompt}\n${'```'}\n${payload}\n${'```'}\n`
+    return `${builtInPrompt}\n${'```'}${language ?? ''}\n${code}\n${'```'}\n`
   }
 
   React.useEffect(() => {
@@ -210,7 +207,7 @@ function Header() {
   // }
 
   return (
-    <div className="sticky top-0 flex items-center justify-between bg-secondary px-2 py-1">
+    <div className="sticky top-0 flex items-center justify-end bg-secondary px-2 py-1">
       {/* <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>

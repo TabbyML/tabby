@@ -19,7 +19,11 @@ import {
 } from '@/components/ui/resizable'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
-import { CodeBrowserQuickAction, emitter } from '../lib/event-emitter'
+import {
+  CodeBrowserQuickAction,
+  emitter,
+  QuickActionEventPayload
+} from '../lib/event-emitter'
 import { CompletionPanel } from './completion-panel'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'
@@ -81,10 +85,8 @@ type SourceCodeBrowserContextValue = {
   setCompletionPanelViewType: React.Dispatch<
     React.SetStateAction<CompletionPanelView>
   >
-  pendingEvent: { action: CodeBrowserQuickAction; payload: string } | undefined
-  setPendingEvent: (
-    d: { action: CodeBrowserQuickAction; payload: string } | undefined
-  ) => void
+  pendingEvent: QuickActionEventPayload | undefined
+  setPendingEvent: (d: QuickActionEventPayload | undefined) => void
 }
 
 const SourceCodeBrowserContext =
@@ -118,7 +120,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     CompletionPanelView.CHAT
   )
   const [pendingEvent, setPendingEvent] = React.useState<
-    { action: CodeBrowserQuickAction; payload: string } | undefined
+    QuickActionEventPayload | undefined
   >()
 
   const updateFileMap = (map: TFileMap) => {
@@ -362,9 +364,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath, isFileSelected, fileBlob])
 
   React.useEffect(() => {
-    const onCallCompletion = (payload: any) => {
+    const onCallCompletion = (data: QuickActionEventPayload) => {
       setCompletionPanelVisible(true)
-      setPendingEvent(payload)
+      setPendingEvent(data)
     }
     emitter.on('code_browser_quick_action', onCallCompletion)
 

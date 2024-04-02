@@ -8,7 +8,11 @@ import { ActionBarWidget } from './action-bar-widget'
 
 let delayTimer: number
 
-function ActionBarWidgetExtension(): Extension {
+interface Options {
+  language?: string
+}
+
+function ActionBarWidgetExtension(options: Options): Extension {
   return StateField.define<Tooltip | null>({
     create() {
       return null
@@ -20,9 +24,7 @@ function ActionBarWidgetExtension(): Extension {
       }
       if (transaction.selection) {
         if (shouldShowActionBarWidget(transaction)) {
-          const tooltip = createActionBarWidget(transaction.state)
-          // avoid flickering
-          // return tooltip?.pos !== value?.pos ? tooltip : value
+          const tooltip = createActionBarWidget(transaction.state, options)
           return tooltip
         }
 
@@ -35,7 +37,7 @@ function ActionBarWidgetExtension(): Extension {
   })
 }
 
-function createActionBarWidget(state: EditorState): Tooltip {
+function createActionBarWidget(state: EditorState, options: Options): Tooltip {
   const { selection } = state
   const lineFrom = state.doc.lineAt(selection.main.from)
   const lineTo = state.doc.lineAt(selection.main.to)
@@ -59,7 +61,9 @@ function createActionBarWidget(state: EditorState): Tooltip {
       // delay popup
       if (delayTimer) clearTimeout(delayTimer)
       delayTimer = window.setTimeout(() => {
-        root.render(<ActionBarWidget text={text} />)
+        root.render(
+          <ActionBarWidget text={text} language={options?.language} />
+        )
       }, 1000)
 
       return { dom }
