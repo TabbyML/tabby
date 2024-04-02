@@ -623,16 +623,16 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn annual_activity(
+    async fn daily_stats_in_past_year(
         ctx: &Context,
         users: Option<Vec<ID>>,
     ) -> Result<Vec<CompletionStats>> {
         let users = users.unwrap_or_default();
         check_analytic_access(ctx, &users).await?;
-        ctx.locator.analytic().annual_activity(users).await
+        ctx.locator.analytic().daily_stats_in_past_year(users).await
     }
 
-    async fn daily_report(
+    async fn daily_stats(
         ctx: &Context,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
@@ -643,7 +643,7 @@ impl Mutation {
         check_analytic_access(ctx, &users).await?;
         ctx.locator
             .analytic()
-            .daily_report(start, end, users, languages.unwrap_or_default())
+            .daily_stats(start, end, users, languages.unwrap_or_default())
             .await
     }
 }

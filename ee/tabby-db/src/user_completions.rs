@@ -69,7 +69,7 @@ impl DbConn {
     }
 
     // FIXME(boxbeam): index `created_at` in user_completions table.
-    pub async fn compute_annual_activity(
+    pub async fn compute_daily_stats_in_past_year(
         &self,
         users: Vec<i32>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
@@ -96,7 +96,7 @@ impl DbConn {
         .await?)
     }
 
-    pub async fn compute_daily_report(
+    pub async fn compute_daily_stats(
         &self,
         start: DateTime<Utc>,
         end: DateTime<Utc>,

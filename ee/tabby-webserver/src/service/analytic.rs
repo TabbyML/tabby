@@ -18,12 +18,12 @@ struct AnalyticServiceImpl {
 #[async_trait]
 impl AnalyticService for AnalyticServiceImpl {
     // FIXME(boxbeam): Implementing in memory caching with 1 hour expiry.
-    async fn annual_activity(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>> {
+    async fn daily_stats_in_past_year(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>> {
         let users = users
             .into_iter()
             .filter_map(|id| id.as_rowid().ok())
             .collect();
-        let stats = self.db.compute_annual_activity(users).await?;
+        let stats = self.db.compute_daily_stats_in_past_year(users).await?;
         let stats = stats
             .into_iter()
             .map(|s| CompletionStats {
@@ -36,7 +36,7 @@ impl AnalyticService for AnalyticServiceImpl {
         Ok(stats)
     }
 
-    async fn daily_report(
+    async fn daily_stats(
         &self,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
@@ -50,7 +50,7 @@ impl AnalyticService for AnalyticServiceImpl {
         let languages = languages.into_iter().map(|l| l.to_string()).collect();
         let stats = self
             .db
-            .compute_daily_report(start, end, users, languages)
+            .compute_daily_stats(start, end, users, languages)
             .await?;
         let stats = stats
             .into_iter()
@@ -86,7 +86,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_annual_activity() {
+    async fn test_daily_stats_in_past_year() {
         let db = DbConn::new_in_memory().await.unwrap();
         let user_id = db
             .create_user("test@example.com".into(), Some("pass".into()), true)
@@ -108,7 +108,7 @@ mod tests {
             .unwrap();
 
         let svc = new_analytic_service(db);
-        let activity = svc.annual_activity(vec![user_id.as_id()]).await.unwrap();
+        let activity = svc.daily_stats_in_past_year(vec![user_id.as_id()]).await.unwrap();
         assert_eq!(1, activity.len());
         assert_eq!(1, activity[0].completions);
         assert_eq!(1, activity[0].selects);
@@ -139,7 +139,7 @@ mod tests {
         let svc = new_analytic_service(db);
         let end = Utc::now();
         let start = end.checked_sub_days(Days::new(100)).unwrap();
-        let stats = svc.daily_report(start, end, vec![], vec![]).await.unwrap();
+        let stats = svc.daily_stats(start, end, vec![], vec![]).await.unwrap();
         assert_eq!(1, stats.len());
         assert_eq!(1, stats[0].completions);
         assert_eq!(1, stats[0].selects);

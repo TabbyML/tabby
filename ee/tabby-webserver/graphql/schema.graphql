@@ -153,8 +153,8 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  annualActivity(users: [ID!]): [CompletionStats!]!
-  dailyReport(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
+  dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
+  dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
 }
 
 type RepositoryEdge {

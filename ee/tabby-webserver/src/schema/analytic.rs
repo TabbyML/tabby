@@ -36,14 +36,14 @@ pub trait AnalyticService: Send + Sync {
     /// Generate the report for past year, with daily granularity.
     ///
     /// `users` is a list of user IDs. If empty, the report is computed for all users.
-    async fn annual_activity(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>>;
+    async fn daily_stats_in_past_year(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>>;
 
     /// Computes the report with daily granularity.
     ///
     /// 1. [`start`, `end`) define the time range for the report.
     /// 2. `users` is a list of user IDs. If empty, the report is computed for all users.
     /// 3. `languages` is a list of programming language identifier. If empty, the report is computed for all languages.
-    async fn daily_report(
+    async fn daily_stats(
         &self,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
