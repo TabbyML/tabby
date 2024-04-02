@@ -1,7 +1,6 @@
 enum Language {
   RUST
   PYTHON
-  OTHER
 }
 
 type JobRun {
@@ -155,7 +154,7 @@ type Mutation {
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
   annualActivity: [CompletionStats!]!
-  dailyReport(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): CompletionStats!
+  dailyReport(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
 }
 
 type RepositoryEdge {
@@ -252,8 +251,8 @@ input PasswordResetInput {
 type CompletionStats {
   start: DateTimeUtc!
   end: DateTimeUtc!
-  numCompleted: Int!
-  numAccepted: Int!
+  completions: Int!
+  selects: Int!
 }
 
 type User {
