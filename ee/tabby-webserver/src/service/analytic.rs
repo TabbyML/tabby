@@ -108,7 +108,10 @@ mod tests {
             .unwrap();
 
         let svc = new_analytic_service(db);
-        let activity = svc.daily_stats_in_past_year(vec![user_id.as_id()]).await.unwrap();
+        let activity = svc
+            .daily_stats_in_past_year(vec![user_id.as_id()])
+            .await
+            .unwrap();
         assert_eq!(1, activity.len());
         assert_eq!(1, activity[0].completions);
         assert_eq!(1, activity[0].selects);
