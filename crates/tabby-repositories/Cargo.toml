@@ -10,6 +10,4 @@ homepage.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 tabby-common = { path = "../tabby-common" }
-serde_json = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
 kv = { version = "0.24.0", features = ["json-value"] }

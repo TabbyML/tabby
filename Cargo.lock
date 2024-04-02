@@ -4631,8 +4631,6 @@ version = "0.10.0-dev.0"
 dependencies = [
  "anyhow",
  "kv",
- "serde",
- "serde_json",
  "tabby-common",
 ]
 
@@ -4707,7 +4705,6 @@ dependencies = [
  "serial_test 3.0.0",
  "tabby-common",
  "tabby-db",
- "tabby-repositories",
  "tarpc",
  "temp_testdir",
  "thiserror",
