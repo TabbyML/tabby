@@ -1,14 +1,14 @@
 'use client'
 
 import React from 'react'
-import { nanoid, type Message } from 'ai'
+import { type Message } from 'ai'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useStore } from '@/lib/hooks/use-store'
 import { addChat } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
-import { truncateText } from '@/lib/utils'
+import { nanoid, truncateText } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
