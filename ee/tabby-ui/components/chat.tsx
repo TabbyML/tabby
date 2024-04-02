@@ -22,7 +22,7 @@ export interface ChatProps extends React.ComponentProps<'div'> {
   id?: string
 }
 
-export interface ChatRef extends UseChatHelpers {}
+export interface ChatRef extends UseChatHelpers { }
 
 function ChatRenderer(
   { id, initialMessages, className }: ChatProps,
@@ -100,6 +100,11 @@ function ChatRenderer(
     }
   }
 
+  const scrollToBottom = () => {
+    const scrollHeight = document.documentElement.scrollHeight
+    window.scrollTo(0, scrollHeight)
+  }
+
   const handleSubmit = async (value: string) => {
     if (findIndex(chats, { id }) === -1) {
       addChat(id, truncateText(value))
@@ -108,10 +113,14 @@ function ChatRenderer(
       setMessages(messages.slice(0, messageIdx))
       setSelectedMessageId(undefined)
     }
-    await append({
+    append({
       id: nanoid(),
       content: value,
       role: 'user'
+    })
+
+    window.setTimeout(() => {
+      scrollToBottom()
     })
   }
 
@@ -122,8 +131,7 @@ function ChatRenderer(
   }, [messages])
 
   React.useEffect(() => {
-    const scrollHeight = document.documentElement.scrollHeight
-    window.scrollTo(0, scrollHeight)
+    scrollToBottom()
 
     return () => stop()
   }, [])
