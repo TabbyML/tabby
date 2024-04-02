@@ -1,6 +1,14 @@
 import React from 'react'
 
+import { useEnableCodeBrowserQuickActionBar } from '@/lib/experiment-flags'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { IconPanelLeftClose, IconPanelLeftOpen } from '@/components/ui/icons'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { CopyButton } from '@/components/copy-button'
 
 import { SourceCodeBrowserContext } from './source-code-browser'
@@ -11,9 +19,15 @@ interface FileDirectoryBreadcrumbProps
 const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
   className
 }) => {
-  const { currentFileRoutes, setActivePath, activePath } = React.useContext(
-    SourceCodeBrowserContext
-  )
+  const {
+    currentFileRoutes,
+    setActivePath,
+    activePath,
+    completionPanelVisible,
+    setCompletionPanelVisible
+  } = React.useContext(SourceCodeBrowserContext)
+
+  const [enableCodeBrowserQuickActionBar] = useEnableCodeBrowserQuickActionBar()
 
   return (
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
@@ -47,10 +61,34 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
             </React.Fragment>
           )
         })}
+        {!!currentFileRoutes?.length && !!activePath && (
+          <CopyButton className="shrink-0" value={activePath} />
+        )}
       </div>
-      {!!currentFileRoutes?.length && !!activePath && (
-        <CopyButton className="shrink-0" value={activePath} />
-      )}
+      {!enableCodeBrowserQuickActionBar.loading &&
+        enableCodeBrowserQuickActionBar.value && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="shrink-0"
+                onClick={e =>
+                  setCompletionPanelVisible(!completionPanelVisible)
+                }
+              >
+                {completionPanelVisible ? (
+                  <IconPanelLeftOpen className="h-5 w-5" />
+                ) : (
+                  <IconPanelLeftClose className="h-5 w-5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {completionPanelVisible ? 'Close chat panel' : 'Open chat panel'}
+            </TooltipContent>
+          </Tooltip>
+        )}
     </div>
   )
 }

@@ -231,8 +231,6 @@ function Header() {
           <TooltipContent side="bottom">Start a new chat</TooltipContent>
         </Tooltip>
       </div> */}
-      <div className="w-8"></div>
-      <Image src={tabbyLogo} alt="logo" width={32} />
       <Button
         size="icon"
         variant="ghost"
