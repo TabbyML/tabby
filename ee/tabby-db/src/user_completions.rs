@@ -1,14 +1,14 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use sqlx::{prelude::FromRow, query};
 
-use crate::DbConn;
+use crate::{DateTimeUtc, DbConn};
 
 #[derive(FromRow)]
 pub struct UserCompletionDAO {
-    pub user_id: i32,
+    pub user_id: i64,
     pub completion_id: String,
     pub language: String,
 
@@ -16,8 +16,8 @@ pub struct UserCompletionDAO {
     pub selects: i64,
     pub dismisses: i64,
 
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
 }
 
 impl DbConn {
@@ -63,8 +63,10 @@ impl DbConn {
 
     #[cfg(any(test, feature = "testutils"))]
     pub async fn fetch_one_user_completion(&self) -> Result<Option<UserCompletionDAO>> {
-        Ok(sqlx::query_as("SELECT * FROM user_completions")
-            .fetch_optional(&self.pool)
-            .await?)
+        Ok(
+            sqlx::query_as!(UserCompletionDAO, "SELECT user_id, completion_id, language, created_at, updated_at, views, selects, dismisses FROM user_completions")
+                .fetch_optional(&self.pool)
+                .await?,
+        )
     }
 }
