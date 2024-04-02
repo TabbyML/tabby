@@ -5,10 +5,11 @@ use chrono::{DateTime, Utc};
 use juniper::ID;
 use tabby_db::DbConn;
 
-use crate::schema::analytic::{AnalyticService, CompletionStats, Language};
-use crate::schema::Result;
-
 use super::AsRowid;
+use crate::schema::{
+    analytic::{AnalyticService, CompletionStats, Language},
+    Result,
+};
 
 struct AnalyticServiceImpl {
     db: DbConn,
@@ -67,7 +68,7 @@ pub fn new_analytic_service(db: DbConn) -> Arc<dyn AnalyticService> {
 #[cfg(test)]
 mod tests {
     use chrono::Days;
-    use tabby_db::DateTimeUtc;
+    
 
     use super::*;
 
@@ -134,12 +135,7 @@ mod tests {
         let svc = new_analytic_service(db);
         let end = Utc::now();
         let start = end.checked_sub_days(Days::new(100)).unwrap();
-        let stats = svc.daily_report(
-            start,
-            end, 
-            vec![],
-            vec![],
-        ).await.unwrap();
+        let stats = svc.daily_report(start, end, vec![], vec![]).await.unwrap();
         assert_eq!(1, stats.len());
         assert_eq!(1, stats[0].completions);
         assert_eq!(1, stats[0].selects);

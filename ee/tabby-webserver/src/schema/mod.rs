@@ -30,12 +30,10 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    analytic::AnalyticService,
-    analytic::CompletionStats,
-    auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    analytic::{AnalyticService, CompletionStats},
     auth::{
-        PasswordChangeInput, PasswordResetInput, RequestInvitationInput,
-        RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
+        JWTPayload, OAuthCredential, OAuthProvider, PasswordChangeInput, PasswordResetInput,
+        RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
     job::JobStats,

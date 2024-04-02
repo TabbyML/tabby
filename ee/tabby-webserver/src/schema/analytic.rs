@@ -1,9 +1,10 @@
 use std::fmt::Display;
 
-use crate::schema::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
+
+use crate::schema::Result;
 
 #[derive(GraphQLObject, Debug)]
 pub struct CompletionStats {
