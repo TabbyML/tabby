@@ -7,7 +7,6 @@ import {
   setActiveChatId
 } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { getChatById } from '@/lib/stores/utils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose, IconTrash } from '@/components/ui/icons'
@@ -23,29 +22,17 @@ import { ListSkeleton } from '@/components/skeleton'
 import { QuickActionEventPayload } from '../lib/event-emitter'
 import { SourceCodeBrowserContext } from './source-code-browser'
 
-interface CompletionPanelProps
+interface ChatSideBarProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
 
-enum CompletionPanelView {
-  CHAT,
-  SESSIONS
-}
-
-export const CompletionPanel: React.FC<CompletionPanelProps> = ({
+export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   className,
   ...props
 }) => {
-  const {
-    completionPanelViewType,
-    pendingEvent,
-    setPendingEvent,
-    setCompletionPanelViewType
-  } = React.useContext(SourceCodeBrowserContext)
-  const chats = useStore(useChatStore, state => state.chats)
+  const { pendingEvent, setPendingEvent } = React.useContext(
+    SourceCodeBrowserContext
+  )
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
-  const chatId = activeChatId
-  const chat = getChatById(chats, chatId)
-  const appending = React.useRef(false)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
 
   const getPrompt = ({ action, code, language }: QuickActionEventPayload) => {
@@ -70,8 +57,6 @@ export const CompletionPanel: React.FC<CompletionPanelProps> = ({
     const contentWindow = iframeRef.current?.contentWindow
 
     if (pendingEvent) {
-      setCompletionPanelViewType(CompletionPanelView.CHAT)
-
       contentWindow?.postMessage({
         action: 'append',
         payload: getPrompt(pendingEvent)
@@ -83,17 +68,12 @@ export const CompletionPanel: React.FC<CompletionPanelProps> = ({
   return (
     <div className={cn('flex h-full flex-col', className)} {...props}>
       <Header />
-      {completionPanelViewType === CompletionPanelView.CHAT && (
-        <iframe
-          src={`/playground`}
-          className="w-full flex-1 border-0"
-          key={activeChatId}
-          ref={iframeRef}
-        />
-      )}
-      {completionPanelViewType === CompletionPanelView.SESSIONS && (
-        <ChatSessions />
-      )}
+      <iframe
+        src={`/playground`}
+        className="w-full flex-1 border-0"
+        key={activeChatId}
+        ref={iframeRef}
+      />
     </div>
   )
 }
@@ -102,9 +82,6 @@ function ChatSessions({ className }: { className?: string }) {
   const _hasHydrated = useStore(useChatStore, state => state._hasHydrated)
   const chats = useStore(useChatStore, state => state.chats)
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
-  const { setCompletionPanelViewType } = React.useContext(
-    SourceCodeBrowserContext
-  )
 
   const onDeleteClick = (
     e: React.MouseEvent<HTMLButtonElement>,
@@ -119,7 +96,6 @@ function ChatSessions({ className }: { className?: string }) {
 
   const onSelectChat = (id: string) => {
     setActiveChatId(id)
-    setCompletionPanelViewType(CompletionPanelView.CHAT)
   }
 
   return (
@@ -184,49 +160,14 @@ function ChatSessions({ className }: { className?: string }) {
 }
 
 function Header() {
-  const { setCompletionPanelVisible } = React.useContext(
-    SourceCodeBrowserContext
-  )
-
-  // const onToggleChatHistory = () => {
-  //   setCompletionPanelViewType(
-  //     completionPanelViewType === CompletionPanelView.CHAT
-  //       ? CompletionPanelView.SESSIONS
-  //       : CompletionPanelView.CHAT
-  //   )
-  // }
-
-  // const onNewChatClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-  //   setActiveChatId(nanoid())
-  //   if (completionPanelViewType === CompletionPanelView.SESSIONS) {
-  //     setCompletionPanelViewType(CompletionPanelView.CHAT)
-  //   }
-  // }
+  const { setChatSideBarVisible } = React.useContext(SourceCodeBrowserContext)
 
   return (
     <div className="sticky top-0 flex items-center justify-end bg-secondary px-2 py-1">
-      {/* <div className="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button size="icon" variant="ghost" onClick={onToggleChatHistory}>
-              <IconHistory />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Chat history</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button size="icon" variant="ghost" onClick={onNewChatClick}>
-              <IconPlus />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Start a new chat</TooltipContent>
-        </Tooltip>
-      </div> */}
       <Button
         size="icon"
         variant="ghost"
-        onClick={e => setCompletionPanelVisible(false)}
+        onClick={e => setChatSideBarVisible(false)}
       >
         <IconClose />
       </Button>

@@ -41,8 +41,9 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   children,
   ...props
 }) => {
-  const { completionPanelVisible, setCompletionPanelVisible } =
-    React.useContext(SourceCodeBrowserContext)
+  const { chatSideBarVisible, setChatSideBarVisible } = React.useContext(
+    SourceCodeBrowserContext
+  )
   const [enableCodeBrowserQuickActionBar] = useEnableCodeBrowserQuickActionBar()
   const containerRef = React.useRef<HTMLDivElement>(null)
   const { activePath } = React.useContext(SourceCodeBrowserContext)
@@ -128,15 +129,13 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
             )}
             {!enableCodeBrowserQuickActionBar.loading &&
               enableCodeBrowserQuickActionBar.value &&
-              !completionPanelVisible && (
+              !chatSideBarVisible && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       className="flex shrink-0 items-center gap-1 px-2"
-                      onClick={e =>
-                        setCompletionPanelVisible(!completionPanelVisible)
-                      }
+                      onClick={e => setChatSideBarVisible(!chatSideBarVisible)}
                     >
                       <Image alt="Tabby logo" src={tabbyLogo} width={24} />
                       Ask Tabby

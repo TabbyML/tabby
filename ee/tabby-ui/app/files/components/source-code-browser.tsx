@@ -20,7 +20,7 @@ import {
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
-import { CompletionPanel } from './completion-panel'
+import { ChatSideBar } from './chat-side-bar'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'
 import { mapToFileTree, sortFileTree, type TFileTreeNode } from './file-tree'
@@ -57,11 +57,6 @@ type TFileMapItem = {
 }
 type TFileMap = Record<string, TFileMapItem>
 
-enum CompletionPanelView {
-  CHAT,
-  SESSIONS
-}
-
 type SourceCodeBrowserContextValue = {
   activePath: string | undefined
   setActivePath: (path: string | undefined) => void
@@ -74,13 +69,8 @@ type SourceCodeBrowserContextValue = {
   initialized: boolean
   setInitialized: React.Dispatch<React.SetStateAction<boolean>>
   fileTreeData: TFileTreeNode[]
-  // for completion panel
-  completionPanelVisible: boolean
-  setCompletionPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
-  completionPanelViewType: CompletionPanelView
-  setCompletionPanelViewType: React.Dispatch<
-    React.SetStateAction<CompletionPanelView>
-  >
+  chatSideBarVisible: boolean
+  setChatSideBarVisible: React.Dispatch<React.SetStateAction<boolean>>
   pendingEvent: QuickActionEventPayload | undefined
   setPendingEvent: (d: QuickActionEventPayload | undefined) => void
 }
@@ -110,11 +100,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const [initialized, setInitialized] = React.useState(false)
   const [fileMap, setFileMap] = React.useState<TFileMap>({})
   const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(new Set())
-  const [completionPanelVisible, setCompletionPanelVisible] =
-    React.useState(false)
-  const [completionPanelViewType, setCompletionPanelViewType] = React.useState(
-    CompletionPanelView.CHAT
-  )
+  const [chatSideBarVisible, setChatSideBarVisible] = React.useState(false)
   const [pendingEvent, setPendingEvent] = React.useState<
     QuickActionEventPayload | undefined
   >()
@@ -168,10 +154,8 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         toggleExpandedKey,
         currentFileRoutes,
         fileTreeData,
-        completionPanelVisible,
-        setCompletionPanelVisible,
-        completionPanelViewType,
-        setCompletionPanelViewType,
+        chatSideBarVisible,
+        setChatSideBarVisible,
         pendingEvent,
         setPendingEvent
       }}
@@ -197,13 +181,13 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     initialized,
     setInitialized,
     setExpandedKeys,
-    completionPanelVisible,
-    setCompletionPanelVisible,
+    chatSideBarVisible,
+    setChatSideBarVisible,
     setPendingEvent
   } = React.useContext(SourceCodeBrowserContext)
   const { setProgress } = useTopbarProgress()
-  const completionPanelRef = React.useRef<ImperativePanelHandle>(null)
-  const [completionPanelSize, setCompletionPanelSize] = React.useState(30)
+  const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
+  const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
 
   const activeRepoName = React.useMemo(() => {
     return resolveRepoNameFromPath(activePath)
@@ -296,7 +280,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   const onPanelLayout = (sizes: number[]) => {
     if (sizes?.[2]) {
-      setCompletionPanelSize(sizes[2])
+      setChatSideBarPanelSize(sizes[2])
     }
   }
 
@@ -361,7 +345,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     const onCallCompletion = (data: QuickActionEventPayload) => {
-      setCompletionPanelVisible(true)
+      setChatSideBarVisible(true)
       setPendingEvent(data)
     }
     emitter.on('code_browser_quick_action', onCallCompletion)
@@ -372,13 +356,13 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [])
 
   React.useEffect(() => {
-    if (completionPanelVisible) {
-      completionPanelRef.current?.expand()
-      completionPanelRef.current?.resize(completionPanelSize)
+    if (chatSideBarVisible) {
+      chatSideBarPanelRef.current?.expand()
+      chatSideBarPanelRef.current?.resize(chatSideBarPanelSize)
     } else {
-      completionPanelRef.current?.collapse()
+      chatSideBarPanelRef.current?.collapse()
     }
-  }, [completionPanelVisible])
+  }, [chatSideBarVisible])
 
   return (
     <ResizablePanelGroup
@@ -422,11 +406,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         <ResizableHandle
           className={cn(
             'hidden w-1 bg-border/40 hover:bg-border active:bg-border',
-            completionPanelVisible && 'block'
+            chatSideBarVisible && 'block'
           )}
         />
-        <ResizablePanel defaultSize={0} collapsible ref={completionPanelRef}>
-          <CompletionPanel />
+        <ResizablePanel defaultSize={0} collapsible ref={chatSideBarPanelRef}>
+          <ChatSideBar />
         </ResizablePanel>
       </>
     </ResizablePanelGroup>
@@ -589,9 +573,4 @@ function isReadableTextFile(blob: Blob) {
 
 export type { TFileMap, TFileMapItem }
 
-export {
-  SourceCodeBrowserContext,
-  SourceCodeBrowser,
-  getFileViewType,
-  CompletionPanelView
-}
+export { SourceCodeBrowserContext, SourceCodeBrowser, getFileViewType }
