@@ -1,68 +1,48 @@
-use anyhow::Result;
-use sqlx::{query, query_as, sqlite::SqliteConnectOptions, Pool, Sqlite, SqlitePool};
-use tabby_common::Tag;
+use anyhow::{anyhow, Result};
+use kv::{Bucket, Config, Json, Store};
+use tabby_common::SourceFile;
+
+type RepositoryBucket<'a> = Bucket<'a, String, Json<SourceFile>>;
 
 pub struct RepositoryCache {
-    pool: Pool<Sqlite>,
-}
-
-struct RepositoryMetaDAO {
-    git_url: String,
-    filepath: String,
-    language: String,
-    max_line_length: i64,
-    avg_line_length: f64,
-    alphanum_fraction: f64,
-    tags: String,
+    cache: Store,
 }
 
 impl RepositoryCache {
-    pub async fn new() -> Result<Self> {
-        let init_query = include_str!("../schema.sql");
-        let options = SqliteConnectOptions::new()
-            .filename(tabby_common::path::repository_meta_db())
-            .create_if_missing(true);
-        let pool = SqlitePool::connect_with(options).await?;
-        sqlx::query(init_query).execute(&pool).await?;
-        Ok(RepositoryCache { pool })
+    pub fn new() -> Result<Self> {
+        let config = Config::new(tabby_common::path::repository_meta_db());
+        let store = Store::new(config)?;
+        Ok(RepositoryCache { cache: store })
     }
 
-    pub async fn clear(&self) -> Result<()> {
-        query!("DELETE FROM repository_meta")
-            .execute(&self.pool)
-            .await?;
+    fn bucket(&self) -> Result<RepositoryBucket> {
+        Ok(self.cache.bucket(Some("repositories"))?)
+    }
+
+    pub fn clear(&self) -> Result<()> {
+        self.bucket()?.clear()?;
         Ok(())
     }
 
-    pub async fn add_repository_meta(
-        &self,
-        git_url: String,
-        filepath: String,
-        language: String,
-        max_line_length: i64,
-        avg_line_length: f32,
-        alphanum_fraction: f32,
-        tags: Vec<Tag>,
-    ) -> Result<()> {
-        let tags = serde_json::to_string(&tags)?;
-        query!("INSERT INTO repository_meta (git_url, filepath, language, max_line_length, avg_line_length, alphanum_fraction, tags)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                git_url, filepath, language, max_line_length, avg_line_length, alphanum_fraction, tags
-        ).execute(&self.pool).await?;
+    pub fn add_repository_meta(&self, file: SourceFile) -> Result<()> {
+        let key = format!("{}:{}", file.git_url, file.filepath);
+        self.bucket()?.set(&key, &Json(file))?;
         Ok(())
     }
 
-    pub async fn get_repository_meta(
-        &self,
-        git_url: String,
-        filepath: String,
-    ) -> Result<RepositoryMetaDAO> {
-        // TODO(boxbeam): Conversion from RepositoryMetaDAO to RepositoryMeta / SourceFile to never expose RepositoryMetaDAO
-        let meta = query_as!(
-            RepositoryMetaDAO,
-            "SELECT git_url, filepath, language, max_line_length, avg_line_length, alphanum_fraction, tags FROM repository_meta WHERE git_url = ? AND filepath = ?",
-            git_url, filepath
-        ).fetch_one(&self.pool).await?;
-        Ok(meta)
+    pub fn get_repository_meta(&self, git_url: &str, filepath: &str) -> Result<SourceFile> {
+        let key = format!("{git_url}:{filepath}");
+        let Some(Json(val)) = self.bucket()?.get(&key)? else {
+            return Err(anyhow!("Repository meta not found"));
+        };
+        Ok(val)
+    }
+
+    pub fn reload(&self) -> Result<()> {
+        self.clear()?;
+        for file in SourceFile::all()? {
+            self.add_repository_meta(file)?;
+        }
+        Ok(())
     }
 }

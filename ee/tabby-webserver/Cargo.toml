@@ -33,6 +33,7 @@ serde.workspace = true
 serde_json.workspace = true
 tabby-common = { path = "../../crates/tabby-common" }
 tabby-db = { path = "../../ee/tabby-db" }
+tabby-repositories = { path = "../../crates/tabby-repositories" }
 tarpc = { version = "0.33.0", features = ["serde-transport"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "process"] }

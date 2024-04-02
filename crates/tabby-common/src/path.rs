@@ -30,7 +30,7 @@ pub fn config_file() -> PathBuf {
 }
 
 pub fn repository_meta_db() -> PathBuf {
-    tabby_root().join("repositories.sqlite")
+    tabby_root().join("repositories.db")
 }
 
 pub fn usage_id_file() -> PathBuf {

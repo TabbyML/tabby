@@ -12,7 +12,7 @@ members = [
     "crates/aim-downloader",
     "crates/juniper-axum",
     "ee/tabby-webserver",
-    "ee/tabby-db", "ee/tabby-db-macros", "crates/tabby-repositories",
+    "ee/tabby-db", "ee/tabby-db-macros",
 ]
 
 [workspace.package]
