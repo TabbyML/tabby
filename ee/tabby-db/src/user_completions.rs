@@ -68,6 +68,7 @@ impl DbConn {
         Ok(())
     }
 
+    // FIXME(boxbeam): index `created_at` in user_completions table.
     pub async fn compute_annual_activity(&self) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         Ok(sqlx::query_as(
             r#"

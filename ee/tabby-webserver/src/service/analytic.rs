@@ -68,7 +68,6 @@ pub fn new_analytic_service(db: DbConn) -> Arc<dyn AnalyticService> {
 #[cfg(test)]
 mod tests {
     use chrono::Days;
-    
 
     use super::*;
 

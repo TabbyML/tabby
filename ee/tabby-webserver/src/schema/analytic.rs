@@ -18,15 +18,15 @@ pub struct CompletionStats {
 // FIXME(boxbeam): Adding more languages.
 #[derive(GraphQLEnum, Clone, Debug)]
 pub enum Language {
-    RUST,
-    PYTHON,
+    Rust,
+    Python,
 }
 
 impl Display for Language {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Language::RUST => write!(f, "rust"),
-            Language::PYTHON => write!(f, "python"),
+            Language::Rust => write!(f, "rust"),
+            Language::Python => write!(f, "python"),
         }
     }
 }
