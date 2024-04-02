@@ -25,7 +25,7 @@ export interface ChatProps extends React.ComponentProps<'div'> {
 export interface ChatRef extends UseChatHelpers {}
 
 function ChatRenderer(
-  { id, initialMessages, className }: ChatProps,
+  { id, initialMessages }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
   usePatchFetch()
@@ -139,7 +139,7 @@ function ChatRenderer(
   return (
     <div className="flex justify-center overflow-x-hidden">
       <div className="w-full max-w-2xl px-4">
-        <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
+        <div className="pb-[200px] pt-4 md:pt-10">
           {messages.length ? (
             <>
               <ChatList

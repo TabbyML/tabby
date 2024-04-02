@@ -2,7 +2,6 @@
 
 import React from 'react'
 
-import { cn } from '@/lib/utils'
 import { Button, ButtonProps } from '@/components/ui/button'
 import { IconCheck, IconTrash } from '@/components/ui/icons'
 
@@ -14,7 +13,6 @@ export const ClearChatsButton = ({
   onClear,
   onClick,
   onBlur,
-  className,
   ...rest
 }: ClearChatsButtonProps) => {
   const [waitingConfirmation, setWaitingConfirmation] = React.useState(false)
@@ -42,7 +40,7 @@ export const ClearChatsButton = ({
 
   return (
     <Button
-      className={cn('h-12 w-full justify-start', className)}
+      className="h-12 w-full justify-start"
       variant="ghost"
       {...rest}
       onClick={handleClick}
