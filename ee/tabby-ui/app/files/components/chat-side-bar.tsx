@@ -69,7 +69,7 @@ function Header() {
   const { setChatSideBarVisible } = React.useContext(SourceCodeBrowserContext)
 
   return (
-    <div className="sticky top-0 flex items-center justify-end bg-secondary px-2 py-1">
+    <div className="sticky top-0 flex items-center justify-end px-2 py-1">
       <Button
         size="icon"
         variant="ghost"
