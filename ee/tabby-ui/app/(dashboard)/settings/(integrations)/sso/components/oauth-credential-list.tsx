@@ -91,7 +91,7 @@ const OAuthCredentialList = () => {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <SSOHeader />
       <div className="flex flex-col gap-8">
         {credentialList.map(credential => {
@@ -117,7 +117,7 @@ const OauthCredentialCard = ({
   }, [data])
   return (
     <Card>
-      <CardHeader className="border-b border-secondary p-4">
+      <CardHeader className="border-b p-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl">
             {meta?.displayName || data?.provider}
@@ -131,7 +131,7 @@ const OauthCredentialCard = ({
         </div>
       </CardHeader>
       <CardContent className="p-4 text-sm">
-        <div className="flex border-b border-secondary py-2">
+        <div className="flex border-b py-2">
           <span className="w-[100px]">Type</span>
           <span>OAuth 2.0</span>
         </div>
