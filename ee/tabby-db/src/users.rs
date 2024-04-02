@@ -1,18 +1,18 @@
 use anyhow::{anyhow, bail, Result};
-use chrono::{DateTime, Utc};
-use sqlx::{query, query_scalar, FromRow};
+use sqlx::{query, query_as, query_scalar, FromRow};
+use tabby_db_macros::query_paged_as;
 use uuid::Uuid;
 
 use super::DbConn;
-use crate::{make_pagination_query, SQLXResultExt};
+use crate::{DateTimeUtc, SQLXResultExt};
 
 #[allow(unused)]
 #[derive(FromRow)]
 pub struct UserDAO {
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
 
-    pub id: i32,
+    pub id: i64,
     pub email: String,
     pub password_encrypted: Option<String>,
     pub is_admin: bool,
@@ -22,15 +22,19 @@ pub struct UserDAO {
     pub active: bool,
 }
 
-static OWNER_USER_ID: i32 = 1;
+static OWNER_USER_ID: i64 = 1;
+
+macro_rules! select {
+    ($str:literal $(,)? $($val:expr),*) => {
+        query_as!(
+            UserDAO,
+            r#"SELECT id as "id!", email, password_encrypted, is_admin, created_at as "created_at!", updated_at as "updated_at!", auth_token, active FROM users WHERE "# + $str,
+            $($val),*
+        )
+    }
+}
 
 impl UserDAO {
-    fn select(clause: &str) -> String {
-        r#"SELECT id, email, password_encrypted, is_admin, created_at, updated_at, auth_token, active FROM users WHERE "#
-            .to_owned()
-            + clause
-    }
-
     pub fn is_owner(&self) -> bool {
         self.id == OWNER_USER_ID
     }
@@ -43,7 +47,7 @@ impl DbConn {
         email: String,
         password_encrypted: Option<String>,
         is_admin: bool,
-    ) -> Result<i32> {
+    ) -> Result<i64> {
         self.create_user_impl(email, password_encrypted, is_admin, None)
             .await
     }
@@ -53,8 +57,8 @@ impl DbConn {
         email: String,
         password_encrypted: Option<String>,
         is_admin: bool,
-        invitation_id: i32,
-    ) -> Result<i32> {
+        invitation_id: i64,
+    ) -> Result<i64> {
         self.create_user_impl(email, password_encrypted, is_admin, Some(invitation_id))
             .await
     }
@@ -64,8 +68,8 @@ impl DbConn {
         email: String,
         password_encrypted: Option<String>,
         is_admin: bool,
-        invitation_id: Option<i32>,
-    ) -> Result<i32> {
+        invitation_id: Option<i64>,
+    ) -> Result<i64> {
         let mut transaction = self.pool.begin().await?;
         if let Some(invitation_id) = invitation_id {
             query!("DELETE FROM invitations WHERE id = ?", invitation_id)
@@ -84,21 +88,17 @@ impl DbConn {
             self.cache.active_admin_count.invalidate().await;
         }
 
-        Ok(res.last_insert_rowid() as i32)
+        Ok(res.last_insert_rowid())
     }
 
-    pub async fn get_user(&self, id: i32) -> Result<Option<UserDAO>> {
-        let user = sqlx::query_as(&UserDAO::select("id = ?"))
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await?;
+    pub async fn get_user(&self, id: i64) -> Result<Option<UserDAO>> {
+        let user = select!("id = ?", id).fetch_optional(&self.pool).await?;
 
         Ok(user)
     }
 
     pub async fn get_user_by_email(&self, email: &str) -> Result<Option<UserDAO>> {
-        let user = sqlx::query_as(&UserDAO::select("email = ?"))
-            .bind(email)
+        let user = select!("email = ?", email)
             .fetch_optional(&self.pool)
             .await?;
 
@@ -106,9 +106,7 @@ impl DbConn {
     }
 
     pub async fn list_admin_users(&self) -> Result<Vec<UserDAO>> {
-        let users = sqlx::query_as(&UserDAO::select("is_admin"))
-            .fetch_all(&self.pool)
-            .await?;
+        let users = select!("is_admin").fetch_all(&self.pool).await?;
 
         Ok(users)
     }
@@ -119,24 +117,26 @@ impl DbConn {
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<UserDAO>> {
-        let query = make_pagination_query(
+        let users = query_paged_as!(
+            UserDAO,
             "users",
-            &[
-                "id",
+            [
+                "id"!,
                 "email",
                 "password_encrypted",
                 "is_admin",
-                "created_at",
-                "updated_at",
+                "created_at"!,
+                "updated_at"!,
                 "auth_token",
-                "active",
+                "active"
             ],
             limit,
             skip_id,
-            backwards,
-        );
+            backwards
+        )
+        .fetch_all(&self.pool)
+        .await?;
 
-        let users = sqlx::query_as(&query).fetch_all(&self.pool).await?;
         Ok(users)
     }
 
@@ -157,7 +157,7 @@ impl DbConn {
         Ok(id)
     }
 
-    pub async fn reset_user_auth_token_by_id(&self, id: i32) -> Result<()> {
+    pub async fn reset_user_auth_token_by_id(&self, id: i64) -> Result<()> {
         let updated_at = chrono::Utc::now();
         let token = generate_auth_token();
         query!(
@@ -172,7 +172,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_user_active(&self, id: i32, active: bool) -> Result<()> {
+    pub async fn update_user_active(&self, id: i64, active: bool) -> Result<()> {
         let not_active = !active;
         let changed = query!(
             "UPDATE users SET active = ? WHERE id = ? AND active = ?",
@@ -191,7 +191,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_user_role(&self, id: i32, is_admin: bool) -> Result<()> {
+    pub async fn update_user_role(&self, id: i64, is_admin: bool) -> Result<()> {
         let not_admin = !is_admin;
         let changed = query!(
             "UPDATE users SET is_admin = ? WHERE id = ? AND is_admin = ?",
@@ -210,7 +210,7 @@ impl DbConn {
         }
     }
 
-    pub async fn update_user_password(&self, id: i32, password_encrypted: String) -> Result<()> {
+    pub async fn update_user_password(&self, id: i64, password_encrypted: String) -> Result<()> {
         query!(
             "UPDATE users SET password_encrypted = ? WHERE id = ?",
             password_encrypted,
@@ -221,14 +221,14 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_user_avatar(&self, id: i32, avatar: Option<Box<[u8]>>) -> Result<()> {
+    pub async fn update_user_avatar(&self, id: i64, avatar: Option<Box<[u8]>>) -> Result<()> {
         query!("UPDATE users SET avatar = ? WHERE id = ?;", avatar, id)
             .execute(&self.pool)
             .await?;
         Ok(())
     }
 
-    pub async fn get_user_avatar(&self, id: i32) -> Result<Option<Box<[u8]>>> {
+    pub async fn get_user_avatar(&self, id: i64) -> Result<Option<Box<[u8]>>> {
         let avatar = query_scalar!("SELECT avatar FROM users WHERE id = ?", id)
             .fetch_one(&self.pool)
             .await?;
@@ -341,7 +341,7 @@ mod tests {
     async fn test_list_users_with_filter() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        let empty: Vec<i32> = vec![];
+        let empty: Vec<i64> = vec![];
         let to_ids = |users: Vec<UserDAO>| users.into_iter().map(|u| u.id).collect::<Vec<_>>();
 
         // empty

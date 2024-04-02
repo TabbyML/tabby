@@ -300,6 +300,7 @@ pub async fn create_service_locator(
     ))
 }
 
+/// Returns (limit, skip_id, backwards)
 pub fn graphql_pagination_to_filter(
     after: Option<String>,
     before: Option<String>,
@@ -308,11 +309,17 @@ pub fn graphql_pagination_to_filter(
 ) -> Result<(Option<usize>, Option<i32>, bool), CoreError> {
     match (first, last) {
         (Some(first), None) => {
-            let after = after.map(|x| ID::new(x).as_rowid()).transpose()?;
+            let after = after
+                .map(|x| ID::new(x).as_rowid())
+                .transpose()?
+                .map(|x| x as i32);
             Ok((Some(first), after, false))
         }
         (None, Some(last)) => {
-            let before = before.map(|x| ID::new(x).as_rowid()).transpose()?;
+            let before = before
+                .map(|x| ID::new(x).as_rowid())
+                .transpose()?
+                .map(|x| x as i32);
             Ok((Some(last), before, true))
         }
         _ => Ok((None, None, false)),

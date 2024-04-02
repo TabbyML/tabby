@@ -66,7 +66,7 @@ impl DbConn {
             .ok_or_else(|| anyhow!("Invalid code"))?;
 
         let user_res = self
-            .get_user(password_reset.user_id as i32)
+            .get_user(password_reset.user_id)
             .await?
             .filter(|user| user.active)
             .ok_or_else(|| anyhow!("Invalid code"))?;

@@ -72,7 +72,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
                     email.clone(),
                     Some(pwd_hash),
                     !is_admin_initialized,
-                    invitation.id as i32,
+                    invitation.id,
                 )
                 .await?
         } else {
@@ -136,7 +136,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let user_id = self.db.verify_password_reset(code).await?;
         let old_pass_encrypted = self
             .db
-            .get_user(user_id as i32)
+            .get_user(user_id)
             .await?
             .expect("User must exist")
             .password_encrypted;
@@ -146,7 +146,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
         self.db.delete_password_reset_by_user_id(user_id).await?;
         self.db
-            .update_user_password(user_id as i32, password_encrypted)
+            .update_user_password(user_id, password_encrypted)
             .await?;
         Ok(())
     }
@@ -159,7 +159,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     ) -> Result<()> {
         let user = self
             .db
-            .get_user(id.as_rowid()?)
+            .get_user(id.as_rowid()? as i64)
             .await?
             .ok_or_else(|| anyhow!("Invalid user"))?;
 
@@ -194,13 +194,13 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if avatar.as_ref().is_some_and(|v| v.len() > 512 * 1024) {
             return Err(anyhow!("The image you are attempting to upload is too large. Please ensure the file size is under 512KB").into());
         }
-        let id = id.as_rowid()?;
+        let id = id.as_rowid()? as i64;
         self.db.update_user_avatar(id, avatar).await?;
         Ok(())
     }
 
     async fn get_user_avatar(&self, id: &ID) -> Result<Option<Box<[u8]>>> {
-        Ok(self.db.get_user_avatar(id.as_rowid()?).await?)
+        Ok(self.db.get_user_avatar(id.as_rowid()? as i64).await?)
     }
 
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse> {
@@ -236,7 +236,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if refresh_token.is_expired() {
             return Err(anyhow!("Expired refresh token").into());
         }
-        let Some(user) = self.db.get_user(refresh_token.user_id as i32).await? else {
+        let Some(user) = self.db.get_user(refresh_token.user_id).await? else {
             return Err(anyhow!("User not found").into());
         };
 
@@ -246,7 +246,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let new_token = self
             .db
-            .renew_refresh_token(refresh_token.id as i32, &token)
+            .renew_refresh_token(refresh_token.id, &token)
             .await?;
 
         // refresh token update is done, generate new access token based on user info
@@ -286,7 +286,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             license.ensure_admin_seats(num_admins + 1)?;
         }
 
-        let id = id.as_rowid()?;
+        let id = id.as_rowid()? as i64;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
             return Err(anyhow!("The owner's admin status cannot be changed").into());
@@ -304,7 +304,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn get_user(&self, id: &ID) -> Result<User> {
-        let user = self.db.get_user(id.as_rowid()?).await?;
+        let user = self.db.get_user(id.as_rowid()? as i64).await?;
         if let Some(user) = user {
             Ok(user.into())
         } else {
@@ -348,11 +348,17 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn reset_user_auth_token(&self, id: &ID) -> Result<()> {
-        Ok(self.db.reset_user_auth_token_by_id(id.as_rowid()?).await?)
+        Ok(self
+            .db
+            .reset_user_auth_token_by_id(id.as_rowid()? as i64)
+            .await?)
     }
 
     async fn logout_all_sessions(&self, id: &ID) -> Result<()> {
-        Ok(self.db.delete_tokens_by_user_id(id.as_rowid()?).await?)
+        Ok(self
+            .db
+            .delete_tokens_by_user_id(id.as_rowid()? as i64)
+            .await?)
     }
 
     async fn list_users(
@@ -465,7 +471,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             license.ensure_available_seats(1)?;
         }
 
-        let id = id.as_rowid()?;
+        let id = id.as_rowid()? as i64;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
         if user.is_owner() {
             return Err(anyhow!("The owner's active status cannot be changed").into());
@@ -486,7 +492,7 @@ async fn get_or_create_oauth_user(
     db: &DbConn,
     mail: &Arc<dyn EmailService>,
     email: &str,
-) -> Result<i32, OAuthError> {
+) -> Result<i64, OAuthError> {
     if let Some(user) = db.get_user_by_email(email).await? {
         return user
             .active
@@ -520,7 +526,7 @@ async fn get_or_create_oauth_user(
         };
         // safe to create with empty password for same reasons above
         let id = db
-            .create_user_with_invitation(email.to_owned(), None, false, invitation.id as i32)
+            .create_user_with_invitation(email.to_owned(), None, false, invitation.id)
             .await?;
         let user = db.get_user(id).await?.unwrap();
         Ok(user.id)
