@@ -1,10 +1,13 @@
 'use client'
 
 import React from 'react'
+import Image from 'next/image'
+import tabbyLogo from '@/assets/tabby.png'
 import { isNil } from 'lodash-es'
 import prettyBytes from 'pretty-bytes'
 import { toast } from 'sonner'
 
+import { useEnableCodeBrowserQuickActionBar } from '@/lib/experiment-flags'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useIsSticky } from '@/lib/hooks/use-is-sticky'
 import { cn } from '@/lib/utils'
@@ -38,6 +41,9 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   children,
   ...props
 }) => {
+  const { completionPanelVisible, setCompletionPanelVisible } =
+    React.useContext(SourceCodeBrowserContext)
+  const [enableCodeBrowserQuickActionBar] = useEnableCodeBrowserQuickActionBar()
   const containerRef = React.useRef<HTMLDivElement>(null)
   const { activePath } = React.useContext(SourceCodeBrowserContext)
   const { isCopied, copyToClipboard } = useCopyToClipboard({ timeout: 2000 })
@@ -120,6 +126,25 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
                 <TooltipContent>Download raw file</TooltipContent>
               </Tooltip>
             )}
+            {!enableCodeBrowserQuickActionBar.loading &&
+              enableCodeBrowserQuickActionBar.value &&
+              !completionPanelVisible && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="shrink-0 flex items-center gap-1 px-2"
+                      onClick={e =>
+                        setCompletionPanelVisible(!completionPanelVisible)
+                      }
+                    >
+                      <Image alt="Tabby logo" src={tabbyLogo} width={24} />
+                      Ask Tabby
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Open chat panel</TooltipContent>
+                </Tooltip>
+              )}
           </div>
         </div>
       )}
