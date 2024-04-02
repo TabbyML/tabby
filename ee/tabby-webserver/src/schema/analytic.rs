@@ -35,8 +35,8 @@ impl Display for Language {
 pub trait AnalyticService: Send + Sync {
     /// Generate the report for past year, with daily granularity.
     ///
-    /// It contains activities for the whole instance, without any filter.
-    async fn annual_activity(&self) -> Result<Vec<CompletionStats>>;
+    /// `users` is a list of user IDs. If empty, the report is computed for all users.
+    async fn annual_activity(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>>;
 
     /// Computes the report with daily granularity.
     ///

@@ -69,7 +69,15 @@ impl DbConn {
     }
 
     // FIXME(boxbeam): index `created_at` in user_completions table.
-    pub async fn compute_annual_activity(&self) -> Result<Vec<UserCompletionDailyStatsDAO>> {
+    pub async fn compute_annual_activity(
+        &self,
+        users: Vec<i32>,
+    ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
+        let users = users
+            .iter()
+            .map(|u| u.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
         Ok(sqlx::query_as(
             r#"
         SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
@@ -77,10 +85,13 @@ impl DbConn {
                SUM(selects) as selects
         FROM user_completions
         WHERE created_at >= DATE('now', '-1 year')
+            AND (? = '' OR user_id IN (?))
         GROUP BY 1
         ORDER BY 1 ASC
         "#,
         )
+        .bind(&users)
+        .bind(&users)
         .fetch_all(&self.pool)
         .await?)
     }

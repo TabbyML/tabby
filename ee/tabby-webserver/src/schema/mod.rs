@@ -123,13 +123,18 @@ fn check_claims(ctx: &Context) -> Result<&JWTPayload, CoreError> {
 }
 
 async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
-    let claims = check_claims(ctx)?;
-    let user = ctx.locator.auth().get_user(&claims.sub.0).await?;
+    let user = check_user(ctx).await?;
     if !user.is_admin {
         return Err(CoreError::Forbidden("You must be admin to proceed"));
     }
 
     Ok(())
+}
+
+async fn check_user(ctx: &Context) -> Result<User, CoreError> {
+    let claims = check_claims(ctx)?;
+    let user = ctx.locator.auth().get_user(&claims.sub.0).await?;
+    Ok(user)
 }
 
 async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<(), CoreError> {
@@ -618,9 +623,13 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn annual_activity(ctx: &Context) -> Result<Vec<CompletionStats>> {
-        check_admin(ctx).await?;
-        ctx.locator.analytic().annual_activity().await
+    async fn annual_activity(
+        ctx: &Context,
+        users: Option<Vec<ID>>,
+    ) -> Result<Vec<CompletionStats>> {
+        let users = users.unwrap_or_default();
+        check_analytic_access(ctx, &users).await?;
+        ctx.locator.analytic().annual_activity(users).await
     }
 
     async fn daily_report(
@@ -630,17 +639,32 @@ impl Mutation {
         users: Option<Vec<ID>>,
         languages: Option<Vec<analytic::Language>>,
     ) -> Result<Vec<CompletionStats>> {
-        check_admin(ctx).await?;
+        let users = users.unwrap_or_default();
+        check_analytic_access(ctx, &users).await?;
         ctx.locator
             .analytic()
-            .daily_report(
-                start,
-                end,
-                users.unwrap_or_default(),
-                languages.unwrap_or_default(),
-            )
+            .daily_report(start, end, users, languages.unwrap_or_default())
             .await
     }
+}
+
+async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreError> {
+    let user = check_user(ctx).await?;
+    if users.is_empty() && !user.is_admin {
+        return Err(CoreError::Forbidden(
+            "You must be admin to read other users' data",
+        ));
+    }
+
+    for id in users {
+        if user.id != *id {
+            return Err(CoreError::Forbidden(
+                "You must be admin to read other users' data",
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {

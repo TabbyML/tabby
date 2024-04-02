@@ -18,8 +18,12 @@ struct AnalyticServiceImpl {
 #[async_trait]
 impl AnalyticService for AnalyticServiceImpl {
     // FIXME(boxbeam): Implementing in memory caching with 1 hour expiry.
-    async fn annual_activity(&self) -> Result<Vec<CompletionStats>> {
-        let stats = self.db.compute_annual_activity().await?;
+    async fn annual_activity(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>> {
+        let users = users
+            .into_iter()
+            .filter_map(|id| id.as_rowid().ok())
+            .collect();
+        let stats = self.db.compute_annual_activity(users).await?;
         let stats = stats
             .into_iter()
             .map(|s| CompletionStats {
@@ -70,6 +74,7 @@ mod tests {
     use chrono::Days;
 
     use super::*;
+    use crate::service::AsID;
 
     fn timestamp() -> u128 {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -103,7 +108,7 @@ mod tests {
             .unwrap();
 
         let svc = new_analytic_service(db);
-        let activity = svc.annual_activity().await.unwrap();
+        let activity = svc.annual_activity(vec![user_id.as_id()]).await.unwrap();
         assert_eq!(1, activity.len());
         assert_eq!(1, activity[0].completions);
         assert_eq!(1, activity[0].selects);
