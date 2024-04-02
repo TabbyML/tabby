@@ -10,9 +10,10 @@ import remarkMath from 'remark-math'
 import { MessageActionType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { CodeBlock } from '@/components/ui/codeblock'
-import { IconUser } from '@/components/ui/icons'
 import { ChatMessageActions } from '@/components/chat-message-actions'
 import { MemoizedReactMarkdown } from '@/components/markdown'
+
+import { UserAvatar } from './user-avatar'
 
 export interface ChatMessageProps {
   message: Message
@@ -31,13 +32,14 @@ export function ChatMessage({
     >
       <div
         className={cn(
-          'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md border bg-background shadow',
-          message.role === 'user'
-            ? 'bg-background'
-            : 'bg-accent text-accent-foreground'
+          'shrink-0 select-none rounded-full border bg-background shadow'
         )}
       >
-        {message.role === 'user' ? <IconUser /> : <IconTabby />}
+        {message.role === 'user' ? (
+          <UserAvatar className="h-8 w-8" />
+        ) : (
+          <IconTabby className="h-8 w-8" />
+        )}
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
         <MemoizedReactMarkdown
@@ -90,14 +92,13 @@ export function ChatMessage({
   )
 }
 
-function IconTabby() {
+function IconTabby({ className }: { className?: string }) {
   return (
     <Image
-      style={{ borderRadius: 4, backgroundColor: '#E8E2D2' }}
+      style={{ backgroundColor: '#E8E2D2' }}
+      className={cn('rounded-full p-0.5', className)}
       src={tabbyLogo}
       alt="tabby"
-      width="128"
-      height="128"
     />
   )
 }
