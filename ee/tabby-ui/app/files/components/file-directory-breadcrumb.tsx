@@ -17,36 +17,38 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
 
   return (
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
-      <div
-        className="cursor-pointer font-medium text-primary hover:underline"
-        onClick={e => setActivePath(undefined)}
-      >
-        Repositories
-      </div>
-      <div>/</div>
-      {currentFileRoutes?.map((route, idx) => {
-        const isRepo = idx === 0 && currentFileRoutes?.length > 1
-        const isActiveFile = idx === currentFileRoutes.length - 1
+      <div className="flex items-center gap-1 leading-8 overflow-x-auto">
+        <div
+          className="cursor-pointer font-medium text-primary hover:underline"
+          onClick={e => setActivePath(undefined)}
+        >
+          Repositories
+        </div>
+        <div>/</div>
+        {currentFileRoutes?.map((route, idx) => {
+          const isRepo = idx === 0 && currentFileRoutes?.length > 1
+          const isActiveFile = idx === currentFileRoutes.length - 1
 
-        return (
-          <React.Fragment key={route.fullPath}>
-            <div
-              className={cn(
-                'whitespace-nowrap',
-                isRepo || isActiveFile ? 'font-bold' : 'font-medium',
-                isActiveFile
-                  ? ''
-                  : 'cursor-pointer text-primary hover:underline',
-                isRepo ? 'hover:underline' : undefined
-              )}
-              onClick={e => setActivePath(route.fullPath)}
-            >
-              {route.name}
-            </div>
-            {route.file.kind !== 'file' && <div>/</div>}
-          </React.Fragment>
-        )
-      })}
+          return (
+            <React.Fragment key={route.fullPath}>
+              <div
+                className={cn(
+                  'whitespace-nowrap',
+                  isRepo || isActiveFile ? 'font-bold' : 'font-medium',
+                  isActiveFile
+                    ? ''
+                    : 'cursor-pointer text-primary hover:underline',
+                  isRepo ? 'hover:underline' : undefined
+                )}
+                onClick={e => setActivePath(route.fullPath)}
+              >
+                {route.name}
+              </div>
+              {route.file.kind !== 'file' && <div>/</div>}
+            </React.Fragment>
+          )
+        })}
+      </div>
       {!!currentFileRoutes?.length && !!activePath && (
         <CopyButton className="shrink-0" value={activePath} />
       )}

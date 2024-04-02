@@ -409,7 +409,13 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             chatSideBarVisible && 'block'
           )}
         />
-        <ResizablePanel defaultSize={0} collapsible ref={chatSideBarPanelRef}>
+        <ResizablePanel
+          collapsible
+          collapsedSize={0}
+          defaultSize={0}
+          minSize={25}
+          ref={chatSideBarPanelRef}
+        >
           <ChatSideBar />
         </ResizablePanel>
       </>
