@@ -133,7 +133,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="shrink-0 flex items-center gap-1 px-2"
+                      className="flex shrink-0 items-center gap-1 px-2"
                       onClick={e =>
                         setCompletionPanelVisible(!completionPanelVisible)
                       }
