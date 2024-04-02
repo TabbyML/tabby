@@ -1,7 +1,7 @@
-import { StateField } from '@codemirror/state'
 import type { EditorState, Extension, Transaction } from '@codemirror/state'
-import { showTooltip } from '@codemirror/view'
+import { StateField } from '@codemirror/state'
 import type { Tooltip } from '@codemirror/view'
+import { showTooltip } from '@codemirror/view'
 import ReactDOM from 'react-dom/client'
 
 import { ActionBarWidget } from './action-bar-widget'
