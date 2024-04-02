@@ -19,11 +19,7 @@ import {
 } from '@/components/ui/resizable'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
-import {
-  CodeBrowserQuickAction,
-  emitter,
-  QuickActionEventPayload
-} from '../lib/event-emitter'
+import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
 import { CompletionPanel } from './completion-panel'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'

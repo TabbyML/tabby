@@ -20,10 +20,7 @@ import { ClearChatsButton } from '@/components/clear-chats-button'
 import { EditChatTitleDialog } from '@/components/edit-chat-title-dialog'
 import { ListSkeleton } from '@/components/skeleton'
 
-import {
-  CodeBrowserQuickAction,
-  QuickActionEventPayload
-} from '../lib/event-emitter'
+import { QuickActionEventPayload } from '../lib/event-emitter'
 import { SourceCodeBrowserContext } from './source-code-browser'
 
 interface CompletionPanelProps
