@@ -283,7 +283,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn analytic(&self) -> Arc<dyn AnalyticService> {
-        new_analytic_service()
+        new_analytic_service(self.db_conn.clone())
     }
 }
 

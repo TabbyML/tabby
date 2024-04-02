@@ -8,8 +8,8 @@ pub struct CompletionStats {
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
 
-    pub num_completed: i32,
-    pub num_accepted: i32,
+    pub completions: i32,
+    pub selects: i32,
 }
 
 #[derive(GraphQLEnum, Clone, Debug)]

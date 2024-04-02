@@ -20,6 +20,13 @@ pub struct UserCompletionDAO {
     pub updated_at: DateTimeUtc,
 }
 
+#[derive(FromRow)]
+pub struct UserCompletionDailyStatsDAO {
+    pub start: DateTime<Utc>,
+    pub completions: i32,
+    pub selects: i32,
+}
+
 impl DbConn {
     pub async fn create_user_completion(
         &self,
@@ -59,6 +66,20 @@ impl DbConn {
         query!("UPDATE user_completions SET views = views + ?, selects = selects + ?, dismisses = dismisses + ?, updated_at = ? WHERE completion_id = ?",
             views, selects, dismisses, updated_at, completion_id).execute(&self.pool).await?;
         Ok(())
+    }
+
+    pub async fn compute_annual_activity(&self) -> Result<Vec<UserCompletionDailyStatsDAO>> {
+        Ok(sqlx::query_as(r#"
+        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+               SUM(1) as completions,
+               SUM(selects) as selects
+        FROM user_completions
+        WHERE created_at >= DATE('now', '-1 year')
+        GROUP BY 1
+        ORDER BY 1 ASC
+        "#)
+            .fetch_all(&self.pool)
+            .await?)
     }
 
     #[cfg(any(test, feature = "testutils"))]
