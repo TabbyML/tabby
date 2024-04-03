@@ -1,1 +1,2 @@
 DROP TABLE github_repository_provider;
+DROP TABLE github_provided_repositories;
