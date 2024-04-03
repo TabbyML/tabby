@@ -656,11 +656,13 @@ async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreEr
         ));
     }
 
-    for id in users {
-        if user.id != *id {
-            return Err(CoreError::Forbidden(
-                "You must be admin to read other users' data",
-            ));
+    if !user.is_admin {
+        for id in users {
+            if user.id != *id {
+                return Err(CoreError::Forbidden(
+                    "You must be admin to read other users' data",
+                ));
+            }
         }
     }
 
