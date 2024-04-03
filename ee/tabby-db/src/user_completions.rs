@@ -20,7 +20,6 @@ pub struct UserCompletionDAO {
     pub updated_at: DateTimeUtc,
 }
 
-#[derive(FromRow)]
 pub struct UserCompletionDailyStatsDAO {
     pub start: DateTime<Utc>,
     pub completions: i32,
@@ -78,20 +77,20 @@ impl DbConn {
             .map(|u| u.to_string())
             .collect::<Vec<_>>()
             .join(",");
-        Ok(sqlx::query_as(
+        Ok(sqlx::query_as!(
+            UserCompletionDailyStatsDAO,
             r#"
-        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
-               SUM(1) as completions,
-               SUM(selects) as selects
+        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as "start!: DateTime<Utc>",
+               SUM(1) as "completions!: i32",
+               SUM(selects) as "selects!: i32"
         FROM user_completions
         WHERE created_at >= DATE('now', '-1 year')
-            AND (? = '' OR user_id IN (?))
+            AND (?1 = '' OR user_id IN (?1))
         GROUP BY 1
         ORDER BY 1 ASC
         "#,
+            users
         )
-        .bind(&users)
-        .bind(&users)
         .fetch_all(&self.pool)
         .await?)
     }
@@ -109,25 +108,24 @@ impl DbConn {
             .collect::<Vec<_>>()
             .join(",");
         let languages = languages.join(",");
-        let res = sqlx::query_as(
+        let res = sqlx::query_as!(
+            UserCompletionDailyStatsDAO,
             r#"
-        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
-               SUM(1) as completions,
-               SUM(selects) as selects
+        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as "start!: DateTime<Utc>",
+               SUM(1) as "completions!: i32",
+               SUM(selects) as "selects!: i32"
         FROM user_completions
-        WHERE created_at >= ? AND created_at < ?
-            AND (? = '' OR user_id IN (?))
-            AND (? = '' OR language IN (?))
+        WHERE created_at >= ?1 AND created_at < ?2
+            AND (?3 = '' OR user_id IN (?3))
+            AND (?4 = '' OR language IN (?4))
         GROUP BY 1
         ORDER BY 1 ASC
         "#,
+            start,
+            end,
+            users,
+            languages
         )
-        .bind(start)
-        .bind(end)
-        .bind(&users)
-        .bind(&users)
-        .bind(&languages)
-        .bind(&languages)
         .fetch_all(&self.pool)
         .await?;
         Ok(res)
