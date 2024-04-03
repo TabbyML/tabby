@@ -62,7 +62,7 @@ export default function JobRunDetail() {
                 onClick={() => router.back()}
                 className="-ml-1 flex cursor-pointer items-center transition-opacity hover:opacity-60"
               >
-                <IconChevronLeft className="mr-1 h-6 w-6" />
+                <IconChevronLeft className="mr-1 size-6" />
                 <h2 className="scroll-m-20 text-3xl font-bold tracking-tight first:mt-0">
                   {currentNode.job}
                 </h2>

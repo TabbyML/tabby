@@ -32,16 +32,16 @@ export function UserAvatar({ className }: { className?: string }) {
   if (!data?.me?.email) return null
 
   if (isLoading) {
-    return <Skeleton className={cn('h-16 w-16 rounded-full', className)} />
+    return <Skeleton className={cn('size-16 rounded-full', className)} />
   }
 
   if (!avatarImageSrc) {
     const config = genConfig(data.me.email)
-    return <NiceAvatar className={cn('h-16 w-16', className)} {...config} />
+    return <NiceAvatar className={cn('size-16', className)} {...config} />
   }
 
   return (
-    <AvatarComponent className={cn('h-16 w-16', className)}>
+    <AvatarComponent className={cn('size-16', className)}>
       <AvatarImage
         src={avatarImageSrc}
         alt={data.me.email}

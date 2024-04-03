@@ -1,27 +1,29 @@
 'use client'
 
 import moment from 'moment'
-
 import {
   Bar,
   BarChart,
+  Cell,
   Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis,
-  PieChart, Pie, Cell
+  YAxis
 } from 'recharts'
+
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import DatePickerWithRange from '@/components/date-range-picker'
+  SelectValue
+} from '@/components/ui/select'
 import ActivityCalendar from '@/components/activity-calendar'
+import DatePickerWithRange from '@/components/date-range-picker'
 
 const data = [
   {
@@ -140,7 +142,6 @@ export function Analytic() {
           <ActivityChartSection />
         </div>
       </div>
-     
     </div>
   )
 }
@@ -152,12 +153,14 @@ function AnalyticHeader() {
         <h1 className="mb-1.5 scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
           Analytics
         </h1>
-        <p className="text-muted-foreground">Overview of code completion usage</p>
+        <p className="text-muted-foreground">
+          Overview of code completion usage
+        </p>
       </div>
 
       <div className="flex space-x-4">
-        <Select defaultValue='all'>
-          <SelectTrigger className="w-[180px]" >
+        <Select defaultValue="all">
+          <SelectTrigger className="w-[180px]">
             <div className="flex w-full items-center truncate ">
               <span className="mr-1.5 hidden text-muted-foreground sm:inline-block">
                 Member:
@@ -175,9 +178,9 @@ function AnalyticHeader() {
             </SelectGroup>
           </SelectContent>
         </Select>
-        
-        <Select defaultValue='all'>
-          <SelectTrigger className="w-[180px]" >
+
+        <Select defaultValue="all">
+          <SelectTrigger className="w-[180px]">
             <div className="flex w-full items-center truncate">
               <span className="mr-1.5 hidden text-muted-foreground sm:inline-block">
                 Language:
@@ -197,9 +200,7 @@ function AnalyticHeader() {
           </SelectContent>
         </Select>
 
-        <DatePickerWithRange
-          buttonClassName="h-full"
-          contentAlign="end" />
+        <DatePickerWithRange buttonClassName="h-full" contentAlign="end" />
       </div>
     </div>
   )
@@ -210,13 +211,13 @@ function AnalyticSummary() {
     <div className="mb-5 flex items-center space-x-4">
       <div className="w-60 space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4">
         <p className="text-sm text-muted-foreground">Total completions</p>
-        <p className="text-3xl font-bold">
-          6,579
-        </p>
+        <p className="text-3xl font-bold">6,579</p>
       </div>
 
       <div className="w-60 space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4">
-        <p className="text-sm text-muted-foreground">Minutes saved / completion</p>
+        <p className="text-sm text-muted-foreground">
+          Minutes saved / completion
+        </p>
         <p className=" text-3xl font-bold">2</p>
       </div>
 
@@ -256,13 +257,13 @@ function CompletionsChartSection() {
 
 function AcceptanceChartSection() {
   const data = [
-    { name: 'Accept', value: 512},
-    { name: 'Pending', value: 1013},
-  ];
-  
-  const COLORS = ['#8884d8', '#b9b7e2'];
-  
-  const RADIAN = Math.PI / 180;
+    { name: 'Accept', value: 512 },
+    { name: 'Pending', value: 1013 }
+  ]
+
+  const COLORS = ['#8884d8', '#b9b7e2']
+
+  const RADIAN = Math.PI / 180
   const renderCustomizedLabel = ({
     cx,
     cy,
@@ -272,32 +273,41 @@ function AcceptanceChartSection() {
     percent,
     name
   }: {
-    cx: number;
-    cy: number;
-    midAngle: number;
-    innerRadius: number;
-    outerRadius: number;
-    percent: number;
-    name: string;
+    cx: number
+    cy: number
+    midAngle: number
+    innerRadius: number
+    outerRadius: number
+    percent: number
+    name: string
   }) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.4;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.4
+    const x = cx + radius * Math.cos(-midAngle * RADIAN)
+    const y = cy + radius * Math.sin(-midAngle * RADIAN)
+
     if (name.toLocaleLowerCase() === 'accept') {
       return (
-        <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={15}>
+        <text
+          x={x}
+          y={y}
+          fill="white"
+          textAnchor={x > cx ? 'start' : 'end'}
+          dominantBaseline="central"
+          fontSize={15}
+        >
           {`${(percent * 100).toFixed(0)}%`}
         </text>
-      );
+      )
     }
     return
-  };
+  }
 
   return (
     <div className="rounded-lg border bg-primary-foreground/30 p-4">
       <h1 className="text-xl font-bold">Acceptance</h1>
-      <p className="mt-0.5 text-xs text-muted-foreground">Jan 1, 2024 - Jan 15, 2024</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Jan 1, 2024 - Jan 15, 2024
+      </p>
       <ResponsiveContainer width="100%" height={250}>
         <PieChart width={700} height={400}>
           <Pie
@@ -311,7 +321,10 @@ function AcceptanceChartSection() {
             dataKey="value"
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
+              />
             ))}
           </Pie>
           <Legend />
@@ -321,8 +334,8 @@ function AcceptanceChartSection() {
   )
 }
 
-function ActivityChartSection () {
-  const data = new Array(365).fill("").map((_, idx) => ({
+function ActivityChartSection() {
+  const data = new Array(365).fill('').map((_, idx) => ({
     date: moment().subtract(idx, 'days').format('YYYY-MM-DD'),
     count: Math.round(Math.random() * 20),
     level: Math.floor(Math.random() * 5)
@@ -331,10 +344,12 @@ function ActivityChartSection () {
   return (
     <div className="flex h-full flex-col rounded-lg border bg-primary-foreground/30 p-4">
       <h1 className="text-xl font-bold">Activity</h1>
-      <p className="mt-0.5 text-xs text-muted-foreground">5944 completions in the last year</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        5944 completions in the last year
+      </p>
       <div className="flex flex-1 items-center justify-center">
         <ActivityCalendar data={data} />
       </div>
     </div>
-  );
+  )
 }

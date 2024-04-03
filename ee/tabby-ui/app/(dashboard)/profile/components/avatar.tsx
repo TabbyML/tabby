@@ -77,7 +77,7 @@ export const Avatar = () => {
       <div className="relative">
         <label
           htmlFor="avatar-file"
-          className="absolute left-0 top-0 z-20 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full bg-background/90 opacity-0 transition-all hover:opacity-100"
+          className="absolute left-0 top-0 z-20 flex size-16 cursor-pointer items-center justify-center rounded-full bg-background/90 opacity-0 transition-all hover:opacity-100"
         >
           <IconCloudUpload />
         </label>
@@ -91,12 +91,12 @@ export const Avatar = () => {
         {uploadedImgString && (
           <img
             src={uploadedImgString}
-            className="absolute left-0 top-0 z-10 h-16 w-16 rounded-full border object-cover"
+            className="absolute left-0 top-0 z-10 size-16 rounded-full border object-cover"
             alt="avatar to be uploaded"
           />
         )}
         <UserAvatar
-          className={cn('relative h-16 w-16 border', {
+          className={cn('relative size-16 border', {
             'opacity-0': uploadedImgString
           })}
         />
@@ -111,9 +111,7 @@ export const Avatar = () => {
           onClick={onUploadAvatar}
           className="mr-5 w-40"
         >
-          {isSubmitting && (
-            <IconSpinner className="mr-2 h-4 w-4 animate-spin" />
-          )}
+          {isSubmitting && <IconSpinner className="mr-2 size-4 animate-spin" />}
           Save Changes
         </Button>
 

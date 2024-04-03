@@ -33,9 +33,9 @@ export const FormSkeleton: React.FC<HTMLAttributes<HTMLDivElement>> = ({
 }) => {
   return (
     <div className={cn('flex flex-col gap-3', className)} {...props}>
-      <Skeleton className="h-4 w-[20%]" />
+      <Skeleton className="h-4 w-1/5" />
       <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-[20%]" />
+      <Skeleton className="h-4 w-1/5" />
       <Skeleton className="h-4 w-full" />
     </div>
   )

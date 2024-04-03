@@ -36,9 +36,9 @@ export function ChatMessage({
         )}
       >
         {message.role === 'user' ? (
-          <UserAvatar className="h-8 w-8" />
+          <UserAvatar className="size-8" />
         ) : (
-          <IconTabby className="h-8 w-8" />
+          <IconTabby className="size-8" />
         )}
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">

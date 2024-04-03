@@ -34,7 +34,7 @@ function JobAggregateState({
         <TooltipTrigger>
           <div
             className={cn(
-              'flex h-8 w-8 cursor-default items-center justify-center rounded-full',
+              'flex size-8 cursor-default items-center justify-center rounded-full',
               {
                 [activeClass]: count,
                 'bg-muted text-muted': !count
@@ -170,7 +170,7 @@ export default function JobRow({ name }: { name: string }) {
                       <Link
                         href={`/jobs/detail?id=${job.node.id}`}
                         className={cn(
-                          'flex h-8 w-8 items-center justify-center rounded text-xs text-white hover:opacity-70',
+                          'flex size-8 items-center justify-center rounded text-xs text-white hover:opacity-70',
                           {
                             'bg-blue-700': isNil(job.node.exitCode),
                             'bg-green-700': job.node.exitCode === 0,

@@ -42,7 +42,7 @@ export default function UserPanel() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <UserAvatar className="h-10 w-10 border" />
+        <UserAvatar className="size-10 border" />
       </DropdownMenuTrigger>
       <DropdownMenuContent collisionPadding={{ right: 16 }}>
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>

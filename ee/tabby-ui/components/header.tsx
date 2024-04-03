@@ -3,9 +3,9 @@
 import * as React from 'react'
 import { compare } from 'compare-versions'
 
-import { cn } from '@/lib/utils'
 import { useHealth } from '@/lib/hooks/use-health'
 import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
+import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconNotice } from '@/components/ui/icons'
 
@@ -27,7 +27,7 @@ export function Header() {
             target="_blank"
             href="https://github.com/TabbyML/tabby/releases/latest"
             rel="noopener noreferrer"
-            className={cn("-ml-4", buttonVariants({ variant: 'ghost' }))}
+            className={cn('-ml-4', buttonVariants({ variant: 'ghost' }))}
           >
             <IconNotice className="text-yellow-600 dark:text-yellow-400" />
             <span className="ml-2 hidden md:flex">

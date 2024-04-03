@@ -1219,7 +1219,7 @@ function IconCloudUpload({ className, ...props }: React.ComponentProps<'svg'>) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn('h-4 w-4', className)}
+      className={cn('size-4', className)}
       {...props}
     >
       <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
@@ -1239,7 +1239,7 @@ function IconHistory({ className, ...props }: React.ComponentProps<'svg'>) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn('h-4 w-4', className)}
+      className={cn('size-4', className)}
       {...props}
     >
       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -1259,7 +1259,7 @@ function IconClock({ className, ...props }: React.ComponentProps<'svg'>) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn('h-4 w-4', className)}
+      className={cn('size-4', className)}
       {...props}
     >
       <circle cx="12" cy="12" r="10" />
@@ -1278,7 +1278,7 @@ function IconStopWatch({ className, ...props }: React.ComponentProps<'svg'>) {
       strokeWidth="0.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn('h-4 w-4', className)}
+      className={cn('size-4', className)}
       {...props}
     >
       <path

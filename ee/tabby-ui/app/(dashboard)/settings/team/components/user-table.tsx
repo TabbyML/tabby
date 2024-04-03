@@ -141,8 +141,8 @@ export default function UsersTable() {
                 <TableRow>
                   <TableHead className="w-[25%]">Email</TableHead>
                   <TableHead className="w-[15%]">Joined</TableHead>
-                  <TableHead className="w-[20%] text-center">Status</TableHead>
-                  <TableHead className="w-[20%] text-center">Level</TableHead>
+                  <TableHead className="w-1/5 text-center">Status</TableHead>
+                  <TableHead className="w-1/5 text-center">Level</TableHead>
                   <TableHead className="w-[100px]"></TableHead>
                 </TableRow>
               </TableHeader>
