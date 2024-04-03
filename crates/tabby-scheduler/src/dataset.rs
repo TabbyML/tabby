@@ -13,6 +13,7 @@ use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, F
 use ignore::{DirEntry, Walk};
 use kdam::BarExt;
 use lazy_static::lazy_static;
+use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
     path::{dataset_dir, dependency_file},
@@ -61,7 +62,6 @@ impl RepositoryExt for RepositoryConfig {
                 Ok(file_content) => {
                     let source_file = SourceFile {
                         git_url: self.git_url.clone(),
-                        repository_name: self.name(),
                         filepath: relative_path.display().to_string(),
                         max_line_length: metrics::max_line_length(&file_content),
                         avg_line_length: metrics::avg_line_length(&file_content),
@@ -120,8 +120,10 @@ pub fn create_dataset(config: &[RepositoryConfig]) -> Result<()> {
 }
 
 mod metrics {
+    use std::cmp::max;
+
     pub fn max_line_length(content: &str) -> usize {
-        content.lines().map(|x| x.len()).max().unwrap_or(0)
+        content.lines().map(|x| x.len()).reduce(max).unwrap_or(0)
     }
 
     pub fn avg_line_length(content: &str) -> f32 {
