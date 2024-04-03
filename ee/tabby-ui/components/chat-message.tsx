@@ -33,7 +33,7 @@ export function ChatMessage({
     >
       <div
         className={cn(
-          'bg-background shrink-0 select-none rounded-full border shadow'
+          'shrink-0 select-none rounded-full border bg-background shadow'
         )}
       >
         {message.role === 'user' ? (
@@ -44,7 +44,7 @@ export function ChatMessage({
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
         <MemoizedReactMarkdown
-          className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 break-words"
+          className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0"
           remarkPlugins={[remarkGfm, remarkMath]}
           components={{
             p({ children }) {
@@ -98,7 +98,7 @@ export function MessagePendingIndicator() {
     <div className="mb-4 flex items-start md:-ml-12">
       <div
         className={cn(
-          'bg-background shrink-0 select-none rounded-full border shadow'
+          'shrink-0 select-none rounded-full border bg-background shadow'
         )}
       >
         <IconTabby className="h-8 w-8" />
