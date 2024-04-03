@@ -354,7 +354,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         gitUrl = remote.url;
       }
     }
-    // if filepathInfo is not set by git context, use path relative to workspace
+    // if relativeFilepathRoot is not set by git context, use path relative to workspace
     if (!relativeFilepathRoot && workspace) {
       relativeFilepathRoot = workspace;
     }
