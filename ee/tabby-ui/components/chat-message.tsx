@@ -13,7 +13,7 @@ import { CodeBlock } from '@/components/ui/codeblock'
 import { ChatMessageActions } from '@/components/chat-message-actions'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
-import { IconSpinner } from './ui/icons'
+import { Skeleton } from './ui/skeleton'
 import { UserAvatar } from './user-avatar'
 
 export interface ChatMessageProps {
@@ -31,11 +31,7 @@ export function ChatMessage({
       className={cn('group relative mb-4 flex items-start md:-ml-12')}
       {...props}
     >
-      <div
-        className={cn(
-          'shrink-0 select-none rounded-full border bg-background shadow'
-        )}
-      >
+      <div className="bg-background shrink-0 select-none rounded-full border shadow">
         {message.role === 'user' ? (
           <UserAvatar className="h-8 w-8" />
         ) : (
@@ -44,7 +40,7 @@ export function ChatMessage({
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
         <MemoizedReactMarkdown
-          className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0"
+          className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 break-words"
           remarkPlugins={[remarkGfm, remarkMath]}
           components={{
             p({ children }) {
@@ -96,15 +92,12 @@ export function ChatMessage({
 export function MessagePendingIndicator() {
   return (
     <div className="mb-4 flex items-start md:-ml-12">
-      <div
-        className={cn(
-          'shrink-0 select-none rounded-full border bg-background shadow'
-        )}
-      >
+      <div className="bg-background shrink-0 select-none rounded-full border shadow">
         <IconTabby className="h-8 w-8" />
       </div>
-      <div className="ml-4 flex h-8 items-center">
-        <IconSpinner className="h-6 w-6" />
+      <div className="ml-4 flex-1 px-1 space-y-2">
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-full" />
       </div>
     </div>
   )
