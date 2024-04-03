@@ -7,7 +7,7 @@ tags: [deployment, repository context]
 
 A few months back, we published a blog [Repository context for LLM assisted code completion](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion), introducing the `Repository Context` feature in Tabby.
 
-In this blog, I will guide you through the process of setting up a Tabby server configured with a private Git repositories context.
+In this blog, I will guide you through the process of setting up a Tabby server configured with **a private Git repositories** context.
 
 ## Generating a Personal Access Token
 
