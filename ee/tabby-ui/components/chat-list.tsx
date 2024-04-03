@@ -7,10 +7,14 @@ import { ChatMessage, MessagePendingIndicator } from '@/components/chat-message'
 export interface ChatList {
   messages: Message[]
   handleMessageAction: (messageId: string, action: MessageActionType) => void
-  pending?: boolean
+  isStreamResponsePending?: boolean
 }
 
-export function ChatList({ messages, handleMessageAction, pending }: ChatList) {
+export function ChatList({
+  messages,
+  handleMessageAction,
+  isStreamResponsePending
+}: ChatList) {
   if (!messages.length) {
     return null
   }
@@ -28,7 +32,7 @@ export function ChatList({ messages, handleMessageAction, pending }: ChatList) {
           )}
         </div>
       ))}
-      {pending && (
+      {isStreamResponsePending && (
         <>
           <Separator className="my-4 md:my-8" />
           <MessagePendingIndicator />

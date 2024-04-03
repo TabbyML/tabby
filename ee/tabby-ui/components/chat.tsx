@@ -30,11 +30,13 @@ function ChatRenderer(
   ref: React.ForwardedRef<ChatRef>
 ) {
   const chats = useStore(useChatStore, state => state.chats)
-  const [isMessagePending, setIsMessagePending] = React.useState(false)
+  // When the response status text is 200, the variable should be false
+  const [isStreamResponsePending, setIsStreamResponsePending] =
+    React.useState(false)
 
   const onStreamToken = useLatest(() => {
-    if (isMessagePending) {
-      setIsMessagePending(false)
+    if (isStreamResponsePending) {
+      setIsStreamResponsePending(false)
     }
   })
 
@@ -48,15 +50,12 @@ function ChatRenderer(
       if (response.status === 401) {
         toast.error(response.statusText)
       }
-    },
-    onError(error) {
-      console.log('chat error', error)
     }
   })
 
   usePatchFetch({
     onStart: () => {
-      setIsMessagePending(true)
+      setIsStreamResponsePending(true)
     },
     onToken: () => {
       onStreamToken.current()
@@ -77,7 +76,7 @@ function ChatRenderer(
   const [selectedMessageId, setSelectedMessageId] = React.useState<string>()
 
   const onStop = () => {
-    setIsMessagePending(false)
+    setIsStreamResponsePending(false)
     stop()
   }
 
@@ -159,10 +158,10 @@ function ChatRenderer(
   }, [])
 
   React.useLayoutEffect(() => {
-    if (isMessagePending) {
+    if (isStreamResponsePending) {
       scrollToBottom('smooth')
     }
-  }, [isMessagePending])
+  }, [isStreamResponsePending])
 
   React.useImperativeHandle(
     ref,
@@ -181,7 +180,7 @@ function ChatRenderer(
               <ChatList
                 messages={messages}
                 handleMessageAction={handleMessageAction}
-                pending={isMessagePending}
+                isStreamResponsePending={isStreamResponsePending}
               />
               <ChatScrollAnchor trackVisibility={isLoading} />
             </>
