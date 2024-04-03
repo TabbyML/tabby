@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
+import { OpenAIStream, OpenAIStreamCallbacks, StreamingTextResponse } from 'ai'
 
 import fetcher from '../tabby/fetcher'
 
-export function usePatchFetch() {
+export function usePatchFetch(callbacks?: OpenAIStreamCallbacks) {
   useEffect(() => {
     if (!window._originFetch) {
       window._originFetch = window.fetch
@@ -26,7 +26,7 @@ export function usePatchFetch() {
         headers,
         customFetch: fetch,
         responseFormatter(response) {
-          const stream = OpenAIStream(response, undefined)
+          const stream = OpenAIStream(response, callbacks)
           return new StreamingTextResponse(stream)
         }
       })

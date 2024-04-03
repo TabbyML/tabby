@@ -6,6 +6,7 @@ import type { Message, UseChatHelpers } from 'ai/react'
 import { find, findIndex } from 'lodash-es'
 import { toast } from 'sonner'
 
+import { useLatest } from '@/lib/hooks/use-latest'
 import { usePatchFetch } from '@/lib/hooks/use-patch-fetch'
 import { useStore } from '@/lib/hooks/use-store'
 import { addChat, updateMessages } from '@/lib/stores/chat-actions'
@@ -22,14 +23,20 @@ export interface ChatProps extends React.ComponentProps<'div'> {
   id?: string
 }
 
-export interface ChatRef extends UseChatHelpers { }
+export interface ChatRef extends UseChatHelpers {}
 
 function ChatRenderer(
   { id, initialMessages, className }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
-  usePatchFetch()
   const chats = useStore(useChatStore, state => state.chats)
+  const [isMessagePending, setIsMessagePending] = React.useState(false)
+
+  const onStreamToken = useLatest(() => {
+    if (isMessagePending) {
+      setIsMessagePending(false)
+    }
+  })
 
   const useChatHelpers = useChat({
     initialMessages,
@@ -41,6 +48,18 @@ function ChatRenderer(
       if (response.status === 401) {
         toast.error(response.statusText)
       }
+    },
+    onError(error) {
+      console.log('chat error', error)
+    }
+  })
+
+  usePatchFetch({
+    onStart: () => {
+      setIsMessagePending(true)
+    },
+    onToken: () => {
+      onStreamToken.current()
     }
   })
 
@@ -56,6 +75,11 @@ function ChatRenderer(
   } = useChatHelpers
 
   const [selectedMessageId, setSelectedMessageId] = React.useState<string>()
+
+  const onStop = () => {
+    setIsMessagePending(false)
+    stop()
+  }
 
   const onRegenerateResponse = (messageId: string) => {
     const messageIndex = findIndex(messages, { id: messageId })
@@ -100,9 +124,11 @@ function ChatRenderer(
     }
   }
 
-  const scrollToBottom = () => {
-    const scrollHeight = document.documentElement.scrollHeight
-    window.scrollTo(0, scrollHeight)
+  const scrollToBottom = (behavior?: ScrollBehavior) => {
+    window.scrollTo({
+      top: document.body.offsetHeight,
+      behavior
+    })
   }
 
   const handleSubmit = async (value: string) => {
@@ -113,14 +139,10 @@ function ChatRenderer(
       setMessages(messages.slice(0, messageIdx))
       setSelectedMessageId(undefined)
     }
-    append({
+    await append({
       id: nanoid(),
       content: value,
       role: 'user'
-    })
-
-    window.setTimeout(() => {
-      scrollToBottom()
     })
   }
 
@@ -135,6 +157,12 @@ function ChatRenderer(
 
     return () => stop()
   }, [])
+
+  React.useLayoutEffect(() => {
+    if (isMessagePending) {
+      scrollToBottom('smooth')
+    }
+  }, [isMessagePending])
 
   React.useImperativeHandle(
     ref,
@@ -153,6 +181,7 @@ function ChatRenderer(
               <ChatList
                 messages={messages}
                 handleMessageAction={handleMessageAction}
+                pending={isMessagePending}
               />
               <ChatScrollAnchor trackVisibility={isLoading} />
             </>
@@ -165,7 +194,7 @@ function ChatRenderer(
           className="fixed inset-x-0 bottom-0 lg:ml-[280px]"
           id={id}
           isLoading={isLoading}
-          stop={stop}
+          stop={onStop}
           append={append}
           reload={reload}
           messages={messages}
