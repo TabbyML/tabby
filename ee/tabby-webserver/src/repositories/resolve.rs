@@ -20,14 +20,10 @@ use tower::ServiceExt;
 use tower_http::services::ServeDir;
 use tracing::{debug, error, warn};
 
-use crate::{
-    cron::{CronEvents, StartListener},
-    schema::repository::RepositoryService,
-};
+use crate::cron::{CronEvents, StartListener};
 
 pub struct RepositoryCache {
     repository_lookup: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
-    service: Arc<dyn RepositoryService>,
 }
 
 impl std::fmt::Debug for RepositoryCache {
@@ -39,13 +35,9 @@ impl std::fmt::Debug for RepositoryCache {
 }
 
 impl RepositoryCache {
-    pub async fn new_initialized(
-        service: Arc<dyn RepositoryService>,
-        events: &CronEvents,
-    ) -> Arc<RepositoryCache> {
+    pub async fn new_initialized(events: &CronEvents) -> Arc<RepositoryCache> {
         let cache = RepositoryCache {
             repository_lookup: Default::default(),
-            service,
         };
         if let Err(e) = cache.reload().await {
             error!("Failed to load repositories: {e}");
@@ -56,16 +48,9 @@ impl RepositoryCache {
     }
 
     async fn reload(&self) -> Result<()> {
-        let new_repositories = self
-            .service
-            .list_repositories(None, None, None, None)
-            .await?
-            .into_iter()
-            .map(|repository| RepositoryConfig::new_named(repository.name, repository.git_url))
-            .collect();
         let mut repository_lookup = self.repository_lookup.write().unwrap();
         debug!("Reloading repositoriy metadata...");
-        *repository_lookup = load_meta(new_repositories);
+        *repository_lookup = load_meta();
         Ok(())
     }
 
@@ -168,26 +153,19 @@ impl From<SourceFile> for RepositoryMeta {
     }
 }
 
-fn load_meta(repositories: Vec<RepositoryConfig>) -> HashMap<RepositoryKey, RepositoryMeta> {
+fn load_meta() -> HashMap<RepositoryKey, RepositoryMeta> {
     let mut dataset = HashMap::new();
-    // Construct map of String -> &RepositoryConfig for lookup
-    let repo_conf = repositories
-        .iter()
-        .map(|repo| (repo.git_url.clone(), repo))
-        .collect::<HashMap<_, _>>();
     let Ok(iter) = SourceFile::all() else {
         return dataset;
     };
     // Source files contain all metadata, read repository metadata from json
     // (SourceFile can be converted into RepositoryMeta)
     for file in iter {
-        if let Some(repo_name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
-            let key = RepositoryKey {
-                repo_name,
-                rel_path: file.filepath.clone(),
-            };
-            dataset.insert(key, file.into());
-        }
+        let key = RepositoryKey {
+            repo_name: file.repository_name.clone(),
+            rel_path: file.filepath.clone(),
+        };
+        dataset.insert(key, file.into());
     }
     dataset
 }

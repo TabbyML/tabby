@@ -4,82 +4,76 @@ mod tags;
 use std::{
     collections::HashMap,
     ffi::OsStr,
-    fs::{self, read_to_string},
+    fs::read_to_string,
     io::{IsTerminal, Write},
 };
 
 use anyhow::{anyhow, Result};
-use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use ignore::{DirEntry, Walk};
 use kdam::BarExt;
+use kdam::{tqdm, Bar};
 use lazy_static::lazy_static;
-use tabby_common::{
-    config::RepositoryConfig,
-    path::{dataset_dir, dependency_file},
-    DependencyFile, SourceFile,
-};
+use tabby_common::{config::RepositoryConfig, DependencyFile, SourceFile};
 use tracing::error;
 use tree_sitter_tags::TagsContext;
 
-use crate::utils::tqdm;
+use crate::RepositoryCache;
 
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
 }
 
-impl RepositoryExt for RepositoryConfig {
-    fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
-        let dir = self.dir();
+fn index_repository(cache: &RepositoryCache, repository: &RepositoryConfig) -> Result<()> {
+    let dir = repository.dir();
 
-        let walk_dir_iter = || {
-            Walk::new(dir.as_path())
-                .filter_map(Result::ok)
-                .filter(is_source_code)
-        };
+    let walk_dir_iter = || {
+        Walk::new(dir.as_path())
+            .filter_map(Result::ok)
+            .filter(is_source_code)
+    };
 
-        let mut pb = std::io::stdout()
-            .is_terminal()
-            .then(|| tqdm(walk_dir_iter().count()));
-        let walk_dir = walk_dir_iter();
+    let mut pb = std::io::stdout()
+        .is_terminal()
+        .then(|| tqdm(walk_dir_iter().count()));
+    let walk_dir = walk_dir_iter();
 
-        let mut context = TagsContext::new();
-        for entry in walk_dir {
-            pb.as_mut().map(|b| b.update(1)).transpose()?;
+    let mut context = TagsContext::new();
+    for entry in walk_dir {
+        pb.as_mut().map(|b| b.update(1)).transpose()?;
 
-            let relative_path = entry
-                .path()
-                .strip_prefix(dir.as_path())
-                .expect("Paths always begin with the prefix");
-            let language = get_language(
-                relative_path
-                    .extension()
-                    .ok_or_else(|| anyhow!("Unknown file extension for {relative_path:?}"))?,
-            )
-            .ok_or_else(|| anyhow!("Unknown language for {relative_path:?}"))?
-            .to_owned();
-            match read_to_string(entry.path()) {
-                Ok(file_content) => {
-                    let source_file = SourceFile {
-                        git_url: self.git_url.clone(),
-                        repository_name: self.name(),
-                        filepath: relative_path.display().to_string(),
-                        max_line_length: metrics::max_line_length(&file_content),
-                        avg_line_length: metrics::avg_line_length(&file_content),
-                        alphanum_fraction: metrics::alphanum_fraction(&file_content),
-                        tags: tags::collect(&mut context, &language, &file_content),
-                        language,
-                        content: file_content,
-                    };
-                    writer.write_json_lines([source_file])?;
-                }
-                Err(e) => {
-                    error!("Cannot read {relative_path:?}: {e:?}");
-                }
+        let relative_path = entry
+            .path()
+            .strip_prefix(dir.as_path())
+            .expect("Paths always begin with the prefix");
+        let language = get_language(
+            relative_path
+                .extension()
+                .ok_or_else(|| anyhow!("Unknown file extension for {relative_path:?}"))?,
+        )
+        .ok_or_else(|| anyhow!("Unknown language for {relative_path:?}"))?
+        .to_owned();
+        match read_to_string(entry.path()) {
+            Ok(file_content) => {
+                let file = SourceFile {
+                    git_url: repository.git_url.clone(),
+                    repository_name: repository.name(),
+                    filepath: relative_path.display().to_string(),
+                    max_line_length: metrics::max_line_length(&file_content),
+                    avg_line_length: metrics::avg_line_length(&file_content),
+                    alphanum_fraction: metrics::alphanum_fraction(&file_content),
+                    tags: tags::collect(&mut context, &language, &file_content),
+                    language,
+                    content: file_content,
+                };
+                cache.add_repository_meta(file)?;
+            }
+            Err(e) => {
+                error!("Cannot read {relative_path:?}: {e:?}");
             }
         }
-
-        Ok(())
     }
+
+    Ok(())
 }
 
 fn get_language(ext: &OsStr) -> Option<&str> {
@@ -95,27 +89,15 @@ fn is_source_code(entry: &DirEntry) -> bool {
     }
 }
 
-pub fn create_dataset(config: &[RepositoryConfig]) -> Result<()> {
-    fs::remove_dir_all(dataset_dir()).ok();
-    fs::create_dir_all(dataset_dir())?;
-    let mut writer = FileRotate::new(
-        SourceFile::files_jsonl(),
-        AppendCount::new(usize::max_value()),
-        ContentLimit::Lines(1000),
-        Compression::None,
-        #[cfg(unix)]
-        None,
-    );
+pub fn reload_index(cache: &RepositoryCache, config: &[RepositoryConfig]) -> Result<()> {
+    cache.clear()?;
 
     let mut deps = DependencyFile::default();
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
-        repository.create_dataset(&mut writer)?;
+        index_repository(&cache, &repository)?;
     }
 
-    serdeconv::to_json_file(&deps, dependency_file())?;
-
-    writer.flush()?;
     Ok(())
 }
 
@@ -200,4 +182,8 @@ lazy_static! {
 
         map
     };
+}
+
+fn tqdm(total: usize) -> Bar {
+    tqdm!(total = total, ncols = 40, force_refresh = true)
 }

@@ -1,6 +1,9 @@
 use anyhow::{anyhow, Result};
+use dataset::reload_index;
 use kv::{Bucket, Config, Json, Store};
-use tabby_common::SourceFile;
+use tabby_common::{config::RepositoryConfig, SourceFile};
+
+mod dataset;
 
 type RepositoryBucket<'a> = Bucket<'a, String, Json<SourceFile>>;
 
@@ -25,24 +28,20 @@ impl RepositoryCache {
     }
 
     pub fn add_repository_meta(&self, file: SourceFile) -> Result<()> {
-        let key = format!("{}:{}", file.git_url, file.filepath);
+        let key = format!("{}:{}", file.repository_name, file.filepath);
         self.bucket()?.set(&key, &Json(file))?;
         Ok(())
     }
 
-    pub fn get_repository_meta(&self, git_url: &str, filepath: &str) -> Result<SourceFile> {
-        let key = format!("{git_url}:{filepath}");
+    pub fn get_repository_meta(&self, repository_name: &str, filepath: &str) -> Result<SourceFile> {
+        let key = format!("{repository_name}:{filepath}");
         let Some(Json(val)) = self.bucket()?.get(&key)? else {
             return Err(anyhow!("Repository meta not found"));
         };
         Ok(val)
     }
 
-    pub fn reload(&self) -> Result<()> {
-        self.clear()?;
-        for file in SourceFile::all()? {
-            self.add_repository_meta(file)?;
-        }
-        Ok(())
+    pub fn reload(&self, repositories: &[RepositoryConfig]) -> Result<()> {
+        reload_index(&self, repositories)
     }
 }

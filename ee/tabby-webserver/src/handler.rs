@@ -50,7 +50,7 @@ impl WebserverHandle {
             create_service_locator(self.logger(), code, self.db.clone(), is_chat_enabled).await;
         let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
-        let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;
+        let repository_cache = RepositoryCache::new_initialized(&events).await;
 
         let schema = Arc::new(create_schema());
         let rs = Arc::new(repository_cache);
