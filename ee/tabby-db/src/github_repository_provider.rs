@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
-use sqlx::{query, query_as};
+use sqlx::{prelude::FromRow, query, query_as};
+use tabby_db_macros::query_paged_as;
 
 use crate::{DbConn, SQLXResultExt};
 
@@ -9,6 +10,7 @@ pub struct GithubRepositoryProviderDAO {
     pub secret: String,
 }
 
+#[derive(FromRow)]
 pub struct GithubProvidedRepositoryDAO {
     pub provider_id: i64,
     pub candidate_id: String,
@@ -88,5 +90,26 @@ impl DbConn {
             return Err(anyhow!("Specified repository does not exist"));
         }
         Ok(())
+    }
+
+    pub async fn list_github_provided_repositories(
+        &self,
+        provider_id: i64,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<GithubProvidedRepositoryDAO>> {
+        let repos = query_paged_as!(
+            GithubProvidedRepositoryDAO,
+            "github_provided_repositories",
+            ["provider_id", "candidate_id", "git_url", "name"],
+            limit,
+            skip_id,
+            backwards,
+            Some(format!("provider_id = {provider_id}"))
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(repos)
     }
 }
