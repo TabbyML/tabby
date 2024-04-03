@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::ID;
 use tabby_db::DbConn;
+use tracing::warn;
 
 use super::AsRowid;
 use crate::schema::{
@@ -19,10 +20,7 @@ struct AnalyticServiceImpl {
 impl AnalyticService for AnalyticServiceImpl {
     // FIXME(boxbeam): Implementing in memory caching with 1 hour expiry.
     async fn daily_stats_in_past_year(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>> {
-        let users = users
-            .into_iter()
-            .filter_map(|id| id.as_rowid().ok())
-            .collect();
+        let users = convert_ids(users);
         let stats = self.db.compute_daily_stats_in_past_year(users).await?;
         let stats = stats
             .into_iter()
@@ -43,10 +41,7 @@ impl AnalyticService for AnalyticServiceImpl {
         users: Vec<ID>,
         languages: Vec<Language>,
     ) -> Result<Vec<CompletionStats>> {
-        let users = users
-            .into_iter()
-            .filter_map(|id| id.as_rowid().ok())
-            .collect();
+        let users = convert_ids(users);
         let languages = languages.into_iter().map(|l| l.to_string()).collect();
         let stats = self
             .db
@@ -63,6 +58,18 @@ impl AnalyticService for AnalyticServiceImpl {
             .collect();
         Ok(stats)
     }
+}
+
+fn convert_ids(ids: Vec<ID>) -> Vec<i32> {
+    ids.into_iter()
+        .filter_map(|id| match id.as_rowid() {
+            Ok(rowid) => Some(rowid),
+            Err(_) => {
+                warn!("Ignoring invalid ID: {}", id);
+                None
+            }
+        })
+        .collect()
 }
 
 pub fn new_analytic_service(db: DbConn) -> Arc<dyn AnalyticService> {
