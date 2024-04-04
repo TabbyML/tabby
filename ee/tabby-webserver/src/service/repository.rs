@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use async_trait::async_trait;
-use futures::StreamExt;
+use ignore::Walk;
 use juniper::ID;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
@@ -30,16 +30,17 @@ fn match_glob(path: &str, glob: &str) -> bool {
 
 async fn find_glob(base: &Path, glob: &str, limit: usize) -> Result<Vec<FileEntry>, anyhow::Error> {
     let mut paths = vec![];
-    let mut walk = async_walkdir::WalkDir::new(base);
-    while let Some(path) = walk.next().await.transpose()? {
-        let full_path = path.path();
+    let walk = Walk::new(base);
+    for entry in walk {
+        let entry = entry?;
+        let full_path = entry.path();
         let full_path = full_path.strip_prefix(base)?;
         let name = full_path.to_string_lossy();
         if !match_glob(&name, glob) {
             continue;
         }
         paths.push(FileEntry {
-            r#type: if path.file_type().await?.is_dir() {
+            r#type: if entry.file_type().map(|x| x.is_dir()).unwrap_or_default() {
                 "dir".into()
             } else {
                 "file".into()
@@ -50,6 +51,7 @@ async fn find_glob(base: &Path, glob: &str, limit: usize) -> Result<Vec<FileEntr
             break;
         }
     }
+
     Ok(paths)
 }
 
@@ -70,20 +72,15 @@ impl RepositoryService for DbConn {
     }
 
     async fn create_repository(&self, name: String, git_url: String) -> Result<ID> {
-        Ok((self as &DbConn)
-            .create_repository(name, git_url)
-            .await?
-            .as_id())
+        Ok(self.create_repository(name, git_url).await?.as_id())
     }
 
     async fn delete_repository(&self, id: &ID) -> Result<bool> {
-        Ok((self as &DbConn).delete_repository(id.as_rowid()?).await?)
+        Ok(self.delete_repository(id.as_rowid()? as i64).await?)
     }
 
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
-        (self as &DbConn)
-            .update_repository(id.as_rowid()?, name, git_url)
-            .await?;
+        self.update_repository(id.as_rowid()? as i64, name, git_url).await?;
         Ok(true)
     }
 
