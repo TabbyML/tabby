@@ -356,6 +356,30 @@ impl Query {
     async fn jobs() -> Result<Vec<String>> {
         Ok(vec!["scheduler".into()])
     }
+
+    async fn daily_stats_in_past_year(
+        ctx: &Context,
+        users: Option<Vec<ID>>,
+    ) -> Result<Vec<CompletionStats>> {
+        let users = users.unwrap_or_default();
+        check_analytic_access(ctx, &users).await?;
+        ctx.locator.analytic().daily_stats_in_past_year(users).await
+    }
+
+    async fn daily_stats(
+        ctx: &Context,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+        users: Option<Vec<ID>>,
+        languages: Option<Vec<analytic::Language>>,
+    ) -> Result<Vec<CompletionStats>> {
+        let users = users.unwrap_or_default();
+        check_analytic_access(ctx, &users).await?;
+        ctx.locator
+            .analytic()
+            .daily_stats(start, end, users, languages.unwrap_or_default())
+            .await
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -621,30 +645,6 @@ impl Mutation {
         check_admin(ctx).await?;
         ctx.locator.license().reset_license().await?;
         Ok(true)
-    }
-
-    async fn daily_stats_in_past_year(
-        ctx: &Context,
-        users: Option<Vec<ID>>,
-    ) -> Result<Vec<CompletionStats>> {
-        let users = users.unwrap_or_default();
-        check_analytic_access(ctx, &users).await?;
-        ctx.locator.analytic().daily_stats_in_past_year(users).await
-    }
-
-    async fn daily_stats(
-        ctx: &Context,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
-        users: Option<Vec<ID>>,
-        languages: Option<Vec<analytic::Language>>,
-    ) -> Result<Vec<CompletionStats>> {
-        let users = users.unwrap_or_default();
-        check_analytic_access(ctx, &users).await?;
-        ctx.locator
-            .analytic()
-            .daily_stats(start, end, users, languages.unwrap_or_default())
-            .await
     }
 }
 

@@ -153,8 +153,6 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
-  dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
 }
 
 type RepositoryEdge {
@@ -189,6 +187,8 @@ type Query {
   serverInfo: ServerInfo!
   license: LicenseInfo!
   jobs: [String!]!
+  dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
+  dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
 }
 
 enum Encryption {
@@ -242,17 +242,17 @@ type OAuthCredential {
   updatedAt: DateTimeUtc!
 }
 
-input PasswordResetInput {
-  code: String!
-  password1: String!
-  password2: String!
-}
-
 type CompletionStats {
   start: DateTimeUtc!
   end: DateTimeUtc!
   completions: Int!
   selects: Int!
+}
+
+input PasswordResetInput {
+  code: String!
+  password1: String!
+  password2: String!
 }
 
 type User {
