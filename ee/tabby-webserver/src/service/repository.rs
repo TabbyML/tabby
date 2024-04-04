@@ -12,45 +12,6 @@ use crate::schema::{
     Result,
 };
 
-async fn match_pattern(
-    base: &Path,
-    pattern: &str,
-    limit: usize,
-) -> Result<Vec<FileEntry>, anyhow::Error> {
-    let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
-    let needle = nucleo::pattern::Pattern::new(
-        pattern,
-        nucleo::pattern::CaseMatching::Ignore,
-        nucleo::pattern::Normalization::Smart,
-        nucleo::pattern::AtomKind::Fuzzy,
-    );
-    let mut scored_entries: Vec<(_, _)> = Walk::new(base)
-        .filter_map(|path| {
-            let entry = path.ok()?;
-            let r#type = if entry.file_type().map(|x| x.is_dir()).unwrap_or_default() {
-                "dir".into()
-            } else {
-                "file".into()
-            };
-            let path = entry
-                .into_path()
-                .strip_prefix(base)
-                .ok()?
-                .to_string_lossy()
-                .into_owned();
-            let haystack: nucleo::Utf32String = path.clone().into();
-            let score = needle.score(haystack.slice(..), &mut nucleo);
-            score.map(|score| (score, FileEntry { r#type, path }))
-        })
-        .take(limit)
-        .collect();
-
-    scored_entries.sort_by_key(|x| -(x.0 as i32));
-    let entries = scored_entries.into_iter().map(|x| x.1).collect();
-
-    Ok(entries)
-}
-
 #[async_trait]
 impl RepositoryService for DbConn {
     async fn list_repositories(
@@ -97,6 +58,45 @@ impl RepositoryService for DbConn {
             .map_err(anyhow::Error::from)?;
         Ok(matching)
     }
+}
+
+async fn match_pattern(
+    base: &Path,
+    pattern: &str,
+    limit: usize,
+) -> Result<Vec<FileEntry>, anyhow::Error> {
+    let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
+    let needle = nucleo::pattern::Pattern::new(
+        pattern,
+        nucleo::pattern::CaseMatching::Ignore,
+        nucleo::pattern::Normalization::Smart,
+        nucleo::pattern::AtomKind::Fuzzy,
+    );
+    let mut scored_entries: Vec<(_, _)> = Walk::new(base)
+        .filter_map(|path| {
+            let entry = path.ok()?;
+            let r#type = if entry.file_type().map(|x| x.is_dir()).unwrap_or_default() {
+                "dir".into()
+            } else {
+                "file".into()
+            };
+            let path = entry
+                .into_path()
+                .strip_prefix(base)
+                .ok()?
+                .to_string_lossy()
+                .into_owned();
+            let haystack: nucleo::Utf32String = path.clone().into();
+            let score = needle.score(haystack.slice(..), &mut nucleo);
+            score.map(|score| (score, FileEntry { r#type, path }))
+        })
+        .take(limit)
+        .collect();
+
+    scored_entries.sort_by_key(|x| -(x.0 as i32));
+    let entries = scored_entries.into_iter().map(|x| x.1).collect();
+
+    Ok(entries)
 }
 
 #[cfg(test)]
