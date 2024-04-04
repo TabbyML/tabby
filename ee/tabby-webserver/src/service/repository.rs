@@ -107,8 +107,6 @@ async fn match_pattern(
 
 #[cfg(test)]
 mod tests {
-    
-
     use tabby_db::DbConn;
     use temp_testdir::TempDir;
 
