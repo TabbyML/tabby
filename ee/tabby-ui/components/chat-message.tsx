@@ -13,6 +13,7 @@ import { CodeBlock } from '@/components/ui/codeblock'
 import { ChatMessageActions } from '@/components/chat-message-actions'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 
+import { Skeleton } from './ui/skeleton'
 import { UserAvatar } from './user-avatar'
 
 export interface ChatMessageProps {
@@ -30,11 +31,7 @@ export function ChatMessage({
       className={cn('group relative mb-4 flex items-start md:-ml-12')}
       {...props}
     >
-      <div
-        className={cn(
-          'shrink-0 select-none rounded-full border bg-background shadow'
-        )}
-      >
+      <div className="shrink-0 select-none rounded-full border bg-background shadow">
         {message.role === 'user' ? (
           <UserAvatar className="h-8 w-8" />
         ) : (
@@ -87,6 +84,20 @@ export function ChatMessage({
           message={message}
           handleMessageAction={handleMessageAction}
         />
+      </div>
+    </div>
+  )
+}
+
+export function MessagePendingIndicator() {
+  return (
+    <div className="mb-4 flex items-start md:-ml-12">
+      <div className="shrink-0 select-none rounded-full border bg-background shadow">
+        <IconTabby className="h-8 w-8" />
+      </div>
+      <div className="ml-4 flex-1 space-y-2 px-1">
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-full" />
       </div>
     </div>
   )
