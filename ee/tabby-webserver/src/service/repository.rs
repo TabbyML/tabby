@@ -3,6 +3,7 @@ use std::path::Path;
 use async_trait::async_trait;
 use ignore::Walk;
 use juniper::ID;
+use nucleo::{Utf32Str, Utf32String};
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 
@@ -12,47 +13,34 @@ use crate::schema::{
     Result,
 };
 
-fn match_glob(path: &str, glob: &str) -> bool {
-    let glob = glob.to_lowercase();
-    let mut path = &*path.to_lowercase();
-    // Current behavior: Find each "word" (any substring separated by whitespace) appearing in the same order
-    // they were entered within the path. If one cannot be found or they are out-of-order, it will not match.
-    // To change this behavior, change `.split_whitespace()` to `.chars()` to make it match the characters in
-    // order, or `.replace(' ', "").chars()` to do the same while ignoring spaces
-    for part in glob.split_whitespace() {
-        let Some((_, rest)) = path.split_once(part) else {
-            return false;
-        };
-        path = rest;
-    }
-    true
-}
+async fn match_glob(base: &Path, glob: &str, limit: usize) -> Result<Vec<FileEntry>, anyhow::Error> {
+    let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
+    let needle = Utf32Str::Ascii(glob.as_bytes());
 
-async fn find_glob(base: &Path, glob: &str, limit: usize) -> Result<Vec<FileEntry>, anyhow::Error> {
-    let mut paths = vec![];
-    let walk = Walk::new(base);
-    for entry in walk {
-        let entry = entry?;
-        let full_path = entry.path();
-        let full_path = full_path.strip_prefix(base)?;
-        let name = full_path.to_string_lossy();
-        if !match_glob(&name, glob) {
-            continue;
-        }
-        paths.push(FileEntry {
-            r#type: if entry.file_type().map(|x| x.is_dir()).unwrap_or_default() {
+    let entries: Vec<_> = Walk::new(base)
+        .into_iter()
+        .filter_map(|path| {
+            let entry = path.ok()?;
+            let r#type = if entry.file_type().map(|x| x.is_dir()).unwrap_or_default() {
                 "dir".into()
             } else {
                 "file".into()
-            },
-            path: name.to_string(),
-        });
-        if paths.len() >= limit {
-            break;
-        }
-    }
+            };
+            let path = entry
+                .into_path()
+                .strip_prefix(base)
+                .ok()?
+                .to_string_lossy()
+                .into_owned();
+            let haystack: Utf32String = path.clone().into();
+            nucleo
+                .fuzzy_match(haystack.slice(..), needle)
+                .map(|_| FileEntry { r#type, path })
+        })
+        .take(limit)
+        .collect();
 
-    Ok(paths)
+    Ok(entries)
 }
 
 #[async_trait]
@@ -80,7 +68,8 @@ impl RepositoryService for DbConn {
     }
 
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
-        self.update_repository(id.as_rowid()? as i64, name, git_url).await?;
+        self.update_repository(id.as_rowid()? as i64, name, git_url)
+            .await?;
         Ok(true)
     }
 
@@ -95,7 +84,7 @@ impl RepositoryService for DbConn {
         }
         let git_url = self.get_repository_by_name(name.clone()).await?.git_url;
         let config = RepositoryConfig::new_named(name, git_url);
-        let matching = find_glob(&config.dir(), &path_glob, top_n)
+        let matching = match_glob(&config.dir(), &path_glob, top_n)
             .await
             .map_err(anyhow::Error::from)?;
         Ok(matching)
