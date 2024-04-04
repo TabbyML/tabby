@@ -1,9 +1,6 @@
-
-
 use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
 use juniper_axum::relay::NodeType;
-
 use validator::Validate;
 
 use super::{Context, Result};
@@ -67,7 +64,7 @@ pub trait RepositoryService: Send + Sync {
     async fn search_files(
         &self,
         name: String,
-        path_glob: String,
+        pattern: String,
         top_n: usize,
     ) -> Result<Vec<FileEntry>>;
 }

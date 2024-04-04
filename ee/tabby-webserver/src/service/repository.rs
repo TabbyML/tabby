@@ -3,7 +3,6 @@ use std::path::Path;
 use async_trait::async_trait;
 use ignore::Walk;
 use juniper::ID;
-use nucleo::{Utf32Str, Utf32String};
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 
@@ -13,12 +12,19 @@ use crate::schema::{
     Result,
 };
 
-async fn match_glob(base: &Path, glob: &str, limit: usize) -> Result<Vec<FileEntry>, anyhow::Error> {
+async fn match_pattern(
+    base: &Path,
+    pattern: &str,
+    limit: usize,
+) -> Result<Vec<FileEntry>, anyhow::Error> {
     let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
-    let needle = Utf32Str::Ascii(glob.as_bytes());
-
-    let entries: Vec<_> = Walk::new(base)
-        .into_iter()
+    let needle = nucleo::pattern::Pattern::new(
+        pattern,
+        nucleo::pattern::CaseMatching::Ignore,
+        nucleo::pattern::Normalization::Smart,
+        nucleo::pattern::AtomKind::Fuzzy,
+    );
+    let mut scored_entries: Vec<(_, _)> = Walk::new(base)
         .filter_map(|path| {
             let entry = path.ok()?;
             let r#type = if entry.file_type().map(|x| x.is_dir()).unwrap_or_default() {
@@ -32,13 +38,15 @@ async fn match_glob(base: &Path, glob: &str, limit: usize) -> Result<Vec<FileEnt
                 .ok()?
                 .to_string_lossy()
                 .into_owned();
-            let haystack: Utf32String = path.clone().into();
-            nucleo
-                .fuzzy_match(haystack.slice(..), needle)
-                .map(|_| FileEntry { r#type, path })
+            let haystack: nucleo::Utf32String = path.clone().into();
+            let score = needle.score(haystack.slice(..), &mut nucleo);
+            score.map(|score| (score, FileEntry { r#type, path }))
         })
         .take(limit)
         .collect();
+
+    scored_entries.sort_by_key(|x| -(x.0 as i32));
+    let entries = scored_entries.into_iter().map(|x| x.1).collect();
 
     Ok(entries)
 }
@@ -76,15 +84,15 @@ impl RepositoryService for DbConn {
     async fn search_files(
         &self,
         name: String,
-        path_glob: String,
+        pattern: String,
         top_n: usize,
     ) -> Result<Vec<FileEntry>> {
-        if path_glob.trim().is_empty() {
+        if pattern.trim().is_empty() {
             return Ok(vec![]);
         }
         let git_url = self.get_repository_by_name(name.clone()).await?.git_url;
         let config = RepositoryConfig::new_named(name, git_url);
-        let matching = match_glob(&config.dir(), &path_glob, top_n)
+        let matching = match_pattern(&config.dir(), &pattern, top_n)
             .await
             .map_err(anyhow::Error::from)?;
         Ok(matching)

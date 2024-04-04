@@ -299,13 +299,14 @@ impl Query {
 
     async fn repository_search(
         ctx: &Context,
-        repository: String,
-        filter: String,
+        repository_name: String,
+        pattern: String,
     ) -> FieldResult<Vec<FileEntry>> {
+        check_claims(ctx)?;
         Ok(ctx
             .locator
             .repository()
-            .search_files(repository, filter, 40)
+            .search_files(repository_name, pattern, 40)
             .await?)
     }
 
