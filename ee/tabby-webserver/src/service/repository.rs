@@ -53,9 +53,15 @@ impl RepositoryService for DbConn {
         }
         let git_url = self.get_repository_by_name(name.clone()).await?.git_url;
         let config = RepositoryConfig::new_named(name, git_url);
-        let matching = match_pattern(&config.dir(), &pattern, top_n)
-            .await
-            .map_err(anyhow::Error::from)?;
+        let matching = tokio::task::spawn_blocking(move || async move {
+            match_pattern(&config.dir(), &pattern, top_n)
+                .await
+                .map_err(anyhow::Error::from)
+        })
+        .await
+        .map_err(anyhow::Error::from)?
+        .await?;
+
         Ok(matching)
     }
 }
@@ -101,7 +107,10 @@ async fn match_pattern(
 
 #[cfg(test)]
 mod tests {
+    use std::env::temp_dir;
+
     use tabby_db::DbConn;
+    use temp_testdir::TempDir;
 
     use super::*;
 
@@ -199,5 +208,53 @@ mod tests {
                 .name,
             "Example2"
         );
+    }
+
+    #[tokio::test]
+    pub async fn test_match_pattern() {
+        let dir = TempDir::default();
+        let example = dir.join("example");
+        tokio::fs::create_dir(&example).await.unwrap();
+        tokio::fs::write(example.join("file1.txt"), [])
+            .await
+            .unwrap();
+        tokio::fs::write(example.join("file2.txt"), [])
+            .await
+            .unwrap();
+        tokio::fs::write(example.join("file3.txt"), [])
+            .await
+            .unwrap();
+        let inner = example.join("inner");
+        tokio::fs::create_dir(&inner).await.unwrap();
+        tokio::fs::write(inner.join("main.rs"), []).await.unwrap();
+
+        let matches: Vec<_> = match_pattern(&dir, "ex 1", 100)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|f| f.path)
+            .collect();
+
+        assert!(matches.iter().any(|p| p.contains("file1.txt")));
+        assert!(!matches.iter().any(|p| p.contains("file2.txt")));
+
+        let matches: Vec<_> = match_pattern(&dir, "rs", 10)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|f| f.path)
+            .collect();
+
+        assert_eq!(matches.len(), 1);
+        assert!(matches.iter().any(|p| p.contains("main.rs")));
+
+        let matches: Vec<_> = match_pattern(&dir, "inner", 5)
+            .await
+            .unwrap()
+            .into_iter()
+            .collect();
+
+        assert!(matches.iter().any(|f| f.r#type == "dir"));
+        assert_eq!(matches.len(), 2);
     }
 }

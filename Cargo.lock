@@ -4623,6 +4623,7 @@ dependencies = [
  "tabby-common",
  "tabby-db",
  "tarpc",
+ "temp_testdir",
  "thiserror",
  "tokio",
  "tokio-cron-scheduler",
