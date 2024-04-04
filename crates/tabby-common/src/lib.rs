@@ -21,7 +21,7 @@ use path::dataset_dir;
 use serde::{Deserialize, Serialize};
 use serde_jsonlines::JsonLinesReader;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SourceFile {
     pub git_url: String,
     pub repository_name: String,

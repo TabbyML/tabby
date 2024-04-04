@@ -6,7 +6,6 @@ members = [
     "crates/tabby-scheduler",
     "crates/tabby-download",
     "crates/tabby-inference",
-    "crates/tabby-repositories",
     "crates/llama-cpp-bindings",
     "crates/http-api-bindings",
     "crates/aim-downloader",

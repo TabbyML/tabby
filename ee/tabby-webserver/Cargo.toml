@@ -22,6 +22,7 @@ hyper = { workspace = true, features = ["client"] }
 jsonwebtoken = "9.1.0"
 juniper.workspace = true
 juniper-axum = { path = "../../crates/juniper-axum" }
+kv = { version = "0.24.0", features = ["json-value"] }
 lazy_static.workspace = true
 lettre = { version = "0.11.3", features = ["tokio1", "tokio1-native-tls"] }
 mime_guess = "2.0.4"

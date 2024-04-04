@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     path::repositories_dir,
     terminal::{HeaderFormat, InfoMessage},
+    SourceFile,
 };
 
 #[derive(Serialize, Deserialize, Default)]
@@ -145,6 +146,13 @@ impl Default for ServerConfig {
 #[async_trait]
 pub trait RepositoryAccess: Send + Sync {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>>;
+
+    fn clear_index(&self) -> Result<()> {
+        Ok(())
+    }
+    fn write_index(&self, _source_file: SourceFile) -> Result<()> {
+        Ok(())
+    }
 }
 
 pub struct ConfigRepositoryAccess;

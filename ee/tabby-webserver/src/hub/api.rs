@@ -11,13 +11,14 @@ use tabby_common::{
         event::{EventLogger, LogEntry},
     },
     config::{RepositoryAccess, RepositoryConfig},
+    SourceFile,
 };
 use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
 
 use super::websocket::WebSocketTransport;
-use crate::schema::worker::Worker;
 pub use crate::schema::worker::WorkerKind;
+use crate::{repositories::RepositoryCache, schema::worker::Worker};
 
 #[tarpc::service]
 pub trait Hub {
@@ -195,5 +196,15 @@ pub async fn create_scheduler_client(addr: &str, token: &str) -> SchedulerClient
 impl RepositoryAccess for SchedulerClient {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
         Ok(self.0.list_repositories(Context::current()).await?)
+    }
+
+    fn clear_index(&self) -> Result<()> {
+        RepositoryCache::new()?.clear()?;
+        Ok(())
+    }
+
+    fn write_index(&self, source_file: SourceFile) -> Result<()> {
+        RepositoryCache::new()?.add_repository_meta(source_file)?;
+        Ok(())
     }
 }
