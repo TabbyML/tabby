@@ -107,7 +107,7 @@ async fn match_pattern(
 
 #[cfg(test)]
 mod tests {
-    use std::env::temp_dir;
+    
 
     use tabby_db::DbConn;
     use temp_testdir::TempDir;
