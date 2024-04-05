@@ -15,7 +15,7 @@ use tracing::{error, info, warn};
 pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) -> Result<()> {
     if now {
         let repositories = access.list_repositories().await?;
-        job_sync(&repositories)?;
+        job_sync(&repositories, &access)?;
         job_index(&repositories)?;
     } else {
         let access = Arc::new(access);
@@ -37,7 +37,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) -> R
                         .list_repositories()
                         .await
                         .expect("Must be able to retrieve repositories for sync");
-                    if let Err(e) = job_sync(&repositories) {
+                    if let Err(e) = job_sync(&repositories, &*access) {
                         error!("{e}");
                     }
                     if let Err(e) = job_index(&repositories) {
@@ -66,7 +66,7 @@ fn job_index(repositories: &[RepositoryConfig]) -> Result<()> {
     Ok(())
 }
 
-fn job_sync(repositories: &[RepositoryConfig]) -> Result<()> {
+fn job_sync(repositories: &[RepositoryConfig], access: &impl RepositoryAccess) -> Result<()> {
     println!("Syncing {} repositories...", repositories.len());
     let ret = repository::sync_repositories(repositories);
     if let Err(err) = ret {
@@ -74,7 +74,7 @@ fn job_sync(repositories: &[RepositoryConfig]) -> Result<()> {
     }
 
     println!("Building dataset...");
-    let ret = dataset::create_dataset(repositories);
+    let ret = dataset::create_dataset(repositories, access);
     if let Err(err) = ret {
         return Err(err.context("Failed to build dataset"));
     }
