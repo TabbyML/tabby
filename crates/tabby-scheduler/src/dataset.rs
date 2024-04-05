@@ -29,7 +29,7 @@ trait RepositoryExt {
         &self,
         writer: &mut impl Write,
         access: &impl RepositoryAccess,
-        cache_version: u64,
+        snapshot_version: u64,
     ) -> Result<()>;
 }
 
@@ -38,7 +38,7 @@ impl RepositoryExt for RepositoryConfig {
         &self,
         writer: &mut impl Write,
         access: &impl RepositoryAccess,
-        cache_version: u64,
+        snapshot_version: u64,
     ) -> Result<()> {
         let dir = self.dir();
 
@@ -81,7 +81,7 @@ impl RepositoryExt for RepositoryConfig {
                         content: file_content,
                     };
                     writer.write_json_lines([source_file.clone()])?;
-                    access.process_file(cache_version.clone(), source_file);
+                    access.process_file(snapshot_version.clone(), source_file);
                 }
                 Err(e) => {
                     error!("Cannot read {relative_path:?}: {e:?}");
@@ -119,7 +119,10 @@ pub fn create_dataset(config: &[RepositoryConfig], access: &impl RepositoryAcces
         None,
     );
 
-    let snapshot_version = access.start_snapshot();
+    let snapshot_version = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("Failed to read system clock")
+        .as_millis() as u64;
     let mut deps = DependencyFile::default();
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);

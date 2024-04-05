@@ -199,23 +199,6 @@ impl RepositoryAccess for SchedulerClient {
         Ok(self.0.list_repositories(Context::current()).await?)
     }
 
-    fn start_snapshot(&self) -> u64 {
-        let cache = match RepositoryCache::new() {
-            Ok(cache) => cache,
-            Err(e) => {
-                error!("Failed to open repository cache: {e}");
-                return 0;
-            }
-        };
-        match cache.get_next_version() {
-            Ok(v) => v,
-            Err(e) => {
-                error!("Failed to get next repository cache version: {e}");
-                0
-            }
-        }
-    }
-
     fn process_file(&self, version: u64, file: SourceFile) {
         let cache = match RepositoryCache::new() {
             Ok(cache) => cache,
