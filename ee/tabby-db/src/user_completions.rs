@@ -24,7 +24,7 @@ impl DbConn {
     pub async fn create_user_completion(
         &self,
         ts: u128,
-        user_id: i32,
+        user_id: i64,
         completion_id: String,
         language: String,
     ) -> Result<i32> {

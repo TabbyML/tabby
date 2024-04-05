@@ -72,7 +72,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
                     email.clone(),
                     Some(pwd_hash),
                     !is_admin_initialized,
-                    invitation.id as i32,
+                    invitation.id,
                 )
                 .await?
         } else {
@@ -113,7 +113,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         };
 
         let id = user.id.as_rowid()?;
-        let existing = self.db.get_password_reset_by_user_id(id as i64).await?;
+        let existing = self.db.get_password_reset_by_user_id(id).await?;
         if let Some(existing) = existing {
             if Utc::now().signed_duration_since(*existing.created_at) < Duration::minutes(5) {
                 return Err(anyhow!(
@@ -122,7 +122,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
                 .into());
             }
         }
-        let code = self.db.create_password_reset(id as i64).await?;
+        let code = self.db.create_password_reset(id).await?;
         let handle = self
             .mail
             .send_password_reset_email(user.email, code.clone())
@@ -136,7 +136,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let user_id = self.db.verify_password_reset(code).await?;
         let old_pass_encrypted = self
             .db
-            .get_user(user_id as i32)
+            .get_user(user_id)
             .await?
             .expect("User must exist")
             .password_encrypted;
@@ -146,7 +146,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
         self.db.delete_password_reset_by_user_id(user_id).await?;
         self.db
-            .update_user_password(user_id as i32, password_encrypted)
+            .update_user_password(user_id, password_encrypted)
             .await?;
         Ok(())
     }
@@ -236,7 +236,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if refresh_token.is_expired() {
             return Err(anyhow!("Expired refresh token").into());
         }
-        let Some(user) = self.db.get_user(refresh_token.user_id as i32).await? else {
+        let Some(user) = self.db.get_user(refresh_token.user_id).await? else {
             return Err(anyhow!("User not found").into());
         };
 
@@ -246,7 +246,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let new_token = self
             .db
-            .renew_refresh_token(refresh_token.id as i32, &token)
+            .renew_refresh_token(refresh_token.id, &token)
             .await?;
 
         // refresh token update is done, generate new access token based on user info
@@ -344,7 +344,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn delete_invitation(&self, id: &ID) -> Result<ID> {
-        Ok((self.db.delete_invitation(id.as_rowid()? as i64).await?).as_id())
+        Ok((self.db.delete_invitation(id.as_rowid()?).await?).as_id())
     }
 
     async fn reset_user_auth_token(&self, id: &ID) -> Result<()> {
@@ -486,7 +486,7 @@ async fn get_or_create_oauth_user(
     db: &DbConn,
     mail: &Arc<dyn EmailService>,
     email: &str,
-) -> Result<i32, OAuthError> {
+) -> Result<i64, OAuthError> {
     if let Some(user) = db.get_user_by_email(email).await? {
         return user
             .active
@@ -520,7 +520,7 @@ async fn get_or_create_oauth_user(
         };
         // safe to create with empty password for same reasons above
         let id = db
-            .create_user_with_invitation(email.to_owned(), None, false, invitation.id as i32)
+            .create_user_with_invitation(email.to_owned(), None, false, invitation.id)
             .await?;
         let user = db.get_user(id).await?.unwrap();
         Ok(user.id)
@@ -1014,7 +1014,7 @@ mod tests {
 
         let reset = service
             .db
-            .get_password_reset_by_user_id(user.id.as_rowid().unwrap() as i64)
+            .get_password_reset_by_user_id(user.id.as_rowid().unwrap())
             .await
             .unwrap()
             .unwrap();
@@ -1037,7 +1037,7 @@ mod tests {
             .unwrap();
         let reset = service
             .db
-            .get_password_reset_by_user_id(user.id as i64)
+            .get_password_reset_by_user_id(user.id)
             .await
             .unwrap()
             .unwrap();
@@ -1066,7 +1066,7 @@ mod tests {
             .unwrap();
         let reset = service
             .db
-            .get_password_reset_by_user_id(user_id_2 as i64)
+            .get_password_reset_by_user_id(user_id_2)
             .await
             .unwrap()
             .unwrap();

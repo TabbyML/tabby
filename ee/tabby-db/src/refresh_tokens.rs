@@ -28,7 +28,7 @@ impl RefreshTokenDAO {
 
 /// db read/write operations for `refresh_tokens` table
 impl DbConn {
-    pub async fn create_refresh_token(&self, user_id: i32) -> Result<String> {
+    pub async fn create_refresh_token(&self, user_id: i64) -> Result<String> {
         let token = generate_refresh_token(0);
         let res = query!(
             r#"INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, datetime('now', '+7 days'))"#,
@@ -43,8 +43,8 @@ impl DbConn {
         Ok(token)
     }
 
-    pub async fn renew_refresh_token(&self, id: i32, old: &str) -> Result<String> {
-        let new = generate_refresh_token(id as i64);
+    pub async fn renew_refresh_token(&self, id: i64, old: &str) -> Result<String> {
+        let new = generate_refresh_token(id);
         let res = query!(
             "UPDATE refresh_tokens SET token = $1, expires_at = datetime('now', '+7 days') WHERE token = $2 AND id = $3",
             new,
@@ -82,7 +82,7 @@ impl DbConn {
         Ok(token)
     }
 
-    pub async fn delete_tokens_by_user_id(&self, id: i32) -> Result<()> {
+    pub async fn delete_tokens_by_user_id(&self, id: i64) -> Result<()> {
         query!("DELETE FROM refresh_tokens WHERE user_id = ?", id)
             .execute(&self.pool)
             .await?;

@@ -39,7 +39,7 @@ impl DbConn {
         Ok(rowid as i32)
     }
 
-    pub async fn update_job_stdout(&self, job_id: i32, stdout: String) -> Result<()> {
+    pub async fn update_job_stdout(&self, job_id: i64, stdout: String) -> Result<()> {
         query!(
             r#"UPDATE job_runs SET stdout = stdout || ?, updated_at = datetime('now') WHERE id = ?"#,
             stdout,
@@ -48,7 +48,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_job_stderr(&self, job_id: i32, stderr: String) -> Result<()> {
+    pub async fn update_job_stderr(&self, job_id: i64, stderr: String) -> Result<()> {
         query!(
             r#"UPDATE job_runs SET stderr = stderr || ?, updated_at = datetime('now') WHERE id = ?"#,
             stderr,
@@ -57,7 +57,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_job_status(&self, job_id: i32, exit_code: i32) -> Result<()> {
+    pub async fn update_job_status(&self, job_id: i64, exit_code: i32) -> Result<()> {
         query!(
             r#"UPDATE job_runs SET end_ts = datetime('now'), exit_code = ?, updated_at = datetime('now') WHERE id = ?"#,
             exit_code,
