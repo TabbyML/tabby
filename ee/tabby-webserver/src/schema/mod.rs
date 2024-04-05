@@ -306,7 +306,7 @@ impl Query {
         Ok(ctx
             .locator
             .repository()
-            .search_files(repository_name, pattern, 40)
+            .search_files(&repository_name, &pattern, 40)
             .await?)
     }
 

@@ -61,10 +61,6 @@ pub trait RepositoryService: Send + Sync {
     async fn delete_repository(&self, id: &ID) -> Result<bool>;
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
 
-    async fn search_files(
-        &self,
-        name: String,
-        pattern: String,
-        top_n: usize,
-    ) -> Result<Vec<FileEntry>>;
+    async fn search_files(&self, name: &str, pattern: &str, top_n: usize)
+        -> Result<Vec<FileEntry>>;
 }

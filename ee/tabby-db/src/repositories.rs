@@ -67,7 +67,7 @@ impl DbConn {
         }
     }
 
-    pub async fn get_repository_by_name(&self, name: String) -> Result<RepositoryDAO> {
+    pub async fn get_repository_by_name(&self, name: &str) -> Result<RepositoryDAO> {
         let repository =
             sqlx::query_as("SELECT id, name, git_url FROM repositories WHERE name = ?;")
                 .bind(name)
@@ -111,7 +111,7 @@ mod tests {
         assert_eq!(repository.git_url, "testurl2");
         assert_eq!(repository.name, "test2");
         assert_eq!(
-            conn.get_repository_by_name("test2".into())
+            conn.get_repository_by_name("test2")
                 .await
                 .unwrap()
                 .git_url,

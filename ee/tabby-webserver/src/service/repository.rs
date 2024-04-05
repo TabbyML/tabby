@@ -44,15 +44,17 @@ impl RepositoryService for DbConn {
 
     async fn search_files(
         &self,
-        name: String,
-        pattern: String,
+        name: &str,
+        pattern: &str,
         top_n: usize,
     ) -> Result<Vec<FileEntry>> {
         if pattern.trim().is_empty() {
             return Ok(vec![]);
         }
-        let git_url = self.get_repository_by_name(name.clone()).await?.git_url;
-        let config = RepositoryConfig::new_named(name, git_url);
+        let git_url = self.get_repository_by_name(name).await?.git_url;
+        let config = RepositoryConfig::new_named(name.into(), git_url);
+
+        let pattern = pattern.to_owned();
         let matching = tokio::task::spawn_blocking(move || async move {
             match_pattern(&config.dir(), &pattern, top_n)
                 .await
@@ -209,24 +211,37 @@ mod tests {
     }
 
     #[tokio::test]
-    pub async fn test_match_pattern() {
+    pub async fn test_search_files() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service: &dyn RepositoryService = &db;
+
         let dir = TempDir::default();
-        let example = dir.join("example");
-        tokio::fs::create_dir(&example).await.unwrap();
-        tokio::fs::write(example.join("file1.txt"), [])
+        let repo_name = "test_repo".to_owned();
+        let test_repo_dir = dir.join(&repo_name);
+        service
+            .create_repository(
+                repo_name.clone(),
+                format!("file://{}", test_repo_dir.display()),
+            )
             .await
             .unwrap();
-        tokio::fs::write(example.join("file2.txt"), [])
+        tokio::fs::create_dir(&test_repo_dir).await.unwrap();
+        tokio::fs::write(test_repo_dir.join("file1.txt"), [])
             .await
             .unwrap();
-        tokio::fs::write(example.join("file3.txt"), [])
+        tokio::fs::write(test_repo_dir.join("file2.txt"), [])
             .await
             .unwrap();
-        let inner = example.join("inner");
+        tokio::fs::write(test_repo_dir.join("file3.txt"), [])
+            .await
+            .unwrap();
+
+        let inner = test_repo_dir.join("inner");
         tokio::fs::create_dir(&inner).await.unwrap();
         tokio::fs::write(inner.join("main.rs"), []).await.unwrap();
 
-        let matches: Vec<_> = match_pattern(&dir, "ex 1", 100)
+        let matches: Vec<_> = service
+            .search_files(&repo_name, "ex 1", 100)
             .await
             .unwrap()
             .into_iter()
@@ -236,7 +251,8 @@ mod tests {
         assert!(matches.iter().any(|p| p.contains("file1.txt")));
         assert!(!matches.iter().any(|p| p.contains("file2.txt")));
 
-        let matches: Vec<_> = match_pattern(&dir, "rs", 10)
+        let matches: Vec<_> = service
+            .search_files(&repo_name, "rs", 10)
             .await
             .unwrap()
             .into_iter()
@@ -246,7 +262,8 @@ mod tests {
         assert_eq!(matches.len(), 1);
         assert!(matches.iter().any(|p| p.contains("main.rs")));
 
-        let matches: Vec<_> = match_pattern(&dir, "inner", 5)
+        let matches: Vec<_> = service
+            .search_files(&repo_name, "inner", 10)
             .await
             .unwrap()
             .into_iter()
