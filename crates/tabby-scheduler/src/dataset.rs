@@ -81,7 +81,7 @@ impl RepositoryExt for RepositoryConfig {
                         content: file_content,
                     };
                     writer.write_json_lines([source_file.clone()])?;
-                    access.process_file(snapshot_version.clone(), source_file);
+                    access.process_file(snapshot_version, source_file);
                 }
                 Err(e) => {
                     error!("Cannot read {relative_path:?}: {e:?}");
@@ -127,7 +127,7 @@ pub fn create_dataset(config: &[RepositoryConfig], access: &impl RepositoryAcces
     let mut deps = DependencyFile::default();
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
-        repository.create_dataset(&mut writer, access, snapshot_version.clone())?;
+        repository.create_dataset(&mut writer, access, snapshot_version)?;
     }
 
     serdeconv::to_json_file(&deps, dependency_file())?;
