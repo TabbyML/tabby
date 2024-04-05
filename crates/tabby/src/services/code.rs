@@ -9,7 +9,7 @@ use tabby_common::{
 };
 use tantivy::{
     collector::{Count, TopDocs},
-    query::{BooleanQuery, QueryParser},
+    query::{BooleanQuery, Query, QueryParser},
     query_grammar::Occur,
     schema::Field,
     DocAddress, Document, Index, IndexReader,
@@ -122,11 +122,13 @@ impl CodeSearch for CodeSearchImpl {
         let language_query = self.schema.language_query(language);
         let body_query = self.schema.body_query(tokens);
         let git_url_query = self.schema.git_url_query(git_url);
-        let query = BooleanQuery::new(vec![
-            (Occur::Must, language_query),
-            (Occur::Must, body_query),
-            (Occur::Must, git_url_query),
-        ]);
+
+        let mut query_terms: Vec<(_, Box<dyn Query>)> =
+            vec![(Occur::Must, language_query), (Occur::Must, body_query)];
+
+        query_terms.extend(git_url_query.into_iter().map(|q| (Occur::Must, q as _)));
+
+        let query = BooleanQuery::new(query_terms);
         self.search_with_query(&query, limit, offset).await
     }
 }

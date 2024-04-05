@@ -99,11 +99,36 @@ impl CodeSearchSchema {
         ))
     }
 
-    pub fn git_url_query(&self, git_url: &str) -> Box<TermQuery> {
-        Box::new(TermQuery::new(
-            Term::from_field_text(self.field_git_url, git_url),
-            IndexRecordOption::WithFreqsAndPositions,
-        ))
+    pub fn git_url_query(&self, mut git_url: &str) -> Vec<Box<TermQuery>> {
+        if let Some((_proto, rest)) = git_url.split_once("://") {
+            git_url = rest;
+        }
+        let domain = git_url
+            .split_once('/')
+            .map(|(domain, _rest)| domain)
+            .unwrap_or(git_url);
+
+        let path = git_url.strip_prefix(domain).unwrap_or(git_url);
+        let path = path
+            .split_once('?')
+            .map(|(path, _params)| path)
+            .unwrap_or(path);
+        let path = path.trim_end_matches(".git");
+
+        let domain = domain
+            .split_once('@')
+            .map(|(_creds, domain)| domain)
+            .unwrap_or(domain);
+
+        [domain, path]
+            .iter()
+            .map(|term| {
+                Box::new(TermQuery::new(
+                    Term::from_field_text(self.field_git_url, term),
+                    IndexRecordOption::Basic,
+                ))
+            })
+            .collect()
     }
 }
 
