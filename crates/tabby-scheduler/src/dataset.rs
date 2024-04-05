@@ -123,6 +123,7 @@ pub fn create_dataset(config: &[RepositoryConfig], access: &impl RepositoryAcces
         .duration_since(std::time::UNIX_EPOCH)
         .expect("Failed to read system clock")
         .as_millis() as u64;
+    access.start_snapshot(snapshot_version);
     let mut deps = DependencyFile::default();
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
