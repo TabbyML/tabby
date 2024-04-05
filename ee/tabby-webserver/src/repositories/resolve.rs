@@ -62,7 +62,7 @@ impl RepositoryCache {
         self.versioned_bucket(self.latest_version()?)
     }
 
-    pub fn clear_versions_under(&self, old_version: u64) -> Result<()> {
+    fn clear_versions_under(&self, old_version: u64) -> Result<()> {
         for bucket in self.cache.buckets() {
             let Some((_, version)) = bucket.split_once('_') else {
                 continue;
