@@ -1,6 +1,6 @@
 use std::{collections::HashSet, path::PathBuf};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -22,7 +22,11 @@ pub struct Config {
 
 impl Config {
     pub fn load() -> Result<Self> {
-        let mut cfg: Self = serdeconv::from_toml_file(crate::path::config_file().as_path())?;
+        let cfg_path = crate::path::config_file();
+        let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path()).context(format!(
+            "Config file '{}' is missing or not valid",
+            cfg_path.display()
+        ))?;
 
         if let Err(e) = cfg.validate_names() {
             cfg = Default::default();
