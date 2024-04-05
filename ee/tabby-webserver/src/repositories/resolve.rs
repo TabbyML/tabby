@@ -1,12 +1,6 @@
-use std::{
-    collections::HashMap,
-    ops::Deref,
-    path::PathBuf,
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
+use std::{path::PathBuf, str::FromStr, sync::Arc};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use axum::{
     body::boxed,
     http::{header, Request, Uri},
@@ -14,75 +8,94 @@ use axum::{
     Json,
 };
 use hyper::Body;
+use kv::{Bucket, Config, Store};
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, SourceFile, Tag};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-use tracing::{debug, error, warn};
 
-use crate::{
-    cron::{CronEvents, StartListener},
-    schema::repository::RepositoryService,
-};
+use crate::{path::repository_meta_db, schema::repository::RepositoryService};
 
+#[derive(Clone)]
 pub struct RepositoryCache {
-    repository_lookup: RwLock<HashMap<RepositoryKey, RepositoryMeta>>,
-    service: Arc<dyn RepositoryService>,
+    cache: Store,
 }
 
 impl std::fmt::Debug for RepositoryCache {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RepositoryCache")
-            .field("repository_lookup", &self.repository_lookup)
-            .finish()
+        f.debug_struct("RepositoryCache").finish()
     }
 }
+type RepositoryBucket<'a> = Bucket<'a, String, kv::Json<RepositoryMeta>>;
+
+static META_BUCKET: &str = "meta";
+static META_BUCKET_VERSION_KEY: &str = "version";
 
 impl RepositoryCache {
-    pub async fn new_initialized(
-        service: Arc<dyn RepositoryService>,
-        events: &CronEvents,
-    ) -> Arc<RepositoryCache> {
-        let cache = RepositoryCache {
-            repository_lookup: Default::default(),
-            service,
-        };
-        if let Err(e) = cache.reload().await {
-            error!("Failed to load repositories: {e}");
-        };
-        let cache = Arc::new(cache);
-        cache.start_reload_listener(events);
-        cache
+    pub fn new() -> Result<Self> {
+        let config = Config::new(repository_meta_db());
+        let store = Store::new(config)?;
+        Ok(RepositoryCache { cache: store })
     }
 
-    async fn reload(&self) -> Result<()> {
-        let new_repositories = self
-            .service
-            .list_repositories(None, None, None, None)
-            .await?
-            .into_iter()
-            .map(|repository| RepositoryConfig::new_named(repository.name, repository.git_url))
-            .collect();
-        let mut repository_lookup = self.repository_lookup.write().unwrap();
-        debug!("Reloading repositoriy metadata...");
-        *repository_lookup = load_meta(new_repositories);
+    fn latest_version(&self) -> Result<u64> {
+        let bucket: Bucket<_, String> = self.cache.bucket(Some(META_BUCKET))?;
+        Ok(bucket
+            .get(&META_BUCKET_VERSION_KEY.to_string())?
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0))
+    }
+
+    pub fn update_latest_version(&self, version: u64) -> Result<()> {
+        let bucket = self.cache.bucket(Some(META_BUCKET))?;
+        bucket.set(&META_BUCKET_VERSION_KEY.to_string(), &version.to_string())?;
+        self.clear_versions_under(version)?;
         Ok(())
     }
 
-    fn start_reload_listener(self: &Arc<Self>, events: &CronEvents) {
-        let clone = self.clone();
-        events.scheduler_job_succeeded.start_listener(move |_| {
-            let clone = clone.clone();
-            async move {
-                if let Err(e) = clone.reload().await {
-                    warn!("Error when reloading repository cache: {e}");
-                };
-            }
-        });
+    fn versioned_bucket(&self, version: u64) -> Result<RepositoryBucket> {
+        let bucket_name = format!("repositories_{}", version);
+        Ok(self.cache.bucket(Some(&bucket_name))?)
     }
 
-    fn repositories(&self) -> impl Deref<Target = HashMap<RepositoryKey, RepositoryMeta>> + '_ {
-        self.repository_lookup.read().unwrap()
+    fn bucket(&self) -> Result<RepositoryBucket> {
+        self.versioned_bucket(self.latest_version()?)
+    }
+
+    pub fn clear_versions_under(&self, old_version: u64) -> Result<()> {
+        for bucket in self.cache.buckets() {
+            let Some((_, version)) = bucket.split_once('_') else {
+                continue;
+            };
+            let Ok(version) = version.parse::<u64>() else {
+                continue;
+            };
+            if version < old_version {
+                self.cache.drop_bucket(bucket)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn add_repository_meta(&self, version: u64, file: RepositoryMeta) -> Result<()> {
+        let key = format!("{}:{}", file.git_url, file.filepath);
+        self.versioned_bucket(version)?.set(&key, &kv::Json(file))?;
+        Ok(())
+    }
+
+    pub fn get_repository_meta(&self, git_url: &str, filepath: &str) -> Result<RepositoryMeta> {
+        let key = format!("{git_url}:{filepath}");
+        let Some(kv::Json(val)) = self.bucket()?.get(&key)? else {
+            return Err(anyhow!("Repository meta not found"));
+        };
+        Ok(val)
+    }
+
+    fn str_to_key(str: &str) -> Option<RepositoryKey> {
+        str.split_once(':').map(|(name, path)| RepositoryKey {
+            repo_name: name.to_string(),
+            rel_path: path.to_string(),
+        })
     }
 }
 
@@ -168,31 +181,17 @@ impl From<SourceFile> for RepositoryMeta {
     }
 }
 
-fn load_meta(repositories: Vec<RepositoryConfig>) -> HashMap<RepositoryKey, RepositoryMeta> {
-    let mut dataset = HashMap::new();
-    // Construct map of String -> &RepositoryConfig for lookup
-    let repo_conf = repositories
-        .iter()
-        .map(|repo| (repo.git_url.clone(), repo))
-        .collect::<HashMap<_, _>>();
-    let Ok(iter) = SourceFile::all() else {
-        return dataset;
-    };
-    // Source files contain all metadata, read repository metadata from json
-    // (SourceFile can be converted into RepositoryMeta)
-    for file in iter {
-        if let Some(repo_name) = repo_conf.get(&file.git_url).map(|repo| repo.name()) {
-            let key = RepositoryKey {
-                repo_name,
-                rel_path: file.filepath.clone(),
-            };
-            dataset.insert(key, file.into());
-        }
-    }
-    dataset
+#[derive(Clone)]
+pub struct ResolveState {
+    cache: RepositoryCache,
+    service: Arc<dyn RepositoryService>,
 }
 
-impl RepositoryCache {
+impl ResolveState {
+    pub fn new(cache: RepositoryCache, service: Arc<dyn RepositoryService>) -> Self {
+        ResolveState { cache, service }
+    }
+
     /// Resolve a directory
     pub async fn resolve_dir(
         &self,
@@ -257,24 +256,29 @@ impl RepositoryCache {
         Ok(resp.map(boxed))
     }
 
-    pub fn resolve_meta(&self, key: &RepositoryKey) -> Option<RepositoryMeta> {
-        if let Some(meta) = self.repositories().get(key) {
-            return Some(meta.clone());
-        }
-        None
+    pub async fn resolve_meta(&self, key: &RepositoryKey) -> Result<RepositoryMeta> {
+        let git_url = self
+            .service
+            .get_repository_by_name(key.repo_name.clone())
+            .await?
+            .git_url;
+        self.cache
+            .get_repository_meta(&git_url, &key.rel_path)
+            .map(RepositoryMeta::from)
     }
 
     pub fn resolve_all(&self) -> Result<Response> {
-        let entries: Vec<_> = self
-            .repository_lookup
-            .read()
-            .unwrap()
-            .keys()
-            .map(|repo| DirEntry {
+        let mut entries = vec![];
+        for entry in self.cache.bucket()?.iter() {
+            let key: String = entry?.key()?;
+            let Some(key) = RepositoryCache::str_to_key(&key) else {
+                continue;
+            };
+            entries.push(DirEntry {
                 kind: DirEntryKind::Dir,
-                basename: repo.repo_name.clone(),
+                basename: key.repo_name,
             })
-            .collect();
+        }
 
         let body = Json(ListDir { entries }).into_response();
         let resp = Response::builder()
@@ -284,15 +288,18 @@ impl RepositoryCache {
         Ok(resp)
     }
 
-    pub fn find_repository(&self, name: &str) -> Option<RepositoryConfig> {
-        let repository_lookup = self.repository_lookup.read().unwrap();
-        let key = repository_lookup
-            .keys()
-            .find(|repo| repo.repo_name == name)?;
-        let value = repository_lookup.get(key)?;
-        Some(RepositoryConfig::new_named(
-            key.repo_name.clone(),
-            value.git_url.clone(),
-        ))
+    pub fn find_repository(&self, name: &str) -> Result<RepositoryConfig> {
+        for entry in self.cache.bucket()?.iter() {
+            let entry = entry?;
+            let key: String = entry.key()?;
+            let Some(key) = RepositoryCache::str_to_key(&key) else {
+                continue;
+            };
+            if &key.repo_name == name {
+                let kv::Json(value) = entry.value()?;
+                return Ok(RepositoryConfig::new_named(key.repo_name, value.git_url));
+            }
+        }
+        Err(anyhow!("Repository not found"))
     }
 }

@@ -1,7 +1,7 @@
 use std::{process::Stdio, sync::Arc};
 
 use anyhow::{Context, Result};
-use tokio::{io::AsyncBufReadExt, sync::broadcast};
+use tokio::io::AsyncBufReadExt;
 use tokio_cron_scheduler::Job;
 use tracing::{error, info, warn};
 
@@ -10,7 +10,6 @@ use crate::schema::{job::JobService, worker::WorkerService};
 pub async fn scheduler_job(
     job: Arc<dyn JobService>,
     worker: Arc<dyn WorkerService>,
-    events: broadcast::Sender<()>,
     local_port: u16,
 ) -> anyhow::Result<Job> {
     let scheduler_mutex = Arc::new(tokio::sync::Mutex::new(()));
@@ -19,7 +18,6 @@ pub async fn scheduler_job(
         let worker = worker.clone();
         let job = job.clone();
         let scheduler_mutex = scheduler_mutex.clone();
-        let events = events.clone();
         Box::pin(async move {
             let Ok(_guard) = scheduler_mutex.try_lock() else {
                 warn!("Scheduler job overlapped, skipping...");
@@ -28,8 +26,6 @@ pub async fn scheduler_job(
 
             if let Err(err) = run_scheduler_now(job, worker, local_port).await {
                 error!("Failed to run scheduler job, reason: `{}`", err);
-            } else {
-                let _ = events.send(());
             }
 
             if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {

@@ -16,7 +16,7 @@ use tracing::{error, warn};
 
 use crate::{
     cron, hub, oauth,
-    repositories::{self, RepositoryCache},
+    repositories::{self, RepositoryCache, ResolveState},
     schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::new_event_logger},
     ui,
@@ -48,12 +48,13 @@ impl WebserverHandle {
     ) -> (Router, Router) {
         let ctx =
             create_service_locator(self.logger(), code, self.db.clone(), is_chat_enabled).await;
-        let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
-
-        let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;
+        cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
         let schema = Arc::new(create_schema());
-        let rs = Arc::new(repository_cache);
+
+        let repository_cache =
+            RepositoryCache::new().expect("Failed to initialize repository cache");
+        let rs = ResolveState::new(repository_cache, ctx.repository());
 
         let api = api
             .route(
