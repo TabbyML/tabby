@@ -271,5 +271,13 @@ mod tests {
 
         assert!(matches.iter().any(|f| f.r#type == "dir"));
         assert_eq!(matches.len(), 2);
+
+        let matches: Vec<_> = service
+            .search_files(&repo_name, "", 10)
+            .await
+            .unwrap()
+            .into_iter()
+            .collect();
+        assert_eq!(matches.len(), 0);
     }
 }
