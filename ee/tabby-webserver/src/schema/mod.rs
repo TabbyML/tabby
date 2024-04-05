@@ -38,15 +38,10 @@ use self::{
     email::{EmailService, EmailSetting, EmailSettingInput},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{Repository, RepositoryService},
+    repository::{FileEntry, Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
-};
-use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider},
-    job::JobStats,
-    repository::FileEntry,
 };
 
 pub trait ServiceLocator: Send + Sync {

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use chrono::DateTime;
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 
 use crate::{DateTimeUtc, DbConn};
