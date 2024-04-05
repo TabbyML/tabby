@@ -41,7 +41,7 @@ impl RepositoryCache {
     pub fn latest_version(&self) -> Result<u64> {
         let bucket: Bucket<_, String> = self.cache.bucket(Some(META_BUCKET))?;
         if !bucket.contains(&META_BUCKET_VERSION_KEY.to_string())? {
-            self.set_version(self.get_next_version()?)?;
+            self.update_latest_version(self.get_next_version()?)?;
         }
         Ok(bucket
             .get(&META_BUCKET_VERSION_KEY.to_string())?
@@ -49,9 +49,10 @@ impl RepositoryCache {
             .parse()?)
     }
 
-    pub fn set_version(&self, version: u64) -> Result<()> {
+    pub fn update_latest_version(&self, version: u64) -> Result<()> {
         let bucket = self.cache.bucket(Some(META_BUCKET))?;
         bucket.set(&META_BUCKET_VERSION_KEY.to_string(), &version.to_string())?;
+        self.clear_versions_under(version)?;
         Ok(())
     }
 
@@ -76,7 +77,7 @@ impl RepositoryCache {
             let Ok(version) = version.parse::<u64>() else {
                 continue;
             };
-            if version <= old_version {
+            if version < old_version {
                 self.cache.drop_bucket(bucket)?;
             }
         }

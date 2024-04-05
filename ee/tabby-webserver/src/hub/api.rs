@@ -221,17 +221,7 @@ impl RepositoryAccess for SchedulerClient {
                 return;
             }
         };
-        let old_version = match cache.latest_version() {
-            Ok(v) => v,
-            Err(e) => {
-                error!("Failed to get next repository cache version: {e}");
-                return;
-            }
-        };
-        if let Err(e) = cache
-            .set_version(version)
-            .and_then(|_| cache.clear_versions_under(old_version))
-        {
+        if let Err(e) = cache.update_latest_version(version) {
             error!("Failed to update repository cache version: {e}");
         }
     }
