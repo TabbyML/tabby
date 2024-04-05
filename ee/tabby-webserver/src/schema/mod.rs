@@ -42,6 +42,7 @@ use self::{
 use crate::schema::{
     auth::{JWTPayload, OAuthCredential, OAuthProvider},
     job::JobStats,
+    repository::FileEntry,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -294,6 +295,19 @@ impl Query {
             },
         )
         .await
+    }
+
+    async fn repository_search(
+        ctx: &Context,
+        repository_name: String,
+        pattern: String,
+    ) -> FieldResult<Vec<FileEntry>> {
+        check_claims(ctx)?;
+        Ok(ctx
+            .locator
+            .repository()
+            .search_files(&repository_name, &pattern, 40)
+            .await?)
     }
 
     async fn oauth_credential(
