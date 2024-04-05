@@ -66,6 +66,13 @@ impl RepositoryService for DbConn {
 
         Ok(matching)
     }
+
+    async fn get_repository_by_name(&self, name: String) -> Result<Repository> {
+        Ok((self as &DbConn)
+            .get_repository_by_name(&name)
+            .await
+            .map(Repository::from)?)
+    }
 }
 
 async fn match_pattern(

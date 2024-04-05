@@ -48,6 +48,7 @@ uuid.workspace = true
 validator = { version = "0.16.1", features = ["derive"] }
 ignore.workspace = true
 nucleo = "0.5.0"
+kv = { version = "0.24.0", features = ["json-value"] }
 
 [dev-dependencies]
 assert_matches = "1.5.0"

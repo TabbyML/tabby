@@ -10,7 +10,7 @@ use axum::{
     response::Response,
     routing, Json, Router,
 };
-pub use resolve::RepositoryCache;
+pub use resolve::{RepositoryCache, ResolveState};
 use tracing::{instrument, warn};
 
 use crate::{
@@ -19,9 +19,7 @@ use crate::{
     schema::auth::AuthenticationService,
 };
 
-pub type ResolveState = Arc<RepositoryCache>;
-
-pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Router {
+pub fn routes(rs: ResolveState, auth: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
         .route("/resolve", routing::get(resolve))
         .route("/resolve/", routing::get(resolve))
@@ -40,12 +38,12 @@ async fn not_found() -> StatusCode {
     StatusCode::NOT_FOUND
 }
 
-#[instrument(skip(repo))]
+#[instrument(skip(rs))]
 async fn resolve_path(
-    State(rs): State<Arc<ResolveState>>,
+    State(rs): State<ResolveState>,
     Path(repo): Path<ResolveParams>,
 ) -> Result<Response, StatusCode> {
-    let Some(conf) = rs.find_repository(repo.name_str()) else {
+    let Ok(conf) = rs.find_repository(repo.name_str()) else {
         return Err(StatusCode::NOT_FOUND);
     };
     let root = conf.dir();
@@ -74,18 +72,19 @@ async fn resolve_path(
     }
 }
 
-#[instrument(skip(repo))]
+#[instrument(skip(rs))]
 async fn meta(
-    State(rs): State<Arc<ResolveState>>,
+    State(rs): State<ResolveState>,
     Path(repo): Path<ResolveParams>,
 ) -> Result<Json<RepositoryMeta>, StatusCode> {
     let key = repo.dataset_key();
-    if let Some(resp) = rs.resolve_meta(&key) {
+    if let Ok(resp) = rs.resolve_meta(&key).await {
         return Ok(Json(resp));
     }
     Err(StatusCode::NOT_FOUND)
 }
 
-async fn resolve(State(rs): State<Arc<ResolveState>>) -> Result<Response, StatusCode> {
+#[instrument(skip(rs))]
+async fn resolve(State(rs): State<ResolveState>) -> Result<Response, StatusCode> {
     rs.resolve_all().map_err(|_| StatusCode::NOT_FOUND)
 }

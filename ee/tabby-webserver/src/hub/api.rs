@@ -11,13 +11,15 @@ use tabby_common::{
         event::{EventLogger, LogEntry},
     },
     config::{RepositoryAccess, RepositoryConfig},
+    SourceFile,
 };
 use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
+use tracing::error;
 
 use super::websocket::WebSocketTransport;
-use crate::schema::worker::Worker;
 pub use crate::schema::worker::WorkerKind;
+use crate::{repositories::RepositoryCache, schema::worker::Worker};
 
 #[tarpc::service]
 pub trait Hub {
@@ -195,5 +197,32 @@ pub async fn create_scheduler_client(addr: &str, token: &str) -> SchedulerClient
 impl RepositoryAccess for SchedulerClient {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
         Ok(self.0.list_repositories(Context::current()).await?)
+    }
+
+    fn process_file(&self, version: u64, file: SourceFile) {
+        let cache = match RepositoryCache::new() {
+            Ok(cache) => cache,
+            Err(e) => {
+                error!("Failed to open repository cache: {e}");
+                return;
+            }
+        };
+        let file_path = file.filepath.clone();
+        if let Err(e) = cache.add_repository_meta(version, file.into()) {
+            error!("Failed to write {} to repository cache: {e}", file_path);
+        };
+    }
+
+    fn finish_snapshot(&self, version: u64) {
+        let cache = match RepositoryCache::new() {
+            Ok(cache) => cache,
+            Err(e) => {
+                error!("Failed to open repository cache: {e}");
+                return;
+            }
+        };
+        if let Err(e) = cache.update_latest_version(version) {
+            error!("Failed to update repository cache version: {e}");
+        }
     }
 }
