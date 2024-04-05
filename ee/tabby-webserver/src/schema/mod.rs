@@ -34,7 +34,7 @@ use self::{
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{Repository, RepositoryService},
+    repository::{Repository, RepositoryMeta, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
@@ -307,6 +307,19 @@ impl Query {
             .locator
             .repository()
             .search_files(&repository_name, &pattern, 40)
+            .await?)
+    }
+
+    async fn repository_meta(
+        ctx: &Context,
+        repository_name: String,
+        file_path: String,
+    ) -> FieldResult<RepositoryMeta> {
+        check_claims(ctx)?;
+        Ok(ctx
+            .locator
+            .repository()
+            .get_repository_meta(repository_name, file_path)
             .await?)
     }
 

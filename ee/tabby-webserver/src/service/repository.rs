@@ -7,13 +7,25 @@ use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
-use crate::schema::{
-    repository::{FileEntry, Repository, RepositoryService},
-    Result,
+use crate::{
+    repositories::RepositoryCache,
+    schema::{
+        repository::{FileEntry, Repository, RepositoryMeta, RepositoryService, Tag},
+        Result,
+    },
 };
 
+struct RepositoryServiceImpl {
+    cache: RepositoryCache,
+    db: DbConn,
+}
+
+pub fn new_repository_service(db: DbConn, cache: RepositoryCache) -> impl RepositoryService {
+    RepositoryServiceImpl { cache, db }
+}
+
 #[async_trait]
-impl RepositoryService for DbConn {
+impl RepositoryService for RepositoryServiceImpl {
     async fn list_repositories(
         &self,
         after: Option<String>,
@@ -23,21 +35,23 @@ impl RepositoryService for DbConn {
     ) -> Result<Vec<Repository>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let repositories = self
+            .db
             .list_repositories_with_filter(limit, skip_id, backwards)
             .await?;
         Ok(repositories.into_iter().map(Into::into).collect())
     }
 
     async fn create_repository(&self, name: String, git_url: String) -> Result<ID> {
-        Ok(self.create_repository(name, git_url).await?.as_id())
+        Ok(self.db.create_repository(name, git_url).await?.as_id())
     }
 
     async fn delete_repository(&self, id: &ID) -> Result<bool> {
-        Ok(self.delete_repository(id.as_rowid()?).await?)
+        Ok(self.db.delete_repository(id.as_rowid()?).await?)
     }
 
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
-        self.update_repository(id.as_rowid()?, name, git_url)
+        self.db
+            .update_repository(id.as_rowid()?, name, git_url)
             .await?;
         Ok(true)
     }
@@ -51,7 +65,7 @@ impl RepositoryService for DbConn {
         if pattern.trim().is_empty() {
             return Ok(vec![]);
         }
-        let git_url = self.get_repository_by_name(name).await?.git_url;
+        let git_url = self.db.get_repository_by_name(name).await?.git_url;
         let config = RepositoryConfig::new_named(name.into(), git_url);
 
         let pattern = pattern.to_owned();
@@ -67,8 +81,23 @@ impl RepositoryService for DbConn {
         Ok(matching)
     }
 
+    async fn get_repository_meta(&self, name: String, file_path: String) -> Result<RepositoryMeta> {
+        let git_url = self.get_repository_by_name(name).await?.git_url;
+        let meta = self.cache.get_repository_meta(&git_url, &file_path)?;
+        Ok(RepositoryMeta {
+            git_url,
+            filepath: meta.filepath,
+            language: meta.language,
+            max_line_length: meta.max_line_length as i32,
+            avg_line_length: meta.avg_line_length as f64,
+            alphanum_fraction: meta.alphanum_fraction as f64,
+            tags: meta.tags.into_iter().map(Tag::from).collect(),
+        })
+    }
+
     async fn get_repository_by_name(&self, name: String) -> Result<Repository> {
-        Ok((self as &DbConn)
+        Ok(self
+            .db
             .get_repository_by_name(&name)
             .await
             .map(Repository::from)?)
@@ -121,25 +150,32 @@ mod tests {
 
     use super::*;
 
+    async fn test_repo_service() -> impl RepositoryService {
+        new_repository_service(
+            DbConn::new_in_memory().await.unwrap(),
+            RepositoryCache::new().unwrap(),
+        )
+    }
+
     #[tokio::test]
     pub async fn test_duplicate_repository_error() {
-        let db = DbConn::new_in_memory().await.unwrap();
+        let service = test_repo_service().await;
 
-        RepositoryService::create_repository(
-            &db,
-            "example".into(),
-            "https://github.com/example/example".into(),
-        )
-        .await
-        .unwrap();
+        service
+            .create_repository(
+                "example".into(),
+                "https://github.com/example/example".into(),
+            )
+            .await
+            .unwrap();
 
-        let err = RepositoryService::create_repository(
-            &db,
-            "example".into(),
-            "https://github.com/example/example".into(),
-        )
-        .await
-        .unwrap_err();
+        let err = service
+            .create_repository(
+                "example".into(),
+                "https://github.com/example/example".into(),
+            )
+            .await
+            .unwrap_err();
 
         assert_eq!(
             err.to_string(),
@@ -149,8 +185,7 @@ mod tests {
 
     #[tokio::test]
     pub async fn test_repository_mutations() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let service: &dyn RepositoryService = &db;
+        let service = test_repo_service().await;
 
         let id_1 = service
             .create_repository(
@@ -219,8 +254,7 @@ mod tests {
 
     #[tokio::test]
     pub async fn test_search_files() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let service: &dyn RepositoryService = &db;
+        let service = test_repo_service().await;
 
         let dir = TempDir::default();
         let repo_name = "test_repo".to_owned();

@@ -29,16 +29,20 @@ use tracing::{info, warn};
 
 use self::{
     auth::new_authentication_service, email::new_email_service, license::new_license_service,
+    repository::new_repository_service,
 };
-use crate::schema::{
-    auth::AuthenticationService,
-    email::EmailService,
-    job::JobService,
-    license::{IsLicenseValid, LicenseService},
-    repository::RepositoryService,
-    setting::SettingService,
-    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    CoreError, Result, ServiceLocator,
+use crate::{
+    repositories::RepositoryCache,
+    schema::{
+        auth::AuthenticationService,
+        email::EmailService,
+        job::JobService,
+        license::{IsLicenseValid, LicenseService},
+        repository::RepositoryService,
+        setting::SettingService,
+        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+        CoreError, Result, ServiceLocator,
+    },
 };
 
 struct ServerContext {
@@ -52,6 +56,7 @@ struct ServerContext {
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+    repository: Arc<dyn RepositoryService>,
 
     is_chat_enabled_locally: bool,
 }
@@ -61,6 +66,7 @@ impl ServerContext {
         logger: Arc<dyn EventLogger>,
         code: Arc<dyn CodeSearch>,
         db_conn: DbConn,
+        repo_cache: RepositoryCache,
         is_chat_enabled_locally: bool,
     ) -> Self {
         let mail = Arc::new(
@@ -83,6 +89,7 @@ impl ServerContext {
                 mail,
                 license.clone(),
             )),
+            repository: Arc::new(new_repository_service(db_conn.clone(), repo_cache)),
             license,
             db_conn,
             logger,
@@ -273,7 +280,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn repository(&self) -> Arc<dyn RepositoryService> {
-        Arc::new(self.db_conn.clone())
+        self.repository.clone()
     }
 
     fn email(&self) -> Arc<dyn EmailService> {
@@ -293,10 +300,11 @@ pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
     db: DbConn,
+    repo_cache: RepositoryCache,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(Arc::new(
-        ServerContext::new(logger, code, db, is_chat_enabled).await,
+        ServerContext::new(logger, code, db, repo_cache, is_chat_enabled).await,
     ))
 }
 

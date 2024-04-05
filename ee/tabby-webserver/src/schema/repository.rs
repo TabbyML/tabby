@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
 use juniper_axum::relay::NodeType;
@@ -47,6 +49,86 @@ impl NodeType for Repository {
     }
 }
 
+#[derive(GraphQLObject)]
+pub struct RepositoryMeta {
+    pub git_url: String,
+    pub filepath: String,
+    pub language: String,
+    pub max_line_length: i32,
+    pub avg_line_length: f64,
+    pub alphanum_fraction: f64,
+    pub tags: Vec<Tag>,
+}
+
+#[derive(GraphQLObject)]
+pub struct Tag {
+    pub range: IntRange,
+    pub name_range: IntRange,
+    pub utf16_column_range: IntRange,
+    pub span: PointRange,
+    pub line_range: IntRange,
+    pub docs: Option<String>,
+    pub is_definition: bool,
+    pub syntax_type_name: String,
+}
+
+impl From<tabby_common::Tag> for Tag {
+    fn from(tag: tabby_common::Tag) -> Self {
+        Tag {
+            range: tag.range.into(),
+            name_range: tag.name_range.into(),
+            utf16_column_range: tag.utf16_column_range.into(),
+            span: tag.span.into(),
+            line_range: tag.line_range.into(),
+            docs: tag.docs,
+            is_definition: tag.is_definition,
+            syntax_type_name: tag.syntax_type_name,
+        }
+    }
+}
+
+#[derive(GraphQLObject)]
+pub struct Point {
+    pub row: i32,
+    pub col: i32,
+}
+
+impl From<Range<tabby_common::Point>> for PointRange {
+    fn from(value: Range<tabby_common::Point>) -> Self {
+        PointRange {
+            start: Point {
+                row: value.start.row as i32,
+                col: value.end.column as i32,
+            },
+            end: Point {
+                row: value.end.row as i32,
+                col: value.end.column as i32,
+            },
+        }
+    }
+}
+
+#[derive(GraphQLObject)]
+pub struct IntRange {
+    pub start: i32,
+    pub end: i32,
+}
+
+impl From<Range<usize>> for IntRange {
+    fn from(value: Range<usize>) -> Self {
+        IntRange {
+            start: value.start as i32,
+            end: value.end as i32,
+        }
+    }
+}
+
+#[derive(GraphQLObject)]
+pub struct PointRange {
+    pub start: Point,
+    pub end: Point,
+}
+
 #[async_trait]
 pub trait RepositoryService: Send + Sync {
     async fn list_repositories(
@@ -61,6 +143,7 @@ pub trait RepositoryService: Send + Sync {
     async fn delete_repository(&self, id: &ID) -> Result<bool>;
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
     async fn get_repository_by_name(&self, name: String) -> Result<Repository>;
+    async fn get_repository_meta(&self, name: String, file_path: String) -> Result<RepositoryMeta>;
 
     async fn search_files(&self, name: &str, pattern: &str, top_n: usize)
         -> Result<Vec<FileEntry>>;

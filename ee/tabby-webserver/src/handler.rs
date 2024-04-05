@@ -46,14 +46,21 @@ impl WebserverHandle {
         is_chat_enabled: bool,
         local_port: u16,
     ) -> (Router, Router) {
-        let ctx =
-            create_service_locator(self.logger(), code, self.db.clone(), is_chat_enabled).await;
+        let repository_cache =
+            RepositoryCache::new().expect("Failed to initialize repository cache");
+
+        let ctx = create_service_locator(
+            self.logger(),
+            code,
+            self.db.clone(),
+            repository_cache.clone(),
+            is_chat_enabled,
+        )
+        .await;
         cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
         let schema = Arc::new(create_schema());
 
-        let repository_cache =
-            RepositoryCache::new().expect("Failed to initialize repository cache");
         let rs = ResolveState::new(repository_cache, ctx.repository());
 
         let api = api

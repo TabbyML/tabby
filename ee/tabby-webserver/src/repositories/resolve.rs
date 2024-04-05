@@ -158,13 +158,13 @@ struct DirEntry {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RepositoryMeta {
-    git_url: String,
-    filepath: String,
-    language: String,
-    max_line_length: usize,
-    avg_line_length: f32,
-    alphanum_fraction: f32,
-    tags: Vec<Tag>,
+    pub git_url: String,
+    pub filepath: String,
+    pub language: String,
+    pub max_line_length: usize,
+    pub avg_line_length: f32,
+    pub alphanum_fraction: f32,
+    pub tags: Vec<Tag>,
 }
 
 impl From<SourceFile> for RepositoryMeta {
