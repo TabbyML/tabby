@@ -23,8 +23,10 @@ pub struct Config {
 impl Config {
     pub fn load() -> Result<Self> {
         let cfg_path = crate::path::config_file();
-        let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path())
-            .context(format!("Config file '{}' is missing or not valid", cfg_path.display()))?;
+        let mut cfg: Self = serdeconv::from_toml_file(cfg_path.as_path()).context(format!(
+            "Config file '{}' is missing or not valid",
+            cfg_path.display()
+        ))?;
 
         if let Err(e) = cfg.validate_names() {
             cfg = Default::default();
