@@ -29,7 +29,7 @@ trait RepositoryExt {
         &self,
         writer: &mut impl Write,
         access: &impl RepositoryAccess,
-        cache_version: String,
+        cache_version: u64,
     ) -> Result<()>;
 }
 
@@ -38,7 +38,7 @@ impl RepositoryExt for RepositoryConfig {
         &self,
         writer: &mut impl Write,
         access: &impl RepositoryAccess,
-        cache_version: String,
+        cache_version: u64,
     ) -> Result<()> {
         let dir = self.dir();
 

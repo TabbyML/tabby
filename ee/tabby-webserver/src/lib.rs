@@ -4,6 +4,7 @@ mod cron;
 mod handler;
 mod hub;
 mod oauth;
+pub(crate) mod path;
 mod repositories;
 mod schema;
 mod service;

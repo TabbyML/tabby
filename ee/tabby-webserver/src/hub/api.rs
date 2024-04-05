@@ -199,41 +199,57 @@ impl RepositoryAccess for SchedulerClient {
         Ok(self.0.list_repositories(Context::current()).await?)
     }
 
-    fn start_snapshot(&self) -> String {
-        log_errors("start repository snapshot", || {
-            let cache = RepositoryCache::new()?;
-            Ok(cache.get_next_version()?)
-        })
+    fn start_snapshot(&self) -> u64 {
+        let cache = match RepositoryCache::new() {
+            Ok(cache) => cache,
+            Err(e) => {
+                error!("Failed to open repository cache: {e}");
+                return 0;
+            }
+        };
+        match cache.get_next_version() {
+            Ok(v) => v,
+            Err(e) => {
+                error!("Failed to get next repository cache version: {e}");
+                0
+            }
+        }
     }
 
-    fn process_file(&self, version: String, file: SourceFile) {
-        log_errors("process repository file", move || {
-            let cache = RepositoryCache::new()?;
-            cache.add_repository_meta(version, file.into())?;
-            Ok(())
-        });
+    fn process_file(&self, version: u64, file: SourceFile) {
+        let cache = match RepositoryCache::new() {
+            Ok(cache) => cache,
+            Err(e) => {
+                error!("Failed to open repository cache: {e}");
+                return;
+            }
+        };
+        let file_path = file.filepath.clone();
+        if let Err(e) = cache.add_repository_meta(version, file.into()) {
+            error!("Failed to write {} to repository cache: {e}", file_path);
+        };
     }
 
-    fn finish_snapshot(&self, version: String) {
-        log_errors("clear old repository cache data", move || {
-            let cache = RepositoryCache::new()?;
-            let old_version = cache.latest_version()?;
-            cache.set_version(version)?;
-            cache.clear(old_version)?;
-            Ok(())
-        });
-    }
-}
-
-fn log_errors<T>(operation: &'static str, f: impl FnOnce() -> Result<T, anyhow::Error>) -> T
-where
-    T: Default,
-{
-    match f() {
-        Ok(v) => v,
-        Err(e) => {
-            error!("Failed to {operation}: {e}");
-            Default::default()
+    fn finish_snapshot(&self, version: u64) {
+        let cache = match RepositoryCache::new() {
+            Ok(cache) => cache,
+            Err(e) => {
+                error!("Failed to open repository cache: {e}");
+                return;
+            }
+        };
+        let old_version = match cache.latest_version() {
+            Ok(v) => v,
+            Err(e) => {
+                error!("Failed to get next repository cache version: {e}");
+                return;
+            }
+        };
+        if let Err(e) = cache
+            .set_version(version)
+            .and_then(|_| cache.clear_versions_under(old_version))
+        {
+            error!("Failed to update repository cache version: {e}");
         }
     }
 }

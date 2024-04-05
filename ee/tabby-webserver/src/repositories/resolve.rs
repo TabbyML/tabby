@@ -14,11 +14,7 @@ use tabby_common::{config::RepositoryConfig, SourceFile, Tag};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
-use crate::schema::repository::RepositoryService;
-
-fn repository_meta_db() -> PathBuf {
-    tabby_common::path::tabby_root().join("repositories.kv")
-}
+use crate::{path::repository_meta_db, schema::repository::RepositoryService};
 
 #[derive(Clone)]
 pub struct RepositoryCache {
@@ -32,6 +28,9 @@ impl std::fmt::Debug for RepositoryCache {
 }
 type RepositoryBucket<'a> = Bucket<'a, String, kv::Json<RepositoryMeta>>;
 
+static META_BUCKET: &str = "meta";
+static META_BUCKET_VERSION_KEY: &str = "version";
+
 impl RepositoryCache {
     pub fn new() -> Result<Self> {
         let config = Config::new(repository_meta_db());
@@ -39,27 +38,28 @@ impl RepositoryCache {
         Ok(RepositoryCache { cache: store })
     }
 
-    pub fn latest_version(&self) -> Result<String> {
-        let bucket = self.cache.bucket(Some("version"))?;
-        if !bucket.contains(&"version".to_string())? {
+    pub fn latest_version(&self) -> Result<u64> {
+        let bucket: Bucket<_, String> = self.cache.bucket(Some(META_BUCKET))?;
+        if !bucket.contains(&META_BUCKET_VERSION_KEY.to_string())? {
             self.set_version(self.get_next_version()?)?;
         }
         Ok(bucket
-            .get(&"version".to_string())?
-            .expect("Cache version must always be set"))
+            .get(&META_BUCKET_VERSION_KEY.to_string())?
+            .expect("Cache version must always be set")
+            .parse()?)
     }
 
-    pub fn set_version(&self, version: String) -> Result<()> {
-        let bucket = self.cache.bucket(Some("version"))?;
-        bucket.set(&"version".to_string(), &version)?;
+    pub fn set_version(&self, version: u64) -> Result<()> {
+        let bucket = self.cache.bucket(Some(META_BUCKET))?;
+        bucket.set(&META_BUCKET_VERSION_KEY.to_string(), &version.to_string())?;
         Ok(())
     }
 
-    pub fn get_next_version(&self) -> Result<String> {
-        Ok(self.cache.generate_id()?.to_string())
+    pub fn get_next_version(&self) -> Result<u64> {
+        Ok(self.cache.generate_id()?)
     }
 
-    fn versioned_bucket(&self, version: String) -> Result<RepositoryBucket> {
+    fn versioned_bucket(&self, version: u64) -> Result<RepositoryBucket> {
         let bucket_name = format!("repositories_{}", version);
         Ok(self.cache.bucket(Some(&bucket_name))?)
     }
@@ -68,13 +68,22 @@ impl RepositoryCache {
         self.versioned_bucket(self.latest_version()?)
     }
 
-    pub fn clear(&self, version: String) -> Result<()> {
-        let bucket_name = format!("repositories_{version}");
-        self.cache.drop_bucket(&bucket_name)?;
+    pub fn clear_versions_under(&self, old_version: u64) -> Result<()> {
+        for bucket in self.cache.buckets() {
+            let Some((_, version)) = bucket.split_once('_') else {
+                continue;
+            };
+            let Ok(version) = version.parse::<u64>() else {
+                continue;
+            };
+            if version <= old_version {
+                self.cache.drop_bucket(bucket)?;
+            }
+        }
         Ok(())
     }
 
-    pub fn add_repository_meta(&self, version: String, file: RepositoryMeta) -> Result<()> {
+    pub fn add_repository_meta(&self, version: u64, file: RepositoryMeta) -> Result<()> {
         let key = format!("{}:{}", file.git_url, file.filepath);
         self.versioned_bucket(version)?.set(&key, &kv::Json(file))?;
         Ok(())
