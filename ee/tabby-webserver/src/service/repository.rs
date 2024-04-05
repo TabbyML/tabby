@@ -68,7 +68,10 @@ impl RepositoryService for DbConn {
     }
 
     async fn get_repository_by_name(&self, name: String) -> Result<Repository> {
-        todo!()
+        Ok((self as &DbConn)
+            .get_repository_by_name(&name)
+            .await
+            .map(Repository::from)?)
     }
 }
 
@@ -114,6 +117,7 @@ async fn match_pattern(
 #[cfg(test)]
 mod tests {
     use tabby_db::DbConn;
+    use temp_testdir::TempDir;
 
     use super::*;
 
