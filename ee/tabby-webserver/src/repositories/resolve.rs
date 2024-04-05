@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use axum::{
@@ -14,6 +14,13 @@ use tabby_common::{config::RepositoryConfig, SourceFile, Tag};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
+use crate::schema::repository::RepositoryService;
+
+fn repository_meta_db() -> PathBuf {
+    tabby_common::path::tabby_root().join("repositories.kv")
+}
+
+#[derive(Clone)]
 pub struct RepositoryCache {
     cache: Store,
 }
@@ -23,32 +30,58 @@ impl std::fmt::Debug for RepositoryCache {
         f.debug_struct("RepositoryCache").finish()
     }
 }
-type RepositoryBucket<'a> = Bucket<'a, String, kv::Json<SourceFile>>;
+type RepositoryBucket<'a> = Bucket<'a, String, kv::Json<RepositoryMeta>>;
 
 impl RepositoryCache {
     pub fn new() -> Result<Self> {
-        let config = Config::new(tabby_common::path::repository_meta_db());
+        let config = Config::new(repository_meta_db());
         let store = Store::new(config)?;
         Ok(RepositoryCache { cache: store })
     }
 
+    pub fn latest_version(&self) -> Result<String> {
+        let bucket = self.cache.bucket(Some("version"))?;
+        if !bucket.contains(&"version".to_string())? {
+            self.set_version(self.get_next_version()?)?;
+        }
+        Ok(bucket
+            .get(&"version".to_string())?
+            .expect("Cache version must always be set"))
+    }
+
+    pub fn set_version(&self, version: String) -> Result<()> {
+        let bucket = self.cache.bucket(Some("version"))?;
+        bucket.set(&"version".to_string(), &version)?;
+        Ok(())
+    }
+
+    pub fn get_next_version(&self) -> Result<String> {
+        Ok(self.cache.generate_id()?.to_string())
+    }
+
+    fn versioned_bucket(&self, version: String) -> Result<RepositoryBucket> {
+        let bucket_name = format!("repositories_{}", version);
+        Ok(self.cache.bucket(Some(&bucket_name))?)
+    }
+
     fn bucket(&self) -> Result<RepositoryBucket> {
-        Ok(self.cache.bucket(Some("repositories"))?)
+        self.versioned_bucket(self.latest_version()?)
     }
 
-    pub fn clear(&self) -> Result<()> {
-        self.bucket()?.clear()?;
+    pub fn clear(&self, version: String) -> Result<()> {
+        let bucket_name = format!("repositories_{version}");
+        self.cache.drop_bucket(&bucket_name)?;
         Ok(())
     }
 
-    pub fn add_repository_meta(&self, file: SourceFile) -> Result<()> {
-        let key = format!("{}:{}", file.repository_name, file.filepath);
-        self.bucket()?.set(&key, &kv::Json(file))?;
+    pub fn add_repository_meta(&self, version: String, file: RepositoryMeta) -> Result<()> {
+        let key = format!("{}:{}", file.git_url, file.filepath);
+        self.versioned_bucket(version)?.set(&key, &kv::Json(file))?;
         Ok(())
     }
 
-    pub fn get_repository_meta(&self, repository_name: &str, filepath: &str) -> Result<SourceFile> {
-        let key = format!("{repository_name}:{filepath}");
+    pub fn get_repository_meta(&self, git_url: &str, filepath: &str) -> Result<RepositoryMeta> {
+        let key = format!("{git_url}:{filepath}");
         let Some(kv::Json(val)) = self.bucket()?.get(&key)? else {
             return Err(anyhow!("Repository meta not found"));
         };
@@ -145,8 +178,16 @@ impl From<SourceFile> for RepositoryMeta {
     }
 }
 
-/// Webserver resolve functions
-impl RepositoryCache {
+pub struct RepositoryResolver {
+    cache: RepositoryCache,
+    service: Arc<dyn RepositoryService>,
+}
+
+impl RepositoryResolver {
+    pub fn new(cache: RepositoryCache, service: Arc<dyn RepositoryService>) -> Self {
+        RepositoryResolver { cache, service }
+    }
+
     /// Resolve a directory
     pub async fn resolve_dir(
         &self,
@@ -211,16 +252,22 @@ impl RepositoryCache {
         Ok(resp.map(boxed))
     }
 
-    pub fn resolve_meta(&self, key: &RepositoryKey) -> Result<RepositoryMeta> {
-        self.get_repository_meta(&key.repo_name, &key.rel_path)
+    pub async fn resolve_meta(&self, key: &RepositoryKey) -> Result<RepositoryMeta> {
+        let git_url = self
+            .service
+            .get_repository_by_name(key.repo_name.clone())
+            .await?
+            .git_url;
+        self.cache
+            .get_repository_meta(&git_url, &key.rel_path)
             .map(RepositoryMeta::from)
     }
 
     pub fn resolve_all(&self) -> Result<Response> {
         let mut entries = vec![];
-        for entry in self.bucket()?.iter() {
+        for entry in self.cache.bucket()?.iter() {
             let key: String = entry?.key()?;
-            let Some(key) = Self::str_to_key(&key) else {
+            let Some(key) = RepositoryCache::str_to_key(&key) else {
                 continue;
             };
             entries.push(DirEntry {
@@ -238,10 +285,10 @@ impl RepositoryCache {
     }
 
     pub fn find_repository(&self, name: &str) -> Result<RepositoryConfig> {
-        for entry in self.bucket()?.iter() {
+        for entry in self.cache.bucket()?.iter() {
             let entry = entry?;
             let key: String = entry.key()?;
-            let Some(key) = Self::str_to_key(&key) else {
+            let Some(key) = RepositoryCache::str_to_key(&key) else {
                 continue;
             };
             if &key.repo_name == name {

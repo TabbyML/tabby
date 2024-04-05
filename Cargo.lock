@@ -4609,7 +4609,6 @@ dependencies = [
  "jsonwebtoken",
  "juniper",
  "juniper-axum",
- "kv",
  "lazy_static",
  "lettre",
  "mime_guess",

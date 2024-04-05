@@ -15,6 +15,7 @@ use tabby_common::{
 };
 use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
+use tracing::error;
 
 use super::websocket::WebSocketTransport;
 pub use crate::schema::worker::WorkerKind;
@@ -198,13 +199,41 @@ impl RepositoryAccess for SchedulerClient {
         Ok(self.0.list_repositories(Context::current()).await?)
     }
 
-    fn clear_index(&self) -> Result<()> {
-        RepositoryCache::new()?.clear()?;
-        Ok(())
+    fn start_snapshot(&self) -> String {
+        log_errors("start repository snapshot", || {
+            let cache = RepositoryCache::new()?;
+            Ok(cache.get_next_version()?)
+        })
     }
 
-    fn write_index(&self, source_file: SourceFile) -> Result<()> {
-        RepositoryCache::new()?.add_repository_meta(source_file)?;
-        Ok(())
+    fn process_file(&self, version: String, file: SourceFile) {
+        log_errors("process repository file", move || {
+            let cache = RepositoryCache::new()?;
+            cache.add_repository_meta(version, file.into())?;
+            Ok(())
+        });
+    }
+
+    fn finish_snapshot(&self, version: String) {
+        log_errors("clear old repository cache data", move || {
+            let cache = RepositoryCache::new()?;
+            let old_version = cache.latest_version()?;
+            cache.set_version(version)?;
+            cache.clear(old_version)?;
+            Ok(())
+        });
+    }
+}
+
+fn log_errors<T>(operation: &'static str, f: impl FnOnce() -> Result<T, anyhow::Error>) -> T
+where
+    T: Default,
+{
+    match f() {
+        Ok(v) => v,
+        Err(e) => {
+            error!("Failed to {operation}: {e}");
+            Default::default()
+        }
     }
 }

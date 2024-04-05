@@ -10,12 +10,12 @@ testutils = []
 prod-db = []
 
 [dependencies]
+sqlx = { version = "0.7.3", features = ["sqlite", "chrono", "runtime-tokio", "macros"] }
 tabby-db-macros = { path = "../tabby-db-macros" }
 anyhow.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 hash-ids.workspace = true
 lazy_static.workspace = true
-sqlx = { workspace = true }
 sql_query_builder = { version = "2.1.0", features = ["sqlite"] }
 tabby-common = { path = "../../crates/tabby-common" }
 tokio = { workspace = true, features = ["fs"] }

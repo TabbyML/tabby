@@ -147,12 +147,11 @@ impl Default for ServerConfig {
 pub trait RepositoryAccess: Send + Sync {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>>;
 
-    fn clear_index(&self) -> Result<()> {
-        Ok(())
+    fn start_snapshot(&self) -> String {
+        Default::default()
     }
-    fn write_index(&self, _source_file: SourceFile) -> Result<()> {
-        Ok(())
-    }
+    fn process_file(&self, _version: String, _file: SourceFile) {}
+    fn finish_snapshot(&self, _version: String) {}
 }
 
 pub struct ConfigRepositoryAccess;

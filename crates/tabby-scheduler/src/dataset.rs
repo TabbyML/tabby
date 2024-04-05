@@ -25,8 +25,12 @@ use tree_sitter_tags::TagsContext;
 use crate::utils::tqdm;
 
 trait RepositoryExt {
-    fn create_dataset(&self, writer: &mut impl Write, access: &impl RepositoryAccess)
-        -> Result<()>;
+    fn create_dataset(
+        &self,
+        writer: &mut impl Write,
+        access: &impl RepositoryAccess,
+        cache_version: String,
+    ) -> Result<()>;
 }
 
 impl RepositoryExt for RepositoryConfig {
@@ -34,6 +38,7 @@ impl RepositoryExt for RepositoryConfig {
         &self,
         writer: &mut impl Write,
         access: &impl RepositoryAccess,
+        cache_version: String,
     ) -> Result<()> {
         let dir = self.dir();
 
@@ -66,7 +71,6 @@ impl RepositoryExt for RepositoryConfig {
             match read_to_string(entry.path()) {
                 Ok(file_content) => {
                     let source_file = SourceFile {
-                        repository_name: self.name(),
                         git_url: self.git_url.clone(),
                         filepath: relative_path.display().to_string(),
                         max_line_length: metrics::max_line_length(&file_content),
@@ -77,7 +81,7 @@ impl RepositoryExt for RepositoryConfig {
                         content: file_content,
                     };
                     writer.write_json_lines([source_file.clone()])?;
-                    access.write_index(source_file)?;
+                    access.process_file(cache_version.clone(), source_file);
                 }
                 Err(e) => {
                     error!("Cannot read {relative_path:?}: {e:?}");
@@ -105,7 +109,7 @@ fn is_source_code(entry: &DirEntry) -> bool {
 pub fn create_dataset(config: &[RepositoryConfig], access: &impl RepositoryAccess) -> Result<()> {
     fs::remove_dir_all(dataset_dir()).ok();
     fs::create_dir_all(dataset_dir())?;
-    access.clear_index()?;
+
     let mut writer = FileRotate::new(
         SourceFile::files_jsonl(),
         AppendCount::new(usize::max_value()),
@@ -115,15 +119,17 @@ pub fn create_dataset(config: &[RepositoryConfig], access: &impl RepositoryAcces
         None,
     );
 
+    let snapshot_version = access.start_snapshot();
     let mut deps = DependencyFile::default();
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
-        repository.create_dataset(&mut writer, access)?;
+        repository.create_dataset(&mut writer, access, snapshot_version.clone())?;
     }
 
     serdeconv::to_json_file(&deps, dependency_file())?;
 
     writer.flush()?;
+    access.finish_snapshot(snapshot_version);
     Ok(())
 }
 

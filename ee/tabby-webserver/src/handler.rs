@@ -16,7 +16,7 @@ use tracing::{error, warn};
 
 use crate::{
     cron, hub, oauth,
-    repositories::{self, RepositoryCache},
+    repositories::{self, RepositoryCache, RepositoryResolver},
     schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::new_event_logger},
     ui,
@@ -51,9 +51,11 @@ impl WebserverHandle {
         cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
         let repository_cache = RepositoryCache::new().expect("Failed to create repository index");
+        let repository_resolver =
+            RepositoryResolver::new(repository_cache.clone(), ctx.repository());
 
         let schema = Arc::new(create_schema());
-        let rs = Arc::new(repository_cache);
+        let rs = Arc::new(repository_resolver);
 
         let api = api
             .route(

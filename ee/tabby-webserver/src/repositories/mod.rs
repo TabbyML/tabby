@@ -10,8 +10,8 @@ use axum::{
     response::Response,
     routing, Json, Router,
 };
-pub use resolve::RepositoryCache;
-use tracing::{instrument, warn};
+pub use resolve::{RepositoryCache, RepositoryResolver};
+use tracing::warn;
 
 use crate::{
     handler::require_login_middleware,
@@ -19,7 +19,7 @@ use crate::{
     schema::auth::AuthenticationService,
 };
 
-pub type ResolveState = Arc<RepositoryCache>;
+pub type ResolveState = Arc<RepositoryResolver>;
 
 pub fn routes(rs: ResolveState, auth: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
@@ -40,7 +40,6 @@ async fn not_found() -> StatusCode {
     StatusCode::NOT_FOUND
 }
 
-#[instrument(skip(repo))]
 async fn resolve_path(
     State(rs): State<ResolveState>,
     Path(repo): Path<ResolveParams>,
@@ -74,13 +73,12 @@ async fn resolve_path(
     }
 }
 
-#[instrument(skip(repo))]
 async fn meta(
     State(rs): State<ResolveState>,
     Path(repo): Path<ResolveParams>,
 ) -> Result<Json<RepositoryMeta>, StatusCode> {
     let key = repo.dataset_key();
-    if let Ok(resp) = rs.resolve_meta(&key) {
+    if let Ok(resp) = rs.resolve_meta(&key).await {
         return Ok(Json(resp));
     }
     Err(StatusCode::NOT_FOUND)

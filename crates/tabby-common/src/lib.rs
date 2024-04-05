@@ -24,7 +24,6 @@ use serde_jsonlines::JsonLinesReader;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SourceFile {
     pub git_url: String,
-    pub repository_name: String,
     pub filepath: String,
     pub content: String,
     pub language: String,
