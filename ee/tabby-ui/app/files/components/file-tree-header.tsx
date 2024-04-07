@@ -64,7 +64,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const curerntRepoName = resolveRepoNameFromPath(activePath)
 
   const inputRef = React.useRef<HTMLInputElement>(null)
-  const ignoreFetchResultRef = React.useRef(false)
   const [input, setInput] = React.useState<string>()
   const [repositorySearchPattern, setRepositorySearchPattern] =
     React.useState<string>()
@@ -106,11 +105,10 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
     if (!v) {
-      ignoreFetchResultRef.current = true
       setRepositorySearchPattern('')
       setOptionsVisible(false)
+      setOptions([])
     } else {
-      ignoreFetchResultRef.current = false
       setRepositorySearchPattern(v)
     }
   }, 300)
