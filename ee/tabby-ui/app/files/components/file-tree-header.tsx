@@ -41,8 +41,8 @@ interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 type SearchOption = { path: string; type: string; id: string }
 
 const repositorySearch = graphql(/* GraphQL */ `
-  query RepositorySearch($repository: String!, $filter: String) {
-    repositorySearch(repository: $repository, filter: $filter) {
+  query RepositorySearch($repositoryName: String!, $pattern: String!) {
+    repositorySearch(repositoryName: $repositoryName, pattern: $pattern) {
       type
       path
     }
@@ -66,22 +66,20 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const inputRef = React.useRef<HTMLInputElement>(null)
   const ignoreFetchResultRef = React.useRef(false)
   const [input, setInput] = React.useState<string>()
-  const [repositorySearchFilter, setRepositorySearchFilter] =
+  const [repositorySearchPattern, setRepositorySearchPattern] =
     React.useState<string>()
   const [options, setOptions] = React.useState<Array<SearchOption>>()
   const [optionsVisible, setOptionsVisible] = React.useState(false)
-
-  const repoName = resolveRepoNameFromPath(activePath)
 
   const noIndexedRepo = initialized && !fileTreeData?.length
 
   const [{ data: repositorySearchData }] = useQuery({
     query: repositorySearch,
     variables: {
-      repository: curerntRepoName,
-      filter: repositorySearchFilter
+      repositoryName: curerntRepoName,
+      pattern: repositorySearchPattern ?? ''
     },
-    pause: !repositorySearchFilter
+    pause: !curerntRepoName || !repositorySearchPattern
   })
 
   React.useEffect(() => {
@@ -91,7 +89,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
         id: option.path
       })) ?? []
     setOptions(_options)
-    setOptionsVisible(!!repositorySearchFilter)
+    setOptionsVisible(!!repositorySearchPattern)
   }, [repositorySearchData?.repositorySearch])
 
   const onSelectRepo = (name: string) => {
@@ -100,20 +98,20 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 
   const memoizedMatchedIndices = React.useMemo(() => {
     return options?.map(option =>
-      repositorySearchFilter
-        ? getMatchedIndices(repositorySearchFilter, option.path)
+      repositorySearchPattern
+        ? getMatchedIndices(repositorySearchPattern, option.path)
         : []
     )
-  }, [options, repositorySearchFilter])
+  }, [options, repositorySearchPattern])
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
     if (!v) {
       ignoreFetchResultRef.current = true
-      setRepositorySearchFilter('')
+      setRepositorySearchPattern('')
       setOptionsVisible(false)
     } else {
       ignoreFetchResultRef.current = false
-      setRepositorySearchFilter(v)
+      setRepositorySearchPattern(v)
     }
   }, 300)
 
@@ -126,14 +124,14 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const path = value.path
     if (!path) return
 
-    const fullPath = `${repoName}/${path}`
+    const fullPath = `${curerntRepoName}/${path}`
     const entries = await fetchEntriesFromPath(fullPath)
     const initialExpandedDirs = getDirectoriesFromBasename(path)
 
     const patchMap: TFileMap = {}
     // fetch dirs
     for (const entry of entries) {
-      const path = `${repoName}/${entry.basename}`
+      const path = `${curerntRepoName}/${entry.basename}`
       patchMap[path] = {
         file: entry,
         name: resolveFileNameFromPath(path),
@@ -142,7 +140,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       }
     }
     const expandedKeys = initialExpandedDirs.map(dir =>
-      [repoName, dir].filter(Boolean).join('/')
+      [curerntRepoName, dir].filter(Boolean).join('/')
     )
     if (patchMap) {
       updateFileMap(patchMap)
@@ -189,13 +187,15 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     <div className={cn(className)} {...props}>
       <div className="py-4 font-bold leading-8">Files</div>
       <div className="space-y-3">
-        <Select onValueChange={onSelectRepo} value={repoName}>
+        <Select onValueChange={onSelectRepo} value={curerntRepoName}>
           <SelectTrigger>
             <SelectValue>
               <div className="flex items-center gap-2">
                 <IconFolderGit />
-                <span className={repoName ? '' : 'text-muted-foreground'}>
-                  {repoName || 'Pick a repository'}
+                <span
+                  className={curerntRepoName ? '' : 'text-muted-foreground'}
+                >
+                  {curerntRepoName || 'Pick a repository'}
                 </span>
               </div>
             </SelectValue>
@@ -241,7 +241,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                       spellCheck={false}
                       value={input}
                       ref={inputRef}
-                      disabled={!repoName}
+                      disabled={!curerntRepoName}
                       onChange={e => {
                         let value = e.target.value
                         setInput(value)
@@ -376,13 +376,14 @@ HighlightMatches.displayName = 'HighlightMatches'
 function getMatchedIndices(s: string, t: string) {
   let result: number[] = []
   let p = 0
+  let formattedSource = s.replace(/\s+/g, '')
   for (let i = 0; i < t.length; i++) {
-    if (s[p] === t[i]) {
+    if (formattedSource[p] === t[i]) {
       result.push(i)
       p++
     }
   }
-  return result?.length === s.length ? result : []
+  return result?.length === formattedSource.length ? result : []
 }
 
 export { FileTreeHeader }
