@@ -198,6 +198,7 @@ function PromptFormRenderer(
             setSuggestionOpen(isOpen)
           } else {
             setSuggestionOpen(false)
+            setOptions([])
           }
         }}
       >

@@ -219,6 +219,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
           </SelectContent>
         </Select>
         <Combobox
+          stayOpenOnInputClick
           options={options}
           onSelect={onSelectFile}
           open={optionsVisible}
