@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useContext } from 'react'
+import uFuzzy from '@leeoniya/ufuzzy'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -95,13 +96,17 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     setActivePath(name)
   }
 
-  const memoizedMatchedIndices = React.useMemo(() => {
-    return options?.map(option =>
-      repositorySearchPattern
-        ? getMatchedIndices(repositorySearchPattern, option.path)
-        : []
-    )
+  const memoizedMatchedInfo = React.useMemo(() => {
+    if (options?.length && repositorySearchPattern) {
+      let uf = new uFuzzy()
+      const stringList = options?.map(item => item.path)
+      let result = uf.search(stringList, repositorySearchPattern, 5)
+      return result?.[1]
+    } else {
+      return null
+    }
   }, [options, repositorySearchPattern])
+
 
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
     if (!v) {
@@ -309,9 +314,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                           </div>
                           <div className="flex-1 truncate">
                             <HighlightMatches
-                              matchedIndices={
-                                memoizedMatchedIndices?.[index] ?? []
-                              }
+                              ranges={memoizedMatchedInfo?.ranges?.[index]}
                             >
                               {item.path}
                             </HighlightMatches>
@@ -342,37 +345,37 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 }
 
 const HighlightMatches = React.memo(
-  ({
-    children,
-    matchedIndices
-  }: {
-    children: string
-    matchedIndices: number[]
-  }) => {
-    let lastIndex = 0
-    const highlightedText = []
+  ({ children, ranges }: { children: string; ranges?: number[] | null }) => {
+    let currentIndex = 0
+    const fragments = []
 
-    matchedIndices.forEach(index => {
-      // add non-highlighted text
-      highlightedText.push(
-        <span key={`text-${lastIndex}`}>
-          {children.substring(lastIndex, index)}
+    if (!ranges?.length)
+      return <p className="text-muted-foreground">{children}</p>
+
+    for (let i = 0; i < ranges.length; i += 2) {
+      const start = ranges[i]
+      const end = ranges[i + 1]
+
+      if (start > currentIndex) {
+        fragments.push(
+          <span key={currentIndex}>{children.slice(currentIndex, start)}</span>
+        )
+      }
+      fragments.push(
+        <span key={start} className="font-bold text-foreground">
+          {children.slice(start, end)}
         </span>
       )
-      // add highlighted text
-      highlightedText.push(
-        <span key={`match-${index}`} className="font-bold text-foreground">
-          {children.substring(index, index + 1)}
-        </span>
+      currentIndex = end
+    }
+
+    if (currentIndex < children.length) {
+      fragments.push(
+        <span key={currentIndex}>{children.slice(currentIndex)}</span>
       )
-      lastIndex = index + 1
-    })
+    }
 
-    highlightedText.push(
-      <span key={`text-${lastIndex}`}>{children.substring(lastIndex)}</span>
-    )
-
-    return <p className="text-muted-foreground">{highlightedText}</p>
+    return <p className="text-muted-foreground">{fragments}</p>
   }
 )
 HighlightMatches.displayName = 'HighlightMatches'
