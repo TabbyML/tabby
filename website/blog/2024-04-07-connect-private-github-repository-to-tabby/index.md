@@ -101,9 +101,13 @@ Notably, the line `Index is ready, enabling server...` signifies that the server
 
 To confirm that the code completion is effectively utilizing the built index, you can employ the code search feature to validate the indexing process:
 
-1. Access the Swagger UI page: `http://localhost:8080/swagger-ui/#/v1beta/search`.
-2. Click on the `Try it out` button, and input the query parameter `q`, such as `get`.
-3. Click the `Execute` button to trigger the search and see if there are any indexed symbols.
+1. Access the Swagger UI page at [http://localhost:8080/swagger-ui/#/v1beta/search](http://localhost:8080/swagger-ui/#/v1beta/search).
+2. Click on the `Try it out` button, and input the query parameter `q` with a symbol to search for.
+3. Click the `Execute` button to trigger the search and see if there are any relevant code snippets was found.
+
+In the screenshot below, we use `CodeSearch` as the query string and find some code snippets related in the Tabby repository:
+
+![Code Search Preview](./code-search-preview.png)
 
 Alternatively, if you have utilized the code completion with the constructed index, you can examine the server log located in `~/.tabby/events` to inspect how the prompt is enhanced during code completion.
 
