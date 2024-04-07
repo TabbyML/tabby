@@ -241,6 +241,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                       value={input}
                       ref={inputRef}
                       disabled={!curerntRepoName}
+                      onClick={e => {
+                        if (repositorySearchPattern && !optionsVisible) {
+                          setOptionsVisible(true)
+                        }
+                      }}
                       onChange={e => {
                         let value = e.target.value
                         setInput(value)

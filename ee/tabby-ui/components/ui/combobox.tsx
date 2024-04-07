@@ -197,7 +197,6 @@ export function Combobox<T extends { id: number | string }>({
   onOpenChange,
   stayOpenOnInputClick
 }: ComboboxProps<T>) {
-  const [open, setOpen] = React.useState(!!propsOpen)
   const anchorRef = React.useRef<HTMLElement>(null)
 
   const stateReducer = React.useCallback(
@@ -213,8 +212,7 @@ export function Combobox<T extends { id: number | string }>({
             highlightedIndex: state.highlightedIndex
           }
         case useCombobox.stateChangeTypes.InputClick:
-          const isOpen =
-            state.isOpen && stayOpenOnInputClick ? true : changes.isOpen
+          const isOpen = stayOpenOnInputClick ? true : changes.isOpen
           return {
             ...changes,
             isOpen
@@ -228,16 +226,15 @@ export function Combobox<T extends { id: number | string }>({
 
   const comboboxValue = useCombobox({
     items: options ?? [],
-    isOpen: open,
+    defaultIsOpen: propsOpen,
     onSelectedItemChange({ selectedItem }) {
       if (selectedItem) {
         onSelect?.(selectedItem)
-        setOpen(false)
+        onOpenChange?.(false)
       }
     },
     onIsOpenChange: ({ isOpen }) => {
       const nextOpen = !!isOpen
-      setOpen(nextOpen)
       onOpenChange?.(nextOpen)
     },
     stateReducer
