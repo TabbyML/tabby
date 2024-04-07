@@ -39,12 +39,8 @@ function AnalyticSummary({
   return (
     <div className="flex items-center justify-center space-x-4 xl:justify-start">
       <div className="space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4 lg:min-w-[250px]">
-        <p className="text-xs text-muted-foreground lg:text-sm">
-          Accept Rate
-        </p>
-        <p className="font-bold lg:text-3xl">
-          TBD
-        </p>
+        <p className="text-xs text-muted-foreground lg:text-sm">Accept Rate</p>
+        <p className="font-bold lg:text-3xl">TBD</p>
       </div>
 
       <div className="space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4 lg:min-w-[250px]">
@@ -60,9 +56,7 @@ function AnalyticSummary({
         <p className="text-xs text-muted-foreground lg:text-sm">
           Total acceptances
         </p>
-        <p className="font-bold lg:text-3xl">
-          TBD
-        </p>
+        <p className="font-bold lg:text-3xl">TBD</p>
       </div>
     </div>
   )
@@ -215,14 +209,19 @@ export function Analytic() {
       </LoadingWrapper>
 
       <div className="flex flex-col gap-y-6 xl:flex-row xl:gap-x-6 xl:gap-y-0">
-        {false && <div className="flex-1">
-          <LoadingWrapper
-            loading={fetchingDailyState}
-            fallback={<Skeleton className="h-64 w-full" />}
-          >
-            <AnlyticAcceptance dailyStats={dailyStats} dateRange={dateRange} />
-          </LoadingWrapper>
-        </div>}
+        {false && (
+          <div className="flex-1">
+            <LoadingWrapper
+              loading={fetchingDailyState}
+              fallback={<Skeleton className="h-64 w-full" />}
+            >
+              <AnlyticAcceptance
+                dailyStats={dailyStats}
+                dateRange={dateRange}
+              />
+            </LoadingWrapper>
+          </div>
+        )}
         <div style={{ flex: 3 }}>
           <LoadingWrapper
             loading={fetchingDailyState || fetchingYearlyStats}
