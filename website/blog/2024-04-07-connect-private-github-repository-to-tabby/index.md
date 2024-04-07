@@ -48,6 +48,8 @@ For more detailed about the configuration file, you can refer to the [configurat
 
 ## Building the Index
 
+In the process of building the index, we will parse the repository and extract code components for indexing, using the parser [tree-sitter](https://tree-sitter.github.io/tree-sitter/). This will allow for quick retrieval of related code snippets before generating code completions, thereby enhancing the context for suggestion generation.
+
 :::tip
 The commands provided in this section are based on a Linux environment and assume the pre-installation of Docker with CUDA drivers. Adjust the commands as necessary if you are running Tabby on a different setup.
 :::
