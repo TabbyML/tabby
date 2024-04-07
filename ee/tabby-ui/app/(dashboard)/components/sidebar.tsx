@@ -71,9 +71,9 @@ export default function Sidebar({ children, className }: SidebarProps) {
                     <IconScrollText />
                     Jobs
                   </SidebarButton>
-                  <SidebarButton href="/analytics">
+                  <SidebarButton href="/reports">
                     <IconBarChart />
-                    Analytics
+                    Reports
                   </SidebarButton>
                   <SidebarCollapsible
                     title={

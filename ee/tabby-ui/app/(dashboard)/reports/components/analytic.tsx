@@ -40,6 +40,15 @@ function AnalyticSummary({
     <div className="flex items-center justify-center space-x-4 xl:justify-start">
       <div className="space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4 lg:min-w-[250px]">
         <p className="text-xs text-muted-foreground lg:text-sm">
+          Accept Rate
+        </p>
+        <p className="font-bold lg:text-3xl">
+          TBD
+        </p>
+      </div>
+
+      <div className="space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4 lg:min-w-[250px]">
+        <p className="text-xs text-muted-foreground lg:text-sm">
           Total completions
         </p>
         <p className="font-bold lg:text-3xl">
@@ -49,16 +58,11 @@ function AnalyticSummary({
 
       <div className="space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4 lg:min-w-[250px]">
         <p className="text-xs text-muted-foreground lg:text-sm">
-          Minutes saved / completion
+          Total acceptances
         </p>
-        <p className="font-bold lg:text-3xl">2</p>
-      </div>
-
-      <div className="space-y-0.5 rounded-lg border bg-primary-foreground/30 p-4 lg:min-w-[250px]">
-        <p className="text-xs text-muted-foreground lg:text-sm">
-          Hours saved in total
+        <p className="font-bold lg:text-3xl">
+          TBD
         </p>
-        <p className="font-bold lg:text-3xl">100</p>
       </div>
     </div>
   )
@@ -126,10 +130,10 @@ export function Analytic() {
       <div className="flex flex-col items-center justify-between gap-y-3 xl:flex-row xl:gap-y-0">
         <div className="flex flex-col justify-center xl:justify-start">
           <h1 className="mb-1.5 scroll-m-20 text-center text-4xl font-extrabold tracking-tight lg:text-5xl xl:text-left">
-            Analytics
+            Reports
           </h1>
           <p className="text-muted-foreground">
-            Overview of code completion usage
+            Statistics around Tabby IDE / Extensions
           </p>
         </div>
 
@@ -211,14 +215,14 @@ export function Analytic() {
       </LoadingWrapper>
 
       <div className="flex flex-col gap-y-6 xl:flex-row xl:gap-x-6 xl:gap-y-0">
-        <div className="flex-1">
+        {false && <div className="flex-1">
           <LoadingWrapper
             loading={fetchingDailyState}
             fallback={<Skeleton className="h-64 w-full" />}
           >
             <AnlyticAcceptance dailyStats={dailyStats} dateRange={dateRange} />
           </LoadingWrapper>
-        </div>
+        </div>}
         <div style={{ flex: 3 }}>
           <LoadingWrapper
             loading={fetchingDailyState || fetchingYearlyStats}

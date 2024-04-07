@@ -35,7 +35,7 @@ export function AnalyticYearlyCompletion({
     <div className="flex h-full flex-col rounded-lg border bg-primary-foreground/30 p-4">
       <h1 className="text-xl font-bold">Activity</h1>
       <p className="mt-0.5 text-xs text-muted-foreground">
-        {lastYearCompletions} completions in the last year
+        {lastYearCompletions} activities in the last year
       </p>
       <div className="mt-5 flex flex-1 items-center justify-center xl:mt-0">
         <ActivityCalendar data={data} />
