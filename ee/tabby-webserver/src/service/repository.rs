@@ -8,7 +8,7 @@ use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
-    repository::{FileEntry, Repository, RepositoryService},
+    repository::{FileEntrySearchResult, Repository, RepositoryService},
     Result,
 };
 
@@ -47,7 +47,7 @@ impl RepositoryService for DbConn {
         name: &str,
         pattern: &str,
         top_n: usize,
-    ) -> Result<Vec<FileEntry>> {
+    ) -> Result<Vec<FileEntrySearchResult>> {
         if pattern.trim().is_empty() {
             return Ok(vec![]);
         }
@@ -72,7 +72,7 @@ async fn match_pattern(
     base: &Path,
     pattern: &str,
     limit: usize,
-) -> Result<Vec<FileEntry>, anyhow::Error> {
+) -> Result<Vec<FileEntrySearchResult>, anyhow::Error> {
     let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
     let needle = nucleo::pattern::Pattern::new(
         pattern,
@@ -95,8 +95,9 @@ async fn match_pattern(
                 .to_string_lossy()
                 .into_owned();
             let haystack: nucleo::Utf32String = path.clone().into();
-            let score = needle.score(haystack.slice(..), &mut nucleo);
-            score.map(|score| (score, FileEntry { r#type, path }))
+            let mut indices = Vec::new();
+            let score = needle.indices(haystack.slice(..), &mut nucleo, &mut indices);
+            score.map(|score| (score, FileEntrySearchResult::new(r#type, path, indices)))
         })
         .take(limit)
         .collect();
