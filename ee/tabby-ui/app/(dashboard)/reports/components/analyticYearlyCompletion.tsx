@@ -32,12 +32,11 @@ export function AnalyticYearlyCompletion({
     .reverse()
 
   return (
-    <div className="flex h-full flex-col rounded-lg border bg-primary-foreground/30 p-4">
-      <h1 className="text-xl font-bold">Activity</h1>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        {lastYearCompletions} activities in the last year
-      </p>
-      <div className="mt-5 flex flex-1 items-center justify-center xl:mt-0">
+    <div className="flex h-full flex-col rounded-lg border bg-primary-foreground/30 px-6 py-4">
+      <h3 className="mb-5 text-sm font-medium tracking-tight">
+        <b>{lastYearCompletions}</b> activities in the last year
+      </h3>
+      <div className="flex flex-1 items-center justify-center">
         <ActivityCalendar data={data} />
       </div>
     </div>

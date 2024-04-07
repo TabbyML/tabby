@@ -1,6 +1,10 @@
+'use client'
+
 import { eachDayOfInterval } from 'date-fns'
 import moment from 'moment'
-import type { DateRange } from 'react-day-picker'
+import { sum } from 'lodash-es'
+import { useTheme } from 'next-themes'
+
 import {
   Bar,
   BarChart,
@@ -9,9 +13,9 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
-
 import { Card, CardContent } from '@/components/ui/card'
 
+import type { DateRange } from 'react-day-picker'
 import type { DailyStats } from '../types/stats'
 
 function BarTooltip({
@@ -19,21 +23,29 @@ function BarTooltip({
   payload,
   label
 }: {
-  active?: boolean
-  label?: string
+  active?: boolean;
+  label?: string;
   payload?: {
-    name: string
-    value: number
+    name: string;
+    payload: {
+      completion: number;
+      select: number;
+      pending: number;
+    };
+    
   }[]
 }) {
   if (active && payload && payload.length) {
-    const completion = payload[0].value
+    const {completion, select} = payload[0].payload
     if (!completion) return null
     return (
       <Card>
-        <CardContent className="px-4 py-2 text-sm">
-          <p>
-            Completions: <b>{completion}</b>
+        <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
+          <p className="flex items-center">
+            <span className="mr-3 inline-block w-20">Completion:</span><b>{completion}</b>
+          </p>
+          <p className="flex items-center">
+          <span className="mr-3 inline-block w-20">Acceptance:</span><b>{select}</b>
           </p>
           <p className="text-muted-foreground">{label}</p>
         </CardContent>
@@ -51,14 +63,19 @@ export function AnalyticDailyCompletion({
   dailyStats: DailyStats[] | undefined
   dateRange: DateRange
 }) {
+  const { theme } = useTheme()
+  const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
   const from = dateRange.from || new Date()
   const to = dateRange.to || from
 
-  const dailyCompletionMap: Record<string, number> =
-    dailyStats?.reduce((acc, cur) => {
-      const date = moment(cur.start).format('YYYY-MM-DD')
-      return { ...acc, [date]: cur.completions }
-    }, {}) || {}
+  const dailyCompletionMap: Record<string, number> = {}
+  const dailySelectMap: Record<string, number> = {}
+
+  dailyStats?.forEach(stats => {
+    const date = moment(stats.start).format('YYYY-MM-DD')
+    dailyCompletionMap[date] = stats.completions
+    dailySelectMap[date] = stats.selects
+  }, {})
 
   const daysBetweenRange = eachDayOfInterval({
     start: from,
@@ -66,20 +83,22 @@ export function AnalyticDailyCompletion({
   })
 
   const chartData = daysBetweenRange.map(date => {
-    const completionKey = moment(date).format('YYYY-MM-DD')
-    const value = dailyCompletionMap[completionKey] || 0
+    const dateKey = moment(date).format('YYYY-MM-DD')
+    const completion = dailyCompletionMap[dateKey] || 0
+    const select = dailySelectMap[dateKey] || 0
+    const pending = completion - select
     return {
       name: moment(date).format('D MMM'),
-      value
+      completion,
+      select,
+      pending
     }
   })
   return (
-    <div className="rounded-lg border bg-primary-foreground/30 p-4">
-      <h1 className="mb-5 text-xl font-bold">Completions</h1>
-      <ResponsiveContainer width="100%" height={350}>
+    <div className="rounded-lg border bg-primary-foreground/30 px-6 py-4">
+      <h3 className="mb-5 text-sm font-medium tracking-tight">Completions</h3>
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart
-          width={500}
-          height={300}
           data={chartData}
           margin={{
             top: 5,
@@ -88,9 +107,10 @@ export function AnalyticDailyCompletion({
             bottom: 5
           }}
         >
-          <Bar dataKey="value" fill="#8884d8" />
+          <Bar dataKey="select" stackId="stats" fill={theme === 'dark' ? '#e8e1d3' : '#54452c'} radius={3} />
+          <Bar dataKey="pending" stackId="stats" fill={theme === 'dark' ? '#423929' : '#e8e1d3'} radius={3} />
           <XAxis dataKey="name" fontSize={12} />
-          <YAxis fontSize={12} />
+          <YAxis fontSize={12} width={20} />
           <Tooltip cursor={{ fill: 'transparent' }} content={<BarTooltip />} />
         </BarChart>
       </ResponsiveContainer>
