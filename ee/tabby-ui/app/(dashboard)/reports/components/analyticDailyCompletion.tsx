@@ -110,7 +110,7 @@ export function AnalyticDailyCompletion({
           <Bar dataKey="select" stackId="stats" fill={theme === 'dark' ? '#e8e1d3' : '#54452c'} radius={3} />
           <Bar dataKey="pending" stackId="stats" fill={theme === 'dark' ? '#423929' : '#e8e1d3'} radius={3} />
           <XAxis dataKey="name" fontSize={12} />
-          <YAxis fontSize={12} width={20} />
+          <YAxis fontSize={12} width={20} allowDecimals={false} />
           <Tooltip cursor={{ fill: 'transparent' }} content={<BarTooltip />} />
         </BarChart>
       </ResponsiveContainer>

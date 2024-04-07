@@ -28,6 +28,7 @@ import { AnalyticDailyCompletion } from './analyticDailyCompletion'
 import { AnalyticYearlyCompletion } from './analyticYearlyCompletion'
 
 import type { DailyStats } from '../types/stats'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const INITIAL_DATE_RANGE = 14
 const KEY_SELECT_ALL = 'all'
@@ -40,7 +41,7 @@ function AnalyticSummary({
   const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
   return (
     <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
-      <Card className="flex-1 bg-primary-foreground/30 self-stretch flex flex-col justify-between md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Accept Rate
@@ -55,7 +56,7 @@ function AnalyticSummary({
         </CardContent>
       </Card>
 
-      <Card className="flex-1 bg-primary-foreground/30 self-stretch flex flex-col justify-between md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Total completions
@@ -70,7 +71,7 @@ function AnalyticSummary({
         </CardContent>
       </Card>
 
-      <Card className="flex-1 bg-primary-foreground/30 self-stretch flex flex-col justify-between md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Total acceptances
@@ -157,34 +158,49 @@ export function Analytic() {
           </p>
         </div>
 
-        <Select
-          defaultValue={KEY_SELECT_ALL}
-          onValueChange={setSelectedMember}
-        >
-          <SelectTrigger className="w-[150px]">
-            <div className="flex w-full items-center truncate ">
-              <span className="mr-1.5 text-muted-foreground">Member:</span>
-              <div className="overflow-hidden text-ellipsis">
-                <SelectValue />
+        <LoadingWrapper
+          loading={fetchingDailyState}
+          fallback={<Skeleton className="h-8 w-32" />}>
+          <Select
+            defaultValue={KEY_SELECT_ALL}
+            onValueChange={setSelectedMember}
+          >
+            <SelectTrigger className="w-[150px]">
+              <div className="flex w-full items-center truncate ">
+                <span className="mr-1.5 text-muted-foreground">Member:</span>
+                <div className="overflow-hidden text-ellipsis">
+                  <SelectValue />
+                </div>
               </div>
-            </div>
-          </SelectTrigger>
-          <SelectContent align='end'>
-            <SelectGroup>
-              <SelectItem value={KEY_SELECT_ALL}>All</SelectItem>
-              {members.map(member => (
-                <SelectItem value={member.id} key={member.id}>
-                  {member.email}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+            </SelectTrigger>
+            <SelectContent align='end'>
+              <SelectGroup>
+                <SelectItem value={KEY_SELECT_ALL}>All</SelectItem>
+                {members.map(member => (
+                  <SelectItem value={member.id} key={member.id}>
+                    {member.email}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </LoadingWrapper>
       </div>
 
-      <LoadingWrapper>
+      <LoadingWrapper
+        loading={fetchingDailyState}
+        fallback={
+          <div className="flex flex-col gap-5">
+            <div className="flex justify-between gap-5">
+              <Skeleton className="h-32 flex-1" />
+              <Skeleton className="h-32 flex-1" />
+              <Skeleton className="h-32 flex-1" />
+            </div>
+            <Skeleton className="h-56" />
+          </div>
+        }>
         <div className="mb-10 flex flex-col gap-y-5">
-          <div className="flex gap-y-1 md:gap-y-0 md:items-center justify-between flex-col md:flex-row">
+          <div className="flex flex-col justify-between gap-y-1 md:flex-row md:items-center md:gap-y-0">
             <h1 className="text-xl font-semibold">Usage</h1>
             
             <div className="flex items-center gap-x-3">
@@ -232,7 +248,9 @@ export function Analytic() {
         </div>
       </LoadingWrapper>
       
-      <LoadingWrapper>
+      <LoadingWrapper
+        loading={fetchingYearlyStats}
+        fallback={<Skeleton className="mt-5 h-48" />}>
         <div className="mb-10">
           <h1 className="mb-3 text-xl font-semibold">Activity</h1>
           <AnalyticYearlyCompletion yearlyStats={yearlyStats} />
