@@ -5,9 +5,9 @@ tags: [deployment, repository context]
 
 # Connect Private GitHub Repository to Tabby
 
-A few months back, we published a blog [Repository context for LLM assisted code completion](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion), introducing the `Repository Context` feature in Tabby.
+A few months ago, we published a blog [Repository context for LLM assisted code completion](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion), introducing the Repository Context feature in Tabby. This feature has been widely embraced by many users to incorporate repository-level knowledge into Tabby, thus improving the relevance of code completion suggestions within the working project.
 
-In this blog, I will guide you through the process of setting up a Tabby server configured with **a private Git repositories** context.
+In this blog, I will guide you through the steps of setting up a Tabby server configured with **a private Git repositories** context, aiming to simplify and streamline the integration process.
 
 ## Generating a Personal Access Token
 
