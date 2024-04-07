@@ -11,7 +11,7 @@ In this blog, I will guide you through the process of setting up a Tabby server 
 
 ## Generating a Personal Access Token
 
-In order to provide the Tabby server with access to your private Git repositories, it is essential to create a Personal Access Token (PAT) specific to your Git provider. The following steps outline the process with GitHub as a reference:
+In order to provide the Tabby server with access to your private Git repositories, it is essential to create a **Personal Access Token (PAT)** specific to your Git provider. The following steps outline the process with GitHub as a reference:
 
 1. Visit [GitHub Personal Access Tokens Settings](https://github.com/settings/tokens?type=beta) and select `Generate new token`.
    ![GitHub PAT Generate New Token](./github-pat-generate-new-token.png)
@@ -22,7 +22,7 @@ In order to provide the Tabby server with access to your private Git repositorie
 4. Click `Generate token` to generate the new PAT. Remember to make a copy of the PAT before closing the webpage.
    ![GitHub PAT Generate Token](./github-pat-generate-token.png)
 
-For additional information, please consult the documentation on [Managing your personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+For additional information, please refer to the documentation on [Managing your personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 
 **Note**: For users of GitLab, guidance on creating a personal access token can be found in the documentation [Personal access tokens - GitLab](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#create-a-personal-access-token).
 
