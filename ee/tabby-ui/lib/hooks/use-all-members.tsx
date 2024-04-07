@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from 'urql'
 
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { listUsers } from '@/lib/tabby/query'
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 
 type Member = {
-  id: string;
-  email: string;
+  id: string
+  email: string
 }
 
 export function useAllMembers() {
@@ -30,14 +30,14 @@ export function useAllMembers() {
         id: edge.node.id,
         email: edge.node.email
       }))
-      const cursor = data?.users.pageInfo.endCursor || ""
+      const cursor = data?.users.pageInfo.endCursor || ''
       const hasMore = data?.users.pageInfo.hasNextPage
       const currentList = [...list]
 
       setList(currentList.concat(members))
       if (hasMore) {
         setQueryVariables({
-          first: DEFAULT_PAGE_SIZE, 
+          first: DEFAULT_PAGE_SIZE,
           after: cursor
         })
       } else {

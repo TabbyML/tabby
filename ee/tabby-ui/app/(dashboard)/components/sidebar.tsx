@@ -16,14 +16,14 @@ import {
   CollapsibleTrigger
 } from '@/components/ui/collapsible'
 import {
+  IconBarChart,
   IconChevronRight,
   IconGear,
   IconHome,
   IconLightingBolt,
   IconNetwork,
   IconScrollText,
-  IconUser,
-  IconBarChart
+  IconUser
 } from '@/components/ui/icons'
 
 export interface SidebarProps {

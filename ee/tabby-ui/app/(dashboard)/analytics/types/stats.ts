@@ -1,6 +1,6 @@
 export type DailyStats = {
-  start: Date;
-  end: Date;
-  completions: number;
-  selects: number;
+  start: Date
+  end: Date
+  completions: number
+  selects: number
 }

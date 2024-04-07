@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import * as React from "react"
-import { CalendarIcon } from "@radix-ui/react-icons"
-import { addDays, format } from "date-fns"
-import { DateRange } from "react-day-picker"
+import * as React from 'react'
+import { CalendarIcon } from '@radix-ui/react-icons'
+import { addDays, format } from 'date-fns'
+import { DateRange } from 'react-day-picker'
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+  PopoverTrigger
+} from '@/components/ui/popover'
 
 export default function DatePickerWithRange({
   dateRange,
@@ -22,14 +22,14 @@ export default function DatePickerWithRange({
   onOpenChange
 }: React.HTMLAttributes<HTMLDivElement> & {
   dateRange?: DateRange
-  buttonClassName?: string;
-  contentAlign?: "start" | "end" | "center";
-  onOpenChange?: (isOpen: boolean, date: DateRange | undefined) => void,
-  onSelectDateRange?: (date: DateRange | undefined) => void,
+  buttonClassName?: string
+  contentAlign?: 'start' | 'end' | 'center'
+  onOpenChange?: (isOpen: boolean, date: DateRange | undefined) => void
+  onSelectDateRange?: (date: DateRange | undefined) => void
 }) {
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: dateRange?.from || new Date(2022, 0, 20),
-    to: dateRange?.to || addDays(new Date(2022, 0, 20), 20),
+    to: dateRange?.to || addDays(new Date(2022, 0, 20), 20)
   })
 
   const toggleOpen = (isOpen: boolean) => {
@@ -37,15 +37,15 @@ export default function DatePickerWithRange({
   }
 
   return (
-    <div className={cn("grid gap-2", className)}>
+    <div className={cn('grid gap-2', className)}>
       <Popover onOpenChange={toggleOpen}>
         <PopoverTrigger asChild>
           <Button
             id="date"
-            variant={"outline"}
+            variant={'outline'}
             className={cn(
-              "w-[300px] justify-start text-left font-normal ",
-              !date && "text-muted-foreground",
+              'w-[300px] justify-start text-left font-normal ',
+              !date && 'text-muted-foreground',
               buttonClassName
             )}
           >
@@ -53,11 +53,11 @@ export default function DatePickerWithRange({
             {date?.from ? (
               date.to ? (
                 <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
+                  {format(date.from, 'LLL dd, y')} -{' '}
+                  {format(date.to, 'LLL dd, y')}
                 </>
               ) : (
-                format(date.from, "LLL dd, y")
+                format(date.from, 'LLL dd, y')
               )
             ) : (
               <span>Pick a date</span>
