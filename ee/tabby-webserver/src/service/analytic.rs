@@ -60,7 +60,7 @@ impl AnalyticService for AnalyticServiceImpl {
     }
 }
 
-fn convert_ids(ids: Vec<ID>) -> Vec<i32> {
+fn convert_ids(ids: Vec<ID>) -> Vec<i64> {
     ids.into_iter()
         .filter_map(|id| match id.as_rowid() {
             Ok(rowid) => Some(rowid),

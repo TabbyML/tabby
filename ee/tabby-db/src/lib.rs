@@ -82,16 +82,6 @@ fn make_pagination_query_with_condition(
     select.as_string()
 }
 
-fn make_pagination_query(
-    table_name: &str,
-    field_names: &[&str],
-    limit: Option<usize>,
-    skip_id: Option<i32>,
-    backwards: bool,
-) -> String {
-    make_pagination_query_with_condition(table_name, field_names, limit, skip_id, backwards, None)
-}
-
 impl DbConn {
     #[cfg(any(test, feature = "testutils"))]
     pub async fn new_in_memory() -> Result<Self> {

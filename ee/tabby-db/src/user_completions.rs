@@ -70,7 +70,7 @@ impl DbConn {
     // FIXME(boxbeam): index `created_at` in user_completions table.
     pub async fn compute_daily_stats_in_past_year(
         &self,
-        users: Vec<i32>,
+        users: Vec<i64>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         let users = users
             .iter()
@@ -99,7 +99,7 @@ impl DbConn {
         &self,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
-        users: Vec<i32>,
+        users: Vec<i64>,
         languages: Vec<String>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         let users = users
