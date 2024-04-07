@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useContext } from 'react'
-import uFuzzy from '@leeoniya/ufuzzy'
+import fuzzysort from 'fuzzysort'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -96,17 +96,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     setActivePath(name)
   }
 
-  const memoizedMatchedInfo = React.useMemo(() => {
-    if (options?.length && repositorySearchPattern) {
-      let uf = new uFuzzy()
-      const stringList = options?.map(item => item.path)
-      let result = uf.search(stringList, repositorySearchPattern, 5)
-      return result?.[1]
-    } else {
-      return null
-    }
-  }, [options, repositorySearchPattern])
-
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
     if (!v) {
       setRepositorySearchPattern('')
@@ -115,7 +104,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     } else {
       setRepositorySearchPattern(v)
     }
-  }, 300)
+  }, 500)
 
   const onClearInput = () => {
     onInputValueChange.run('')
@@ -276,7 +265,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                         </Button>
                       ) : (
                         <kbd
-                          className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
+                          className="bg-secondary/50 text-muted-foreground rounded-md border px-1.5 text-xs leading-4 shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
                           onClick={e => {
                             inputRef.current?.focus()
                           }}
@@ -291,7 +280,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                   align="start"
                   side="bottom"
                   onOpenAutoFocus={e => e.preventDefault()}
-                  className="max-h-[50vh] min-w-[30vw] overflow-y-scroll"
+                  style={{ width: '50vw', maxWidth: 700 }}
+                  className="max-h-[50vh] overflow-y-scroll"
                 >
                   <>
                     {options?.length ? (
@@ -311,12 +301,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                               <IconFile />
                             )}
                           </div>
-                          <div className="flex-1 truncate">
+                          <div className="flex-1 break-all">
                             <HighlightMatches
-                              ranges={memoizedMatchedInfo?.ranges?.[index]}
-                            >
-                              {item.path}
-                            </HighlightMatches>
+                              text={item.path}
+                              pattern={repositorySearchPattern}
+                            />
                           </div>
                           {highlightedIndex === index && (
                             <div className="shrink-0`">
@@ -328,7 +317,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                         </ComboboxOption>
                       ))
                     ) : (
-                      <div className="flex h-16 items-center justify-center">
+                      <div className="flex h-24 items-center justify-center">
                         No matches found
                       </div>
                     )}
@@ -344,52 +333,28 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
 }
 
 const HighlightMatches = React.memo(
-  ({ children, ranges }: { children: string; ranges?: number[] | null }) => {
-    let currentIndex = 0
-    const fragments = []
+  ({ text, pattern }: { text: string; pattern: string | undefined }) => {
+    const defaultItem = <p className="text-muted-foreground">{text}</p>
 
-    if (!ranges?.length)
-      return <p className="text-muted-foreground">{children}</p>
-
-    for (let i = 0; i < ranges.length; i += 2) {
-      const start = ranges[i]
-      const end = ranges[i + 1]
-
-      if (start > currentIndex) {
-        fragments.push(
-          <span key={currentIndex}>{children.slice(currentIndex, start)}</span>
-        )
-      }
-      fragments.push(
-        <span key={start} className="font-bold text-foreground">
-          {children.slice(start, end)}
-        </span>
-      )
-      currentIndex = end
+    if (!pattern) {
+      return defaultItem
     }
 
-    if (currentIndex < children.length) {
-      fragments.push(
-        <span key={currentIndex}>{children.slice(currentIndex)}</span>
+    const result = fuzzysort.single(pattern ?? '', text)
+    if (text && result && pattern) {
+      return (
+        <p className="text-muted-foreground">
+          {fuzzysort.highlight(result, (m, i) => (
+            <span className="text-foreground font-semibold" key={i}>
+              {m}
+            </span>
+          ))}
+        </p>
       )
     }
-
-    return <p className="text-muted-foreground">{fragments}</p>
+    return defaultItem
   }
 )
 HighlightMatches.displayName = 'HighlightMatches'
-
-function getMatchedIndices(s: string, t: string) {
-  let result: number[] = []
-  let p = 0
-  let formattedSource = s.replace(/\s+/g, '')
-  for (let i = 0; i < t.length; i++) {
-    if (formattedSource[p] === t[i]) {
-      result.push(i)
-      p++
-    }
-  }
-  return result?.length === formattedSource.length ? result : []
-}
 
 export { FileTreeHeader }
