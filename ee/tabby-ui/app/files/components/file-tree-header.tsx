@@ -107,7 +107,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     }
   }, [options, repositorySearchPattern])
 
-
   const onInputValueChange = useDebounceCallback((v: string | undefined) => {
     if (!v) {
       setRepositorySearchPattern('')
