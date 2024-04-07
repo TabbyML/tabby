@@ -40,7 +40,7 @@ function AnalyticSummary({
   const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
   return (
     <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
-      <Card className="flex-1 bg-primary-foreground/30">
+      <Card className="flex-1 bg-primary-foreground/30 self-stretch flex flex-col justify-between md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Accept Rate
@@ -55,7 +55,7 @@ function AnalyticSummary({
         </CardContent>
       </Card>
 
-      <Card className="flex-1 bg-primary-foreground/30">
+      <Card className="flex-1 bg-primary-foreground/30 self-stretch flex flex-col justify-between md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Total completions
@@ -70,7 +70,7 @@ function AnalyticSummary({
         </CardContent>
       </Card>
 
-      <Card className="flex-1 bg-primary-foreground/30">
+      <Card className="flex-1 bg-primary-foreground/30 self-stretch flex flex-col justify-between md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Total acceptances
@@ -147,9 +147,9 @@ export function Analytic() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-3 flex flex-col items-center justify-between gap-y-3 xl:flex-row xl:gap-y-0">
-        <div className="flex flex-col justify-center xl:justify-start">
-          <h1 className="mb-1.5 scroll-m-20 text-center text-4xl font-extrabold tracking-tight lg:text-5xl xl:text-left">
+      <div className="mb-3 flex items-center justify-between ">
+        <div className="flex flex-col ">
+          <h1 className="mb-1.5 scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
             Reports
           </h1>
           <p className="text-muted-foreground">
@@ -161,7 +161,7 @@ export function Analytic() {
           defaultValue={KEY_SELECT_ALL}
           onValueChange={setSelectedMember}
         >
-          <SelectTrigger className="w-[300px] lg:w-[150px]">
+          <SelectTrigger className="w-[150px]">
             <div className="flex w-full items-center truncate ">
               <span className="mr-1.5 text-muted-foreground">Member:</span>
               <div className="overflow-hidden text-ellipsis">
@@ -184,7 +184,7 @@ export function Analytic() {
 
       <LoadingWrapper>
         <div className="mb-10 flex flex-col gap-y-5">
-          <div className="flex items-center justify-between">
+          <div className="flex gap-y-1 md:gap-y-0 md:items-center justify-between flex-col md:flex-row">
             <h1 className="text-xl font-semibold">Usage</h1>
             
             <div className="flex items-center gap-x-3">
@@ -194,7 +194,7 @@ export function Analytic() {
                   setSelectedLanguage(value)
                 }
               >
-                <SelectTrigger className="w-[300px] lg:w-[180px]">
+                <SelectTrigger className="w-[180px]">
                   <div className="flex w-full items-center truncate">
                     <span className="mr-1.5 text-muted-foreground">Language:</span>
                     <div className="overflow-hidden text-ellipsis">
@@ -238,30 +238,6 @@ export function Analytic() {
           <AnalyticYearlyCompletion yearlyStats={yearlyStats} />
         </div>
       </LoadingWrapper>
-
-      {/* <div className="flex flex-col gap-y-6 xl:flex-row xl:gap-x-6 xl:gap-y-0">
-        {false && (
-          <div className="flex-1">
-            <LoadingWrapper
-              loading={fetchingDailyState}
-              fallback={<Skeleton className="h-64 w-full" />}
-            >
-              <AnlyticAcceptance
-                dailyStats={dailyStats}
-                dateRange={dateRange}
-              />
-            </LoadingWrapper>
-          </div>
-        )}
-        <div style={{ flex: 3 }}>
-          <LoadingWrapper
-            loading={fetchingDailyState || fetchingYearlyStats}
-            fallback={<Skeleton className="h-64 w-full" />}
-          >
-            
-          </LoadingWrapper>
-        </div>
-      </div> */}
     </div>
   )
 }

@@ -22,7 +22,11 @@ export default function ActivityCalendar({
   const size = useWindowSize()
   const width = size.width || 0
   const blockSize =
-    width >= 1600 ? 13 : width >= 1400 ? 10 : width >= 1000 ? 8 : 5
+    width >= 1300
+      ? 13
+      : width >= 1000
+        ? 9
+        : 5
 
   return (
     <ReactActivityCalendar
