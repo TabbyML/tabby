@@ -31,7 +31,7 @@ pub struct FileEntrySearchResult {
     pub path: String,
 
     /// matched indices for fuzzy search query.
-    pub indices: Vec<i32> 
+    pub indices: Vec<i32>,
 }
 
 impl FileEntrySearchResult {
@@ -74,6 +74,10 @@ pub trait RepositoryService: Send + Sync {
     async fn delete_repository(&self, id: &ID) -> Result<bool>;
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
 
-    async fn search_files(&self, name: &str, pattern: &str, top_n: usize)
-        -> Result<Vec<FileEntrySearchResult>>;
+    async fn search_files(
+        &self,
+        name: &str,
+        pattern: &str,
+        top_n: usize,
+    ) -> Result<Vec<FileEntrySearchResult>>;
 }
