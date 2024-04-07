@@ -8,8 +8,8 @@ import { DateRange } from 'react-day-picker'
 import { useQuery } from 'urql'
 
 import { Language } from '@/lib/gql/generates/graphql'
-import { useAllMembers } from '@/lib/hooks/use-all-members'
-import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
+import { useAllMembers } from '@/app/(dashboard)/reports/hooks/use-all-members'
+import { queryDailyStats, queryDailyStatsInPastYear } from '../query'
 import {
   Select,
   SelectContent,

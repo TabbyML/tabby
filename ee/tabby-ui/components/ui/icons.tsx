@@ -184,6 +184,8 @@ function IconArrowRight({ className, ...props }: React.ComponentProps<'svg'>) {
   )
 }
 
+// FIXME: Remove to use ChevronRight from lucide-react
+// currently ui/calendar is using ChevronRight as the default option.
 function IconChevronRight({
   className,
   ...props
@@ -204,6 +206,9 @@ function IconChevronRight({
     </svg>
   )
 }
+
+// FIXME: Remove to use ChevronLeft from lucide-react 
+// currently ui/calendar is using ChevronLeft as the default option.
 function IconChevronLeft({ className, ...props }: React.ComponentProps<'svg'>) {
   return (
     <svg
