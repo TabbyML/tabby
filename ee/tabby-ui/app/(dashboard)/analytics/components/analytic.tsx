@@ -84,7 +84,6 @@ export function Analytic() {
     completions: item.completions,
     selects: item.selects,
   }))
-  console.log(dailyStats)
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({

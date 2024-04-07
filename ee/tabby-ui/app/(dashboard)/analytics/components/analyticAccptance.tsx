@@ -1,3 +1,6 @@
+
+'use client'
+
 import moment from "moment";
 
 import type { DateRange } from "react-day-picker"
@@ -78,7 +81,7 @@ export function AnlyticAcceptance ({
 			<p className="mt-0.5 text-xs text-muted-foreground">
 				{moment(from).format('D MMM, YYYY')} - {moment(to).format('D MMM, YYYY')}
 			</p>
-			<ResponsiveContainer width="100%" height={250}>
+			<ResponsiveContainer width="100%" height={210}>
 				<PieChart width={700} height={400}>
 					<Pie
 						data={data}
@@ -94,7 +97,7 @@ export function AnlyticAcceptance ({
 							<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
 						))}
 					</Pie>
-					{totalCompletions !== 0 && <Legend />}
+					{totalCompletions !== 0 && <Legend wrapperStyle={{ fontSize: '12px' }} />}
 				</PieChart>
 			</ResponsiveContainer>
 		</div>

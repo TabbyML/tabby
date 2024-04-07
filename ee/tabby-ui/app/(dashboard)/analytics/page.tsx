@@ -1,9 +1,9 @@
 import { Metadata } from 'next'
 
-import { Analytic } from './components/analyticAccptance'
+import { Analytic } from './components/analytic'
 
 export const metadata: Metadata = {
-  title: 'Analytic dashboard'
+  title: 'Analytics Dashboard'
 }
 
 export default function Page() {
