@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use chrono::DateTime;
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 
 use crate::{DateTimeUtc, DbConn};
@@ -18,6 +18,12 @@ pub struct UserCompletionDAO {
 
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
+}
+
+pub struct UserCompletionDailyStatsDAO {
+    pub start: DateTime<Utc>,
+    pub completions: i32,
+    pub selects: i32,
 }
 
 impl DbConn {
@@ -59,6 +65,70 @@ impl DbConn {
         query!("UPDATE user_completions SET views = views + ?, selects = selects + ?, dismisses = dismisses + ?, updated_at = ? WHERE completion_id = ?",
             views, selects, dismisses, updated_at, completion_id).execute(&self.pool).await?;
         Ok(())
+    }
+
+    // FIXME(boxbeam): index `created_at` in user_completions table.
+    pub async fn compute_daily_stats_in_past_year(
+        &self,
+        users: Vec<i32>,
+    ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
+        let users = users
+            .iter()
+            .map(|u| u.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        Ok(sqlx::query_as!(
+            UserCompletionDailyStatsDAO,
+            r#"
+        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as "start!: DateTime<Utc>",
+               SUM(1) as "completions!: i32",
+               SUM(selects) as "selects!: i32"
+        FROM user_completions
+        WHERE created_at >= DATE('now', '-1 year')
+            AND (?1 = '' OR user_id IN (?1))
+        GROUP BY 1
+        ORDER BY 1 ASC
+        "#,
+            users
+        )
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
+    pub async fn compute_daily_stats(
+        &self,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+        users: Vec<i32>,
+        languages: Vec<String>,
+    ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
+        let users = users
+            .iter()
+            .map(|u| u.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let languages = languages.join(",");
+        let res = sqlx::query_as!(
+            UserCompletionDailyStatsDAO,
+            r#"
+        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as "start!: DateTime<Utc>",
+               SUM(1) as "completions!: i32",
+               SUM(selects) as "selects!: i32"
+        FROM user_completions
+        WHERE created_at >= ?1 AND created_at < ?2
+            AND (?3 = '' OR user_id IN (?3))
+            AND (?4 = '' OR language IN (?4))
+        GROUP BY 1
+        ORDER BY 1 ASC
+        "#,
+            start,
+            end,
+            users,
+            languages
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(res)
     }
 
     #[cfg(any(test, feature = "testutils"))]

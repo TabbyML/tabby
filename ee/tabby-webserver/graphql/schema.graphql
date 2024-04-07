@@ -1,15 +1,117 @@
-enum OAuthProvider {
-  GITHUB
-  GOOGLE
+enum Language {
+  RUST
+  PYTHON
 }
 
-input RequestInvitationInput {
+type JobRun {
+  id: ID!
+  job: String!
+  createdAt: DateTimeUtc!
+  updatedAt: DateTimeUtc!
+  finishedAt: DateTimeUtc
+  exitCode: Int
+  stdout: String!
+  stderr: String!
+}
+
+enum AuthMethod {
+  NONE
+  PLAIN
+  LOGIN
+}
+
+type RegisterResponse {
+  accessToken: String!
+  refreshToken: String!
+}
+
+enum LicenseStatus {
+  OK
+  EXPIRED
+  SEATS_EXCEEDED
+}
+
+input RequestPasswordResetEmailInput {
   email: String!
+}
+
+type LicenseInfo {
+  type: LicenseType!
+  status: LicenseStatus!
+  seats: Int!
+  seatsUsed: Int!
+  issuedAt: DateTimeUtc
+  expiresAt: DateTimeUtc
+}
+
+input SecuritySettingInput {
+  allowedRegisterDomainList: [String!]!
+  disableClientSideTelemetry: Boolean!
+}
+
+type SecuritySetting {
+  allowedRegisterDomainList: [String!]!
+  disableClientSideTelemetry: Boolean!
+}
+
+type UserConnection {
+  edges: [UserEdge!]!
+  pageInfo: PageInfo!
+}
+
+input UpdateOAuthCredentialInput {
+  provider: OAuthProvider!
+  clientId: String!
+  clientSecret: String
+}
+
+type ServerInfo {
+  isAdminInitialized: Boolean!
+  isChatEnabled: Boolean!
+  isEmailConfigured: Boolean!
+  allowSelfSignup: Boolean!
+}
+
+input PasswordChangeInput {
+  oldPassword: String
+  newPassword1: String!
+  newPassword2: String!
+}
+
+type Invitation {
+  id: ID!
+  email: String!
+  code: String!
+  createdAt: DateTimeUtc!
+}
+
+type EmailSetting {
+  smtpUsername: String!
+  smtpServer: String!
+  smtpPort: Int!
+  fromAddress: String!
+  encryption: Encryption!
+  authMethod: AuthMethod!
 }
 
 type TokenAuthResponse {
   accessToken: String!
   refreshToken: String!
+}
+
+type JobStats {
+  success: Int!
+  failed: Int!
+  pending: Int!
+}
+
+type NetworkSetting {
+  externalUrl: String!
+}
+
+type JobRunEdge {
+  node: JobRun!
+  cursor: String!
 }
 
 enum WorkerKind {
@@ -61,15 +163,8 @@ type RepositoryEdge {
 "DateTime"
 scalar DateTimeUtc
 
-type JobRun {
-  id: ID!
-  job: String!
-  createdAt: DateTimeUtc!
-  updatedAt: DateTimeUtc!
-  finishedAt: DateTimeUtc
-  exitCode: Int
-  stdout: String!
-  stderr: String!
+input NetworkSettingInput {
+  externalUrl: String!
 }
 
 type Query {
@@ -92,22 +187,14 @@ type Query {
   serverInfo: ServerInfo!
   license: LicenseInfo!
   jobs: [String!]!
-}
-
-input NetworkSettingInput {
-  externalUrl: String!
+  dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
+  dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
 }
 
 enum Encryption {
   START_TLS
   SSL_TLS
   NONE
-}
-
-enum AuthMethod {
-  NONE
-  PLAIN
-  LOGIN
 }
 
 type UserEdge {
@@ -126,33 +213,9 @@ type RefreshTokenResponse {
   refreshExpiresAt: DateTimeUtc!
 }
 
-type RegisterResponse {
-  accessToken: String!
-  refreshToken: String!
-}
-
 type RepositoryConnection {
   edges: [RepositoryEdge!]!
   pageInfo: PageInfo!
-}
-
-enum LicenseStatus {
-  OK
-  EXPIRED
-  SEATS_EXCEEDED
-}
-
-input RequestPasswordResetEmailInput {
-  email: String!
-}
-
-type LicenseInfo {
-  type: LicenseType!
-  status: LicenseStatus!
-  seats: Int!
-  seatsUsed: Int!
-  issuedAt: DateTimeUtc
-  expiresAt: DateTimeUtc
 }
 
 input EmailSettingInput {
@@ -165,31 +228,10 @@ input EmailSettingInput {
   smtpPassword: String
 }
 
-input SecuritySettingInput {
-  allowedRegisterDomainList: [String!]!
-  disableClientSideTelemetry: Boolean!
-}
-
 enum LicenseType {
   COMMUNITY
   TEAM
   ENTERPRISE
-}
-
-type SecuritySetting {
-  allowedRegisterDomainList: [String!]!
-  disableClientSideTelemetry: Boolean!
-}
-
-type UserConnection {
-  edges: [UserEdge!]!
-  pageInfo: PageInfo!
-}
-
-input UpdateOAuthCredentialInput {
-  provider: OAuthProvider!
-  clientId: String!
-  clientSecret: String
 }
 
 type OAuthCredential {
@@ -200,39 +242,17 @@ type OAuthCredential {
   updatedAt: DateTimeUtc!
 }
 
-type ServerInfo {
-  isAdminInitialized: Boolean!
-  isChatEnabled: Boolean!
-  isEmailConfigured: Boolean!
-  allowSelfSignup: Boolean!
+type CompletionStats {
+  start: DateTimeUtc!
+  end: DateTimeUtc!
+  completions: Int!
+  selects: Int!
 }
 
 input PasswordResetInput {
   code: String!
   password1: String!
   password2: String!
-}
-
-input PasswordChangeInput {
-  oldPassword: String
-  newPassword1: String!
-  newPassword2: String!
-}
-
-type Invitation {
-  id: ID!
-  email: String!
-  code: String!
-  createdAt: DateTimeUtc!
-}
-
-type EmailSetting {
-  smtpUsername: String!
-  smtpServer: String!
-  smtpPort: Int!
-  fromAddress: String!
-  encryption: Encryption!
-  authMethod: AuthMethod!
 }
 
 type User {
@@ -246,6 +266,10 @@ type User {
   isPasswordSet: Boolean!
 }
 
+input RequestInvitationInput {
+  email: String!
+}
+
 type Worker {
   kind: WorkerKind!
   name: String!
@@ -257,15 +281,14 @@ type Worker {
   cudaDevices: [String!]!
 }
 
+enum OAuthProvider {
+  GITHUB
+  GOOGLE
+}
+
 type InvitationEdge {
   node: Invitation!
   cursor: String!
-}
-
-type JobStats {
-  success: Int!
-  failed: Int!
-  pending: Int!
 }
 
 type PageInfo {
@@ -273,15 +296,6 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
-}
-
-type NetworkSetting {
-  externalUrl: String!
-}
-
-type JobRunEdge {
-  node: JobRun!
-  cursor: String!
 }
 
 type Repository {

@@ -1,3 +1,4 @@
+mod analytic;
 mod auth;
 mod dao;
 mod email;
@@ -28,9 +29,11 @@ use tabby_db::DbConn;
 use tracing::{info, warn};
 
 use self::{
-    auth::new_authentication_service, email::new_email_service, license::new_license_service,
+    analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service,
+    license::new_license_service,
 };
 use crate::schema::{
+    analytic::AnalyticService,
     auth::AuthenticationService,
     email::EmailService,
     job::JobService,
@@ -286,6 +289,10 @@ impl ServiceLocator for Arc<ServerContext> {
 
     fn license(&self) -> Arc<dyn LicenseService> {
         self.license.clone()
+    }
+
+    fn analytic(&self) -> Arc<dyn AnalyticService> {
+        new_analytic_service(self.db_conn.clone())
     }
 }
 

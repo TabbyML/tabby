@@ -1,3 +1,4 @@
+pub mod analytic;
 pub mod auth;
 pub mod email;
 pub mod job;
@@ -13,6 +14,7 @@ use auth::{
     TokenAuthResponse, User,
 };
 use base64::Engine;
+use chrono::{DateTime, Utc};
 use job::{JobRun, JobService};
 use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
@@ -28,21 +30,18 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
+    analytic::{AnalyticService, CompletionStats},
     auth::{
-        PasswordChangeInput, PasswordResetInput, RequestInvitationInput,
-        RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
+        JWTPayload, OAuthCredential, OAuthProvider, PasswordChangeInput, PasswordResetInput,
+        RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
+    job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{Repository, RepositoryService},
+    repository::{FileEntry, Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
-};
-use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider},
-    job::JobStats,
-    repository::FileEntry,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -55,6 +54,7 @@ pub trait ServiceLocator: Send + Sync {
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
+    fn analytic(&self) -> Arc<dyn AnalyticService>;
 }
 
 pub struct Context {
@@ -118,13 +118,18 @@ fn check_claims(ctx: &Context) -> Result<&JWTPayload, CoreError> {
 }
 
 async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
-    let claims = check_claims(ctx)?;
-    let user = ctx.locator.auth().get_user(&claims.sub.0).await?;
+    let user = check_user(ctx).await?;
     if !user.is_admin {
         return Err(CoreError::Forbidden("You must be admin to proceed"));
     }
 
     Ok(())
+}
+
+async fn check_user(ctx: &Context) -> Result<User, CoreError> {
+    let claims = check_claims(ctx)?;
+    let user = ctx.locator.auth().get_user(&claims.sub.0).await?;
+    Ok(user)
 }
 
 async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<(), CoreError> {
@@ -345,6 +350,30 @@ impl Query {
 
     async fn jobs() -> Result<Vec<String>> {
         Ok(vec!["scheduler".into()])
+    }
+
+    async fn daily_stats_in_past_year(
+        ctx: &Context,
+        users: Option<Vec<ID>>,
+    ) -> Result<Vec<CompletionStats>> {
+        let users = users.unwrap_or_default();
+        check_analytic_access(ctx, &users).await?;
+        ctx.locator.analytic().daily_stats_in_past_year(users).await
+    }
+
+    async fn daily_stats(
+        ctx: &Context,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+        users: Option<Vec<ID>>,
+        languages: Option<Vec<analytic::Language>>,
+    ) -> Result<Vec<CompletionStats>> {
+        let users = users.unwrap_or_default();
+        check_analytic_access(ctx, &users).await?;
+        ctx.locator
+            .analytic()
+            .daily_stats(start, end, users, languages.unwrap_or_default())
+            .await
     }
 }
 
@@ -612,6 +641,27 @@ impl Mutation {
         ctx.locator.license().reset_license().await?;
         Ok(true)
     }
+}
+
+async fn check_analytic_access(ctx: &Context, users: &[ID]) -> Result<(), CoreError> {
+    let user = check_user(ctx).await?;
+    if users.is_empty() && !user.is_admin {
+        return Err(CoreError::Forbidden(
+            "You must be admin to read other users' data",
+        ));
+    }
+
+    if !user.is_admin {
+        for id in users {
+            if user.id != *id {
+                return Err(CoreError::Forbidden(
+                    "You must be admin to read other users' data",
+                ));
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn from_validation_errors<S: ScalarValue>(error: ValidationErrors) -> FieldError<S> {
