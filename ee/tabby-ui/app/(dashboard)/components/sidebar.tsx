@@ -22,7 +22,8 @@ import {
   IconLightingBolt,
   IconNetwork,
   IconScrollText,
-  IconUser
+  IconUser,
+  IconBarChart
 } from '@/components/ui/icons'
 
 export interface SidebarProps {
@@ -69,6 +70,10 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   <SidebarButton href="/jobs">
                     <IconScrollText />
                     Jobs
+                  </SidebarButton>
+                  <SidebarButton href="/analytic">
+                    <IconBarChart />
+                    Analytic
                   </SidebarButton>
                   <SidebarCollapsible
                     title={
