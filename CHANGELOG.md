@@ -1,9 +1,10 @@
 # v0.10.0 [UNRELEASED]
 
 ## Features
-* Added the --chat-device flag to override a device used to run chat model.
-
-# v0.9.2 [UNRELEASED]
+* Introduced the `--chat-device` flag to specify the device used to run the chat model.
+* Added a "Reports" tab in the web interface, which provides team-wise statistics for Tabby IDE and Extensions usage (e.g., completions, acceptances).
+* Enabled the use of segmented models with the `tabby download` command.
+* Implemented the "Go to file" functionality in the Code Browser.
 
 ## Fixes and Improvements
 * Fix worker unregisteration misfunctioning caused by unmatched address.
