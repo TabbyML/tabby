@@ -38,7 +38,7 @@ use self::{
     email::{EmailService, EmailSetting, EmailSettingInput},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{FileEntry, Repository, RepositoryService},
+    repository::{FileEntrySearchResult, Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
@@ -306,7 +306,7 @@ impl Query {
         ctx: &Context,
         repository_name: String,
         pattern: String,
-    ) -> FieldResult<Vec<FileEntry>> {
+    ) -> FieldResult<Vec<FileEntrySearchResult>> {
         check_claims(ctx)?;
         Ok(ctx
             .locator

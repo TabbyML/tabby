@@ -26,9 +26,22 @@ pub struct Repository {
 }
 
 #[derive(GraphQLObject, Debug)]
-pub struct FileEntry {
+pub struct FileEntrySearchResult {
     pub r#type: String,
     pub path: String,
+
+    /// matched indices for fuzzy search query.
+    pub indices: Vec<i32>,
+}
+
+impl FileEntrySearchResult {
+    pub fn new(r#type: String, path: String, indices: Vec<u32>) -> Self {
+        Self {
+            r#type,
+            path,
+            indices: indices.into_iter().map(|i| i as i32).collect(),
+        }
+    }
 }
 
 impl NodeType for Repository {
@@ -61,6 +74,10 @@ pub trait RepositoryService: Send + Sync {
     async fn delete_repository(&self, id: &ID) -> Result<bool>;
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
 
-    async fn search_files(&self, name: &str, pattern: &str, top_n: usize)
-        -> Result<Vec<FileEntry>>;
+    async fn search_files(
+        &self,
+        name: &str,
+        pattern: &str,
+        top_n: usize,
+    ) -> Result<Vec<FileEntrySearchResult>>;
 }

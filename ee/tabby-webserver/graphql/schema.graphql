@@ -119,11 +119,6 @@ enum WorkerKind {
   CHAT
 }
 
-type FileEntry {
-  type: String!
-  path: String!
-}
-
 type Mutation {
   resetRegistrationToken: String!
   requestInvitationEmail(input: RequestInvitationInput!): Invitation!
@@ -163,6 +158,13 @@ type RepositoryEdge {
 "DateTime"
 scalar DateTimeUtc
 
+type FileEntrySearchResult {
+  type: String!
+  path: String!
+  "matched indices for fuzzy search query."
+  indices: [Int!]!
+}
+
 input NetworkSettingInput {
   externalUrl: String!
 }
@@ -181,7 +183,7 @@ type Query {
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
-  repositorySearch(repositoryName: String!, pattern: String!): [FileEntry!]!
+  repositorySearch(repositoryName: String!, pattern: String!): [FileEntrySearchResult!]!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
