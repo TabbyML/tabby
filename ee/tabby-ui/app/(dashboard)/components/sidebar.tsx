@@ -16,14 +16,11 @@ import {
   CollapsibleTrigger
 } from '@/components/ui/collapsible'
 import {
-  IconBarChart,
   IconBookOpenText,
   IconChevronRight,
   IconGear,
   IconHome,
   IconLightingBolt,
-  IconNetwork,
-  IconScrollText,
   IconUser
 } from '@/components/ui/icons'
 
@@ -65,18 +62,16 @@ export default function Sidebar({ children, className }: SidebarProps) {
               </SidebarButton>
               {isAdmin && (
                 <>
-                  <SidebarCollapsible title={
-                    <><IconBookOpenText /> Information</>
-                  }>
-                    <SidebarButton href="/cluster">
-                      Cluster
-                    </SidebarButton>
-                    <SidebarButton href="/jobs">
-                      Jobs
-                    </SidebarButton>
-                    <SidebarButton href="/reports">
-                      Reports
-                    </SidebarButton>
+                  <SidebarCollapsible
+                    title={
+                      <>
+                        <IconBookOpenText /> Information
+                      </>
+                    }
+                  >
+                    <SidebarButton href="/cluster">Cluster</SidebarButton>
+                    <SidebarButton href="/jobs">Jobs</SidebarButton>
+                    <SidebarButton href="/reports">Reports</SidebarButton>
                   </SidebarCollapsible>
                   <SidebarCollapsible
                     title={
@@ -160,10 +155,7 @@ interface SidebarCollapsibleProps {
   defaultOpen?: boolean
 }
 
-function SidebarCollapsible({
-  title,
-  children,
-}: SidebarCollapsibleProps) {
+function SidebarCollapsible({ title, children }: SidebarCollapsibleProps) {
   return (
     <Collapsible
       defaultOpen={true}
