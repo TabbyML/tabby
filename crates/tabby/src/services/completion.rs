@@ -126,6 +126,18 @@ pub struct Segments {
     clipboard: Option<String>,
 }
 
+impl From<Segments> for api::event::Segments {
+    fn from(val: Segments) -> Self {
+        Self {
+            prefix: val.prefix,
+            suffix: val.suffix,
+            clipboard: val.clipboard,
+            git_url: val.git_url,
+            declarations: val.declarations.map(|x| x.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
 /// A snippet of declaration code that is relevant to the current completion request.
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Declaration {
@@ -134,18 +146,17 @@ pub struct Declaration {
     ///   this is a relative filepath, that has the same root as the current file.
     /// - When the file located outside the workspace, such as in a dependency package,
     ///   this is a file URI with an absolute filepath.
-    filepath: String,
+    pub filepath: String,
 
     /// Body of the snippet.
-    body: String,
+    pub body: String,
 }
 
-impl From<Segments> for api::event::Segments {
-    fn from(val: Segments) -> Self {
+impl From<Declaration> for api::event::Declaration {
+    fn from(val: Declaration) -> Self {
         Self {
-            prefix: val.prefix,
-            suffix: val.suffix,
-            clipboard: val.clipboard,
+            filepath: val.filepath,
+            body: val.body,
         }
     }
 }
