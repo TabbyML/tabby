@@ -17,29 +17,31 @@ import {
   PopoverPortal
 } from '@/components/ui/popover'
 
-import { Input } from './input'
+import { Input } from './ui/input'
 
-interface ComboboxContextValue<T = any> extends UseComboboxReturnValue<T> {
+interface SearchSelectContextValue<T = any> extends UseComboboxReturnValue<T> {
   open: boolean
   anchorRef: React.RefObject<HTMLElement>
 }
 
-export const ComboboxContext = React.createContext({} as ComboboxContextValue)
+export const SearchSelectContext = React.createContext(
+  {} as SearchSelectContextValue
+)
 
-export const ComboboxClose = PopoverClose
-export const ComboboxAnchor = React.forwardRef<
+export const SearchSelectClose = PopoverClose
+export const SearchSelectAnchor = React.forwardRef<
   React.ElementRef<typeof PopoverAnchor>,
   React.ComponentPropsWithoutRef<typeof PopoverAnchor>
 >((props, forwardRef) => {
   return <PopoverAnchor {...props} ref={forwardRef} />
 })
-ComboboxAnchor.displayName = 'ComboboxAnchor'
+SearchSelectAnchor.displayName = 'SearchSelectAnchor'
 
-export const ComboboxTextarea = React.forwardRef<
+export const SearchSelectTextarea = React.forwardRef<
   React.ElementRef<typeof Textarea>,
   React.ComponentPropsWithoutRef<typeof Textarea>
 >((props, forwardRef) => {
-  const { getInputProps } = React.useContext(ComboboxContext)
+  const { getInputProps } = React.useContext(SearchSelectContext)
   const { onKeyDown, onChange, onInput, onBlur, onClick, ...rest } = props
 
   return (
@@ -61,13 +63,13 @@ export const ComboboxTextarea = React.forwardRef<
     />
   )
 })
-ComboboxTextarea.displayName = 'ComboboxTextarea'
+SearchSelectTextarea.displayName = 'SearchSelectTextarea'
 
-export const ComboboxInput = React.forwardRef<
+export const SearchSelectInput = React.forwardRef<
   React.ElementRef<typeof Input>,
   React.ComponentPropsWithoutRef<typeof Input>
 >((props, forwardRef) => {
-  const { getInputProps } = React.useContext(ComboboxContext)
+  const { getInputProps } = React.useContext(SearchSelectContext)
   const { onKeyDown, onChange, onInput, onBlur, onClick, ...rest } = props
 
   return (
@@ -90,15 +92,15 @@ export const ComboboxInput = React.forwardRef<
     />
   )
 })
-ComboboxInput.displayName = 'ComboboxInput'
+SearchSelectInput.displayName = 'SearchSelectInput'
 
-export const ComboboxContent = React.forwardRef<
+export const SearchSelectContent = React.forwardRef<
   React.ElementRef<typeof PopoverContent>,
   React.ComponentPropsWithoutRef<typeof PopoverContent> & {
     popupMatchAnchorWidth?: boolean
   }
 >(({ children, style, popupMatchAnchorWidth, ...rest }, forwardRef) => {
-  const { getMenuProps, anchorRef } = React.useContext(ComboboxContext)
+  const { getMenuProps, anchorRef } = React.useContext(SearchSelectContext)
   const popupWidth = React.useRef<number | undefined>(undefined)
 
   React.useLayoutEffect(() => {
@@ -128,9 +130,9 @@ export const ComboboxContent = React.forwardRef<
     </PopoverPortal>
   )
 })
-ComboboxContent.displayName = 'ComboboxContent'
+SearchSelectContent.displayName = 'SearchSelectContent'
 
-interface ComboboxOptionProps<T = any> {
+interface SearchSelectOptionProps<T = any> {
   item: T
   index: number
   className?: string
@@ -141,17 +143,17 @@ interface ComboboxOptionProps<T = any> {
     | ((p: { selected: boolean; highlighted: boolean }) => React.ReactNode)
 }
 
-export const ComboboxOption = React.forwardRef<
+export const SearchSelectOption = React.forwardRef<
   React.RefObject<HTMLDivElement>,
-  ComboboxOptionProps
+  SearchSelectOptionProps
 >(({ item, index, className, children, disabled, ...rest }, forwardRef) => {
   const { highlightedIndex, selectedItem, getItemProps } =
-    React.useContext(ComboboxContext)
+    React.useContext(SearchSelectContext)
   const highlighted = highlightedIndex === index
   const selected = selectedItem === item
 
   return (
-    <ComboboxClose key={item.id} asChild>
+    <SearchSelectClose key={item.id} asChild>
       <div
         className={cn(
           'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
@@ -172,31 +174,31 @@ export const ComboboxOption = React.forwardRef<
           ? children({ highlighted, selected })
           : children}
       </div>
-    </ComboboxClose>
+    </SearchSelectClose>
   )
 })
-ComboboxOption.displayName = 'ComboboxOption'
+SearchSelectOption.displayName = 'SearchSelectOption'
 
-interface ComboboxProps<T> {
+interface SearchSelectProps<T> {
   options: T[] | undefined
   onSelect?: (data: T) => void
   children?:
     | React.ReactNode
     | React.ReactNode[]
-    | ((contextValue: ComboboxContextValue) => React.ReactNode)
+    | ((contextValue: SearchSelectContextValue) => React.ReactNode)
   open?: boolean
   onOpenChange?: (v: boolean) => void
   stayOpenOnInputClick?: boolean
 }
 
-export function Combobox<T extends { id: number | string }>({
+export function SearchSelect<T extends { id: number | string }>({
   options,
   onSelect,
   children,
   open: propsOpen,
   onOpenChange,
   stayOpenOnInputClick
-}: ComboboxProps<T>) {
+}: SearchSelectProps<T>) {
   const anchorRef = React.useRef<HTMLElement>(null)
 
   const stateReducer = React.useCallback(
@@ -256,10 +258,10 @@ export function Combobox<T extends { id: number | string }>({
   }, [comboboxValue, isOpen, anchorRef])
 
   return (
-    <ComboboxContext.Provider value={contextValue}>
+    <SearchSelectContext.Provider value={contextValue}>
       <Popover open={isOpen}>
         {typeof children === 'function' ? children(contextValue) : children}
       </Popover>
-    </ComboboxContext.Provider>
+    </SearchSelectContext.Provider>
   )
 }

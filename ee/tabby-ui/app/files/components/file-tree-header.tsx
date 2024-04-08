@@ -8,13 +8,6 @@ import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
-  Combobox,
-  ComboboxAnchor,
-  ComboboxContent,
-  ComboboxInput,
-  ComboboxOption
-} from '@/components/ui/combobox'
-import {
   IconClose,
   IconDirectorySolid,
   IconFile,
@@ -27,6 +20,13 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
+import {
+  SearchSelect,
+  SearchSelectAnchor,
+  SearchSelectContent,
+  SearchSelectInput,
+  SearchSelectOption
+} from '@/components/search-select'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
@@ -222,7 +222,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
             )}
           </SelectContent>
         </Select>
-        <Combobox
+        <SearchSelect
           stayOpenOnInputClick
           options={options}
           onSelect={onSelectFile}
@@ -238,9 +238,9 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
           {({ highlightedIndex }) => {
             return (
               <>
-                <ComboboxAnchor>
+                <SearchSelectAnchor>
                   <div className="relative">
-                    <ComboboxInput
+                    <SearchSelectInput
                       className="pr-8"
                       placeholder="Go to file"
                       spellCheck={false}
@@ -288,8 +288,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                       )}
                     </div>
                   </div>
-                </ComboboxAnchor>
-                <ComboboxContent
+                </SearchSelectAnchor>
+                <SearchSelectContent
                   align="start"
                   side="bottom"
                   onOpenAutoFocus={e => e.preventDefault()}
@@ -299,7 +299,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                   <>
                     {options?.length ? (
                       options?.map((item, index) => (
-                        <ComboboxOption
+                        <SearchSelectOption
                           item={item}
                           index={index}
                           key={item?.id}
@@ -327,7 +327,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                                 : 'Go to file'}
                             </div>
                           )}
-                        </ComboboxOption>
+                        </SearchSelectOption>
                       ))
                     ) : (
                       <div className="flex h-24 items-center justify-center">
@@ -335,11 +335,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                       </div>
                     )}
                   </>
-                </ComboboxContent>
+                </SearchSelectContent>
               </>
             )
           }}
-        </Combobox>
+        </SearchSelect>
       </div>
     </div>
   )
