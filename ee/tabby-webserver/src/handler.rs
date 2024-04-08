@@ -10,7 +10,11 @@ use axum::{
 use hyper::{header::CONTENT_TYPE, Body, StatusCode};
 use juniper::ID;
 use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
-use tabby_common::api::{code::CodeSearch, event::EventLogger, server_setting::ServerSetting};
+use tabby_common::api::{
+    code::CodeSearch,
+    event::{ComposedLogger, EventLogger},
+    server_setting::ServerSetting,
+};
 use tabby_db::DbConn;
 use tracing::{error, warn};
 
@@ -18,24 +22,25 @@ use crate::{
     cron, hub, oauth,
     repositories::{self, RepositoryCache},
     schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
-    service::{create_service_locator, event_logger::new_event_logger},
+    service::{create_service_locator, event_logger::create_event_logger},
     ui,
 };
 
 pub struct WebserverHandle {
     db: DbConn,
-    event_logger: Arc<dyn EventLogger>,
+    logger: Arc<dyn EventLogger>,
 }
 
 impl WebserverHandle {
-    pub async fn new() -> Self {
+    pub async fn new(logger1: impl EventLogger + 'static) -> Self {
         let db = DbConn::new().await.expect("Must be able to initialize db");
-        let event_logger = Arc::new(new_event_logger(db.clone()));
-        WebserverHandle { db, event_logger }
+        let logger2 = create_event_logger(db.clone());
+        let logger = Arc::new(ComposedLogger::new(logger1, logger2));
+        WebserverHandle { db, logger }
     }
 
     pub fn logger(&self) -> Arc<dyn EventLogger + 'static> {
-        self.event_logger.clone()
+        self.logger.clone()
     }
 
     pub async fn attach_webserver(
