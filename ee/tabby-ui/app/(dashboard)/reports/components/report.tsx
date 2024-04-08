@@ -143,7 +143,7 @@ export function Report() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-3 flex items-center justify-between md:items-end">
+      <div className="mb-3 flex items-end justify-between">
         <div className="flex flex-col ">
           <h1 className="mb-1.5 scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
             Reports
@@ -153,17 +153,21 @@ export function Report() {
           </p>
         </div>
         
-        {!fetchingDailyState &&
+        <LoadingWrapper
+          loading={fetchingDailyState}
+          fallback={<Skeleton className="h-8 w-32" />}>
           <Select
             defaultValue={KEY_SELECT_ALL}
             onValueChange={setSelectedMember}
           >
             <SelectTrigger
-              className="w-auto border-none shadow-none">
-                <div className="flex items-center pr-3">
+              className="h-auto w-auto border-none py-0 shadow-none">
+                <div className="flex h-6 items-center pr-3">
                   <IconUsers className="mr-1" />
                   <p className="mr-1.5">Member:</p>
-                  <SelectValue />
+                  <div className="max-w-[80px] overflow-hidden text-ellipsis">
+                    <SelectValue />
+                  </div>
                 </div>
             </SelectTrigger>
             <SelectContent align='end'>
@@ -177,7 +181,7 @@ export function Report() {
               </SelectGroup>
             </SelectContent>
           </Select>
-        }
+          </LoadingWrapper>
       </div>
 
       <LoadingWrapper
