@@ -1,0 +1,1 @@
+DROP INDEX idx_user_completion_created_at;
