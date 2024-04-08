@@ -147,9 +147,9 @@ export function Report() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-3 flex items-end justify-between">
+      <div className="mb-3 flex flex-col items-center justify-between gap-y-2 md:flex-row md:items-end md:gap-y-0">
         <div className="flex flex-col">
-          <h1 className="mb-1.5 scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+          <h1 className="mb-1.5 scroll-m-20 text-center text-4xl font-extrabold tracking-tight md:text-left lg:text-5xl">
             Reports
           </h1>
           <p className="text-muted-foreground">
@@ -166,10 +166,10 @@ export function Report() {
             onValueChange={setSelectedMember}
           >
             <SelectTrigger className="h-auto w-auto border-none py-0 shadow-none">
-              <div className="flex h-6 items-center pr-3">
+              <div className="flex h-6 items-center">
                 <IconUsers className="mr-1" />
                 <p className="mr-1.5">Member:</p>
-                <div className="max-w-[80px] overflow-hidden text-ellipsis">
+                <div className="w-[80px] overflow-hidden text-ellipsis text-left">
                   <SelectValue />
                 </div>
               </div>
