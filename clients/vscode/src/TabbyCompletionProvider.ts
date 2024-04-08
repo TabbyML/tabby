@@ -325,13 +325,12 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     position: Position,
   ): Promise<{ filepath: string; text: string }[] | undefined> {
     const config = agent().getConfig().completion.prompt;
-    if (!config.experimentalDeclarations.enabled) {
+    if (!config.fillDeclarations.enabled) {
       return undefined;
     }
     this.logger.trace("Begin collectDeclarationSnippets", { document, position });
     const snippets: { filepath: string; text: string }[] = [];
     const snippetLocations: LocationLink[] = [];
-    let charsRemaining = config.experimentalDeclarations.maxChars;
     // Find symbol positions in the previous lines
     const prefixRange = new Range(
       Math.max(0, position.line - config.maxPrefixLines + 1),
@@ -347,9 +346,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     this.logger.trace("Found symbol positions in prefix text", { prefixText, symbolPositions });
     // Loop through the symbol positions backwards
     for (let symbolIndex = symbolPositions.length - 1; symbolIndex >= 0; symbolIndex--) {
-      if (snippets.length >= config.experimentalDeclarations.maxSnippets || charsRemaining < 100) {
+      if (snippets.length >= config.fillDeclarations.maxSnippets) {
         // Stop collecting snippets if the max number of snippets is reached
-        // or remaining chars count is too low
         break;
       }
       const symbolPosition = symbolPositions[symbolIndex];
@@ -367,6 +365,15 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         const declarationLink = declarationLinks[0] as LocationLink;
         this.logger.trace("Processing declaration link", { declarationLink });
         if (
+          declarationLink.targetUri.toString() == document.uri.toString() &&
+          prefixRange.contains(declarationLink.targetRange.start)
+        ) {
+          // this symbol's declaration is already contained in the prefix range
+          // this also includes the case of the symbol's declaration is at this position itself
+          this.logger.trace("Skipping snippet as it is contained in the prefix");
+          continue;
+        }
+        if (
           snippetLocations.find(
             (link) =>
               link.targetUri.toString() == declarationLink.targetUri.toString() &&
@@ -376,30 +383,20 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
           this.logger.trace("Skipping snippet as it is already collected");
           continue;
         }
-        if (
-          declarationLink.targetUri.toString() == document.uri.toString() &&
-          prefixRange.contains(declarationLink.targetRange.start)
-        ) {
-          // this symbol's declaration is already contained in the prefix range
-          // this also includes the case of the symbol's declaration is at this position itself
-          this.logger.trace("Skipping snippet as it is contained in the prefix");
-          continue;
-        }
         let text = new TextDecoder()
           .decode(await workspace.fs.readFile(declarationLink.targetUri))
           .split("\n")
           .slice(declarationLink.targetRange.start.line, declarationLink.targetRange.end.line + 1)
           .join("\n");
-        if (text.length > charsRemaining) {
-          // crop the text to the chars remaining limit
-          text = text.slice(0, charsRemaining);
-          text = text.slice(text.lastIndexOf("\n") + 1);
+        if (text.length > config.fillDeclarations.maxCharsPerSnippet) {
+          // crop the text to fit within the chars limit
+          text = text.slice(0, config.fillDeclarations.maxCharsPerSnippet);
+          text = text.slice(0, text.lastIndexOf("\n") + 1);
         }
         if (text.length > 0) {
-          this.logger.trace("Collected declaration snippet", { text, charsRemaining });
+          this.logger.trace("Collected declaration snippet", { text });
           snippets.push({ filepath: declarationLink.targetUri.toString(), text });
           snippetLocations.push(declarationLink);
-          charsRemaining -= text.length;
         }
       }
     }
