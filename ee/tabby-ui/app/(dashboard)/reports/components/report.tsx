@@ -32,6 +32,7 @@ import type { DailyStats } from '../types/stats'
 import { useAllMembers } from '../use-all-members'
 import { AnnualActivity } from './annual-activity'
 import { DailyActivity } from './daily-activity'
+import { SubHeader } from '@/components/sub-header'
 
 const INITIAL_DATE_RANGE = 14
 const KEY_SELECT_ALL = 'all'
@@ -147,15 +148,10 @@ export function Report() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-3 flex flex-col items-center justify-between gap-y-2 md:flex-row md:items-end md:gap-y-0">
-        <div className="flex flex-col">
-          <h1 className="mb-1.5 scroll-m-20 text-center text-4xl font-extrabold tracking-tight md:text-left lg:text-5xl">
-            Reports
-          </h1>
-          <p className="text-muted-foreground">
+      <div className="mb-4 flex flex-col items-center justify-between gap-y-2 md:flex-row md:items-end md:gap-y-0">
+        <SubHeader className='mb-0'>
             Statistics around Tabby IDE / Extensions
-          </p>
-        </div>
+        </SubHeader>
 
         <LoadingWrapper
           loading={fetchingDailyState}
