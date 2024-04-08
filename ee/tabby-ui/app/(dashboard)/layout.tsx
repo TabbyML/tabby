@@ -18,7 +18,7 @@ interface DashboardLayoutProps {
 
 export default function RootLayout({ children }: DashboardLayoutProps) {
   return (
-    <main className="flex h-full w-full">
+    <main className="flex flex-1">
       <Sidebar />
       <ScrollArea className="flex h-[100vh] flex-1 flex-col">
         <Header />
