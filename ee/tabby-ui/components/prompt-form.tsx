@@ -9,13 +9,6 @@ import type { ISearchHit, SearchReponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
-  Combobox,
-  ComboboxAnchor,
-  ComboboxContent,
-  ComboboxOption,
-  ComboboxTextarea
-} from '@/components/ui/combobox'
-import {
   IconArrowElbow,
   IconEdit,
   IconSymbolFunction
@@ -26,6 +19,13 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import {
+  SearchableSelect,
+  SearchableSelectAnchor,
+  SearchableSelectContent,
+  SearchableSelectOption,
+  SearchableSelectTextarea
+} from '@/components/searchable-select'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -186,7 +186,7 @@ function PromptFormRenderer(
 
   return (
     <form onSubmit={handlePromptSubmit} ref={formRef}>
-      <Combobox
+      <SearchableSelect
         options={options}
         onSelect={handleCompletionSelect}
         open={suggestionOpen}
@@ -204,7 +204,7 @@ function PromptFormRenderer(
 
           return (
             <>
-              <ComboboxAnchor>
+              <SearchableSelectAnchor>
                 <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
                   <span
                     className={cn(
@@ -214,7 +214,7 @@ function PromptFormRenderer(
                   >
                     <IconEdit />
                   </span>
-                  <ComboboxTextarea
+                  <SearchableSelectTextarea
                     tabIndex={0}
                     rows={1}
                     placeholder="Ask a question."
@@ -250,8 +250,8 @@ function PromptFormRenderer(
                     </Tooltip>
                   </div>
                 </div>
-              </ComboboxAnchor>
-              <ComboboxContent
+              </SearchableSelectAnchor>
+              <SearchableSelectContent
                 align="start"
                 side="top"
                 onOpenAutoFocus={e => e.preventDefault()}
@@ -263,7 +263,7 @@ function PromptFormRenderer(
                       {open &&
                         !!options?.length &&
                         options.map((item, index) => (
-                          <ComboboxOption
+                          <SearchableSelectOption
                             item={item}
                             index={index}
                             key={item?.id}
@@ -279,7 +279,7 @@ function PromptFormRenderer(
                                 {item?.doc?.body}
                               </div>
                             </div>
-                          </ComboboxOption>
+                          </SearchableSelectOption>
                         ))}
                     </div>
                   </PopoverAnchor>
@@ -306,11 +306,11 @@ function PromptFormRenderer(
                     </div>
                   </PopoverContent>
                 </Popover>
-              </ComboboxContent>
+              </SearchableSelectContent>
             </>
           )
         }}
-      </Combobox>
+      </SearchableSelect>
     </form>
   )
 }
