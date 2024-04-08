@@ -1,6 +1,16 @@
 enum Language {
   RUST
   PYTHON
+  JAVA
+  KOTLIN
+  JAVASCRIPT_TYPESCRIPT
+  GO
+  RUBY
+  CSHARP
+  C
+  CPLUS_PLUS
+  SOLIDITY
+  OTHER
 }
 
 type GithubRepositoryProviderEdge {
