@@ -20,7 +20,7 @@ pub struct UserCompletionDAO {
     pub updated_at: DateTimeUtc,
 }
 
-#[derive(FromRow)]
+#[derive(FromRow, Clone)]
 pub struct UserCompletionDailyStatsDAO {
     pub start: DateTime<Utc>,
     pub completions: i32,
@@ -68,7 +68,24 @@ impl DbConn {
         Ok(())
     }
 
+    // FIXME(boxbeam): index `created_at` in user_completions table.
     pub async fn compute_daily_stats_in_past_year(
+        &self,
+        users: Vec<i64>,
+    ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
+        if let [id] = &*users {
+            return self
+                .cache
+                .daily_stats
+                .get_or_refresh(*id, |id| {
+                    self.compute_daily_stats_in_past_year_internal(vec![id])
+                })
+                .await;
+        }
+        self.compute_daily_stats_in_past_year_internal(users).await
+    }
+
+    async fn compute_daily_stats_in_past_year_internal(
         &self,
         users: Vec<i64>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {

@@ -18,7 +18,6 @@ struct AnalyticServiceImpl {
 
 #[async_trait]
 impl AnalyticService for AnalyticServiceImpl {
-    // FIXME(boxbeam): Implementing in memory caching with 1 hour expiry.
     async fn daily_stats_in_past_year(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>> {
         let users = convert_ids(users);
         let stats = self.db.compute_daily_stats_in_past_year(users).await?;
