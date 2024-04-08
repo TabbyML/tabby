@@ -97,6 +97,10 @@ const client = new Client({
   requestPolicy: 'cache-and-network',
   exchanges: [
     cacheExchange({
+      keys: {
+        CompletionStats: () => null,
+        ServerInfo: () => null
+      },
       resolvers: {
         Query: {
           invitations: relayPagination(),

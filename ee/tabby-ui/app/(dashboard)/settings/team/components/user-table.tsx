@@ -10,6 +10,7 @@ import { graphql } from '@/lib/gql/generates'
 import type { ListUsersQuery } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
 import { QueryVariables, useMutation } from '@/lib/tabby/gql'
+import { listUsers } from '@/lib/tabby/query'
 import type { ArrayElementType } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,30 +39,6 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import { UpdateUserRoleDialog } from './user-role-dialog'
-
-const listUsers = graphql(/* GraphQL */ `
-  query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
-    users(after: $after, before: $before, first: $first, last: $last) {
-      edges {
-        node {
-          id
-          email
-          isAdmin
-          isOwner
-          createdAt
-          active
-        }
-        cursor
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`)
 
 const updateUserActiveMutation = graphql(/* GraphQL */ `
   mutation UpdateUserActive($id: ID!, $active: Boolean!) {

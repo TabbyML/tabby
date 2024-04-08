@@ -102,3 +102,27 @@ export const listJobs = graphql(/* GraphQL */ `
     jobs
   }
 `)
+
+export const listUsers = graphql(/* GraphQL */ `
+  query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
+    users(after: $after, before: $before, first: $first, last: $last) {
+      edges {
+        node {
+          id
+          email
+          isAdmin
+          isOwner
+          createdAt
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
