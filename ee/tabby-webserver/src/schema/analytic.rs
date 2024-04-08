@@ -15,11 +15,20 @@ pub struct CompletionStats {
     pub selects: i32,
 }
 
-// FIXME(boxbeam): Adding more languages.
 #[derive(GraphQLEnum, Clone, Debug)]
 pub enum Language {
     Rust,
     Python,
+    Java,
+    Kotlin,
+    JavascriptTypescript,
+    Go,
+    Ruby,
+    CSharp,
+    C,
+    CPlusPlus,
+    Solidity,
+    Other,
 }
 
 impl Display for Language {
@@ -27,6 +36,16 @@ impl Display for Language {
         match self {
             Language::Rust => write!(f, "rust"),
             Language::Python => write!(f, "python"),
+            Language::Java => write!(f, "java"),
+            Language::Kotlin => write!(f, "kotlin"),
+            Language::JavascriptTypescript => write!(f, "javascript-typescript"),
+            Language::Go => write!(f, "go"),
+            Language::Ruby => write!(f, "ruby"),
+            Language::CSharp => write!(f, "csharp"),
+            Language::C => write!(f, "c"),
+            Language::CPlusPlus => write!(f, "cpp"),
+            Language::Solidity => write!(f, "solidity"),
+            Language::Other => write!(f, "other"),
         }
     }
 }
