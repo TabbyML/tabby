@@ -1,29 +1,28 @@
 'use client'
 
-import { useState, Dispatch, SetStateAction } from 'react'
-import { noop } from 'lodash-es'
+import { Dispatch, SetStateAction, useState } from 'react'
 import Link from 'next/link'
+import { noop } from 'lodash-es'
 
-import { cn } from '@/lib/utils'
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
-
-import { IconMoveRight } from '@/components/ui/icons'
+import { cn } from '@/lib/utils'
+import { Badge, badgeVariants } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import { Badge, badgeVariants } from '@/components/ui/badge'
-import { IconRotate } from '@/components/ui/icons'
+import { IconMoveRight, IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
-import { UserAvatar } from '@/components/user-avatar'
 import { ThemeToggle } from '@/components/theme-toggle'
-import Stats from './components/stats'
+import { UserAvatar } from '@/components/user-avatar'
+
 import Profile from './components/profile'
+import Stats from './components/stats'
 
 export default function Home() {
   return (
@@ -46,28 +45,29 @@ enum Menu {
   Profile = 'profile'
 }
 
-function MenuItem ({
+function MenuItem({
   value,
   label,
   current,
   setMenu
 }: {
-  value: Menu,
-  label: string,
-  current: Menu,
+  value: Menu
+  label: string
+  current: Menu
   setMenu: Dispatch<SetStateAction<Menu>>
 }) {
   return (
     <Badge
       onClick={setMenu.bind(null, value)}
       variant={current === value ? 'default' : 'outline'}
-      className='cursor-pointer'>
-        {label}
+      className="cursor-pointer"
+    >
+      {label}
     </Badge>
   )
 }
 
-function Configuration () {
+function Configuration() {
   const [{ data }, reexecuteQuery] = useMe()
   const externalUrl = useExternalURL()
 
@@ -78,7 +78,7 @@ function Configuration () {
   if (!data?.me) return <></>
 
   return (
-    <div className='py-1'>
+    <div className="py-1">
       <CardContent className="flex flex-col gap-6 px-0">
         <div className="flex flex-col gap-2">
           <Label className="font-semibold">Endpoint URL</Label>
@@ -91,7 +91,7 @@ function Configuration () {
             <CopyButton value={externalUrl} />
           </span>
         </div>
-        
+
         <div className="flex flex-col gap-2">
           <Label className="font-semibold">Token</Label>
           <span className="flex items-center gap-1">
@@ -110,7 +110,7 @@ function Configuration () {
             </Button>
             <CopyButton value={data.me.authToken} />
           </span>
-        </div>        
+        </div>
       </CardContent>
       <CardFooter className="px-0 text-sm">
         <span>
@@ -133,37 +133,54 @@ function MainPanel() {
   const [menu, setMenu] = useState<Menu>(Menu.Stats)
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
-  
+
   if (!healthInfo || !data?.me) return <></>
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-y-5 pb-20 pt-40">
       <div className="flex justify-between">
         <div>
-          <UserAvatar
-            className='relative h-20 w-20 border'
-          />
+          <UserAvatar className="relative h-20 w-20 border" />
           <p className="mt-1.5">{data.me.email}</p>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Member since: 2024-03-01
           </p>
         </div>
-      
+
         <ThemeToggle />
       </div>
 
       <div className="flex items-center gap-x-3">
-        <MenuItem value={Menu.Stats} label='Stats' current={menu} setMenu={setMenu} />
-        <MenuItem value={Menu.Config} label='Configuration' current={menu} setMenu={setMenu} />
-        <MenuItem value={Menu.Profile} label='Profile' current={menu} setMenu={setMenu} />
-        {data.me.isAdmin &&
+        <MenuItem
+          value={Menu.Stats}
+          label="Stats"
+          current={menu}
+          setMenu={setMenu}
+        />
+        <MenuItem
+          value={Menu.Config}
+          label="Configuration"
+          current={menu}
+          setMenu={setMenu}
+        />
+        <MenuItem
+          value={Menu.Profile}
+          label="Profile"
+          current={menu}
+          setMenu={setMenu}
+        />
+        {data.me.isAdmin && (
           <Link
-            className={cn(badgeVariants({ variant: 'outline' }), 'flex items-center gap-x-2')}
-            href="/cluster">
-              <span>Admin Dashboard</span>
-              <IconMoveRight />
+            className={cn(
+              badgeVariants({ variant: 'outline' }),
+              'flex items-center gap-x-2'
+            )}
+            href="/cluster"
+          >
+            <span>Admin Dashboard</span>
+            <IconMoveRight />
           </Link>
-        }
+        )}
       </div>
 
       {menu === Menu.Stats && <Stats />}

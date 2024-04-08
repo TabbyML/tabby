@@ -1332,8 +1332,8 @@ function IconMoveRight({ className, ...props }: React.ComponentProps<'svg'>) {
       className={cn('h-4 w-4', className)}
       {...props}
     >
-      <path d="M18 8L22 12L18 16"/>
-      <path d="M2 12H22"/>
+      <path d="M18 8L22 12L18 16" />
+      <path d="M2 12H22" />
     </svg>
   )
 }
