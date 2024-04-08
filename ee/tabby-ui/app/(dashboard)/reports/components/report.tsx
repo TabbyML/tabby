@@ -8,10 +8,10 @@ import { DateRange } from 'react-day-picker'
 import { useQuery } from 'urql'
 
 import { Language } from '@/lib/gql/generates/graphql'
-import { useAllMembers } from '../hooks/use-all-members'
+import { useAllMembers } from '../use-all-members'
 import { queryDailyStats, queryDailyStatsInPastYear } from '../query'
 
-import { IconActivity, IconCode, IconCheck } from '@/components/ui/icons'
+import { IconActivity, IconCode, IconCheck, IconUsers } from '@/components/ui/icons'
 import {
   Select,
   SelectContent,
@@ -20,12 +20,12 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import DatePickerWithRange from '@/components/date-range-picker'
+import DatePickerWithRange from '@/components/ui/date-range-picker'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
-import { AnalyticDailyCompletion } from './analyticDailyCompletion'
-import { AnalyticYearlyCompletion } from './analyticYearlyCompletion'
+import { DailyActivity } from './daily-activity'
+import { AnnualActivity } from './annual-activity'
 
 import type { DailyStats } from '../types/stats'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,12 +33,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 const INITIAL_DATE_RANGE = 14
 const KEY_SELECT_ALL = 'all'
 
-function AnalyticSummary({
+function StatsSummary({
   dailyStats
 }: {
   dailyStats: DailyStats[] | undefined
 }) {
   const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
+  const totalAcceptances = sum(dailyStats?.map(stats => stats.selects))
+  const acceptRate = totalAcceptances === 0
+    ? 0
+    : Math.round((totalAcceptances / totalCompletions)* 100)
   return (
     <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
@@ -49,10 +53,7 @@ function AnalyticSummary({
           <IconActivity className="text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">TBD</div>
-          <p className="text-xs text-muted-foreground">
-            +TBD from last week
-          </p>
+          <div className="text-2xl font-bold">{acceptRate}%</div>
         </CardContent>
       </Card>
 
@@ -65,9 +66,6 @@ function AnalyticSummary({
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{numeral(totalCompletions).format('0,0')}</div>
-          <p className="text-xs text-muted-foreground">
-            +TBD from last week
-          </p>
         </CardContent>
       </Card>
 
@@ -79,17 +77,14 @@ function AnalyticSummary({
           <IconCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">TBD</div>
-          <p className="text-xs text-muted-foreground">
-            +TBD from last week
-          </p>
+          <div className="text-2xl font-bold">{totalAcceptances}</div>
         </CardContent>
       </Card>
     </div>
   )
 }
 
-export function Analytic() {
+export function Report() {
   const [members] = useAllMembers()
   const [dateRange, setDateRange] = useState<DateRange>({
     from: moment().subtract(INITIAL_DATE_RANGE, 'day').toDate(),
@@ -148,7 +143,7 @@ export function Analytic() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-3 flex items-center justify-between ">
+      <div className="mb-3 flex items-center justify-between md:items-end">
         <div className="flex flex-col ">
           <h1 className="mb-1.5 scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
             Reports
@@ -157,21 +152,19 @@ export function Analytic() {
             Statistics around Tabby IDE / Extensions
           </p>
         </div>
-
-        <LoadingWrapper
-          loading={fetchingDailyState}
-          fallback={<Skeleton className="h-8 w-32" />}>
+        
+        {!fetchingDailyState &&
           <Select
             defaultValue={KEY_SELECT_ALL}
             onValueChange={setSelectedMember}
           >
-            <SelectTrigger className="w-[150px]">
-              <div className="flex w-full items-center truncate ">
-                <span className="mr-1.5 text-muted-foreground">Member:</span>
-                <div className="overflow-hidden text-ellipsis">
+            <SelectTrigger
+              className="w-auto border-none shadow-none">
+                <div className="flex items-center pr-3">
+                  <IconUsers className="mr-1" />
+                  <p className="mr-1.5">Member:</p>
                   <SelectValue />
                 </div>
-              </div>
             </SelectTrigger>
             <SelectContent align='end'>
               <SelectGroup>
@@ -184,8 +177,17 @@ export function Analytic() {
               </SelectGroup>
             </SelectContent>
           </Select>
-        </LoadingWrapper>
+        }
       </div>
+
+      <LoadingWrapper
+        loading={fetchingYearlyStats}
+        fallback={<Skeleton className="mb-8 h-48" />}>
+        <div className="mb-10">
+          <h1 className="mb-3 text-xl font-semibold">Activity</h1>
+          <AnnualActivity yearlyStats={yearlyStats} />
+        </div>
+      </LoadingWrapper>
 
       <LoadingWrapper
         loading={fetchingDailyState}
@@ -200,7 +202,7 @@ export function Analytic() {
           </div>
         }>
         <div className="mb-10 flex flex-col gap-y-5">
-          <div className="flex flex-col justify-between gap-y-1 md:flex-row md:items-center md:gap-y-0">
+          <div className="flex flex-col justify-between gap-y-1 md:flex-row md:items-end md:gap-y-0 ">
             <h1 className="text-xl font-semibold">Usage</h1>
             
             <div className="flex items-center gap-x-3">
@@ -239,21 +241,12 @@ export function Analytic() {
             </div>
           </div>
 
-          <AnalyticSummary dailyStats={dailyStats} />
+          <StatsSummary dailyStats={dailyStats} />
 
-          <AnalyticDailyCompletion
+          <DailyActivity
             dailyStats={dailyStats}
             dateRange={dateRange}
           />
-        </div>
-      </LoadingWrapper>
-      
-      <LoadingWrapper
-        loading={fetchingYearlyStats}
-        fallback={<Skeleton className="mt-5 h-48" />}>
-        <div className="mb-10">
-          <h1 className="mb-3 text-xl font-semibold">Activity</h1>
-          <AnalyticYearlyCompletion yearlyStats={yearlyStats} />
         </div>
       </LoadingWrapper>
     </div>

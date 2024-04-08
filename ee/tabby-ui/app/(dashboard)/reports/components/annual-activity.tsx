@@ -1,10 +1,47 @@
-import moment from 'moment'
+'use client'
 
-import ActivityCalendar from '@/components/activity-calendar'
+import moment from 'moment'
+import { useWindowSize } from '@uidotdev/usehooks'
+import { useTheme } from 'next-themes'
+import ReactActivityCalendar from 'react-activity-calendar'
 
 import type { DailyStats } from '../types/stats'
 
-export function AnalyticYearlyCompletion({
+function ActivityCalendar({
+  data
+}: {
+  data: {
+    date: string
+    count: number
+    level: number
+  }[]
+}) {
+  const { theme } = useTheme()
+  const size = useWindowSize()
+  const width = size.width || 0
+  const blockSize =
+    width >= 1300
+      ? 13
+      : width >= 1000
+        ? 9
+        : 5
+
+  return (
+    <ReactActivityCalendar
+      data={data}
+      colorScheme={theme === 'dark' ? 'dark' : 'light'}
+      theme={{
+        light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+        dark: ['rgb(45, 51, 59)', '#0e4429', '#006d32', '#26a641', '#39d353']
+      }}
+      blockSize={blockSize}
+      hideTotalCount
+      showWeekdayLabels
+    />
+  )
+}
+
+export function AnnualActivity({
   yearlyStats
 }: {
   yearlyStats: DailyStats[] | undefined

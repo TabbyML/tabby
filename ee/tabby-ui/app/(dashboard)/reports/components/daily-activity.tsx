@@ -56,7 +56,7 @@ function BarTooltip({
   return null
 }
 
-export function AnalyticDailyCompletion({
+export function DailyActivity({
   dailyStats,
   dateRange
 }: {
