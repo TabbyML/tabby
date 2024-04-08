@@ -4,6 +4,8 @@ import React from 'react'
 import { useTheme } from 'next-themes'
 import TopBarProgress from 'react-topbar-progress-indicator'
 
+import { useDebounceValue } from '@/lib/hooks/use-debounce'
+
 interface TopbarProgressProviderProps {
   children: React.ReactNode
 }
@@ -21,6 +23,7 @@ const TopbarProgressProvider: React.FC<TopbarProgressProviderProps> = ({
   children
 }) => {
   const [progress, setProgress] = React.useState(false)
+  const [debouncedProgress] = useDebounceValue(progress, 300, { leading: true })
   const { theme } = useTheme()
   React.useEffect(() => {
     TopBarProgress.config({
@@ -32,8 +35,10 @@ const TopbarProgressProvider: React.FC<TopbarProgressProviderProps> = ({
   }, [])
 
   return (
-    <TopbarProgressContext.Provider value={{ progress, setProgress }}>
-      {progress && <TopBarProgress />}
+    <TopbarProgressContext.Provider
+      value={{ progress: debouncedProgress, setProgress }}
+    >
+      {debouncedProgress && <TopBarProgress />}
       {children}
     </TopbarProgressContext.Provider>
   )

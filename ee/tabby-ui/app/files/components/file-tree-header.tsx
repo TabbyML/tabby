@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
+import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import {
@@ -67,6 +68,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     updateFileMap,
     setExpandedKeys
   } = useContext(SourceCodeBrowserContext)
+  const { setProgress } = useTopbarProgress()
   const curerntRepoName = resolveRepoNameFromPath(activePath)
 
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -121,36 +123,42 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     if (!path) return
 
     const fullPath = `${curerntRepoName}/${path}`
-    const entries = await fetchEntriesFromPath(fullPath)
-    const initialExpandedDirs = getDirectoriesFromBasename(path)
+    try {
+      setProgress(true)
+      const entries = await fetchEntriesFromPath(fullPath)
+      const initialExpandedDirs = getDirectoriesFromBasename(path)
 
-    const patchMap: TFileMap = {}
-    // fetch dirs
-    for (const entry of entries) {
-      const path = `${curerntRepoName}/${entry.basename}`
-      patchMap[path] = {
-        file: entry,
-        name: resolveFileNameFromPath(path),
-        fullPath: path,
-        treeExpanded: initialExpandedDirs.includes(entry.basename)
-      }
-    }
-    const expandedKeys = initialExpandedDirs.map(dir =>
-      [curerntRepoName, dir].filter(Boolean).join('/')
-    )
-    if (patchMap) {
-      updateFileMap(patchMap)
-    }
-    if (expandedKeys?.length) {
-      setExpandedKeys(prevKeys => {
-        const newSet = new Set(prevKeys)
-        for (const k of expandedKeys) {
-          newSet.add(k)
+      const patchMap: TFileMap = {}
+      // fetch dirs
+      for (const entry of entries) {
+        const path = `${curerntRepoName}/${entry.basename}`
+        patchMap[path] = {
+          file: entry,
+          name: resolveFileNameFromPath(path),
+          fullPath: path,
+          treeExpanded: initialExpandedDirs.includes(entry.basename)
         }
-        return newSet
-      })
+      }
+      const expandedKeys = initialExpandedDirs.map(dir =>
+        [curerntRepoName, dir].filter(Boolean).join('/')
+      )
+      if (patchMap) {
+        updateFileMap(patchMap)
+      }
+      if (expandedKeys?.length) {
+        setExpandedKeys(prevKeys => {
+          const newSet = new Set(prevKeys)
+          for (const k of expandedKeys) {
+            newSet.add(k)
+          }
+          return newSet
+        })
+      }
+    } catch (e) {
+    } finally {
+      setActivePath(fullPath)
+      setProgress(false)
     }
-    setActivePath(fullPath)
   }
 
   // shortcut 't'
