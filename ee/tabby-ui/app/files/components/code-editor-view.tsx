@@ -17,7 +17,7 @@ import { ActionBarWidgetExtension } from './action-bar-widget/action-bar-widget-
 
 interface CodeEditorViewProps {
   value: string
-  meta?: TFileMeta
+  meta: TFileMeta | undefined
   language: string
 }
 

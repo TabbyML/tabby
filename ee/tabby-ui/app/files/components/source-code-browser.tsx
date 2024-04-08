@@ -28,7 +28,8 @@ import { FileTreePanel } from './file-tree-panel'
 import { RawFileView } from './raw-file-view'
 import { TextFileView } from './text-file-view'
 import {
-  getDirectoriesFromPath,
+  fetchEntriesFromPath,
+  getDirectoriesFromBasename,
   resolveBasenameFromPath,
   resolveFileNameFromPath,
   resolveRepoNameFromPath
@@ -236,7 +237,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           }
         }),
       {
-        keepPreviousData: true,
         onError(err) {
           toast.error('Fail to fetch')
         }
@@ -286,7 +286,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     const init = async () => {
-      const { patchMap, expandedKeys } = await initFileMap(activePath)
+      const { patchMap, expandedKeys } = await getInitialFileData(activePath)
       if (patchMap) {
         updateFileMap(patchMap)
       }
@@ -314,7 +314,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
           }
         }
         updateFileMap(patchMap)
-        const expandedKeysToAdd = getDirectoriesFromPath(activePath, true)
+        const expandedKeysToAdd = getDirectoriesFromBasename(activePath, true)
         if (expandedKeysToAdd?.length) {
           setExpandedKeys(keys => {
             const newSet = new Set(keys)
@@ -431,13 +431,14 @@ const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
   )
 }
 
-async function initFileMap(path?: string) {
-  const defaultRepositoryName = resolveRepoNameFromPath(path)
-  const defaultBasename = resolveBasenameFromPath(path)
+async function getInitialFileData(path?: string) {
+  const initialRepositoryName = resolveRepoNameFromPath(path)
+  const initialBasename = resolveBasenameFromPath(path)
 
   try {
-    const repos = await fetchRepositories()
-    const { defaultEntries, expandedDir } = await initDefaultEntries(repos)
+    const repos = await fetchAllRepositories()
+    const initialEntries = await getInitialEntries(repos)
+    const initialExpandedDirs = getDirectoriesFromBasename(initialBasename)
 
     const patchMap: TFileMap = {}
     for (const repo of repos) {
@@ -445,20 +446,20 @@ async function initFileMap(path?: string) {
         file: repo,
         name: repo.basename,
         fullPath: repo.basename,
-        treeExpanded: repo.basename === defaultRepositoryName
+        treeExpanded: repo.basename === initialRepositoryName
       }
     }
-    for (const entry of defaultEntries) {
-      const path = `${defaultRepositoryName}/${entry.basename}`
+    for (const entry of initialEntries) {
+      const path = `${initialRepositoryName}/${entry.basename}`
       patchMap[path] = {
         file: entry,
         name: resolveFileNameFromPath(path),
         fullPath: path,
-        treeExpanded: expandedDir.includes(entry.basename)
+        treeExpanded: initialExpandedDirs.includes(entry.basename)
       }
     }
-    const expandedKeys = expandedDir.map(dir =>
-      [defaultRepositoryName, dir].filter(Boolean).join('/')
+    const expandedKeys = initialExpandedDirs.map(dir =>
+      [initialRepositoryName, dir].filter(Boolean).join('/')
     )
 
     return { patchMap, expandedKeys }
@@ -467,7 +468,7 @@ async function initFileMap(path?: string) {
     return {}
   }
 
-  async function fetchRepositories(): Promise<TFile[]> {
+  async function fetchAllRepositories(): Promise<TFile[]> {
     try {
       const repos: ResolveEntriesResponse = await fetcher(
         '/repositories/resolve/'
@@ -478,75 +479,34 @@ async function initFileMap(path?: string) {
     }
   }
 
-  async function fetchDefaultEntries(data?: TFile[]) {
+  async function fetchInitialEntries(data?: TFile[]) {
     try {
-      // if (!accessToken) return undefined
-
-      if (!defaultRepositoryName) return undefined
+      if (!initialRepositoryName) return undefined
       // match default repository
       const repositoryIdx = findIndex(
         data,
-        entry => entry.basename === defaultRepositoryName
+        entry => entry.basename === initialRepositoryName
       )
       if (repositoryIdx < 0) return undefined
 
-      const directoryPaths = getDirectoriesFromPath(defaultBasename)
-      // fetch default directories
-      const requests: Array<() => Promise<ResolveEntriesResponse>> =
-        directoryPaths.map(path => () => {
-          return fetcher(
-            `/repositories/${defaultRepositoryName}/resolve/${path}`
-          )
-        })
-      const entries = await Promise.all(requests.map(fn => fn()))
-      let result: TFile[] = []
-      for (let entry of entries) {
-        if (entry?.entries?.length) {
-          result = [...result, ...entry.entries]
-        }
-      }
-      return result
+      return fetchEntriesFromPath(path)
     } catch (e) {
       console.error(e)
     }
   }
 
-  async function initDefaultEntries(data?: TFile[]) {
-    let result: { defaultEntries: TFile[]; expandedDir: string[] } = {
-      defaultEntries: [],
-      expandedDir: []
-    }
+  async function getInitialEntries(data?: TFile[]) {
+    let result: TFile[] = []
     try {
-      if (defaultRepositoryName && data?.length) {
-        const defaultEntries = await fetchDefaultEntries(data)
-        const expandedDir = getDirectoriesFromPath(defaultBasename)
-        if (defaultEntries?.length) {
-          result.defaultEntries = defaultEntries
-        }
-        if (expandedDir?.length) {
-          result.expandedDir = expandedDir
-        }
+      if (initialRepositoryName && data?.length) {
+        const defaultEntries = await fetchInitialEntries(data)
+        result = defaultEntries ?? []
       }
     } catch (e) {
       console.error(e)
     }
     return result
   }
-}
-
-async function getFileViewType(
-  path: string,
-  blob: Blob | undefined
-): Promise<FileDisplayType> {
-  if (!blob) return ''
-  const mimeType = blob?.type
-  const detectedLanguage = filename2prism(path)?.[0]
-
-  if (mimeType?.startsWith('image')) return 'image'
-  if (detectedLanguage || mimeType?.startsWith('text')) return 'text'
-
-  const isReadableText = await isReadableTextFile(blob)
-  return isReadableText ? 'text' : 'raw'
 }
 
 function isReadableTextFile(blob: Blob) {
@@ -575,6 +535,21 @@ function isReadableTextFile(blob: Blob) {
 
     reader.readAsText(blobPart, 'UTF-8')
   })
+}
+
+async function getFileViewType(
+  path: string,
+  blob: Blob | undefined
+): Promise<FileDisplayType> {
+  if (!blob) return ''
+  const mimeType = blob?.type
+  const detectedLanguage = filename2prism(path)?.[0]
+
+  if (mimeType?.startsWith('image')) return 'image'
+  if (detectedLanguage || mimeType?.startsWith('text')) return 'text'
+
+  const isReadableText = await isReadableTextFile(blob)
+  return isReadableText ? 'text' : 'raw'
 }
 
 export type { TFileMap, TFileMapItem }
