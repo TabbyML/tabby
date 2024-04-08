@@ -17,19 +17,19 @@ pub struct LogEventRequest {
     pub elapsed: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Choice {
     pub index: u32,
     pub text: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectKind {
     Line,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum Event {
     View {
@@ -77,13 +77,13 @@ pub enum Event {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Message {
     pub role: String,
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Segments {
     pub prefix: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -92,7 +92,7 @@ pub struct Segments {
     pub clipboard: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LogEntry {
     pub ts: u128,
     pub event: Event,
@@ -121,4 +121,22 @@ pub trait EventLogger: Send + Sync {
         self.write(x.into())
     }
     fn write(&self, x: LogEntry);
+}
+
+pub struct ComposedLogger<T1: EventLogger, T2: EventLogger> {
+    logger1: T1,
+    logger2: T2,
+}
+
+impl<T1: EventLogger, T2: EventLogger> ComposedLogger<T1, T2> {
+    pub fn new(logger1: T1, logger2: T2) -> Self {
+        Self { logger1, logger2 }
+    }
+}
+
+impl<T1: EventLogger, T2: EventLogger> EventLogger for ComposedLogger<T1, T2> {
+    fn write(&self, x: LogEntry) {
+        self.logger1.write(x.clone());
+        self.logger2.write(x);
+    }
 }
