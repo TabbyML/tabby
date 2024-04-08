@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useContext } from 'react'
-import fuzzysort from 'fuzzysort'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -39,13 +38,19 @@ import {
 
 interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-type SearchOption = { path: string; type: string; id: string }
+type SearchOption = {
+  path: string
+  type: string
+  indices: number[]
+  id: string
+}
 
 const repositorySearch = graphql(/* GraphQL */ `
   query RepositorySearch($repositoryName: String!, $pattern: String!) {
     repositorySearch(repositoryName: $repositoryName, pattern: $pattern) {
       type
       path
+      indices
     }
   }
 `)
@@ -265,7 +270,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                         </Button>
                       ) : (
                         <kbd
-                          className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
+                          className="bg-secondary/50 text-muted-foreground rounded-md border px-1.5 text-xs leading-4 shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
                           onClick={e => {
                             inputRef.current?.focus()
                           }}
@@ -304,7 +309,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                           <div className="flex-1 break-all">
                             <HighlightMatches
                               text={item.path}
-                              pattern={repositorySearchPattern}
+                              indices={item.indices}
                             />
                           </div>
                           {highlightedIndex === index && (
@@ -332,29 +337,28 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   )
 }
 
-const HighlightMatches = React.memo(
-  ({ text, pattern }: { text: string; pattern: string | undefined }) => {
-    const defaultItem = <p className="text-muted-foreground">{text}</p>
+const HighlightMatches = ({
+  text,
+  indices
+}: {
+  text: string
+  indices: number[]
+}) => {
+  const indicesSet = React.useMemo(() => {
+    return new Set(indices)
+  }, [indices])
 
-    if (!pattern) {
-      return defaultItem
-    }
-
-    const result = fuzzysort.single(pattern ?? '', text)
-    if (text && result && pattern) {
-      return (
-        <p className="text-muted-foreground">
-          {fuzzysort.highlight(result, (m, i) => (
-            <span className="font-semibold text-foreground" key={i}>
-              {m}
-            </span>
-          ))}
-        </p>
-      )
-    }
-    return defaultItem
-  }
-)
-HighlightMatches.displayName = 'HighlightMatches'
+  return (
+    <p className="text-muted-foreground">
+      {text.split('').map((char, index) => {
+        return indicesSet.has(index) ? (
+          <span className="text-foreground font-semibold">{char}</span>
+        ) : (
+          char
+        )
+      })}
+    </p>
+  )
+}
 
 export { FileTreeHeader }
