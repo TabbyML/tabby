@@ -31,11 +31,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
-import { queryDailyStats, queryDailyStatsInPastYear } from '../query'
-import type { DailyStats } from '../types/stats'
+import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { useAllMembers } from '../use-all-members'
 import { AnnualActivity } from './annual-activity'
 import { DailyActivity } from './daily-activity'
+
+import type { DailyStats } from '@/lib/types/stats'
 
 const INITIAL_DATE_RANGE = 14
 const KEY_SELECT_ALL = 'all'

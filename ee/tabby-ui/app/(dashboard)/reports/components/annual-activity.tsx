@@ -5,7 +5,7 @@ import moment from 'moment'
 import { useTheme } from 'next-themes'
 import ReactActivityCalendar from 'react-activity-calendar'
 
-import type { DailyStats } from '../types/stats'
+import type { DailyStats } from '@/lib/types/stats'
 
 function ActivityCalendar({
   data

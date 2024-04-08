@@ -16,7 +16,7 @@ import {
 
 import { Card, CardContent } from '@/components/ui/card'
 
-import type { DailyStats } from '../types/stats'
+import type { DailyStats } from '@/lib/types/stats'
 
 function BarTooltip({
   active,
