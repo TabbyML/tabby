@@ -144,7 +144,7 @@ export function Report() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-3 flex items-end justify-between">
-        <div className="flex flex-col ">
+        <div className="flex flex-col">
           <h1 className="mb-1.5 scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
             Reports
           </h1>
@@ -187,8 +187,8 @@ export function Report() {
       <LoadingWrapper
         loading={fetchingYearlyStats}
         fallback={<Skeleton className="mb-8 h-48" />}>
-        <div className="mb-10">
-          <h1 className="mb-3 text-xl font-semibold">Activity</h1>
+        <div className="mb-8">
+          <h1 className="mb-2 text-xl font-semibold">Activity</h1>
           <AnnualActivity yearlyStats={yearlyStats} />
         </div>
       </LoadingWrapper>
@@ -206,7 +206,7 @@ export function Report() {
           </div>
         }>
         <div className="mb-10 flex flex-col gap-y-5">
-          <div className="flex flex-col justify-between gap-y-1 md:flex-row md:items-end md:gap-y-0 ">
+          <div className="-mb-2 flex flex-col justify-between gap-y-1 md:flex-row md:items-end md:gap-y-0">
             <h1 className="text-xl font-semibold">Usage</h1>
             
             <div className="flex items-center gap-x-3">
