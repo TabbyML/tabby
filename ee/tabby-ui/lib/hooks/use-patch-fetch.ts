@@ -3,7 +3,13 @@ import { OpenAIStream, OpenAIStreamCallbacks, StreamingTextResponse } from 'ai'
 
 import fetcher from '../tabby/fetcher'
 
-export function usePatchFetch(callbacks?: OpenAIStreamCallbacks) {
+interface PatchFetchOptions extends OpenAIStreamCallbacks {
+  processRequestBody?: (
+    body: BodyInit | null | undefined
+  ) => BodyInit | null | undefined
+}
+
+export function usePatchFetch(options?: PatchFetchOptions) {
   useEffect(() => {
     if (!window._originFetch) {
       window._originFetch = window.fetch
@@ -11,22 +17,30 @@ export function usePatchFetch(callbacks?: OpenAIStreamCallbacks) {
 
     const fetch = window._originFetch
 
-    window.fetch = async function (url, options) {
+    window.fetch = async function (url, requestInit) {
       if (url !== '/api/chat') {
-        return fetch(url, options)
+        return fetch(url, requestInit)
       }
 
       const headers: HeadersInit = {
         'Content-Type': 'application/json'
       }
 
+      const processRequestBody = (body: BodyInit | null | undefined) => {
+        if (options?.processRequestBody) {
+          return options.processRequestBody(body)
+        }
+        return body
+      }
+
       const res = await fetcher(`/v1beta/chat/completions`, {
-        ...options,
+        ...requestInit,
+        body: processRequestBody(requestInit?.body),
         method: 'POST',
         headers,
         customFetch: fetch,
         responseFormatter(response) {
-          const stream = OpenAIStream(response, callbacks)
+          const stream = OpenAIStream(response, options)
           return new StreamingTextResponse(stream)
         }
       })
