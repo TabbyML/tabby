@@ -177,9 +177,6 @@ function PromptFormRenderer(
       setOptions([])
       setSuggestionOpen(false)
     } else {
-      // if (!isOpen && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-      //   ;(e as any).preventDownshiftDefault = true
-      // }
       if (!isOpen) {
         ;(e as any).preventDownshiftDefault = true
       }
