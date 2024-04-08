@@ -185,6 +185,12 @@ const FEATURES: FeatureGroup[] = [
         enterprise: checked
       },
       {
+        name: "Usage Reports and Analytics",
+        community: checked,
+        team: checked,
+        enterprise: checked
+      },
+      {
         name: 'Admin Controls',
         community: dashed,
         team: checked,
