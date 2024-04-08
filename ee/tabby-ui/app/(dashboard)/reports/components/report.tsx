@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
+import { SubHeader } from '@/components/sub-header'
 
 import { queryDailyStats, queryDailyStatsInPastYear } from '../query'
 import type { DailyStats } from '../types/stats'
@@ -147,15 +148,10 @@ export function Report() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-3 flex flex-col items-center justify-between gap-y-2 md:flex-row md:items-end md:gap-y-0">
-        <div className="flex flex-col">
-          <h1 className="mb-1.5 scroll-m-20 text-center text-4xl font-extrabold tracking-tight md:text-left lg:text-5xl">
-            Reports
-          </h1>
-          <p className="text-muted-foreground">
-            Statistics around Tabby IDE / Extensions
-          </p>
-        </div>
+      <div className="mb-4 flex flex-col items-center justify-between gap-y-2 md:flex-row md:items-end md:gap-y-0">
+        <SubHeader className="mb-0">
+          Statistics around Tabby IDE / Extensions
+        </SubHeader>
 
         <LoadingWrapper
           loading={fetchingDailyState}

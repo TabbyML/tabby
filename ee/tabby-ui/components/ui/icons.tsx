@@ -1,8 +1,8 @@
-// FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
-
 'use client'
 
 import * as React from 'react'
+// FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
+import { BookOpenText } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -1312,6 +1312,13 @@ function IconActivity({ className, ...props }: React.ComponentProps<'svg'>) {
   )
 }
 
+const IconBookOpenText = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof BookOpenText>) => (
+  <BookOpenText className={cn('h4 w-4', className)} {...props} />
+)
+
 export {
   IconEdit,
   IconNextChat,
@@ -1378,5 +1385,6 @@ export {
   IconClock,
   IconStopWatch,
   IconBarChart,
-  IconActivity
+  IconActivity,
+  IconBookOpenText
 }
