@@ -20,12 +20,12 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import {
-  SearchSelect,
-  SearchSelectAnchor,
-  SearchSelectContent,
-  SearchSelectOption,
-  SearchSelectTextarea
-} from '@/components/search-select'
+  SearchableSelect,
+  SearchableSelectAnchor,
+  SearchableSelectContent,
+  SearchableSelectOption,
+  SearchableSelectTextarea
+} from '@/components/searchable-select'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -186,7 +186,7 @@ function PromptFormRenderer(
 
   return (
     <form onSubmit={handlePromptSubmit} ref={formRef}>
-      <SearchSelect
+      <SearchableSelect
         options={options}
         onSelect={handleCompletionSelect}
         open={suggestionOpen}
@@ -204,7 +204,7 @@ function PromptFormRenderer(
 
           return (
             <>
-              <SearchSelectAnchor>
+              <SearchableSelectAnchor>
                 <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
                   <span
                     className={cn(
@@ -214,7 +214,7 @@ function PromptFormRenderer(
                   >
                     <IconEdit />
                   </span>
-                  <SearchSelectTextarea
+                  <SearchableSelectTextarea
                     tabIndex={0}
                     rows={1}
                     placeholder="Ask a question."
@@ -250,8 +250,8 @@ function PromptFormRenderer(
                     </Tooltip>
                   </div>
                 </div>
-              </SearchSelectAnchor>
-              <SearchSelectContent
+              </SearchableSelectAnchor>
+              <SearchableSelectContent
                 align="start"
                 side="top"
                 onOpenAutoFocus={e => e.preventDefault()}
@@ -263,7 +263,7 @@ function PromptFormRenderer(
                       {open &&
                         !!options?.length &&
                         options.map((item, index) => (
-                          <SearchSelectOption
+                          <SearchableSelectOption
                             item={item}
                             index={index}
                             key={item?.id}
@@ -279,7 +279,7 @@ function PromptFormRenderer(
                                 {item?.doc?.body}
                               </div>
                             </div>
-                          </SearchSelectOption>
+                          </SearchableSelectOption>
                         ))}
                     </div>
                   </PopoverAnchor>
@@ -306,11 +306,11 @@ function PromptFormRenderer(
                     </div>
                   </PopoverContent>
                 </Popover>
-              </SearchSelectContent>
+              </SearchableSelectContent>
             </>
           )
         }}
-      </SearchSelect>
+      </SearchableSelect>
     </form>
   )
 }

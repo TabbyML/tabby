@@ -21,12 +21,12 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import {
-  SearchSelect,
-  SearchSelectAnchor,
-  SearchSelectContent,
-  SearchSelectInput,
-  SearchSelectOption
-} from '@/components/search-select'
+  SearchableSelect,
+  SearchableSelectAnchor,
+  SearchableSelectContent,
+  SearchableSelectInput,
+  SearchableSelectOption
+} from '@/components/searchable-select'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
@@ -222,7 +222,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
             )}
           </SelectContent>
         </Select>
-        <SearchSelect
+        <SearchableSelect
           stayOpenOnInputClick
           options={options}
           onSelect={onSelectFile}
@@ -238,9 +238,9 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
           {({ highlightedIndex }) => {
             return (
               <>
-                <SearchSelectAnchor>
+                <SearchableSelectAnchor>
                   <div className="relative">
-                    <SearchSelectInput
+                    <SearchableSelectInput
                       className="pr-8"
                       placeholder="Go to file"
                       spellCheck={false}
@@ -288,8 +288,8 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                       )}
                     </div>
                   </div>
-                </SearchSelectAnchor>
-                <SearchSelectContent
+                </SearchableSelectAnchor>
+                <SearchableSelectContent
                   align="start"
                   side="bottom"
                   onOpenAutoFocus={e => e.preventDefault()}
@@ -299,7 +299,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                   <>
                     {options?.length ? (
                       options?.map((item, index) => (
-                        <SearchSelectOption
+                        <SearchableSelectOption
                           item={item}
                           index={index}
                           key={item?.id}
@@ -327,7 +327,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                                 : 'Go to file'}
                             </div>
                           )}
-                        </SearchSelectOption>
+                        </SearchableSelectOption>
                       ))
                     ) : (
                       <div className="flex h-24 items-center justify-center">
@@ -335,11 +335,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                       </div>
                     )}
                   </>
-                </SearchSelectContent>
+                </SearchableSelectContent>
               </>
             )
           }}
-        </SearchSelect>
+        </SearchableSelect>
       </div>
     </div>
   )

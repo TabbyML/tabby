@@ -19,29 +19,30 @@ import {
 
 import { Input } from './ui/input'
 
-interface SearchSelectContextValue<T = any> extends UseComboboxReturnValue<T> {
+interface SearchableSelectContextValue<T = any>
+  extends UseComboboxReturnValue<T> {
   open: boolean
   anchorRef: React.RefObject<HTMLElement>
 }
 
-export const SearchSelectContext = React.createContext(
-  {} as SearchSelectContextValue
+export const SearchableSelectContext = React.createContext(
+  {} as SearchableSelectContextValue
 )
 
-export const SearchSelectClose = PopoverClose
-export const SearchSelectAnchor = React.forwardRef<
+export const SearchableSelectClose = PopoverClose
+export const SearchableSelectAnchor = React.forwardRef<
   React.ElementRef<typeof PopoverAnchor>,
   React.ComponentPropsWithoutRef<typeof PopoverAnchor>
 >((props, forwardRef) => {
   return <PopoverAnchor {...props} ref={forwardRef} />
 })
-SearchSelectAnchor.displayName = 'SearchSelectAnchor'
+SearchableSelectAnchor.displayName = 'SearchableSelectAnchor'
 
-export const SearchSelectTextarea = React.forwardRef<
+export const SearchableSelectTextarea = React.forwardRef<
   React.ElementRef<typeof Textarea>,
   React.ComponentPropsWithoutRef<typeof Textarea>
 >((props, forwardRef) => {
-  const { getInputProps } = React.useContext(SearchSelectContext)
+  const { getInputProps } = React.useContext(SearchableSelectContext)
   const { onKeyDown, onChange, onInput, onBlur, onClick, ...rest } = props
 
   return (
@@ -63,13 +64,13 @@ export const SearchSelectTextarea = React.forwardRef<
     />
   )
 })
-SearchSelectTextarea.displayName = 'SearchSelectTextarea'
+SearchableSelectTextarea.displayName = 'SearchableSelectTextarea'
 
-export const SearchSelectInput = React.forwardRef<
+export const SearchableSelectInput = React.forwardRef<
   React.ElementRef<typeof Input>,
   React.ComponentPropsWithoutRef<typeof Input>
 >((props, forwardRef) => {
-  const { getInputProps } = React.useContext(SearchSelectContext)
+  const { getInputProps } = React.useContext(SearchableSelectContext)
   const { onKeyDown, onChange, onInput, onBlur, onClick, ...rest } = props
 
   return (
@@ -92,15 +93,15 @@ export const SearchSelectInput = React.forwardRef<
     />
   )
 })
-SearchSelectInput.displayName = 'SearchSelectInput'
+SearchableSelectInput.displayName = 'SearchableSelectInput'
 
-export const SearchSelectContent = React.forwardRef<
+export const SearchableSelectContent = React.forwardRef<
   React.ElementRef<typeof PopoverContent>,
   React.ComponentPropsWithoutRef<typeof PopoverContent> & {
     popupMatchAnchorWidth?: boolean
   }
 >(({ children, style, popupMatchAnchorWidth, ...rest }, forwardRef) => {
-  const { getMenuProps, anchorRef } = React.useContext(SearchSelectContext)
+  const { getMenuProps, anchorRef } = React.useContext(SearchableSelectContext)
   const popupWidth = React.useRef<number | undefined>(undefined)
 
   React.useLayoutEffect(() => {
@@ -130,9 +131,9 @@ export const SearchSelectContent = React.forwardRef<
     </PopoverPortal>
   )
 })
-SearchSelectContent.displayName = 'SearchSelectContent'
+SearchableSelectContent.displayName = 'SearchableSelectContent'
 
-interface SearchSelectOptionProps<T = any> {
+interface SearchableSelectOptionProps<T = any> {
   item: T
   index: number
   className?: string
@@ -143,17 +144,18 @@ interface SearchSelectOptionProps<T = any> {
     | ((p: { selected: boolean; highlighted: boolean }) => React.ReactNode)
 }
 
-export const SearchSelectOption = React.forwardRef<
+export const SearchableSelectOption = React.forwardRef<
   React.RefObject<HTMLDivElement>,
-  SearchSelectOptionProps
+  SearchableSelectOptionProps
 >(({ item, index, className, children, disabled, ...rest }, forwardRef) => {
-  const { highlightedIndex, selectedItem, getItemProps } =
-    React.useContext(SearchSelectContext)
+  const { highlightedIndex, selectedItem, getItemProps } = React.useContext(
+    SearchableSelectContext
+  )
   const highlighted = highlightedIndex === index
   const selected = selectedItem === item
 
   return (
-    <SearchSelectClose key={item.id} asChild>
+    <SearchableSelectClose key={item.id} asChild>
       <div
         className={cn(
           'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
@@ -174,31 +176,31 @@ export const SearchSelectOption = React.forwardRef<
           ? children({ highlighted, selected })
           : children}
       </div>
-    </SearchSelectClose>
+    </SearchableSelectClose>
   )
 })
-SearchSelectOption.displayName = 'SearchSelectOption'
+SearchableSelectOption.displayName = 'SearchableSelectOption'
 
-interface SearchSelectProps<T> {
+interface SearchableSelectProps<T> {
   options: T[] | undefined
   onSelect?: (data: T) => void
   children?:
     | React.ReactNode
     | React.ReactNode[]
-    | ((contextValue: SearchSelectContextValue) => React.ReactNode)
+    | ((contextValue: SearchableSelectContextValue) => React.ReactNode)
   open?: boolean
   onOpenChange?: (v: boolean) => void
   stayOpenOnInputClick?: boolean
 }
 
-export function SearchSelect<T extends { id: number | string }>({
+export function SearchableSelect<T extends { id: number | string }>({
   options,
   onSelect,
   children,
   open: propsOpen,
   onOpenChange,
   stayOpenOnInputClick
-}: SearchSelectProps<T>) {
+}: SearchableSelectProps<T>) {
   const anchorRef = React.useRef<HTMLElement>(null)
 
   const stateReducer = React.useCallback(
@@ -258,10 +260,10 @@ export function SearchSelect<T extends { id: number | string }>({
   }, [comboboxValue, isOpen, anchorRef])
 
   return (
-    <SearchSelectContext.Provider value={contextValue}>
+    <SearchableSelectContext.Provider value={contextValue}>
       <Popover open={isOpen}>
         {typeof children === 'function' ? children(contextValue) : children}
       </Popover>
-    </SearchSelectContext.Provider>
+    </SearchableSelectContext.Provider>
   )
 }
