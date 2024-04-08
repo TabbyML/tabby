@@ -17,6 +17,12 @@ export type CompletionRequest = {
       url: string;
     }[];
   };
+  declarations?: Declaration[];
+};
+
+export type Declaration = {
+  filepath: string;
+  text: string;
 };
 
 export type CompletionResponseChoice = {
@@ -64,6 +70,8 @@ export class CompletionContext {
     }[];
   };
 
+  declarations?: Declaration[];
+
   // "default": the cursor is at the end of the line
   // "fill-in-line": the cursor is not at the end of the line, except auto closed characters
   //   In this case, we assume the completion should be a single line, so multiple lines completion will be dropped.
@@ -89,6 +97,8 @@ export class CompletionContext {
     this.workspace = request.workspace;
     this.git = request.git;
 
+    this.declarations = request.declarations;
+
     const lineEnd = isAtLineEndExcludingAutoClosedChar(this.suffixLines[0] ?? "");
     this.mode = lineEnd ? "default" : "fill-in-line";
     this.hash = hashObject({
@@ -97,6 +107,7 @@ export class CompletionContext {
       text: this.text,
       position: this.position,
       clipboard: this.clipboard,
+      declarations: this.declarations,
     });
   }
 }

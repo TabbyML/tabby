@@ -234,6 +234,18 @@
           }
         }
       },
+      "Declaration": {
+        "type": "object",
+        "description": "A snippet of declaration code that is relevant to the current completion request.",
+        "required": ["filepath", "body"],
+        "properties": {
+          "filepath": {
+            "type": "string",
+            "description": "Filepath of the file where the snippet is from.\n- When the file belongs to the same workspace as the current file,\nthis is a relative filepath, that has the same root as the current file.\n- When the file located outside the workspace, such as in a dependency package,\nthis is a file URI with an absolute filepath."
+          },
+          "body": { "type": "string", "description": "Body of the snippet." }
+        }
+      },
       "HealthState": {
         "type": "object",
         "required": ["device", "arch", "cpu_info", "cpu_count", "cuda_devices", "version"],
@@ -309,12 +321,18 @@
           },
           "filepath": {
             "type": "string",
-            "description": "The relative path of the file that is being edited.\nWhen git_url is set, this is the path of the file in the git repository.\nWhen git_url is empty, this is the path of the file in the workspace.",
+            "description": "The relative path of the file that is being edited.\n- When `git_url` is set, this is the path of the file in the git repository.\n- When `git_url` is empty, this is the path of the file in the workspace.",
             "nullable": true
           },
           "git_url": {
             "type": "string",
             "description": "The remote URL of the current git repository.\nLeave this empty if the file is not in a git repository,\nor the git repository does not have a remote URL.",
+            "nullable": true
+          },
+          "declarations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Declaration" },
+            "description": "The relevant declaration code snippets provided by editor.\nIt'll contains declarations extracted from `prefix` segments using LSP.",
             "nullable": true
           },
           "clipboard": {
