@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path};
 
 use async_trait::async_trait;
 use ignore::Walk;
@@ -99,11 +99,16 @@ async fn match_pattern(
             let score = needle.indices(haystack.slice(..), &mut nucleo, &mut indices);
             score.map(|score| (score, FileEntrySearchResult::new(r#type, path, indices)))
         })
-        .take(limit)
+        // Ensure there's at least 1000 entries with scores > 0.
+        .take(1000)
         .collect();
 
     scored_entries.sort_by_key(|x| -(x.0 as i32));
-    let entries = scored_entries.into_iter().map(|x| x.1).collect();
+    let entries = scored_entries
+        .into_iter()
+        .map(|x| x.1)
+        .take(limit)
+        .collect();
 
     Ok(entries)
 }
