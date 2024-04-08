@@ -67,7 +67,6 @@ impl DbConn {
         Ok(())
     }
 
-    // FIXME(boxbeam): index `created_at` in user_completions table.
     pub async fn compute_daily_stats_in_past_year(
         &self,
         users: Vec<i64>,
