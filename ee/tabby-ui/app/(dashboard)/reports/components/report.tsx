@@ -8,10 +8,14 @@ import { DateRange } from 'react-day-picker'
 import { useQuery } from 'urql'
 
 import { Language } from '@/lib/gql/generates/graphql'
-import { useAllMembers } from '../use-all-members'
-import { queryDailyStats, queryDailyStatsInPastYear } from '../query'
-
-import { IconActivity, IconCode, IconCheck, IconUsers } from '@/components/ui/icons'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import DatePickerWithRange from '@/components/ui/date-range-picker'
+import {
+  IconActivity,
+  IconCheck,
+  IconCode,
+  IconUsers
+} from '@/components/ui/icons'
 import {
   Select,
   SelectContent,
@@ -20,15 +24,14 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import DatePickerWithRange from '@/components/ui/date-range-picker'
-import LoadingWrapper from '@/components/loading-wrapper'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-
-import { DailyActivity } from './daily-activity'
-import { AnnualActivity } from './annual-activity'
-
-import type { DailyStats } from '../types/stats'
 import { Skeleton } from '@/components/ui/skeleton'
+import LoadingWrapper from '@/components/loading-wrapper'
+
+import { queryDailyStats, queryDailyStatsInPastYear } from '../query'
+import type { DailyStats } from '../types/stats'
+import { useAllMembers } from '../use-all-members'
+import { AnnualActivity } from './annual-activity'
+import { DailyActivity } from './daily-activity'
 
 const INITIAL_DATE_RANGE = 14
 const KEY_SELECT_ALL = 'all'
@@ -40,16 +43,15 @@ function StatsSummary({
 }) {
   const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
   const totalAcceptances = sum(dailyStats?.map(stats => stats.selects))
-  const acceptRate = totalAcceptances === 0
-    ? 0
-    : Math.round((totalAcceptances / totalCompletions)* 100)
+  const acceptRate =
+    totalAcceptances === 0
+      ? 0
+      : Math.round((totalAcceptances / totalCompletions) * 100)
   return (
     <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Accept Rate
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">Accept Rate</CardTitle>
           <IconActivity className="text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -65,7 +67,9 @@ function StatsSummary({
           <IconCode className="text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{numeral(totalCompletions).format('0,0')}</div>
+          <div className="text-2xl font-bold">
+            {numeral(totalCompletions).format('0,0')}
+          </div>
         </CardContent>
       </Card>
 
@@ -152,25 +156,25 @@ export function Report() {
             Statistics around Tabby IDE / Extensions
           </p>
         </div>
-        
+
         <LoadingWrapper
           loading={fetchingDailyState}
-          fallback={<Skeleton className="h-8 w-32" />}>
+          fallback={<Skeleton className="h-8 w-32" />}
+        >
           <Select
             defaultValue={KEY_SELECT_ALL}
             onValueChange={setSelectedMember}
           >
-            <SelectTrigger
-              className="h-auto w-auto border-none py-0 shadow-none">
-                <div className="flex h-6 items-center pr-3">
-                  <IconUsers className="mr-1" />
-                  <p className="mr-1.5">Member:</p>
-                  <div className="max-w-[80px] overflow-hidden text-ellipsis">
-                    <SelectValue />
-                  </div>
+            <SelectTrigger className="h-auto w-auto border-none py-0 shadow-none">
+              <div className="flex h-6 items-center pr-3">
+                <IconUsers className="mr-1" />
+                <p className="mr-1.5">Member:</p>
+                <div className="max-w-[80px] overflow-hidden text-ellipsis">
+                  <SelectValue />
                 </div>
+              </div>
             </SelectTrigger>
-            <SelectContent align='end'>
+            <SelectContent align="end">
               <SelectGroup>
                 <SelectItem value={KEY_SELECT_ALL}>All</SelectItem>
                 {members.map(member => (
@@ -181,12 +185,13 @@ export function Report() {
               </SelectGroup>
             </SelectContent>
           </Select>
-          </LoadingWrapper>
+        </LoadingWrapper>
       </div>
 
       <LoadingWrapper
         loading={fetchingYearlyStats}
-        fallback={<Skeleton className="mb-8 h-48" />}>
+        fallback={<Skeleton className="mb-8 h-48" />}
+      >
         <div className="mb-8">
           <h1 className="mb-2 text-xl font-semibold">Activity</h1>
           <AnnualActivity yearlyStats={yearlyStats} />
@@ -204,11 +209,12 @@ export function Report() {
             </div>
             <Skeleton className="h-56" />
           </div>
-        }>
+        }
+      >
         <div className="mb-10 flex flex-col gap-y-5">
           <div className="-mb-2 flex flex-col justify-between gap-y-1 md:flex-row md:items-end md:gap-y-0">
             <h1 className="text-xl font-semibold">Usage</h1>
-            
+
             <div className="flex items-center gap-x-3">
               <Select
                 defaultValue={KEY_SELECT_ALL}
@@ -218,7 +224,9 @@ export function Report() {
               >
                 <SelectTrigger className="w-[180px]">
                   <div className="flex w-full items-center truncate">
-                    <span className="mr-1.5 text-muted-foreground">Language:</span>
+                    <span className="mr-1.5 text-muted-foreground">
+                      Language:
+                    </span>
                     <div className="overflow-hidden text-ellipsis">
                       <SelectValue />
                     </div>
@@ -247,10 +255,7 @@ export function Report() {
 
           <StatsSummary dailyStats={dailyStats} />
 
-          <DailyActivity
-            dailyStats={dailyStats}
-            dateRange={dateRange}
-          />
+          <DailyActivity dailyStats={dailyStats} dateRange={dateRange} />
         </div>
       </LoadingWrapper>
     </div>

@@ -1,10 +1,10 @@
 'use client'
 
 import { eachDayOfInterval } from 'date-fns'
-import moment from 'moment'
 import { sum } from 'lodash-es'
+import moment from 'moment'
 import { useTheme } from 'next-themes'
-
+import type { DateRange } from 'react-day-picker'
 import {
   Bar,
   BarChart,
@@ -13,9 +13,9 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
+
 import { Card, CardContent } from '@/components/ui/card'
 
-import type { DateRange } from 'react-day-picker'
 import type { DailyStats } from '../types/stats'
 
 function BarTooltip({
@@ -23,29 +23,30 @@ function BarTooltip({
   payload,
   label
 }: {
-  active?: boolean;
-  label?: string;
+  active?: boolean
+  label?: string
   payload?: {
-    name: string;
+    name: string
     payload: {
-      completion: number;
-      select: number;
-      pending: number;
-    };
-    
+      completion: number
+      select: number
+      pending: number
+    }
   }[]
 }) {
   if (active && payload && payload.length) {
-    const {completion, select} = payload[0].payload
+    const { completion, select } = payload[0].payload
     if (!completion) return null
     return (
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
           <p className="flex items-center">
-            <span className="mr-3 inline-block w-20">Completion:</span><b>{completion}</b>
+            <span className="mr-3 inline-block w-20">Completion:</span>
+            <b>{completion}</b>
           </p>
           <p className="flex items-center">
-          <span className="mr-3 inline-block w-20">Acceptance:</span><b>{select}</b>
+            <span className="mr-3 inline-block w-20">Acceptance:</span>
+            <b>{select}</b>
           </p>
           <p className="text-muted-foreground">{label}</p>
         </CardContent>
@@ -107,8 +108,18 @@ export function DailyActivity({
             bottom: 5
           }}
         >
-          <Bar dataKey="select" stackId="stats" fill={theme === 'dark' ? '#e8e1d3' : '#54452c'} radius={3} />
-          <Bar dataKey="pending" stackId="stats" fill={theme === 'dark' ? '#423929' : '#e8e1d3'} radius={3} />
+          <Bar
+            dataKey="select"
+            stackId="stats"
+            fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
+            radius={3}
+          />
+          <Bar
+            dataKey="pending"
+            stackId="stats"
+            fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
+            radius={3}
+          />
           <XAxis dataKey="name" fontSize={12} />
           <YAxis fontSize={12} width={20} allowDecimals={false} />
           <Tooltip cursor={{ fill: 'transparent' }} content={<BarTooltip />} />

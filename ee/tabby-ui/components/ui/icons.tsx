@@ -1305,12 +1305,12 @@ function IconActivity({ className, ...props }: React.ComponentProps<'svg'>) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={cn('h-4 w-4', className)}
-      {...props}>
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-      </svg>
+      {...props}
+    >
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
   )
 }
-
 
 export {
   IconEdit,
