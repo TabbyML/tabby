@@ -97,7 +97,9 @@ export function DailyActivity({
   })
   return (
     <div className="rounded-lg border bg-primary-foreground/30 px-6 py-4">
-      <h3 className="mb-5 text-sm font-medium tracking-tight">Daily Statistics</h3>
+      <h3 className="mb-5 text-sm font-medium tracking-tight">
+        Daily Statistics
+      </h3>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart
           data={chartData}
