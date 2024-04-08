@@ -1,15 +1,12 @@
 import moment from 'moment'
-import NiceAvatar, { genConfig } from 'react-nice-avatar'
 
 import { useMe } from '@/lib/hooks/use-me'
 import ActivityCalendar from '@/components/activity-calendar'
 
-export default function ProfileOverview() {
+export default function Stats() {
   const [{ data }] = useMe()
 
   if (!data?.me?.email) return null
-
-  const config = genConfig(data?.me?.email)
 
   // TODO: mock activity data
   const activies = new Array(365).fill('').map((_, idx) => ({
@@ -20,14 +17,6 @@ export default function ProfileOverview() {
 
   return (
     <div className="flex flex-col gap-y-8">
-      <div>
-        <NiceAvatar className="h-20 w-20" {...config} />
-        <p className="mt-5">{data.me.email}</p>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Member since: 2024-03-01
-        </p>
-      </div>
-
       <div className="flex justify-between gap-x-6">
         <div className="flex-1 rounded-xl bg-primary-foreground/50 p-5">
           <p className="text-sm text-muted-foreground">
