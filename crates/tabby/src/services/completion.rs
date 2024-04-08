@@ -238,6 +238,18 @@ impl CompletionService {
         segments: &Segments,
         disable_retrieval_augmented_code_completion: bool,
     ) -> Vec<Snippet> {
+        // When there are declarations, use them as relevant snippets.
+        if let Some(declarations) = &segments.declarations {
+            return declarations
+                .iter()
+                .map(|declaration| Snippet {
+                    filepath: declaration.filepath.clone(),
+                    body: declaration.body.clone(),
+                    score: 1.0,
+                })
+                .collect();
+        }
+
         if !disable_retrieval_augmented_code_completion {
             self.prompt_builder.collect(language, segments).await
         } else {
