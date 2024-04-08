@@ -133,7 +133,9 @@ impl From<Segments> for api::event::Segments {
             suffix: val.suffix,
             clipboard: val.clipboard,
             git_url: val.git_url,
-            declarations: val.declarations.map(|x| x.into_iter().map(Into::into).collect()),
+            declarations: val
+                .declarations
+                .map(|x| x.into_iter().map(Into::into).collect()),
         }
     }
 }
@@ -238,16 +240,8 @@ impl CompletionService {
         segments: &Segments,
         disable_retrieval_augmented_code_completion: bool,
     ) -> Vec<Snippet> {
-        // When there are declarations, use them as relevant snippets.
-        if let Some(declarations) = &segments.declarations {
-            return declarations
-                .iter()
-                .map(|declaration| Snippet {
-                    filepath: declaration.filepath.clone(),
-                    body: declaration.body.clone(),
-                    score: 1.0,
-                })
-                .collect();
+        if let Some(snippets) = extract_snippets_from_segments(segments) {
+            return snippets;
         }
 
         if !disable_retrieval_augmented_code_completion {
@@ -353,4 +347,56 @@ pub async fn create_completion_service(
     ) = model::load_text_generation(model, device, parallelism).await;
 
     CompletionService::new(engine.clone(), code, logger, prompt_template)
+}
+
+fn extract_snippets_from_segments(segments: &Segments) -> Option<Vec<Snippet>> {
+    // When there are declarations, use them as relevant snippets.
+    if let Some(declarations) = &segments.declarations {
+        return Some(
+            declarations
+                .iter()
+                .map(|declaration| Snippet {
+                    filepath: declaration.filepath.clone(),
+                    body: declaration.body.clone(),
+                    score: 1.0,
+                })
+                .collect(),
+        );
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_extract_snippets_from_segments() {
+        let segments = Segments {
+            prefix: "def fib(n):\n    ".to_string(),
+            suffix: Some("\n        return fib(n - 1) + fib(n - 2)".to_string()),
+            filepath: None,
+            git_url: None,
+            declarations: None,
+            clipboard: None,
+        };
+
+        assert!(extract_snippets_from_segments(&segments).is_none());
+
+        let segments = Segments {
+            prefix: "def fib(n):\n    ".to_string(),
+            suffix: Some("\n        return fib(n - 1) + fib(n - 2)".to_string()),
+            filepath: None,
+            git_url: None,
+            declarations: Some(vec![Declaration {
+                filepath: "file:///path/to/file.py".to_string(),
+                body: "def fib(n):\n    return n if n <= 1 else fib(n - 1) + fib(n - 2)"
+                    .to_string(),
+            }]),
+            clipboard: None,
+        };
+
+        assert!(extract_snippets_from_segments(&segments).is_some_and(|x| x.len() == 1));
+    }
 }
