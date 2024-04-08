@@ -1,2 +1,2 @@
 DROP INDEX user_completions_user_id_language_idx;
-CREATE INDEX idx_user_completion_created_at_user_id_language ON user_completions(created_at, user_id, language);
+CREATE INDEX idx_user_completion_created_at_user_id_language ON user_completions(user_id, created_at, language);
