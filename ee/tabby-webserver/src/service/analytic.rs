@@ -164,4 +164,39 @@ mod tests {
         assert_eq!(1, stats[0].completions);
         assert_eq!(1, stats[0].selects);
     }
+
+    #[tokio::test]
+    async fn test_other_langs() {
+        let db = DbConn::new_in_memory().await.unwrap();
+
+        let user_id = db
+            .create_user("test@example.com".into(), Some("pass".into()), true)
+            .await
+            .unwrap();
+
+        db.create_user_completion(
+            timestamp(),
+            user_id,
+            "completion_id".into(),
+            "testlang".into(),
+        )
+        .await
+        .unwrap();
+
+        db.create_user_completion(timestamp(), user_id, "completion_id2".into(), "rust".into())
+            .await
+            .unwrap();
+
+        let service = new_analytic_service(db);
+        let end = Utc::now();
+        let start = end.checked_sub_days(Days::new(100)).unwrap();
+
+        let stats = service
+            .daily_stats(start, end, vec![], vec![Language::Other])
+            .await
+            .unwrap();
+
+        assert_eq!(1, stats.len());
+        assert_eq!(1, stats[0].completions);
+    }
 }

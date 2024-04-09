@@ -20,6 +20,7 @@ pub struct UserCompletionDAO {
     pub updated_at: DateTimeUtc,
 }
 
+#[derive(FromRow)]
 pub struct UserCompletionDailyStatsDAO {
     pub start: DateTime<Utc>,
     pub completions: i32,
@@ -100,7 +101,7 @@ impl DbConn {
         end: DateTime<Utc>,
         users: Vec<i64>,
         languages: Vec<String>,
-        not_languages: Vec<String>,
+        all_languages: Vec<String>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         let users = users
             .iter()
@@ -109,33 +110,35 @@ impl DbConn {
             .join(",");
         let languages = languages
             .into_iter()
-            .map(|l| format!("{:?}", l.to_string()))
+            .map(|l| format!("'{}'", l.to_string()))
             .collect::<Vec<_>>()
             .join(",");
-        let not_languages = not_languages
+        let not_languages = all_languages
             .into_iter()
-            .map(|l| format!("{:?}", l.to_string()))
+            .map(|l| format!("'{}'", l.to_string()))
             .collect::<Vec<_>>()
             .join(",");
-        let res = sqlx::query_as!(
-            UserCompletionDailyStatsDAO,
-            r#"
-        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as "start!: DateTime<Utc>",
-               SUM(1) as "completions!: i32",
-               SUM(selects) as "selects!: i32"
-        FROM user_completions
-        WHERE created_at >= ?1 AND created_at < ?2
-            AND (?3 = '' OR user_id IN (?3))
-            AND ((?4 = '' OR '"' + language + '"' IN (?4)) AND (?5 = '' OR '"' + language + '"' NOT IN (?5)))
-        GROUP BY 1
-        ORDER BY 1 ASC
-        "#,
-            start,
-            end,
-            users,
-            languages,
-            not_languages
-        )
+
+        let res = sqlx::query_as(&format!(
+                r#"
+            SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+                   SUM(1) as completions,
+                   SUM(selects) as selects
+            FROM user_completions
+            WHERE created_at >= ?1 AND created_at < ?2
+                AND ({no_selected_users} OR user_id IN ({users}))
+                AND (({no_selected_languages} OR language IN ({languages})) AND (language NOT IN ({not_languages})))
+            GROUP BY 1
+            ORDER BY 1 ASC
+            "#,
+            no_selected_users = users.is_empty(),
+            no_selected_languages = languages.is_empty(),
+        ))
+        .bind(start)
+        .bind(end)
+        .bind(users)
+        .bind(languages)
+        .bind(not_languages)
         .fetch_all(&self.pool)
         .await?;
         Ok(res)
