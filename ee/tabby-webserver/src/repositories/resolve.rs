@@ -264,15 +264,17 @@ impl RepositoryCache {
         None
     }
 
-    pub fn resolve_all(&self) -> Result<Response> {
-        let entries: Vec<_> = self
-            .repository_lookup
-            .read()
-            .unwrap()
-            .keys()
+    pub async fn resolve_all(&self) -> Result<Response> {
+        let repositories = self
+            .service
+            .list_repositories(None, None, None, None)
+            .await?;
+
+        let entries = repositories
+            .into_iter()
             .map(|repo| DirEntry {
                 kind: DirEntryKind::Dir,
-                basename: repo.repo_name.clone(),
+                basename: repo.name.clone(),
             })
             .collect();
 

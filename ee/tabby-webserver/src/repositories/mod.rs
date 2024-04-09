@@ -87,5 +87,5 @@ async fn meta(
 }
 
 async fn resolve(State(rs): State<Arc<ResolveState>>) -> Result<Response, StatusCode> {
-    rs.resolve_all().map_err(|_| StatusCode::NOT_FOUND)
+    rs.resolve_all().await.map_err(|_| StatusCode::NOT_FOUND)
 }
