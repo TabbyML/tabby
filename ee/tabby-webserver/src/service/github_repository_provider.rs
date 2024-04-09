@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::schema::Result;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
