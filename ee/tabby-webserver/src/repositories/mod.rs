@@ -1,3 +1,4 @@
+mod oauth;
 mod resolve;
 
 use std::sync::Arc;
@@ -6,7 +7,6 @@ use anyhow::Result;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    middleware::from_fn_with_state,
     response::Response,
     routing, Json, Router,
 };
@@ -14,14 +14,27 @@ pub use resolve::RepositoryCache;
 use tracing::{instrument, warn};
 
 use crate::{
-    handler::require_login_middleware,
     repositories::resolve::{RepositoryMeta, ResolveParams},
-    schema::auth::AuthenticationService,
+    schema::{
+        auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
+        setting::SettingService,
+    },
 };
+
+use self::oauth::OAuthState;
 
 pub type ResolveState = Arc<RepositoryCache>;
 
-pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Router {
+pub fn routes(
+    rs: Arc<ResolveState>,
+    auth: Arc<dyn AuthenticationService>,
+    settings: Arc<dyn SettingService>,
+    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
+) -> Router {
+    let oauth_state = OAuthState {
+        settings,
+        github_repository_provider,
+    };
     Router::new()
         .route("/resolve", routing::get(resolve))
         .route("/resolve/", routing::get(resolve))
@@ -32,8 +45,9 @@ pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Ro
         .route("/:name/meta/", routing::get(meta))
         .route("/:name/meta/*path", routing::get(meta))
         .with_state(rs.clone())
+        .nest("/oauth", oauth::routes(oauth_state))
         .fallback(not_found)
-        .layer(from_fn_with_state(auth, require_login_middleware))
+    // .layer(from_fn_with_state(auth, require_login_middleware))
 }
 
 async fn not_found() -> StatusCode {

@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query, query_as};
-use tabby_db_macros::query_paged_as;
 
 use crate::{DbConn, SQLXResultExt};
 
@@ -54,58 +53,21 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn create_github_provided_repository(
-        &self,
-        provider_id: i64,
-        candidate_id: String,
-        name: String,
-        git_url: String,
-    ) -> Result<i64> {
+    pub async fn update_github_provider_token(&self, id: i64, access_token: String) -> Result<()> {
         let res = query!(
-            "INSERT INTO github_provided_repositories(github_repository_provider_id, vendor_id, name, git_url) VALUES (?, ?, ?, ?)",
-            provider_id, candidate_id, name, git_url
-        ).execute(&self.pool).await?;
-        Ok(res.last_insert_rowid())
-    }
-
-    pub async fn delete_github_provided_repository(&self, id: i64) -> Result<()> {
-        let res = query!("DELETE FROM github_provided_repositories WHERE id = ?", id)
-            .execute(&self.pool)
-            .await?;
-        if res.rows_affected() == 0 {
-            return Err(anyhow!("Specified repository does not exist"));
-        }
-        Ok(())
-    }
-
-    pub async fn list_github_provided_repositories(
-        &self,
-        github_repository_provider_ids: Vec<i64>,
-        limit: Option<usize>,
-        skip_id: Option<i32>,
-        backwards: bool,
-    ) -> Result<Vec<GithubProvidedRepositoryDAO>> {
-        let ids: Vec<_> = github_repository_provider_ids
-            .into_iter()
-            .map(|id| id.to_string())
-            .collect();
-        let ids = format!("({})", ids.join(", "));
-        let repos = query_paged_as!(
-            GithubProvidedRepositoryDAO,
-            "github_provided_repositories",
-            [
-                "github_repository_provider_id",
-                "vendor_id",
-                "git_url",
-                "name"
-            ],
-            limit,
-            skip_id,
-            backwards,
-            Some(format!("github_repository_provider_id IN {ids}"))
+            "UPDATE github_repository_provider SET access_token = ? WHERE id = ?",
+            access_token,
+            id
         )
-        .fetch_all(&self.pool)
+        .execute(&self.pool)
         .await?;
-        Ok(repos)
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!(
+                "The specified Github repository provider does not exist"
+            ));
+        }
+
+        Ok(())
     }
 }
