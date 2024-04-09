@@ -22,7 +22,7 @@ use tracing::{debug, error, warn};
 
 use crate::{
     cron::{CronEvents, StartListener},
-    schema::repository::{self, RepositoryService},
+    schema::repository::{RepositoryService},
 };
 
 pub struct RepositoryCache {
