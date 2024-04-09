@@ -10,6 +10,7 @@ use hyper::StatusCode;
 use juniper::ID;
 use serde::Deserialize;
 use tracing::error;
+use url::Url;
 
 use crate::{
     oauth::github::GithubOAuthResponse,
@@ -44,8 +45,20 @@ pub fn routes(
         .with_state(state)
 }
 
-fn github_redirect_url(client_id: &str, redirect_uri: &str, id: &ID) -> String {
-    format!("https://github.com/login/oauth/authorize?client_id={client_id}&response_type=code&scope=repo&redirect_uri={redirect_uri}/integrations/github/callback&state={id}")
+fn github_redirect_url(client_id: &str, redirect_uri: &str, id: &ID) -> Result<Url> {
+    Ok(Url::parse_with_params(
+        "https://github.com/login/oauth/authorize",
+        &[
+            ("client_id", client_id),
+            ("response_type", "code"),
+            ("scope", "repo"),
+            (
+                "redirect_uri",
+                &format!("{redirect_uri}/integrations/github/callback"),
+            ),
+            ("state", &id.to_string()),
+        ],
+    )?)
 }
 
 async fn exchange_access_token(
@@ -136,9 +149,13 @@ async fn connect(
         }
     };
 
-    Ok(Redirect::temporary(&github_redirect_url(
-        &provider.application_id,
-        &external_url,
-        &id,
-    )))
+    let redirect = match github_redirect_url(&provider.application_id, &external_url, &id) {
+        Ok(redirect) => redirect,
+        Err(e) => {
+            error!("Failed to generate callback URL: {e}");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    Ok(Redirect::temporary(redirect.as_str()))
 }
