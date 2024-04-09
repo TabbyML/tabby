@@ -11,6 +11,8 @@ import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
 
 import { Language } from '@/lib/gql/generates/graphql'
+import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
+import type { DailyStats } from '@/lib/types/stats'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {
@@ -31,12 +33,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
-import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { useAllMembers } from '../use-all-members'
 import { AnnualActivity } from './annual-activity'
 import { DailyActivity } from './daily-activity'
-
-import type { DailyStats } from '@/lib/types/stats'
 
 const INITIAL_DATE_RANGE = 14
 const KEY_SELECT_ALL = 'all'

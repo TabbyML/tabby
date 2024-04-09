@@ -10,11 +10,10 @@ import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
-
-import { IconMoveRight, IconRotate, IconSettings } from '@/components/ui/icons'
 import { Badge, badgeVariants } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
+import { IconMoveRight, IconRotate, IconSettings } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CopyButton } from '@/components/copy-button'
@@ -149,11 +148,17 @@ function MainPanel() {
           <ThemeToggle />
           <UserPanel
             trigger={
-              <div className={cn(buttonVariants({ variant: 'ghost' }), 'flex items-center justify-center px-2')}>
+              <div
+                className={cn(
+                  buttonVariants({ variant: 'ghost' }),
+                  'flex items-center justify-center px-2'
+                )}
+              >
                 <IconSettings />
               </div>
             }
-            align="end" />
+            align="end"
+          />
         </div>
       </div>
 

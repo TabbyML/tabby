@@ -25,7 +25,7 @@ export default function UserPanel({
   trigger,
   align
 }: {
-  trigger?: React.ReactNode,
+  trigger?: React.ReactNode
   align?: 'start' | 'center' | 'end'
 }) {
   const signOut = useSignOut()
@@ -50,7 +50,10 @@ export default function UserPanel({
       <DropdownMenuTrigger>
         {trigger || <UserAvatar className="h-10 w-10 border" />}
       </DropdownMenuTrigger>
-      <DropdownMenuContent collisionPadding={{ right: 16 }} align={align || 'center'}>
+      <DropdownMenuContent
+        collisionPadding={{ right: 16 }}
+        align={align || 'center'}
+      >
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isChatEnabled && (

@@ -1,20 +1,19 @@
 'use client'
 
-import moment from 'moment'
-import { useQuery } from 'urql'
-import { useTheme } from 'next-themes'
 import { useWindowSize } from '@uidotdev/usehooks'
+import moment from 'moment'
+import { useTheme } from 'next-themes'
 import ReactActivityCalendar from 'react-activity-calendar'
+import { useQuery } from 'urql'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import { useLanguageStats } from '../use-language-stats'
-
+import type { DailyStats } from '@/lib/types/stats'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
-import { Summary } from './summary';
 
-import type { DailyStats } from '@/lib/types/stats'
+import { useLanguageStats } from '../use-language-stats'
+import { Summary } from './summary'
 
 const DATE_RANGE = 7
 
@@ -48,10 +47,13 @@ function ActivityCalendar({
 }
 
 export default function Stats() {
-  
   const [{ data }] = useMe()
 
-  const startDate = moment().subtract(DATE_RANGE, 'day').startOf('day').utc().format()
+  const startDate = moment()
+    .subtract(DATE_RANGE, 'day')
+    .startOf('day')
+    .utc()
+    .format()
   const endDate = moment().endOf('day').utc().format()
 
   // Query stats of selected date range
@@ -111,7 +113,7 @@ export default function Stats() {
   const [languageStats] = useLanguageStats({
     start: moment(startDate).toDate(),
     end: moment(endDate).toDate(),
-    users: data?.me?.id,
+    users: data?.me?.id
   })
 
   if (!data?.me?.id) return <></>
@@ -120,13 +122,15 @@ export default function Stats() {
     <div className="flex flex-col gap-y-8">
       <LoadingWrapper
         loading={fetchingDailyState}
-        fallback={<Skeleton className="h-48" />}>
+        fallback={<Skeleton className="h-48" />}
+      >
         <Summary
           dailyStats={dailyStats}
           from={moment(startDate).toDate()}
           to={moment(endDate).toDate()}
           dateRange={DATE_RANGE}
-          languageStats={languageStats} />
+          languageStats={languageStats}
+        />
       </LoadingWrapper>
 
       <LoadingWrapper

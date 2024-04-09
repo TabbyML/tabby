@@ -1,9 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import { GearIcon } from '@radix-ui/react-icons'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import { BookOpenText, MoveRight, TrendingUp } from 'lucide-react'
-import { GearIcon } from '@radix-ui/react-icons'
 
 import { cn } from '@/lib/utils'
 
@@ -1320,22 +1320,25 @@ const IconBookOpenText = ({
   <BookOpenText className={cn('h4 w-4', className)} {...props} />
 )
 
-function IconMoveRight({ className, ...props }: React.ComponentProps<typeof MoveRight>) {
-  return (
-    <MoveRight className={cn('h4 w-4', className)} {...props} />
-  )
+function IconMoveRight({
+  className,
+  ...props
+}: React.ComponentProps<typeof MoveRight>) {
+  return <MoveRight className={cn('h4 w-4', className)} {...props} />
 }
 
-function IconTrendingUp({ className, ...props }: React.ComponentProps<typeof TrendingUp>) {
-  return (
-    <TrendingUp className={cn('h4 w-4', className)} {...props} />
-  )
+function IconTrendingUp({
+  className,
+  ...props
+}: React.ComponentProps<typeof TrendingUp>) {
+  return <TrendingUp className={cn('h4 w-4', className)} {...props} />
 }
 
-function IconSettings({ className, ...props }: React.ComponentProps<typeof GearIcon>) {
-  return (
-    <GearIcon className={cn('h4 w-4', className)} {...props} />
-  )
+function IconSettings({
+  className,
+  ...props
+}: React.ComponentProps<typeof GearIcon>) {
+  return <GearIcon className={cn('h4 w-4', className)} {...props} />
 }
 
 export {

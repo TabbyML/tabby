@@ -14,9 +14,8 @@ import {
   YAxis
 } from 'recharts'
 
-import { Card, CardContent } from '@/components/ui/card'
-
 import type { DailyStats } from '@/lib/types/stats'
+import { Card, CardContent } from '@/components/ui/card'
 
 function BarTooltip({
   active,

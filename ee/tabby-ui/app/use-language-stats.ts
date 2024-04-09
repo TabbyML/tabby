@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react'
-import { useQuery } from 'urql'
 import { sum } from 'lodash-es'
 import moment from 'moment'
+import { useQuery } from 'urql'
 
+import { Language } from '@/lib/gql/generates/graphql'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { queryDailyStats } from '@/lib/tabby/query'
-import { Language } from '@/lib/gql/generates/graphql'
 
-import { type LanguageStats } from './components/summary';
+import { type LanguageStats } from './components/summary'
 
 export function useLanguageStats({
   start,
   end,
   users
 }: {
-  start: Date;
-  end: Date;
-  users?: string;
+  start: Date
+  end: Date
+  users?: string
 }) {
   const languages = Object.values(Language)
   const [lanIdx, setLanIdx] = useState(0)
@@ -28,7 +28,9 @@ export function useLanguageStats({
     users,
     languages: languages[0]
   })
-  const [languageStats, setLanguageStats] = useState<LanguageStats>({} as LanguageStats)
+  const [languageStats, setLanguageStats] = useState<LanguageStats>(
+    {} as LanguageStats
+  )
 
   const [{ data, fetching }] = useQuery({
     query: queryDailyStats,
@@ -39,14 +41,18 @@ export function useLanguageStats({
     if (lanIdx >= languages.length) return
     if (!fetching && data?.dailyStats) {
       const language = languages[lanIdx]
-      const newLanguageStats = {...languageStats}
+      const newLanguageStats = { ...languageStats }
       newLanguageStats[language] = newLanguageStats[language] || {
         selects: 0,
         completions: 0,
         name: Object.keys(Language)[lanIdx]
       }
-      newLanguageStats[language].selects += sum(data.dailyStats.map(stats => stats.selects))
-      newLanguageStats[language].completions += sum(data.dailyStats.map(stats => stats.completions))
+      newLanguageStats[language].selects += sum(
+        data.dailyStats.map(stats => stats.selects)
+      )
+      newLanguageStats[language].completions += sum(
+        data.dailyStats.map(stats => stats.completions)
+      )
 
       const newLanIdx = lanIdx + 1
       setLanguageStats(newLanguageStats)
