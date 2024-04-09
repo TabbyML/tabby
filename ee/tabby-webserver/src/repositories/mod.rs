@@ -7,6 +7,7 @@ use anyhow::Result;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
+    middleware::from_fn_with_state,
     response::Response,
     routing, Json, Router,
 };
@@ -14,6 +15,7 @@ pub use resolve::RepositoryCache;
 use tracing::{instrument, warn};
 
 use crate::{
+    handler::require_login_middleware,
     repositories::resolve::{RepositoryMeta, ResolveParams},
     schema::{
         auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
@@ -47,7 +49,7 @@ pub fn routes(
         .with_state(rs.clone())
         .nest("/oauth", oauth::routes(oauth_state))
         .fallback(not_found)
-    // .layer(from_fn_with_state(auth, require_login_middleware))
+        .layer(from_fn_with_state(auth, require_login_middleware))
 }
 
 async fn not_found() -> StatusCode {
