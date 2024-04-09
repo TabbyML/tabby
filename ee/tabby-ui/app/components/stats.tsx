@@ -4,17 +4,15 @@ import moment from 'moment'
 import { useQuery } from 'urql'
 import { useTheme } from 'next-themes'
 import { useWindowSize } from '@uidotdev/usehooks'
-import { sum } from 'lodash-es'
+import ReactActivityCalendar from 'react-activity-calendar'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import { Language } from '@/lib/gql/generates/graphql'
+import { useLanguageStats } from '../use-language-stats'
 
 import { Skeleton } from '@/components/ui/skeleton'
-
-import ReactActivityCalendar from 'react-activity-calendar'
 import LoadingWrapper from '@/components/loading-wrapper'
-import { Summary, type LanguageStats } from './summary';
+import { Summary } from './summary';
 
 import type { DailyStats } from '@/lib/types/stats'
 
@@ -50,9 +48,8 @@ function ActivityCalendar({
 }
 
 export default function Stats() {
+  
   const [{ data }] = useMe()
-
-  if (!data?.me?.email) return null
 
   const startDate = moment().subtract(DATE_RANGE, 'day').startOf('day').utc().format()
   const endDate = moment().endOf('day').utc().format()
@@ -63,7 +60,7 @@ export default function Stats() {
     variables: {
       start: startDate,
       end: endDate,
-      users: data.me.id
+      users: data?.me?.id
     }
   })
   const dailyStats: DailyStats[] | undefined = dailyStatsData?.dailyStats.map(
@@ -79,7 +76,7 @@ export default function Stats() {
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
     query: queryDailyStatsInPastYear,
     variables: {
-      users: data.me.id
+      users: data?.me?.id
     }
   })
   const yearlyStats: DailyStats[] | undefined =
@@ -111,27 +108,14 @@ export default function Stats() {
     .reverse()
 
   // Query language stats
-  const languageStats: LanguageStats = {} as LanguageStats
-  for (const [languageName, language] of Object.entries(Language)) {
-    const [{ data: dailyStatsData }] = useQuery({
-      query: queryDailyStats,
-      variables: {
-        start: startDate,
-        end: endDate,
-        users: data.me.id,
-        languages: [language]
-      }
-    })
-    if (dailyStatsData?.dailyStats) {
-      languageStats[language] = languageStats[language] || {
-        selects: 0,
-        completions: 0,
-        name: languageName
-      }
-      languageStats[language].selects += sum(dailyStatsData.dailyStats.map(stats => stats.selects))
-      languageStats[language].completions += sum(dailyStatsData.dailyStats.map(stats => stats.completions))
-    }
-  }
+  const [languageStats] = useLanguageStats({
+    start: moment(startDate).toDate(),
+    end: moment(endDate).toDate(),
+    users: data?.me?.id,
+  })
+
+  if (!data?.me?.id) return <></>
+
   return (
     <div className="flex flex-col gap-y-8">
       <LoadingWrapper
