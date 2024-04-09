@@ -1,1 +1,1 @@
-DROP INDEX idx_user_completion_created_at_user_id_language;
+DROP INDEX idx_user_completion_user_id_created_at_language;
