@@ -3,6 +3,7 @@ mod auth;
 mod dao;
 mod email;
 pub mod event_logger;
+mod github_repository_provider;
 mod job;
 mod license;
 mod proxy;
@@ -30,12 +31,14 @@ use tracing::{info, warn};
 
 use self::{
     analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service,
+    github_repository_provider::new_github_repository_provider_service,
     license::new_license_service,
 };
 use crate::schema::{
     analytic::AnalyticService,
     auth::AuthenticationService,
     email::EmailService,
+    github_repository_provider::GithubRepositoryProviderService,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
     repository::RepositoryService,
@@ -52,6 +55,7 @@ struct ServerContext {
     mail: Arc<dyn EmailService>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
+    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -87,6 +91,9 @@ impl ServerContext {
                 license.clone(),
             )),
             license,
+            github_repository_provider: Arc::new(new_github_repository_provider_service(
+                db_conn.clone(),
+            )),
             db_conn,
             logger,
             code,
@@ -293,6 +300,12 @@ impl ServiceLocator for Arc<ServerContext> {
 
     fn analytic(&self) -> Arc<dyn AnalyticService> {
         new_analytic_service(self.db_conn.clone())
+    }
+
+    fn github_repository_provider(
+        &self,
+    ) -> Arc<dyn crate::schema::github_repository_provider::GithubRepositoryProviderService> {
+        self.github_repository_provider.clone()
     }
 }
 

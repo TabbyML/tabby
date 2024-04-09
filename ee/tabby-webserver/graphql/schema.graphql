@@ -3,6 +3,11 @@ enum Language {
   PYTHON
 }
 
+type GithubRepositoryProviderEdge {
+  node: GithubRepositoryProvider!
+  cursor: String!
+}
+
 type JobRun {
   id: ID!
   job: String!
@@ -44,6 +49,11 @@ type LicenseInfo {
   expiresAt: DateTimeUtc
 }
 
+type GithubRepositoryProviderConnection {
+  edges: [GithubRepositoryProviderEdge!]!
+  pageInfo: PageInfo!
+}
+
 input SecuritySettingInput {
   allowedRegisterDomainList: [String!]!
   disableClientSideTelemetry: Boolean!
@@ -70,6 +80,12 @@ type ServerInfo {
   isChatEnabled: Boolean!
   isEmailConfigured: Boolean!
   allowSelfSignup: Boolean!
+}
+
+type GithubRepositoryProvider {
+  id: ID!
+  displayName: String!
+  applicationId: String!
 }
 
 input PasswordChangeInput {
@@ -176,6 +192,7 @@ type Query {
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
+  githubRepositoryProviders(after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting

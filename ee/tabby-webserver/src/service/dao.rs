@@ -2,13 +2,14 @@ use anyhow::anyhow;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO,
-    UserDAO,
+    EmailSettingDAO, GithubRepositoryProviderDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    RepositoryDAO, ServerSettingDAO, UserDAO,
 };
 
 use crate::schema::{
     auth::{self, OAuthCredential, OAuthProvider},
     email::{AuthMethod, EmailSetting, Encryption},
+    github_repository_provider::GithubRepositoryProvider,
     job,
     repository::Repository,
     setting::{NetworkSetting, SecuritySetting},
@@ -115,6 +116,16 @@ impl From<ServerSettingDAO> for NetworkSetting {
     fn from(value: ServerSettingDAO) -> Self {
         Self {
             external_url: value.network_external_url,
+        }
+    }
+}
+
+impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
+    fn from(value: GithubRepositoryProviderDAO) -> Self {
+        Self {
+            display_name: value.display_name,
+            application_id: value.application_id,
+            id: value.id.as_id(),
         }
     }
 }
