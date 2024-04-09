@@ -30,6 +30,8 @@ use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
+use crate::schema::repository::FileEntrySearchResult;
+
 use self::{
     analytic::{AnalyticService, CompletionStats},
     auth::{
@@ -37,17 +39,13 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    job::JobStats,
     github_repository_provider::GithubRepositoryProviderService,
+    job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
-};
-use crate::schema::{
-    auth::{JWTPayload, OAuthCredential, OAuthProvider},
-    job::JobStats,
 };
 
 pub trait ServiceLocator: Send + Sync {
