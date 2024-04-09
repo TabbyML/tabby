@@ -45,7 +45,7 @@ pub fn routes(
         .with_state(state)
 }
 
-fn github_redirect_url(client_id: &str, redirect_uri: &str, id: &ID) -> Result<Url> {
+fn get_authorize_url(client_id: &str, redirect_uri: &str, id: &ID) -> Result<Url> {
     Ok(Url::parse_with_params(
         "https://github.com/login/oauth/authorize",
         &[
@@ -96,15 +96,6 @@ async fn callback(
     State(state): State<IntegrationState>,
     Query(params): Query<CallbackParams>,
 ) -> Result<Redirect, StatusCode> {
-    let network_setting = match state.settings.read_network_setting().await {
-        Ok(setting) => setting,
-        Err(e) => {
-            error!("Failed to read network setting: {e}");
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
-        }
-    };
-    let external_url = network_setting.external_url;
-
     let response = match exchange_access_token(&state, &params).await {
         Ok(response) => response,
         Err(e) => {
@@ -122,7 +113,7 @@ async fn callback(
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    Ok(Redirect::permanent(&external_url))
+    Ok(Redirect::permanent("/"))
 }
 
 async fn connect(
@@ -149,7 +140,7 @@ async fn connect(
         }
     };
 
-    let redirect = match github_redirect_url(&provider.application_id, &external_url, &id) {
+    let redirect = match get_authorize_url(&provider.application_id, &external_url, &id) {
         Ok(redirect) => redirect,
         Err(e) => {
             error!("Failed to generate callback URL: {e}");
