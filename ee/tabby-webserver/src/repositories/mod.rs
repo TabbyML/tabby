@@ -1,4 +1,3 @@
-mod oauth;
 mod resolve;
 
 use std::sync::Arc;
@@ -17,26 +16,12 @@ use tracing::{instrument, warn};
 use crate::{
     handler::require_login_middleware,
     repositories::resolve::{RepositoryMeta, ResolveParams},
-    schema::{
-        auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
-        setting::SettingService,
-    },
+    schema::auth::AuthenticationService,
 };
-
-use self::oauth::OAuthState;
 
 pub type ResolveState = Arc<RepositoryCache>;
 
-pub fn routes(
-    rs: Arc<ResolveState>,
-    auth: Arc<dyn AuthenticationService>,
-    settings: Arc<dyn SettingService>,
-    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
-) -> Router {
-    let oauth_state = OAuthState {
-        settings,
-        github_repository_provider,
-    };
+pub fn routes(rs: Arc<ResolveState>, auth: Arc<dyn AuthenticationService>) -> Router {
     Router::new()
         .route("/resolve", routing::get(resolve))
         .route("/resolve/", routing::get(resolve))
@@ -47,7 +32,6 @@ pub fn routes(
         .route("/:name/meta/", routing::get(meta))
         .route("/:name/meta/*path", routing::get(meta))
         .with_state(rs.clone())
-        .nest("/oauth", oauth::routes(oauth_state))
         .fallback(not_found)
         .layer(from_fn_with_state(auth, require_login_middleware))
 }

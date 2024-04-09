@@ -1,20 +1,16 @@
 use anyhow::{anyhow, Result};
 use sqlx::{prelude::FromRow, query, query_as};
+use tabby_db_macros::query_paged_as;
 
 use crate::{DbConn, SQLXResultExt};
 
+#[derive(FromRow)]
 pub struct GithubRepositoryProviderDAO {
+    pub id: i64,
     pub display_name: String,
     pub application_id: String,
     pub secret: String,
-}
-
-#[derive(FromRow)]
-pub struct GithubProvidedRepositoryDAO {
-    pub github_repository_provider_id: i64,
-    pub vendor_id: String,
-    pub name: String,
-    pub git_url: String,
+    pub access_token: Option<String>,
 }
 
 impl DbConn {
@@ -35,7 +31,7 @@ impl DbConn {
     pub async fn get_github_provider(&self, id: i64) -> Result<GithubRepositoryProviderDAO> {
         let provider = query_as!(
             GithubRepositoryProviderDAO,
-            "SELECT display_name, application_id, secret FROM github_repository_provider WHERE id = ?;",
+            "SELECT id, display_name, application_id, secret, access_token FROM github_repository_provider WHERE id = ?;",
             id
         )
         .fetch_one(&self.pool)
@@ -53,7 +49,11 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_github_provider_token(&self, id: i64, access_token: String) -> Result<()> {
+    pub async fn update_github_provider_access_token(
+        &self,
+        id: i64,
+        access_token: String,
+    ) -> Result<()> {
         let res = query!(
             "UPDATE github_repository_provider SET access_token = ? WHERE id = ?",
             access_token,
@@ -69,5 +69,30 @@ impl DbConn {
         }
 
         Ok(())
+    }
+
+    pub async fn list_github_repository_providers(
+        &self,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<GithubRepositoryProviderDAO>> {
+        let providers = query_paged_as!(
+            GithubRepositoryProviderDAO,
+            "github_repository_provider",
+            [
+                "id",
+                "display_name",
+                "application_id",
+                "secret",
+                "access_token"
+            ],
+            limit,
+            skip_id,
+            backwards
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(providers)
     }
 }

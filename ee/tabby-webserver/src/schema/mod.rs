@@ -39,7 +39,7 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    github_repository_provider::GithubRepositoryProviderService,
+    github_repository_provider::{GithubRepositoryProvider, GithubRepositoryProviderService},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{Repository, RepositoryService},
@@ -226,6 +226,30 @@ impl Query {
                     Ok(invitations) => Ok(invitations),
                     Err(err) => Err(FieldError::from(err)),
                 }
+            },
+        )
+        .await
+    }
+
+    async fn github_repository_providers(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<Connection<GithubRepositoryProvider>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                Ok(ctx
+                    .locator
+                    .github_repository_provider()
+                    .list_github_repository_providers(after, before, first, last)
+                    .await?)
             },
         )
         .await
