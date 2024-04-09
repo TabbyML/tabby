@@ -9,20 +9,20 @@ use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider}
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
-struct GithubOAuthResponse {
+pub struct GithubOAuthResponse {
     #[serde(default)]
-    access_token: String,
+    pub access_token: String,
     #[serde(default)]
-    scope: String,
+    pub scope: String,
     #[serde(default)]
-    token_type: String,
+    pub token_type: String,
 
     #[serde(default)]
-    error: String,
+    pub error: String,
     #[serde(default)]
-    error_description: String,
+    pub error_description: String,
     #[serde(default)]
-    error_uri: String,
+    pub error_uri: String,
 }
 
 #[derive(Debug, Deserialize)]

@@ -77,7 +77,12 @@ impl WebserverHandle {
             )
             .nest(
                 "/repositories",
-                repositories::routes(rs.clone(), ctx.auth()),
+                repositories::routes(
+                    rs.clone(),
+                    ctx.auth(),
+                    ctx.setting(),
+                    ctx.github_repository_provider(),
+                ),
             )
             .route(
                 "/avatar/:id",

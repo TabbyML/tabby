@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod email;
+pub mod github_repository_provider;
 pub mod job;
 pub mod license;
 pub mod repository;
@@ -33,6 +34,7 @@ use self::{
         RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
+    github_repository_provider::GithubRepositoryProviderService,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{Repository, RepositoryService},
     setting::{
@@ -54,6 +56,7 @@ pub trait ServiceLocator: Send + Sync {
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
+    fn github_repository_provider(&self) -> Arc<dyn GithubRepositoryProviderService>;
 }
 
 pub struct Context {

@@ -54,6 +54,24 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_github_provider_token(&self, id: i64, access_token: String) -> Result<()> {
+        let res = query!(
+            "UPDATE github_repository_provider SET access_token = ? WHERE id = ?",
+            access_token,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!(
+                "The specified Github repository provider does not exist"
+            ));
+        }
+
+        Ok(())
+    }
+
     pub async fn create_github_provided_repository(
         &self,
         provider_id: i64,
