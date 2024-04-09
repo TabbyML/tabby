@@ -17,7 +17,6 @@ interface DashboardLayoutProps {
 }
 
 export default function RootLayout({ children }: DashboardLayoutProps) {
-  console.log(111)
   return (
     <main className="flex flex-1">
       <Sidebar />

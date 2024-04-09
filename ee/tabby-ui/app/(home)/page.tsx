@@ -10,6 +10,7 @@ import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
+
 import { Badge, badgeVariants } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
@@ -21,18 +22,8 @@ import SlackDialog from '@/components/slack-dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
-
 import Profile from './components/profile'
 import Stats from './components/stats'
-
-export default function Home() {
-  return (
-    <div>
-      <MainPanel />
-      <SlackDialog />
-    </div>
-  )
-}
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   mutation ResetUserAuthToken {
@@ -198,6 +189,15 @@ function MainPanel() {
       {menu === Menu.Stats && <Stats />}
       {menu === Menu.Config && <Configuration />}
       {menu === Menu.Profile && <Profile />}
+    </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <div>
+      <MainPanel />
+      <SlackDialog />
     </div>
   )
 }

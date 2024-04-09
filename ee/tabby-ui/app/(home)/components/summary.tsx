@@ -1,9 +1,9 @@
 'use client'
 
+import { useTheme } from 'next-themes'
 import { eachDayOfInterval } from 'date-fns'
 import { maxBy, mean, sum } from 'lodash-es'
 import moment from 'moment'
-import { useTheme } from 'next-themes'
 import numeral from 'numeral'
 import {
   Bar,
@@ -20,6 +20,7 @@ import {
 
 import { Language } from '@/lib/gql/generates/graphql'
 import type { DailyStats } from '@/lib/types/stats'
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export type LanguageStats = Record<
@@ -158,6 +159,7 @@ export function Summary({
     end: to
   })
 
+  // Mapping data of { date: amount }
   const dailyCompletionMap: Record<string, number> = {}
   const dailySelectMap: Record<string, number> = {}
   dailyStats?.forEach(stats => {
@@ -166,6 +168,7 @@ export function Summary({
     dailySelectMap[date] = stats.selects
   }, {})
 
+  // Data for charts
   const completionData = daysBetweenRange.map(date => {
     const dateKey = moment(date).format('YYYY-MM-DD')
     const completion = dailyCompletionMap[dateKey] || 0

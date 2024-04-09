@@ -9,6 +9,7 @@ import { queryDailyStats } from '@/lib/tabby/query'
 
 import { type LanguageStats } from './components/summary'
 
+// Find auto-completion stats of each language
 export function useLanguageStats({
   start,
   end,
