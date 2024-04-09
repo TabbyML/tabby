@@ -210,7 +210,7 @@ export function Summary({
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            +{numeral(totalCompletions).format('0,0')}
+            {totalCompletions > 0 && '+'}{numeral(totalCompletions).format('0,0')}
           </div>
           <p className="text-xs text-muted-foreground">
             In last {dateRange} days
@@ -221,7 +221,7 @@ export function Summary({
           <BarChart
             data={completionData}
             margin={{
-              top: 5,
+              top: totalCompletions === 0 ? 40 : 5,
               right: 20,
               left: 20,
               bottom: 5
@@ -254,7 +254,7 @@ export function Summary({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{averageAcceptance}%</div>
+          <div className="text-2xl font-bold">{totalCompletions === 0 ? '0' : `${averageAcceptance}%`}</div>
           <p className="text-xs text-muted-foreground">
             In last {dateRange} days
           </p>
@@ -287,7 +287,7 @@ export function Summary({
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {mostAcceptedLanguage?.label}
+            {totalCompletions === 0 ? 'None' : mostAcceptedLanguage?.label}
           </div>
           <p className="text-xs text-muted-foreground">
             Most autocomplete accepts
