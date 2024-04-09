@@ -57,7 +57,6 @@
     "compare-versions": "^6.1.0",
     "copy-to-clipboard": "^3.3.3",
     "date-fns": "^3.6.0",
-    "date-streaks": "^1.2.1",
     "downshift": "^8.2.2",
     "filename2prism": "^3.0.0",
     "focus-trap-react": "^10.1.1",

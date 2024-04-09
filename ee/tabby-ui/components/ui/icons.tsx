@@ -1321,13 +1321,13 @@ const IconBookOpenText = ({
 
 function IconMoveRight({ className, ...props }: React.ComponentProps<typeof MoveRight>) {
   return (
-    <IconMoveRight className={cn('h4 w-4', className)} {...props} />
+    <MoveRight className={cn('h4 w-4', className)} {...props} />
   )
 }
 
 function IconTrendingUp({ className, ...props }: React.ComponentProps<typeof TrendingUp>) {
   return (
-    <IconTrendingUp className={cn('h4 w-4', className)} {...props} />
+    <TrendingUp className={cn('h4 w-4', className)} {...props} />
   )
 }
 

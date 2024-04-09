@@ -18,8 +18,7 @@ import {
   IconBookOpenText,
   IconChevronRight,
   IconGear,
-  IconLightingBolt,
-  IconUser
+  IconLightingBolt
 } from '@/components/ui/icons'
 
 export interface SidebarProps {
