@@ -1,18 +1,18 @@
 'use client'
 
 import { useWindowSize } from '@uidotdev/usehooks'
-import { useTheme } from 'next-themes'
-import { useQuery } from 'urql'
 import moment from 'moment'
+import { useTheme } from 'next-themes'
 import ReactActivityCalendar from 'react-activity-calendar'
+import { useQuery } from 'urql'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import type { DailyStats } from '@/lib/types/stats'
-import { useLanguageStats } from '../use-language-stats'
-
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
+
+import { useLanguageStats } from '../use-language-stats'
 import { Summary } from './summary'
 
 const DATE_RANGE = 7
