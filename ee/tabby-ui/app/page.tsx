@@ -138,7 +138,7 @@ function MainPanel() {
   if (!healthInfo || !data?.me) return <></>
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-y-5 pb-20 pt-40">
+    <div className="mx-auto flex max-w-5xl flex-col gap-y-5 px-10 pb-20 pt-10 md:pt-40 lg:px-0">
       <div className="flex justify-between">
         <div>
           <UserAvatar className="relative h-20 w-20 border" />
@@ -151,7 +151,7 @@ function MainPanel() {
         <ThemeToggle />
       </div>
 
-      <div className="flex items-center gap-x-3">
+      <div className="flex flex-wrap items-center gap-3">
         <MenuItem
           value={Menu.Stats}
           label="Stats"

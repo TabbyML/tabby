@@ -183,7 +183,7 @@ export function Summary ({
   const mostAcceptedLanguage = maxBy(languageData, (data) => data.selects)
 
   return (
-    <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
+    <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-6 md:space-y-0 xl:justify-start">
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 dark:bg-primary-foreground/30 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
           <CardTitle className="text-base font-normal tracking-tight">Total Completions</CardTitle>
@@ -193,7 +193,7 @@ export function Summary ({
           <p className="text-xs text-muted-foreground">In last {dateRange} days</p>
         </CardContent>
 
-        <ResponsiveContainer width="100%" height={60}>
+        <ResponsiveContainer width="100%" height={50}>
           <BarChart
             data={completionData}
             margin={{
@@ -229,7 +229,7 @@ export function Summary ({
           <p className="text-xs text-muted-foreground">In last {dateRange} days</p>
         </CardContent>
 
-        <ResponsiveContainer width="100%" height={60}>
+        <ResponsiveContainer width="100%" height={50}>
           <LineChart data={acceptanceData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <Line
@@ -247,11 +247,11 @@ export function Summary ({
           <CardTitle className="text-base font-normal tracking-tight">Language Acceptance</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{mostAcceptedLanguage?.name}</div>
+          <div className="text-2xl font-bold">{mostAcceptedLanguage?.label}</div>
           <p className="text-xs text-muted-foreground">Most autocomplete accepts</p>
         </CardContent>
 
-        <ResponsiveContainer height={60} width={300}>
+        <ResponsiveContainer height={50} width={300}>
           <BarChart
             layout='vertical'
             data={languageData}
