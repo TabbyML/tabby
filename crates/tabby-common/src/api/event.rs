@@ -98,7 +98,7 @@ pub struct Segments {
     pub declarations: Option<Vec<Declaration>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Declaration {
     pub filepath: String,
     pub body: String,
