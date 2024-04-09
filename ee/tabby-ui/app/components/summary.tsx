@@ -210,7 +210,8 @@ export function Summary({
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {totalCompletions > 0 && '+'}{numeral(totalCompletions).format('0,0')}
+            {totalCompletions > 0 && '+'}
+            {numeral(totalCompletions).format('0,0')}
           </div>
           <p className="text-xs text-muted-foreground">
             In last {dateRange} days
@@ -254,7 +255,9 @@ export function Summary({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalCompletions === 0 ? '0' : `${averageAcceptance}%`}</div>
+          <div className="text-2xl font-bold">
+            {totalCompletions === 0 ? '0' : `${averageAcceptance}%`}
+          </div>
           <p className="text-xs text-muted-foreground">
             In last {dateRange} days
           </p>
