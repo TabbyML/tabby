@@ -39,13 +39,23 @@ impl AnalyticService for AnalyticServiceImpl {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
         users: Vec<ID>,
-        languages: Vec<Language>,
+        mut languages: Vec<Language>,
     ) -> Result<Vec<CompletionStats>> {
         let users = convert_ids(users);
-        let languages = languages.into_iter().map(|l| l.to_string()).collect();
+
+        let not_languages = languages
+            .iter()
+            .position(|l| l == &Language::Other)
+            .map(|i| {
+                languages.remove(i);
+                Language::all_known().flat_map(|l| l.to_strings()).collect()
+            })
+            .unwrap_or_default();
+
+        let languages = languages.into_iter().flat_map(|l| l.to_strings()).collect();
         let stats = self
             .db
-            .compute_daily_stats(start, end, users, languages)
+            .compute_daily_stats(start, end, users, languages, not_languages)
             .await?;
         let stats = stats
             .into_iter()

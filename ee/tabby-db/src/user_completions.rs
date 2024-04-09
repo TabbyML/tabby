@@ -100,13 +100,23 @@ impl DbConn {
         end: DateTime<Utc>,
         users: Vec<i64>,
         languages: Vec<String>,
+        not_languages: Vec<String>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         let users = users
             .iter()
             .map(|u| u.to_string())
             .collect::<Vec<_>>()
             .join(",");
-        let languages = languages.join(",");
+        let languages = languages
+            .into_iter()
+            .map(|l| format!("{:?}", l.to_string()))
+            .collect::<Vec<_>>()
+            .join(",");
+        let not_languages = not_languages
+            .into_iter()
+            .map(|l| format!("{:?}", l.to_string()))
+            .collect::<Vec<_>>()
+            .join(",");
         let res = sqlx::query_as!(
             UserCompletionDailyStatsDAO,
             r#"
@@ -116,14 +126,15 @@ impl DbConn {
         FROM user_completions
         WHERE created_at >= ?1 AND created_at < ?2
             AND (?3 = '' OR user_id IN (?3))
-            AND (?4 = '' OR language IN (?4))
+            AND ((?4 = '' OR '"' + language + '"' IN (?4)) AND (?5 = '' OR '"' + language + '"' NOT IN (?5)))
         GROUP BY 1
         ORDER BY 1 ASC
         "#,
             start,
             end,
             users,
-            languages
+            languages,
+            not_languages
         )
         .fetch_all(&self.pool)
         .await?;
