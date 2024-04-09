@@ -90,6 +90,18 @@ pub struct Segments {
     pub suffix: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub clipboard: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub git_url: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub declarations: Option<Vec<Declaration>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Declaration {
+    pub filepath: String,
+    pub body: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
