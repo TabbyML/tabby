@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use axum::{
     extract::{Path, Query, State},
@@ -6,13 +8,36 @@ use axum::{
 };
 use hyper::StatusCode;
 use juniper::ID;
+use serde::Deserialize;
 use tracing::error;
 
-use crate::oauth::github::GithubOAuthResponse;
+use crate::{
+    oauth::github::GithubOAuthResponse,
+    schema::{
+        github_repository_provider::GithubRepositoryProviderService, setting::SettingService,
+    },
+};
 
-use super::{CallbackParams, IntegrationsState};
+#[derive(Deserialize)]
+struct CallbackParams {
+    state: ID,
+    code: String,
+}
 
-pub fn routes(state: IntegrationsState) -> Router {
+#[derive(Clone)]
+struct IntegrationState {
+    pub settings: Arc<dyn SettingService>,
+    pub github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
+}
+
+pub fn routes(
+    settings: Arc<dyn SettingService>,
+    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
+) -> Router {
+    let state = IntegrationState {
+        settings,
+        github_repository_provider,
+    };
     Router::new()
         .route("/connect/:id", routing::get(connect))
         .route("/callback", routing::get(callback))
@@ -24,7 +49,7 @@ fn github_redirect_url(client_id: &str, redirect_uri: &str, id: &ID) -> String {
 }
 
 async fn exchange_access_token(
-    state: &IntegrationsState,
+    state: &IntegrationState,
     params: &CallbackParams,
 ) -> Result<GithubOAuthResponse> {
     let client = reqwest::Client::new();
@@ -55,7 +80,7 @@ async fn exchange_access_token(
 }
 
 async fn callback(
-    State(state): State<IntegrationsState>,
+    State(state): State<IntegrationState>,
     Query(params): Query<CallbackParams>,
 ) -> Result<Redirect, StatusCode> {
     let network_setting = match state.settings.read_network_setting().await {
@@ -88,7 +113,7 @@ async fn callback(
 }
 
 async fn connect(
-    State(state): State<IntegrationsState>,
+    State(state): State<IntegrationState>,
     Path(id): Path<ID>,
 ) -> Result<Redirect, StatusCode> {
     let network_setting = match state.settings.read_network_setting().await {

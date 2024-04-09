@@ -85,8 +85,8 @@ impl WebserverHandle {
                 repositories::routes(rs.clone(), ctx.auth()),
             )
             .nest(
-                "/integrations",
-                integrations::routes(ctx.setting(), ctx.github_repository_provider()),
+                "/integrations/github",
+                integrations::github::routes(ctx.setting(), ctx.github_repository_provider()),
             )
             .route(
                 "/avatar/:id",
