@@ -37,7 +37,9 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    github_repository_provider::{GithubRepositoryProvider, GithubRepositoryProviderService},
+    github_repository_provider::{
+        GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
+    },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{Repository, RepositoryService},
@@ -248,6 +250,37 @@ impl Query {
                     .locator
                     .github_repository_provider()
                     .list_github_repository_providers(after, before, first, last)
+                    .await?)
+            },
+        )
+        .await
+    }
+
+    async fn github_provided_repositories(
+        ctx: &Context,
+        github_repository_provider_id: ID,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<Connection<GithubProvidedRepository>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                Ok(ctx
+                    .locator
+                    .github_repository_provider()
+                    .list_github_provided_repositories_by_provider(
+                        github_repository_provider_id,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
                     .await?)
             },
         )
@@ -667,6 +700,20 @@ impl Mutation {
     async fn reset_license(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator.license().reset_license().await?;
+        Ok(true)
+    }
+
+    async fn create_github_repository_provider(
+        ctx: &Context,
+        display_name: String,
+        application_id: String,
+        application_secret: String,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .github_repository_provider()
+            .create_github_repository_provider(display_name, application_id, application_secret)
+            .await?;
         Ok(true)
     }
 }

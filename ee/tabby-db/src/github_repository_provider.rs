@@ -13,6 +13,15 @@ pub struct GithubRepositoryProviderDAO {
     pub access_token: Option<String>,
 }
 
+#[derive(FromRow)]
+pub struct GithubProvidedRepositoryDAO {
+    pub id: i64,
+    pub github_repository_provider_id: i64,
+    pub name: String,
+    pub git_url: String,
+    pub active: bool,
+}
+
 impl DbConn {
     pub async fn create_github_provider(
         &self,
@@ -94,5 +103,54 @@ impl DbConn {
         .fetch_all(&self.pool)
         .await?;
         Ok(providers)
+    }
+
+    pub async fn create_github_provided_repository(
+        &self,
+        github_provider_id: i64,
+        name: String,
+        git_url: String,
+    ) -> Result<()> {
+        query!("INSERT INTO github_provided_repositories (github_repository_provider_id, name, git_url) VALUES (?, ?, ?)",
+            github_provider_id, name, git_url).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn delete_github_provided_repository(&self, id: i64) -> Result<()> {
+        let res = query!("DELETE FROM github_provided_repositories WHERE id = ?", id)
+            .execute(&self.pool)
+            .await?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("Repository not found"));
+        }
+        Ok(())
+    }
+
+    pub async fn list_github_provided_repositories(
+        &self,
+        provider_id: i64,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<GithubProvidedRepositoryDAO>> {
+        let repos = query_paged_as!(
+            GithubProvidedRepositoryDAO,
+            "github_provided_repositories",
+            [
+                "id",
+                "name",
+                "git_url",
+                "active",
+                "github_repository_provider_id"
+            ],
+            limit,
+            skip_id,
+            backwards,
+            Some(format!("github_repository_provider_id = {provider_id}"))
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(repos)
     }
 }

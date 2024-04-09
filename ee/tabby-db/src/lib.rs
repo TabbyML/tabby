@@ -5,6 +5,7 @@ use cache::Cache;
 use cached::TimedSizedCache;
 use chrono::{DateTime, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
+pub use github_repository_provider::GithubProvidedRepositoryDAO;
 pub use github_repository_provider::GithubRepositoryProviderDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
