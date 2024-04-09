@@ -12,12 +12,27 @@ use serde::Deserialize;
 use tracing::error;
 use url::Url;
 
-use crate::{
-    oauth::github::GithubOAuthResponse,
-    schema::{
-        github_repository_provider::GithubRepositoryProviderService, setting::SettingService,
-    },
+use crate::schema::{
+    github_repository_provider::GithubRepositoryProviderService, setting::SettingService,
 };
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct GithubOAuthResponse {
+    #[serde(default)]
+    access_token: String,
+    #[serde(default)]
+    scope: String,
+    #[serde(default)]
+    token_type: String,
+
+    #[serde(default)]
+    error: String,
+    #[serde(default)]
+    error_description: String,
+    #[serde(default)]
+    error_uri: String,
+}
 
 #[derive(Deserialize)]
 struct CallbackParams {
