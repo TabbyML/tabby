@@ -13,7 +13,6 @@ use tabby_common::{
 };
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use thiserror::Error;
-
 use utoipa::ToSchema;
 
 use super::model;
