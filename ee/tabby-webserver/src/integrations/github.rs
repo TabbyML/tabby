@@ -113,7 +113,7 @@ async fn callback(
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    Ok(Redirect::permanent("/"))
+    Ok(Redirect::temporary("/"))
 }
 
 async fn connect(
