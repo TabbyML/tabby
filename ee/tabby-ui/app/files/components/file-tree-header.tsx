@@ -191,7 +191,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     <div className={cn(className)} {...props}>
       <div className="py-4 font-bold leading-8">Files</div>
       <div className="space-y-3">
-        <Select onValueChange={onSelectRepo} value={curerntRepoName}>
+        <Select
+          disabled={!initialized}
+          onValueChange={onSelectRepo}
+          value={curerntRepoName}
+        >
           <SelectTrigger>
             <SelectValue>
               <div className="flex items-center gap-2">
