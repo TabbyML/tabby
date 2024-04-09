@@ -1,13 +1,15 @@
-use crate::{schema::Result, service::graphql_pagination_to_filter};
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 
-use crate::schema::github_repository_provider::{
-    GithubRepositoryProvider, GithubRepositoryProviderService,
-};
-
 use super::AsRowid;
+use crate::{
+    schema::{
+        github_repository_provider::{GithubRepositoryProvider, GithubRepositoryProviderService},
+        Result,
+    },
+    service::graphql_pagination_to_filter,
+};
 
 struct GithubRepositoryProviderServiceImpl {
     db: DbConn,
@@ -20,12 +22,12 @@ pub fn new_github_repository_provider_service(db: DbConn) -> impl GithubReposito
 #[async_trait]
 impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
     async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider> {
-        let provider = self.db.get_github_provider(id.as_rowid()? as i64).await?;
+        let provider = self.db.get_github_provider(id.as_rowid()?).await?;
         Ok(provider.into())
     }
 
     async fn read_github_repository_provider_secret(&self, id: ID) -> Result<String> {
-        let provider = self.db.get_github_provider(id.as_rowid()? as i64).await?;
+        let provider = self.db.get_github_provider(id.as_rowid()?).await?;
         Ok(provider.secret)
     }
 
@@ -35,7 +37,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         access_token: String,
     ) -> Result<()> {
         self.db
-            .update_github_provider_access_token(id.as_rowid()? as i64, access_token)
+            .update_github_provider_access_token(id.as_rowid()?, access_token)
             .await?;
         Ok(())
     }

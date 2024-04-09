@@ -30,8 +30,6 @@ use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
-use crate::schema::repository::FileEntrySearchResult;
-
 use self::{
     analytic::{AnalyticService, CompletionStats},
     auth::{
@@ -47,6 +45,7 @@ use self::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
 };
+use crate::schema::repository::FileEntrySearchResult;
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;

@@ -1,9 +1,9 @@
-use crate::schema::Result;
 use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
 use juniper_axum::relay::NodeType;
 
 use super::Context;
+use crate::schema::Result;
 
 #[derive(GraphQLObject, Debug)]
 #[graphql(context = Context)]
