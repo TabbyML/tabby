@@ -19,7 +19,7 @@ use tabby_db::DbConn;
 use tracing::{error, warn};
 
 use crate::{
-    cron, hub, oauth,
+    cron, hub, integrations, oauth,
     repositories::{self, RepositoryCache},
     schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::create_event_logger},
@@ -83,6 +83,10 @@ impl WebserverHandle {
             .nest(
                 "/repositories",
                 repositories::routes(rs.clone(), ctx.auth()),
+            )
+            .nest(
+                "/integrations/github",
+                integrations::github::routes(ctx.setting(), ctx.github_repository_provider()),
             )
             .route(
                 "/avatar/:id",

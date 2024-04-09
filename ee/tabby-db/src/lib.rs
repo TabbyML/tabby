@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use cache::Cache;
 use chrono::{DateTime, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
+pub use github_repository_provider::GithubRepositoryProviderDAO;
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use oauth_credential::OAuthCredentialDAO;
@@ -17,6 +18,7 @@ pub use users::UserDAO;
 
 pub mod cache;
 mod email_setting;
+mod github_repository_provider;
 mod invitations;
 mod job_runs;
 mod oauth_credential;

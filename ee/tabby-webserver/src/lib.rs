@@ -3,6 +3,7 @@
 mod cron;
 mod handler;
 mod hub;
+mod integrations;
 mod oauth;
 mod repositories;
 mod schema;

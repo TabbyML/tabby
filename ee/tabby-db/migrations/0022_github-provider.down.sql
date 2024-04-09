@@ -1,0 +1,1 @@
+DROP TABLE github_repository_provider;
