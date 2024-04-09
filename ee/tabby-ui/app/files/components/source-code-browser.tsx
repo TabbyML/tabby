@@ -60,7 +60,7 @@ type TFileMap = Record<string, TFileMapItem>
 
 type SourceCodeBrowserContextValue = {
   activePath: string | undefined
-  setActivePath: (path: string | undefined) => void
+  setActivePath: (path: string | undefined, replace?: boolean) => void
   fileMap: TFileMap
   updateFileMap: (map: TFileMap) => void
   expandedKeys: Set<string>
@@ -85,16 +85,15 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   children
 }) => {
   const { searchParams, updateSearchParams } = useRouterStuff()
-
   const activePath = React.useMemo(() => {
     return searchParams.get('path')?.toString() ?? ''
   }, [searchParams])
 
-  const setActivePath = (path: string | undefined) => {
+  const setActivePath = (path: string | undefined, replace?: boolean) => {
     if (!path) {
-      updateSearchParams({ del: ['path', 'plain'] })
+      updateSearchParams({ del: ['path', 'plain'], replace })
     } else {
-      updateSearchParams({ set: { path }, del: 'plain' })
+      updateSearchParams({ set: { path }, del: 'plain', replace })
     }
   }
 
@@ -293,7 +292,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
       // By default, selecting the first repository if initialPath is empty
       if (repos?.length && !activePath) {
-        setActivePath(repos?.[0]?.basename)
+        setActivePath(repos?.[0]?.basename, true)
         return
       }
 
