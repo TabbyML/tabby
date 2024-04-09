@@ -21,7 +21,13 @@ import {
   IconSpinner
 } from './ui/icons'
 
-export default function UserPanel() {
+export default function UserPanel({
+  trigger,
+  align
+}: {
+  trigger?: React.ReactNode,
+  align?: 'start' | 'center' | 'end'
+}) {
   const signOut = useSignOut()
   const [{ data }] = useMe()
   const user = data?.me
@@ -42,9 +48,9 @@ export default function UserPanel() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <UserAvatar className="h-10 w-10 border" />
+        {trigger || <UserAvatar className="h-10 w-10 border" />}
       </DropdownMenuTrigger>
-      <DropdownMenuContent collisionPadding={{ right: 16 }}>
+      <DropdownMenuContent collisionPadding={{ right: 16 }} align={align || 'center'}>
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isChatEnabled && (

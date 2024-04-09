@@ -3,6 +3,7 @@
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import { BookOpenText, MoveRight, TrendingUp } from 'lucide-react'
+import { GearIcon } from '@radix-ui/react-icons'
 
 import { cn } from '@/lib/utils'
 
@@ -1331,6 +1332,12 @@ function IconTrendingUp({ className, ...props }: React.ComponentProps<typeof Tre
   )
 }
 
+function IconSettings({ className, ...props }: React.ComponentProps<typeof GearIcon>) {
+  return (
+    <GearIcon className={cn('h4 w-4', className)} {...props} />
+  )
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1400,5 +1407,6 @@ export {
   IconActivity,
   IconBookOpenText,
   IconMoveRight,
-  IconTrendingUp
+  IconTrendingUp,
+  IconSettings
 }

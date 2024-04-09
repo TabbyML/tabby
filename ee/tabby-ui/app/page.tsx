@@ -11,16 +11,17 @@ import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 
+import { IconMoveRight, IconRotate, IconSettings } from '@/components/ui/icons'
 import { Badge, badgeVariants } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import { IconMoveRight, IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
+import UserPanel from '@/components/user-panel'
 
 import Profile from './components/profile'
 import Stats from './components/stats'
@@ -136,19 +137,25 @@ function MainPanel() {
   const [{ data }] = useMe()
 
   if (!healthInfo || !data?.me) return <></>
-
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-y-5 px-10 pb-20 pt-10 md:pt-40 lg:px-0">
       <div className="flex justify-between">
         <div>
           <UserAvatar className="relative h-20 w-20 border" />
           <p className="mt-1.5">{data.me.email}</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Member since: 2024-03-01
-          </p>
         </div>
 
-        <ThemeToggle />
+        <div className="flex items-center gap-x-2 self-start">
+          <ThemeToggle />
+          <UserPanel
+            trigger={
+              <div className={cn(buttonVariants({ variant: 'ghost' }), 'flex items-center justify-center px-2')}>
+                <IconSettings />
+              </div>
+            }
+            align="end" />
+        </div>
+        
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
