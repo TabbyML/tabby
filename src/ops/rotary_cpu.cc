@@ -43,8 +43,9 @@ namespace ctranslate2 {
     void Rotary::compute(const StorageView& input,
                          const StorageView& sin,
                          const StorageView& cos,
-                         StorageView& output) const {
-      const dim_t max_time = input.dim(-2);
+                         StorageView& output,
+                         bool is_transposed) const {
+      const dim_t max_time = is_transposed ? input.dim(-2) : input.dim(-3);
       const dim_t depth = input.dim(-1);
       const dim_t batch_size = input.size() / (max_time * depth);
       const dim_t ndims = _ndims == 0 ? depth : _ndims;
@@ -65,7 +66,8 @@ namespace ctranslate2 {
     Rotary::compute<Device::CPU, T>(const StorageView&,                 \
                                     const StorageView&,                 \
                                     const StorageView&,                 \
-                                    StorageView&) const;
+                                    StorageView&,                       \
+                                    bool) const;
 
     DECLARE_IMPL(float)
 

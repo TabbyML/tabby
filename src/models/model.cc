@@ -190,6 +190,8 @@ namespace ctranslate2 {
       DataType weight_dtype = DataType::FLOAT32;
       DataType float_dtype = DataType::FLOAT32;
       std::tie(weight_dtype, float_dtype) = compute_type_to_data_type(_effective_compute_type);
+      if (_use_flash_attention && (float_dtype != DataType::FLOAT16 && float_dtype != DataType::BFLOAT16))
+        throw std::runtime_error("FlashAttention only support fp16 and bf16 data type");
 
       const auto variable_index = _variable_index;
       for (auto& variable_pair : variable_index) {
@@ -554,15 +556,17 @@ namespace ctranslate2 {
                                              Device device,
                                              int device_index,
                                              ComputeType compute_type,
+                                             bool use_flash_attention,
                                              bool tensor_parallel) {
       ModelFileReader model_reader(path);
-      return load(model_reader, device, device_index, compute_type, tensor_parallel);
+      return load(model_reader, device, device_index, compute_type, use_flash_attention, tensor_parallel);
     }
 
     std::shared_ptr<const Model> Model::load(ModelReader& model_reader,
                                              Device device,
                                              int device_index,
                                              ComputeType compute_type,
+                                             bool use_flash_attention,
                                              bool tensor_parallel) {
       {
         // Log the system configuration the first time a model is loaded.
@@ -606,6 +610,7 @@ namespace ctranslate2 {
       auto model = create_model(spec);
       model->_binary_version = binary_version;
       model->_spec_revision = spec_revision;
+      model->_use_flash_attention = use_flash_attention;
       model->_tensor_parallel = tensor_parallel;
 
       check_version(spec_revision, model->current_spec_revision(), "revision");
@@ -814,15 +819,27 @@ namespace ctranslate2 {
         throw std::invalid_argument("Cannot use multiple GPUs with different Compute Capabilities "
                                     "for the same model");
       if (tensor_parallel && device != Device::CUDA) {
-        throw std::invalid_argument("Tensor Parallel mode can run only on  cuda");
+        throw std::invalid_argument("Tensor Parallel mode can run only on cuda");
       }
-#endif
-
-      std::vector<std::shared_ptr<const Model>> models;
       if (tensor_parallel && (device_indices.size() > 1)) {
         spdlog::warn("Running model in mode tensor parallel does not support"
                      " running independently a model in each device");
       }
+
+      bool is_sm8x = false;
+      bool is_sm90 = false;
+      if (device == Device::CUDA) {
+        int device_id = ctranslate2::get_device_index(ctranslate2::Device::CUDA);
+        auto dprops = ctranslate2::cuda::get_device_properties(device_id);
+        is_sm8x = dprops.major == 8 && dprops.minor >= 0;
+        is_sm90 = dprops.major == 9 && dprops.minor == 0;
+      }
+      if (use_flash_attention && (device != Device::CUDA || (!is_sm8x && !is_sm90))) {
+        throw std::invalid_argument("FlashAttention only supports Ampere GPUs or newer.");
+      }
+#endif
+
+      std::vector<std::shared_ptr<const Model>> models;
 
       models.reserve(device_indices.size() * num_replicas_per_device);
 
@@ -830,7 +847,8 @@ namespace ctranslate2 {
         std::shared_ptr<const Model> model;
 
         if (models.empty())
-          model = Model::load(*model_reader, device, device_index, compute_type, tensor_parallel);
+          model = Model::load(*model_reader, device, device_index, compute_type,
+                              use_flash_attention, tensor_parallel);
         else
           model = models.back()->copy_to(device, device_index);
 

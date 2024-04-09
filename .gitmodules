@@ -16,3 +16,6 @@
 [submodule "third_party/ruy"]
 	path = third_party/ruy
 	url = https://github.com/google/ruy.git
+[submodule "third_party/cutlass"]
+	path = third_party/cutlass
+	url = https://github.com/NVIDIA/cutlass.git

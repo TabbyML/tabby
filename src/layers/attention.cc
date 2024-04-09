@@ -106,47 +106,6 @@ namespace ctranslate2 {
       return values_t;
     }
 
-    static StorageView build_alibi(dim_t num_heads,
-                                   dim_t key_max_length,
-                                   bool use_positive_positions,
-                                   const float scale) {
-      const float closest_power_of_2_f = std::pow(2.f, std::floor(std::log2f(num_heads)));
-      const dim_t closest_power_of_2 = closest_power_of_2_f;
-
-      const float base = std::pow(2.f, -std::pow(2.f, -(std::log2f(closest_power_of_2_f) - 3.f)));
-
-      std::vector<float> slopes;
-      slopes.reserve(closest_power_of_2);
-      for (dim_t power = 1; power <= closest_power_of_2; ++power)
-        slopes.emplace_back(std::pow(base, float(power)));
-
-      if (closest_power_of_2 != num_heads) {
-        const float extra_base = (
-          std::pow(2.f, -std::pow(2.f, -(std::log2f(2 * closest_power_of_2_f) - 3.f))));
-        const dim_t num_remaining_heads = std::min(
-          closest_power_of_2, num_heads - closest_power_of_2);
-
-        for (dim_t power = 1; power <= 2 * num_remaining_heads; power += 2)
-          slopes.emplace_back(std::pow(extra_base, float(power)));
-      }
-
-      std::vector<float> positions(key_max_length);
-      std::iota(positions.begin(),
-                positions.end(),
-                use_positive_positions ? 0 : -key_max_length + 1);
-
-      StorageView alibi({1, num_heads, 1, key_max_length});
-
-      for (dim_t h = 0; h < num_heads; ++h) {
-        primitives<Device::CPU>::mul(slopes[h] * scale,
-                                     positions.data(),
-                                     alibi.index<float>({0, h, 0, 0}),
-                                     key_max_length);
-      }
-
-      return alibi;
-    }
-
     static void matmul_with_relative_representations(const ops::MatMul& matmul_op,
                                                      const StorageView& a,
                                                      const StorageView& b,
@@ -281,96 +240,13 @@ namespace ctranslate2 {
         save_attention(*attention, std::move(attn), beam_size);
     }
 
-    static void split_heads(StorageView& x,
-                            dim_t num_heads,
-                            const Padder* padder = nullptr,
-                            dim_t beam_size = 1) {
-      if (padder)
-        padder->add_padding(x);
 
-      if (beam_size > 1)
-        x.reshape({x.dim(0) / beam_size, beam_size, x.dim(2)});
-
-      // x has shape [batch_size, time, depth]
-      const dim_t batch_size = x.dim(0);
-      const dim_t time = x.dim(1);
-      const dim_t head_dim = x.dim(2) / num_heads;
-
-      if (time == 1) {
-        x.reshape({batch_size, num_heads, 1, head_dim});
-      } else {
-        x.reshape({batch_size, time, num_heads, head_dim});
-        StorageView y(x.device(), x.dtype());
-        transpose_op(x, y);
-        x = std::move(y);
-      }
-    }
 
     static void replicate_heads(StorageView& x, dim_t repeats) {
       x.expand_dims(2);
       ops::Tile(2, repeats)(x);
       x.reshape({x.dim(0), x.dim(1) * x.dim(2), x.dim(3), x.dim(4)});
     }
-
-    static void combine_heads(StorageView& x,
-                              dim_t num_heads,
-                              const Padder* padder = nullptr,
-                              dim_t beam_size = 1) {
-      // x has shape [batch_size, num_heads, time, head_dim]
-      const dim_t batch_size = x.dim(0);
-      const dim_t time = x.dim(2);
-      const dim_t depth = x.dim(3) * num_heads;
-
-      if (time > 1) {
-        StorageView y(x.device(), x.dtype());
-        transpose_op(x, y);
-        x = std::move(y);
-      }
-
-      x.reshape({batch_size, time, depth});
-
-      if (beam_size > 1)
-        x.reshape({batch_size * beam_size, 1, depth});
-
-      if (padder)
-        padder->remove_padding(x);
-    }
-
-    static std::vector<Dense> make_linear_layers(const models::Model& model,
-                                                 const std::string& scope,
-                                                 bool self_attention) {
-      const dim_t num_linear_layers = self_attention ? 2 : 3;
-      std::vector<Dense> layers;
-      layers.reserve(num_linear_layers);
-      for (dim_t i = 0; i < num_linear_layers; ++i)
-        if (i == (num_linear_layers - 1)) {
-          layers.emplace_back(model, scope + "/linear_" + std::to_string(i), nullptr, true);
-        } else
-          layers.emplace_back(model, scope + "/linear_" + std::to_string(i));
-      return layers;
-    }
-
-    static std::unique_ptr<RotaryEmbeddings> make_rotary_embeddings(const models::Model& model,
-                                                                    const std::string& scope) {
-      const dim_t rotary_dim = model.get_attribute_with_default<int32_t>(scope + "/rotary_dim", -1);
-      if (rotary_dim < 0)
-        return nullptr;
-
-      const bool interleave = model.get_flag_with_default(scope + "/rotary_interleave", true);
-      const float base = model.get_attribute_with_default<float>(scope + "/rotary_base", 10000.f);
-
-      const auto scaling_type = model.get_enum_value<RotaryScalingType>(
-        scope + "/rotary_scaling_type", -1);
-      const auto scaling_factor = model.get_attribute_with_default<float>(
-        scope + "/rotary_scaling_factor", 1.f);
-
-      return std::make_unique<RotaryEmbeddings>(rotary_dim,
-                                                interleave,
-                                                scaling_type,
-                                                scaling_factor,
-                                                base);
-    }
-
 
     MultiHeadAttention::MultiHeadAttention(const models::Model& model,
                                            const std::string& scope,
@@ -379,35 +255,15 @@ namespace ctranslate2 {
                                            bool pre_norm,
                                            bool is_decoder,
                                            Alibi* alibi)
-      : _tensor_parallel(model.tensor_parallel())
-      , _num_heads(_tensor_parallel ? SAFE_DIVIDE(num_heads, ScopedMPISetter::getNRanks()) : num_heads)
-      , _self_attention(self_attention)
-      , _is_decoder(is_decoder)
-      , _linear(make_linear_layers(model, scope, self_attention))
-      , _d_model(_tensor_parallel ? SAFE_DIVIDE(_linear.back().output_size(),  ScopedMPISetter::getNRanks()) : _linear.back().output_size())
-      , _d_head(model.get_attribute_with_default<int32_t >(scope + "/head_dim", _d_model / _num_heads))
-      , _pre_norm(pre_norm)
-      , _layer_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
-      , _rotary_embeddings(make_rotary_embeddings(model, scope))
-      , _alibi(alibi)
+      : AttentionLayer(model, scope, num_heads, self_attention, pre_norm, is_decoder, alibi, false)
       , _relative_attention_bias(model.get_variable_if_exists(scope + "/relative_attention_bias"))
       , _relative_position_keys(model.get_variable_if_exists(scope + "/relative_position_keys"))
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
-      , _queries_scale(model.get_attribute_with_default<float>(
-                         scope + "/queries_scale",
-                         1.f / std::sqrt(static_cast<float>(_d_head))))
-      , _multi_query(model.get_flag_with_default(scope + "/multi_query", false))
-      , _num_heads_kv(_multi_query
-                      ? 1
-                      : (_tensor_parallel ? model.get_attribute_with_default<int32_t>(scope + "/num_heads_kv",
-                                            _num_heads * ScopedMPISetter::getNRanks()) / ScopedMPISetter::getNRanks()
-                      : model.get_attribute_with_default<int32_t>(scope + "/num_heads_kv", _num_heads)))
       , _merge_time_and_head_dims(_multi_query
                                   && !_relative_attention_bias
                                   && !_relative_position_keys
                                   && !_relative_position_values)
-      , _cache_time_dim(_merge_time_and_head_dims ? 1 : 2)
-      , _sliding_window(model.get_attribute_with_default<int32_t>(scope + "/sliding_window", 0))
+      ,_cache_time_dim(_merge_time_and_head_dims ? 1 : 2)
     {
       if (_relative_position_keys)
         _maximum_relative_position = (_relative_position_keys->dim(0) - 1) / 2;
@@ -613,137 +469,53 @@ namespace ctranslate2 {
       }
     }
 
-    StorageView MultiHeadAttention::prepare_length_mask(const StorageView& lengths,
-                                                        const dim_t num_heads,
-                                                        const dim_t num_queries,
-                                                        const bool mask_future,
-                                                        const bool multi_query) {
-      const Device device = lengths.device();
-      const dim_t batch_size = lengths.size();
-      StorageView mask(lengths.dtype(), device);
+    void MultiHeadAttention::split_heads(StorageView& x,
+                     dim_t num_heads,
+                     const Padder* padder,
+                     dim_t beam_size) {
+      if (padder)
+        padder->add_padding(x);
 
-      if (multi_query)
-        mask.resize({batch_size, num_queries, num_heads});
-      else
-        mask.resize({batch_size, num_heads, num_queries});
+      if (beam_size > 1)
+        x.reshape({x.dim(0) / beam_size, beam_size, x.dim(2)});
 
-      DEVICE_DISPATCH(device, (primitives<D>::prepare_length_mask(lengths.data<int32_t>(),
-                                                                  batch_size,
-                                                                  num_heads,
-                                                                  num_queries,
-                                                                  mask_future,
-                                                                  multi_query,
-                                                                  mask.data<int32_t>())));
-      return mask;
+      // x has shape [batch_size, time, depth]
+      const dim_t batch_size = x.dim(0);
+      const dim_t time = x.dim(1);
+      const dim_t head_dim = x.dim(2) / num_heads;
+
+      if (time == 1) {
+        x.reshape({batch_size, num_heads, 1, head_dim});
+      } else {
+        x.reshape({batch_size, time, num_heads, head_dim});
+        StorageView y(x.device(), x.dtype());
+        transpose_op(x, y);
+        x = std::move(y);
+      }
     }
 
+    void MultiHeadAttention::combine_heads(StorageView& x,
+                                         dim_t num_heads,
+                                         const Padder* padder,
+                                         dim_t beam_size) {
+      // x has shape [batch_size, num_heads, time, head_dim]
+      const dim_t batch_size = x.dim(0);
+      const dim_t time = x.dim(2);
+      const dim_t depth = x.dim(3) * num_heads;
 
-    RotaryEmbeddings::RotaryEmbeddings(const dim_t dim,
-                                       const bool interleave,
-                                       const RotaryScalingType scaling_type,
-                                       const float scaling_factor,
-                                       const float base,
-                                       const dim_t num_initial_positions)
-      : _dim(dim)
-      , _interleave(interleave)
-      , _scaling_type(scaling_type)
-      , _scaling_factor(scaling_factor)
-      , _base(base)
-      , _num_initial_positions(num_initial_positions)
-      , _rotary_op(dim, interleave)
-    {
-    }
-
-    void RotaryEmbeddings::apply(StorageView& x, const dim_t offset) {
-      const Device device = x.device();
-      const DataType dtype = x.dtype();
-      const dim_t max_time = x.dim(-2);
-      const dim_t dim = _dim == 0 ? x.dim(-1) : _dim;
-
-      if (!_sin || offset + max_time > _sin.dim(0)) {
-        const dim_t cur_num_positions = _sin ? _sin.dim(0) : 0;
-        const dim_t new_num_positions = std::max(offset + max_time, cur_num_positions + _num_initial_positions);
-        initialize(new_num_positions, dim, device, dtype);
+      if (time > 1) {
+        StorageView y(x.device(), x.dtype());
+        transpose_op(x, y);
+        x = std::move(y);
       }
 
-      StorageView sin(dtype, device);
-      StorageView cos(dtype, device);
-      TYPE_DISPATCH(dtype,
-                    {
-                      sin.view(_sin.index<T>({offset, 0}), {max_time, dim});
-                      cos.view(_cos.index<T>({offset, 0}), {max_time, dim});
-                    });
+      x.reshape({batch_size, time, depth});
 
-      StorageView y(dtype, device);
-      _rotary_op(x, sin, cos, y);
-      x = std::move(y);
+      if (beam_size > 1)
+        x.reshape({batch_size * beam_size, 1, depth});
+
+      if (padder)
+        padder->remove_padding(x);
     }
-
-    void RotaryEmbeddings::initialize(const dim_t num_positions,
-                                      const dim_t dim,
-                                      const Device device,
-                                      const DataType dtype) {
-      StorageView inv_freq({1, dim / 2});
-      for (dim_t i = 0; i < inv_freq.size(); ++i)
-        inv_freq.at<float>(i) = 1.f / std::pow(_base, float(i * 2) / float(dim));
-      if (inv_freq.device() != device)
-        inv_freq = inv_freq.to(device);
-
-      StorageView t({num_positions, 1});
-      for (dim_t i = 0; i < t.size(); ++i)
-        t.at<float>(i) = _scaling_type == RotaryScalingType::None ? i : float(i) / _scaling_factor;
-      if (t.device() != device)
-        t = t.to(device);
-
-      StorageView freqs(device);
-      ops::MatMul()(t, inv_freq, freqs);
-
-      if (_interleave)
-        freqs.expand_dims(-1);
-
-      StorageView emb(device);
-      ops::Concat(-1)({&freqs, &freqs}, emb);
-
-      if (_interleave)
-        emb.reshape({num_positions, dim});
-
-      StorageView sin(device);
-      ops::Sin()(emb, sin);
-      if (sin.dtype() == dtype)
-        _sin = std::move(sin);
-      else
-        _sin = sin.to(dtype);
-
-      StorageView cos(device);
-      ops::Cos()(emb, cos);
-      if (cos.dtype() == dtype)
-        _cos = std::move(cos);
-      else
-        _cos = cos.to(dtype);
-    }
-
-
-    Alibi::Alibi(const bool use_positive_positions, const bool scale_alibi, const dim_t num_initial_positions)
-      : _use_positive_positions(use_positive_positions)
-      , _num_initial_positions(num_initial_positions)
-      , _scale_alibi(scale_alibi)
-      , _alibi_op(use_positive_positions)
-    {
-    }
-
-    void Alibi::apply(StorageView& x, const float scale) {
-      const dim_t cur_length = _alibi ? _alibi.dim(-1) : 0;
-      const dim_t key_length = x.dim(-1);
-
-      if (key_length > cur_length) {
-        const dim_t num_heads = x.dim(1);
-        const dim_t new_length = cur_length + _num_initial_positions;
-        _alibi = build_alibi(num_heads, new_length, _use_positive_positions, _scale_alibi ? scale : 1);
-        _alibi.move_to(x.device(), x.dtype());
-      }
-
-      _alibi_op(x, _alibi, x);
-    }
-
   }
 }

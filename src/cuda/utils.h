@@ -62,6 +62,12 @@ namespace ctranslate2 {
                             + std::string(cudnnGetErrorString(status))); \
     }
 
+#define TENSOR_CHECK(ans, message)                                      \
+    {                                                                   \
+      if (!ans)                                                 \
+        THROW_RUNTIME_ERROR(message);                                   \
+    }
+
     const char* cublasGetStatusName(cublasStatus_t status);
 
     cudaStream_t get_cuda_stream();

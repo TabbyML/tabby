@@ -12,7 +12,8 @@ namespace ctranslate2 {
       void operator()(const StorageView& input,
                       const StorageView& sin,
                       const StorageView& cos,
-                      StorageView& output) const;
+                      StorageView& output,
+                      bool is_transpose=true) const;
 
     private:
       const dim_t _ndims;
@@ -22,7 +23,8 @@ namespace ctranslate2 {
       void compute(const StorageView& input,
                    const StorageView& sin,
                    const StorageView& cos,
-                   StorageView& output) const;
+                   StorageView& output,
+                   bool is_transpose) const;
     };
 
   }

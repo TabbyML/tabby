@@ -27,11 +27,13 @@ namespace ctranslate2 {
                                                Device device = Device::CPU,
                                                int device_index = 0,
                                                ComputeType compute_type = ComputeType::DEFAULT,
+                                               bool use_flash_attention = false,
                                                bool tensor_parallel = false);
       static std::shared_ptr<const Model> load(ModelReader& model_reader,
                                                Device device = Device::CPU,
                                                int device_index = 0,
                                                ComputeType compute_type = ComputeType::DEFAULT,
+                                               bool use_flash_attention = false,
                                                bool tensor_parallel = false);
 
       virtual std::unique_ptr<SequenceToSequenceReplica> as_sequence_to_sequence() const;
@@ -82,6 +84,10 @@ namespace ctranslate2 {
 
       bool tensor_parallel() const {
         return _tensor_parallel;
+      }
+
+      bool use_flash_attention() const {
+        return _use_flash_attention;
       }
 
       virtual bool use_global_int16_scale() const {
@@ -169,6 +175,7 @@ namespace ctranslate2 {
       ComputeType _effective_compute_type = ComputeType::DEFAULT;
       dim_t _preferred_size_multiple = 1;
       std::unordered_map<std::string, std::shared_ptr<StorageView>> _variable_index;
+      bool _use_flash_attention = false;
       bool _tensor_parallel = false;
     };
 
@@ -198,6 +205,7 @@ namespace ctranslate2 {
       std::vector<int> device_indices = {0};
       size_t num_replicas_per_device = 1;
       ComputeType compute_type = ComputeType::DEFAULT;
+      bool use_flash_attention = false;
       bool tensor_parallel = false;
     };
 

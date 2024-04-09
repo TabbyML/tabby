@@ -30,9 +30,11 @@ namespace ctranslate2 {
                                   const T* cos,
                                   T* y,
                                   const cuda::index_t max_time,
+                                  const cuda::index_t head_size,
                                   const cuda::index_t ndims,
-                                  const cuda::index_t depth) {
-      const auto time = blockIdx.x % max_time;
+                                  const cuda::index_t depth,
+                                  const bool transpose) {
+      const auto time = transpose ? blockIdx.x % max_time : blockIdx.x / head_size;
       const auto middle = ndims / 2;
 
       x += blockIdx.x * depth;
@@ -57,8 +59,10 @@ namespace ctranslate2 {
     void Rotary::compute(const StorageView& input,
                          const StorageView& sin,
                          const StorageView& cos,
-                         StorageView& output) const {
-      const dim_t max_time = input.dim(-2);
+                         StorageView& output,
+                         bool is_transposed) const {
+      const dim_t max_time = is_transposed ? input.dim(-2) : input.dim(-3);
+      const dim_t head_size = is_transposed ? input.dim(-3) : input.dim(-2);
       const dim_t depth = input.dim(-1);
       const dim_t ndims = _ndims == 0 ? depth : _ndims;
 
@@ -74,10 +78,10 @@ namespace ctranslate2 {
 
       if (_interleave)
         rotary_kernel<DeviceT, true><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
-          x, s, c, y, max_time, ndims, depth);
+          x, s, c, y, max_time, head_size, ndims, depth, is_transposed);
       else
         rotary_kernel<DeviceT, false><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
-          x, s, c, y, max_time, ndims, depth);
+          x, s, c, y, max_time, head_size, ndims, depth, is_transposed);
     }
 
 #define DECLARE_IMPL(T)                                                 \
@@ -85,7 +89,8 @@ namespace ctranslate2 {
     Rotary::compute<Device::CUDA, T>(const StorageView&,                \
                                      const StorageView&,                \
                                      const StorageView&,                \
-                                     StorageView&) const;
+                                     StorageView&,                       \
+                                     bool) const;
 
     DECLARE_IMPL(float)
     DECLARE_IMPL(float16_t)

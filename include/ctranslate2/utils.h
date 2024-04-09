@@ -95,5 +95,9 @@ namespace ctranslate2 {
 #define THROW_INVALID_ARGUMENT(MESSAGE) THROW_EXCEPTION(std::invalid_argument, MESSAGE)
 #define SAFE_DIVIDE(x, y) ((y != 0 && (x % y == 0)) ? (x / y) : (throw std::runtime_error("Division has a remainder," \
                               "Model can't be ran with the tensor parallel mode in " + std::to_string(y) + " nodes")))
-
+#define ERROR_CHECK(ans, message)                                      \
+    {                                                                   \
+      if (!ans)                                                 \
+        THROW_RUNTIME_ERROR(message);                                   \
+    }
 }

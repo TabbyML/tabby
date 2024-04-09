@@ -33,6 +33,7 @@ namespace ctranslate2 {
                         size_t inter_threads,
                         size_t intra_threads,
                         long max_queued_batches,
+                        bool flash_attention,
                         bool tensor_parallel,
                         py::object files)
         : ReplicaPoolHelper(model_path,
@@ -42,6 +43,7 @@ namespace ctranslate2 {
                             inter_threads,
                             intra_threads,
                             max_queued_batches,
+                            flash_attention,
                             tensor_parallel,
                             files)
         , _device(_model_loader.device)
@@ -390,7 +392,7 @@ namespace ctranslate2 {
                 >>> translator.translate_batch([["▁Hello", "▁world", "!"]])
         )pbdoc")
 
-        .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t, long, bool, py::object>(),
+        .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t, long, bool, bool, py::object>(),
              py::arg("model_path"),
              py::arg("device")="cpu",
              py::kw_only(),
@@ -399,6 +401,7 @@ namespace ctranslate2 {
              py::arg("inter_threads")=1,
              py::arg("intra_threads")=0,
              py::arg("max_queued_batches")=0,
+             py::arg("flash_attention")=false,
              py::arg("tensor_parallel")=false,
              py::arg("files")=py::none(),
              R"pbdoc(
@@ -416,6 +419,7 @@ namespace ctranslate2 {
                    max_queued_batches: Maximum numbers of batches in the queue (-1 for unlimited,
                      0 for an automatic value). When the queue is full, future requests will block
                      until a free slot is available.
+                   flash_attention: run model with flash attention 2 for self-attention layer
                    tensor_parallel: run model with tensor parallel mode
                    files: Load model files from the memory. This argument is a dictionary mapping
                      file names to file contents as file-like or bytes objects. If this is set,

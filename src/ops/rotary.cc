@@ -14,13 +14,14 @@ namespace ctranslate2 {
     void Rotary::operator()(const StorageView& input,
                             const StorageView& sin,
                             const StorageView& cos,
-                            StorageView& output) const {
+                            StorageView& output,
+                            bool is_transposed) const {
       PROFILE("Rotary");
 
       output.resize_as(input);
 
       DEVICE_AND_FLOAT_DISPATCH("Rotary", input.device(), input.dtype(),
-                                (compute<D, T>(input, sin, cos, output)));
+                                (compute<D, T>(input, sin, cos, output, is_transposed)));
     }
 
   }
