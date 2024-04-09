@@ -110,12 +110,12 @@ impl DbConn {
             .join(",");
         let languages = languages
             .into_iter()
-            .map(|l| format!("'{}'", l.to_string()))
+            .map(|l| format!("'{}'", l))
             .collect::<Vec<_>>()
             .join(",");
         let not_languages = all_languages
             .into_iter()
-            .map(|l| format!("'{}'", l.to_string()))
+            .map(|l| format!("'{}'", l))
             .collect::<Vec<_>>()
             .join(",");
 
