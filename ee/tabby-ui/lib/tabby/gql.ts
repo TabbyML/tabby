@@ -99,7 +99,8 @@ const client = new Client({
     cacheExchange({
       keys: {
         CompletionStats: () => null,
-        ServerInfo: () => null
+        ServerInfo: () => null,
+        RepositorySearch: () => null
       },
       resolvers: {
         Query: {

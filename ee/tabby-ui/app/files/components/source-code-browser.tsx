@@ -177,6 +177,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 }) => {
   const {
     activePath,
+    setActivePath,
     updateFileMap,
     fileMap,
     initialized,
@@ -286,18 +287,25 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     const init = async () => {
-      const { patchMap, expandedKeys } = await getInitialFileData(activePath)
-      if (patchMap) {
-        updateFileMap(patchMap)
+      const { patchMap, expandedKeys, repos } = await getInitialFileData(
+        activePath
+      )
+
+      // By default, selecting the first repository if initialPath is empty
+      if (repos?.length && !activePath) {
+        setActivePath(repos?.[0]?.basename)
+        return
       }
-      if (expandedKeys?.length) {
-        setExpandedKeys(new Set(expandedKeys))
-      }
+
+      if (patchMap) updateFileMap(patchMap)
+      if (expandedKeys?.length) setExpandedKeys(new Set(expandedKeys))
       setInitialized(true)
     }
 
-    init()
-  }, [])
+    if (!initialized) {
+      init()
+    }
+  }, [activePath])
 
   React.useEffect(() => {
     const onFetchSubTree = () => {
@@ -432,13 +440,15 @@ const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
 }
 
 async function getInitialFileData(path?: string) {
-  const initialRepositoryName = resolveRepoNameFromPath(path)
-  const initialBasename = resolveBasenameFromPath(path)
-
   try {
+    const initialRepositoryName = resolveRepoNameFromPath(path)
+    const initialBasename = resolveBasenameFromPath(path)
     const repos = await fetchAllRepositories()
-    const initialEntries = await getInitialEntries(repos)
-    const initialExpandedDirs = getDirectoriesFromBasename(initialBasename)
+
+    const initialEntries = path ? await fetchInitialEntries(repos, path) : []
+    const initialExpandedDirs = path
+      ? getDirectoriesFromBasename(initialBasename)
+      : []
 
     const patchMap: TFileMap = {}
     for (const repo of repos) {
@@ -462,7 +472,7 @@ async function getInitialFileData(path?: string) {
       [initialRepositoryName, dir].filter(Boolean).join('/')
     )
 
-    return { patchMap, expandedKeys }
+    return { patchMap, expandedKeys, repos }
   } catch (e) {
     console.error(e)
     return {}
@@ -479,31 +489,23 @@ async function getInitialFileData(path?: string) {
     }
   }
 
-  async function fetchInitialEntries(data?: TFile[]) {
-    try {
-      if (!initialRepositoryName) return undefined
-      // match default repository
-      const repositoryIdx = findIndex(
-        data,
-        entry => entry.basename === initialRepositoryName
-      )
-      if (repositoryIdx < 0) return undefined
-
-      return fetchEntriesFromPath(path)
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  async function getInitialEntries(data?: TFile[]) {
+  async function fetchInitialEntries(repos: TFile[] | undefined, path: string) {
     let result: TFile[] = []
     try {
-      if (initialRepositoryName && data?.length) {
-        const defaultEntries = await fetchInitialEntries(data)
+      if (repos?.length && path) {
+        const repoName = resolveRepoNameFromPath(path)
+        const repositoryIdx = findIndex(
+          repos,
+          entry => entry.basename === repoName
+        )
+        if (repositoryIdx < 0) return result
+
+        const defaultEntries = await fetchEntriesFromPath(path)
         result = defaultEntries ?? []
       }
     } catch (e) {
       console.error(e)
+      return result
     }
     return result
   }
