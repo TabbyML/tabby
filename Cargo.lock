@@ -4511,7 +4511,6 @@ dependencies = [
  "lazy_static",
  "sql_query_builder",
  "sqlx",
- "tabby-common",
  "tabby-db-macros",
  "tokio",
  "uuid 1.6.1",

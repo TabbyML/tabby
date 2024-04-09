@@ -4,11 +4,11 @@ mod cron;
 mod handler;
 mod hub;
 mod oauth;
+mod path;
 mod repositories;
 mod schema;
 mod service;
 mod ui;
-mod path;
 
 #[cfg(test)]
 pub use service::*;
