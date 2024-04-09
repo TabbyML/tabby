@@ -26,13 +26,13 @@ pub struct OAuthState {
 
 pub fn routes(state: OAuthState) -> Router {
     Router::new()
-        .route("/github/login/<id>", routing::get(login))
+        .route("/github/login/:id", routing::get(login))
         .route("/github/callback", routing::get(callback))
         .with_state(state)
 }
 
 fn github_redirect_url(client_id: &str, redirect_uri: &str, id: &ID) -> String {
-    format!("https://github.com/login/oauth/authorize?client_id={client_id}&response_type=code&scope=repo&redirect_uri={redirect_uri}/repositories/oauth/callback&state={id}")
+    format!("https://github.com/login/oauth/authorize?client_id={client_id}&response_type=code&scope=repo&redirect_uri={redirect_uri}/repositories/oauth/github/callback&state={id}")
 }
 
 #[derive(Deserialize)]

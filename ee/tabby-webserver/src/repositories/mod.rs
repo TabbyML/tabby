@@ -50,7 +50,7 @@ pub fn routes(
         .with_state(rs.clone())
         .nest("/oauth", oauth::routes(oauth_state))
         .fallback(not_found)
-        .layer(from_fn_with_state(auth, require_login_middleware))
+    // .layer(from_fn_with_state(auth, require_login_middleware))
 }
 
 async fn not_found() -> StatusCode {
