@@ -17,6 +17,7 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
+use serde::de::IntoDeserializer;
 use tabby_common::config::{Config, ConfigRepositoryAccess};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
@@ -231,7 +232,12 @@ fn init_logging(otlp_endpoint: Option<String>) {
         };
     }
 
-    let mut dirs = "tabby=info,axum_tracing_opentelemetry=info,otel=debug".to_owned();
+    let mut dirs = if cfg!(feature="prod") {
+        "tabby=info,axum_tracing_opentelemetry=info,otel=debug".into()
+    } else {
+        "tabby=debug,axum_tracing_opentelemetry=info,otel=debug".into()
+    };
+
     if let Ok(env) = std::env::var(EnvFilter::DEFAULT_ENV) {
         dirs = format!("{dirs},{env}")
     };

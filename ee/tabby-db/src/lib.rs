@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::Arc};
+use std::{ops::Deref, path::Path, sync::Arc};
 
 use anyhow::anyhow;
 use cache::Cache;
@@ -21,7 +21,6 @@ mod invitations;
 mod job_runs;
 mod oauth_credential;
 mod password_reset;
-mod path;
 mod refresh_tokens;
 mod repositories;
 mod server_setting;
@@ -97,10 +96,10 @@ impl DbConn {
         DbConn::init_db(pool).await
     }
 
-    pub async fn new() -> Result<Self> {
-        tokio::fs::create_dir_all(path::db_file().parent().unwrap()).await?;
+    pub async fn new(db_file: &Path) -> Result<Self> {
+        tokio::fs::create_dir_all(db_file.parent().unwrap()).await?;
         let options = SqliteConnectOptions::new()
-            .filename(path::db_file())
+            .filename(db_file)
             .create_if_missing(true);
         let pool = SqlitePool::connect_with(options).await?;
         Self::init_db(pool).await

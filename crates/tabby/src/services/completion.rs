@@ -284,7 +284,6 @@ impl CompletionService {
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
         } else if let Some(segments) = request.segments.clone() {
-            debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
             let snippets = self
                 .build_snippets(
                     &language,
@@ -299,7 +298,6 @@ impl CompletionService {
         } else {
             return Err(CompletionError::EmptyPrompt);
         };
-        debug!("PROMPT: {}", prompt);
 
         let text = self.engine.generate(&prompt, options).await;
         let segments = segments.map(|s| s.into());

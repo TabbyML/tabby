@@ -8,6 +8,7 @@ mod repositories;
 mod schema;
 mod service;
 mod ui;
+mod path;
 
 #[cfg(test)]
 pub use service::*;

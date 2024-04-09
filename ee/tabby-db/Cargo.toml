@@ -7,7 +7,6 @@ homepage.workspace = true
 
 [features]
 testutils = []
-prod-db = []
 
 [dependencies]
 tabby-db-macros = { path = "../tabby-db-macros" }

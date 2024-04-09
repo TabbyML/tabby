@@ -14,7 +14,7 @@ experimental-http = ["dep:http-api-bindings"]
 # architecture, enable this feature to compile OpenSSL as part of the build.
 # See https://docs.rs/openssl/#vendored for more.
 static-ssl = ['openssl/vendored']
-prod-db = ['tabby-webserver/prod-db']
+prod = ['tabby-webserver/prod-db']
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }
