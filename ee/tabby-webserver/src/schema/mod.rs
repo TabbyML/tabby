@@ -1,6 +1,7 @@
 pub mod analytic;
 pub mod auth;
 pub mod email;
+pub mod github_repository_provider;
 pub mod job;
 pub mod license;
 pub mod repository;
@@ -37,11 +38,16 @@ use self::{
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
     job::JobStats,
+    github_repository_provider::GithubRepositoryProviderService,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{FileEntrySearchResult, Repository, RepositoryService},
+    repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
+};
+use crate::schema::{
+    auth::{JWTPayload, OAuthCredential, OAuthProvider},
+    job::JobStats,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -55,6 +61,7 @@ pub trait ServiceLocator: Send + Sync {
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
+    fn github_repository_provider(&self) -> Arc<dyn GithubRepositoryProviderService>;
 }
 
 pub struct Context {
