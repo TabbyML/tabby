@@ -458,17 +458,23 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_user_active(&self, id: &ID, active: bool) -> Result<()> {
+        let id = id.as_rowid()?;
+        let user = self.db.get_user(id).await?.context("User doesn't exits")?;
+
+        if user.active == active {
+            return Err(anyhow!("User's active status is already set to {active}").into());
+        }
+
+        if user.is_owner() {
+            return Err(anyhow!("The owner's active status cannot be changed").into());
+        }
+
+
         let license = self.license.read_license().await?;
 
         if active {
             // Check there's sufficient seat if switching user to active.
             license.ensure_available_seats(1)?;
-        }
-
-        let id = id.as_rowid()?;
-        let user = self.db.get_user(id).await?.context("User doesn't exits")?;
-        if user.is_owner() {
-            return Err(anyhow!("The owner's active status cannot be changed").into());
         }
 
         if active && user.is_admin {
