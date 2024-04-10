@@ -48,12 +48,9 @@ impl DbConn {
     }
 
     pub async fn delete_oauth_credential(&self, provider: &str) -> Result<()> {
-        query!(
-            "DELETE FROM oauth_credential WHERE provider = ?",
-            provider
-        )
-        .execute(&self.pool)
-        .await?;
+        query!("DELETE FROM oauth_credential WHERE provider = ?", provider)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 
