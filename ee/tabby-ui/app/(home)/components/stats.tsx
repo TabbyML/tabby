@@ -29,7 +29,7 @@ function ActivityCalendar({
   const { theme } = useTheme()
   const size = useWindowSize()
   const width = size.width || 0
-  const blockSize = width >= 1300 ? 13 : width >= 1000 ? 11 : 8
+  const blockSize = width >= 1300 ? 13 : width >= 1000 ? 8 : width >= 800 ? 6 : 9
 
   return (
     <ReactActivityCalendar
@@ -122,7 +122,7 @@ export default function Stats() {
     <div className="flex flex-col gap-y-8">
       <LoadingWrapper
         loading={fetchingDailyState}
-        fallback={<Skeleton className="h-48" />}
+        fallback={<Skeleton className="h-48 w-[61rem]" />}
       >
         <Summary
           dailyStats={dailyStats}
@@ -135,7 +135,7 @@ export default function Stats() {
 
       <LoadingWrapper
         loading={fetchingYearlyStats}
-        fallback={<Skeleton className="mb-8 h-48" />}
+        fallback={<Skeleton className="mb-8 h-48 w-[61rem]" />}
       >
         <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">

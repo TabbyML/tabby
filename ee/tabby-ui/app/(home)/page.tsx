@@ -102,8 +102,8 @@ function MainPanel() {
   if (!healthInfo || !data?.me) return <></>
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="mx-auto flex max-w-7xl gap-x-10">
-        <div className="relative flex w-64 flex-col rounded-lg bg-primary/90 px-5 text-primary-foreground dark:bg-primary-foreground/90 dark:text-primary">
+      <div className="mx-auto flex w-screen max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto md:flex-row md:py-10 lg:gap-x-10 xl:px-0">
+        <div className="relative mb-5 flex flex-col rounded-lg bg-primary/90 px-5 text-primary-foreground dark:bg-primary-foreground/90 dark:text-primary lg:mb-0 lg:w-64">
           <div className="absolute right-0 top-0">
             <ThemeToggle />
           </div>
@@ -150,8 +150,8 @@ function MainPanel() {
           )}
           <Configuration />
         </div>
-
-        <Stats />        
+        
+        <Stats /> 
       </div>
     </div>
     
