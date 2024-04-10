@@ -15,6 +15,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  Cell,
   type LabelProps
 } from 'recharts'
 
@@ -30,6 +31,11 @@ export type LanguageStats = Record<
     name: string
   }
 >
+
+const languageColors: Record<Language, string> = {
+  [Language.Rust]: '#dea584',
+  [Language.Python]: '#3572A5'
+}
 
 function BarTooltip({
   active,
@@ -103,9 +109,10 @@ function LineTooltip({
 }
 
 const LanguageLabel: React.FC<
-  LabelProps & { languageData: LanguageData }
+  LabelProps & { languageData: LanguageData; theme: 'light' | 'dark' }
 > = props => {
-  const { x, y, width, height, value, languageData } = props
+  
+  const { x, y, width, height, value, languageData, theme } = props
   const myLanguageData = languageData.find(data => data.label === value)
 
   if (!myLanguageData || myLanguageData.selects === 0) {
@@ -117,7 +124,7 @@ const LanguageLabel: React.FC<
     <text
       x={+x! + +width! + padding}
       y={+y! + +height! / 2}
-      fill="#666"
+      fill={theme === 'dark' ? "#fff" : "#000"}
       fontSize={10}
       fontWeight="bold"
       textAnchor="start"
@@ -126,6 +133,38 @@ const LanguageLabel: React.FC<
       {value}
     </text>
   )
+}
+
+function LanguageTooltip({
+  active,
+  payload
+}: {
+  active?: boolean
+  payload?: {
+    name: string
+    payload: {
+      label: string
+      completions: number
+    }
+  }[]
+}) {
+  if (active && payload && payload.length) {
+    const { completions, label } = payload[0].payload
+    if (!completions) return null
+    return (
+      <Card>
+        <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
+          <p className="flex items-center">
+            <span className="mr-3 inline-block w-20">Comletions:</span>
+            <b>{completions}</b>
+          </p>
+          <p className="text-muted-foreground">{label}</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return null
 }
 
 type LanguageData = {
@@ -200,7 +239,7 @@ export function Summary({
       }
     }
   )
-  const mostAcceptedLanguage = maxBy(languageData, data => data.selects)
+  const mostCompletedLanguage = maxBy(languageData, data => data.completions)
 
   return (
     <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-6 md:space-y-0 xl:justify-start">
@@ -287,15 +326,15 @@ export function Summary({
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
           <CardTitle className="text-base font-normal tracking-tight">
-            Language Acceptance
+            Language Completions
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {totalCompletions === 0 ? 'None' : mostAcceptedLanguage?.label}
+            {totalCompletions === 0 ? 'None' : mostCompletedLanguage?.label}
           </div>
           <p className="text-xs text-muted-foreground">
-            Most autocomplete accepts
+            Most completions
           </p>
         </CardContent>
 
@@ -307,17 +346,33 @@ export function Summary({
             margin={{ top: 5, right: 80, left: 20, bottom: 5 }}
           >
             <Bar
-              dataKey="selects"
-              fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
+              dataKey="completions"
               radius={3}
             >
               <LabelList
                 dataKey="label"
-                content={<LanguageLabel languageData={languageData} />}
+                content={<LanguageLabel languageData={languageData} theme={theme} />}
               />
+               {
+                  languageData.map((entry, index) => {
+                    const lan = entry.name as Language
+                    const color = languageColors[lan]
+                      ? languageColors[lan]
+                      : theme === 'dark' ? '#e8e1d3' : '#54452c'
+                    return (
+                      (
+                        <Cell key={`cell-${index}`} fill={color} />
+                      )
+                    )
+                  })
+                }
             </Bar>
             <XAxis type="number" hide />
             <YAxis type="category" width={100} dataKey="name" hide />
+            <Tooltip
+              cursor={{ fill: 'transparent' }}
+              content={<LanguageTooltip />}
+            />
           </BarChart>
         </ResponsiveContainer>
       </Card>
