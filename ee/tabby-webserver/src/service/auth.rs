@@ -469,7 +469,6 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("The owner's active status cannot be changed").into());
         }
 
-
         let license = self.license.read_license().await?;
 
         if active {
