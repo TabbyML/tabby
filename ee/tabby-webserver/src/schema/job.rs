@@ -49,7 +49,7 @@ pub trait JobService: Send + Sync {
     async fn update_job_stdout(&self, id: &ID, stdout: String) -> Result<()>;
     async fn update_job_stderr(&self, id: &ID, stderr: String) -> Result<()>;
     async fn complete_job_run(&self, id: &ID, exit_code: i32) -> Result<()>;
-    async fn cleanup_stale_job_runs(&self) -> Result<()>;
+    async fn finalize_stale_job_runs(&self) -> Result<()>;
 
     async fn list_job_runs(
         &self,
