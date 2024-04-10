@@ -47,7 +47,7 @@ function StatsSummary({
   const acceptRate =
     totalAcceptances === 0
       ? 0
-      : Math.round((totalAcceptances / totalCompletions) * 100)
+      : ((totalAcceptances / totalCompletions) * 100).toFixed(2)
   return (
     <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
