@@ -16,6 +16,7 @@ pub struct GithubRepositoryProviderDAO {
 #[derive(FromRow)]
 pub struct GithubProvidedRepositoryDAO {
     pub id: i64,
+    pub vendor_id: String,
     pub github_repository_provider_id: i64,
     pub name: String,
     pub git_url: String,
@@ -108,11 +109,12 @@ impl DbConn {
     pub async fn create_github_provided_repository(
         &self,
         github_provider_id: i64,
+        vendor_id: String,
         name: String,
         git_url: String,
     ) -> Result<()> {
-        query!("INSERT INTO github_provided_repositories (github_repository_provider_id, name, git_url) VALUES (?, ?, ?)",
-            github_provider_id, name, git_url).execute(&self.pool).await?;
+        query!("INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES (?, ?, ?, ?)",
+            github_provider_id, vendor_id, name, git_url).execute(&self.pool).await?;
         Ok(())
     }
 
@@ -139,6 +141,7 @@ impl DbConn {
             "github_provided_repositories",
             [
                 "id",
+                "vendor_id",
                 "name",
                 "git_url",
                 "active",
@@ -152,5 +155,27 @@ impl DbConn {
         .fetch_all(&self.pool)
         .await?;
         Ok(repos)
+    }
+
+    pub async fn update_github_provided_repository_active(
+        &self,
+        id: i64,
+        active: bool,
+    ) -> Result<()> {
+        let not_active = !active;
+        let res = query!(
+            "UPDATE github_provided_repositories SET active = ? WHERE id = ? AND active = ?",
+            active,
+            id,
+            not_active
+        )
+        .execute(&self.pool)
+        .await?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("Repository active status was not changed"));
+        }
+
+        Ok(())
     }
 }

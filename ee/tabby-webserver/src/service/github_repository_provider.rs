@@ -86,17 +86,19 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, last, first)?;
         let repos = self
             .db
-            .list_github_provided_repositories(
-                provider.as_rowid()? as i64,
-                limit,
-                skip_id,
-                backwards,
-            )
+            .list_github_provided_repositories(provider.as_rowid()?, limit, skip_id, backwards)
             .await?;
 
         Ok(repos
             .into_iter()
             .map(GithubProvidedRepository::from)
             .collect())
+    }
+
+    async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()> {
+        self.db
+            .update_github_provided_repository_active(id.as_rowid()?, active)
+            .await?;
+        Ok(())
     }
 }

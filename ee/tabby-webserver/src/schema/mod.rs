@@ -256,7 +256,7 @@ impl Query {
         .await
     }
 
-    async fn github_provided_repositories(
+    async fn github_repositories_by_provider(
         ctx: &Context,
         github_repository_provider_id: ID,
         after: Option<String>,
@@ -713,6 +713,18 @@ impl Mutation {
         ctx.locator
             .github_repository_provider()
             .create_github_repository_provider(display_name, application_id, application_secret)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_github_provided_repository_active(
+        ctx: &Context,
+        id: ID,
+        active: bool,
+    ) -> Result<bool> {
+        ctx.locator
+            .github_repository_provider()
+            .update_github_provided_repository_active(id, active)
             .await?;
         Ok(true)
     }

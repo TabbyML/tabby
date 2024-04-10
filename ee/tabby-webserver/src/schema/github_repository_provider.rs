@@ -33,6 +33,7 @@ impl NodeType for GithubRepositoryProvider {
 #[graphql(context = Context)]
 pub struct GithubProvidedRepository {
     pub id: ID,
+    pub vendor_id: String,
     pub github_repository_provider_id: ID,
     pub name: String,
     pub git_url: String,
@@ -86,4 +87,6 @@ pub trait GithubRepositoryProviderService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<GithubProvidedRepository>>;
+
+    async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
 }
