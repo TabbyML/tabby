@@ -130,7 +130,7 @@ function MainPanel() {
             <IconUser className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
             <Link
               className='flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50'
-              href="/cluster"
+              href="/profile"
             >
               <span>Profile</span>
               <IconChevronRight />

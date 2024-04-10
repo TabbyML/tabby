@@ -8,6 +8,7 @@ import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 import { cva } from 'class-variance-authority'
 
+import { useMe } from '@/lib/hooks/use-me'
 import { cn } from '@/lib/utils'
 import {
   Collapsible,
@@ -18,7 +19,8 @@ import {
   IconBookOpenText,
   IconChevronRight,
   IconGear,
-  IconLightingBolt
+  IconLightingBolt,
+  IconUser
 } from '@/components/ui/icons'
 
 export interface SidebarProps {
@@ -27,6 +29,8 @@ export interface SidebarProps {
 }
 
 export default function Sidebar({ children, className }: SidebarProps) {
+  const [{ data }] = useMe()
+  const isAdmin = data?.me.isAdmin
   return (
     <div
       className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
@@ -49,47 +53,54 @@ export default function Sidebar({ children, className }: SidebarProps) {
           </Link>
           <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col gap-2 px-4 pb-4">
-              <SidebarCollapsible
-                title={
-                  <>
-                    <IconBookOpenText /> Information
-                  </>
-                }
-              >
-                <SidebarButton href="/cluster">Cluster</SidebarButton>
-                <SidebarButton href="/jobs">Jobs</SidebarButton>
-                <SidebarButton href="/reports">Reports</SidebarButton>
-              </SidebarCollapsible>
-              <SidebarCollapsible
-                title={
-                  <>
-                    <IconGear />
-                    Settings
-                  </>
-                }
-              >
-                <SidebarButton href="/settings/general">General</SidebarButton>
-                <SidebarButton href="/settings/team">Members</SidebarButton>
-                <SidebarButton href="/settings/subscription">
-                  Subscription
-                </SidebarButton>
-              </SidebarCollapsible>
-              <SidebarCollapsible
-                title={
-                  <>
-                    <IconLightingBolt />
-                    Integrations
-                  </>
-                }
-              >
-                <SidebarButton href="/settings/git">
-                  Git Providers
-                </SidebarButton>
-                <SidebarButton href="/settings/sso">SSO</SidebarButton>
-                <SidebarButton href="/settings/mail">
-                  Mail Delivery
-                </SidebarButton>
-              </SidebarCollapsible>
+              <SidebarButton href="/profile">
+                <IconUser /> Profile
+              </SidebarButton>
+              {isAdmin && (
+                <>
+                  <SidebarCollapsible
+                    title={
+                      <>
+                        <IconBookOpenText /> Information
+                      </>
+                    }
+                  >
+                    <SidebarButton href="/cluster">Cluster</SidebarButton>
+                    <SidebarButton href="/jobs">Jobs</SidebarButton>
+                    <SidebarButton href="/reports">Reports</SidebarButton>
+                  </SidebarCollapsible>
+                  <SidebarCollapsible
+                    title={
+                      <>
+                        <IconGear />
+                        Settings
+                      </>
+                    }
+                  >
+                    <SidebarButton href="/settings/general">General</SidebarButton>
+                    <SidebarButton href="/settings/team">Members</SidebarButton>
+                    <SidebarButton href="/settings/subscription">
+                      Subscription
+                    </SidebarButton>
+                  </SidebarCollapsible>
+                  <SidebarCollapsible
+                    title={
+                      <>
+                        <IconLightingBolt />
+                        Integrations
+                      </>
+                    }
+                  >
+                    <SidebarButton href="/settings/git">
+                      Git Providers
+                    </SidebarButton>
+                    <SidebarButton href="/settings/sso">SSO</SidebarButton>
+                    <SidebarButton href="/settings/mail">
+                      Mail Delivery
+                    </SidebarButton>
+                  </SidebarCollapsible>
+                </>
+              )}
             </div>
           </div>
         </nav>

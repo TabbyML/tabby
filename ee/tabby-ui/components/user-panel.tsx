@@ -18,7 +18,8 @@ import {
   IconChat,
   IconCode,
   IconLogout,
-  IconSpinner
+  IconSpinner,
+  IconHome
 } from './ui/icons'
 
 export default function UserPanel({
@@ -56,6 +57,13 @@ export default function UserPanel({
       >
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => window.open('/')}
+          className="cursor-pointer"
+        >
+          <IconHome />
+          <span className="ml-2">Home</span>
+        </DropdownMenuItem>
         {isChatEnabled && (
           <DropdownMenuItem
             onClick={() => window.open('/playground')}
