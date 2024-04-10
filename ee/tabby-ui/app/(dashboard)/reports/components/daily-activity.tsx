@@ -1,7 +1,6 @@
 'use client'
 
 import { eachDayOfInterval } from 'date-fns'
-import { sum } from 'lodash-es'
 import moment from 'moment'
 import { useTheme } from 'next-themes'
 import type { DateRange } from 'react-day-picker'
@@ -14,7 +13,7 @@ import {
   YAxis
 } from 'recharts'
 
-import type { DailyStats } from '@/lib/types/stats'
+import { DailyStatsQuery } from '@/lib/gql/generates/graphql'
 import { Card, CardContent } from '@/components/ui/card'
 
 function BarTooltip({
@@ -60,11 +59,10 @@ export function DailyActivity({
   dailyStats,
   dateRange
 }: {
-  dailyStats: DailyStats[] | undefined
+  dailyStats?: DailyStatsQuery['dailyStats']
   dateRange: DateRange
 }) {
   const { theme } = useTheme()
-  const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
   const from = dateRange.from || new Date()
   const to = dateRange.to || from
 

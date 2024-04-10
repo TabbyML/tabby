@@ -19,8 +19,7 @@ import {
   type LabelProps
 } from 'recharts'
 
-import { Language } from '@/lib/gql/generates/graphql'
-import type { DailyStats } from '@/lib/types/stats'
+import { Language, DailyStatsQuery } from '@/lib/gql/generates/graphql'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export type LanguageStats = Record<
@@ -109,7 +108,7 @@ function LineTooltip({
 }
 
 const LanguageLabel: React.FC<
-  LabelProps & { languageData: LanguageData; theme: 'light' | 'dark' }
+  LabelProps & { languageData: LanguageData; theme?: string }
 > = props => {
   const { x, y, width, height, value, languageData, theme } = props
   const myLanguageData = languageData.find(data => data.label === value)
@@ -182,7 +181,7 @@ export function Summary({
 }: {
   from: Date
   to: Date
-  dailyStats: DailyStats[] | undefined
+  dailyStats?: DailyStatsQuery['dailyStats']
   dateRange: number
   languageStats: LanguageStats
 }) {

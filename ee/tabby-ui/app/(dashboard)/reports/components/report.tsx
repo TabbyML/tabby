@@ -12,7 +12,7 @@ import { useQuery } from 'urql'
 
 import { Language } from '@/lib/gql/generates/graphql'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import type { DailyStats } from '@/lib/types/stats'
+import { DailyStatsQuery, DailyStatsInPastYearQuery } from '@/lib/gql/generates/graphql'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {
@@ -43,7 +43,7 @@ const KEY_SELECT_ALL = 'all'
 function StatsSummary({
   dailyStats
 }: {
-  dailyStats: DailyStats[] | undefined
+  dailyStats?: DailyStatsQuery['dailyStats']
 }) {
   const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
   const totalAcceptances = sum(dailyStats?.map(stats => stats.selects))
@@ -116,7 +116,7 @@ export function Report() {
         selectedLanguage === KEY_SELECT_ALL ? undefined : [selectedLanguage]
     }
   })
-  let dailyStats: DailyStats[] | undefined
+  let dailyStats: DailyStatsQuery['dailyStats'] | undefined
   if (sample) {
     const daysBetweenRange = eachDayOfInterval({
       start: dateRange.from!,
@@ -151,7 +151,7 @@ export function Report() {
       users: selectedMember === KEY_SELECT_ALL ? undefined : selectedMember
     }
   })
-  let yearlyStats: DailyStats[] | undefined
+  let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
   if (sample) {
     const daysBetweenRange = eachDayOfInterval({
       start: moment().toDate(),

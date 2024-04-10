@@ -8,7 +8,6 @@ import { useQuery } from 'urql'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import type { DailyStats } from '@/lib/types/stats'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 
@@ -66,14 +65,6 @@ export default function Stats() {
       users: data?.me?.id
     }
   })
-  const dailyStats: DailyStats[] | undefined = dailyStatsData?.dailyStats.map(
-    item => ({
-      start: item.start,
-      end: item.end,
-      completions: item.completions,
-      selects: item.selects
-    })
-  )
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
@@ -82,16 +73,9 @@ export default function Stats() {
       users: data?.me?.id
     }
   })
-  const yearlyStats: DailyStats[] | undefined =
-    yearlyStatsData?.dailyStatsInPastYear.map(item => ({
-      start: item.start,
-      end: item.end,
-      completions: item.completions,
-      selects: item.selects
-    }))
   let lastYearCompletions = 0
   const dailyCompletionMap: Record<string, number> =
-    yearlyStats?.reduce((acc, cur) => {
+    yearlyStatsData?.dailyStatsInPastYear?.reduce((acc, cur) => {
       const date = moment(cur.start).format('YYYY-MM-DD')
       lastYearCompletions += cur.completions
       return { ...acc, [date]: cur.completions }
@@ -128,7 +112,7 @@ export default function Stats() {
         }
       >
         <Summary
-          dailyStats={dailyStats}
+          dailyStats={dailyStatsData?.dailyStats}
           from={moment(startDate).toDate()}
           to={moment(endDate).toDate()}
           dateRange={DATE_RANGE}

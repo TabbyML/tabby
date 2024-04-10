@@ -5,7 +5,7 @@ import moment from 'moment'
 import { useTheme } from 'next-themes'
 import ReactActivityCalendar from 'react-activity-calendar'
 
-import type { DailyStats } from '@/lib/types/stats'
+import { DailyStatsInPastYearQuery } from '@/lib/gql/generates/graphql'
 
 function ActivityCalendar({
   data
@@ -39,7 +39,7 @@ function ActivityCalendar({
 export function AnnualActivity({
   yearlyStats
 }: {
-  yearlyStats: DailyStats[] | undefined
+  yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
 }) {
   let lastYearCompletions = 0
   const dailyCompletionMap: Record<string, number> =
