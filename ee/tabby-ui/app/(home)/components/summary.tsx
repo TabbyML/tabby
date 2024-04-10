@@ -257,7 +257,7 @@ export function Summary({
           </p>
         </CardContent>
 
-        <ResponsiveContainer width="100%" height={50}>
+        <ResponsiveContainer width="100%" height={60}>
           <BarChart
             data={completionData}
             margin={{
@@ -302,10 +302,10 @@ export function Summary({
           </p>
         </CardContent>
 
-        <ResponsiveContainer width="100%" height={50}>
+        <ResponsiveContainer width="100%" height={60}>
           <LineChart
             data={acceptanceData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            margin={{ top: 15, right: 30, left: 20, bottom: 5 }}
           >
             <Line
               type="monotone"
@@ -334,7 +334,7 @@ export function Summary({
           <p className="text-xs text-muted-foreground">Most completions</p>
         </CardContent>
 
-        <ResponsiveContainer height={50} width={300}>
+        <ResponsiveContainer height={60} width={300}>
           <BarChart
             layout="vertical"
             data={languageData}
