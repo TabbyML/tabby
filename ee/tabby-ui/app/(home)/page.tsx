@@ -1,6 +1,5 @@
 'use client'
 
-import { Dispatch, SetStateAction, useState } from 'react'
 import Link from 'next/link'
 import { noop } from 'lodash-es'
 
@@ -9,11 +8,15 @@ import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
-import { cn } from '@/lib/utils'
-import { Badge, badgeVariants } from '@/components/ui/badge'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import { IconMoveRight, IconRotate, IconSettings } from '@/components/ui/icons'
+import { IconRotate, IconBarChart, IconMail, IconUser, IconChevronRight } from '@/components/ui/icons'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CopyButton } from '@/components/copy-button'
@@ -22,7 +25,6 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
-import Profile from './components/profile'
 import Stats from './components/stats'
 
 const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
@@ -30,34 +32,6 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
     resetUserAuthToken
   }
 `)
-
-enum Menu {
-  Stats = 'stats',
-  Config = 'config',
-  Profile = 'profile'
-}
-
-function MenuItem({
-  value,
-  label,
-  current,
-  setMenu
-}: {
-  value: Menu
-  label: string
-  current: Menu
-  setMenu: Dispatch<SetStateAction<Menu>>
-}) {
-  return (
-    <Badge
-      onClick={setMenu.bind(null, value)}
-      variant={current === value ? 'default' : 'outline'}
-      className="cursor-pointer"
-    >
-      {label}
-    </Badge>
-  )
-}
 
 function Configuration() {
   const [{ data }, reexecuteQuery] = useMe()
@@ -70,25 +44,25 @@ function Configuration() {
   if (!data?.me) return <></>
 
   return (
-    <div className="py-1">
+    <div className="mt-6">
       <CardContent className="flex flex-col gap-6 px-0">
-        <div className="flex flex-col gap-2">
-          <Label className="font-semibold">Endpoint URL</Label>
+        <div className="flex flex-col">
+          <Label className="text-xs font-semibold">Endpoint URL</Label>
           <span className="flex items-center gap-1">
             <Input
               value={externalUrl}
               onChange={noop}
-              className="max-w-[320px]"
+              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-secondary-foreground p-0 shadow-none"
             />
             <CopyButton value={externalUrl} />
           </span>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label className="font-semibold">Token</Label>
+        <div className="flex flex-col">
+          <Label className="text-xs font-semibold">Token</Label>
           <span className="flex items-center gap-1">
             <Input
-              className="max-w-[320px] font-mono"
+              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-secondary-foreground p-0 font-mono shadow-none"
               value={data.me.authToken}
               onChange={noop}
             />
@@ -104,7 +78,7 @@ function Configuration() {
           </span>
         </div>
       </CardContent>
-      <CardFooter className="px-0 text-sm">
+      <CardFooter className="px-0 text-xs text-primary-foreground/50 dark:text-primary/50">
         <span>
           Use information above for IDE extensions / plugins configuration, see{' '}
           <a
@@ -122,74 +96,65 @@ function Configuration() {
 }
 
 function MainPanel() {
-  const [menu, setMenu] = useState<Menu>(Menu.Stats)
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
 
   if (!healthInfo || !data?.me) return <></>
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-y-5 px-10 pb-20 pt-10 md:pt-40 lg:px-0">
-      <div className="flex justify-between">
-        <div>
-          <UserAvatar className="relative h-20 w-20 border" />
-          <p className="mt-1.5">{data.me.email}</p>
-        </div>
-
-        <div className="flex items-center gap-x-2 self-start">
-          <ThemeToggle />
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="mx-auto flex max-w-7xl gap-x-10">
+        <div className="relative flex w-64 flex-col rounded-lg bg-primary/90 px-5 text-primary-foreground dark:bg-primary-foreground/90 dark:text-primary">
+          <div className="absolute right-0 top-0">
+            <ThemeToggle />
+          </div>
           <UserPanel
             trigger={
-              <div
-                className={cn(
-                  buttonVariants({ variant: 'ghost' }),
-                  'flex items-center justify-center px-2'
-                )}
-              >
-                <IconSettings />
-              </div>
+              <UserAvatar className="-mt-10 h-20 w-20 border-4 border-background" />
             }
-            align="end"
+            align='start'
           />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger className="mt-2 w-full cursor-default">
+                <div className="flex items-center">
+                  <IconMail className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
+                  <p className="max-w-[10rem] truncate text-sm">{data.me.email}</p>
+                </div>   
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{data.me.email}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <div className="flex items-center py-1">
+            <IconUser className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
+            <Link
+              className='flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50'
+              href="/cluster"
+            >
+              <span>Profile</span>
+              <IconChevronRight />
+            </Link>
+          </div>
+          {data.me.isAdmin && (
+            <div className="flex items-center py-1">
+              <IconBarChart className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
+              <Link
+                className='flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50'
+                href="/cluster"
+              >
+                <span>Admin Dashboard</span>
+                <IconChevronRight />
+              </Link>
+            </div>
+          )}
+          <Configuration />
         </div>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <MenuItem
-          value={Menu.Stats}
-          label="Stats"
-          current={menu}
-          setMenu={setMenu}
-        />
-        <MenuItem
-          value={Menu.Config}
-          label="Configuration"
-          current={menu}
-          setMenu={setMenu}
-        />
-        <MenuItem
-          value={Menu.Profile}
-          label="Profile"
-          current={menu}
-          setMenu={setMenu}
-        />
-        {data.me.isAdmin && (
-          <Link
-            className={cn(
-              badgeVariants({ variant: 'outline' }),
-              'flex items-center gap-x-2'
-            )}
-            href="/cluster"
-          >
-            <span>Admin Dashboard</span>
-            <IconMoveRight />
-          </Link>
-        )}
+        <Stats />        
       </div>
-
-      {menu === Menu.Stats && <Stats />}
-      {menu === Menu.Config && <Configuration />}
-      {menu === Menu.Profile && <Profile />}
     </div>
+    
   )
 }
 

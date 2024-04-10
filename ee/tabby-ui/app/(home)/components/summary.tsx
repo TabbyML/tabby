@@ -204,7 +204,7 @@ export function Summary({
 
   return (
     <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-6 md:space-y-0 xl:justify-start">
-      <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 dark:bg-primary-foreground/30 md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
           <CardTitle className="text-base font-normal tracking-tight">
             Total Completions
@@ -250,7 +250,7 @@ export function Summary({
         </ResponsiveContainer>
       </Card>
 
-      <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 dark:bg-primary-foreground/30 md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
           <CardTitle className="text-base font-normal tracking-tight">
             Average Acceptance
@@ -284,7 +284,7 @@ export function Summary({
         </ResponsiveContainer>
       </Card>
 
-      <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 dark:bg-primary-foreground/30 md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
           <CardTitle className="text-base font-normal tracking-tight">
             Language Acceptance

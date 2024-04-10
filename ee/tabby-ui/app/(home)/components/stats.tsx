@@ -141,7 +141,7 @@ export default function Stats() {
           <h3 className="mb-2 text-sm font-medium tracking-tight">
             <b>{lastYearCompletions}</b> activities in the last year
           </h3>
-          <div className="flex items-end justify-center rounded-xl bg-primary-foreground/30 py-5">
+          <div className="flex items-end justify-center rounded-xl border p-5">
             <ActivityCalendar data={activities} />
           </div>
         </div>
