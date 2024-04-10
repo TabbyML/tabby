@@ -138,6 +138,18 @@ bool llama_should_add_bos_token(const llama_model * model) {
     return add_bos != -1 ? bool(add_bos) : (llama_vocab_type(model) == LLAMA_VOCAB_TYPE_SPM);
 }
 
+// FIXME: Hack for codellama / codegemma to simplify tabby's implementation.
+static const char* ADDITIONAL_EOS_TOKENS[] = {
+  // CodeLlama
+    " <EOT>",
+
+  // CodeGemma
+  "<|fim_prefix|>",
+  "<|fim_suffix|>",
+  "<|fim_middle|>",
+  "<|file_separator|>",
+};
+
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
@@ -164,6 +176,16 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         }
 
         llama_kv_cache_clear(ctx_.get());
+      }
+
+      eos_tokens_.push_back(llama_token_eos(model_.get()));
+
+      for (const auto eos_token : ADDITIONAL_EOS_TOKENS) {
+        auto tokens = llama_tokenize(model_.get(), eos_token, false, true);
+        // If vocabulary contains additional EOS tokens (thus tokenize length == 1), add them to eos_tokens_.
+        if (tokens.size() == 1) {
+          eos_tokens_.push_back(tokens[0]);
+        }
       }
   }
 
@@ -267,7 +289,6 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         throw std::runtime_error(string_format("llama_decode failed with code: %d", ret));
       }
 
-      const llama_token eos_id = llama_token_eos(llama_get_model(ctx));
       for (auto& request : requests_) {
         if ((request.i_batch < i) || (request.i_batch >= (i + n_tokens))) {
           continue;
@@ -285,8 +306,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         const auto token_str = llama_token_to_piece(ctx, next_token);
         request.generated_text += token_str;
 
-        // FIXME: Hack for codellama / codegemma to simplify tabby's implementation.
-        const bool is_eos = next_token == eos_id || token_str == " <EOT>" || token_str == "<|file_separator|>";
+        const bool is_eos = std::find(eos_tokens_.begin(), eos_tokens_.end(), next_token) != eos_tokens_.end();
 
         bool incomplete = false;
         for (size_t i = 1; i < 5 && i <= request.generated_text.size(); ++i)
@@ -342,6 +362,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   std::deque<Request> requests_;
   std::deque<Request> pending_requests_;
   std::unordered_set<uint32_t> stopped_requests_;
+  std::vector<llama_token> eos_tokens_;
 
   uint32_t parallelism_;
 
