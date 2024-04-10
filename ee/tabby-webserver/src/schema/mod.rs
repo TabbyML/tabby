@@ -37,9 +37,7 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    github_repository_provider::{
-        GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
-    },
+    github_repository_provider::{GithubRepositoryProvider, GithubRepositoryProviderService},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{Repository, RepositoryService},
@@ -266,37 +264,6 @@ impl Query {
             .github_repository_provider()
             .get_github_repository_provider(id)
             .await?)
-    }
-
-    async fn github_repositories_by_provider(
-        ctx: &Context,
-        github_repository_provider_id: ID,
-        after: Option<String>,
-        before: Option<String>,
-        first: Option<i32>,
-        last: Option<i32>,
-    ) -> FieldResult<Connection<GithubProvidedRepository>> {
-        check_admin(ctx).await?;
-        relay::query_async(
-            after,
-            before,
-            first,
-            last,
-            |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
-                    .github_repository_provider()
-                    .list_github_provided_repositories_by_provider(
-                        github_repository_provider_id,
-                        after,
-                        before,
-                        first,
-                        last,
-                    )
-                    .await?)
-            },
-        )
-        .await
     }
 
     async fn job_runs(
@@ -734,18 +701,6 @@ impl Mutation {
         ctx.locator
             .github_repository_provider()
             .delete_github_repository_provider(id)
-            .await?;
-        Ok(true)
-    }
-
-    async fn update_github_provided_repository_active(
-        ctx: &Context,
-        id: ID,
-        active: bool,
-    ) -> Result<bool> {
-        ctx.locator
-            .github_repository_provider()
-            .update_github_provided_repository_active(id, active)
             .await?;
         Ok(true)
     }
