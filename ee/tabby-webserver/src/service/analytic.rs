@@ -50,12 +50,18 @@ impl AnalyticService for AnalyticServiceImpl {
             None
         };
 
-        languages = languages.into_iter().filter(|l| l != &Language::Other).collect();
+        languages.retain(|l| l != &Language::Other);
 
         let languages = languages.into_iter().flat_map(|l| l.to_strings()).collect();
         let stats = self
             .db
-            .compute_daily_stats(start, end, users, languages, not_languages.unwrap_or_default())
+            .compute_daily_stats(
+                start,
+                end,
+                users,
+                languages,
+                not_languages.unwrap_or_default(),
+            )
             .await?;
         let stats = stats
             .into_iter()
