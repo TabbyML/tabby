@@ -12,8 +12,6 @@ pub struct OAuthCredentialDAO {
     pub updated_at: DateTimeUtc,
 }
 
-const OAUTH_CREDENTIAL_ROW_ID: i32 = 1;
-
 impl DbConn {
     pub async fn update_oauth_credential(
         &self,
@@ -27,8 +25,7 @@ impl DbConn {
             Some(secret) => secret.to_string(),
             None => {
                 query_scalar!(
-                    "SELECT client_secret FROM oauth_credential WHERE id = ? AND provider = ?",
-                    OAUTH_CREDENTIAL_ROW_ID,
+                    "SELECT client_secret FROM oauth_credential WHERE provider = ?",
                     provider
                 )
                 .fetch_one(&mut *transaction)
@@ -36,11 +33,10 @@ impl DbConn {
             }
         };
         query!(
-            r#"INSERT INTO oauth_credential (id, provider, client_id, client_secret)
-                                VALUES ($1, $2, $3, $4) ON CONFLICT(id) DO UPDATE
-                                SET client_id = $3, client_secret = $4, updated_at = datetime('now')
-                                WHERE id = $1 AND provider = $2"#,
-            OAUTH_CREDENTIAL_ROW_ID,
+            r#"INSERT INTO oauth_credential (provider, client_id, client_secret)
+                                VALUES ($1, $2, $3) ON CONFLICT(provider) DO UPDATE
+                                SET client_id = $2, client_secret = $3, updated_at = datetime('now')
+                                WHERE provider = $1"#,
             provider,
             client_id,
             client_secret,
@@ -53,8 +49,7 @@ impl DbConn {
 
     pub async fn delete_oauth_credential(&self, provider: &str) -> Result<()> {
         query!(
-            "DELETE FROM oauth_credential WHERE id = ? AND provider = ?",
-            OAUTH_CREDENTIAL_ROW_ID,
+            "DELETE FROM oauth_credential WHERE provider = ?",
             provider
         )
         .execute(&self.pool)
@@ -68,8 +63,7 @@ impl DbConn {
     ) -> Result<Option<OAuthCredentialDAO>> {
         let token = sqlx::query_as!(
             OAuthCredentialDAO,
-            "SELECT provider, client_id, client_secret, created_at, updated_at FROM oauth_credential WHERE id = ? AND provider = ?",
-            OAUTH_CREDENTIAL_ROW_ID,
+            "SELECT provider, client_id, client_secret, created_at, updated_at FROM oauth_credential WHERE provider = ?",
             provider
         )
             .fetch_optional(&self.pool).await?;
