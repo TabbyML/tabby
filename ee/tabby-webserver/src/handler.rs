@@ -21,7 +21,7 @@ use tracing::{error, warn};
 use crate::{
     cron, hub, integrations, oauth,
     path::db_file,
-    repositories::{self, RepositoryCache},
+    repositories::{self},
     schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::create_event_logger},
     ui,
@@ -56,12 +56,9 @@ impl WebserverHandle {
     ) -> (Router, Router) {
         let ctx =
             create_service_locator(self.logger(), code, self.db.clone(), is_chat_enabled).await;
-        let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
-
-        let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;
+        cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
         let schema = Arc::new(create_schema());
-        let rs = Arc::new(repository_cache);
 
         let api = api
             .route(
@@ -85,7 +82,7 @@ impl WebserverHandle {
             )
             .nest(
                 "/repositories",
-                repositories::routes(rs.clone(), ctx.auth()),
+                repositories::routes(ctx.repository(), ctx.auth()),
             )
             .nest(
                 "/integrations/github",

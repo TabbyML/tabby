@@ -32,6 +32,10 @@ impl RepositoryService for DbConn {
         Ok(self.create_repository(name, git_url).await?.as_id())
     }
 
+    async fn get_repository_by_name(&self, name: &str) -> Result<Repository> {
+        Ok(self.get_repository_by_name(name).await?.into())
+    }
+
     async fn delete_repository(&self, id: &ID) -> Result<bool> {
         Ok(self.delete_repository(id.as_rowid()?).await?)
     }
