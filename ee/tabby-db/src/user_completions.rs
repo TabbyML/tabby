@@ -101,7 +101,7 @@ impl DbConn {
         end: DateTime<Utc>,
         users: Vec<i64>,
         languages: Vec<String>,
-        all_languages: Vec<String>,
+        not_languages: Vec<String>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         let users = users
             .iter()
@@ -113,7 +113,7 @@ impl DbConn {
             .map(|l| format!("'{}'", l))
             .collect::<Vec<_>>()
             .join(",");
-        let not_languages = all_languages
+        let not_languages = not_languages
             .into_iter()
             .map(|l| format!("'{}'", l))
             .collect::<Vec<_>>()

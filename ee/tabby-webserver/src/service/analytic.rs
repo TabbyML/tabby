@@ -43,19 +43,19 @@ impl AnalyticService for AnalyticServiceImpl {
     ) -> Result<Vec<CompletionStats>> {
         let users = convert_ids(users);
 
-        let not_languages = languages
-            .iter()
-            .position(|l| l == &Language::Other)
-            .map(|i| {
-                languages.remove(i);
-                Language::all_known().flat_map(|l| l.to_strings()).collect()
-            })
-            .unwrap_or_default();
+        let include_other_languages = languages.iter().any(|l| l == &Language::Other);
+        let not_languages = if include_other_languages {
+            Some(Language::all_known().flat_map(|l| l.to_strings()).collect())
+        } else {
+            None
+        };
+
+        languages = languages.into_iter().filter(|l| l != &Language::Other).collect();
 
         let languages = languages.into_iter().flat_map(|l| l.to_strings()).collect();
         let stats = self
             .db
-            .compute_daily_stats(start, end, users, languages, not_languages)
+            .compute_daily_stats(start, end, users, languages, not_languages.unwrap_or_default())
             .await?;
         let stats = stats
             .into_iter()
