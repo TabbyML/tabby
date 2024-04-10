@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { eachDayOfInterval } from 'date-fns'
 import { sum } from 'lodash-es'
 import moment from 'moment'
 import numeral from 'numeral'
 import { DateRange } from 'react-day-picker'
+import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
 
 import { Language } from '@/lib/gql/generates/graphql'
@@ -90,6 +93,8 @@ function StatsSummary({
 }
 
 export function Report() {
+  const searchParams = useSearchParams()
+  const sample = searchParams.get('sample') === 'true'
   const [members] = useAllMembers()
   const [dateRange, setDateRange] = useState<DateRange>({
     from: moment().subtract(INITIAL_DATE_RANGE, 'day').toDate(),
@@ -111,14 +116,33 @@ export function Report() {
         selectedLanguage === KEY_SELECT_ALL ? undefined : [selectedLanguage]
     }
   })
-  const dailyStats: DailyStats[] | undefined = dailyStatsData?.dailyStats.map(
-    item => ({
+  let dailyStats: DailyStats[] | undefined
+  if (sample) {
+    const daysBetweenRange = eachDayOfInterval({
+      start: dateRange.from!,
+      end: dateRange.to || dateRange.from!
+    })
+    dailyStats = daysBetweenRange.map(date => {
+      const rng = seedrandom(
+        moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
+      )
+      const selects = Math.ceil(rng() * 20)
+      const completions = selects + Math.floor(rng() * 10)
+      return {
+        start: moment(date).startOf('day').toDate(),
+        end: moment(date).endOf('day').toDate(),
+        completions,
+        selects
+      }
+    })
+  } else {
+    dailyStats = dailyStatsData?.dailyStats.map(item => ({
       start: item.start,
       end: item.end,
       completions: item.completions,
       selects: item.selects
-    })
-  )
+    }))
+  }
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
@@ -127,13 +151,33 @@ export function Report() {
       users: selectedMember === KEY_SELECT_ALL ? undefined : selectedMember
     }
   })
-  const yearlyStats: DailyStats[] | undefined =
-    yearlyStatsData?.dailyStatsInPastYear.map(item => ({
+  let yearlyStats: DailyStats[] | undefined
+  if (sample) {
+    const daysBetweenRange = eachDayOfInterval({
+      start: moment().toDate(),
+      end: moment().subtract(365, 'days').toDate()
+    })
+    yearlyStats = daysBetweenRange.map(date => {
+      const rng = seedrandom(
+        moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
+      )
+      const selects = Math.ceil(rng() * 20)
+      const completions = selects + Math.floor(rng() * 10)
+      return {
+        start: moment(date).startOf('day').toDate(),
+        end: moment(date).endOf('day').toDate(),
+        completions,
+        selects
+      }
+    })
+  } else {
+    yearlyStats = yearlyStatsData?.dailyStatsInPastYear.map(item => ({
       start: item.start,
       end: item.end,
       completions: item.completions,
       selects: item.selects
     }))
+  }
 
   const onDateOpenChange = (
     isOpen: boolean,
