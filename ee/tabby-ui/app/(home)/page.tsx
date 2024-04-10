@@ -58,7 +58,7 @@ function Configuration() {
             <Input
               value={externalUrl}
               onChange={noop}
-              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-secondary-foreground p-0 shadow-none"
+              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-primary-foreground/50 p-0 shadow-none dark:border-primary/50"
             />
             <CopyButton value={externalUrl} />
           </span>
@@ -68,7 +68,7 @@ function Configuration() {
           <Label className="text-xs font-semibold">Token</Label>
           <span className="flex items-center gap-1">
             <Input
-              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-secondary-foreground p-0 font-mono shadow-none"
+              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-primary-foreground/50 p-0 font-mono shadow-none dark:border-primary/50"
               value={data.me.authToken}
               onChange={noop}
             />
