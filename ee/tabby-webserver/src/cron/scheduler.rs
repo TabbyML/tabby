@@ -1,9 +1,10 @@
-use std::{process::Stdio, sync::Arc};
+use std::{future::IntoFuture, pin::Pin, process::Stdio, sync::Arc};
 
 use anyhow::{Context, Result};
+use futures::Future;
 use tokio::{io::AsyncBufReadExt, sync::broadcast};
-use tokio_cron_scheduler::Job;
-use tracing::{error, info, warn};
+use tokio_cron_scheduler::{Job, JobScheduler};
+use tracing::{debug, error, info, warn};
 
 use crate::schema::{job::JobService, worker::WorkerService};
 
@@ -15,7 +16,9 @@ pub async fn scheduler_job(
 ) -> anyhow::Result<Job> {
     let scheduler_mutex = Arc::new(tokio::sync::Mutex::new(()));
 
-    let job = Job::new_async("0 1/10 * * * *", move |uuid, mut scheduler| {
+    let scheduler_job = move |uuid,
+                              mut scheduler: JobScheduler|
+          -> Pin<Box<dyn Future<Output = ()> + Send>> {
         let worker = worker.clone();
         let job = job.clone();
         let scheduler_mutex = scheduler_mutex.clone();
@@ -39,7 +42,16 @@ pub async fn scheduler_job(
                 );
             }
         })
-    })?;
+    };
+
+    let job = if std::env::var("TABBY_WEBSERVER_SCHEDULER_ONESHOT").is_ok() {
+        warn!(
+            "Running scheduler job as oneshot, this should only be used for debugging purpose..."
+        );
+        Job::new_one_shot_async(std::time::Duration::from_secs(10), scheduler_job)?
+    } else {
+        Job::new_async("0 1/10 * * * *", scheduler_job)?
+    };
 
     Ok(job)
 }
