@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   title: 'Reports'
 }
 
-export default function Page() {
-  return <Report />
+export default function Page({
+  searchParams: { sample }
+}: {
+  searchParams: {
+    sample?: string
+  }
+}) {
+  return <Report sample={sample === 'true'} />
 }
