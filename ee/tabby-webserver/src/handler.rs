@@ -21,7 +21,7 @@ use tracing::{error, warn};
 use crate::{
     cron, hub, oauth,
     path::db_file,
-    integrations
+    integrations,
     repositories::{self, RepositoryCache},
     schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::create_event_logger},
