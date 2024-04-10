@@ -5,6 +5,7 @@ mod handler;
 mod hub;
 mod integrations;
 mod oauth;
+mod path;
 mod repositories;
 mod schema;
 mod service;

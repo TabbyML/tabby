@@ -6,7 +6,7 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-prod-db = ['tabby-db/prod-db']
+prod-db = []
 
 [dependencies]
 anyhow.workspace = true

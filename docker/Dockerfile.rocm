@@ -38,12 +38,12 @@ COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features rocm,prod-db --release --package tabby && \
+    cargo build --features rocm,prod --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features prod-db --release --package tabby && \
+    cargo build --features prod --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/tabby-cpu
 
 FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime

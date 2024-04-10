@@ -20,6 +20,7 @@ use tracing::{error, warn};
 
 use crate::{
     cron, hub, integrations, oauth,
+    path::db_file,
     repositories::{self, RepositoryCache},
     schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::create_event_logger},
@@ -33,7 +34,9 @@ pub struct WebserverHandle {
 
 impl WebserverHandle {
     pub async fn new(logger1: impl EventLogger + 'static) -> Self {
-        let db = DbConn::new().await.expect("Must be able to initialize db");
+        let db = DbConn::new(db_file().as_path())
+            .await
+            .expect("Must be able to initialize db");
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
         WebserverHandle { db, logger }
