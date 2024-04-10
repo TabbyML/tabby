@@ -123,7 +123,9 @@ export default function Stats() {
     <div className="flex flex-col gap-y-8">
       <LoadingWrapper
         loading={fetchingDailyState}
-        fallback={<Skeleton className="h-48 w-full md:w-[32rem] xl:w-[61rem]" />}
+        fallback={
+          <Skeleton className="h-48 w-full md:w-[32rem] xl:w-[61rem]" />
+        }
       >
         <Summary
           dailyStats={dailyStats}

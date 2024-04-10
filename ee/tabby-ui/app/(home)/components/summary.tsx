@@ -8,6 +8,7 @@ import numeral from 'numeral'
 import {
   Bar,
   BarChart,
+  Cell,
   LabelList,
   Line,
   LineChart,
@@ -15,7 +16,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Cell,
   type LabelProps
 } from 'recharts'
 
@@ -111,7 +111,6 @@ function LineTooltip({
 const LanguageLabel: React.FC<
   LabelProps & { languageData: LanguageData; theme: 'light' | 'dark' }
 > = props => {
-  
   const { x, y, width, height, value, languageData, theme } = props
   const myLanguageData = languageData.find(data => data.label === value)
 
@@ -124,7 +123,7 @@ const LanguageLabel: React.FC<
     <text
       x={+x! + +width! + padding}
       y={+y! + +height! / 2}
-      fill={theme === 'dark' ? "#fff" : "#000"}
+      fill={theme === 'dark' ? '#fff' : '#000'}
       fontSize={10}
       fontWeight="bold"
       textAnchor="start"
@@ -333,9 +332,7 @@ export function Summary({
           <div className="text-2xl font-bold">
             {totalCompletions === 0 ? 'None' : mostCompletedLanguage?.label}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Most completions
-          </p>
+          <p className="text-xs text-muted-foreground">Most completions</p>
         </CardContent>
 
         <ResponsiveContainer height={50} width={300}>
@@ -345,27 +342,22 @@ export function Summary({
             barCategoryGap={2}
             margin={{ top: 5, right: 80, left: 20, bottom: 5 }}
           >
-            <Bar
-              dataKey="completions"
-              radius={3}
-            >
+            <Bar dataKey="completions" radius={3}>
               <LabelList
                 dataKey="label"
-                content={<LanguageLabel languageData={languageData} theme={theme} />}
-              />
-               {
-                  languageData.map((entry, index) => {
-                    const lan = entry.name as Language
-                    const color = languageColors[lan]
-                      ? languageColors[lan]
-                      : theme === 'dark' ? '#e8e1d3' : '#54452c'
-                    return (
-                      (
-                        <Cell key={`cell-${index}`} fill={color} />
-                      )
-                    )
-                  })
+                content={
+                  <LanguageLabel languageData={languageData} theme={theme} />
                 }
+              />
+              {languageData.map((entry, index) => {
+                const lan = entry.name as Language
+                const color = languageColors[lan]
+                  ? languageColors[lan]
+                  : theme === 'dark'
+                  ? '#e8e1d3'
+                  : '#54452c'
+                return <Cell key={`cell-${index}`} fill={color} />
+              })}
             </Bar>
             <XAxis type="number" hide />
             <YAxis type="category" width={100} dataKey="name" hide />
