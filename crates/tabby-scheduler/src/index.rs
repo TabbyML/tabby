@@ -1,4 +1,4 @@
-use std::{fs, io::IsTerminal, ops::Range};
+use std::{fs, io::IsTerminal, ops::Range, path::Path};
 
 use anyhow::Result;
 use kdam::BarExt;
@@ -9,6 +9,7 @@ use tabby_common::{
     SourceFile,
 };
 use tantivy::{directory::MmapDirectory, doc, Index};
+use tracing::warn;
 
 use crate::utils::tqdm;
 
@@ -75,7 +76,7 @@ struct IndexedDocument {
 
 fn read_range(filename: &str, content: &str, range: Range<usize>) -> Option<String> {
     let Some(content) = content.get(range.clone()) else {
-        eprintln!("Failed to read content '{range:?}' from '{filename}'");
+        warn!("Failed to read content '{range:?}' from '{filename}'");
         return None;
     };
     Some(content.to_string())
@@ -83,8 +84,14 @@ fn read_range(filename: &str, content: &str, range: Range<usize>) -> Option<Stri
 
 fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
     file.tags.into_iter().filter_map(move |tag| {
-        let name = read_range(&file.filepath, &file.content, tag.name_range)?;
-        let body = read_range(&file.filepath, &file.content, tag.range)?;
+        let path = Path::new(&file.basedir).join(&file.filepath);
+        let Ok(file_content) = std::fs::read_to_string(&path) else {
+            // warn!("Failed to read file '{}'", &file.filepath);
+            eprintln!("Failed to read file '{}'", path.display());
+            return None;
+        };
+        let name = read_range(&file.filepath, &file_content, tag.name_range)?;
+        let body = read_range(&file.filepath, &file_content, tag.range)?;
 
         if body.lines().collect::<Vec<_>>().len() > MAX_BODY_LINES_THRESHOLD {
             return None;
@@ -104,87 +111,95 @@ fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
 #[cfg(test)]
 mod tests {
     use serde_json::{from_value, json};
+    use temp_testdir::TempDir;
 
     use super::*;
 
-    fn test_source_file() -> SourceFile {
+    fn test_source_file(basedir: &Path) -> SourceFile {
+        let filepath = "trainer.py";
+        let fullpath = basedir.join(filepath).display().to_string();
+        let file_content = "import os\nimport glob\nfrom dataclasses import dataclass, field\nfrom typing import List\n\nimport peft\nimport torch\nfrom transformers import (\n    AutoModelForCausalLM,\n    AutoTokenizer,\n    HfArgumentParser,\n    Trainer,\n    TrainingArguments,\n)\nfrom datasets import Dataset, load_dataset\n\n\nclass ConstantLengthDataset:\n    \"\"\"\n    Iterable dataset that returns constant length chunks of tokens from stream of text files.\n        Args:\n            tokenizer (Tokenizer): The processor used for proccessing the data.\n            dataset (dataset.Dataset): Dataset with text files.\n            infinite (bool): If True the iterator is reset after dataset reaches end else stops.\n            seq_length (int): Length of token sequences to return.\n            num_of_sequences (int): Number of token sequences to keep in buffer.\n            chars_per_token (int): Number of characters per token used to estimate number of tokens in text buffer.\n    \"\"\"\n\n    def __init__(\n        self,\n        tokenizer,\n        dataset,\n        infinite=False,\n        seq_length=1024,\n        num_of_sequences=1024,\n        chars_per_token=3.6,\n        content_field=\"content\",\n    ):\n        self.tokenizer = tokenizer\n        self.concat_token_id = tokenizer.eos_token_id\n        self.dataset = dataset\n        self.seq_length = seq_length\n        self.infinite = infinite\n        self.current_size = 0\n        self.max_buffer_size = seq_length * chars_per_token * num_of_sequences\n        self.content_field = content_field\n\n    def __call__(self):\n        def gen():\n            for x in self:\n                yield x\n\n        return gen()\n\n    def __iter__(self):\n        for buffer in self._read_dataset_into_buffer():\n            yield from self._tokenize(buffer)\n\n    def _tokenize(self, buffer):\n        tokenized_inputs = self.tokenizer(buffer, truncation=False)[\"input_ids\"]\n\n        all_token_ids = []\n        for tokenized_input in tokenized_inputs:\n            all_token_ids.extend(tokenized_input + [self.concat_token_id])\n\n        for i in range(0, len(all_token_ids), self.seq_length):\n            input_ids = all_token_ids[i : i + self.seq_length]\n\n            if len(input_ids) < self.seq_length:\n                input_ids = all_token_ids[-self.seq_length :]\n\n            if len(input_ids) == self.seq_length:\n                self.current_size += 1\n                yield dict(input_ids=input_ids, labels=input_ids)\n\n    def _read_dataset_into_buffer(self):\n        iterator = iter(self.dataset)\n        more_examples = True\n        while more_examples:\n            buffer, buffer_len = [], 0\n            while True:\n                if buffer_len >= self.max_buffer_size:\n                    break\n                try:\n                    buffer.append(next(iterator)[self.content_field])\n                    buffer_len += len(buffer[-1])\n                except StopIteration:\n                    if self.infinite:\n                        iterator = iter(self.dataset)\n                    else:\n                        more_examples = False\n                        break\n            yield buffer\n\n\n";
+        std::fs::write(fullpath, file_content).expect("Failed to write test file");
         from_value(json!(
-            {
-                "git_url": "https://fake.com/tabbyml.git",
-                "filepath": "python/tabby/trainer.py",
-                "content": "import os\nimport glob\nfrom dataclasses import dataclass, field\nfrom typing import List\n\nimport peft\nimport torch\nfrom transformers import (\n    AutoModelForCausalLM,\n    AutoTokenizer,\n    HfArgumentParser,\n    Trainer,\n    TrainingArguments,\n)\nfrom datasets import Dataset, load_dataset\n\n\nclass ConstantLengthDataset:\n    \"\"\"\n    Iterable dataset that returns constant length chunks of tokens from stream of text files.\n        Args:\n            tokenizer (Tokenizer): The processor used for proccessing the data.\n            dataset (dataset.Dataset): Dataset with text files.\n            infinite (bool): If True the iterator is reset after dataset reaches end else stops.\n            seq_length (int): Length of token sequences to return.\n            num_of_sequences (int): Number of token sequences to keep in buffer.\n            chars_per_token (int): Number of characters per token used to estimate number of tokens in text buffer.\n    \"\"\"\n\n    def __init__(\n        self,\n        tokenizer,\n        dataset,\n        infinite=False,\n        seq_length=1024,\n        num_of_sequences=1024,\n        chars_per_token=3.6,\n        content_field=\"content\",\n    ):\n        self.tokenizer = tokenizer\n        self.concat_token_id = tokenizer.eos_token_id\n        self.dataset = dataset\n        self.seq_length = seq_length\n        self.infinite = infinite\n        self.current_size = 0\n        self.max_buffer_size = seq_length * chars_per_token * num_of_sequences\n        self.content_field = content_field\n\n    def __call__(self):\n        def gen():\n            for x in self:\n                yield x\n\n        return gen()\n\n    def __iter__(self):\n        for buffer in self._read_dataset_into_buffer():\n            yield from self._tokenize(buffer)\n\n    def _tokenize(self, buffer):\n        tokenized_inputs = self.tokenizer(buffer, truncation=False)[\"input_ids\"]\n\n        all_token_ids = []\n        for tokenized_input in tokenized_inputs:\n            all_token_ids.extend(tokenized_input + [self.concat_token_id])\n\n        for i in range(0, len(all_token_ids), self.seq_length):\n            input_ids = all_token_ids[i : i + self.seq_length]\n\n            if len(input_ids) < self.seq_length:\n                input_ids = all_token_ids[-self.seq_length :]\n\n            if len(input_ids) == self.seq_length:\n                self.current_size += 1\n                yield dict(input_ids=input_ids, labels=input_ids)\n\n    def _read_dataset_into_buffer(self):\n        iterator = iter(self.dataset)\n        more_examples = True\n        while more_examples:\n            buffer, buffer_len = [], 0\n            while True:\n                if buffer_len >= self.max_buffer_size:\n                    break\n                try:\n                    buffer.append(next(iterator)[self.content_field])\n                    buffer_len += len(buffer[-1])\n                except StopIteration:\n                    if self.infinite:\n                        iterator = iter(self.dataset)\n                    else:\n                        more_examples = False\n                        break\n            yield buffer\n\n\n",
-                "language": "python",
-                "max_line_length": 115,
-                "avg_line_length": 32.388393,
-                "alphanum_fraction": 0.6066319,
-                "tags": [
-                  {
-                    "range": {
-                      "start": 290,
-                      "end": 320
-                    },
-                    "name_range": {
-                      "start": 296,
-                      "end": 317
-                    },
-                    "utf16_column_range": {
-                      "start": 6,
-                      "end": 27
-                    },
-                    "span": {
-                      "start": {
-                        "row": 17,
-                        "column": 6
-                      },
-                      "end": {
-                        "row": 17,
-                        "column": 27
-                      }
-                    },
-                    "line_range": {
-                      "start": 290,
-                      "end": 318
-                    },
-                    "is_definition": true,
-                    "syntax_type_name": "class"
+        {
+            "git_url": "https://fake.com/tabbyml.git",
+            "basedir": basedir.display().to_string(),
+            "filepath": filepath,
+            "language": "python",
+            "max_line_length": 115,
+            "avg_line_length": 32.388393,
+            "alphanum_fraction": 0.6066319,
+            "tags": [
+              {
+                "range": {
+                  "start": 290,
+                  "end": 320
+                },
+                "name_range": {
+                  "start": 296,
+                  "end": 317
+                },
+                "utf16_column_range": {
+                  "start": 6,
+                  "end": 27
+                },
+                "span": {
+                  "start": {
+                    "row": 17,
+                    "column": 6
                   },
-                  {
-                    "range": {
-                      "start": 953,
-                      "end": 970
-                    },
-                    "name_range": {
-                      "start": 957,
-                      "end": 965
-                    },
-                    "utf16_column_range": {
-                      "start": 8,
-                      "end": 16
-                    },
-                    "span": {
-                      "start": {
-                        "row": 29,
-                        "column": 8
-                      },
-                      "end": {
-                        "row": 29,
-                        "column": 16
-                      }
-                    },
-                    "line_range": {
-                      "start": 953,
-                      "end": 966
-                    },
-                    "is_definition": true,
-                    "syntax_type_name": "function"
+                  "end": {
+                    "row": 17,
+                    "column": 27
+                  }
+                },
+                "line_range": {
+                  "start": 290,
+                  "end": 318
+                },
+                "is_definition": true,
+                "syntax_type_name": "class"
+              },
+              {
+                "range": {
+                  "start": 953,
+                  "end": 970
+                },
+                "name_range": {
+                  "start": 957,
+                  "end": 965
+                },
+                "utf16_column_range": {
+                  "start": 8,
+                  "end": 16
+                },
+                "span": {
+                  "start": {
+                    "row": 29,
+                    "column": 8
                   },
-                ]
-              })).expect("JSON is valid SourceFile")
+                  "end": {
+                    "row": 29,
+                    "column": 16
+                  }
+                },
+                "line_range": {
+                  "start": 953,
+                  "end": 966
+                },
+                "is_definition": true,
+                "syntax_type_name": "function"
+              },
+            ]
+          }))
+        .expect("JSON is valid SourceFile")
     }
 
     #[test]
     fn it_create_documents() {
-        let source_file: SourceFile = test_source_file();
+        let root = TempDir::default();
+
+        let source_file: SourceFile = test_source_file(&root);
         let docs: Vec<_> = from_source_file(source_file).collect();
         assert_eq!(docs.len(), 2);
 

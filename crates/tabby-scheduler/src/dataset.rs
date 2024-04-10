@@ -72,19 +72,19 @@ impl RepositoryExt for RepositoryConfig {
                 Ok(file_content) => {
                     let source_file = SourceFile {
                         git_url: self.git_url.clone(),
+                        basedir: dir.display().to_string(),
                         filepath: relative_path.display().to_string(),
                         max_line_length: metrics::max_line_length(&file_content),
                         avg_line_length: metrics::avg_line_length(&file_content),
                         alphanum_fraction: metrics::alphanum_fraction(&file_content),
                         tags: tags::collect(&mut context, &language, &file_content),
                         language,
-                        content: file_content,
                     };
                     writer.write_json_lines([source_file.clone()])?;
                     access.process_file(snapshot_version, source_file);
                 }
                 Err(e) => {
-                    error!("Cannot read {relative_path:?}: {e:?}");
+                    error!("Cannot read '{}': '{e}'", relative_path.display());
                 }
             }
         }
