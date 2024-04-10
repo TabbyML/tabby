@@ -5,7 +5,7 @@ use juniper_axum::relay::NodeType;
 use super::Context;
 use crate::schema::Result;
 
-#[derive(GraphQLObject, Debug)]
+#[derive(GraphQLObject, Debug, PartialEq)]
 #[graphql(context = Context)]
 pub struct GithubRepositoryProvider {
     pub id: ID,

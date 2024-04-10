@@ -79,3 +79,61 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_github_repository_provider_crud() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = new_github_repository_provider_service(db);
+
+        let id = service
+            .create_github_repository_provider("example".into(), "id".into(), "secret".into())
+            .await
+            .unwrap();
+
+        let provider1 = service
+            .get_github_repository_provider(id.clone())
+            .await
+            .unwrap();
+        assert_eq!(
+            provider1,
+            GithubRepositoryProvider {
+                id: id.clone(),
+                display_name: "example".into(),
+                application_id: "id".into()
+            }
+        );
+
+        let secret1 = service
+            .read_github_repository_provider_secret(id.clone())
+            .await
+            .unwrap();
+        assert_eq!(secret1, "secret");
+
+        assert_eq!(
+            1,
+            service
+                .list_github_repository_providers(None, None, None, None, None)
+                .await
+                .unwrap()
+                .len()
+        );
+
+        service
+            .delete_github_repository_provider(id.clone())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            0,
+            service
+                .list_github_repository_providers(None, None, None, None, None)
+                .await
+                .unwrap()
+                .len()
+        );
+    }
+}
