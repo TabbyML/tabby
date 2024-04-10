@@ -132,6 +132,12 @@ size_t weighted_random(Request* req, float* nums, size_t len) {
   return i;
 }
 
+bool llama_should_add_bos_token(const llama_model * model) {
+    const int add_bos = llama_add_bos_token(model);
+
+    return add_bos != -1 ? bool(add_bos) : (llama_vocab_type(model) == LLAMA_VOCAB_TYPE_SPM);
+}
+
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
@@ -166,7 +172,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   }
 
   virtual void add_request(rust::Box<LlamaInitRequest> init) override {
-    auto tokens = llama_tokenize(llama_get_model(ctx_.get()), init->prompt(), false, true);
+    auto tokens = llama_tokenize(model_.get(), init->prompt(), llama_should_add_bos_token(model_.get()), true);
     if (tokens.size() > init->max_input_length()) {
       int start = tokens.size() - init->max_input_length();
       tokens = std::vector<llama_token>(tokens.begin() + start, tokens.end());
@@ -279,8 +285,8 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         const auto token_str = llama_token_to_piece(ctx, next_token);
         request.generated_text += token_str;
 
-        // FIXME: Hack for codellama to simplify tabby's implementation.
-        const bool is_eos = next_token == eos_id || token_str == " <EOT>";
+        // FIXME: Hack for codellama / codegemma to simplify tabby's implementation.
+        const bool is_eos = next_token == eos_id || token_str == " <EOT>" || token_str == "<|file_separator|>";
 
         bool incomplete = false;
         for (size_t i = 1; i < 5 && i <= request.generated_text.size(); ++i)
