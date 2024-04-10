@@ -288,9 +288,15 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let id = id.as_rowid()?;
         let user = self.db.get_user(id).await?.context("User doesn't exits")?;
+
+        if !user.active {
+            return Err(anyhow!("Inactive user's status cannot be changed").into());
+        }
+
         if user.is_owner() {
             return Err(anyhow!("The owner's admin status cannot be changed").into());
         }
+
         Ok(self.db.update_user_role(id, is_admin).await?)
     }
 
@@ -972,6 +978,16 @@ mod tests {
             .update_user_role(&user_id.as_id(), true)
             .await
             .is_ok());
+
+        // Inactive user's role cannot be changed
+        service
+            .update_user_active(&user_id.as_id(), false)
+            .await
+            .unwrap();
+        assert!(service
+            .update_user_role(&user_id.as_id(), false)
+            .await
+            .is_err());
     }
 
     #[tokio::test]
