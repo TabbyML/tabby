@@ -1,4 +1,5 @@
 import React from 'react'
+import Link from 'next/link'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -57,12 +58,11 @@ export default function UserPanel({
       >
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => window.open('/')}
-          className="cursor-pointer"
-        >
-          <IconHome />
-          <span className="ml-2">Home</span>
+        <DropdownMenuItem>
+          <Link href="/" className="flex items-center">
+            <IconHome />
+            <span className="ml-2">Home</span>
+          </Link>
         </DropdownMenuItem>
         {isChatEnabled && (
           <DropdownMenuItem
