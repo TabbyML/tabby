@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { GearIcon } from '@radix-ui/react-icons'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
 import { BookOpenText, Mail } from 'lucide-react'
 
@@ -1324,13 +1323,6 @@ function IconMail({ className, ...props }: React.ComponentProps<typeof Mail>) {
   return <Mail className={cn('h4 w-4', className)} {...props} />
 }
 
-function IconSettings({
-  className,
-  ...props
-}: React.ComponentProps<typeof GearIcon>) {
-  return <GearIcon className={cn('h4 w-4', className)} {...props} />
-}
-
 export {
   IconEdit,
   IconNextChat,
@@ -1399,6 +1391,5 @@ export {
   IconBarChart,
   IconActivity,
   IconBookOpenText,
-  IconMail,
-  IconSettings
+  IconMail
 }
