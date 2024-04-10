@@ -73,10 +73,19 @@ impl DbConn {
 
     pub async fn list_github_repository_providers(
         &self,
+        ids: Option<Vec<i32>>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<GithubRepositoryProviderDAO>> {
+        let condition = ids.map(|v| {
+            let ids = v
+                .into_iter()
+                .map(|id| id.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("id in ({ids})")
+        });
         let providers = query_paged_as!(
             GithubRepositoryProviderDAO,
             "github_repository_provider",
@@ -89,7 +98,8 @@ impl DbConn {
             ],
             limit,
             skip_id,
-            backwards
+            backwards,
+            condition
         )
         .fetch_all(&self.pool)
         .await?;

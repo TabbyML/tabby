@@ -62,6 +62,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
 
     async fn list_github_repository_providers(
         &self,
+        ids: Option<Vec<i32>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -70,7 +71,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let providers = self
             .db
-            .list_github_repository_providers(limit, skip_id, backwards)
+            .list_github_repository_providers(ids, limit, skip_id, backwards)
             .await?;
         Ok(providers
             .into_iter()

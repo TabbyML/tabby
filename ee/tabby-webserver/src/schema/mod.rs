@@ -232,6 +232,7 @@ impl Query {
 
     async fn github_repository_providers(
         ctx: &Context,
+        ids: Option<Vec<i32>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -247,23 +248,11 @@ impl Query {
                 Ok(ctx
                     .locator
                     .github_repository_provider()
-                    .list_github_repository_providers(after, before, first, last)
+                    .list_github_repository_providers(ids, after, before, first, last)
                     .await?)
             },
         )
         .await
-    }
-
-    async fn github_repository_provider(
-        ctx: &Context,
-        id: ID,
-    ) -> FieldResult<GithubRepositoryProvider> {
-        check_admin(ctx).await?;
-        Ok(ctx
-            .locator
-            .github_repository_provider()
-            .get_github_repository_provider(id)
-            .await?)
     }
 
     async fn job_runs(

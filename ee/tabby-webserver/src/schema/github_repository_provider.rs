@@ -48,6 +48,7 @@ pub trait GithubRepositoryProviderService: Send + Sync {
 
     async fn list_github_repository_providers(
         &self,
+        ids: Option<Vec<i32>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
