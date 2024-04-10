@@ -72,6 +72,7 @@ impl RepositoryExt for RepositoryConfig {
                 Ok(file_content) => {
                     let source_file = SourceFile {
                         git_url: self.git_url.clone(),
+                        basedir: dir.display().to_string(),
                         filepath: relative_path.display().to_string(),
                         max_line_length: metrics::max_line_length(&file_content),
                         avg_line_length: metrics::avg_line_length(&file_content),
