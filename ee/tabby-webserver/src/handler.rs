@@ -144,7 +144,11 @@ impl WebserverHandle {
             )
             .nest(
                 "/integrations/github",
-                integrations::github::routes(ctx.setting(), ctx.github_repository_provider()),
+                integrations::github::routes(
+                    ctx.auth(),
+                    ctx.setting(),
+                    ctx.github_repository_provider(),
+                ),
             )
             .route(
                 "/avatar/:id",

@@ -167,7 +167,7 @@ impl Hub for Arc<HubImpl> {
 
         let provider_service = self.ctx.github_repository_provider();
         let repository_providers = provider_service
-            .list_github_repository_providers(None, None, Some(1024), None)
+            .list_github_repository_providers(None, None, None, None)
             .await
             .unwrap_or_else(|e| {
                 warn!("Failed to fetch GitHub repository providers: {e}");
@@ -187,7 +187,7 @@ impl Hub for Arc<HubImpl> {
                     vec![provider.id.clone()],
                     None,
                     None,
-                    Some(1024),
+                    None,
                     None,
                 )
                 .await
