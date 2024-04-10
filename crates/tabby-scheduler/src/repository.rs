@@ -22,7 +22,7 @@ impl RepositoryExt for RepositoryConfig {
             let status = Command::new("git")
                 .current_dir(dir.parent().expect("Must not be in root directory"))
                 .arg("clone")
-                .arg("--depth 1")
+                .args(["--depth", "1"])
                 .arg(&self.git_url)
                 .arg(dir)
                 .status()?;
