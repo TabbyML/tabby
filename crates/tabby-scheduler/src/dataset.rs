@@ -78,13 +78,12 @@ impl RepositoryExt for RepositoryConfig {
                         alphanum_fraction: metrics::alphanum_fraction(&file_content),
                         tags: tags::collect(&mut context, &language, &file_content),
                         language,
-                        content: file_content,
                     };
                     writer.write_json_lines([source_file.clone()])?;
                     access.process_file(snapshot_version, source_file);
                 }
                 Err(e) => {
-                    error!("Cannot read {relative_path:?}: {e:?}");
+                    error!("Cannot read '{}': '{e}'", relative_path.display());
                 }
             }
         }

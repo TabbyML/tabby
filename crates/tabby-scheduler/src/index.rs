@@ -9,6 +9,7 @@ use tabby_common::{
     SourceFile,
 };
 use tantivy::{directory::MmapDirectory, doc, Index};
+use tracing::warn;
 
 use crate::utils::tqdm;
 
@@ -75,7 +76,7 @@ struct IndexedDocument {
 
 fn read_range(filename: &str, content: &str, range: Range<usize>) -> Option<String> {
     let Some(content) = content.get(range.clone()) else {
-        eprintln!("Failed to read content '{range:?}' from '{filename}'");
+        warn!("Failed to read content '{range:?}' from '{filename}'");
         return None;
     };
     Some(content.to_string())
@@ -83,8 +84,9 @@ fn read_range(filename: &str, content: &str, range: Range<usize>) -> Option<Stri
 
 fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
     file.tags.into_iter().filter_map(move |tag| {
-        let name = read_range(&file.filepath, &file.content, tag.name_range)?;
-        let body = read_range(&file.filepath, &file.content, tag.range)?;
+        let file_content = std::fs::read_to_string(&file.filepath).ok()?;
+        let name = read_range(&file.filepath, &file_content, tag.name_range)?;
+        let body = read_range(&file.filepath, &file_content, tag.range)?;
 
         if body.lines().collect::<Vec<_>>().len() > MAX_BODY_LINES_THRESHOLD {
             return None;

@@ -25,7 +25,6 @@ use serde_jsonlines::JsonLinesReader;
 pub struct SourceFile {
     pub git_url: String,
     pub filepath: String,
-    pub content: String,
     pub language: String,
     pub max_line_length: usize,
     pub avg_line_length: f32,
