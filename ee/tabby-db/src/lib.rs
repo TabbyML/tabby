@@ -1,8 +1,9 @@
 use std::{ops::Deref, path::Path, sync::Arc};
 
 use anyhow::anyhow;
-use cache::{Cache, TimedKeyedCache};
-use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use cache::{Cache, KeyedCache};
+use cached::SizedCache;
+use chrono::{DateTime, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
 pub use github_repository_provider::GithubRepositoryProviderDAO;
 pub use invitations::InvitationDAO;
@@ -14,6 +15,7 @@ use sqlx::{
     database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Decode, Encode, Pool,
     Sqlite, SqlitePool, Type, Value, ValueRef,
 };
+use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
 pub use users::UserDAO;
 
@@ -37,7 +39,7 @@ use sqlx::sqlite::SqliteConnectOptions;
 pub struct DbCache {
     pub active_user_count: Cache<usize>,
     pub active_admin_count: Cache<usize>,
-    pub daily_stats: Arc<TimedKeyedCache<i64, Vec<UserCompletionDailyStatsDAO>>>,
+    pub daily_stats_in_past_year: KeyedCache<Option<i64>, Vec<UserCompletionDailyStatsDAO>>,
 }
 
 #[derive(Clone)]
@@ -125,7 +127,7 @@ impl DbConn {
             cache: Arc::new(DbCache {
                 active_user_count: Default::default(),
                 active_admin_count: Default::default(),
-                daily_stats: TimedKeyedCache::new(Duration::hours(1)),
+                daily_stats_in_past_year: Arc::new(Mutex::new(SizedCache::with_size(1024))),
             }),
         };
         conn.manual_users_active_migration().await?;

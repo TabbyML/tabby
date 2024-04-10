@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+use cached::CachedAsync;
 use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 
@@ -73,19 +74,20 @@ impl DbConn {
         &self,
         users: Vec<i64>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
-        if let [id] = &*users {
-            return self
-                .cache
-                .daily_stats
-                .get_or_refresh(*id, |id| {
-                    self.compute_daily_stats_in_past_year_internal(vec![id])
+        if users.len() <= 1 {
+            let mut cache = self.cache.daily_stats_in_past_year.lock().await;
+            let key = users.clone().into_iter().next();
+            return Ok(cache
+                .try_get_or_set_with(key, move || async move {
+                    self.compute_daily_stats_in_past_year_imp(users).await
                 })
-                .await;
+                .await?
+                .clone());
         }
-        self.compute_daily_stats_in_past_year_internal(users).await
+        self.compute_daily_stats_in_past_year_imp(users).await
     }
 
-    async fn compute_daily_stats_in_past_year_internal(
+    async fn compute_daily_stats_in_past_year_imp(
         &self,
         users: Vec<i64>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
