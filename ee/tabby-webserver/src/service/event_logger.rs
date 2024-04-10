@@ -17,7 +17,7 @@ fn log_err<T, E: Display>(res: Result<T, E>) {
     }
 }
 
-pub fn new_event_logger(db: DbConn) -> impl EventLogger + 'static {
+pub fn create_event_logger(db: DbConn) -> impl EventLogger + 'static {
     DbEventLogger { db }
 }
 
@@ -87,7 +87,7 @@ mod tests {
     use tabby_common::api::event::{Event, EventLogger, Message};
     use tabby_db::DbConn;
 
-    use crate::service::{dao::AsID, event_logger::new_event_logger};
+    use crate::service::{dao::AsID, event_logger::create_event_logger};
 
     async fn sleep_50() {
         tokio::time::sleep(Duration::from_millis(500)).await;
@@ -96,7 +96,7 @@ mod tests {
     #[tokio::test]
     async fn test_event_logger() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let logger = new_event_logger(db.clone());
+        let logger = create_event_logger(db.clone());
         let user_id = db
             .create_user("testuser".into(), Some("pass".into()), true)
             .await
@@ -167,7 +167,7 @@ mod tests {
     #[tokio::test]
     async fn test_event_without_user_will_be_skipped() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let logger = new_event_logger(db.clone());
+        let logger = create_event_logger(db.clone());
 
         logger.log(Event::Completion {
             completion_id: "test_id".into(),
@@ -197,7 +197,7 @@ mod tests {
     #[tokio::test]
     async fn test_chat_completion_event_will_be_skipped() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let logger = new_event_logger(db.clone());
+        let logger = create_event_logger(db.clone());
 
         logger.log(Event::ChatCompletion {
             completion_id: "test_id".into(),

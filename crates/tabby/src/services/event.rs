@@ -118,7 +118,7 @@ impl EventLogger for EventService {
 }
 
 #[allow(unused)]
-pub fn create_logger() -> impl EventLogger + 'static {
+pub fn create_event_logger() -> impl EventLogger + 'static {
     EventService
 }
 

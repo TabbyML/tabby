@@ -231,7 +231,12 @@ fn init_logging(otlp_endpoint: Option<String>) {
         };
     }
 
-    let mut dirs = "tabby=info,axum_tracing_opentelemetry=info,otel=debug".to_owned();
+    let mut dirs = if cfg!(feature = "prod") {
+        "tabby=info,axum_tracing_opentelemetry=info,otel=debug".into()
+    } else {
+        "tabby=debug,axum_tracing_opentelemetry=info,otel=debug".into()
+    };
+
     if let Ok(env) = std::env::var(EnvFilter::DEFAULT_ENV) {
         dirs = format!("{dirs},{env}")
     };

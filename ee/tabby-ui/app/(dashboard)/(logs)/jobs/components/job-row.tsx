@@ -174,7 +174,7 @@ export default function JobRow({ name }: { name: string }) {
                           {
                             'bg-blue-700': isNil(job.node.exitCode),
                             'bg-green-700': job.node.exitCode === 0,
-                            'bg-red-700': job.node.exitCode === 1
+                            'bg-red-700': job.node.exitCode !== 0
                           }
                         )}
                       >

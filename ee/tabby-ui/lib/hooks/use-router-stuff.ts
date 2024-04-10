@@ -17,13 +17,11 @@ export default function useRouterStuff() {
   const updateSearchParams = ({
     set,
     del,
-    replace,
-    getNewPath
+    replace
   }: {
     set?: Record<string, string>
     del?: string | string[]
     replace?: boolean
-    getNewPath?: boolean
   }) => {
     const newParams = new URLSearchParams(searchParams)
     if (set) {
@@ -40,7 +38,7 @@ export default function useRouterStuff() {
     const newPath = `${pathname}${
       queryString.length > 0 ? `?${queryString}` : ''
     }`
-    if (getNewPath) return newPath
+
     if (replace) {
       router.replace(newPath)
     } else {

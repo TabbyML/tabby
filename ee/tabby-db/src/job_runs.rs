@@ -138,8 +138,8 @@ impl DbConn {
         Ok(stats)
     }
 
-    pub async fn cleanup_stale_job_runs(&self) -> Result<()> {
-        query!("DELETE FROM job_runs WHERE exit_code IS NULL;")
+    pub async fn finalize_stale_job_runs(&self) -> Result<()> {
+        query!("UPDATE job_runs SET exit_code = -1, end_ts = datetime('now'), updated_at = datetime('now') WHERE exit_code IS NULL;")
             .execute(&self.pool)
             .await?;
         Ok(())

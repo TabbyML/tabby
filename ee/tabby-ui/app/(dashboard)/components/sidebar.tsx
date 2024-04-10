@@ -16,13 +16,11 @@ import {
   CollapsibleTrigger
 } from '@/components/ui/collapsible'
 import {
-  IconBarChart,
+  IconBookOpenText,
   IconChevronRight,
   IconGear,
   IconHome,
   IconLightingBolt,
-  IconNetwork,
-  IconScrollText,
   IconUser
 } from '@/components/ui/icons'
 
@@ -64,17 +62,17 @@ export default function Sidebar({ children, className }: SidebarProps) {
               </SidebarButton>
               {isAdmin && (
                 <>
-                  <SidebarButton href="/cluster">
-                    <IconNetwork /> Cluster Information
-                  </SidebarButton>
-                  <SidebarButton href="/jobs">
-                    <IconScrollText />
-                    Jobs
-                  </SidebarButton>
-                  <SidebarButton href="/reports">
-                    <IconBarChart />
-                    Reports
-                  </SidebarButton>
+                  <SidebarCollapsible
+                    title={
+                      <>
+                        <IconBookOpenText /> Information
+                      </>
+                    }
+                  >
+                    <SidebarButton href="/cluster">Cluster</SidebarButton>
+                    <SidebarButton href="/jobs">Jobs</SidebarButton>
+                    <SidebarButton href="/reports">Reports</SidebarButton>
+                  </SidebarCollapsible>
                   <SidebarCollapsible
                     title={
                       <>
@@ -157,14 +155,10 @@ interface SidebarCollapsibleProps {
   defaultOpen?: boolean
 }
 
-function SidebarCollapsible({
-  title,
-  children,
-  defaultOpen = true
-}: SidebarCollapsibleProps) {
+function SidebarCollapsible({ title, children }: SidebarCollapsibleProps) {
   return (
     <Collapsible
-      defaultOpen={defaultOpen}
+      defaultOpen={true}
       className="[&_svg.ml-auto]:data-[state=open]:rotate-90"
     >
       <CollapsibleTrigger className="w-full">
