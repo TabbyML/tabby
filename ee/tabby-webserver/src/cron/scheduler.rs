@@ -1,10 +1,10 @@
-use std::{future::IntoFuture, pin::Pin, process::Stdio, sync::Arc};
+use std::{pin::Pin, process::Stdio, sync::Arc};
 
 use anyhow::{Context, Result};
 use futures::Future;
 use tokio::{io::AsyncBufReadExt, sync::broadcast};
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 
 use crate::schema::{job::JobService, worker::WorkerService};
 
@@ -16,33 +16,32 @@ pub async fn scheduler_job(
 ) -> anyhow::Result<Job> {
     let scheduler_mutex = Arc::new(tokio::sync::Mutex::new(()));
 
-    let scheduler_job = move |uuid,
-                              mut scheduler: JobScheduler|
-          -> Pin<Box<dyn Future<Output = ()> + Send>> {
-        let worker = worker.clone();
-        let job = job.clone();
-        let scheduler_mutex = scheduler_mutex.clone();
-        let events = events.clone();
-        Box::pin(async move {
-            let Ok(_guard) = scheduler_mutex.try_lock() else {
-                warn!("Scheduler job overlapped, skipping...");
-                return;
-            };
+    let scheduler_job =
+        move |uuid, mut scheduler: JobScheduler| -> Pin<Box<dyn Future<Output = ()> + Send>> {
+            let worker = worker.clone();
+            let job = job.clone();
+            let scheduler_mutex = scheduler_mutex.clone();
+            let events = events.clone();
+            Box::pin(async move {
+                let Ok(_guard) = scheduler_mutex.try_lock() else {
+                    warn!("Scheduler job overlapped, skipping...");
+                    return;
+                };
 
-            if let Err(err) = run_scheduler_now(job, worker, local_port).await {
-                error!("Failed to run scheduler job, reason: `{}`", err);
-            } else {
-                let _ = events.send(());
-            }
+                if let Err(err) = run_scheduler_now(job, worker, local_port).await {
+                    error!("Failed to run scheduler job, reason: `{}`", err);
+                } else {
+                    let _ = events.send(());
+                }
 
-            if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {
-                info!(
-                    "Next time for scheduler job is {:?}",
-                    next_tick.with_timezone(&chrono::Local)
-                );
-            }
-        })
-    };
+                if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {
+                    info!(
+                        "Next time for scheduler job is {:?}",
+                        next_tick.with_timezone(&chrono::Local)
+                    );
+                }
+            })
+        };
 
     let job = if std::env::var("TABBY_WEBSERVER_SCHEDULER_ONESHOT").is_ok() {
         warn!(
