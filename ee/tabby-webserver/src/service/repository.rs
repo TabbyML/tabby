@@ -5,7 +5,7 @@ use ignore::Walk;
 use juniper::ID;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
-use tracing::debug;
+
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
