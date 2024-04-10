@@ -4,6 +4,19 @@
 
 ### Fixes and improvements
 
+## [v4.2.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.2.0) (2024-04-10)
+
+### New features
+* Support Flash Attention (#1651)
+* Implementation of gemm for FLOAT32 compute type with RUY backend (#1598)
+* Conv1D quantization for only CPU (DNNL and CUDA backend is not supported) (#1601)
+
+### Fixes and improvements
+* Fix bug tensor parallel (#1643)
+* Use BestSampler when temperature is 0 (#1659)
+* Fix bug gemma (#1660)
+* Optimize loading/unloading time for Translator with cache (#1645)
+
 ## [v4.1.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.1.0) (2024-03-11)
 
 ### New features
