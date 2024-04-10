@@ -138,6 +138,7 @@ impl From<GithubProvidedRepositoryDAO> for GithubProvidedRepository {
             name: value.name,
             git_url: value.git_url,
             vendor_id: value.vendor_id,
+            active: value.active,
         }
     }
 }

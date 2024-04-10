@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
@@ -46,6 +47,14 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(provider.secret)
     }
 
+    async fn read_github_repository_provider_access_token(&self, id: ID) -> Result<String> {
+        let provider = self.db.get_github_provider(id.as_rowid()?).await?;
+        let Some(access_token) = provider.access_token else {
+            return Err(anyhow!("Provider has no access token").into());
+        };
+        Ok(access_token)
+    }
+
     async fn update_github_repository_provider_access_token(
         &self,
         id: ID,
@@ -77,16 +86,20 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
 
     async fn list_github_provided_repositories_by_provider(
         &self,
-        provider: ID,
+        providers: Vec<ID>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<GithubProvidedRepository>> {
+        let providers = providers
+            .into_iter()
+            .map(|i| i.as_rowid())
+            .collect::<Result<Vec<_>, _>>()?;
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, last, first)?;
         let repos = self
             .db
-            .list_github_provided_repositories(provider.as_rowid()?, limit, skip_id, backwards)
+            .list_github_provided_repositories(providers, limit, skip_id, backwards)
             .await?;
 
         Ok(repos

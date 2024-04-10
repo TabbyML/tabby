@@ -256,9 +256,9 @@ impl Query {
         .await
     }
 
-    async fn github_repositories_by_provider(
+    async fn github_repositories(
         ctx: &Context,
-        github_repository_provider_id: ID,
+        provider_ids: Vec<ID>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -275,7 +275,7 @@ impl Query {
                     .locator
                     .github_repository_provider()
                     .list_github_provided_repositories_by_provider(
-                        github_repository_provider_id,
+                        provider_ids,
                         after,
                         before,
                         first,

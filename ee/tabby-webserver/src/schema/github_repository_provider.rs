@@ -37,6 +37,7 @@ pub struct GithubProvidedRepository {
     pub github_repository_provider_id: ID,
     pub name: String,
     pub git_url: String,
+    pub active: bool,
 }
 
 impl NodeType for GithubProvidedRepository {
@@ -65,6 +66,7 @@ pub trait GithubRepositoryProviderService: Send + Sync {
     ) -> Result<ID>;
     async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider>;
     async fn read_github_repository_provider_secret(&self, id: ID) -> Result<String>;
+    async fn read_github_repository_provider_access_token(&self, id: ID) -> Result<String>;
     async fn update_github_repository_provider_access_token(
         &self,
         id: ID,
@@ -81,7 +83,7 @@ pub trait GithubRepositoryProviderService: Send + Sync {
 
     async fn list_github_provided_repositories_by_provider(
         &self,
-        provider: ID,
+        provider: Vec<ID>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
