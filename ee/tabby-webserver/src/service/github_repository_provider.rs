@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 
-use super::{AsID, AsRowid};
+use super::AsRowid;
 use crate::{
     schema::{
         github_repository_provider::{
@@ -24,19 +24,6 @@ pub fn new_github_repository_provider_service(db: DbConn) -> impl GithubReposito
 
 #[async_trait]
 impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
-    async fn create_github_repository_provider(
-        &self,
-        display_name: String,
-        application_id: String,
-        application_secret: String,
-    ) -> Result<ID> {
-        let id = self
-            .db
-            .create_github_provider(display_name, application_id, application_secret)
-            .await?;
-        Ok(id.as_id())
-    }
-
     async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider> {
         let provider = self.db.get_github_provider(id.as_rowid()?).await?;
         Ok(provider.into())

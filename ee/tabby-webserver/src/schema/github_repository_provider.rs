@@ -58,12 +58,6 @@ impl NodeType for GithubProvidedRepository {
 
 #[async_trait]
 pub trait GithubRepositoryProviderService: Send + Sync {
-    async fn create_github_repository_provider(
-        &self,
-        display_name: String,
-        application_id: String,
-        application_secret: String,
-    ) -> Result<ID>;
     async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider>;
     async fn read_github_repository_provider_secret(&self, id: ID) -> Result<String>;
     async fn read_github_repository_provider_access_token(&self, id: ID) -> Result<String>;

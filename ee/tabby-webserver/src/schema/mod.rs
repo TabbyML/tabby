@@ -703,20 +703,6 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn create_github_repository_provider(
-        ctx: &Context,
-        display_name: String,
-        application_id: String,
-        application_secret: String,
-    ) -> Result<bool> {
-        check_admin(ctx).await?;
-        ctx.locator
-            .github_repository_provider()
-            .create_github_repository_provider(display_name, application_id, application_secret)
-            .await?;
-        Ok(true)
-    }
-
     async fn update_github_provided_repository_active(
         ctx: &Context,
         id: ID,
