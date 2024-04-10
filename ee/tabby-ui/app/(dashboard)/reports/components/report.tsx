@@ -10,9 +10,12 @@ import { DateRange } from 'react-day-picker'
 import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
 
-import { Language } from '@/lib/gql/generates/graphql'
+import {
+  DailyStatsInPastYearQuery,
+  DailyStatsQuery,
+  Language
+} from '@/lib/gql/generates/graphql'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import { DailyStatsQuery, DailyStatsInPastYearQuery } from '@/lib/gql/generates/graphql'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {

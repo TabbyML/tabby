@@ -19,7 +19,7 @@ import {
   type LabelProps
 } from 'recharts'
 
-import { Language, DailyStatsQuery } from '@/lib/gql/generates/graphql'
+import { DailyStatsQuery, Language } from '@/lib/gql/generates/graphql'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export type LanguageStats = Record<
