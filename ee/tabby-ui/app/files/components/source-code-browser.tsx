@@ -377,10 +377,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       className={cn(className)}
       onLayout={onPanelLayout}
     >
-      <ResizablePanel defaultSize={20} minSize={20} maxSize={40}>
+      <ResizablePanel
+        defaultSize={20}
+        minSize={20}
+        maxSize={40}
+        className="hidden lg:block"
+      >
         <FileTreePanel />
       </ResizablePanel>
-      <ResizableHandle className="w-1 bg-border/40 hover:bg-border active:bg-blue-500" />
+      <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
           <FileDirectoryBreadcrumb className="py-4" />
