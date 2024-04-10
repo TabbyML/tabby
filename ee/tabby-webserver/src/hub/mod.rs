@@ -226,11 +226,11 @@ mod tests {
     #[test]
     fn test_format_authenticated_git_url() {
         assert_eq!(
-            format_authenticated_git_url("https://github.com/TabbyML/tabby".into(), "token".into()),
+            format_authenticated_git_url("https://github.com/TabbyML/tabby".into(), "token"),
             "https://token@github.com/TabbyML/tabby"
         );
         assert_eq!(
-            format_authenticated_git_url("github.com/TabbyML/tabby".into(), "token".into()),
+            format_authenticated_git_url("github.com/TabbyML/tabby".into(), "token"),
             "token@github.com/TabbyML/tabby"
         );
     }
