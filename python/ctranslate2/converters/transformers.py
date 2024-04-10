@@ -1291,10 +1291,16 @@ class GemmaLoader(ModelLoader):
         if num_heads_kv == num_heads:
             num_heads_kv = None
 
+        activation_config = getattr(
+            model.config, "hidden_activation", "gelu_pytorch_tanh"
+        )
+
         spec = transformer_spec.TransformerDecoderModelSpec.from_config(
             num_layers,
             num_heads,
-            activation=common_spec.Activation.GELU,
+            activation=common_spec.Activation.GELU
+            if activation_config == "gelu"
+            else common_spec.Activation.GELUTanh,
             pre_norm=True,
             ffn_glu=True,
             rms_norm=True,
