@@ -1007,7 +1007,7 @@ namespace ctranslate2 {
 
   static std::unique_ptr<const Sampler>
   make_sampler(const DecodingOptions& options) {
-    if (options.sampling_topk == 1)
+    if (options.sampling_topk == 1 || options.sampling_temperature == 0.0)
       return std::make_unique<BestSampler>();
     else
       return std::make_unique<RandomSampler>(options.sampling_topk,
