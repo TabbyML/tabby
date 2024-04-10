@@ -1,8 +1,7 @@
-use std::fmt::Display;
-
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
+use strum::{EnumIter, IntoEnumIterator};
 
 use crate::schema::Result;
 
@@ -15,19 +14,46 @@ pub struct CompletionStats {
     pub selects: i32,
 }
 
-// FIXME(boxbeam): Adding more languages.
-#[derive(GraphQLEnum, Clone, Debug)]
+#[derive(GraphQLEnum, Clone, Debug, Eq, PartialEq, EnumIter)]
 pub enum Language {
     Rust,
     Python,
+    Java,
+    Kotlin,
+    Javascript,
+    Typescript,
+    Go,
+    Ruby,
+    CSharp,
+    C,
+    CPP,
+    Solidity,
+    Other,
 }
 
-impl Display for Language {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Language {
+    pub fn all_known() -> impl Iterator<Item = Language> {
+        Language::iter().filter(|l| l != &Language::Other)
+    }
+
+    pub fn to_strings(&self) -> impl IntoIterator<Item = String> {
         match self {
-            Language::Rust => write!(f, "rust"),
-            Language::Python => write!(f, "python"),
+            Language::Rust => vec!["rust"],
+            Language::Python => vec!["python"],
+            Language::Java => vec!["java"],
+            Language::Kotlin => vec!["kotlin"],
+            Language::Javascript => vec!["javascript", "javascriptreact"],
+            Language::Typescript => vec!["typescript", "typescriptreact"],
+            Language::Go => vec!["go"],
+            Language::Ruby => vec!["ruby"],
+            Language::CSharp => vec!["csharp"],
+            Language::C => vec!["c"],
+            Language::CPP => vec!["cpp"],
+            Language::Solidity => vec!["solidity"],
+            Language::Other => vec!["other"],
         }
+        .into_iter()
+        .map(|s| s.to_string())
     }
 }
 

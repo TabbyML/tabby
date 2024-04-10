@@ -38,6 +38,7 @@ derive_builder = "0.12.0"
 futures = "0.3.28"
 async-stream = "0.3.5"
 regex = "1.10.0"
+strum = { version = "0.24", features = ["derive"] }
 thiserror = "1.0.49"
 utoipa = "3.3"
 axum = "0.6"
