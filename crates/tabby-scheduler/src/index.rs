@@ -86,8 +86,7 @@ fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
     file.tags.into_iter().filter_map(move |tag| {
         let path = Path::new(&file.basedir).join(&file.filepath);
         let Ok(file_content) = std::fs::read_to_string(&path) else {
-            // warn!("Failed to read file '{}'", &file.filepath);
-            eprintln!("Failed to read file '{}'", path.display());
+            warn!("Failed to read file '{}'", path.display());
             return None;
         };
         let name = read_range(&file.filepath, &file_content, tag.name_range)?;
