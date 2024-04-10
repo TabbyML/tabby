@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { sum } from 'lodash-es'
 import moment from 'moment'
 import numeral from 'numeral'
@@ -91,11 +92,9 @@ function StatsSummary({
   )
 }
 
-export function Report({
-  sample
-}: {
-  sample: boolean
-}) {
+export function Report() {
+  const searchParams = useSearchParams()
+  const sample = searchParams.get('sample') === 'true'
   const [members] = useAllMembers()
   const [dateRange, setDateRange] = useState<DateRange>({
     from: moment().subtract(INITIAL_DATE_RANGE, 'day').toDate(),
