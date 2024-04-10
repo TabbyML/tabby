@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { GearIcon } from '@radix-ui/react-icons'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
-import { BookOpenText, MoveRight, Mail } from 'lucide-react'
+import { BookOpenText, Mail, MoveRight } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -1327,10 +1327,7 @@ function IconMoveRight({
   return <MoveRight className={cn('h4 w-4', className)} {...props} />
 }
 
-function IconMail({
-  className,
-  ...props
-}: React.ComponentProps<typeof Mail>) {
+function IconMail({ className, ...props }: React.ComponentProps<typeof Mail>) {
   return <Mail className={cn('h4 w-4', className)} {...props} />
 }
 

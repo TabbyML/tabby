@@ -17,9 +17,9 @@ import {
   IconBackpack,
   IconChat,
   IconCode,
+  IconHome,
   IconLogout,
-  IconSpinner,
-  IconHome
+  IconSpinner
 } from './ui/icons'
 
 export default function UserPanel({

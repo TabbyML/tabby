@@ -77,7 +77,9 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       </>
                     }
                   >
-                    <SidebarButton href="/settings/general">General</SidebarButton>
+                    <SidebarButton href="/settings/general">
+                      General
+                    </SidebarButton>
                     <SidebarButton href="/settings/team">Members</SidebarButton>
                     <SidebarButton href="/settings/subscription">
                       Subscription

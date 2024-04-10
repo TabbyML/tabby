@@ -10,15 +10,21 @@ import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import { IconRotate, IconBarChart, IconMail, IconUser, IconChevronRight } from '@/components/ui/icons'
+import {
+  IconBarChart,
+  IconChevronRight,
+  IconMail,
+  IconRotate,
+  IconUser
+} from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -111,15 +117,17 @@ function MainPanel() {
             trigger={
               <UserAvatar className="-mt-10 h-20 w-20 border-4 border-background" />
             }
-            align='start'
+            align="start"
           />
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger className="mt-2 w-full cursor-default">
                 <div className="flex items-center">
                   <IconMail className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
-                  <p className="max-w-[10rem] truncate text-sm">{data.me.email}</p>
-                </div>   
+                  <p className="max-w-[10rem] truncate text-sm">
+                    {data.me.email}
+                  </p>
+                </div>
               </TooltipTrigger>
               <TooltipContent>
                 <p>{data.me.email}</p>
@@ -129,7 +137,7 @@ function MainPanel() {
           <div className="flex items-center py-1">
             <IconUser className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
             <Link
-              className='flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50'
+              className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
               href="/profile"
             >
               <span>Profile</span>
@@ -140,7 +148,7 @@ function MainPanel() {
             <div className="flex items-center py-1">
               <IconBarChart className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
               <Link
-                className='flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50'
+                className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
                 href="/cluster"
               >
                 <span>Admin Dashboard</span>
@@ -150,11 +158,10 @@ function MainPanel() {
           )}
           <Configuration />
         </div>
-        
-        <Stats /> 
+
+        <Stats />
       </div>
     </div>
-    
   )
 }
 
