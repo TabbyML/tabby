@@ -180,7 +180,6 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  createGithubRepositoryProvider(displayName: String!, applicationId: String!, applicationSecret: String!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
