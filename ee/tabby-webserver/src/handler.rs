@@ -19,9 +19,8 @@ use tabby_db::DbConn;
 use tracing::{error, warn};
 
 use crate::{
-    cron, hub, oauth,
+    cron, hub, integrations, oauth,
     path::db_file,
-    integrations,
     repositories::{self, RepositoryCache},
     schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
     service::{create_service_locator, event_logger::create_event_logger},
