@@ -1,5 +1,4 @@
 import React, { Suspense, useContext } from 'react'
-import filename2prism from 'filename2prism'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { TFileMeta } from '@/lib/types'
@@ -7,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
 
+import filename2prism from '../lib/filename2prism'
 import { BlobHeader } from './blob-header'
 import { SourceCodeBrowserContext } from './source-code-browser'
 
@@ -32,7 +32,7 @@ export const TextFileView: React.FC<TextFileViewProps> = ({
   const detectedLanguage = activePath
     ? filename2prism(activePath)[0]
     : undefined
-  const language = (meta?.language ?? detectedLanguage) || ''
+  const language = detectedLanguage ?? 'plain'
   const isMarkdown = !!value && language === 'markdown'
   const isPlain = searchParams.get('plain')?.toString() === '1'
   const showMarkdown = isMarkdown && !isPlain
