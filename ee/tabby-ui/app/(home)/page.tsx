@@ -62,7 +62,7 @@ function Configuration() {
             <Input
               value={externalUrl}
               onChange={noop}
-              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-primary-foreground/50 p-0 shadow-none dark:border-primary/50"
+              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-muted-foreground p-0 shadow-none dark:border-primary/50"
             />
             <CopyButton value={externalUrl} />
           </span>
@@ -72,7 +72,7 @@ function Configuration() {
           <Label className="text-xs font-semibold">Token</Label>
           <span className="flex items-center gap-1">
             <Input
-              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-primary-foreground/50 p-0 font-mono shadow-none dark:border-primary/50"
+              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-muted-foreground p-0 font-mono shadow-none dark:border-primary/50"
               value={data.me.authToken}
               onChange={noop}
             />
@@ -88,7 +88,7 @@ function Configuration() {
           </span>
         </div>
       </CardContent>
-      <CardFooter className="px-0 text-xs text-primary-foreground/50 dark:text-primary/50">
+      <CardFooter className="px-0 text-xs text-muted-foreground">
         <span>
           Use information above for IDE extensions / plugins configuration, see{' '}
           <a
@@ -124,11 +124,12 @@ function MainPanel() {
   }
 
   return (
-      <div className="mx-auto flex w-screen max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto md:flex-row md:py-40 lg:gap-x-10 xl:px-0">
-        <div className="relative top-16 mb-5 flex flex-col self-start rounded-lg bg-primary/90 px-5 pb-4 text-primary-foreground dark:bg-primary-foreground/90 dark:text-primary md:sticky lg:mb-0 lg:w-64">
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="mx-auto flex w-screen max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto md:flex-row md:py-10 lg:gap-x-10 xl:px-0">
+        <div className="relative mb-5 flex flex-col rounded-lg px-5 pb-4 lg:mb-0 lg:w-64">
           <UserPanel
             trigger={
-              <UserAvatar className="-mt-10 h-20 w-20 border-4 border-background" />
+              <UserAvatar className="h-20 w-20 border-4 border-background" />
             }
             align="start"
           />
@@ -136,7 +137,7 @@ function MainPanel() {
             <Tooltip>
               <TooltipTrigger className="mt-2 w-full cursor-default">
                 <div className="flex items-center">
-                  <IconMail className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
+                  <IconMail className="mr-2 text-muted-foreground" />
                   <p className="max-w-[10rem] truncate text-sm">
                     {data.me.email}
                   </p>
@@ -151,7 +152,7 @@ function MainPanel() {
           <Configuration />
 
           <div className="flex items-center py-1">
-            <IconGear className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
+            <IconGear className="mr-2 text-muted-foreground" />
             <Link
               className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
               href="/profile"
@@ -169,21 +170,22 @@ function MainPanel() {
             }}
           >
             {theme === 'dark' ? (
-              <IconMoon className="mr-2 text-primary-foreground/50 transition-all dark:text-primary/50" />
+              <IconMoon className="mr-2 text-muted-foreground transition-all" />
             ) : (
-              <IconSun className="mr-2 text-primary-foreground/50 transition-all dark:text-primary/50" />
+              <IconSun className="mr-2 text-muted-foreground transition-all" />
             )}
             <span className="text-sm transition-opacity hover:opacity-50">{capitalize(theme)}</span>
           </div>
 
           <div className="flex cursor-pointer items-center py-1" onClick={handleSignOut}>
-            <IconLogout className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
+            <IconLogout className="mr-2 text-muted-foreground" />
             <span className="text-sm transition-opacity hover:opacity-50">Logout</span>
             {signOutLoading && <IconSpinner className="ml-1" />}
           </div>
         </div>
 
         <Stats />
+      </div>
       </div>
   )
 }

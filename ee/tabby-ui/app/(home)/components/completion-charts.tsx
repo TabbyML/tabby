@@ -12,9 +12,7 @@ import {
   Line,
   LineChart,
   ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
+  Tooltip
 } from 'recharts'
 
 import { DailyStatsQuery, Language } from '@/lib/gql/generates/graphql'
@@ -295,12 +293,12 @@ export function CompletionCharts({
       </div>
       </div>
 
-      <div>
+      {/* <div>
         <h3 className="mb-2 text-sm font-medium tracking-tight">
           Daily completions
         </h3>
         <div className="flex items-end justify-center rounded-xl border p-5">
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={200}>
               <BarChart
                 data={completionData}
                 margin={{
@@ -331,7 +329,7 @@ export function CompletionCharts({
               </BarChart>
             </ResponsiveContainer>
           </div>
-      </div>
+      </div> */}
     </>
     
   )
