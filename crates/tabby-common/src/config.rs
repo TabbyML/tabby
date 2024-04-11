@@ -150,9 +150,6 @@ impl Default for ServerConfig {
 #[async_trait]
 pub trait RepositoryAccess: Send + Sync {
     async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>>;
-    fn start_snapshot(&self, _version: u64) {}
-    fn process_file(&self, _version: u64, _file: SourceFile) {}
-    fn finish_snapshot(&self, _version: u64) {}
 }
 
 pub struct ConfigRepositoryAccess;
