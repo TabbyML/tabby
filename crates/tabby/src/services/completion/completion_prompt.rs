@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+
 use lazy_static::lazy_static;
 use regex::Regex;
 use strfmt::strfmt;
@@ -38,6 +39,10 @@ impl PromptBuilder {
     }
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
+        if let Some(snippets) = extract_snippets_from_segments(segments) {
+            return snippets;
+        }
+
         if let Some(code) = &self.code {
             collect_snippets(code.as_ref(), language, &segments.prefix).await
         } else {
@@ -97,6 +102,49 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
         .collect();
     let comments = commented_lines.join("\n");
     format!("{}\n{}", comments, prefix)
+}
+
+fn extract_snippets_from_segments(segments: &Segments) -> Option<Vec<Snippet>> {
+    let mut count_characters = 0;
+    let mut ret = Vec::new();
+
+    // declarations has highest priority.
+    if let Some(declarations) = &segments.declarations {
+        for declaration in declarations {
+            if count_characters + declaration.body.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
+                break;
+            }
+
+            count_characters += declaration.body.len();
+            ret.push(Snippet {
+                filepath: declaration.filepath.clone(),
+                body: declaration.body.clone(),
+                score: 1.0,
+            });
+        }
+    }
+
+    // then comes to the snippets from changed files.
+    if let Some(relevant_snippets) = &segments.relevant_snippets_from_changed_files {
+        for snippet in relevant_snippets {
+            if count_characters + snippet.body.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
+                break;
+            }
+
+            count_characters += snippet.body.len();
+            ret.push(Snippet {
+                filepath: snippet.filepath.clone(),
+                body: snippet.body.clone(),
+                score: 1.0,
+            });
+        }
+    }
+
+    if ret.is_empty() {
+        None
+    } else {
+        Some(ret)
+    }
 }
 
 async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> Vec<Snippet> {
@@ -175,6 +223,8 @@ fn tokenize_text(text: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    use crate::services::completion::Declaration;
+
     use super::*;
 
     fn create_prompt_builder(with_template: bool) -> PromptBuilder {
@@ -400,5 +450,36 @@ def this_is_prefix():\n";
                 "lastIndexOf",
             ]
         );
+    }
+
+    #[test]
+    fn it_extract_snippets_from_segments() {
+        let segments = Segments {
+            prefix: "def fib(n):\n    ".to_string(),
+            suffix: Some("\n        return fib(n - 1) + fib(n - 2)".to_string()),
+            filepath: None,
+            git_url: None,
+            declarations: None,
+            relevant_snippets_from_changed_files: None,
+            clipboard: None,
+        };
+
+        assert!(extract_snippets_from_segments(&segments).is_none());
+
+        let segments = Segments {
+            prefix: "def fib(n):\n    ".to_string(),
+            suffix: Some("\n        return fib(n - 1) + fib(n - 2)".to_string()),
+            filepath: None,
+            git_url: None,
+            declarations: Some(vec![Declaration {
+                filepath: "file:///path/to/file.py".to_string(),
+                body: "def fib(n):\n    return n if n <= 1 else fib(n - 1) + fib(n - 2)"
+                    .to_string(),
+            }]),
+            relevant_snippets_from_changed_files: None,
+            clipboard: None,
+        };
+
+        assert!(extract_snippets_from_segments(&segments).is_some_and(|x| x.len() == 1));
     }
 }
