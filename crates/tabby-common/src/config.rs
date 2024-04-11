@@ -29,7 +29,7 @@ impl Config {
             cfg_path.display()
         ))?;
 
-        if let Err(e) = cfg.validate_names() {
+        if let Err(e) = cfg.validate_dirs() {
             cfg = Default::default();
             InfoMessage::new(
                 "Parsing config failed",
@@ -55,15 +55,12 @@ impl Config {
             .expect("Failed to write config file");
     }
 
-    fn validate_names(&self) -> Result<()> {
-        let mut names = HashSet::new();
+    fn validate_dirs(&self) -> Result<()> {
+        let mut dirs = HashSet::new();
         for repo in self.repositories.iter() {
-            let name = repo.name();
-            if !RepositoryConfig::validate_name(&name) {
-                return Err(anyhow!("Invalid characters in repository name: {}", name));
-            }
-            if !names.insert(repo.name()) {
-                return Err(anyhow!("Duplicate name in `repositories`: {}", repo.name()));
+            let dir = repo.dir().display().to_string();
+            if !dirs.insert(dir.clone()) {
+                return Err(anyhow!("Duplicate dir in `repositories`: {}", dir));
             }
         }
         Ok(())
@@ -106,7 +103,7 @@ impl RepositoryConfig {
             let path = self.git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(self.name())
+            repositories_dir().join(sanitize_name(&self.git_url))
         }
     }
 
