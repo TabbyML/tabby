@@ -1,13 +1,13 @@
 'use client'
 
 import React, { PropsWithChildren } from 'react'
-import filename2prism from 'filename2prism'
 import { compact, findIndex, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
+import filename2prism from '@/lib/filename2prism'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
@@ -254,14 +254,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
 
-  // fetch active file meta
-  const { data: fileMeta } = useSWRImmutable(
-    isFileSelected
-      ? `/repositories/${activeRepoName}/meta/${activeBasename}`
-      : null,
-    fetcher
-  )
-
   // fetch active dir
   const {
     data: subTree,
@@ -398,11 +390,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
               />
             )}
             {showTextFileView && (
-              <TextFileView
-                blob={fileBlob}
-                meta={fileMeta}
-                contentLength={contentLength}
-              />
+              <TextFileView blob={fileBlob} contentLength={contentLength} />
             )}
             {showRawFileView && (
               <RawFileView
@@ -560,4 +548,4 @@ async function getFileViewType(
 
 export type { TFileMap, TFileMapItem }
 
-export { SourceCodeBrowserContext, SourceCodeBrowser, getFileViewType }
+export { SourceCodeBrowserContext, SourceCodeBrowser }

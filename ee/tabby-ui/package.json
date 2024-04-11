@@ -58,7 +58,6 @@
     "copy-to-clipboard": "^3.3.3",
     "date-fns": "^3.6.0",
     "downshift": "^8.2.2",
-    "filename2prism": "^3.0.0",
     "focus-trap-react": "^10.1.1",
     "graphql": "^16.8.1",
     "humanize-duration": "^3.31.0",
