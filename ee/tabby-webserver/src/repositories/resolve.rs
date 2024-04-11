@@ -152,8 +152,6 @@ impl ResolveState {
 
     pub async fn find_repository(&self, name: &str) -> Option<RepositoryConfig> {
         let repository = self.service.get_repository_by_name(name).await.ok()?;
-        Some(RepositoryConfig::new(
-            repository.git_url.clone(),
-        ))
+        Some(RepositoryConfig::new(repository.git_url.clone()))
     }
 }

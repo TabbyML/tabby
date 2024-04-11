@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
 use juniper_axum::relay::NodeType;
-use validator::Validate;
-use regex::Regex;
 use lazy_static::lazy_static;
+use regex::Regex;
+use validator::Validate;
 
 use super::{Context, Result};
 

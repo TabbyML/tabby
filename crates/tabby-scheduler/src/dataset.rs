@@ -84,7 +84,11 @@ impl RepositoryExt for RepositoryConfig {
                     access.process_file(snapshot_version, source_file);
                 }
                 Err(e) => {
-                    error!("Cannot read '{}/{}': '{e}'", basedir.display(), relative_path.display());
+                    error!(
+                        "Cannot read '{}/{}': '{e}'",
+                        basedir.display(),
+                        relative_path.display()
+                    );
                 }
             }
         }
