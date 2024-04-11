@@ -57,6 +57,8 @@ thiserror.workspace = true
 chrono.workspace = true
 axum-prometheus = "0.4.0"
 uuid.workspace = true
+nucleo = { workspace = true }
+url = { workspace = true }
 
 [dependencies.openssl]
 optional = true

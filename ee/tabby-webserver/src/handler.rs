@@ -36,13 +36,13 @@ use crate::{
     ui,
 };
 
-struct ServiceRepositoryAccess {
+struct RepositoryAccessImpl {
     service: Arc<dyn RepositoryService>,
     url_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 #[async_trait]
-impl RepositoryAccess for ServiceRepositoryAccess {
+impl RepositoryAccess for RepositoryAccessImpl {
     async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
         let mut cache = self.url_cache.lock().await;
         let repos = cache
@@ -62,13 +62,6 @@ impl RepositoryAccess for ServiceRepositoryAccess {
             .clone();
 
         Ok(repos)
-    }
-}
-
-fn new_repository_access(service: Arc<dyn RepositoryService>) -> impl RepositoryAccess {
-    ServiceRepositoryAccess {
-        service,
-        url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
     }
 }
 
@@ -99,7 +92,10 @@ impl WebserverHandle {
     }
 
     pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
-        Arc::new(new_repository_access(self.repository_service.clone()))
+        Arc::new(RepositoryAccessImpl {
+            service: self.repository_service.clone(),
+            url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
+        })
     }
 
     pub async fn attach_webserver(

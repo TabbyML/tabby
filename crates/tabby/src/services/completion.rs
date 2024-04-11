@@ -13,7 +13,6 @@ use tabby_common::{
 };
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use thiserror::Error;
-use tracing::debug;
 use utoipa::ToSchema;
 
 use super::model;
@@ -53,9 +52,6 @@ pub struct CompletionRequest {
 
     /// The seed used for randomly selecting tokens
     seed: Option<u64>,
-
-    /// The URL of the git repository being worked on
-    git_url: Option<String>,
 }
 
 impl CompletionRequest {
@@ -251,7 +247,6 @@ impl CompletionService {
 
     async fn build_snippets(
         &self,
-        git_url: &str,
         language: &str,
         segments: &Segments,
         disable_retrieval_augmented_code_completion: bool,
@@ -260,13 +255,17 @@ impl CompletionService {
             return snippets;
         }
 
-        if !disable_retrieval_augmented_code_completion {
-            self.prompt_builder
-                .collect(git_url, language, segments)
-                .await
-        } else {
-            vec![]
+        if disable_retrieval_augmented_code_completion {
+            return vec![];
         }
+
+        let Some(git_url) = segments.git_url.as_ref() else {
+            return vec![];
+        };
+
+        self.prompt_builder
+            .collect(git_url, language, segments)
+            .await
     }
 
     fn text_generation_options(
@@ -301,15 +300,11 @@ impl CompletionService {
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
-        } else if let Some((segments, git_url)) =
-            request.segments.as_ref().zip(request.git_url.as_ref())
-        {
-            debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
+        } else if let Some(segments) = request.segments.as_ref() {
             let snippets = self
                 .build_snippets(
-                    git_url,
                     &language,
-                    segments,
+                    &segments,
                     request.disable_retrieval_augmented_code_completion(),
                 )
                 .await;
@@ -320,7 +315,6 @@ impl CompletionService {
         } else {
             return Err(CompletionError::EmptyPrompt);
         };
-        debug!("PROMPT: {}", prompt);
 
         let text = self.engine.generate(&prompt, options).await;
         let segments = segments.cloned().map(|s| s.into());

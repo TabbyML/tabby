@@ -2,6 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
+use nucleo::Utf32String;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
     config::RepositoryAccess,
@@ -17,17 +18,18 @@ use tantivy::{
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
+use url::Url;
 
 struct CodeSearchImpl {
     reader: IndexReader,
     query_parser: QueryParser,
 
     schema: CodeSearchSchema,
-    repo_access: Arc<dyn RepositoryAccess>,
+    repository_access: Arc<dyn RepositoryAccess>,
 }
 
 impl CodeSearchImpl {
-    fn load(repo_access: Arc<dyn RepositoryAccess>) -> Result<Self> {
+    fn load(repository_access: Arc<dyn RepositoryAccess>) -> Result<Self> {
         let code_schema = index::CodeSearchSchema::new();
         let index = Index::open_in_dir(path::index_dir())?;
         register_tokenizers(&index);
@@ -42,16 +44,16 @@ impl CodeSearchImpl {
             .reload_policy(tantivy::ReloadPolicy::OnCommit)
             .try_into()?;
         Ok(Self {
-            repo_access,
+            repository_access,
             reader,
             query_parser,
             schema: code_schema,
         })
     }
 
-    async fn load_async(repo_access: Arc<dyn RepositoryAccess>) -> CodeSearchImpl {
+    async fn load_async(repository_access: Arc<dyn RepositoryAccess>) -> CodeSearchImpl {
         loop {
-            match CodeSearchImpl::load(repo_access.clone()) {
+            match CodeSearchImpl::load(repository_access.clone()) {
                 Ok(code) => {
                     info!("Index is ready, enabling server...");
                     return code;
@@ -126,11 +128,22 @@ impl CodeSearch for CodeSearchImpl {
         let body_query = self.schema.body_query(tokens);
 
         let repos = self
-            .repo_access
+            .repository_access
             .list_repositories()
             .await
             .unwrap_or_default();
-        let git_url_query = self.schema.git_url_query(git_url, &repos);
+
+        let git_url = Url::parse(git_url)
+            .map(|mut url| {
+                let _ = url.set_password(None);
+                let _ = url.set_username("");
+                url.to_string()
+            })
+            .unwrap_or_else(|_| git_url.to_string());
+
+        let git_url = closest_match(&git_url, repos.iter().map(|repo| &*repo.git_url));
+
+        let git_url_query = self.schema.git_url_query(&git_url);
 
         let query = BooleanQuery::new(vec![
             (Occur::Must, language_query),
@@ -139,6 +152,31 @@ impl CodeSearch for CodeSearchImpl {
         ]);
         self.search_with_query(&query, limit, offset).await
     }
+}
+
+fn closest_match<'a>(
+    search_term: &'a str,
+    search_input: impl IntoIterator<Item = &'a str>,
+) -> String {
+    let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
+    search_input
+        .into_iter()
+        .filter_map(|entry| {
+            Some((
+                entry.to_string(),
+                // Matching using the input URL as the haystack instead of the needle yielded better scoring
+                // Example:
+                // haystack = "https://github.com/boxbeam/untwine" needle = "https://abc@github.com/boxbeam/untwine.git" => No match
+                // haystack = "https://abc@github.com/boxbeam/untwine.git" needle = "https://github.com/boxbeam/untwine" => Match, score 842
+                nucleo.fuzzy_match(
+                    Utf32String::from(search_term).slice(..),
+                    Utf32String::from(entry).slice(..),
+                )?,
+            ))
+        })
+        .max_by_key(|(_, score)| *score)
+        .map(|(entry, _score)| entry)
+        .unwrap_or_else(|| search_term.to_string())
 }
 
 fn get_field(doc: &Document, field: Field) -> String {
@@ -153,7 +191,7 @@ struct CodeSearchService {
 }
 
 impl CodeSearchService {
-    pub fn new(repo_access: Arc<dyn RepositoryAccess>) -> Self {
+    pub fn new(repository_access: Arc<dyn RepositoryAccess>) -> Self {
         let search = Arc::new(Mutex::new(None));
 
         let ret = Self {
@@ -161,7 +199,7 @@ impl CodeSearchService {
         };
 
         tokio::spawn(async move {
-            let code = CodeSearchImpl::load_async(repo_access).await;
+            let code = CodeSearchImpl::load_async(repository_access).await;
             *search.lock().await = Some(code);
         });
 
@@ -169,8 +207,8 @@ impl CodeSearchService {
     }
 }
 
-pub fn create_code_search(repo_access: Arc<dyn RepositoryAccess>) -> impl CodeSearch {
-    CodeSearchService::new(repo_access)
+pub fn create_code_search(repository_access: Arc<dyn RepositoryAccess>) -> impl CodeSearch {
+    CodeSearchService::new(repository_access)
 }
 
 #[async_trait]
@@ -202,5 +240,45 @@ impl CodeSearch for CodeSearchService {
         } else {
             Err(CodeSearchError::NotReady)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_closest_match() {
+        assert_eq!(
+            closest_match(
+                "https://github.com/example/test.git",
+                ["https://github.com/example/test"]
+            ),
+            "https://github.com/example/test"
+        );
+
+        assert_eq!(
+            closest_match(
+                "https://creds@github.com/example/test",
+                ["https://github.com/example/test"]
+            ),
+            "https://github.com/example/test"
+        );
+
+        assert_eq!(
+            closest_match(
+                "https://github.com/example/another-repo",
+                ["https://github.com/examp/anoth-repo"]
+            ),
+            "https://github.com/examp/anoth-repo"
+        );
+
+        assert_eq!(
+            closest_match(
+                "https://github.com/TabbyML/tabby",
+                ["https://github.com/TabbyML/registry-tabby"]
+            ),
+            "https://github.com/TabbyML/tabby"
+        );
     }
 }

@@ -1,12 +1,9 @@
-use nucleo::Utf32String;
 use tantivy::{
     query::{TermQuery, TermSetQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
     tokenizer::{NgramTokenizer, RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index, Term,
 };
-
-use crate::config::RepositoryConfig;
 
 static CODE_TOKENIZER: &str = "code";
 static IDENTIFIER_TOKENIZER: &str = "identifier";
@@ -102,30 +99,9 @@ impl CodeSearchSchema {
         ))
     }
 
-    pub fn git_url_query(&self, git_url: &str, repos: &Vec<RepositoryConfig>) -> Box<TermQuery> {
-        let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
-
-        let closest_match = repos
-            .iter()
-            .filter_map(|repo| {
-                Some((
-                    repo.git_url.clone(),
-                    // Matching using the input URL as the haystack instead of the needle yielded better scoring
-                    // Example:
-                    // haystack = "https://github.com/boxbeam/untwine" needle = "https://abc@github.com/boxbeam/untwine.git" => No match
-                    // haystack = "https://abc@github.com/boxbeam/untwine.git" needle = "https://github.com/boxbeam/untwine" => Match, score 842
-                    nucleo.fuzzy_match(
-                        Utf32String::from(git_url).slice(..),
-                        Utf32String::from(&*repo.git_url).slice(..),
-                    )?,
-                ))
-            })
-            .max_by_key(|(_, score)| *score)
-            .map(|(entry, _score)| entry)
-            .unwrap_or_else(|| git_url.to_string());
-
+    pub fn git_url_query(&self, git_url: &str) -> Box<TermQuery> {
         Box::new(TermQuery::new(
-            Term::from_field_text(self.field_git_url, &closest_match),
+            Term::from_field_text(self.field_git_url, git_url),
             IndexRecordOption::Basic,
         ))
     }

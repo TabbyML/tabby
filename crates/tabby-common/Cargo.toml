@@ -19,7 +19,6 @@ serde_json.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
 regex.workspace = true
-nucleo = { workspace = true }
 
 [features]
 testutils = []
