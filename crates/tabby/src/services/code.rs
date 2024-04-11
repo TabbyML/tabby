@@ -133,16 +133,9 @@ impl CodeSearch for CodeSearchImpl {
             .await
             .unwrap_or_default();
 
-        let git_url = Url::parse(git_url)
-            .map(|mut url| {
-                let _ = url.set_password(None);
-                let _ = url.set_username("");
-                url.to_string()
-            })
-            .unwrap_or_else(|_| git_url.to_string());
-
-        let git_url = closest_match(&git_url, repos.iter().map(|repo| &*repo.git_url))
-            .unwrap_or_else(|| git_url.to_string());
+        let Some(git_url) = closest_match(&git_url, repos.iter().map(|repo| &*repo.git_url)) else {
+            return Ok(SearchResponse::default());
+        };
 
         let git_url_query = self.schema.git_url_query(&git_url);
 
@@ -155,10 +148,22 @@ impl CodeSearch for CodeSearchImpl {
     }
 }
 
+fn strip_url_authentication(url: &str) -> String {
+    Url::parse(url)
+        .map(|mut url| {
+            let _ = url.set_password(None);
+            let _ = url.set_username("");
+            url.to_string()
+        })
+        .unwrap_or_else(|_| url.to_string())
+}
+
 fn closest_match<'a>(
     search_term: &'a str,
     search_input: impl IntoIterator<Item = &'a str>,
 ) -> Option<String> {
+    let search_term = strip_url_authentication(search_term);
+
     let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
     search_input
         .into_iter()
@@ -170,8 +175,8 @@ fn closest_match<'a>(
                 // haystack = "https://github.com/boxbeam/untwine" needle = "https://abc@github.com/boxbeam/untwine.git" => No match
                 // haystack = "https://abc@github.com/boxbeam/untwine.git" needle = "https://github.com/boxbeam/untwine" => Match, score 842
                 nucleo.fuzzy_match(
-                    Utf32String::from(search_term).slice(..),
-                    Utf32String::from(entry).slice(..),
+                    Utf32String::from(&*search_term).slice(..),
+                    Utf32String::from(&*strip_url_authentication(entry)).slice(..),
                 )?,
             ))
         })
@@ -277,6 +282,27 @@ mod tests {
             closest_match(
                 "https://github.com/TabbyML/tabby",
                 ["https://github.com/TabbyML/registry-tabby"]
+            ),
+            None
+        );
+
+        assert_eq!(
+            closest_match(
+                "https://github.com/TabbyML/tabby",
+                ["https://github.com/TabbyML/uptime"]
+            ),
+            None
+        );
+
+        assert_eq!(
+            closest_match("https://github.com", ["https://github.com/TabbyML/tabby"],),
+            None
+        );
+
+        assert_eq!(
+            closest_match(
+                "https://bitbucket.com/TabbyML/tabby",
+                ["https://github.com/TabbyML/tabby"]
             ),
             None
         );
