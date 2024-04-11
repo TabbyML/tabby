@@ -99,20 +99,20 @@ impl DbConn {
             .map(|u| u.to_string())
             .collect::<Vec<_>>()
             .join(",");
-        Ok(sqlx::query_as!(
-            UserCompletionDailyStatsDAO,
+        Ok(sqlx::query_as(&format!(
             r#"
-        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as "start!: DateTime<Utc>",
-               SUM(1) as "completions!: i32",
-               SUM(selects) as "selects!: i32"
-        FROM user_completions
-        WHERE created_at >= DATE('now', '-1 year')
-            AND (?1 = '' OR user_id IN (?1))
-        GROUP BY 1
-        ORDER BY 1 ASC
-        "#,
-            users
-        )
+            SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+                   SUM(1) as completions,
+                   SUM(selects) as selects
+            FROM user_completions
+            WHERE created_at >= DATE('now', '-1 year')
+                AND ({users_empty} OR user_id IN ({users}))
+            GROUP BY 1
+            ORDER BY 1 ASC
+            "#,
+            users_empty = users.is_empty(),
+        ))
+        .bind(users)
         .fetch_all(&self.pool)
         .await?)
     }
@@ -141,6 +141,9 @@ impl DbConn {
             .collect::<Vec<_>>()
             .join(",");
 
+        // Groups stats by day, using `DATE(created_at)` to extract the day and converting it into seconds
+        // with `STRFTIME('%s')`. The effect of this is to extract the unix timestamp (seconds) rounded to
+        // the start of the day and group them by that.
         let res = sqlx::query_as(&format!(
                 r#"
             SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,

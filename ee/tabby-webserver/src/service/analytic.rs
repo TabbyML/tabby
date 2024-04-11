@@ -129,14 +129,38 @@ mod tests {
             .await
             .unwrap();
 
-        let svc = new_analytic_service(db);
+        let svc = new_analytic_service(db.clone());
         let activity = svc
             .daily_stats_in_past_year(vec![user_id.as_id()])
             .await
             .unwrap();
+
         assert_eq!(1, activity.len());
         assert_eq!(1, activity[0].completions);
         assert_eq!(1, activity[0].selects);
+
+        let user_id2 = db
+            .create_user("test2@example.com".into(), Some("pass".into()), false)
+            .await
+            .unwrap();
+
+        db.create_user_completion(
+            timestamp(),
+            user_id2,
+            "completion_id2".to_string(),
+            "rust".to_string(),
+        )
+        .await
+        .unwrap();
+
+        let activity2 = svc
+            .daily_stats_in_past_year(vec![user_id.as_id(), user_id2.as_id()])
+            .await
+            .unwrap();
+
+        assert_eq!(1, activity2.len());
+        assert_eq!(2, activity2[0].completions);
+        assert_eq!(1, activity2[0].selects);
     }
 
     #[tokio::test]
