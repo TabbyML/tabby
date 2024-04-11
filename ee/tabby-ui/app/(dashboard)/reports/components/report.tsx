@@ -275,11 +275,13 @@ export function Report() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value={'all'}>All</SelectItem>
-                    {Object.entries(Language).sort((_, b) => b[1] === Language.Other ? -1 : 0).map(([key, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {key}
-                      </SelectItem>
-                    ))}
+                    {Object.entries(Language)
+                      .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
+                      .map(([key, value]) => (
+                        <SelectItem key={value} value={value}>
+                          {key}
+                        </SelectItem>
+                      ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
