@@ -1,5 +1,5 @@
 import React from 'react'
-import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -12,23 +12,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { UserAvatar } from '@/components/user-avatar'
 
 import {
   IconBackpack,
   IconChat,
   IconCode,
+  IconGear,
   IconHome,
   IconLogout,
   IconSpinner
 } from './ui/icons'
 
 export default function UserPanel({
-  trigger,
-  align
+  children
 }: {
-  trigger?: React.ReactNode
-  align?: 'start' | 'center' | 'end'
+  children?: React.ReactNode
 }) {
   const signOut = useSignOut()
   const [{ data }] = useMe()
@@ -43,27 +41,37 @@ export default function UserPanel({
     setSignOutLoading(false)
   }
 
+  const pathname = usePathname()
+  const isHome = pathname === '/'
+
   if (!user) {
     return
   }
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        {trigger || <UserAvatar className="h-10 w-10 border" />}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        collisionPadding={{ right: 16 }}
-        align={align || 'center'}
-      >
+      <DropdownMenuTrigger>{children}</DropdownMenuTrigger>
+      <DropdownMenuContent collisionPadding={{ right: 16 }}>
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <Link href="/" className="flex items-center">
+        {!isHome && (
+          <DropdownMenuItem
+            onClick={() => window.open('/')}
+            className="cursor-pointer"
+          >
             <IconHome />
             <span className="ml-2">Home</span>
-          </Link>
-        </DropdownMenuItem>
+          </DropdownMenuItem>
+        )}
+        {isHome && (
+          <DropdownMenuItem
+            onClick={() => window.open('/profile')}
+            className="cursor-pointer"
+          >
+            <IconGear />
+            <span className="ml-2">Settings</span>
+          </DropdownMenuItem>
+        )}
         {isChatEnabled && (
           <DropdownMenuItem
             onClick={() => window.open('/playground')}
@@ -94,7 +102,7 @@ export default function UserPanel({
           className="cursor-pointer"
         >
           <IconLogout />
-          <span className="ml-2">Logout</span>
+          <span className="ml-2">Sign out</span>
           {signOutLoading && <IconSpinner className="ml-1" />}
         </DropdownMenuItem>
       </DropdownMenuContent>
