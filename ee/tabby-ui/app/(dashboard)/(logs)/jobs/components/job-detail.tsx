@@ -31,7 +31,7 @@ export default function JobRunDetail() {
     variables: { ids: [id as string] },
     pause: !id
   })
-  
+
   const currentNode = data?.jobRuns?.edges?.[0]?.node
 
   React.useEffect(() => {
