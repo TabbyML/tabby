@@ -196,6 +196,7 @@ mod tests {
             filepath: None,
             git_url: None,
             declarations: None,
+            relevant_snippets_from_changed_files: None,
             clipboard: None,
         }
     }

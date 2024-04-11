@@ -108,8 +108,8 @@ pub struct Segments {
     suffix: Option<String>,
 
     /// The relative path of the file that is being edited.
-    /// - When `git_url` is set, this is the path of the file in the git repository.
-    /// - When `git_url` is empty, this is the path of the file in the workspace.
+    /// - When [Segments::git_url] is set, this is the path of the file in the git repository.
+    /// - When [Segments::git_url] is empty, this is the path of the file in the workspace.
     filepath: Option<String>,
 
     /// The remote URL of the current git repository.
@@ -117,9 +117,21 @@ pub struct Segments {
     /// or the git repository does not have a remote URL.
     git_url: Option<String>,
 
-    /// The relevant declaration code snippets provided by editor.
-    /// It'll contains declarations extracted from `prefix` segments using LSP.
+    /// The relevant declaration code snippets provided by the editor's LSP,
+    /// contain declarations of symbols extracted from [Segments::prefix].
     declarations: Option<Vec<Declaration>>,
+
+    /// The relevant code snippets extracted from recently edited files.
+    /// These snippets are selected from candidates found within code chunks
+    /// based on the edited location.
+    /// The current editing file is excluded from the search candidates.
+    ///
+    /// When provided alongside [Segments::declarations], the snippets have
+    /// already been deduplicated to ensure no duplication with entries
+    /// in [Segments::declarations].
+    ///
+    /// Sorted in descending order of [Snippet::score].
+    relevant_snippets_from_changed_files: Option<Vec<Snippet>>,
 
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
@@ -144,7 +156,7 @@ impl From<Segments> for api::event::Segments {
 pub struct Declaration {
     /// Filepath of the file where the snippet is from.
     /// - When the file belongs to the same workspace as the current file,
-    ///   this is a relative filepath, that has the same root as the current file.
+    ///   this is a relative filepath, use the same rule as [Segments::filepath].
     /// - When the file located outside the workspace, such as in a dependency package,
     ///   this is a file URI with an absolute filepath.
     pub filepath: String,
@@ -376,6 +388,7 @@ mod tests {
             filepath: None,
             git_url: None,
             declarations: None,
+            relevant_snippets_from_changed_files: None,
             clipboard: None,
         };
 
@@ -391,6 +404,7 @@ mod tests {
                 body: "def fib(n):\n    return n if n <= 1 else fib(n - 1) + fib(n - 2)"
                     .to_string(),
             }]),
+            relevant_snippets_from_changed_files: None,
             clipboard: None,
         };
 
