@@ -121,8 +121,8 @@ pub struct Segments {
     /// or the git repository does not have a remote URL.
     git_url: Option<String>,
 
-    /// The relevant declaration code snippets provided by editor.
-    /// It'll contains declarations extracted from `prefix` segments using LSP.
+    /// The relevant declaration code snippets provided by the editor's LSP,
+    /// contain declarations of symbols extracted from [Segments::prefix].
     declarations: Option<Vec<Declaration>>,
 
     /// The relevant code snippets extracted from recently edited files.

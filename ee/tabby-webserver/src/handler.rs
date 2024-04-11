@@ -75,7 +75,7 @@ fn new_repository_access(service: Arc<dyn RepositoryService>) -> impl Repository
 
 pub struct WebserverHandle {
     db: DbConn,
-    event_logger: Arc<dyn EventLogger>,
+    logger: Arc<dyn EventLogger>,
     repository_service: Arc<dyn RepositoryService>,
 }
 
@@ -90,13 +90,13 @@ impl WebserverHandle {
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
         WebserverHandle {
             db,
-            event_logger: logger,
+            logger,
             repository_service,
         }
     }
 
     pub fn logger(&self) -> Arc<dyn EventLogger + 'static> {
-        self.event_logger.clone()
+        self.logger.clone()
     }
 
     pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
