@@ -122,8 +122,8 @@ pub struct Segments {
     declarations: Option<Vec<Declaration>>,
 
     /// The relevant code snippets extracted from recently edited files.
-    /// These snippets are selected from candidates found within a 
-    /// code chunk based on the edited location.
+    /// These snippets are selected from candidates found within code chunks
+    /// based on the edited location.
     /// The current editing file is excluded from the search candidates.
     ///
     /// When provided alongside [Segments::declarations], the snippets have
