@@ -2,6 +2,7 @@ use std::{ops::Deref, path::Path, sync::Arc};
 
 use anyhow::anyhow;
 use cache::Cache;
+use cached::TimedSizedCache;
 use chrono::{DateTime, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
 pub use github_repository_provider::GithubRepositoryProviderDAO;
@@ -14,6 +15,8 @@ use sqlx::{
     database::HasValueRef, query, query_scalar, sqlite::SqliteQueryResult, Decode, Encode, Pool,
     Sqlite, SqlitePool, Type, Value, ValueRef,
 };
+use tokio::sync::Mutex;
+use user_completions::UserCompletionDailyStatsDAO;
 pub use users::UserDAO;
 
 pub mod cache;
@@ -33,10 +36,11 @@ use anyhow::Result;
 use sql_query_builder as sql;
 use sqlx::sqlite::SqliteConnectOptions;
 
-#[derive(Default)]
 pub struct DbCache {
     pub active_user_count: Cache<usize>,
     pub active_admin_count: Cache<usize>,
+    pub daily_stats_in_past_year:
+        Arc<Mutex<TimedSizedCache<Option<i64>, Vec<UserCompletionDailyStatsDAO>>>>,
 }
 
 #[derive(Clone)]
@@ -121,7 +125,13 @@ impl DbConn {
 
         let conn = Self {
             pool,
-            cache: Default::default(),
+            cache: Arc::new(DbCache {
+                active_user_count: Default::default(),
+                active_admin_count: Default::default(),
+                daily_stats_in_past_year: Arc::new(Mutex::new(
+                    TimedSizedCache::with_size_and_lifespan(20, 3600),
+                )),
+            }),
         };
         conn.manual_users_active_migration().await?;
         Ok(conn)

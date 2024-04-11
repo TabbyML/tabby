@@ -5,7 +5,7 @@ use strum::{EnumIter, IntoEnumIterator};
 
 use crate::schema::Result;
 
-#[derive(GraphQLObject, Debug)]
+#[derive(GraphQLObject, Debug, Clone)]
 pub struct CompletionStats {
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
