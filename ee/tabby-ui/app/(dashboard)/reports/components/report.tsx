@@ -66,7 +66,7 @@ function StatsSummary({
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            Total completions
+            Total Completions
           </CardTitle>
           <IconCode className="text-muted-foreground" />
         </CardHeader>
@@ -80,7 +80,7 @@ function StatsSummary({
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            Total acceptances
+            Total Acceptances
           </CardTitle>
           <IconCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
@@ -275,7 +275,7 @@ export function Report() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value={'all'}>All</SelectItem>
-                    {Object.entries(Language).map(([key, value]) => (
+                    {Object.entries(Language).sort((_, b) => b[1] === Language.Other ? -1 : 0).map(([key, value]) => (
                       <SelectItem key={value} value={value}>
                         {key}
                       </SelectItem>
