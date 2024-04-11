@@ -15,7 +15,7 @@ use kdam::BarExt;
 use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
-    config::{RepositoryConfig},
+    config::RepositoryConfig,
     path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
