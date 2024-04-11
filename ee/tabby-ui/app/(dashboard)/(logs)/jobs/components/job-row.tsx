@@ -10,6 +10,7 @@ import { useQuery } from 'urql'
 import { listJobRuns, queryJobRunStats } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { TableCell, TableRow } from '@/components/ui/table'
+import { IconSpinner } from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
@@ -174,11 +175,12 @@ export default function JobRow({ name }: { name: string }) {
                           {
                             'bg-blue-700': isNil(job.node.exitCode),
                             'bg-green-700': job.node.exitCode === 0,
-                            'bg-red-700': job.node.exitCode !== 0
+                            'bg-red-700': !isNil(job.node.exitCode) && job.node.exitCode !== 0
                           }
                         )}
                       >
                         {displayedDuration}
+                        {!displayedDuration && <IconSpinner />}
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent>

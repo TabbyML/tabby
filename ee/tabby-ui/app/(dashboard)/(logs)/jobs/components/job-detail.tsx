@@ -31,8 +31,7 @@ export default function JobRunDetail() {
     variables: { ids: [id as string] },
     pause: !id
   })
-
-  const edges = data?.jobRuns?.edges?.slice(0, 1)
+  
   const currentNode = data?.jobRuns?.edges?.[0]?.node
 
   React.useEffect(() => {
