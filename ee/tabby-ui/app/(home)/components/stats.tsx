@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useWindowSize } from '@uidotdev/usehooks'
 import moment from 'moment'
@@ -19,17 +20,20 @@ import {
 } from 'recharts'
 import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
+import { sum } from 'lodash-es'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import { DailyStatsQuery, DailyStatsInPastYearQuery } from '@/lib/gql/generates/graphql'
+import { DailyStatsQuery, DailyStatsInPastYearQuery, Language } from '@/lib/gql/generates/graphql'
+import { QueryVariables } from '@/lib/tabby/gql'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import languageColors from '../language-colors.json'
-import { useLanguageStats } from '../use-language-stats'
 import { CompletionCharts } from './completion-charts'
+
+import { type LanguageStats } from './completion-charts'
 
 const DATE_RANGE = 6
 
@@ -39,6 +43,69 @@ type LanguageData = {
   completions: number
   label: string
 }[]
+
+// Find auto-completion stats of each language
+function useLanguageStats({
+  start,
+  end,
+  users
+}: {
+  start: Date
+  end: Date
+  users?: string
+}) {
+  const languages = Object.values(Language)
+  const [lanIdx, setLanIdx] = useState(0)
+  const [queryVariables, setQueryVariables] = useState<
+    QueryVariables<typeof queryDailyStats>
+  >({
+    start: moment(start).utc().format(),
+    end: moment(end).utc().format(),
+    users,
+    languages: languages[0]
+  })
+  const [languageStats, setLanguageStats] = useState<LanguageStats>(
+    {} as LanguageStats
+  )
+
+  const [{ data, fetching }] = useQuery({
+    query: queryDailyStats,
+    variables: queryVariables
+  })
+
+  useEffect(() => {
+    if (lanIdx >= languages.length) return
+    if (!fetching && data?.dailyStats) {
+      const language = languages[lanIdx]
+      const newLanguageStats = { ...languageStats }
+      newLanguageStats[language] = newLanguageStats[language] || {
+        selects: 0,
+        completions: 0,
+        name: Object.keys(Language)[lanIdx]
+      }
+      newLanguageStats[language].selects += sum(
+        data.dailyStats.map(stats => stats.selects)
+      )
+      newLanguageStats[language].completions += sum(
+        data.dailyStats.map(stats => stats.completions)
+      )
+
+      const newLanIdx = lanIdx + 1
+      setLanguageStats(newLanguageStats)
+      setLanIdx(newLanIdx)
+      if (newLanIdx < languages.length) {
+        setQueryVariables({
+          start: moment(start).utc().format(),
+          end: moment(end).utc().format(),
+          users,
+          languages: languages[newLanIdx]
+        })
+      }
+    }
+  }, [queryVariables, lanIdx, fetching])
+
+  return [languageStats]
+}
 
 const getLanguageColorMap = (): Record<string, string> => {
   return Object.entries(languageColors).reduce((acc, cur) => {
