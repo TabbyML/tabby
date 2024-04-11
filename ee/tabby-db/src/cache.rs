@@ -1,7 +1,6 @@
-use std::{future::Future, sync::Arc};
+use std::future::Future;
 
-use cached::SizedCache;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 
 #[derive(Default)]
 pub struct Cache<T> {
@@ -36,5 +35,3 @@ impl<T> Cache<T> {
         }
     }
 }
-
-pub type KeyedCache<K, V> = Arc<Mutex<SizedCache<K, V>>>;

@@ -1,8 +1,8 @@
 use std::{ops::Deref, path::Path, sync::Arc};
 
 use anyhow::anyhow;
-use cache::{Cache, KeyedCache};
-use cached::SizedCache;
+use cache::Cache;
+use cached::TimedSizedCache;
 use chrono::{DateTime, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
 pub use github_repository_provider::GithubRepositoryProviderDAO;
@@ -39,7 +39,8 @@ use sqlx::sqlite::SqliteConnectOptions;
 pub struct DbCache {
     pub active_user_count: Cache<usize>,
     pub active_admin_count: Cache<usize>,
-    pub daily_stats_in_past_year: KeyedCache<Option<i64>, Vec<UserCompletionDailyStatsDAO>>,
+    pub daily_stats_in_past_year:
+        Arc<Mutex<TimedSizedCache<Option<i64>, Vec<UserCompletionDailyStatsDAO>>>>,
 }
 
 #[derive(Clone)]
@@ -127,7 +128,9 @@ impl DbConn {
             cache: Arc::new(DbCache {
                 active_user_count: Default::default(),
                 active_admin_count: Default::default(),
-                daily_stats_in_past_year: Arc::new(Mutex::new(SizedCache::with_size(1024))),
+                daily_stats_in_past_year: Arc::new(Mutex::new(
+                    TimedSizedCache::with_size_and_lifespan(1024, 3600),
+                )),
             }),
         };
         conn.manual_users_active_migration().await?;

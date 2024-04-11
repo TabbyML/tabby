@@ -69,25 +69,28 @@ impl DbConn {
         Ok(())
     }
 
-    // FIXME(boxbeam): index `created_at` in user_completions table.
     pub async fn compute_daily_stats_in_past_year(
         &self,
         users: Vec<i64>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         if users.len() <= 1 {
             let mut cache = self.cache.daily_stats_in_past_year.lock().await;
-            let key = users.clone().into_iter().next();
+            let key = if users.is_empty() {
+                None
+            } else {
+                Some(users[0])
+            };
             return Ok(cache
                 .try_get_or_set_with(key, move || async move {
-                    self.compute_daily_stats_in_past_year_imp(users).await
+                    self.compute_daily_stats_in_past_year_impl(users).await
                 })
                 .await?
                 .clone());
         }
-        self.compute_daily_stats_in_past_year_imp(users).await
+        self.compute_daily_stats_in_past_year_impl(users).await
     }
 
-    async fn compute_daily_stats_in_past_year_imp(
+    async fn compute_daily_stats_in_past_year_impl(
         &self,
         users: Vec<i64>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
