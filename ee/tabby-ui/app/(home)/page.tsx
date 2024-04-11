@@ -1,8 +1,11 @@
 'use client'
 
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { noop } from 'lodash-es'
+import { noop, capitalize } from 'lodash-es'
+import { useTheme } from 'next-themes'
 
+import { useSignOut } from '@/lib/tabby/auth'
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
@@ -11,11 +14,13 @@ import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import {
-  IconBarChart,
   IconChevronRight,
   IconMail,
   IconRotate,
-  IconUser
+  IconGear,
+  IconLogout,
+  IconSpinner,
+  IconMoon, IconSun
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,7 +32,6 @@ import {
 } from '@/components/ui/tooltip'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
@@ -50,7 +54,7 @@ function Configuration() {
   if (!data?.me) return <></>
 
   return (
-    <div className="mt-6">
+    <div className="mb-1 mt-6">
       <CardContent className="flex flex-col gap-6 px-0">
         <div className="flex flex-col">
           <Label className="text-xs font-semibold">Endpoint URL</Label>
@@ -102,17 +106,26 @@ function Configuration() {
 }
 
 function MainPanel() {
+  const [signOutLoading, setSignOutLoading] = useState(false)
+  const { setTheme, theme } = useTheme()
+  const [_, startTransition] = useTransition()
+  const signOut = useSignOut()
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
 
   if (!healthInfo || !data?.me) return <></>
+
+  const handleSignOut = async () => {
+    if (signOutLoading) return
+
+    setSignOutLoading(true)
+    await signOut()
+    setSignOutLoading(false)
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="mx-auto flex w-screen max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto  md:flex-row md:py-10 lg:gap-x-10 xl:px-0">
-        <div className="relative mb-5 flex flex-col rounded-lg bg-primary/90 px-5 text-primary-foreground dark:bg-primary-foreground/90 dark:text-primary lg:mb-0 lg:w-64">
-          <div className="absolute right-0 top-0">
-            <ThemeToggle />
-          </div>
+      <div className="mx-auto flex w-screen max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto md:flex-row md:py-40 lg:gap-x-10 xl:px-0">
+        <div className="relative top-16 mb-5 flex flex-col self-start rounded-lg bg-primary/90 px-5 pb-4 text-primary-foreground dark:bg-primary-foreground/90 dark:text-primary md:sticky lg:mb-0 lg:w-64">
           <UserPanel
             trigger={
               <UserAvatar className="-mt-10 h-20 w-20 border-4 border-background" />
@@ -134,34 +147,44 @@ function MainPanel() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+    
+          <Configuration />
+
           <div className="flex items-center py-1">
-            <IconUser className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
+            <IconGear className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
             <Link
               className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
               href="/profile"
             >
-              <span>Profile</span>
+              <span>Settings</span>
               <IconChevronRight />
             </Link>
           </div>
-          {data.me.isAdmin && (
-            <div className="flex items-center py-1">
-              <IconBarChart className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
-              <Link
-                className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-                href="/cluster"
-              >
-                <span>Admin Dashboard</span>
-                <IconChevronRight />
-              </Link>
-            </div>
-          )}
-          <Configuration />
+          <div
+            className="flex cursor-pointer items-center py-1"
+            onClick={() => {
+              startTransition(() => {
+                setTheme(theme === 'light' ? 'dark' : 'light')
+              })
+            }}
+          >
+            {theme === 'dark' ? (
+              <IconMoon className="mr-2 text-primary-foreground/50 transition-all dark:text-primary/50" />
+            ) : (
+              <IconSun className="mr-2 text-primary-foreground/50 transition-all dark:text-primary/50" />
+            )}
+            <span className="text-sm transition-opacity hover:opacity-50">{capitalize(theme)}</span>
+          </div>
+
+          <div className="flex cursor-pointer items-center py-1" onClick={handleSignOut}>
+            <IconLogout className="mr-2 text-primary-foreground/50 dark:text-primary/50" />
+            <span className="text-sm transition-opacity hover:opacity-50">Logout</span>
+            {signOutLoading && <IconSpinner className="ml-1" />}
+          </div>
         </div>
 
         <Stats />
       </div>
-    </div>
   )
 }
 

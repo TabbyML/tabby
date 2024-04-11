@@ -7,7 +7,7 @@ import { Language } from '@/lib/gql/generates/graphql'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { queryDailyStats } from '@/lib/tabby/query'
 
-import { type LanguageStats } from './components/summary'
+import { type LanguageStats } from './components/completion-charts'
 
 // Find auto-completion stats of each language
 export function useLanguageStats({
