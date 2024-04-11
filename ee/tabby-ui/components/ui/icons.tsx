@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
-import { BookOpenText, Mail, Moon, Sun } from 'lucide-react'
+import { BookOpenText, Mail } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -1391,5 +1391,5 @@ export {
   IconBarChart,
   IconActivity,
   IconBookOpenText,
-  IconMail,
+  IconMail
 }
