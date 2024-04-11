@@ -133,7 +133,7 @@ impl CodeSearch for CodeSearchImpl {
             .await
             .unwrap_or_default();
 
-        let Some(git_url) = closest_match(&git_url, repos.iter().map(|repo| &*repo.git_url)) else {
+        let Some(git_url) = closest_match(git_url, repos.iter().map(|repo| &*repo.git_url)) else {
             return Ok(SearchResponse::default());
         };
 
