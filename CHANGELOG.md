@@ -8,6 +8,7 @@
 
 ## Fixes and Improvements
 * Fix worker unregisteration misfunctioning caused by unmatched address.
+* Accurate repository context filtering using fuzzy matching on `git_url` field.
 
 # v0.9.1
 
