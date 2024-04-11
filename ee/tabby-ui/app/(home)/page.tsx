@@ -1,20 +1,18 @@
 'use client'
 
-import { useState, useTransition } from 'react'
 import { noop } from 'lodash-es'
-import { useTheme } from 'next-themes'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
-import { useSignOut } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import { IconMail, IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -29,7 +27,7 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
   }
 `)
 
-function Configuration() {
+function Configuration({ className }: { className?: string }) {
   const [{ data }, reexecuteQuery] = useMe()
   const externalUrl = useExternalURL()
 
@@ -40,7 +38,7 @@ function Configuration() {
   if (!data?.me) return <></>
 
   return (
-    <div className="mb-1 mt-24">
+    <div className={className}>
       <CardContent className="flex flex-col gap-6 px-0">
         <div className="flex flex-col">
           <span className="flex items-center gap-1">
@@ -96,22 +94,10 @@ function Configuration() {
 }
 
 function MainPanel() {
-  const [signOutLoading, setSignOutLoading] = useState(false)
-  const { setTheme, theme } = useTheme()
-  const [_, startTransition] = useTransition()
-  const signOut = useSignOut()
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
 
   if (!healthInfo || !data?.me) return <></>
-
-  const handleSignOut = async () => {
-    if (signOutLoading) return
-
-    setSignOutLoading(true)
-    await signOut()
-    setSignOutLoading(false)
-  }
 
   return (
     <div className="flex flex-1 justify-center lg:mt-[10vh]">
@@ -132,6 +118,7 @@ function MainPanel() {
             <ThemeToggle className="ml-auto" />
           </div>
 
+          <Separator className="my-4" />
           <Configuration />
         </div>
 
