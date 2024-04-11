@@ -238,7 +238,7 @@ export default function Stats() {
     dailyStats = daysBetweenRange.map(date => {
       const rng = seedrandom(moment(date).format('YYYY-MM-DD') + data?.me.id)
       const selects = Math.ceil(rng() * 20)
-      const completions = selects + Math.floor(rng() * 10)
+      const completions = selects + Math.floor(rng() * 25)
       return {
         start: moment(date).startOf('day').toDate(),
         end: moment(date).endOf('day').toDate(),
