@@ -145,7 +145,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
     #[cfg(not(feature = "ee"))]
     {
-        logger = Arc::new(create_logger());
+        logger = Arc::new(create_event_logger());
         repository_access = Arc::new(ConfigRepositoryAccess);
     }
 
