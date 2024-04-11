@@ -20,7 +20,8 @@ import {
   IconGear,
   IconLogout,
   IconSpinner,
-  IconMoon, IconSun
+  IconMoon2,
+  IconSun2
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -126,7 +127,7 @@ function MainPanel() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="mx-auto flex w-screen max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto md:flex-row md:py-10 lg:gap-x-10 xl:px-0">
-        <div className="relative mb-5 flex flex-col rounded-lg px-5 pb-4 lg:mb-0 lg:w-64">
+        <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:w-64">
           <UserPanel
             trigger={
               <UserAvatar className="h-20 w-20 border-4 border-background" />
@@ -170,9 +171,9 @@ function MainPanel() {
             }}
           >
             {theme === 'dark' ? (
-              <IconMoon className="mr-2 text-muted-foreground transition-all" />
+              <IconMoon2 className="mr-2 text-muted-foreground transition-all" />
             ) : (
-              <IconSun className="mr-2 text-muted-foreground transition-all" />
+              <IconSun2 className="mr-2 text-muted-foreground transition-all" />
             )}
             <span className="text-sm transition-opacity hover:opacity-50">{capitalize(theme)}</span>
           </div>

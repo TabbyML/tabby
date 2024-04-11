@@ -16,7 +16,7 @@ import {
   YAxis,
   type LabelProps
 } from 'recharts'
-import GithubColors from 'github-colors'
+import languageColors from '../language-colors.json'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
@@ -35,6 +35,13 @@ type LanguageData = {
   completions: number
   label: string
 }[]
+
+const getLanguageColorMap = (): Record<string, string> => {
+  return Object.entries(languageColors).reduce((acc, cur) => {
+    const [lan, color] = cur
+    return { ...acc, [lan.toLocaleLowerCase()]: color }
+  }, {} )
+}
 
 function ActivityCalendar({
   data
@@ -69,7 +76,7 @@ function ActivityCalendar({
 const LanguageLabel: React.FC<
   LabelProps & { languageData: LanguageData; theme?: string }
 > = props => {
-  const { x, y, width, height, value, languageData, theme } = props
+  const { x, y, value, languageData, theme } = props
   const myLanguageData = languageData.find(data => data.label === value)
 
   if (!myLanguageData || myLanguageData.completions === 0) {
@@ -79,9 +86,9 @@ const LanguageLabel: React.FC<
   const padding = 5
   return (
     <text
-      x={+x! + +width! + padding}
-      y={+y! + +height! / 2}
-      fill={theme === 'dark' ? '#fff' : '#000'}
+      x={+x!}
+      y={+y! - 7}
+      fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
       fontSize={10}
       fontWeight="bold"
       textAnchor="start"
@@ -127,7 +134,7 @@ function LanguageTooltip({
 export default function Stats() {
   const [{ data }] = useMe()
   const { theme } = useTheme()
-
+  const colorMap = getLanguageColorMap()
   const startDate = moment()
     .subtract(DATE_RANGE, 'day')
     .startOf('day')
@@ -193,6 +200,15 @@ export default function Stats() {
     .filter(item => item.completions)
     .slice(0, 5)
   languageData = languageData.sort((a, b) => b.completions - a.completions)
+  if (languageData.length === 0) {
+    // Placeholder when there is no completions
+    languageData = [{
+      name: 'none',
+      selects: 0,
+      completions: 0.01,
+      label: 'None'
+    }]
+  }
 
   if (!data?.me?.id) return <></>
 
@@ -200,7 +216,7 @@ export default function Stats() {
     <div className="flex flex-col gap-y-8">
       <LoadingWrapper
         loading={fetchingYearlyStats}
-        fallback={<Skeleton className="mb-8 h-48 md:w-[32rem] xl:w-[61rem]" />}
+        fallback={<Skeleton className="h-48 md:w-[32rem] xl:w-[61rem]" />}
       >
         <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
@@ -215,7 +231,7 @@ export default function Stats() {
       <LoadingWrapper
         loading={fetchingDailyState}
         fallback={
-          <Skeleton className="h-96 w-full md:w-[32rem] xl:w-[61rem]" />
+          <Skeleton className="h-48 w-full md:w-[32rem] xl:w-[61rem]" />
         }
       >
         <CompletionCharts
@@ -232,18 +248,17 @@ export default function Stats() {
           <Skeleton className="h-48 w-full md:w-[32rem] xl:w-[61rem]" />
         }
       >
-        {languageData.length > 0 &&
           <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
             Language completion stats
           </h3>
           <div className="flex items-end justify-center rounded-xl border p-5">
-            <ResponsiveContainer width="100%" height={(languageData.length + 1 ) * 45}>
+            <ResponsiveContainer width="100%" height={(languageData.length + 1 ) * 50}>
               <BarChart
                 layout="vertical"
                 data={languageData}
-                barCategoryGap={5}
-                margin={{ top: 5, right: 70, left: 10, bottom: 5 }}
+                barCategoryGap={12}
+                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
               >
                 <Bar dataKey="completions" radius={3}>
                   <LabelList
@@ -253,10 +268,9 @@ export default function Stats() {
                     }
                   />
                   {languageData.map((entry, index) => {
-                    const lan = entry.label
-                    const lanColor = GithubColors.get(lan)
+                    const lanColor = colorMap[entry.label.toLocaleLowerCase()]
                     const color = lanColor
-                      ? lanColor.color
+                      ? lanColor
                       : theme === 'dark'
                       ? '#e8e1d3'
                       : '#54452c'
@@ -264,7 +278,7 @@ export default function Stats() {
                   })}
                 </Bar>
                 <XAxis type="number" fontSize={12} allowDecimals={false}  />
-                <YAxis type="category" dataKey="name" hide padding={{ bottom: 20 }} />
+                <YAxis type="category" dataKey="name" hide padding={{ bottom: 10 }} />
                 <Tooltip
                   cursor={{ fill: 'transparent' }}
                   content={<LanguageTooltip />}
@@ -273,7 +287,6 @@ export default function Stats() {
             </ResponsiveContainer>
           </div>
         </div>
-        }
         
       </LoadingWrapper>
     </div>
