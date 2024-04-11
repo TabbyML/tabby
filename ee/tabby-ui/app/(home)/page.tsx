@@ -122,7 +122,7 @@ function MainPanel() {
   }
 
   return (
-    <div className="flex flex-1 justify-center">
+    <div className="flex flex-1 justify-center lg:mt-[10vh]">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto md:flex-row md:py-10 lg:gap-x-10 xl:px-0">
         <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:mt-12 lg:w-64">
           <span>
