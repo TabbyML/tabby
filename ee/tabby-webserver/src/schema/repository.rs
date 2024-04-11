@@ -2,14 +2,20 @@ use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
 use juniper_axum::relay::NodeType;
 use validator::Validate;
+use regex::Regex;
+use lazy_static::lazy_static;
 
 use super::{Context, Result};
+
+lazy_static! {
+    static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("").unwrap();
+}
 
 #[derive(Validate)]
 pub struct CreateRepositoryInput {
     #[validate(regex(
         code = "name",
-        path = "tabby_common::config::REPOSITORY_NAME_REGEX",
+        path = "self::REPOSITORY_NAME_REGEX",
         message = "Invalid repository name"
     ))]
     pub name: String,

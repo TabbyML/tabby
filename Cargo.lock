@@ -4651,6 +4651,7 @@ dependencies = [
  "nucleo",
  "pin-project",
  "querystring",
+ "regex",
  "reqwest",
  "rust-embed 8.0.0",
  "serde",

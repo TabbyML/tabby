@@ -2,8 +2,8 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use lazy_static::lazy_static;
-use regex::Regex;
+
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -74,9 +74,7 @@ pub struct RepositoryConfig {
 
 impl RepositoryConfig {
     pub fn new(git_url: String) -> Self {
-        Self {
-            git_url,
-        }
+        Self { git_url }
     }
 
     pub fn dir(&self) -> PathBuf {
