@@ -5,7 +5,6 @@ import { sum } from 'lodash-es'
 import moment from 'moment'
 import { useTheme } from 'next-themes'
 import numeral from 'numeral'
-
 import {
   Bar,
   BarChart,
@@ -37,7 +36,7 @@ function LineTooltip({
     payload: {
       name: string
       select: number
-      value: string,
+      value: string
       completion: number
     }
   }[]
@@ -75,7 +74,7 @@ function BarTooltip({
       select: number
       pending: number
     }
-  }[],
+  }[]
   type: 'accept' | 'completion' | 'all'
 }) {
   if (active && payload && payload.length) {
@@ -84,18 +83,18 @@ function BarTooltip({
     return (
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
-          {(type === 'completion' || type === 'all') &&
+          {(type === 'completion' || type === 'all') && (
             <p className="flex items-center">
               <span className="mr-3 inline-block w-20">Completion:</span>
               <b>{completion}</b>
             </p>
-          }
-          {(type === 'accept' || type === 'all') &&
+          )}
+          {(type === 'accept' || type === 'all') && (
             <p className="flex items-center">
               <span className="mr-3 inline-block w-20">Acceptance:</span>
               <b>{select}</b>
             </p>
-          }
+          )}
           <p className="text-muted-foreground">{name}</p>
         </CardContent>
       </Card>
@@ -134,11 +133,10 @@ export function CompletionCharts({
   }, {})
 
   // Data for charts
-  const averageAcceptance = totalCompletions === 0
-    ? 0
-    : (
-      (totalAccepts / totalCompletions) * 100
-    ).toFixed(2)
+  const averageAcceptance =
+    totalCompletions === 0
+      ? 0
+      : ((totalAccepts / totalCompletions) * 100).toFixed(2)
   const acceptRateData = daysBetweenRange.map(date => {
     const dateKey = moment(date).format('YYYY-MM-DD')
     const completion = dailyCompletionMap[dateKey] || 0
@@ -162,17 +160,17 @@ export function CompletionCharts({
       pending: completion === 0 ? 0.5 : pending,
       realPending: completion === 0 ? 0 : pending,
       completionPlaceholder: completion === 0 ? 0.5 : 0,
-      selectPlaceholder: select === 0 ? 0.5 : 0,
+      selectPlaceholder: select === 0 ? 0.5 : 0
     }
   })
 
   return (
     <div>
-        <h3 className="mb-2 text-sm font-medium tracking-tight">
-          Stats in last <b>{dateRange + 1}</b> days
-        </h3>
+      <h3 className="mb-2 text-sm font-medium tracking-tight">
+        Stats in last <b>{dateRange + 1}</b> days
+      </h3>
 
-        <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-6 md:space-y-0 xl:justify-start">
+      <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-6 md:space-y-0 xl:justify-start">
         <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-base font-normal tracking-tight">
@@ -180,9 +178,7 @@ export function CompletionCharts({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {averageAcceptance}%
-            </div>
+            <div className="text-2xl font-bold">{averageAcceptance}%</div>
           </CardContent>
 
           <ResponsiveContainer width="100%" height={60}>
@@ -241,7 +237,7 @@ export function CompletionCharts({
               />
               <Tooltip
                 cursor={{ fill: 'transparent' }}
-                content={<BarTooltip type='accept' />}
+                content={<BarTooltip type="accept" />}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -257,7 +253,7 @@ export function CompletionCharts({
             <div className="text-2xl font-bold">
               {totalCompletions > 0 && '+'}
               {numeral(totalCompletions).format('0,0')}
-            </div> 
+            </div>
           </CardContent>
 
           <ResponsiveContainer width="100%" height={60}>
@@ -284,7 +280,7 @@ export function CompletionCharts({
               />
               <Tooltip
                 cursor={{ fill: 'transparent' }}
-                content={<BarTooltip type='completion' />}
+                content={<BarTooltip type="completion" />}
               />
             </BarChart>
           </ResponsiveContainer>

@@ -1,9 +1,8 @@
 'use client'
 
 import { useWindowSize } from '@uidotdev/usehooks'
-import { useTheme } from 'next-themes'
-import { useQuery } from 'urql'
 import moment from 'moment'
+import { useTheme } from 'next-themes'
 import ReactActivityCalendar from 'react-activity-calendar'
 import {
   Bar,
@@ -16,7 +15,7 @@ import {
   YAxis,
   type LabelProps
 } from 'recharts'
-import languageColors from '../language-colors.json'
+import { useQuery } from 'urql'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
@@ -24,6 +23,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 
+import languageColors from '../language-colors.json'
 import { useLanguageStats } from '../use-language-stats'
 import { CompletionCharts } from './completion-charts'
 
@@ -40,7 +40,7 @@ const getLanguageColorMap = (): Record<string, string> => {
   return Object.entries(languageColors).reduce((acc, cur) => {
     const [lan, color] = cur
     return { ...acc, [lan.toLocaleLowerCase()]: color }
-  }, {} )
+  }, {})
 }
 
 function ActivityCalendar({
@@ -187,27 +187,27 @@ export default function Stats() {
     users: data?.me?.id
   })
   let languageData: LanguageData = Object.entries(languageStats)
-    .map(
-      ([key, stats]) => {
-        return {
-          name: key,
-          selects: stats.selects,
-          completions: stats.completions,
-          label: stats.name
-        }
+    .map(([key, stats]) => {
+      return {
+        name: key,
+        selects: stats.selects,
+        completions: stats.completions,
+        label: stats.name
       }
-    )
+    })
     .filter(item => item.completions)
     .slice(0, 5)
   languageData = languageData.sort((a, b) => b.completions - a.completions)
   if (languageData.length === 0) {
     // Placeholder when there is no completions
-    languageData = [{
-      name: 'none',
-      selects: 0,
-      completions: 0.01,
-      label: 'None'
-    }]
+    languageData = [
+      {
+        name: 'none',
+        selects: 0,
+        completions: 0.01,
+        label: 'None'
+      }
+    ]
   }
 
   if (!data?.me?.id) return <></>
@@ -248,12 +248,15 @@ export default function Stats() {
           <Skeleton className="h-48 w-full md:w-[32rem] xl:w-[61rem]" />
         }
       >
-          <div>
+        <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
             Language completion stats
           </h3>
           <div className="flex items-end justify-center rounded-xl border p-5">
-            <ResponsiveContainer width="100%" height={(languageData.length + 1 ) * 50}>
+            <ResponsiveContainer
+              width="100%"
+              height={(languageData.length + 1) * 50}
+            >
               <BarChart
                 layout="vertical"
                 data={languageData}
@@ -264,7 +267,10 @@ export default function Stats() {
                   <LabelList
                     dataKey="label"
                     content={
-                      <LanguageLabel languageData={languageData} theme={theme} />
+                      <LanguageLabel
+                        languageData={languageData}
+                        theme={theme}
+                      />
                     }
                   />
                   {languageData.map((entry, index) => {
@@ -277,8 +283,13 @@ export default function Stats() {
                     return <Cell key={`cell-${index}`} fill={color} />
                   })}
                 </Bar>
-                <XAxis type="number" fontSize={12} allowDecimals={false}  />
-                <YAxis type="category" dataKey="name" hide padding={{ bottom: 10 }} />
+                <XAxis type="number" fontSize={12} allowDecimals={false} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  hide
+                  padding={{ bottom: 10 }}
+                />
                 <Tooltip
                   cursor={{ fill: 'transparent' }}
                   content={<LanguageTooltip />}
@@ -287,7 +298,6 @@ export default function Stats() {
             </ResponsiveContainer>
           </div>
         </div>
-        
       </LoadingWrapper>
     </div>
   )

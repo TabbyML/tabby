@@ -2,25 +2,25 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { noop, capitalize } from 'lodash-es'
+import { capitalize, noop } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
-import { useSignOut } from '@/lib/tabby/auth'
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
+import { useSignOut } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import {
   IconChevronRight,
-  IconMail,
-  IconRotate,
   IconGear,
   IconLogout,
-  IconSpinner,
+  IconMail,
   IconMoon2,
+  IconRotate,
+  IconSpinner,
   IconSun2
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
@@ -149,7 +149,7 @@ function MainPanel() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-    
+
           <Configuration />
 
           <div className="flex items-center py-1">
@@ -175,19 +175,26 @@ function MainPanel() {
             ) : (
               <IconSun2 className="mr-2 text-muted-foreground transition-all" />
             )}
-            <span className="text-sm transition-opacity hover:opacity-50">{capitalize(theme)}</span>
+            <span className="text-sm transition-opacity hover:opacity-50">
+              {capitalize(theme)}
+            </span>
           </div>
 
-          <div className="flex cursor-pointer items-center py-1" onClick={handleSignOut}>
+          <div
+            className="flex cursor-pointer items-center py-1"
+            onClick={handleSignOut}
+          >
             <IconLogout className="mr-2 text-muted-foreground" />
-            <span className="text-sm transition-opacity hover:opacity-50">Logout</span>
+            <span className="text-sm transition-opacity hover:opacity-50">
+              Logout
+            </span>
             {signOutLoading && <IconSpinner className="ml-1" />}
           </div>
         </div>
 
         <Stats />
       </div>
-      </div>
+    </div>
   )
 }
 
