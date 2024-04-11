@@ -26,7 +26,7 @@ pub enum Language {
     Ruby,
     CSharp,
     C,
-    CPP,
+    Cpp,
     Solidity,
     Other,
 }
@@ -48,7 +48,7 @@ impl Language {
             Language::Ruby => vec!["ruby"],
             Language::CSharp => vec!["csharp"],
             Language::C => vec!["c"],
-            Language::CPP => vec!["cpp"],
+            Language::Cpp => vec!["cpp"],
             Language::Solidity => vec!["solidity"],
             Language::Other => vec!["other"],
         }
