@@ -32,8 +32,7 @@ use crate::{
         auth::AuthenticationService, create_schema, repository::RepositoryService, Schema,
         ServiceLocator,
     },
-    service::create_service_locator,
-    service::event_logger::create_event_logger,
+    service::{create_service_locator, event_logger::create_event_logger},
     ui,
 };
 
