@@ -1,9 +1,12 @@
+use nucleo::Utf32String;
 use tantivy::{
     query::{TermQuery, TermSetQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
     tokenizer::{NgramTokenizer, RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index, Term,
 };
+
+use crate::config::RepositoryConfig;
 
 static CODE_TOKENIZER: &str = "code";
 static IDENTIFIER_TOKENIZER: &str = "identifier";
@@ -99,36 +102,28 @@ impl CodeSearchSchema {
         ))
     }
 
-    pub fn git_url_query(&self, mut git_url: &str) -> Vec<Box<TermQuery>> {
-        if let Some((_proto, rest)) = git_url.split_once("://") {
-            git_url = rest;
-        }
-        let domain = git_url
-            .split_once('/')
-            .map(|(domain, _rest)| domain)
-            .unwrap_or(git_url);
+    pub fn git_url_query(&self, git_url: &str, repos: &Vec<RepositoryConfig>) -> Box<TermQuery> {
+        let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
 
-        let path = git_url.strip_prefix(domain).unwrap_or(git_url);
-        let path = path
-            .split_once('?')
-            .map(|(path, _params)| path)
-            .unwrap_or(path);
-        let path = path.trim_end_matches(".git");
-
-        let domain = domain
-            .split_once('@')
-            .map(|(_creds, domain)| domain)
-            .unwrap_or(domain);
-
-        [domain, path]
+        let closest_match = repos
             .iter()
-            .map(|term| {
-                Box::new(TermQuery::new(
-                    Term::from_field_text(self.field_git_url, term),
-                    IndexRecordOption::Basic,
+            .filter_map(|repo| {
+                Some((
+                    repo.git_url.clone(),
+                    nucleo.fuzzy_match(
+                        Utf32String::from(git_url).slice(..),
+                        Utf32String::from(&*repo.git_url).slice(..),
+                    )?,
                 ))
             })
-            .collect()
+            .max_by_key(|(_, score)| *score)
+            .map(|(entry, _score)| entry)
+            .unwrap_or_else(|| git_url.to_string());
+
+        Box::new(TermQuery::new(
+            Term::from_field_text(self.field_git_url, &closest_match),
+            IndexRecordOption::Basic,
+        ))
     }
 }
 

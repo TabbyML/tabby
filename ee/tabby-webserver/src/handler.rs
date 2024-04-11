@@ -8,6 +8,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing, Extension, Json, Router,
 };
+use cached::{CachedAsync, TimedCache};
 use hyper::{header::CONTENT_TYPE, Body, StatusCode};
 use juniper::ID;
 use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
@@ -20,6 +21,7 @@ use tabby_common::{
     config::{RepositoryAccess, RepositoryConfig},
 };
 use tabby_db::DbConn;
+use tokio::sync::Mutex;
 use tracing::{error, warn};
 
 use crate::{
@@ -37,24 +39,38 @@ use crate::{
 
 struct ServiceRepositoryAccess {
     service: Arc<dyn RepositoryService>,
+    url_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 #[async_trait]
 impl RepositoryAccess for ServiceRepositoryAccess {
     async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
-        let repos = self
-            .service
-            .list_repositories(None, None, None, None)
-            .await?;
-        Ok(repos
-            .into_iter()
-            .map(|repo| RepositoryConfig::new_named(repo.name, repo.git_url))
-            .collect())
+        let mut cache = self.url_cache.lock().await;
+        let repos = cache
+            .try_get_or_set_with((), || async {
+                let repos = self
+                    .service
+                    .list_repositories(None, None, None, None)
+                    .await?;
+                Ok::<_, anyhow::Error>(
+                    repos
+                        .into_iter()
+                        .map(|repo| RepositoryConfig::new_named(repo.name, repo.git_url))
+                        .collect(),
+                )
+            })
+            .await?
+            .clone();
+
+        Ok(repos)
     }
 }
 
 fn new_repository_access(service: Arc<dyn RepositoryService>) -> impl RepositoryAccess {
-    ServiceRepositoryAccess { service }
+    ServiceRepositoryAccess {
+        service,
+        url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
+    }
 }
 
 pub struct WebserverHandle {
@@ -103,7 +119,7 @@ impl WebserverHandle {
             is_chat_enabled,
         )
         .await;
-        let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
+        cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
         let schema = Arc::new(create_schema());
 

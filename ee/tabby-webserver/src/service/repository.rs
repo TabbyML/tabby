@@ -1,10 +1,9 @@
-use std::sync::Arc;
 use std::path::Path;
 
 use async_trait::async_trait;
 use ignore::Walk;
 use juniper::ID;
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
