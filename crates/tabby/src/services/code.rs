@@ -141,7 +141,8 @@ impl CodeSearch for CodeSearchImpl {
             })
             .unwrap_or_else(|_| git_url.to_string());
 
-        let git_url = closest_match(&git_url, repos.iter().map(|repo| &*repo.git_url));
+        let git_url = closest_match(&git_url, repos.iter().map(|repo| &*repo.git_url))
+            .unwrap_or_else(|| git_url.to_string());
 
         let git_url_query = self.schema.git_url_query(&git_url);
 
@@ -157,7 +158,7 @@ impl CodeSearch for CodeSearchImpl {
 fn closest_match<'a>(
     search_term: &'a str,
     search_input: impl IntoIterator<Item = &'a str>,
-) -> String {
+) -> Option<String> {
     let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
     search_input
         .into_iter()
@@ -176,7 +177,6 @@ fn closest_match<'a>(
         })
         .max_by_key(|(_, score)| *score)
         .map(|(entry, _score)| entry)
-        .unwrap_or_else(|| search_term.to_string())
 }
 
 fn get_field(doc: &Document, field: Field) -> String {
@@ -254,7 +254,7 @@ mod tests {
                 "https://github.com/example/test.git",
                 ["https://github.com/example/test"]
             ),
-            "https://github.com/example/test"
+            Some("https://github.com/example/test".into())
         );
 
         assert_eq!(
@@ -262,7 +262,7 @@ mod tests {
                 "https://creds@github.com/example/test",
                 ["https://github.com/example/test"]
             ),
-            "https://github.com/example/test"
+            Some("https://github.com/example/test".into())
         );
 
         assert_eq!(
@@ -270,7 +270,7 @@ mod tests {
                 "https://github.com/example/another-repo",
                 ["https://github.com/examp/anoth-repo"]
             ),
-            "https://github.com/examp/anoth-repo"
+            Some("https://github.com/examp/anoth-repo".into())
         );
 
         assert_eq!(
@@ -278,7 +278,7 @@ mod tests {
                 "https://github.com/TabbyML/tabby",
                 ["https://github.com/TabbyML/registry-tabby"]
             ),
-            "https://github.com/TabbyML/tabby"
+            None
         );
     }
 }
