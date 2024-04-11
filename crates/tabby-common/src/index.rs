@@ -110,6 +110,10 @@ impl CodeSearchSchema {
             .filter_map(|repo| {
                 Some((
                     repo.git_url.clone(),
+                    // Matching using the input URL as the haystack instead of the needle yielded better scoring
+                    // Example:
+                    // haystack = "https://github.com/boxbeam/untwine" needle = "https://abc@github.com/boxbeam/untwine.git" => No match
+                    // haystack = "https://abc@github.com/boxbeam/untwine.git" needle = "https://github.com/boxbeam/untwine" => Match, score 842
                     nucleo.fuzzy_match(
                         Utf32String::from(git_url).slice(..),
                         Utf32String::from(&*repo.git_url).slice(..),
