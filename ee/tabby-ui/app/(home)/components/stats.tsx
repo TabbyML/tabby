@@ -1,8 +1,10 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import { useWindowSize } from '@uidotdev/usehooks'
 import moment from 'moment'
 import { useTheme } from 'next-themes'
+import { eachDayOfInterval } from 'date-fns'
 import ReactActivityCalendar from 'react-activity-calendar'
 import {
   Bar,
@@ -15,10 +17,12 @@ import {
   YAxis,
   type LabelProps
 } from 'recharts'
+import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
+import { DailyStatsQuery, DailyStatsInPastYearQuery } from '@/lib/gql/generates/graphql'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -134,6 +138,9 @@ function LanguageTooltip({
 export default function Stats() {
   const [{ data }] = useMe()
   const { theme } = useTheme()
+  const searchParams = useSearchParams()
+
+  const sample = searchParams.get('sample') === 'true'
   const colorMap = getLanguageColorMap()
   const startDate = moment()
     .subtract(DATE_RANGE, 'day')
@@ -151,6 +158,33 @@ export default function Stats() {
       users: data?.me?.id
     }
   })
+  let dailyStats: DailyStatsQuery['dailyStats'] | undefined
+  if (sample) {
+    const daysBetweenRange = eachDayOfInterval({
+      start: startDate,
+      end: endDate
+    })
+    dailyStats = daysBetweenRange.map(date => {
+      const rng = seedrandom(
+        moment(date).format('YYYY-MM-DD') + data?.me.id
+      )
+      const selects = Math.ceil(rng() * 20)
+      const completions = selects + Math.floor(rng() * 10)
+      return {
+        start: moment(date).startOf('day').toDate(),
+        end: moment(date).endOf('day').toDate(),
+        completions,
+        selects
+      }
+    })
+  } else {
+    dailyStats = dailyStatsData?.dailyStats.map(item => ({
+      start: item.start,
+      end: item.end,
+      completions: item.completions,
+      selects: item.selects
+    }))
+  }
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
@@ -160,8 +194,35 @@ export default function Stats() {
     }
   })
   let lastYearCompletions = 0
+  let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
+  if (sample) {
+    const daysBetweenRange = eachDayOfInterval({
+      start: moment().toDate(),
+      end: moment().subtract(365, 'days').toDate()
+    })
+    yearlyStats = daysBetweenRange.map(date => {
+      const rng = seedrandom(
+        moment(date).format('YYYY-MM-DD') + data?.me.id
+      )
+      const selects = Math.ceil(rng() * 20)
+      const completions = selects + Math.floor(rng() * 10)
+      return {
+        start: moment(date).startOf('day').toDate(),
+        end: moment(date).endOf('day').toDate(),
+        completions,
+        selects
+      }
+    })
+  } else {
+    yearlyStats = yearlyStatsData?.dailyStatsInPastYear.map(item => ({
+      start: item.start,
+      end: item.end,
+      completions: item.completions,
+      selects: item.selects
+    }))
+  }
   const dailyCompletionMap: Record<string, number> =
-    yearlyStatsData?.dailyStatsInPastYear?.reduce((acc, cur) => {
+    yearlyStats?.reduce((acc, cur) => {
       const date = moment(cur.start).format('YYYY-MM-DD')
       lastYearCompletions += cur.completions
       return { ...acc, [date]: cur.completions }
@@ -186,17 +247,35 @@ export default function Stats() {
     end: moment(endDate).toDate(),
     users: data?.me?.id
   })
-  let languageData: LanguageData = Object.entries(languageStats)
-    .map(([key, stats]) => {
-      return {
-        name: key,
-        selects: stats.selects,
-        completions: stats.completions,
-        label: stats.name
-      }
-    })
-    .filter(item => item.completions)
-    .slice(0, 5)
+  let languageData: LanguageData | undefined
+  if (sample) {
+    const rng = seedrandom(data?.me.id)
+    const rustCompletion = Math.ceil(rng() * 40)
+    const pythonCompletion = Math.ceil(rng() * 25)
+    languageData = [{
+      name: 'rust',
+      label: 'Rust',
+      completions: rustCompletion,
+      selects: rustCompletion,
+    }, {
+      name: 'python',
+      label: 'Python',
+      completions: pythonCompletion,
+      selects: pythonCompletion,
+    }]
+  } else {
+    languageData = Object.entries(languageStats)
+      .map(([key, stats]) => {
+        return {
+          name: key,
+          selects: stats.selects,
+          completions: stats.completions,
+          label: stats.name
+        }
+      })
+      .filter(item => item.completions)
+      .slice(0, 5)
+  }
   languageData = languageData.sort((a, b) => b.completions - a.completions)
   if (languageData.length === 0) {
     // Placeholder when there is no completions
@@ -235,7 +314,7 @@ export default function Stats() {
         }
       >
         <CompletionCharts
-          dailyStats={dailyStatsData?.dailyStats}
+          dailyStats={dailyStats}
           from={moment(startDate).toDate()}
           to={moment(endDate).toDate()}
           dateRange={DATE_RANGE}
