@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
-import { BookOpenText } from 'lucide-react'
+import { BookOpenText, Mail } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -1319,6 +1319,10 @@ const IconBookOpenText = ({
   <BookOpenText className={cn('h4 w-4', className)} {...props} />
 )
 
+function IconMail({ className, ...props }: React.ComponentProps<typeof Mail>) {
+  return <Mail className={cn('h4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1386,5 +1390,6 @@ export {
   IconStopWatch,
   IconBarChart,
   IconActivity,
-  IconBookOpenText
+  IconBookOpenText,
+  IconMail
 }

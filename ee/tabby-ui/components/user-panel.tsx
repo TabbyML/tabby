@@ -1,4 +1,5 @@
 import React from 'react'
+import { usePathname } from 'next/navigation'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -11,17 +12,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { UserAvatar } from '@/components/user-avatar'
 
 import {
   IconBackpack,
   IconChat,
   IconCode,
+  IconGear,
+  IconHome,
   IconLogout,
   IconSpinner
 } from './ui/icons'
 
-export default function UserPanel() {
+export default function UserPanel({
+  children
+}: {
+  children?: React.ReactNode
+}) {
   const signOut = useSignOut()
   const [{ data }] = useMe()
   const user = data?.me
@@ -35,18 +41,37 @@ export default function UserPanel() {
     setSignOutLoading(false)
   }
 
+  const pathname = usePathname()
+  const isHome = pathname === '/'
+
   if (!user) {
     return
   }
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <UserAvatar className="h-10 w-10 border" />
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger>{children}</DropdownMenuTrigger>
       <DropdownMenuContent collisionPadding={{ right: 16 }}>
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {!isHome && (
+          <DropdownMenuItem
+            onClick={() => window.open('/')}
+            className="cursor-pointer"
+          >
+            <IconHome />
+            <span className="ml-2">Home</span>
+          </DropdownMenuItem>
+        )}
+        {isHome && (
+          <DropdownMenuItem
+            onClick={() => window.open('/profile')}
+            className="cursor-pointer"
+          >
+            <IconGear />
+            <span className="ml-2">Settings</span>
+          </DropdownMenuItem>
+        )}
         {isChatEnabled && (
           <DropdownMenuItem
             onClick={() => window.open('/playground')}
@@ -77,7 +102,7 @@ export default function UserPanel() {
           className="cursor-pointer"
         >
           <IconLogout />
-          <span className="ml-2">Logout</span>
+          <span className="ml-2">Sign out</span>
           {signOutLoading && <IconSpinner className="ml-1" />}
         </DropdownMenuItem>
       </DropdownMenuContent>
