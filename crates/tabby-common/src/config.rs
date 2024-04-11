@@ -67,35 +67,16 @@ impl Config {
     }
 }
 
-lazy_static! {
-    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.-]+$").unwrap();
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RepositoryConfig {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
     pub git_url: String,
 }
 
 impl RepositoryConfig {
-    #[cfg(feature = "testutils")]
     pub fn new(git_url: String) -> Self {
         Self {
-            name: None,
             git_url,
         }
-    }
-
-    pub fn new_named(name: String, git_url: String) -> Self {
-        Self {
-            name: Some(name),
-            git_url,
-        }
-    }
-
-    pub fn validate_name(name: &str) -> bool {
-        REPOSITORY_NAME_REGEX.is_match(name)
     }
 
     pub fn dir(&self) -> PathBuf {
@@ -109,12 +90,6 @@ impl RepositoryConfig {
 
     pub fn is_local_dir(&self) -> bool {
         self.git_url.starts_with("file://")
-    }
-
-    pub fn name(&self) -> String {
-        self.name
-            .clone()
-            .unwrap_or_else(|| sanitize_name(&self.git_url))
     }
 }
 
@@ -174,14 +149,12 @@ mod tests {
     #[test]
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
-            name: None,
             git_url: "file:///home/user".to_owned(),
         };
         assert!(repo.is_local_dir());
         assert_eq!(repo.dir().display().to_string(), "/home/user");
 
         let repo = RepositoryConfig {
-            name: None,
             git_url: "https://github.com/TabbyML/tabby".to_owned(),
         };
         assert!(!repo.is_local_dir());
@@ -190,21 +163,9 @@ mod tests {
     #[test]
     fn test_repository_config_name() {
         let repo = RepositoryConfig {
-            name: None,
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
         };
-        assert_eq!(repo.name(), "https_github.com_TabbyML_tabby.git");
-    }
-
-    #[test]
-    fn test_validate_repository_name() {
-        assert!(!RepositoryConfig::validate_name("3tabby"));
-        assert!(!RepositoryConfig::validate_name("_tabby"));
-        assert!(RepositoryConfig::validate_name("tabby"));
-        assert!(RepositoryConfig::validate_name("tabby_ml"));
-        assert!(RepositoryConfig::validate_name(
-            "https_github.com_TabbyML_tabby.git"
-        ));
+        assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby.git"));
     }
 
     #[test]
