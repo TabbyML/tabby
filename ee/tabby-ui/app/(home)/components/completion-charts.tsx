@@ -167,8 +167,7 @@ export function CompletionCharts({
   })
 
   return (
-    <>
-      <div>
+    <div>
         <h3 className="mb-2 text-sm font-medium tracking-tight">
           Stats in last <b>{dateRange + 1}</b> days
         </h3>
@@ -291,46 +290,6 @@ export function CompletionCharts({
           </ResponsiveContainer>
         </Card>
       </div>
-      </div>
-
-      {/* <div>
-        <h3 className="mb-2 text-sm font-medium tracking-tight">
-          Daily completions
-        </h3>
-        <div className="flex items-end justify-center rounded-xl border p-5">
-          <ResponsiveContainer width="100%" height={200}>
-              <BarChart
-                data={completionData}
-                margin={{
-                  top: 10,
-                  right: 10,
-                  left: 10,
-                  bottom: 5
-                }}
-              >
-                <Bar
-                  dataKey="select"
-                  stackId="stats"
-                  fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
-                  radius={3}
-                />
-                <Bar
-                  dataKey="realPending"
-                  stackId="stats"
-                  fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
-                  radius={3}
-                />
-                <XAxis dataKey="name" fontSize={12} />
-                <YAxis fontSize={12} width={20} allowDecimals={false} />
-                <Tooltip
-                  cursor={{ fill: 'transparent' }}
-                  content={<BarTooltip type='all' />}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-      </div> */}
-    </>
-    
+    </div>
   )
 }
