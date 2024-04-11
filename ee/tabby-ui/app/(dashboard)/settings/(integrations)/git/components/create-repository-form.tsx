@@ -82,7 +82,7 @@ export default function CreateRepositoryForm({
                 <FormLabel required>Git URL</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="e.g. https://github.com/tabbyML/tabby"
+                    placeholder="e.g. https://github.com/tabbyML/tabby.git"
                     autoCapitalize="none"
                     autoCorrect="off"
                     {...field}
