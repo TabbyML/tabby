@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useWindowSize } from '@uidotdev/usehooks'
+import { eachDayOfInterval } from 'date-fns'
+import { sum } from 'lodash-es'
 import moment from 'moment'
 import { useTheme } from 'next-themes'
-import { eachDayOfInterval } from 'date-fns'
 import ReactActivityCalendar from 'react-activity-calendar'
 import {
   Bar,
@@ -20,20 +21,21 @@ import {
 } from 'recharts'
 import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
-import { sum } from 'lodash-es'
 
+import {
+  DailyStatsInPastYearQuery,
+  DailyStatsQuery,
+  Language
+} from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
-import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import { DailyStatsQuery, DailyStatsInPastYearQuery, Language } from '@/lib/gql/generates/graphql'
 import { QueryVariables } from '@/lib/tabby/gql'
+import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import languageColors from '../language-colors.json'
-import { CompletionCharts } from './completion-charts'
-
-import { type LanguageStats } from './completion-charts'
+import { CompletionCharts, type LanguageStats } from './completion-charts'
 
 const DATE_RANGE = 6
 
@@ -232,9 +234,7 @@ export default function Stats() {
       end: endDate
     })
     dailyStats = daysBetweenRange.map(date => {
-      const rng = seedrandom(
-        moment(date).format('YYYY-MM-DD') + data?.me.id
-      )
+      const rng = seedrandom(moment(date).format('YYYY-MM-DD') + data?.me.id)
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
@@ -268,9 +268,7 @@ export default function Stats() {
       end: moment().subtract(365, 'days').toDate()
     })
     yearlyStats = daysBetweenRange.map(date => {
-      const rng = seedrandom(
-        moment(date).format('YYYY-MM-DD') + data?.me.id
-      )
+      const rng = seedrandom(moment(date).format('YYYY-MM-DD') + data?.me.id)
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
@@ -319,17 +317,20 @@ export default function Stats() {
     const rng = seedrandom(data?.me.id)
     const rustCompletion = Math.ceil(rng() * 40)
     const pythonCompletion = Math.ceil(rng() * 25)
-    languageData = [{
-      name: 'rust',
-      label: 'Rust',
-      completions: rustCompletion,
-      selects: rustCompletion,
-    }, {
-      name: 'python',
-      label: 'Python',
-      completions: pythonCompletion,
-      selects: pythonCompletion,
-    }]
+    languageData = [
+      {
+        name: 'rust',
+        label: 'Rust',
+        completions: rustCompletion,
+        selects: rustCompletion
+      },
+      {
+        name: 'python',
+        label: 'Python',
+        completions: pythonCompletion,
+        selects: pythonCompletion
+      }
+    ]
   } else {
     languageData = Object.entries(languageStats)
       .map(([key, stats]) => {
