@@ -656,13 +656,13 @@ const languages = {
     filenames: [],
     extnames: [`jsx`]
   },
-  tsx: {
-    filenames: [],
-    extnames: [`tsx`]
-  },
   toml: {
     filenames: [],
     extnames: [`toml`]
+  },
+  tsx: {
+    filenames: [],
+    extnames: [`tsx`]
   },
   renpy: {
     filenames: [],
