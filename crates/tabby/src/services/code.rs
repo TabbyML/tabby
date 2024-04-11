@@ -4,6 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
+    config::RepositoryAccess,
     index::{self, register_tokenizers, CodeSearchSchema},
     path,
 };
@@ -22,10 +23,11 @@ struct CodeSearchImpl {
     query_parser: QueryParser,
 
     schema: CodeSearchSchema,
+    repo_access: Arc<dyn RepositoryAccess>,
 }
 
 impl CodeSearchImpl {
-    fn load() -> Result<Self> {
+    fn load(repo_access: Arc<dyn RepositoryAccess>) -> Result<Self> {
         let code_schema = index::CodeSearchSchema::new();
         let index = Index::open_in_dir(path::index_dir())?;
         register_tokenizers(&index);
@@ -40,15 +42,16 @@ impl CodeSearchImpl {
             .reload_policy(tantivy::ReloadPolicy::OnCommit)
             .try_into()?;
         Ok(Self {
+            repo_access,
             reader,
             query_parser,
             schema: code_schema,
         })
     }
 
-    async fn load_async() -> CodeSearchImpl {
+    async fn load_async(repo_access: Arc<dyn RepositoryAccess>) -> CodeSearchImpl {
         loop {
-            match CodeSearchImpl::load() {
+            match CodeSearchImpl::load(repo_access.clone()) {
                 Ok(code) => {
                     info!("Index is ready, enabling server...");
                     return code;
@@ -145,7 +148,7 @@ struct CodeSearchService {
 }
 
 impl CodeSearchService {
-    pub fn new() -> Self {
+    pub fn new(repo_access: Arc<dyn RepositoryAccess>) -> Self {
         let search = Arc::new(Mutex::new(None));
 
         let ret = Self {
@@ -153,7 +156,7 @@ impl CodeSearchService {
         };
 
         tokio::spawn(async move {
-            let code = CodeSearchImpl::load_async().await;
+            let code = CodeSearchImpl::load_async(repo_access).await;
             *search.lock().await = Some(code);
         });
 
@@ -161,8 +164,8 @@ impl CodeSearchService {
     }
 }
 
-pub fn create_code_search() -> impl CodeSearch {
-    CodeSearchService::new()
+pub fn create_code_search(repo_access: Arc<dyn RepositoryAccess>) -> impl CodeSearch {
+    CodeSearchService::new(repo_access)
 }
 
 #[async_trait]

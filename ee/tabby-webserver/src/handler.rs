@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axum::{
     extract::{Path, State},
     http::Request,
@@ -10,32 +11,70 @@ use axum::{
 use hyper::{header::CONTENT_TYPE, Body, StatusCode};
 use juniper::ID;
 use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
-use tabby_common::api::{code::CodeSearch, event::EventLogger, server_setting::ServerSetting};
+use tabby_common::{
+    api::{code::CodeSearch, event::EventLogger, server_setting::ServerSetting},
+    config::{RepositoryAccess, RepositoryConfig},
+};
 use tabby_db::DbConn;
 use tracing::{error, warn};
 
 use crate::{
     cron, hub, oauth,
     repositories::{self, RepositoryCache},
-    schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
+    schema::{
+        auth::AuthenticationService, create_schema, repository::RepositoryService, Schema,
+        ServiceLocator,
+    },
     service::{create_service_locator, event_logger::new_event_logger},
     ui,
 };
 
+struct ServiceRepositoryAccess {
+    service: Arc<dyn RepositoryService>,
+}
+
+#[async_trait]
+impl RepositoryAccess for ServiceRepositoryAccess {
+    async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
+        let repos = self
+            .service
+            .list_repositories(None, None, None, None)
+            .await?;
+        Ok(repos
+            .into_iter()
+            .map(|repo| RepositoryConfig::new_named(repo.name, repo.git_url))
+            .collect())
+    }
+}
+
+pub fn new_repository_access(service: Arc<dyn RepositoryService>) -> impl RepositoryAccess {
+    ServiceRepositoryAccess { service }
+}
+
 pub struct WebserverHandle {
     db: DbConn,
+    repository_service: Arc<dyn RepositoryService>,
     event_logger: Arc<dyn EventLogger>,
 }
 
 impl WebserverHandle {
     pub async fn new() -> Self {
         let db = DbConn::new().await.expect("Must be able to initialize db");
+        let repository_service = Arc::new(db.clone());
         let event_logger = Arc::new(new_event_logger(db.clone()));
-        WebserverHandle { db, event_logger }
+        WebserverHandle {
+            db,
+            event_logger,
+            repository_service,
+        }
     }
 
     pub fn logger(&self) -> Arc<dyn EventLogger + 'static> {
         self.event_logger.clone()
+    }
+
+    pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
+        Arc::new(new_repository_access(self.repository_service.clone()))
     }
 
     pub async fn attach_webserver(
@@ -46,8 +85,14 @@ impl WebserverHandle {
         is_chat_enabled: bool,
         local_port: u16,
     ) -> (Router, Router) {
-        let ctx =
-            create_service_locator(self.logger(), code, self.db.clone(), is_chat_enabled).await;
+        let ctx = create_service_locator(
+            self.logger(),
+            code,
+            self.repository_service.clone(),
+            self.db.clone(),
+            is_chat_enabled,
+        )
+        .await;
         let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
         let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;
