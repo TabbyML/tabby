@@ -476,10 +476,14 @@ def this_is_prefix():\n";
                 body: "def fib(n):\n    return n if n <= 1 else fib(n - 1) + fib(n - 2)"
                     .to_string(),
             }]),
-            relevant_snippets_from_changed_files: None,
+            relevant_snippets_from_changed_files: Some(vec![Snippet {
+                filepath: "a1.py".to_owned(),
+                body: "res_1 = invoke_function_1(n)".to_owned(),
+                score: 1.0,
+            }]),
             clipboard: None,
         };
 
-        assert!(extract_snippets_from_segments(&segments).is_some_and(|x| x.len() == 1));
+        assert!(extract_snippets_from_segments(&segments).is_some_and(|x| x.len() == 2));
     }
 }
