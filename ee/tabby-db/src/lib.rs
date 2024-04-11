@@ -129,7 +129,7 @@ impl DbConn {
                 active_user_count: Default::default(),
                 active_admin_count: Default::default(),
                 daily_stats_in_past_year: Arc::new(Mutex::new(
-                    TimedSizedCache::with_size_and_lifespan(1024, 3600),
+                    TimedSizedCache::with_size_and_lifespan(20, 3600),
                 )),
             }),
         };
