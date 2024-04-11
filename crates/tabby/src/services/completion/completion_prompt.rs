@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-
 use lazy_static::lazy_static;
 use regex::Regex;
 use strfmt::strfmt;
@@ -223,9 +222,8 @@ fn tokenize_text(text: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::services::completion::Declaration;
-
     use super::*;
+    use crate::services::completion::Declaration;
 
     fn create_prompt_builder(with_template: bool) -> PromptBuilder {
         let prompt_template = if with_template {
