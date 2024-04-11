@@ -182,17 +182,19 @@ function LanguageTooltip({
     payload: {
       label: string
       completions: number
+      selects: number
     }
   }[]
 }) {
   if (active && payload && payload.length) {
-    const { completions, label } = payload[0].payload
-    if (!completions) return null
+    const { completions, selects, label } = payload[0].payload
+    const activities = completions + selects
+    if (!activities) return null
     return (
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
           <p className="flex items-center">
-            <span className="mr-3 inline-block w-20">Comletions:</span>
+            <span className="mr-3 inline-block w-20">Completions:</span>
             <b>{completions}</b>
           </p>
           <p className="text-muted-foreground">{label}</p>
@@ -367,7 +369,7 @@ export default function Stats() {
       >
         <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
-            <b>{lastYearCompletions}</b> activities in the last year
+            <b>{lastYearCompletions}</b> contributions in the last year
           </h3>
           <div className="flex items-end justify-center rounded-xl border p-5">
             <ActivityCalendar data={activities} />
@@ -397,7 +399,7 @@ export default function Stats() {
       >
         <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
-            Language completion stats
+            Top programming languages
           </h3>
           <div className="flex items-end justify-center rounded-xl border p-5">
             <ResponsiveContainer

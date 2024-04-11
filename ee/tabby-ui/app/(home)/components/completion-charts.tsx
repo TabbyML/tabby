@@ -48,7 +48,7 @@ function LineTooltip({
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
           <p className="flex items-center">
-            <span className="mr-3 inline-block w-20">Acceptance:</span>
+            <span className="mr-3 inline-block w-20">Rate:</span>
             <b>{value}%</b>
           </p>
           <p className="text-muted-foreground">{name}</p>
@@ -85,13 +85,13 @@ function BarTooltip({
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
           {(type === 'completion' || type === 'all') && (
             <p className="flex items-center">
-              <span className="mr-3 inline-block w-20">Completion:</span>
+              <span className="mr-3 inline-block w-20">Completions:</span>
               <b>{completion}</b>
             </p>
           )}
           {(type === 'accept' || type === 'all') && (
             <p className="flex items-center">
-              <span className="mr-3 inline-block w-20">Acceptance:</span>
+              <span className="mr-3 inline-block w-20">Acceptances:</span>
               <b>{select}</b>
             </p>
           )}
@@ -166,10 +166,6 @@ export function CompletionCharts({
 
   return (
     <div>
-      <h3 className="mb-2 text-sm font-medium tracking-tight">
-        Stats in last <b>{dateRange + 1}</b> days
-      </h3>
-
       <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-6 md:space-y-0 xl:justify-start">
         <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
@@ -203,55 +199,11 @@ export function CompletionCharts({
         <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-base font-normal tracking-tight">
-              Total Acceptances
+              Completions
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {totalAccepts > 0 && '+'}
-              {numeral(totalAccepts).format('0,0')}
-            </div>
-          </CardContent>
-
-          <ResponsiveContainer width="100%" height={60}>
-            <BarChart
-              data={completionData}
-              margin={{
-                top: totalCompletions === 0 ? 40 : 5,
-                right: 20,
-                left: 20,
-                bottom: 5
-              }}
-            >
-              <Bar
-                dataKey="select"
-                stackId="stats"
-                fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
-                radius={3}
-              />
-              <Bar
-                dataKey="selectPlaceholder"
-                stackId="stats"
-                fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
-                radius={3}
-              />
-              <Tooltip
-                cursor={{ fill: 'transparent' }}
-                content={<BarTooltip type="accept" />}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-
-        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-base font-normal tracking-tight">
-              Total Completions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {totalCompletions > 0 && '+'}
               {numeral(totalCompletions).format('0,0')}
             </div>
           </CardContent>
@@ -281,6 +233,48 @@ export function CompletionCharts({
               <Tooltip
                 cursor={{ fill: 'transparent' }}
                 content={<BarTooltip type="completion" />}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+            <CardTitle className="text-base font-normal tracking-tight">
+              Acceptances
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {numeral(totalAccepts).format('0,0')}
+            </div>
+          </CardContent>
+
+          <ResponsiveContainer width="100%" height={60}>
+            <BarChart
+              data={completionData}
+              margin={{
+                top: totalCompletions === 0 ? 40 : 5,
+                right: 20,
+                left: 20,
+                bottom: 5
+              }}
+            >
+              <Bar
+                dataKey="select"
+                stackId="stats"
+                fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
+                radius={3}
+              />
+              <Bar
+                dataKey="selectPlaceholder"
+                stackId="stats"
+                fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
+                radius={3}
+              />
+              <Tooltip
+                cursor={{ fill: 'transparent' }}
+                content={<BarTooltip type="accept" />}
               />
             </BarChart>
           </ResponsiveContainer>

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { capitalize, noop } from 'lodash-es'
+import { noop } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
 import { graphql } from '@/lib/gql/generates'
@@ -14,25 +14,18 @@ import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import {
-  IconChevronRight,
   IconGear,
   IconLogout,
   IconMail,
-  IconMoon2,
   IconRotate,
-  IconSpinner,
-  IconSun2
+  IconSpinner
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
+import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
@@ -58,25 +51,23 @@ function Configuration() {
     <div className="mb-1 mt-6">
       <CardContent className="flex flex-col gap-6 px-0">
         <div className="flex flex-col">
-          <Label className="text-xs font-semibold">Endpoint URL</Label>
+          <span className="flex items-center gap-1">
+            <Label className="text-xs font-semibold">Endpoint URL</Label>
+            <CopyButton value={externalUrl} />
+          </span>
           <span className="flex items-center gap-1">
             <Input
               value={externalUrl}
               onChange={noop}
               className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-muted-foreground p-0 shadow-none dark:border-primary/50"
             />
-            <CopyButton value={externalUrl} />
           </span>
         </div>
 
         <div className="flex flex-col">
-          <Label className="text-xs font-semibold">Token</Label>
           <span className="flex items-center gap-1">
-            <Input
-              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-muted-foreground p-0 font-mono shadow-none dark:border-primary/50"
-              value={data.me.authToken}
-              onChange={noop}
-            />
+            <Label className="text-xs font-semibold">Token</Label>
+            <CopyButton value={data.me.authToken} />
             <Button
               title="Rotate"
               size="icon"
@@ -85,7 +76,13 @@ function Configuration() {
             >
               <IconRotate />
             </Button>
-            <CopyButton value={data.me.authToken} />
+          </span>
+          <span className="flex items-center gap-1">
+            <Input
+              className="h-7 max-w-[320px] rounded-none border-x-0 !border-t-0 border-muted-foreground p-0 font-mono shadow-none dark:border-primary/50"
+              value={data.me.authToken}
+              onChange={noop}
+            />
           </span>
         </div>
       </CardContent>
@@ -125,70 +122,46 @@ function MainPanel() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="mx-auto flex w-screen max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto md:flex-row md:py-10 lg:gap-x-10 xl:px-0">
-        <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:w-64">
-          <UserPanel
-            trigger={
+    <div className="flex flex-1 justify-center">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto md:flex-row md:py-10 lg:gap-x-10 xl:px-0">
+        <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:mt-12 lg:w-64">
+          <span>
+            <UserPanel>
               <UserAvatar className="h-20 w-20 border-4 border-background" />
-            }
-            align="start"
-          />
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger className="mt-2 w-full cursor-default">
-                <div className="flex items-center">
-                  <IconMail className="mr-2 text-muted-foreground" />
-                  <p className="max-w-[10rem] truncate text-sm">
-                    {data.me.email}
-                  </p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{data.me.email}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            </UserPanel>
+          </span>
+          <div className="mt-2 flex w-full">
+            <div className="flex items-center gap-2">
+              <IconMail className="text-muted-foreground" />
+              <p className="max-w-[10rem] truncate text-sm">{data.me.email}</p>
+            </div>
+
+            <ThemeToggle className="ml-auto" />
+          </div>
 
           <Configuration />
 
-          <div className="flex items-center py-1">
-            <IconGear className="mr-2 text-muted-foreground" />
+          <Separator />
+
+          <div className="mt-[48px] flex flex-col gap-1">
             <Link
-              className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
+              className="flex items-center gap-2 text-sm transition-opacity hover:opacity-50"
               href="/profile"
             >
-              <span>Settings</span>
-              <IconChevronRight />
+              <IconGear className="text-muted-foreground" />
+              Settings
             </Link>
-          </div>
-          <div
-            className="flex cursor-pointer items-center py-1"
-            onClick={() => {
-              startTransition(() => {
-                setTheme(theme === 'light' ? 'dark' : 'light')
-              })
-            }}
-          >
-            {theme === 'dark' ? (
-              <IconMoon2 className="mr-2 text-muted-foreground transition-all" />
-            ) : (
-              <IconSun2 className="mr-2 text-muted-foreground transition-all" />
-            )}
-            <span className="text-sm transition-opacity hover:opacity-50">
-              {capitalize(theme)}
-            </span>
-          </div>
 
-          <div
-            className="flex cursor-pointer items-center py-1"
-            onClick={handleSignOut}
-          >
-            <IconLogout className="mr-2 text-muted-foreground" />
-            <span className="text-sm transition-opacity hover:opacity-50">
-              Logout
-            </span>
-            {signOutLoading && <IconSpinner className="ml-1" />}
+            <div
+              className="flex cursor-pointer items-center gap-2 py-1"
+              onClick={handleSignOut}
+            >
+              <IconLogout className="text-muted-foreground" />
+              <span className="text-sm transition-opacity hover:opacity-50">
+                Sign out
+              </span>
+              {signOutLoading && <IconSpinner className="ml-1" />}
+            </div>
           </div>
         </div>
 

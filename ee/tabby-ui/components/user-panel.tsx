@@ -1,5 +1,4 @@
 import React from 'react'
-import Link from 'next/link'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -12,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { UserAvatar } from '@/components/user-avatar'
 
 import {
   IconBackpack,
@@ -24,11 +22,9 @@ import {
 } from './ui/icons'
 
 export default function UserPanel({
-  trigger,
-  align
+  children
 }: {
-  trigger?: React.ReactNode
-  align?: 'start' | 'center' | 'end'
+  children?: React.ReactNode
 }) {
   const signOut = useSignOut()
   const [{ data }] = useMe()
@@ -49,20 +45,16 @@ export default function UserPanel({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        {trigger || <UserAvatar className="h-10 w-10 border" />}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        collisionPadding={{ right: 16 }}
-        align={align || 'center'}
-      >
+      <DropdownMenuTrigger>{children}</DropdownMenuTrigger>
+      <DropdownMenuContent collisionPadding={{ right: 16 }}>
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <Link href="/" className="flex items-center">
-            <IconHome />
-            <span className="ml-2">Home</span>
-          </Link>
+        <DropdownMenuItem
+          onClick={() => window.open('/')}
+          className="cursor-pointer"
+        >
+          <IconHome />
+          <span className="ml-2">Home</span>
         </DropdownMenuItem>
         {isChatEnabled && (
           <DropdownMenuItem
