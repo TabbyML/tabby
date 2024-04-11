@@ -15,7 +15,7 @@ use kdam::BarExt;
 use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
-    config::{RepositoryAccess, RepositoryConfig},
+    config::{RepositoryConfig},
     path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
@@ -25,17 +25,11 @@ use tree_sitter_tags::TagsContext;
 use crate::utils::tqdm;
 
 trait RepositoryExt {
-    fn create_dataset(
-        &self,
-        writer: &mut impl Write
-    ) -> Result<()>;
+    fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
 }
 
 impl RepositoryExt for RepositoryConfig {
-    fn create_dataset(
-        &self,
-        writer: &mut impl Write
-    ) -> Result<()> {
+    fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
         let dir = self.dir();
 
         let walk_dir_iter = || {

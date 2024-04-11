@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use crate::{
     path::repositories_dir,
     terminal::{HeaderFormat, InfoMessage},
-    SourceFile,
 };
 
 #[derive(Serialize, Deserialize, Default)]
