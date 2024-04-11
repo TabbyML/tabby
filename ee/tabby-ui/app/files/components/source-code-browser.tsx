@@ -1,7 +1,6 @@
 'use client'
 
 import React, { PropsWithChildren } from 'react'
-import filename2prism from 'filename2prism'
 import { compact, findIndex, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
@@ -20,6 +19,7 @@ import {
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
+import filename2prism from '../lib/filename2prism'
 import { ChatSideBar } from './chat-side-bar'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'
