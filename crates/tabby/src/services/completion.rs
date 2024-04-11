@@ -121,14 +121,15 @@ pub struct Segments {
     /// contain declarations of symbols extracted from [Segments::prefix].
     declarations: Option<Vec<Declaration>>,
 
-    /// The relevant code snippets extracted from recently accessed files.
+    /// The relevant code snippets extracted from recently changed files.
     /// The current editing file is excluded from the search candidates.
     ///
-    /// When provided alongside [Segments::declarations], the snippets should
-    /// be deduplicated to avoid duplication with entries in `declarations`.
+    /// When provided alongside [Segments::declarations], the snippets have
+    /// already been deduplicated to ensure no duplication with entries
+    /// in [Segments::declarations].
     ///
-    /// Sorted in descending order of [RecentSnippet::score].
-    recent_snippets: Option<Vec<RecentSnippet>>,
+    /// Sorted in descending order of [Snippet::score].
+    relevant_snippets_from_changed_files: Option<Vec<Snippet>>,
 
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
@@ -169,21 +170,6 @@ impl From<Declaration> for api::event::Declaration {
             body: val.body,
         }
     }
-}
-
-/// A snippet of code that is relevant to the current completion request.
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct RecentSnippet {
-    /// Filepath of the file where the snippet is from.
-    /// Use the same rule as [Segments::filepath].
-    pub filepath: String,
-
-    /// Body of the snippet.
-    pub body: String,
-
-    /// A higher score means that the snippet is more relevant.
-    /// The value is in [0, 1].
-    pub score: f32,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -400,7 +386,7 @@ mod tests {
             filepath: None,
             git_url: None,
             declarations: None,
-            recent_snippets: None,
+            relevant_snippets_from_changed_files: None,
             clipboard: None,
         };
 
@@ -416,7 +402,7 @@ mod tests {
                 body: "def fib(n):\n    return n if n <= 1 else fib(n - 1) + fib(n - 2)"
                     .to_string(),
             }]),
-            recent_snippets: None,
+            relevant_snippets_from_changed_files: None,
             clipboard: None,
         };
 
