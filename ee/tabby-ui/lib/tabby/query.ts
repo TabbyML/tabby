@@ -102,3 +102,54 @@ export const listJobs = graphql(/* GraphQL */ `
     jobs
   }
 `)
+
+export const listUsers = graphql(/* GraphQL */ `
+  query ListUsers($after: String, $before: String, $first: Int, $last: Int) {
+    users(after: $after, before: $before, first: $first, last: $last) {
+      edges {
+        node {
+          id
+          email
+          isAdmin
+          isOwner
+          createdAt
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const queryDailyStatsInPastYear = graphql(/* GraphQL */ `
+  query DailyStatsInPastYear($users: [ID!]) {
+    dailyStatsInPastYear(users: $users) {
+      start
+      end
+      completions
+      selects
+    }
+  }
+`)
+
+export const queryDailyStats = graphql(/* GraphQL */ `
+  query DailyStats(
+    $start: DateTimeUtc!
+    $end: DateTimeUtc!
+    $users: [ID!]
+    $languages: [Language!]
+  ) {
+    dailyStats(start: $start, end: $end, users: $users, languages: $languages) {
+      start
+      end
+      completions
+      selects
+    }
+  }
+`)

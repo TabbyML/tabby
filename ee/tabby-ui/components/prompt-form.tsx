@@ -9,13 +9,6 @@ import type { ISearchHit, SearchReponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
-  Combobox,
-  ComboboxAnchor,
-  ComboboxContent,
-  ComboboxOption,
-  ComboboxTextarea
-} from '@/components/ui/combobox'
-import {
   IconArrowElbow,
   IconEdit,
   IconSymbolFunction
@@ -26,6 +19,13 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import {
+  SearchableSelect,
+  SearchableSelectAnchor,
+  SearchableSelectContent,
+  SearchableSelectOption,
+  SearchableSelectTextarea
+} from '@/components/searchable-select'
 
 export interface PromptProps
   extends Pick<UseChatHelpers, 'input' | 'setInput'> {
@@ -45,6 +45,7 @@ function PromptFormRenderer(
   const [queryCompletionUrl, setQueryCompletionUrl] = React.useState<
     string | null
   >(null)
+  const [suggestionOpen, setSuggestionOpen] = React.useState(false)
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   // store the input selection for replacing inputValue
   const prevInputSelectionEnd = React.useRef<number>()
@@ -66,7 +67,9 @@ function PromptFormRenderer(
   )
 
   React.useEffect(() => {
-    setOptions(completionData?.hits ?? [])
+    const suggestions = completionData?.hits ?? []
+    setOptions(suggestions)
+    setSuggestionOpen(!!suggestions?.length)
   }, [completionData?.hits])
 
   React.useImperativeHandle(ref, () => {
@@ -109,6 +112,7 @@ function PromptFormRenderer(
         setQueryCompletionUrl(url)
       } else {
         setOptions([])
+        setSuggestionOpen(false)
       }
     }, 200)
   }, [])
@@ -132,6 +136,7 @@ function PromptFormRenderer(
       setInput(prevInput + replaceString + input.slice(selectionEnd))
     }
     setOptions([])
+    setSuggestionOpen(false)
   }
 
   const handlePromptSubmit: React.FormEventHandler<
@@ -170,8 +175,9 @@ function PromptFormRenderer(
       ['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)
     ) {
       setOptions([])
+      setSuggestionOpen(false)
     } else {
-      if (!isOpen && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      if (!isOpen) {
         ;(e as any).preventDownshiftDefault = true
       }
       onKeyDown(e)
@@ -180,17 +186,25 @@ function PromptFormRenderer(
 
   return (
     <form onSubmit={handlePromptSubmit} ref={formRef}>
-      <Combobox
-        inputRef={inputRef}
+      <SearchableSelect
         options={options}
         onSelect={handleCompletionSelect}
+        open={suggestionOpen}
+        onOpenChange={isOpen => {
+          if (isOpen && options?.length) {
+            setSuggestionOpen(isOpen)
+          } else {
+            setSuggestionOpen(false)
+            setOptions([])
+          }
+        }}
       >
         {({ open, highlightedIndex }) => {
           const highlightedOption = options?.[highlightedIndex]
 
           return (
             <>
-              <ComboboxAnchor>
+              <SearchableSelectAnchor>
                 <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
                   <span
                     className={cn(
@@ -200,7 +214,7 @@ function PromptFormRenderer(
                   >
                     <IconEdit />
                   </span>
-                  <ComboboxTextarea
+                  <SearchableSelectTextarea
                     tabIndex={0}
                     rows={1}
                     placeholder="Ask a question."
@@ -236,8 +250,8 @@ function PromptFormRenderer(
                     </Tooltip>
                   </div>
                 </div>
-              </ComboboxAnchor>
-              <ComboboxContent
+              </SearchableSelectAnchor>
+              <SearchableSelectContent
                 align="start"
                 side="top"
                 onOpenAutoFocus={e => e.preventDefault()}
@@ -249,7 +263,7 @@ function PromptFormRenderer(
                       {open &&
                         !!options?.length &&
                         options.map((item, index) => (
-                          <ComboboxOption
+                          <SearchableSelectOption
                             item={item}
                             index={index}
                             key={item?.id}
@@ -265,7 +279,7 @@ function PromptFormRenderer(
                                 {item?.doc?.body}
                               </div>
                             </div>
-                          </ComboboxOption>
+                          </SearchableSelectOption>
                         ))}
                     </div>
                   </PopoverAnchor>
@@ -292,11 +306,11 @@ function PromptFormRenderer(
                     </div>
                   </PopoverContent>
                 </Popover>
-              </ComboboxContent>
+              </SearchableSelectContent>
             </>
           )
         }}
-      </Combobox>
+      </SearchableSelect>
     </form>
   )
 }

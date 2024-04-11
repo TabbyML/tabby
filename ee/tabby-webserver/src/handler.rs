@@ -12,20 +12,26 @@ use hyper::{header::CONTENT_TYPE, Body, StatusCode};
 use juniper::ID;
 use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
 use tabby_common::{
-    api::{code::CodeSearch, event::EventLogger, server_setting::ServerSetting},
+    api::{
+        code::CodeSearch,
+        event::{ComposedLogger, EventLogger},
+        server_setting::ServerSetting,
+    },
     config::{RepositoryAccess, RepositoryConfig},
 };
 use tabby_db::DbConn;
 use tracing::{error, warn};
 
 use crate::{
-    cron, hub, oauth,
-    repositories::{self, RepositoryCache},
+    cron, hub, integrations, oauth,
+    path::db_file,
+    repositories,
     schema::{
         auth::AuthenticationService, create_schema, repository::RepositoryService, Schema,
         ServiceLocator,
     },
-    service::{create_service_locator, event_logger::new_event_logger},
+    service::create_service_locator,
+    service::event_logger::create_event_logger,
     ui,
 };
 
@@ -47,24 +53,28 @@ impl RepositoryAccess for ServiceRepositoryAccess {
     }
 }
 
-pub fn new_repository_access(service: Arc<dyn RepositoryService>) -> impl RepositoryAccess {
+fn new_repository_access(service: Arc<dyn RepositoryService>) -> impl RepositoryAccess {
     ServiceRepositoryAccess { service }
 }
 
 pub struct WebserverHandle {
     db: DbConn,
-    repository_service: Arc<dyn RepositoryService>,
     event_logger: Arc<dyn EventLogger>,
+    repository_service: Arc<dyn RepositoryService>,
 }
 
 impl WebserverHandle {
-    pub async fn new() -> Self {
-        let db = DbConn::new().await.expect("Must be able to initialize db");
+    pub async fn new(logger1: impl EventLogger + 'static) -> Self {
+        let db = DbConn::new(db_file().as_path())
+            .await
+            .expect("Must be able to initialize db");
         let repository_service = Arc::new(db.clone());
-        let event_logger = Arc::new(new_event_logger(db.clone()));
+
+        let logger2 = create_event_logger(db.clone());
+        let logger = Arc::new(ComposedLogger::new(logger1, logger2));
         WebserverHandle {
             db,
-            event_logger,
+            event_logger: logger,
             repository_service,
         }
     }
@@ -95,10 +105,7 @@ impl WebserverHandle {
         .await;
         let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
-        let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;
-
         let schema = Arc::new(create_schema());
-        let rs = Arc::new(repository_cache);
 
         let api = api
             .route(
@@ -122,7 +129,11 @@ impl WebserverHandle {
             )
             .nest(
                 "/repositories",
-                repositories::routes(rs.clone(), ctx.auth()),
+                repositories::routes(ctx.repository(), ctx.auth()),
+            )
+            .nest(
+                "/integrations/github",
+                integrations::github::routes(ctx.setting(), ctx.github_repository_provider()),
             )
             .route(
                 "/avatar/:id",

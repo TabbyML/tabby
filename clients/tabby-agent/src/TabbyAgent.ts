@@ -338,9 +338,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
       return null;
     }
 
-    // filepath
-    let filepathInfo: { filepath: string; git_url?: string } | undefined = undefined;
-    const { filepath, workspace, git } = context;
+    // filepath && git_url
+    let relativeFilepathRoot: string | undefined = undefined;
+    let filepath: string | undefined = undefined;
+    let gitUrl: string | undefined = undefined;
+    const { workspace, git } = context;
     if (git && git.remotes.length > 0) {
       // find remote url: origin > upstream > first
       const remote =
@@ -348,18 +350,29 @@ export class TabbyAgent extends EventEmitter implements Agent {
         git.remotes.find((remote) => remote.name === "upstream") ||
         git.remotes[0];
       if (remote) {
-        filepathInfo = {
-          filepath: path.relative(git.root, filepath),
-          git_url: remote.url,
-        };
+        relativeFilepathRoot = git.root;
+        gitUrl = remote.url;
       }
     }
-    if (!filepathInfo && workspace) {
-      // if filepathInfo is not set by git context, use path relative to workspace
-      filepathInfo = {
-        filepath: path.relative(workspace, filepath),
-      };
+    // if relativeFilepathRoot is not set by git context, use path relative to workspace
+    if (!relativeFilepathRoot && workspace) {
+      relativeFilepathRoot = workspace;
     }
+    if (relativeFilepathRoot) {
+      filepath = path.relative(relativeFilepathRoot, context.filepath);
+    }
+
+    // declarations
+    const declarations = context.declarations?.map((declaration) => {
+      let declarationFilepath = declaration.filepath;
+      if (relativeFilepathRoot && declarationFilepath.startsWith(relativeFilepathRoot)) {
+        declarationFilepath = path.relative(relativeFilepathRoot, declarationFilepath);
+      }
+      return {
+        filepath: declarationFilepath,
+        body: declaration.text,
+      };
+    });
 
     // clipboard
     let clipboard = undefined;
@@ -370,7 +383,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return {
       prefix,
       suffix,
-      ...filepathInfo,
+      filepath,
+      git_url: gitUrl,
+      declarations,
       clipboard,
     };
   }

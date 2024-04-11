@@ -6,10 +6,12 @@ import {
   InlineCompletionTriggerKind,
   Position,
   Range,
+  LocationLink,
   TextDocument,
   NotebookDocument,
   NotebookRange,
   Uri,
+  commands,
   extensions,
   window,
   workspace,
@@ -19,6 +21,7 @@ import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-ag
 import { API as GitAPI } from "./types/git";
 import { logger } from "./logger";
 import { agent } from "./agent";
+import { getWordStartIndices } from "./utils";
 
 type DisplayedCompletion = {
   id: string;
@@ -99,14 +102,15 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     const additionalContext = this.buildAdditionalContext(document);
 
     const request: CompletionRequest = {
-      filepath: document.uri.fsPath,
+      filepath: document.uri.toString(),
       language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
       text: additionalContext.prefix + document.getText() + additionalContext.suffix,
       position: additionalContext.prefix.length + document.offsetAt(position),
       indentation: this.getEditorIndentation(),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
-      workspace: workspace.getWorkspaceFolder(document.uri)?.uri.fsPath,
+      workspace: workspace.getWorkspaceFolder(document.uri)?.uri.toString(),
       git: this.getGitContext(document.uri),
+      declarations: await this.collectDeclarationSnippets(document, position),
     };
 
     const abortController = new AbortController();
@@ -295,12 +299,14 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
   }
 
   private getGitContext(uri: Uri): CompletionRequest["git"] | undefined {
+    this.logger.trace("Begin getGitContext", { uri });
     const repo = this.gitApi?.getRepository(uri);
     if (!repo) {
+      this.logger.trace("End getGitContext, no repo available.");
       return undefined;
     }
-    return {
-      root: repo.rootUri.fsPath,
+    const context = {
+      root: repo.rootUri.toString(),
       remotes: repo.state.remotes
         .map((remote) => ({
           name: remote.name,
@@ -310,5 +316,91 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
           return remote.url.length > 0;
         }),
     };
+    this.logger.trace("End getGitContext", { context });
+    return context;
+  }
+
+  private async collectDeclarationSnippets(
+    document: TextDocument,
+    position: Position,
+  ): Promise<{ filepath: string; text: string }[] | undefined> {
+    const config = agent().getConfig().completion.prompt;
+    if (!config.fillDeclarations.enabled) {
+      return undefined;
+    }
+    this.logger.trace("Begin collectDeclarationSnippets", { document, position });
+    const snippets: { filepath: string; text: string }[] = [];
+    const snippetLocations: LocationLink[] = [];
+    // Find symbol positions in the previous lines
+    const prefixRange = new Range(
+      Math.max(0, position.line - config.maxPrefixLines + 1),
+      0,
+      position.line,
+      position.character,
+    );
+    const prefixText = document.getText(prefixRange);
+    const prefixRangeStartOffset = document.offsetAt(prefixRange.start);
+    const symbolPositions = getWordStartIndices(prefixText).map((offset) =>
+      document.positionAt(prefixRangeStartOffset + offset),
+    );
+    this.logger.trace("Found symbol positions in prefix text", { prefixText, symbolPositions });
+    // Loop through the symbol positions backwards
+    for (let symbolIndex = symbolPositions.length - 1; symbolIndex >= 0; symbolIndex--) {
+      if (snippets.length >= config.fillDeclarations.maxSnippets) {
+        // Stop collecting snippets if the max number of snippets is reached
+        break;
+      }
+      const symbolPosition = symbolPositions[symbolIndex];
+      const declarationLinks = await commands.executeCommand(
+        "vscode.executeDefinitionProvider",
+        document.uri,
+        symbolPosition,
+      );
+      if (
+        Array.isArray(declarationLinks) &&
+        declarationLinks.length > 0 &&
+        "targetUri" in declarationLinks[0] &&
+        "targetRange" in declarationLinks[0]
+      ) {
+        const declarationLink = declarationLinks[0] as LocationLink;
+        this.logger.trace("Processing declaration link", { declarationLink });
+        if (
+          declarationLink.targetUri.toString() == document.uri.toString() &&
+          prefixRange.contains(declarationLink.targetRange.start)
+        ) {
+          // this symbol's declaration is already contained in the prefix range
+          // this also includes the case of the symbol's declaration is at this position itself
+          this.logger.trace("Skipping snippet as it is contained in the prefix");
+          continue;
+        }
+        if (
+          snippetLocations.find(
+            (link) =>
+              link.targetUri.toString() == declarationLink.targetUri.toString() &&
+              link.targetRange.isEqual(declarationLink.targetRange),
+          )
+        ) {
+          this.logger.trace("Skipping snippet as it is already collected");
+          continue;
+        }
+        let text = new TextDecoder()
+          .decode(await workspace.fs.readFile(declarationLink.targetUri))
+          .split("\n")
+          .slice(declarationLink.targetRange.start.line, declarationLink.targetRange.end.line + 1)
+          .join("\n");
+        if (text.length > config.fillDeclarations.maxCharsPerSnippet) {
+          // crop the text to fit within the chars limit
+          text = text.slice(0, config.fillDeclarations.maxCharsPerSnippet);
+          text = text.slice(0, text.lastIndexOf("\n") + 1);
+        }
+        if (text.length > 0) {
+          this.logger.trace("Collected declaration snippet", { text });
+          snippets.push({ filepath: declarationLink.targetUri.toString(), text });
+          snippetLocations.push(declarationLink);
+        }
+      }
+    }
+    this.logger.trace("End collectDeclarationSnippets", { snippets });
+    return snippets;
   }
 }

@@ -9,6 +9,7 @@ import { useQuery } from 'urql'
 
 import { listJobRuns, queryJobRunStats } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
+import { IconSpinner } from '@/components/ui/icons'
 import { TableCell, TableRow } from '@/components/ui/table'
 import {
   Tooltip,
@@ -67,17 +68,17 @@ function JobRunState({ name }: { name: string }) {
       <div className="flex items-center gap-3">
         <JobAggregateState
           count={data?.jobRunStats.success}
-          activeClass="bg-green-700 text-xs text-white"
+          activeClass="bg-green-600 text-xs text-white"
           tooltip="Success"
         />
         <JobAggregateState
           count={data?.jobRunStats.pending}
-          activeClass="bg-blue-700 text-xs text-white"
+          activeClass="bg-blue-600 text-xs text-white"
           tooltip="Pending"
         />
         <JobAggregateState
           count={data?.jobRunStats.failed}
-          activeClass="bg-red-700 text-xs text-white"
+          activeClass="bg-red-600 text-xs text-white"
           tooltip="Failed"
         />
       </div>
@@ -172,13 +173,16 @@ export default function JobRow({ name }: { name: string }) {
                         className={cn(
                           'flex h-8 w-8 items-center justify-center rounded text-xs text-white hover:opacity-70',
                           {
-                            'bg-blue-700': isNil(job.node.exitCode),
-                            'bg-green-700': job.node.exitCode === 0,
-                            'bg-red-700': job.node.exitCode === 1
+                            'bg-blue-600': isNil(job.node.exitCode),
+                            'bg-green-600': job.node.exitCode === 0,
+                            'bg-red-600':
+                              !isNil(job.node.exitCode) &&
+                              job.node.exitCode !== 0
                           }
                         )}
                       >
                         {displayedDuration}
+                        {!displayedDuration && <IconSpinner />}
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent>

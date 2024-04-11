@@ -6,6 +6,7 @@ import type { Message, UseChatHelpers } from 'ai/react'
 import { find, findIndex } from 'lodash-es'
 import { toast } from 'sonner'
 
+import { useLatest } from '@/lib/hooks/use-latest'
 import { usePatchFetch } from '@/lib/hooks/use-patch-fetch'
 import { useStore } from '@/lib/hooks/use-store'
 import { addChat, updateMessages } from '@/lib/stores/chat-actions'
@@ -28,8 +29,16 @@ function ChatRenderer(
   { id, initialMessages, className }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
-  usePatchFetch()
   const chats = useStore(useChatStore, state => state.chats)
+  // When the response status text is 200, the variable should be false
+  const [isStreamResponsePending, setIsStreamResponsePending] =
+    React.useState(false)
+
+  const onStreamToken = useLatest(() => {
+    if (isStreamResponsePending) {
+      setIsStreamResponsePending(false)
+    }
+  })
 
   const useChatHelpers = useChat({
     initialMessages,
@@ -41,6 +50,15 @@ function ChatRenderer(
       if (response.status === 401) {
         toast.error(response.statusText)
       }
+    }
+  })
+
+  usePatchFetch({
+    onStart: () => {
+      setIsStreamResponsePending(true)
+    },
+    onToken: () => {
+      onStreamToken.current()
     }
   })
 
@@ -56,6 +74,11 @@ function ChatRenderer(
   } = useChatHelpers
 
   const [selectedMessageId, setSelectedMessageId] = React.useState<string>()
+
+  const onStop = () => {
+    setIsStreamResponsePending(false)
+    stop()
+  }
 
   const onRegenerateResponse = (messageId: string) => {
     const messageIndex = findIndex(messages, { id: messageId })
@@ -100,6 +123,13 @@ function ChatRenderer(
     }
   }
 
+  const scrollToBottom = (behavior?: ScrollBehavior) => {
+    window.scrollTo({
+      top: document.body.offsetHeight,
+      behavior
+    })
+  }
+
   const handleSubmit = async (value: string) => {
     if (findIndex(chats, { id }) === -1) {
       addChat(id, truncateText(value))
@@ -122,11 +152,16 @@ function ChatRenderer(
   }, [messages])
 
   React.useEffect(() => {
-    const scrollHeight = document.documentElement.scrollHeight
-    window.scrollTo(0, scrollHeight)
+    scrollToBottom()
 
     return () => stop()
   }, [])
+
+  React.useLayoutEffect(() => {
+    if (isStreamResponsePending) {
+      scrollToBottom('smooth')
+    }
+  }, [isStreamResponsePending])
 
   React.useImperativeHandle(
     ref,
@@ -145,6 +180,7 @@ function ChatRenderer(
               <ChatList
                 messages={messages}
                 handleMessageAction={handleMessageAction}
+                isStreamResponsePending={isStreamResponsePending}
               />
               <ChatScrollAnchor trackVisibility={isLoading} />
             </>
@@ -157,7 +193,7 @@ function ChatRenderer(
           className="fixed inset-x-0 bottom-0 lg:ml-[280px]"
           id={id}
           isLoading={isLoading}
-          stop={stop}
+          stop={onStop}
           append={append}
           reload={reload}
           messages={messages}

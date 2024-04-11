@@ -1,6 +1,8 @@
 'use client'
 
 import * as React from 'react'
+// FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
+import { BookOpenText, Mail } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -204,6 +206,7 @@ function IconChevronRight({
     </svg>
   )
 }
+
 function IconChevronLeft({ className, ...props }: React.ComponentProps<'svg'>) {
   return (
     <svg
@@ -1270,6 +1273,56 @@ function IconStopWatch({ className, ...props }: React.ComponentProps<'svg'>) {
   )
 }
 
+function IconBarChart({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <path d="M3 3v18h18" />
+      <path d="M18 17V9" />
+      <path d="M13 17V5" />
+      <path d="M8 17v-3" />
+    </svg>
+  )
+}
+
+function IconActivity({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  )
+}
+
+const IconBookOpenText = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof BookOpenText>) => (
+  <BookOpenText className={cn('h4 w-4', className)} {...props} />
+)
+
+function IconMail({ className, ...props }: React.ComponentProps<typeof Mail>) {
+  return <Mail className={cn('h4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1334,5 +1387,9 @@ export {
   IconCloudUpload,
   IconHistory,
   IconClock,
-  IconStopWatch
+  IconStopWatch,
+  IconBarChart,
+  IconActivity,
+  IconBookOpenText,
+  IconMail
 }

@@ -14,7 +14,7 @@ experimental-http = ["dep:http-api-bindings"]
 # architecture, enable this feature to compile OpenSSL as part of the build.
 # See https://docs.rs/openssl/#vendored for more.
 static-ssl = ['openssl/vendored']
-prod-db = ['tabby-webserver/prod-db']
+prod = ['tabby-webserver/prod-db']
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }
@@ -32,7 +32,7 @@ serde_json = { workspace = true }
 tower-http = { version = "0.4.0", features = ["cors", "timeout"] }
 clap = { version = "4.3.0", features = ["derive"] }
 lazy_static = { workspace = true }
-strum = { version = "0.24", features = ["derive"] }
+strum = { workspace = true }
 strfmt = "0.2.4"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

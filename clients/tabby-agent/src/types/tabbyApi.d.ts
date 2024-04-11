@@ -146,6 +146,19 @@ export interface components {
       /** @description When true, disable retrieval augmented code completion. */
       disable_retrieval_augmented_code_completion?: boolean;
     };
+    /** @description A snippet of declaration code that is relevant to the current completion request. */
+    Declaration: {
+      /**
+       * @description Filepath of the file where the snippet is from.
+       * - When the file belongs to the same workspace as the current file,
+       * this is a relative filepath, that has the same root as the current file.
+       * - When the file located outside the workspace, such as in a dependency package,
+       * this is a file URI with an absolute filepath.
+       */
+      filepath: string;
+      /** @description Body of the snippet. */
+      body: string;
+    };
     HealthState: {
       model?: string | null;
       chat_model?: string | null;
@@ -199,8 +212,8 @@ export interface components {
       suffix?: string | null;
       /**
        * @description The relative path of the file that is being edited.
-       * When git_url is set, this is the path of the file in the git repository.
-       * When git_url is empty, this is the path of the file in the workspace.
+       * - When `git_url` is set, this is the path of the file in the git repository.
+       * - When `git_url` is empty, this is the path of the file in the workspace.
        */
       filepath?: string | null;
       /**
@@ -209,6 +222,11 @@ export interface components {
        * or the git repository does not have a remote URL.
        */
       git_url?: string | null;
+      /**
+       * @description The relevant declaration code snippets provided by editor.
+       * It'll contains declarations extracted from `prefix` segments using LSP.
+       */
+      declarations?: components["schemas"]["Declaration"][] | null;
       /** @description Clipboard content when requesting code completion. */
       clipboard?: string | null;
     };

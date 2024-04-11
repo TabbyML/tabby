@@ -2,13 +2,14 @@ use anyhow::anyhow;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO,
-    UserDAO,
+    EmailSettingDAO, GithubRepositoryProviderDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
+    RepositoryDAO, ServerSettingDAO, UserDAO,
 };
 
 use crate::schema::{
     auth::{self, OAuthCredential, OAuthProvider},
     email::{AuthMethod, EmailSetting, Encryption},
+    github_repository_provider::GithubRepositoryProvider,
     job,
     repository::Repository,
     setting::{NetworkSetting, SecuritySetting},
@@ -50,7 +51,7 @@ impl From<UserDAO> for auth::User {
             is_owner,
             is_admin: val.is_admin,
             auth_token: val.auth_token,
-            created_at: val.created_at,
+            created_at: *val.created_at,
             active: val.active,
             is_password_set: val.password_encrypted.is_some(),
         }
@@ -119,6 +120,16 @@ impl From<ServerSettingDAO> for NetworkSetting {
     }
 }
 
+impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
+    fn from(value: GithubRepositoryProviderDAO) -> Self {
+        Self {
+            display_name: value.display_name,
+            application_id: value.application_id,
+            id: value.id.as_id(),
+        }
+    }
+}
+
 lazy_static! {
     static ref HASHER: HashIds = HashIds::builder()
         .with_salt("tabby-id-serializer")
@@ -127,15 +138,15 @@ lazy_static! {
 }
 
 pub trait AsRowid {
-    fn as_rowid(&self) -> std::result::Result<i32, CoreError>;
+    fn as_rowid(&self) -> std::result::Result<i64, CoreError>;
 }
 
 impl AsRowid for juniper::ID {
-    fn as_rowid(&self) -> std::result::Result<i32, CoreError> {
+    fn as_rowid(&self) -> std::result::Result<i64, CoreError> {
         HASHER
             .decode(self)
             .first()
-            .map(|i| *i as i32)
+            .map(|i| *i as i64)
             .ok_or(CoreError::InvalidID)
     }
 }

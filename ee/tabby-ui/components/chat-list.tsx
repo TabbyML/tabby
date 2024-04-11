@@ -2,14 +2,19 @@ import { type Message } from 'ai'
 
 import { MessageActionType } from '@/lib/types'
 import { Separator } from '@/components/ui/separator'
-import { ChatMessage } from '@/components/chat-message'
+import { ChatMessage, MessagePendingIndicator } from '@/components/chat-message'
 
 export interface ChatList {
   messages: Message[]
   handleMessageAction: (messageId: string, action: MessageActionType) => void
+  isStreamResponsePending?: boolean
 }
 
-export function ChatList({ messages, handleMessageAction }: ChatList) {
+export function ChatList({
+  messages,
+  handleMessageAction,
+  isStreamResponsePending
+}: ChatList) {
   if (!messages.length) {
     return null
   }
@@ -27,6 +32,12 @@ export function ChatList({ messages, handleMessageAction }: ChatList) {
           )}
         </div>
       ))}
+      {isStreamResponsePending && (
+        <>
+          <Separator className="my-4 md:my-8" />
+          <MessagePendingIndicator />
+        </>
+      )}
     </div>
   )
 }

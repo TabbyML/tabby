@@ -21,11 +21,11 @@ use path::dataset_dir;
 use serde::{Deserialize, Serialize};
 use serde_jsonlines::JsonLinesReader;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SourceFile {
     pub git_url: String,
+    pub basedir: String,
     pub filepath: String,
-    pub content: String,
     pub language: String,
     pub max_line_length: usize,
     pub avg_line_length: f32,

@@ -1,7 +1,9 @@
+mod analytic;
 mod auth;
 mod dao;
 mod email;
 pub mod event_logger;
+mod github_repository_provider;
 mod job;
 mod license;
 mod proxy;
@@ -28,11 +30,15 @@ use tabby_db::DbConn;
 use tracing::{info, warn};
 
 use self::{
-    auth::new_authentication_service, email::new_email_service, license::new_license_service,
+    analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service,
+    github_repository_provider::new_github_repository_provider_service,
+    license::new_license_service,
 };
 use crate::schema::{
+    analytic::AnalyticService,
     auth::AuthenticationService,
     email::EmailService,
+    github_repository_provider::GithubRepositoryProviderService,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
     repository::RepositoryService,
@@ -49,6 +55,7 @@ struct ServerContext {
     mail: Arc<dyn EmailService>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
+    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
     repository: Arc<dyn RepositoryService>,
 
     logger: Arc<dyn EventLogger>,
@@ -86,6 +93,9 @@ impl ServerContext {
                 license.clone(),
             )),
             license,
+            github_repository_provider: Arc::new(new_github_repository_provider_service(
+                db_conn.clone(),
+            )),
             repository,
             db_conn,
             logger,
@@ -290,6 +300,16 @@ impl ServiceLocator for Arc<ServerContext> {
     fn license(&self) -> Arc<dyn LicenseService> {
         self.license.clone()
     }
+
+    fn analytic(&self) -> Arc<dyn AnalyticService> {
+        new_analytic_service(self.db_conn.clone())
+    }
+
+    fn github_repository_provider(
+        &self,
+    ) -> Arc<dyn crate::schema::github_repository_provider::GithubRepositoryProviderService> {
+        self.github_repository_provider.clone()
+    }
 }
 
 pub async fn create_service_locator(
@@ -312,11 +332,17 @@ pub fn graphql_pagination_to_filter(
 ) -> Result<(Option<usize>, Option<i32>, bool), CoreError> {
     match (first, last) {
         (Some(first), None) => {
-            let after = after.map(|x| ID::new(x).as_rowid()).transpose()?;
+            let after = after
+                .map(|x| ID::new(x).as_rowid())
+                .transpose()?
+                .map(|x| x as i32);
             Ok((Some(first), after, false))
         }
         (None, Some(last)) => {
-            let before = before.map(|x| ID::new(x).as_rowid()).transpose()?;
+            let before = before
+                .map(|x| ID::new(x).as_rowid())
+                .transpose()?
+                .map(|x| x as i32);
             Ok((Some(last), before, true))
         }
         _ => Ok((None, None, false)),

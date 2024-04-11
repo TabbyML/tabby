@@ -66,7 +66,7 @@ impl DbConn {
             .ok_or_else(|| anyhow!("Invalid code"))?;
 
         let user_res = self
-            .get_user(password_reset.user_id as i32)
+            .get_user(password_reset.user_id)
             .await?
             .filter(|user| user.active)
             .ok_or_else(|| anyhow!("Invalid code"))?;
@@ -74,7 +74,7 @@ impl DbConn {
         if Utc::now().signed_duration_since(*password_reset.created_at) > Duration::minutes(15) {
             Err(anyhow!("Invalid code"))
         } else {
-            Ok(user_res.id as i64)
+            Ok(user_res.id)
         }
     }
 

@@ -1,9 +1,16 @@
 import { useEffect } from 'react'
-import { OpenAIStream, StreamingTextResponse } from 'ai'
+import {
+  Message,
+  OpenAIStream,
+  OpenAIStreamCallbacks,
+  StreamingTextResponse
+} from 'ai'
 
 import fetcher from '../tabby/fetcher'
 
-export function usePatchFetch() {
+interface PatchFetchOptions extends OpenAIStreamCallbacks {}
+
+export function usePatchFetch(options?: PatchFetchOptions) {
   useEffect(() => {
     if (!window._originFetch) {
       window._originFetch = window.fetch
@@ -11,9 +18,9 @@ export function usePatchFetch() {
 
     const fetch = window._originFetch
 
-    window.fetch = async function (url, options) {
+    window.fetch = async function (url, requestInit) {
       if (url !== '/api/chat') {
-        return fetch(url, options)
+        return fetch(url, requestInit)
       }
 
       const headers: HeadersInit = {
@@ -21,12 +28,13 @@ export function usePatchFetch() {
       }
 
       const res = await fetcher(`/v1beta/chat/completions`, {
-        ...options,
+        ...requestInit,
+        body: mergeMessagesByRole(requestInit?.body),
         method: 'POST',
         headers,
         customFetch: fetch,
         responseFormatter(response) {
-          const stream = OpenAIStream(response, undefined)
+          const stream = OpenAIStream(response, options)
           return new StreamingTextResponse(stream)
         }
       })
@@ -41,4 +49,40 @@ export function usePatchFetch() {
       }
     }
   }, [])
+}
+
+function mergeMessagesByRole(body: BodyInit | null | undefined) {
+  if (typeof body !== 'string') return body
+  try {
+    const bodyObject = JSON.parse(body)
+    let messages: Message[] = bodyObject.messages?.slice()
+    if (Array.isArray(messages) && messages.length > 1) {
+      let previewCursor = 0
+      let curCursor = 1
+      while (curCursor < messages.length) {
+        let prevMessage = messages[previewCursor]
+        let curMessage = messages[curCursor]
+        if (curMessage.role === prevMessage.role) {
+          messages = [
+            ...messages.slice(0, previewCursor),
+            {
+              ...prevMessage,
+              content: [prevMessage.content, curMessage.content].join('\n')
+            },
+            ...messages.slice(curCursor + 1)
+          ]
+        } else {
+          previewCursor = curCursor++
+        }
+      }
+      return JSON.stringify({
+        ...bodyObject,
+        messages
+      })
+    } else {
+      return body
+    }
+  } catch (e) {
+    return body
+  }
 }

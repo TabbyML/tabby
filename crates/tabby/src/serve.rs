@@ -25,7 +25,7 @@ use crate::{
         chat::create_chat_service,
         code::create_code_search,
         completion::{self, create_completion_service},
-        event::create_logger,
+        event::create_event_logger,
         health,
         model::download_model_if_needed,
     },
@@ -124,7 +124,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     let ws = if args.webserver {
-        Some(tabby_webserver::public::WebserverHandle::new().await)
+        Some(tabby_webserver::public::WebserverHandle::new(create_event_logger()).await)
     } else {
         None
     };
@@ -136,7 +136,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         logger = ws
             .as_ref()
             .map(|ws| ws.logger())
-            .unwrap_or_else(|| Arc::new(create_logger()));
+            .unwrap_or_else(|| Arc::new(create_event_logger()));
 
         repo_access = ws
             .as_ref()
