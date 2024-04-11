@@ -19,7 +19,7 @@ import {
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
-import filename2prism from '../lib/filename2prism'
+import filename2prism from '@/lib/filename2prism'
 import { ChatSideBar } from './chat-side-bar'
 import { FileDirectoryBreadcrumb } from './file-directory-breadcrumb'
 import { DirectoryView } from './file-directory-view'
@@ -254,14 +254,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
 
-  // fetch active file meta
-  const { data: fileMeta } = useSWRImmutable(
-    isFileSelected
-      ? `/repositories/${activeRepoName}/meta/${activeBasename}`
-      : null,
-    fetcher
-  )
-
   // fetch active dir
   const {
     data: subTree,
@@ -400,7 +392,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
             {showTextFileView && (
               <TextFileView
                 blob={fileBlob}
-                meta={fileMeta}
                 contentLength={contentLength}
               />
             )}
@@ -560,4 +551,4 @@ async function getFileViewType(
 
 export type { TFileMap, TFileMapItem }
 
-export { SourceCodeBrowserContext, SourceCodeBrowser, getFileViewType }
+export { SourceCodeBrowserContext, SourceCodeBrowser }

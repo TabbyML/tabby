@@ -17,14 +17,4 @@ export type TCodeTag = {
   span: TPointRange
 }
 
-export type TFileMeta = {
-  git_url: string
-  filepath: string
-  language: string
-  max_line_length: number
-  avg_line_length: number
-  alphanum_fraction: number
-  tags: TCodeTag[]
-}
-
 export type ResolveEntriesResponse = { entries: TFile[] }
