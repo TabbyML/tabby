@@ -232,7 +232,8 @@ export default function Stats() {
           <Skeleton className="h-48 w-full md:w-[32rem] xl:w-[61rem]" />
         }
       >
-        <div>
+        {languageData.length > 0 &&
+          <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
             Language completion stats
           </h3>
@@ -272,6 +273,8 @@ export default function Stats() {
             </ResponsiveContainer>
           </div>
         </div>
+        }
+        
       </LoadingWrapper>
     </div>
   )
