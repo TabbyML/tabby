@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
 import { noop } from 'lodash-es'
 import { useTheme } from 'next-themes'
 
@@ -13,16 +12,9 @@ import { useSignOut } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import {
-  IconGear,
-  IconLogout,
-  IconMail,
-  IconRotate,
-  IconSpinner
-} from '@/components/ui/icons'
+import { IconMail, IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -48,7 +40,7 @@ function Configuration() {
   if (!data?.me) return <></>
 
   return (
-    <div className="mb-1 mt-6">
+    <div className="mb-1 mt-24">
       <CardContent className="flex flex-col gap-6 px-0">
         <div className="flex flex-col">
           <span className="flex items-center gap-1">
@@ -130,6 +122,7 @@ function MainPanel() {
               <UserAvatar className="h-20 w-20 border-4 border-background" />
             </UserPanel>
           </span>
+
           <div className="mt-2 flex w-full">
             <div className="flex items-center gap-2">
               <IconMail className="text-muted-foreground" />
@@ -140,29 +133,6 @@ function MainPanel() {
           </div>
 
           <Configuration />
-
-          <Separator />
-
-          <div className="mt-[48px] flex flex-col gap-1">
-            <Link
-              className="flex items-center gap-2 text-sm transition-opacity hover:opacity-50"
-              href="/profile"
-            >
-              <IconGear className="text-muted-foreground" />
-              Settings
-            </Link>
-
-            <div
-              className="flex cursor-pointer items-center gap-2 py-1"
-              onClick={handleSignOut}
-            >
-              <IconLogout className="text-muted-foreground" />
-              <span className="text-sm transition-opacity hover:opacity-50">
-                Sign out
-              </span>
-              {signOutLoading && <IconSpinner className="ml-1" />}
-            </div>
-          </div>
         </div>
 
         <Stats />
