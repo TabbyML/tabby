@@ -1,6 +1,6 @@
 import React, { Suspense, useContext } from 'react'
 
-import filename2prism from '@/lib/filename2prism'
+import {filename2prism} from '@/lib/language-utils'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'

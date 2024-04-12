@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
-import filename2prism from '@/lib/filename2prism'
+import {filename2prism} from '@/lib/language-utils'
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
