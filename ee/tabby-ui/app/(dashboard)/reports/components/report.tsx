@@ -339,7 +339,9 @@ export function Report() {
                                 >
                                   <IconCheck className={cn('h-4 w-4')} />
                                 </div>
-                                <span>{toProgrammingLanguageDisplayName(value)}</span>
+                                <span>
+                                  {toProgrammingLanguageDisplayName(value)}
+                                </span>
                               </CommandItem>
                             )
                           })}
