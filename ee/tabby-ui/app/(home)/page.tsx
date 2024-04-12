@@ -14,7 +14,6 @@ import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import {
-  IconBackpack,
   IconChat,
   IconCode,
   IconGear,
@@ -139,7 +138,7 @@ function MainPanel() {
           <Separator className="my-4" />
           <Configuration />
 
-          <div className='md:mt-[136px] flex flex-col gap-1'>
+          <div className="mt-auto flex flex-col gap-1 md:mb-[28px]">
             <MenuLink href="/profile" Icon={IconGear}>
               Settings
             </MenuLink>
@@ -158,7 +157,7 @@ function MainPanel() {
           </div>
         </div>
 
-        <div className="md:w-[calc(100vw-30rem)] xl:w-[60rem]">
+        <div className="md:min-h-[700px] md:w-[calc(100vw-30rem)] xl:w-[60rem]">
           <Stats />
         </div>
       </div>
