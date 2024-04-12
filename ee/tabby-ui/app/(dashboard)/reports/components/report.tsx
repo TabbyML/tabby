@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { eachDayOfInterval } from 'date-fns'
 import { sum } from 'lodash-es'
@@ -42,7 +42,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover"
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
@@ -106,9 +105,9 @@ function StatsSummary({
   )
 }
 
-type OptionType = {
+type OptionType<T> = {
 	label: string;
-	value: string;
+	value: T;
 }
 
 function MultipSelectionContent<T> ({
@@ -118,7 +117,7 @@ function MultipSelectionContent<T> ({
   onChange
 }: {
   title: string;
-  options: OptionType[];
+  options: OptionType<T>[];
   selected: T[];
   onChange: React.Dispatch<React.SetStateAction<T[]>>;
 }) {
@@ -133,7 +132,7 @@ function MultipSelectionContent<T> ({
             const isSelected = selected.includes(option.value)
             return (
               <CommandItem
-                key={option.value}
+                key={option.value as string}
                 onSelect={() => {
                   const newSelect = [...selected]
                   if (isSelected) {
@@ -189,10 +188,6 @@ export function Report() {
   })
   const [selectedMember, setSelectedMember] = useState<string[]>([])
   const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([]) 
-
-  useEffect(() => {
-    setSelectedMember(members.map(member => member.id))
-  }, [members])
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -295,12 +290,19 @@ export function Report() {
               <div className="flex h-6 items-center text-sm">
                 <IconUsers className="mr-1" />
                 <p className="mr-2">Members:</p>
-                <Badge
-                  variant="secondary"
-                  className="block w-20 cursor-pointer rounded-sm px-1 text-center font-normal"
+                <div
+                  className="block w-20 cursor-pointer rounded-sm font-normal"
                 >
-                  {selectedMember.length} selected
-                </Badge>
+                  {selectedMember.length === 0 &&
+                    <span>All</span>
+                  }
+                  {selectedMember.length === 1 &&
+                    <p className="w-full overflow-hidden text-ellipsis">{members.find(m => m.id === selectedMember[0])?.email}</p>
+                  }
+                  {selectedMember.length > 1 &&
+                    <span>{selectedMember.length} selected</span>
+                  }
+                </div>
               </div>
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0" align="end">
@@ -344,20 +346,26 @@ export function Report() {
             <div className="flex items-center gap-x-3">
             <Popover>
               <PopoverTrigger asChild>
-                <div className="'flex disabled:opacity-50' h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed">
+                <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed">
                   <span className="mr-1.5 text-muted-foreground">
                     Language:
                   </span>
-                  {selectedLanguage.length === 1 &&
-                    <p className="overflow-hidden text-ellipsis">
-                      TODO
-                    </p>
-                  }
-                  {selectedLanguage.length > 1 &&
-                    <span className="px-1">
-                      {selectedLanguage.length} selected
-                    </span>
-                  }
+                  <div className="w-[80px]">
+                    {selectedLanguage.length === 0 &&
+                      <p className="w-full overflow-hidden text-ellipsis">All</p>
+                    }
+                    {selectedLanguage.length === 1 &&
+                      <p className="w-full overflow-hidden text-ellipsis">
+                        {toProgrammingLanguageDisplayName(selectedLanguage[0])}
+                      </p>
+                    }
+                    {selectedLanguage.length > 1 &&
+                      <span className="px-1">
+                        {selectedLanguage.length} selected
+                      </span>
+                    }
+                  </div>
+                  
                 </div>
               </PopoverTrigger>
               <PopoverContent className="w-[200px] p-0" align="end">
