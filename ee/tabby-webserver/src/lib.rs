@@ -5,6 +5,7 @@ mod cron;
 mod handler;
 mod hub;
 mod integrations;
+mod juniper;
 mod oauth;
 mod path;
 mod repositories;

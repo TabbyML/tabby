@@ -21,7 +21,6 @@ use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
     IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
-use juniper_axum::relay::{self, Connection};
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
@@ -42,7 +41,11 @@ use self::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
 };
-use crate::{axum::FromAuth, schema::repository::FileEntrySearchResult};
+use crate::{
+    axum::FromAuth,
+    juniper::relay::{self, Connection},
+    schema::repository::FileEntrySearchResult,
+};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
