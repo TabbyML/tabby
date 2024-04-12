@@ -282,7 +282,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                         </Button>
                       ) : (
                         <kbd
-                          className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
+                          className="bg-secondary/50 text-muted-foreground rounded-md border px-1.5 text-xs leading-4 shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
                           onClick={e => {
                             inputRef.current?.focus()
                           }}
@@ -307,30 +307,34 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                           item={item}
                           index={index}
                           key={item?.id}
-                          className="flex w-full items-center gap-2 overflow-x-hidden"
+                          className="flex w-full items-start gap-2 overflow-x-hidden"
                         >
-                          <div className="shrink-0">
-                            {item.type === 'dir' ? (
-                              <IconDirectorySolid
-                                style={{ color: 'rgb(84, 174, 255)' }}
+                          <div className="inline-flex flex-1 gap-1">
+                            <div className="flex h-5 shrink-0 items-center">
+                              {item.type === 'dir' ? (
+                                <IconDirectorySolid
+                                  style={{ color: 'rgb(84, 174, 255)' }}
+                                />
+                              ) : (
+                                <IconFile />
+                              )}
+                            </div>
+                            <div className="flex-1 break-all">
+                              <HighlightMatches
+                                text={item.path}
+                                indices={item.indices}
                               />
-                            ) : (
-                              <IconFile />
+                            </div>
+                          </div>
+                          <div className="w-20 shrink-0 text-right">
+                            {highlightedIndex === index && (
+                              <span>
+                                {item.type === 'dir'
+                                  ? 'Go to folder'
+                                  : 'Go to file'}
+                              </span>
                             )}
                           </div>
-                          <div className="flex-1 break-all">
-                            <HighlightMatches
-                              text={item.path}
-                              indices={item.indices}
-                            />
-                          </div>
-                          {highlightedIndex === index && (
-                            <div className="shrink-0`">
-                              {item.type === 'dir'
-                                ? 'Go to folder'
-                                : 'Go to file'}
-                            </div>
-                          )}
                         </SearchableSelectOption>
                       ))
                     ) : (
@@ -364,7 +368,7 @@ const HighlightMatches = ({
     <p className="text-muted-foreground">
       {text.split('').map((char, index) => {
         return indicesSet.has(index) ? (
-          <span className="font-semibold text-foreground">{char}</span>
+          <span className="text-foreground font-semibold">{char}</span>
         ) : (
           char
         )
