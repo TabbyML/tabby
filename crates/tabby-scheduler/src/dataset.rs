@@ -175,6 +175,7 @@ lazy_static! {
             ("lua", vec!["lua"]),
             ("makefile", vec!["Makefile"]),
             ("markdown", vec!["md", "markdown"]),
+            ("ocaml", vec!["ml", "mli"]),
             ("php", vec!["php", "php3", "php4", "php5", "phps", "phpt"]),
             ("perl", vec!["pl", "pm", "pod", "perl"]),
             ("powershell", vec!["ps1", "psd1", "psm1"]),
