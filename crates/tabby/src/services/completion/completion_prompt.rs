@@ -36,7 +36,7 @@ impl PromptBuilder {
         strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
     }
 
-    pub async fn collect(&self, git_url: &str, language: &str, segments: &Segments) -> Vec<Snippet> {
+    pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         let quota_threshold_for_snippets_from_code_search = 256;
         let mut max_snippets_chars_in_prompt = 768;
         let mut snippets: Vec<Snippet> = vec![];
@@ -48,19 +48,28 @@ impl PromptBuilder {
             snippets.extend(snippets_from_segments.into_iter());
         };
 
-        if let Some(code) = &self.code {
-            if max_snippets_chars_in_prompt > quota_threshold_for_snippets_from_code_search {
-                let snippets_from_code_search = collect_snippets(
-                    max_snippets_chars_in_prompt,
-                    code.as_ref(),
-                    git_url,
-                    language,
-                    &segments.prefix,
-                )
-                .await;
-                snippets.extend(snippets_from_code_search.into_iter());
-            }
+        let Some(code) = &self.code else {
+            return snippets;
+        };
 
+        if max_snippets_chars_in_prompt <= quota_threshold_for_snippets_from_code_search {
+            return snippets;
+        }
+
+        let Some(git_url) = segments.git_url.as_ref() else {
+            return snippets;
+        };
+
+        let snippets_from_code_search = collect_snippets(
+            max_snippets_chars_in_prompt,
+            code.as_ref(),
+            git_url,
+            language,
+            &segments.prefix,
+        )
+        .await;
+
+        snippets.extend(snippets_from_code_search.into_iter());
         snippets
     }
 

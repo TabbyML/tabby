@@ -255,13 +255,7 @@ impl CompletionService {
             return vec![];
         }
 
-        let Some(git_url) = segments.git_url.as_ref() else {
-            return vec![];
-        };
-
-        self.prompt_builder
-            .collect(git_url, language, segments)
-            .await
+        self.prompt_builder.collect(language, segments).await
     }
 
     fn text_generation_options(
