@@ -315,7 +315,7 @@ export function Report() {
                       <CommandGroup>
                         {Object.entries(Language)
                           .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
-                          .map(([key, value]) => {
+                          .map(([_, value]) => {
                             const isSelected = selectedLanguage.includes(value)
                             return (
                               <CommandItem
@@ -344,7 +344,7 @@ export function Report() {
                                 >
                                   <IconCheck className={cn('h-4 w-4')} />
                                 </div>
-                                <span>{key}</span>
+                                <span>{toProgrammingLanguageDisplayName(value)}</span>
                               </CommandItem>
                             )
                           })}
