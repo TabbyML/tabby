@@ -48,7 +48,7 @@ pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
 
         for doc in from_source_file(file) {
             writer.add_document(doc!(
-                    code.field_git_url => RepositoryConfig::canonicalize_url(&doc.git_url),
+                    code.field_git_url => doc.git_url,
                     code.field_filepath => doc.filepath,
                     code.field_language => doc.language,
                     code.field_name => doc.name,
