@@ -221,11 +221,11 @@ mod tests {
         let start = end.checked_sub_days(Days::new(100)).unwrap();
 
         let stats = service
-            .daily_stats(start, end, vec![], vec![Language::Other])
+            .daily_stats(start, end, vec![], vec![Language::Rust, Language::Other])
             .await
             .unwrap();
 
         assert_eq!(1, stats.len());
-        assert_eq!(1, stats[0].completions);
+        assert_eq!(2, stats[0].completions);
     }
 }

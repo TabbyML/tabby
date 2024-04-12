@@ -152,7 +152,8 @@ impl DbConn {
             FROM user_completions
             WHERE created_at >= ?1 AND created_at < ?2
                 AND ({no_selected_users} OR user_id IN ({users}))
-                AND (({no_selected_languages} OR language IN ({languages})) AND (language NOT IN ({not_languages})))
+                AND (({no_selected_languages} OR language IN ({languages}))
+                     OR (language NOT IN ({not_languages})))
             GROUP BY 1
             ORDER BY 1 ASC
             "#,
