@@ -37,6 +37,11 @@ import {
   IconUsers
 } from '@/components/ui/icons'
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -44,11 +49,6 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
@@ -314,40 +314,40 @@ export function Report() {
 
                       <CommandGroup>
                         {Object.entries(Language)
-                      .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
-                      .map(([key, value]) => {
-                          const isSelected = selectedLanguage.includes(value)
-                          return (
-                            <CommandItem
-                              key={value}
-                              onSelect={() => {
-                                const newSelect = [...selectedLanguage]
-                                if (isSelected) {
-                                  const idx = newSelect.findIndex(
-                                    item => item === value
-                                  )
-                                  if (idx !== -1) newSelect.splice(idx, 1)
-                                } else {
-                                  newSelect.push(value)
-                                }
-                                setSelectedLanguage(newSelect)
-                              }}
-                              className="!pointer-events-auto cursor-pointer !opacity-100"
-                            >
-                              <div
-                                className={cn(
-                                  'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                                  isSelected
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'opacity-50 [&_svg]:invisible'
-                                )}
+                          .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
+                          .map(([key, value]) => {
+                            const isSelected = selectedLanguage.includes(value)
+                            return (
+                              <CommandItem
+                                key={value}
+                                onSelect={() => {
+                                  const newSelect = [...selectedLanguage]
+                                  if (isSelected) {
+                                    const idx = newSelect.findIndex(
+                                      item => item === value
+                                    )
+                                    if (idx !== -1) newSelect.splice(idx, 1)
+                                  } else {
+                                    newSelect.push(value)
+                                  }
+                                  setSelectedLanguage(newSelect)
+                                }}
+                                className="!pointer-events-auto cursor-pointer !opacity-100"
                               >
-                                <IconCheck className={cn('h-4 w-4')} />
-                              </div>
-                              <span>{key}</span>
-                            </CommandItem>
-                          )
-                        })}
+                                <div
+                                  className={cn(
+                                    'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                                    isSelected
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'opacity-50 [&_svg]:invisible'
+                                  )}
+                                >
+                                  <IconCheck className={cn('h-4 w-4')} />
+                                </div>
+                                <span>{key}</span>
+                              </CommandItem>
+                            )
+                          })}
                       </CommandGroup>
                       {selectedLanguage.length > 0 && (
                         <>
