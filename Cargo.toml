@@ -17,7 +17,7 @@ members = [
 [workspace.package]
 version = "0.10.0-dev.0"
 edition = "2021"
-authors = ["Meng Zhang"]
+authors = ["TabbyML Team"]
 homepage = "https://github.com/TabbyML/tabby"
 
 [workspace.dependencies]

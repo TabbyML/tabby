@@ -1,7 +1,9 @@
 [package]
 name = "http-api-bindings"
-version = "0.10.0-dev.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
 
 [dependencies]
 anyhow.workspace = true
@@ -10,6 +12,6 @@ async-stream.workspace = true
 async-trait.workspace = true
 futures.workspace = true
 serde_json = { workspace = true }
-tabby-common = { version = "0.10.0-dev.0", path = "../tabby-common" }
-tabby-inference = { version = "0.10.0-dev.0", path = "../tabby-inference" }
+tabby-common = { path = "../tabby-common" }
+tabby-inference = { path = "../tabby-inference" }
 tracing.workspace = true
