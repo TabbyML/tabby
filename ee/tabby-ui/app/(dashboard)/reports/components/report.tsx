@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { eachDayOfInterval } from 'date-fns'
 import { sum } from 'lodash-es'
@@ -17,6 +17,7 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {
@@ -25,14 +26,23 @@ import {
   IconCode,
   IconUsers
 } from '@/components/ui/icons'
+
+
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
+	Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command"
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover"
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
@@ -96,6 +106,79 @@ function StatsSummary({
   )
 }
 
+type OptionType = {
+	label: string;
+	value: string;
+}
+
+function MultipSelectionContent<T> ({
+  title,
+  options,
+  selected,
+  onChange
+}: {
+  title: string;
+  options: OptionType[];
+  selected: T[];
+  onChange: React.Dispatch<React.SetStateAction<T[]>>;
+}) {
+  return (
+    <Command>
+      <CommandInput placeholder={title} />
+      <CommandList>
+        <CommandEmpty>No results found.</CommandEmpty>
+
+        <CommandGroup>
+          {options.map((option) => {
+            const isSelected = selected.includes(option.value)
+            return (
+              <CommandItem
+                key={option.value}
+                onSelect={() => {
+                  const newSelect = [...selected]
+                  if (isSelected) {
+                    const idx = newSelect.findIndex(item => item === option.value)
+                    if (idx !== -1) newSelect.splice(idx, 1)
+                  } else {
+                    newSelect.push(option.value)
+                  }
+                  onChange(newSelect)
+                }}
+                className="!pointer-events-auto cursor-pointer !opacity-100"
+              >
+                <div
+                  className={cn(
+                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                    isSelected
+                      ? "bg-primary text-primary-foreground"
+                      : "opacity-50 [&_svg]:invisible"
+                  )}
+                >
+                  <IconCheck className={cn("h-4 w-4")} />
+                </div>
+                <span>{option.label}</span>
+              </CommandItem>
+            )
+          })}
+        </CommandGroup>
+        {selected.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup>
+              <CommandItem
+                onSelect={() => onChange([])}
+                className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
+              >
+                Clear filters
+              </CommandItem>
+            </CommandGroup>
+          </>
+        )}
+      </CommandList>
+    </Command>
+  )
+}
+
 export function Report() {
   const searchParams = useSearchParams()
   const sample = searchParams.get('sample') === 'true'
@@ -104,10 +187,12 @@ export function Report() {
     from: moment().subtract(INITIAL_DATE_RANGE, 'day').toDate(),
     to: moment().toDate()
   })
-  const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
-  const [selectedLanguage, setSelectedLanguage] = useState<'all' | Language>(
-    KEY_SELECT_ALL
-  )
+  const [selectedMember, setSelectedMember] = useState<string[]>([])
+  const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([]) 
+
+  useEffect(() => {
+    setSelectedMember(members.map(member => member.id))
+  }, [members])
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -115,9 +200,8 @@ export function Report() {
     variables: {
       start: moment(dateRange.from).startOf('day').utc().format(),
       end: moment(dateRange.to).endOf('day').utc().format(),
-      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
-      languages:
-        selectedLanguage === KEY_SELECT_ALL ? undefined : [selectedLanguage]
+      users: selectedMember.length === 0 ? undefined : selectedMember,
+      languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
     }
   })
   let dailyStats: DailyStatsQuery['dailyStats'] | undefined
@@ -152,7 +236,8 @@ export function Report() {
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
     query: queryDailyStatsInPastYear,
     variables: {
-      users: selectedMember === KEY_SELECT_ALL ? undefined : selectedMember
+      // TODO: check if it is a bug in API, giving all members return nothing
+      users: (selectedMember.length === 0 || selectedMember.length === members.length) ? undefined : selectedMember
     }
   })
   let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
@@ -205,30 +290,27 @@ export function Report() {
           loading={fetchingDailyState}
           fallback={<Skeleton className="h-8 w-32" />}
         >
-          <Select
-            defaultValue={KEY_SELECT_ALL}
-            onValueChange={setSelectedMember}
-          >
-            <SelectTrigger className="h-auto w-auto border-none py-0 shadow-none">
-              <div className="flex h-6 items-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <div className="flex h-6 items-center text-sm">
                 <IconUsers className="mr-1" />
-                <p className="mr-1.5">Member:</p>
-                <div className="w-[80px] overflow-hidden text-ellipsis text-left">
-                  <SelectValue />
-                </div>
+                <p className="mr-2">Members:</p>
+                <Badge
+                  variant="secondary"
+                  className="block w-20 cursor-pointer rounded-sm px-1 text-center font-normal"
+                >
+                  {selectedMember.length} selected
+                </Badge>
               </div>
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectGroup>
-                <SelectItem value={KEY_SELECT_ALL}>All</SelectItem>
-                {members.map(member => (
-                  <SelectItem value={member.id} key={member.id}>
-                    {member.email}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0" align="end">
+              <MultipSelectionContent
+                title="Member"
+                options={members.map(member => ({ label: member.email, value: member.id }))}
+                selected={selectedMember}
+                onChange={setSelectedMember} />
+            </PopoverContent>
+          </Popover>
         </LoadingWrapper>
       </div>
 
@@ -260,36 +342,32 @@ export function Report() {
             <h1 className="text-xl font-semibold">Usage</h1>
 
             <div className="flex items-center gap-x-3">
-              <Select
-                defaultValue={KEY_SELECT_ALL}
-                onValueChange={(value: 'all' | Language) =>
-                  setSelectedLanguage(value)
-                }
-              >
-                <SelectTrigger className="w-[180px]">
-                  <div className="flex w-full items-center truncate">
-                    <span className="mr-1.5 text-muted-foreground">
-                      Language:
+            <Popover>
+              <PopoverTrigger asChild>
+                <div className="'flex disabled:opacity-50' h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed">
+                  <span className="mr-1.5 text-muted-foreground">
+                    Language:
+                  </span>
+                  {selectedLanguage.length === 1 &&
+                    <p className="overflow-hidden text-ellipsis">
+                      TODO
+                    </p>
+                  }
+                  {selectedLanguage.length > 1 &&
+                    <span className="px-1">
+                      {selectedLanguage.length} selected
                     </span>
-                    <div className="overflow-hidden text-ellipsis">
-                      <SelectValue />
-                    </div>
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value={'all'}>All</SelectItem>
-                    {Object.entries(Language)
-                      .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
-                      .map(([key, value]) => (
-                        <SelectItem key={value} value={value}>
-                          {toProgrammingLanguageDisplayName(value)}
-                        </SelectItem>
-                      ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
+                  }
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0" align="end">
+                <MultipSelectionContent
+                  title="Language"
+                  options={Object.entries(Language).sort((_, b) => (b[1] === Language.Other ? -1 : 0)).map(([key, value]) => ({ label: key, value }))}
+                  selected={selectedLanguage}
+                  onChange={setSelectedLanguage} />
+              </PopoverContent>
+            </Popover>
               <DatePickerWithRange
                 buttonClassName="h-full"
                 contentAlign="end"
