@@ -11,7 +11,7 @@ use axum::{
 use cached::{CachedAsync, TimedCache};
 use hyper::{header::CONTENT_TYPE, Body, StatusCode};
 use juniper::ID;
-use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
+use juniper_axum::{graphiql, playground};
 use tabby_common::{
     api::{
         code::CodeSearch,
@@ -25,6 +25,7 @@ use tokio::sync::Mutex;
 use tracing::{error, warn};
 
 use crate::{
+    axum::{extract::AuthBearer, graphql},
     cron, hub, integrations, oauth,
     path::db_file,
     repositories,
