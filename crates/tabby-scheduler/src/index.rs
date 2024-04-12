@@ -10,7 +10,6 @@ use tabby_common::{
 };
 use tantivy::{directory::MmapDirectory, doc, Index};
 use tracing::warn;
-use url::Url;
 
 use crate::utils::tqdm;
 
@@ -18,16 +17,6 @@ use crate::utils::tqdm;
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 static MAX_BODY_LINES_THRESHOLD: usize = 15;
-
-fn strip_url_authentication(url: &str) -> String {
-    Url::parse(url)
-        .map(|mut url| {
-            let _ = url.set_password(None);
-            let _ = url.set_username("");
-            url.to_string()
-        })
-        .unwrap_or_else(|_| url.to_string())
-}
 
 pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
     let code = CodeSearchSchema::new();
@@ -59,7 +48,7 @@ pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
 
         for doc in from_source_file(file) {
             writer.add_document(doc!(
-                    code.field_git_url => strip_url_authentication(&doc.git_url),
+                    code.field_git_url => RepositoryConfig::canonicalize_url(&doc.git_url),
                     code.field_filepath => doc.filepath,
                     code.field_language => doc.language,
                     code.field_name => doc.name,

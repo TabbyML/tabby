@@ -89,6 +89,20 @@ impl RepositoryConfig {
         }
     }
 
+    pub fn canonical_git_url(&self) -> String {
+        Self::canonicalize_url(&self.git_url)
+    }
+
+    pub fn canonicalize_url(url: &str) -> String {
+        url::Url::parse(url)
+            .map(|mut url| {
+                let _ = url.set_password(None);
+                let _ = url.set_username("");
+                url.to_string()
+            })
+            .unwrap_or_else(|_| url.to_string())
+    }
+
     pub fn new_named(name: String, git_url: String) -> Self {
         Self {
             name: Some(name),
@@ -213,6 +227,24 @@ mod tests {
         assert_eq!(
             sanitize_name("https://github.com/TabbyML/tabby.git"),
             "https_github.com_TabbyML_tabby.git"
+        );
+    }
+
+    #[test]
+    fn test_canonicalize_url() {
+        assert_eq!(
+            RepositoryConfig::canonicalize_url("https://abc:dev@github.com/"),
+            "https://github.com/"
+        );
+
+        assert_eq!(
+            RepositoryConfig::canonicalize_url("https://token@github.com/TabbyML/tabby"),
+            "https://github.com/TabbyML/tabby"
+        );
+
+        assert_eq!(
+            RepositoryConfig::canonicalize_url("https://github.com/TabbyML/tabby"),
+            "https://github.com/TabbyML/tabby"
         );
     }
 }

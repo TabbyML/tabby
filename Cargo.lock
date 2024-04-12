@@ -4534,6 +4534,7 @@ dependencies = [
  "serdeconv",
  "tantivy",
  "thiserror",
+ "url",
  "utoipa",
  "uuid 1.6.1",
 ]
@@ -4625,7 +4626,6 @@ dependencies = [
  "tree-sitter-solidity",
  "tree-sitter-tags",
  "tree-sitter-typescript",
- "url",
  "yarn-lock-parser",
 ]
 

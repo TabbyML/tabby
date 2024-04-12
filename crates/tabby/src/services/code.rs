@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use nucleo::Utf32String;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
-    config::RepositoryAccess,
+    config::{RepositoryAccess, RepositoryConfig},
     index::{self, register_tokenizers, CodeSearchSchema},
     path,
 };
@@ -18,7 +18,6 @@ use tantivy::{
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
-use url::Url;
 
 struct CodeSearchImpl {
     reader: IndexReader,
@@ -148,21 +147,11 @@ impl CodeSearch for CodeSearchImpl {
     }
 }
 
-fn strip_url_authentication(url: &str) -> String {
-    Url::parse(url)
-        .map(|mut url| {
-            let _ = url.set_password(None);
-            let _ = url.set_username("");
-            url.to_string()
-        })
-        .unwrap_or_else(|_| url.to_string())
-}
-
 fn closest_match<'a>(
     search_term: &'a str,
     search_input: impl IntoIterator<Item = &'a str>,
 ) -> Option<String> {
-    let search_term = strip_url_authentication(search_term);
+    let search_term = RepositoryConfig::canonicalize_url(search_term);
 
     let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
     search_input
@@ -176,7 +165,7 @@ fn closest_match<'a>(
                 // haystack = "https://abc@github.com/boxbeam/untwine.git" needle = "https://github.com/boxbeam/untwine" => Match, score 842
                 nucleo.fuzzy_match(
                     Utf32String::from(&*search_term).slice(..),
-                    Utf32String::from(&*strip_url_authentication(entry)).slice(..),
+                    Utf32String::from(&*RepositoryConfig::canonicalize_url(entry)).slice(..),
                 )?,
             ))
         })
