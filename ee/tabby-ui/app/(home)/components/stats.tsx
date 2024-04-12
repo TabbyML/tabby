@@ -420,7 +420,6 @@ export default function Stats() {
                   />
                   {languageData.map((entry, index) => {
                     const lanColor = colorMap[entry.label.toLocaleLowerCase()]
-                    console.log(lanColor)
                     const color = lanColor
                       ? lanColor
                       : theme === 'dark'
