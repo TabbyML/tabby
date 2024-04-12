@@ -251,11 +251,17 @@ impl CompletionService {
         segments: &Segments,
         disable_retrieval_augmented_code_completion: bool,
     ) -> Vec<Snippet> {
-        if !disable_retrieval_augmented_code_completion {
-            self.prompt_builder.collect(language, segments).await
-        } else {
-            vec![]
+        if disable_retrieval_augmented_code_completion {
+            return vec![];
         }
+
+        let Some(git_url) = segments.git_url.as_ref() else {
+            return vec![];
+        };
+
+        self.prompt_builder
+            .collect(git_url, language, segments)
+            .await
     }
 
     fn text_generation_options(
@@ -290,11 +296,11 @@ impl CompletionService {
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
-        } else if let Some(segments) = request.segments.clone() {
+        } else if let Some(segments) = request.segments.as_ref() {
             let snippets = self
                 .build_snippets(
                     &language,
-                    &segments,
+                    segments,
                     request.disable_retrieval_augmented_code_completion(),
                 )
                 .await;
@@ -307,7 +313,7 @@ impl CompletionService {
         };
 
         let text = self.engine.generate(&prompt, options).await;
-        let segments = segments.map(|s| s.into());
+        let segments = segments.cloned().map(|s| s.into());
 
         self.logger.log(Event::Completion {
             completion_id: completion_id.clone(),

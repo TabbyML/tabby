@@ -18,7 +18,7 @@ sql_query_builder = { version = "2.1.0", features = ["sqlite"] }
 sqlx = { version = "0.7.3", features = ["sqlite", "chrono", "runtime-tokio", "macros"] }
 tokio = { workspace = true, features = ["fs"] }
 uuid.workspace = true
-cached = { version = "0.49.3", features = ["async"] }
+cached.workspace = true
 
 [dev-dependencies]
 assert_matches = "1.5.0"
