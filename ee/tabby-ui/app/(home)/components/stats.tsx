@@ -28,9 +28,9 @@ import {
   Language
 } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
+import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -196,7 +196,9 @@ function LanguageTooltip({
             <span className="mr-3 inline-block w-20">Completions:</span>
             <b>{completions}</b>
           </p>
-          <p className="text-muted-foreground">{toProgrammingLanguageDisplayName(name)}</p>
+          <p className="text-muted-foreground">
+            {toProgrammingLanguageDisplayName(name)}
+          </p>
         </CardContent>
       </Card>
     )

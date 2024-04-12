@@ -15,8 +15,8 @@ import {
   DailyStatsQuery,
   Language
 } from '@/lib/gql/generates/graphql'
-import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
+import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {

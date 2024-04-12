@@ -1,8 +1,9 @@
 import path from 'path'
 import { has } from 'lodash-es'
 
-import languages from './languages'
 import { Language } from '@/lib/gql/generates/graphql'
+
+import languages from './languages'
 
 const filenames: Record<string, string[]> = {}
 const extnames: Record<string, string[]> = {}
@@ -38,7 +39,8 @@ export const filename2prism: (filename: string) => Array<string> = filename => {
 }
 
 export const toProgrammingLanguageDisplayName = (lan: Language): string => {
-  const displayName = Object.keys(Language)[Object.values(Language).indexOf(lan)] || ""
+  const displayName =
+    Object.keys(Language)[Object.values(Language).indexOf(lan)] || ''
   const mapping: Record<string, string> = {
     csharp: 'C#',
     cpp: 'C++',
