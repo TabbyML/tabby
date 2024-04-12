@@ -22,7 +22,7 @@ export type LanguageStats = Record<
   {
     selects: number
     completions: number
-    name: string
+    name: Language
   }
 >
 

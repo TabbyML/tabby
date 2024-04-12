@@ -15,6 +15,7 @@ import {
   DailyStatsQuery,
   Language
 } from '@/lib/gql/generates/graphql'
+import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import DatePickerWithRange from '@/components/ui/date-range-picker'
@@ -282,7 +283,7 @@ export function Report() {
                       .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
                       .map(([key, value]) => (
                         <SelectItem key={value} value={value}>
-                          {key}
+                          {toProgrammingLanguageDisplayName(value)}
                         </SelectItem>
                       ))}
                   </SelectGroup>
