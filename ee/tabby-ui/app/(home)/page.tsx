@@ -101,7 +101,7 @@ function MainPanel() {
 
   return (
     <div className="flex flex-1 justify-center lg:mt-[10vh]">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-x-5 px-5 py-20 md:w-auto md:flex-row md:py-10 lg:gap-x-10 xl:px-0">
+      <div className="mx-auto flex w-screen flex-col px-5 py-20 md:w-auto md:flex-row md:justify-center md:px-0 md:py-10 lg:gap-x-10">
         <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:mt-12 lg:w-64">
           <span>
             <UserPanel>
@@ -122,7 +122,9 @@ function MainPanel() {
           <Configuration />
         </div>
 
-        <Stats />
+        <div className="md:w-[calc(100vw-30rem)] xl:w-[60rem]">
+          <Stats />
+        </div>
       </div>
     </div>
   )
