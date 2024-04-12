@@ -1,20 +1,30 @@
 'use client'
 
 import { useState } from 'react'
-import { noop } from 'lodash-es'
 import Link from 'next/link'
+import { noop } from 'lodash-es'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useExternalURL } from '@/lib/hooks/use-network-setting'
-import { useMutation } from '@/lib/tabby/gql'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useSignOut } from '@/lib/tabby/auth'
-
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
-import { IconMail, IconRotate, IconGear, IconChevronRight, IconChat, IconCode, IconLogout, IconExternalLink, IconBackpack, IconSpinner } from '@/components/ui/icons'
+import {
+  IconBackpack,
+  IconChat,
+  IconChevronRight,
+  IconCode,
+  IconExternalLink,
+  IconGear,
+  IconLogout,
+  IconMail,
+  IconRotate,
+  IconSpinner
+} from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -142,25 +152,25 @@ function MainPanel() {
               <IconChevronRight />
             </Link>
           </div>
-          {isChatEnabled &&
+          {isChatEnabled && (
             <div className="flex items-center py-1">
               <IconChat className="mr-2 text-muted-foreground" />
               <Link
                 className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
                 href="/playground"
-                target='_blank'
+                target="_blank"
               >
                 <span>Chat Playground</span>
                 <IconExternalLink />
               </Link>
             </div>
-          }
+          )}
           <div className="flex items-center py-1">
             <IconCode className="mr-2 text-muted-foreground" />
             <Link
               className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
               href="/files"
-              target='_blank'
+              target="_blank"
             >
               <span>Code Browser</span>
               <IconExternalLink />
@@ -171,7 +181,7 @@ function MainPanel() {
             <Link
               className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
               href="/api"
-              target='_blank'
+              target="_blank"
             >
               <span>API Docs</span>
               <IconExternalLink />
