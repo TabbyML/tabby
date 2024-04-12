@@ -38,9 +38,13 @@ export const filename2prism: (filename: string) => Array<string> = filename => {
     .filter(Boolean)
 }
 
-export const toProgrammingLanguageDisplayName = (lan: ProgrammingLanguage): string => {
+export const toProgrammingLanguageDisplayName = (
+  lan: ProgrammingLanguage
+): string => {
   const displayName =
-    Object.keys(ProgrammingLanguage)[Object.values(ProgrammingLanguage).indexOf(lan)] || ''
+    Object.keys(ProgrammingLanguage)[
+      Object.values(ProgrammingLanguage).indexOf(lan)
+    ] || ''
   const mapping: Record<string, string> = {
     csharp: 'C#',
     cpp: 'C++',
