@@ -4510,7 +4510,6 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber 0.3.17",
- "url",
  "utoipa",
  "utoipa-swagger-ui",
  "uuid 1.6.1",
@@ -4534,6 +4533,7 @@ dependencies = [
  "serdeconv",
  "tantivy",
  "thiserror",
+ "url",
  "utoipa",
  "uuid 1.6.1",
 ]
