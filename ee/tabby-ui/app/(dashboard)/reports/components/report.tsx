@@ -10,15 +10,37 @@ import { DateRange } from 'react-day-picker'
 import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
 
-import { Language } from '@/lib/gql/generates/graphql'
+import {
+  DailyStatsInPastYearQuery,
+  DailyStatsQuery,
+  Language
+} from '@/lib/gql/generates/graphql'
+import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
+import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator
+} from '@/components/ui/command'
 import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {
   IconActivity,
   IconCheck,
+  IconChevronUpDown,
   IconCode,
   IconUsers
 } from '@/components/ui/icons'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -31,8 +53,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
-import { queryDailyStats, queryDailyStatsInPastYear } from '../query'
-import type { DailyStats } from '../types/stats'
 import { useAllMembers } from '../use-all-members'
 import { AnnualActivity } from './annual-activity'
 import { DailyActivity } from './daily-activity'
@@ -43,7 +63,7 @@ const KEY_SELECT_ALL = 'all'
 function StatsSummary({
   dailyStats
 }: {
-  dailyStats: DailyStats[] | undefined
+  dailyStats?: DailyStatsQuery['dailyStats']
 }) {
   const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
   const totalAcceptances = sum(dailyStats?.map(stats => stats.selects))
@@ -66,7 +86,7 @@ function StatsSummary({
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            Total completions
+            Total Completions
           </CardTitle>
           <IconCode className="text-muted-foreground" />
         </CardHeader>
@@ -80,7 +100,7 @@ function StatsSummary({
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            Total acceptances
+            Total Acceptances
           </CardTitle>
           <IconCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
@@ -101,9 +121,7 @@ export function Report() {
     to: moment().toDate()
   })
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
-  const [selectedLanguage, setSelectedLanguage] = useState<'all' | Language>(
-    KEY_SELECT_ALL
-  )
+  const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -112,11 +130,10 @@ export function Report() {
       start: moment(dateRange.from).startOf('day').utc().format(),
       end: moment(dateRange.to).endOf('day').utc().format(),
       users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
-      languages:
-        selectedLanguage === KEY_SELECT_ALL ? undefined : [selectedLanguage]
+      languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
     }
   })
-  let dailyStats: DailyStats[] | undefined
+  let dailyStats: DailyStatsQuery['dailyStats'] | undefined
   if (sample) {
     const daysBetweenRange = eachDayOfInterval({
       start: dateRange.from!,
@@ -151,7 +168,7 @@ export function Report() {
       users: selectedMember === KEY_SELECT_ALL ? undefined : selectedMember
     }
   })
-  let yearlyStats: DailyStats[] | undefined
+  let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
   if (sample) {
     const daysBetweenRange = eachDayOfInterval({
       start: moment().toDate(),
@@ -256,34 +273,96 @@ export function Report() {
             <h1 className="text-xl font-semibold">Usage</h1>
 
             <div className="flex items-center gap-x-3">
-              <Select
-                defaultValue={KEY_SELECT_ALL}
-                onValueChange={(value: 'all' | Language) =>
-                  setSelectedLanguage(value)
-                }
-              >
-                <SelectTrigger className="w-[180px]">
-                  <div className="flex w-full items-center truncate">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed">
                     <span className="mr-1.5 text-muted-foreground">
                       Language:
                     </span>
-                    <div className="overflow-hidden text-ellipsis">
-                      <SelectValue />
+                    <div className="w-[80px]">
+                      {selectedLanguage.length === 0 && (
+                        <p className="w-full overflow-hidden text-ellipsis">
+                          All
+                        </p>
+                      )}
+                      {selectedLanguage.length === 1 && (
+                        <p className="w-full overflow-hidden text-ellipsis">
+                          {toProgrammingLanguageDisplayName(
+                            selectedLanguage[0]
+                          )}
+                        </p>
+                      )}
+                      {selectedLanguage.length > 1 && (
+                        <span className="px-1">
+                          {selectedLanguage.length} selected
+                        </span>
+                      )}
                     </div>
+                    <IconChevronUpDown className="h-3 w-3" />
                   </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value={'all'}>All</SelectItem>
-                    {Object.entries(Language).map(([key, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {key}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="end">
+                  <Command>
+                    <CommandInput placeholder="Language" />
+                    <CommandList>
+                      <CommandEmpty>No results found.</CommandEmpty>
 
+                      <CommandGroup>
+                        {Object.entries(Language)
+                          .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
+                          .map(([_, value]) => {
+                            const isSelected = selectedLanguage.includes(value)
+                            return (
+                              <CommandItem
+                                key={value}
+                                onSelect={() => {
+                                  const newSelect = [...selectedLanguage]
+                                  if (isSelected) {
+                                    const idx = newSelect.findIndex(
+                                      item => item === value
+                                    )
+                                    if (idx !== -1) newSelect.splice(idx, 1)
+                                  } else {
+                                    newSelect.push(value)
+                                  }
+                                  setSelectedLanguage(newSelect)
+                                }}
+                                className="!pointer-events-auto cursor-pointer !opacity-100"
+                              >
+                                <div
+                                  className={cn(
+                                    'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                                    isSelected
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'opacity-50 [&_svg]:invisible'
+                                  )}
+                                >
+                                  <IconCheck className={cn('h-4 w-4')} />
+                                </div>
+                                <span>
+                                  {toProgrammingLanguageDisplayName(value)}
+                                </span>
+                              </CommandItem>
+                            )
+                          })}
+                      </CommandGroup>
+                      {selectedLanguage.length > 0 && (
+                        <>
+                          <CommandSeparator />
+                          <CommandGroup>
+                            <CommandItem
+                              onSelect={() => setSelectedLanguage([])}
+                              className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
+                            >
+                              Clear filters
+                            </CommandItem>
+                          </CommandGroup>
+                        </>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <DatePickerWithRange
                 buttonClassName="h-full"
                 contentAlign="end"

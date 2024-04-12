@@ -49,6 +49,7 @@ pub trait CodeSearch: Send + Sync {
 
     async fn search_in_language(
         &self,
+        git_url: &str,
         language: &str,
         tokens: &[String],
         limit: usize,

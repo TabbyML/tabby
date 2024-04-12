@@ -11,17 +11,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { UserAvatar } from '@/components/user-avatar'
 
 import {
   IconBackpack,
   IconChat,
   IconCode,
+  IconHome,
   IconLogout,
   IconSpinner
 } from './ui/icons'
 
-export default function UserPanel() {
+export default function UserPanel({
+  children
+}: {
+  children?: React.ReactNode
+}) {
   const signOut = useSignOut()
   const [{ data }] = useMe()
   const user = data?.me
@@ -41,12 +45,17 @@ export default function UserPanel() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <UserAvatar className="h-10 w-10 border" />
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger>{children}</DropdownMenuTrigger>
       <DropdownMenuContent collisionPadding={{ right: 16 }}>
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => window.open('/')}
+          className="cursor-pointer"
+        >
+          <IconHome />
+          <span className="ml-2">Home</span>
+        </DropdownMenuItem>
         {isChatEnabled && (
           <DropdownMenuItem
             onClick={() => window.open('/playground')}
@@ -77,7 +86,7 @@ export default function UserPanel() {
           className="cursor-pointer"
         >
           <IconLogout />
-          <span className="ml-2">Logout</span>
+          <span className="ml-2">Sign out</span>
           {signOutLoading && <IconSpinner className="ml-1" />}
         </DropdownMenuItem>
       </DropdownMenuContent>

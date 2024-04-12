@@ -18,7 +18,6 @@ struct AnalyticServiceImpl {
 
 #[async_trait]
 impl AnalyticService for AnalyticServiceImpl {
-    // FIXME(boxbeam): Implementing in memory caching with 1 hour expiry.
     async fn daily_stats_in_past_year(&self, users: Vec<ID>) -> Result<Vec<CompletionStats>> {
         let users = convert_ids(users);
         let stats = self.db.compute_daily_stats_in_past_year(users).await?;
@@ -39,29 +38,15 @@ impl AnalyticService for AnalyticServiceImpl {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
         users: Vec<ID>,
-        mut languages: Vec<Language>,
+        languages: Vec<Language>,
     ) -> Result<Vec<CompletionStats>> {
         let users = convert_ids(users);
 
-        let include_other_languages = languages.iter().any(|l| l == &Language::Other);
-        let not_languages = if include_other_languages {
-            Some(Language::all_known().flat_map(|l| l.to_strings()).collect())
-        } else {
-            None
-        };
-
-        languages.retain(|l| l != &Language::Other);
-
+        let all_languages = Language::all_known().flat_map(|l| l.to_strings()).collect();
         let languages = languages.into_iter().flat_map(|l| l.to_strings()).collect();
         let stats = self
             .db
-            .compute_daily_stats(
-                start,
-                end,
-                users,
-                languages,
-                not_languages.unwrap_or_default(),
-            )
+            .compute_daily_stats(start, end, users, languages, all_languages)
             .await?;
         let stats = stats
             .into_iter()
@@ -130,14 +115,47 @@ mod tests {
             .await
             .unwrap();
 
-        let svc = new_analytic_service(db);
+        let user_id2 = db
+            .create_user("test2@example.com".into(), Some("pass".into()), false)
+            .await
+            .unwrap();
+
+        db.create_user_completion(
+            timestamp(),
+            user_id2,
+            "completion_id2".to_string(),
+            "rust".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Query user 1 should return 1 completion and 1 select.
+        let svc = new_analytic_service(db.clone());
         let activity = svc
             .daily_stats_in_past_year(vec![user_id.as_id()])
             .await
             .unwrap();
+
         assert_eq!(1, activity.len());
         assert_eq!(1, activity[0].completions);
         assert_eq!(1, activity[0].selects);
+
+        // Query user 1 + user 2 should return 2 completions and 1 select.
+        let activity2 = svc
+            .daily_stats_in_past_year(vec![user_id.as_id(), user_id2.as_id()])
+            .await
+            .unwrap();
+
+        assert_eq!(1, activity2.len());
+        assert_eq!(2, activity2[0].completions);
+        assert_eq!(1, activity2[0].selects);
+
+        // Query all users should return 2 completions and 1 select.
+        let activity3 = svc.daily_stats_in_past_year(vec![]).await.unwrap();
+
+        assert_eq!(1, activity3.len());
+        assert_eq!(2, activity3[0].completions);
+        assert_eq!(1, activity3[0].selects);
     }
 
     #[tokio::test]
@@ -198,11 +216,19 @@ mod tests {
         let start = end.checked_sub_days(Days::new(100)).unwrap();
 
         let stats = service
-            .daily_stats(start, end, vec![], vec![Language::Other])
+            .daily_stats(start, end, vec![], vec![Language::Rust, Language::Other])
             .await
             .unwrap();
 
         assert_eq!(1, stats.len());
-        assert_eq!(1, stats[0].completions);
+        assert_eq!(2, stats[0].completions);
+
+        let stats2 = service
+            .daily_stats(start, end, vec![], vec![Language::Other])
+            .await
+            .unwrap();
+
+        assert_eq!(1, stats2.len());
+        assert_eq!(1, stats2[0].completions);
     }
 }

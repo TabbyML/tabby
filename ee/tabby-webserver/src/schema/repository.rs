@@ -71,6 +71,7 @@ pub trait RepositoryService: Send + Sync {
     ) -> Result<Vec<Repository>>;
 
     async fn create_repository(&self, name: String, git_url: String) -> Result<ID>;
+    async fn get_repository_by_name(&self, name: &str) -> Result<Repository>;
     async fn delete_repository(&self, id: &ID) -> Result<bool>;
     async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
 

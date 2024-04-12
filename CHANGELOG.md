@@ -8,6 +8,8 @@
 
 ## Fixes and Improvements
 * Fix worker unregisteration misfunctioning caused by unmatched address.
+* Accurate repository context filtering using fuzzy matching on `git_url` field.
+* Support the use of client-side context, including function/class declarations from LSP, and relevant snippets from local changed files.
 
 # v0.9.1
 

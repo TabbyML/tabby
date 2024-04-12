@@ -5,7 +5,7 @@ use strum::{EnumIter, IntoEnumIterator};
 
 use crate::schema::Result;
 
-#[derive(GraphQLObject, Debug)]
+#[derive(GraphQLObject, Debug, Clone)]
 pub struct CompletionStats {
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
@@ -26,7 +26,7 @@ pub enum Language {
     Ruby,
     CSharp,
     C,
-    CPP,
+    Cpp,
     Solidity,
     Other,
 }
@@ -48,7 +48,7 @@ impl Language {
             Language::Ruby => vec!["ruby"],
             Language::CSharp => vec!["csharp"],
             Language::C => vec!["c"],
-            Language::CPP => vec!["cpp"],
+            Language::Cpp => vec!["cpp"],
             Language::Solidity => vec!["solidity"],
             Language::Other => vec!["other"],
         }

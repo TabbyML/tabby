@@ -1,8 +1,7 @@
 import React, { Suspense, useContext } from 'react'
-import filename2prism from 'filename2prism'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
-import { TFileMeta } from '@/lib/types'
+import { filename2prism } from '@/lib/language-utils'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListSkeleton } from '@/components/skeleton'
@@ -15,14 +14,12 @@ const MarkdownView = React.lazy(() => import('./markdown-view'))
 
 interface TextFileViewProps extends React.HTMLProps<HTMLDivElement> {
   blob: Blob | undefined
-  meta: TFileMeta | undefined
   contentLength?: number
 }
 
 export const TextFileView: React.FC<TextFileViewProps> = ({
   className,
   blob,
-  meta,
   contentLength
 }) => {
   const { searchParams, updateSearchParams } = useRouterStuff()
@@ -32,7 +29,7 @@ export const TextFileView: React.FC<TextFileViewProps> = ({
   const detectedLanguage = activePath
     ? filename2prism(activePath)[0]
     : undefined
-  const language = (meta?.language ?? detectedLanguage) || ''
+  const language = detectedLanguage ?? 'plain'
   const isMarkdown = !!value && language === 'markdown'
   const isPlain = searchParams.get('plain')?.toString() === '1'
   const showMarkdown = isMarkdown && !isPlain
@@ -86,7 +83,7 @@ export const TextFileView: React.FC<TextFileViewProps> = ({
           {showMarkdown ? (
             <MarkdownView value={value} />
           ) : (
-            <CodeEditorView value={value} language={language} meta={meta} />
+            <CodeEditorView value={value} language={language} />
           )}
         </Suspense>
       </div>
