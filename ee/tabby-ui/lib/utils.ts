@@ -81,10 +81,10 @@ export const delay = (ms: number) => {
 
 export const convertToDisplayName = (lan: string): string => {
   const mapping: Record<string, string> = {
-    'csharp': 'C#',
-    'cpp': 'C++',
-    'javascript': 'JavaScript',
-    'typescript': 'TypeScript'
+    csharp: 'C#',
+    cpp: 'C++',
+    javascript: 'JavaScript',
+    typescript: 'TypeScript'
   }
   return mapping[lan.toLocaleLowerCase()] || lan
 }
