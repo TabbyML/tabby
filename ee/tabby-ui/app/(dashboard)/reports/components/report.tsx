@@ -24,7 +24,8 @@ import {
   IconActivity,
   IconCheck,
   IconCode,
-  IconUsers
+  IconUsers,
+  IconChevronUpDown
 } from '@/components/ui/icons'
 
 
@@ -289,7 +290,7 @@ export function Report() {
             <PopoverTrigger asChild>
               <div className="flex h-6 items-center text-sm">
                 <IconUsers className="mr-1" />
-                <p className="mr-2">Members:</p>
+                <p className="mr-1">Members:</p>
                 <div
                   className="block w-20 cursor-pointer rounded-sm font-normal"
                 >
@@ -303,6 +304,7 @@ export function Report() {
                     <span>{selectedMember.length} selected</span>
                   }
                 </div>
+                <IconChevronUpDown className="h-3 w-3" />
               </div>
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0" align="end">
@@ -365,7 +367,7 @@ export function Report() {
                       </span>
                     }
                   </div>
-                  
+                  <IconChevronUpDown className="h-3 w-3" />
                 </div>
               </PopoverTrigger>
               <PopoverContent className="w-[200px] p-0" align="end">
