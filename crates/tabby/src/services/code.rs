@@ -132,7 +132,7 @@ impl CodeSearch for CodeSearchImpl {
             .await
             .unwrap_or_default();
 
-        let Some(git_url) = closest_match(git_url, repos.iter().map(|repo| &*repo.git_url)) else {
+        let Some(git_url) = closest_match(git_url, repos.iter()) else {
             return Ok(SearchResponse::default());
         };
 
@@ -149,7 +149,7 @@ impl CodeSearch for CodeSearchImpl {
 
 fn closest_match<'a>(
     search_term: &'a str,
-    search_input: impl IntoIterator<Item = &'a str>,
+    search_input: impl IntoIterator<Item = &'a RepositoryConfig>,
 ) -> Option<String> {
     let search_term = RepositoryConfig::canonicalize_url(search_term);
 
@@ -157,15 +157,16 @@ fn closest_match<'a>(
     search_input
         .into_iter()
         .filter_map(|entry| {
+            let url = entry.canonical_git_url();
             Some((
-                entry.to_string(),
+                url.clone(),
                 // Matching using the input URL as the haystack instead of the needle yielded better scoring
                 // Example:
                 // haystack = "https://github.com/boxbeam/untwine" needle = "https://abc@github.com/boxbeam/untwine.git" => No match
                 // haystack = "https://abc@github.com/boxbeam/untwine.git" needle = "https://github.com/boxbeam/untwine" => Match, score 842
                 nucleo.fuzzy_match(
                     Utf32String::from(&*search_term).slice(..),
-                    Utf32String::from(&*RepositoryConfig::canonicalize_url(entry)).slice(..),
+                    Utf32String::from(&*url).slice(..),
                 )?,
             ))
         })
@@ -246,7 +247,9 @@ mod tests {
         assert_eq!(
             closest_match(
                 "https://github.com/example/test.git",
-                ["https://github.com/example/test"]
+                [&RepositoryConfig::new(
+                    "https://github.com/example/test".to_string()
+                )]
             ),
             Some("https://github.com/example/test".into())
         );
@@ -254,7 +257,9 @@ mod tests {
         assert_eq!(
             closest_match(
                 "https://creds@github.com/example/test",
-                ["https://github.com/example/test"]
+                [&RepositoryConfig::new(
+                    "https://github.com/example/test".to_string()
+                )]
             ),
             Some("https://github.com/example/test".into())
         );
@@ -262,7 +267,9 @@ mod tests {
         assert_eq!(
             closest_match(
                 "https://github.com/example/another-repo",
-                ["https://github.com/examp/anoth-repo"]
+                [&RepositoryConfig::new(
+                    "https://github.com/examp/anoth-repo".to_string()
+                )]
             ),
             Some("https://github.com/examp/anoth-repo".into())
         );
@@ -270,7 +277,9 @@ mod tests {
         assert_eq!(
             closest_match(
                 "https://github.com/TabbyML/tabby",
-                ["https://github.com/TabbyML/registry-tabby"]
+                [&RepositoryConfig::new(
+                    "https://github.com/TabbyML/registry-tabby".to_string()
+                )]
             ),
             None
         );
@@ -278,20 +287,29 @@ mod tests {
         assert_eq!(
             closest_match(
                 "https://github.com/TabbyML/tabby",
-                ["https://github.com/TabbyML/uptime"]
+                [&RepositoryConfig::new(
+                    "https://github.com/TabbyML/uptime".to_string()
+                )]
             ),
             None
         );
 
         assert_eq!(
-            closest_match("https://github.com", ["https://github.com/TabbyML/tabby"],),
+            closest_match(
+                "https://github.com",
+                [&RepositoryConfig::new(
+                    "https://github.com/TabbyML/tabby".to_string()
+                )],
+            ),
             None
         );
 
         assert_eq!(
             closest_match(
                 "https://bitbucket.com/TabbyML/tabby",
-                ["https://github.com/TabbyML/tabby"]
+                [&RepositoryConfig::new(
+                    "https://github.com/TabbyML/tabby".to_string()
+                )]
             ),
             None
         );
