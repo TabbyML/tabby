@@ -143,7 +143,6 @@ mod tests {
         .await
         .unwrap();
 
-
         // Query user 1 should return 1 completion and 1 select.
         let svc = new_analytic_service(db.clone());
         let activity = svc
@@ -166,10 +165,7 @@ mod tests {
         assert_eq!(1, activity2[0].selects);
 
         // Query all users should return 2 completions and 1 select.
-        let activity3 = svc
-            .daily_stats_in_past_year(vec![])
-            .await
-            .unwrap();
+        let activity3 = svc.daily_stats_in_past_year(vec![]).await.unwrap();
 
         assert_eq!(1, activity3.len());
         assert_eq!(2, activity3[0].completions);
