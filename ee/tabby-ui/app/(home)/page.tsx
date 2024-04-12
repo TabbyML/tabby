@@ -157,7 +157,7 @@ function MainPanel() {
           </div>
         </div>
 
-        <div className="md:min-h-[700px] md:w-[calc(100vw-30rem)] xl:w-[60rem]">
+        <div className="md:min-h-[700px] md:w-[calc(100vw-30rem)] xl:w-[62rem]">
           <Stats />
         </div>
       </div>
