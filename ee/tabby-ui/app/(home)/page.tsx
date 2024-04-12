@@ -14,11 +14,8 @@ import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import {
-  IconBackpack,
   IconChat,
-  IconChevronRight,
   IconCode,
-  IconExternalLink,
   IconGear,
   IconLogout,
   IconMail,
@@ -116,7 +113,7 @@ function MainPanel() {
 
   if (!healthInfo || !data?.me) return <></>
 
-  const handleSignOut: React.MouseEventHandler<HTMLDivElement> = async e => {
+  const handleSignOut = async () => {
     if (signOutLoading) return
     setSignOutLoading(true)
     await signOut()
@@ -141,68 +138,49 @@ function MainPanel() {
           <Separator className="my-4" />
           <Configuration />
 
-          <Separator className="my-4" />
-          <div className="flex items-center py-1">
-            <IconGear className="mr-2 text-muted-foreground" />
-            <Link
-              className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-              href="/profile"
-            >
-              <span>Settings</span>
-              <IconChevronRight />
-            </Link>
-          </div>
-          {isChatEnabled && (
-            <div className="flex items-center py-1">
-              <IconChat className="mr-2 text-muted-foreground" />
-              <Link
-                className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-                href="/playground"
-                target="_blank"
-              >
-                <span>Chat Playground</span>
-                <IconExternalLink />
-              </Link>
-            </div>
-          )}
-          <div className="flex items-center py-1">
-            <IconCode className="mr-2 text-muted-foreground" />
-            <Link
-              className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-              href="/files"
-              target="_blank"
-            >
-              <span>Code Browser</span>
-              <IconExternalLink />
-            </Link>
-          </div>
-          <div className="flex items-center py-1">
-            <IconBackpack className="mr-2 text-muted-foreground" />
-            <Link
-              className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-              href="/api"
-              target="_blank"
-            >
-              <span>API Docs</span>
-              <IconExternalLink />
-            </Link>
-          </div>
-          <div className="flex items-center py-1">
-            <IconLogout className="mr-2 text-muted-foreground" />
-            <div
-              className="flex cursor-pointer items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-              onClick={handleSignOut}
-            >
+          <div className="mt-auto flex flex-col gap-1 md:mb-[28px]">
+            <MenuLink href="/profile" Icon={IconGear}>
+              Settings
+            </MenuLink>
+            {isChatEnabled && (
+              <MenuLink href="/playground" Icon={IconChat} target="_blank">
+                Chat Playground
+              </MenuLink>
+            )}
+            <MenuLink href="/files" Icon={IconCode} target="_blank">
+              Code Browser
+            </MenuLink>
+            <MenuLink Icon={IconLogout} href="/" onClick={handleSignOut}>
               <span>Sign out</span>
               {signOutLoading && <IconSpinner className="ml-1" />}
-            </div>
+            </MenuLink>
           </div>
         </div>
 
-        <div className="md:w-[calc(100vw-30rem)] xl:w-[60rem]">
+        <div className="md:min-h-[700px] md:w-[calc(100vw-30rem)] xl:w-[60rem]">
           <Stats />
         </div>
       </div>
+    </div>
+  )
+}
+
+function MenuLink({
+  children,
+  Icon,
+  ...props
+}: { Icon: React.ComponentType<{ className: string }> } & React.ComponentProps<
+  typeof Link
+>) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon className="text-muted-foreground" />
+      <Link
+        className="flex items-center gap-1 text-sm transition-opacity hover:opacity-50"
+        {...props}
+      >
+        {children}
+      </Link>
     </div>
   )
 }
