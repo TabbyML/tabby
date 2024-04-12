@@ -48,13 +48,13 @@ impl PromptBuilder {
             snippets.extend(snippets_from_segments.into_iter());
         };
 
-        let Some(code) = &self.code else {
-            return snippets;
-        };
-
         if max_snippets_chars_in_prompt <= quota_threshold_for_snippets_from_code_search {
             return snippets;
         }
+
+        let Some(code) = &self.code else {
+            return snippets;
+        };
 
         let Some(git_url) = segments.git_url.as_ref() else {
             return snippets;
