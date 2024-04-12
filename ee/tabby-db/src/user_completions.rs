@@ -123,7 +123,7 @@ impl DbConn {
         end: DateTime<Utc>,
         users: Vec<i64>,
         languages: Vec<String>,
-        not_languages: Vec<String>,
+        all_languages: Vec<String>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         let users = users
             .iter()
@@ -135,7 +135,7 @@ impl DbConn {
             .map(|l| format!("'{}'", l))
             .collect::<Vec<_>>()
             .join(",");
-        let not_languages = not_languages
+        let all_languages = all_languages
             .into_iter()
             .map(|l| format!("'{}'", l))
             .collect::<Vec<_>>()
@@ -149,11 +149,13 @@ impl DbConn {
             SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
                    SUM(1) as completions,
                    SUM(selects) as selects
-            FROM user_completions
-            WHERE created_at >= ?1 AND created_at < ?2
-                AND ({no_selected_users} OR user_id IN ({users}))
-                AND (({no_selected_languages} OR language IN ({languages}))
-                     OR (language NOT IN ({not_languages})))
+            FROM (
+                SELECT created_at, selects, IIF(language IN ({all_languages}), language, 'other') as language
+                    FROM user_completions
+                    WHERE created_at >= ?1 AND created_at < ?2
+            )
+                WHERE ({no_selected_users} OR user_id IN ({users}))
+                AND ({no_selected_languages} OR language IN ({languages}))
             GROUP BY 1
             ORDER BY 1 ASC
             "#,
@@ -162,9 +164,6 @@ impl DbConn {
         ))
         .bind(start)
         .bind(end)
-        .bind(users)
-        .bind(languages)
-        .bind(not_languages)
         .fetch_all(&self.pool)
         .await?;
         Ok(res)

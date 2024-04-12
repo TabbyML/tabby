@@ -38,29 +38,15 @@ impl AnalyticService for AnalyticServiceImpl {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
         users: Vec<ID>,
-        mut languages: Vec<Language>,
+        languages: Vec<Language>,
     ) -> Result<Vec<CompletionStats>> {
         let users = convert_ids(users);
 
-        let include_other_languages = languages.iter().any(|l| l == &Language::Other);
-        let not_languages = if include_other_languages {
-            Some(Language::all_known().flat_map(|l| l.to_strings()).collect())
-        } else {
-            None
-        };
-
-        languages.retain(|l| l != &Language::Other);
-
+        let all_languages = Language::all_known().flat_map(|l| l.to_strings()).collect();
         let languages = languages.into_iter().flat_map(|l| l.to_strings()).collect();
         let stats = self
             .db
-            .compute_daily_stats(
-                start,
-                end,
-                users,
-                languages,
-                not_languages.unwrap_or_default(),
-            )
+            .compute_daily_stats(start, end, users, languages, all_languages)
             .await?;
         let stats = stats
             .into_iter()
@@ -227,5 +213,13 @@ mod tests {
 
         assert_eq!(1, stats.len());
         assert_eq!(2, stats[0].completions);
+
+        let stats2 = service
+            .daily_stats(start, end, vec![], vec![Language::Other])
+            .await
+            .unwrap();
+
+        assert_eq!(1, stats2.len());
+        assert_eq!(1, stats2[0].completions);
     }
 }
