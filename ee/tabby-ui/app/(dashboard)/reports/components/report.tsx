@@ -117,76 +117,6 @@ type OptionType<T> = {
   value: T
 }
 
-function MultipSelectionContent<T>({
-  title,
-  options,
-  selected,
-  onChange
-}: {
-  title: string
-  options: OptionType<T>[]
-  selected: T[]
-  onChange: React.Dispatch<React.SetStateAction<T[]>>
-}) {
-  return (
-    <Command>
-      <CommandInput placeholder={title} />
-      <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
-
-        <CommandGroup>
-          {options.map(option => {
-            const isSelected = selected.includes(option.value)
-            return (
-              <CommandItem
-                key={option.value as string}
-                onSelect={() => {
-                  const newSelect = [...selected]
-                  if (isSelected) {
-                    const idx = newSelect.findIndex(
-                      item => item === option.value
-                    )
-                    if (idx !== -1) newSelect.splice(idx, 1)
-                  } else {
-                    newSelect.push(option.value)
-                  }
-                  onChange(newSelect)
-                }}
-                className="!pointer-events-auto cursor-pointer !opacity-100"
-              >
-                <div
-                  className={cn(
-                    'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                    isSelected
-                      ? 'bg-primary text-primary-foreground'
-                      : 'opacity-50 [&_svg]:invisible'
-                  )}
-                >
-                  <IconCheck className={cn('h-4 w-4')} />
-                </div>
-                <span>{option.label}</span>
-              </CommandItem>
-            )
-          })}
-        </CommandGroup>
-        {selected.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup>
-              <CommandItem
-                onSelect={() => onChange([])}
-                className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
-              >
-                Clear filters
-              </CommandItem>
-            </CommandGroup>
-          </>
-        )}
-      </CommandList>
-    </Command>
-  )
-}
-
 export function Report() {
   const searchParams = useSearchParams()
   const sample = searchParams.get('sample') === 'true'
@@ -377,14 +307,63 @@ export function Report() {
                   </div>
                 </PopoverTrigger>
                 <PopoverContent className="w-[200px] p-0" align="end">
-                  <MultipSelectionContent
-                    title="Language"
-                    options={Object.entries(Language)
+                  <Command>
+                    <CommandInput placeholder="Language" />
+                    <CommandList>
+                      <CommandEmpty>No results found.</CommandEmpty>
+
+                      <CommandGroup>
+                        {Object.entries(Language)
                       .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
-                      .map(([key, value]) => ({ label: key, value }))}
-                    selected={selectedLanguage}
-                    onChange={setSelectedLanguage}
-                  />
+                      .map(([key, value]) => {
+                          const isSelected = selectedLanguage.includes(value)
+                          return (
+                            <CommandItem
+                              key={value}
+                              onSelect={() => {
+                                const newSelect = [...selectedLanguage]
+                                if (isSelected) {
+                                  const idx = newSelect.findIndex(
+                                    item => item === value
+                                  )
+                                  if (idx !== -1) newSelect.splice(idx, 1)
+                                } else {
+                                  newSelect.push(value)
+                                }
+                                setSelectedLanguage(newSelect)
+                              }}
+                              className="!pointer-events-auto cursor-pointer !opacity-100"
+                            >
+                              <div
+                                className={cn(
+                                  'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                                  isSelected
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'opacity-50 [&_svg]:invisible'
+                                )}
+                              >
+                                <IconCheck className={cn('h-4 w-4')} />
+                              </div>
+                              <span>{key}</span>
+                            </CommandItem>
+                          )
+                        })}
+                      </CommandGroup>
+                      {selectedLanguage.length > 0 && (
+                        <>
+                          <CommandSeparator />
+                          <CommandGroup>
+                            <CommandItem
+                              onSelect={() => setSelectedLanguage([])}
+                              className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
+                            >
+                              Clear filters
+                            </CommandItem>
+                          </CommandGroup>
+                        </>
+                      )}
+                    </CommandList>
+                  </Command>
                 </PopoverContent>
               </Popover>
               <DatePickerWithRange
