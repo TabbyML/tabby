@@ -16,9 +16,7 @@ import { CardContent, CardFooter } from '@/components/ui/card'
 import {
   IconBackpack,
   IconChat,
-  IconChevronRight,
   IconCode,
-  IconExternalLink,
   IconGear,
   IconLogout,
   IconMail,
@@ -116,7 +114,7 @@ function MainPanel() {
 
   if (!healthInfo || !data?.me) return <></>
 
-  const handleSignOut: React.MouseEventHandler<HTMLDivElement> = async e => {
+  const handleSignOut = async () => {
     if (signOutLoading) return
     setSignOutLoading(true)
     await signOut()
@@ -142,67 +140,51 @@ function MainPanel() {
           <Configuration />
 
           <Separator className="my-4" />
-          <div className="flex items-center py-1">
-            <IconGear className="mr-2 text-muted-foreground" />
-            <Link
-              className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-              href="/profile"
-            >
-              <span>Settings</span>
-              <IconChevronRight />
-            </Link>
-          </div>
+
+          <MenuLink href="/profile" Icon={IconGear}>
+            Settings
+          </MenuLink>
           {isChatEnabled && (
-            <div className="flex items-center py-1">
-              <IconChat className="mr-2 text-muted-foreground" />
-              <Link
-                className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-                href="/playground"
-                target="_blank"
-              >
-                <span>Chat Playground</span>
-                <IconExternalLink />
-              </Link>
-            </div>
+            <MenuLink href="/playground" Icon={IconChat} target="_blank">
+              Chat Playground
+            </MenuLink>
           )}
-          <div className="flex items-center py-1">
-            <IconCode className="mr-2 text-muted-foreground" />
-            <Link
-              className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-              href="/files"
-              target="_blank"
-            >
-              <span>Code Browser</span>
-              <IconExternalLink />
-            </Link>
-          </div>
-          <div className="flex items-center py-1">
-            <IconBackpack className="mr-2 text-muted-foreground" />
-            <Link
-              className="flex items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-              href="/api"
-              target="_blank"
-            >
-              <span>API Docs</span>
-              <IconExternalLink />
-            </Link>
-          </div>
-          <div className="flex items-center py-1">
-            <IconLogout className="mr-2 text-muted-foreground" />
-            <div
-              className="flex cursor-pointer items-center gap-x-1 text-sm transition-opacity hover:opacity-50"
-              onClick={handleSignOut}
-            >
-              <span>Sign out</span>
-              {signOutLoading && <IconSpinner className="ml-1" />}
-            </div>
-          </div>
+          <MenuLink href="/files" Icon={IconCode} target="_blank">
+            Code Browser
+          </MenuLink>
+          <MenuLink href="/api" Icon={IconBackpack} target="_blank">
+            API Docs
+          </MenuLink>
+          <MenuLink Icon={IconLogout} href="/" onClick={handleSignOut}>
+            <span>Sign out</span>
+            {signOutLoading && <IconSpinner className="ml-1" />}
+          </MenuLink>
         </div>
 
         <div className="md:w-[calc(100vw-30rem)] xl:w-[60rem]">
           <Stats />
         </div>
       </div>
+    </div>
+  )
+}
+
+function MenuLink({
+  children,
+  Icon,
+  ...props
+}: { Icon: React.ComponentType<{ className: string }> } & React.ComponentProps<
+  typeof Link
+>) {
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <Icon className="text-muted-foreground" />
+      <Link
+        className="flex items-center gap-1 text-sm transition-opacity hover:opacity-50"
+        {...props}
+      >
+        {children}
+      </Link>
     </div>
   )
 }
