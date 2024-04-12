@@ -139,26 +139,23 @@ function MainPanel() {
           <Separator className="my-4" />
           <Configuration />
 
-          <Separator className="my-4" />
-
-          <MenuLink href="/profile" Icon={IconGear}>
-            Settings
-          </MenuLink>
-          {isChatEnabled && (
-            <MenuLink href="/playground" Icon={IconChat} target="_blank">
-              Chat Playground
+          <div className='md:mt-[136px] flex flex-col gap-1'>
+            <MenuLink href="/profile" Icon={IconGear}>
+              Settings
             </MenuLink>
-          )}
-          <MenuLink href="/files" Icon={IconCode} target="_blank">
-            Code Browser
-          </MenuLink>
-          <MenuLink href="/api" Icon={IconBackpack} target="_blank">
-            API Docs
-          </MenuLink>
-          <MenuLink Icon={IconLogout} href="/" onClick={handleSignOut}>
-            <span>Sign out</span>
-            {signOutLoading && <IconSpinner className="ml-1" />}
-          </MenuLink>
+            {isChatEnabled && (
+              <MenuLink href="/playground" Icon={IconChat} target="_blank">
+                Chat Playground
+              </MenuLink>
+            )}
+            <MenuLink href="/files" Icon={IconCode} target="_blank">
+              Code Browser
+            </MenuLink>
+            <MenuLink Icon={IconLogout} href="/" onClick={handleSignOut}>
+              <span>Sign out</span>
+              {signOutLoading && <IconSpinner className="ml-1" />}
+            </MenuLink>
+          </div>
         </div>
 
         <div className="md:w-[calc(100vw-30rem)] xl:w-[60rem]">
@@ -177,7 +174,7 @@ function MenuLink({
   typeof Link
 >) {
   return (
-    <div className="flex items-center gap-2 py-1">
+    <div className="flex items-center gap-2">
       <Icon className="text-muted-foreground" />
       <Link
         className="flex items-center gap-1 text-sm transition-opacity hover:opacity-50"
