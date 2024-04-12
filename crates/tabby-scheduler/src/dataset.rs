@@ -61,7 +61,7 @@ impl RepositoryExt for RepositoryConfig {
             match read_to_string(entry.path()) {
                 Ok(file_content) => {
                     let source_file = SourceFile {
-                        git_url: self.git_url.clone(),
+                        git_url: self.canonical_git_url(),
                         basedir: dir.display().to_string(),
                         filepath: relative_path.display().to_string(),
                         max_line_length: metrics::max_line_length(&file_content),
