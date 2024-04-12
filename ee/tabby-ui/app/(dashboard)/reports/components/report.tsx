@@ -37,6 +37,14 @@ import {
   IconUsers
 } from '@/components/ui/icons'
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import {
   Popover,
   PopoverContent,
   PopoverTrigger
@@ -187,7 +195,7 @@ export function Report() {
     from: moment().subtract(INITIAL_DATE_RANGE, 'day').toDate(),
     to: moment().toDate()
   })
-  const [selectedMember, setSelectedMember] = useState<string[]>([])
+  const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
   const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
 
   // Query stats of selected date range
@@ -196,7 +204,7 @@ export function Report() {
     variables: {
       start: moment(dateRange.from).startOf('day').utc().format(),
       end: moment(dateRange.to).endOf('day').utc().format(),
-      users: selectedMember.length === 0 ? undefined : selectedMember,
+      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
       languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
     }
   })
@@ -232,11 +240,7 @@ export function Report() {
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
     query: queryDailyStatsInPastYear,
     variables: {
-      // TODO: check if it is a bug in API, giving all members return nothing
-      users:
-        selectedMember.length === 0 || selectedMember.length === members.length
-          ? undefined
-          : selectedMember
+      users: selectedMember === KEY_SELECT_ALL ? undefined : selectedMember
     }
   })
   let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
@@ -289,37 +293,30 @@ export function Report() {
           loading={fetchingDailyState}
           fallback={<Skeleton className="h-8 w-32" />}
         >
-          <Popover>
-            <PopoverTrigger asChild>
-              <div className="flex h-6 items-center text-sm">
+          <Select
+            defaultValue={KEY_SELECT_ALL}
+            onValueChange={setSelectedMember}
+          >
+            <SelectTrigger className="h-auto w-auto border-none py-0 shadow-none">
+              <div className="flex h-6 items-center">
                 <IconUsers className="mr-1" />
-                <p className="mr-1">Members:</p>
-                <div className="block w-20 cursor-pointer rounded-sm font-normal">
-                  {selectedMember.length === 0 && <span>All</span>}
-                  {selectedMember.length === 1 && (
-                    <p className="w-full overflow-hidden text-ellipsis">
-                      {members.find(m => m.id === selectedMember[0])?.email}
-                    </p>
-                  )}
-                  {selectedMember.length > 1 && (
-                    <span>{selectedMember.length} selected</span>
-                  )}
+                <p className="mr-1.5">Member:</p>
+                <div className="w-[80px] overflow-hidden text-ellipsis text-left">
+                  <SelectValue />
                 </div>
-                <IconChevronUpDown className="h-3 w-3" />
               </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="end">
-              <MultipSelectionContent
-                title="Member"
-                options={members.map(member => ({
-                  label: member.email,
-                  value: member.id
-                }))}
-                selected={selectedMember}
-                onChange={setSelectedMember}
-              />
-            </PopoverContent>
-          </Popover>
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectGroup>
+                <SelectItem value={KEY_SELECT_ALL}>All</SelectItem>
+                {members.map(member => (
+                  <SelectItem value={member.id} key={member.id}>
+                    {member.email}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </LoadingWrapper>
       </div>
 
