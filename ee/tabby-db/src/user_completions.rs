@@ -145,7 +145,7 @@ impl DbConn {
         // with `STRFTIME('%s')`. The effect of this is to extract the unix timestamp (seconds) rounded to
         // the start of the day and group them by that.
         let res = sqlx::query_as(&format!(
-                r#"
+            r#"
             SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
                    SUM(1) as completions,
                    SUM(selects) as selects
