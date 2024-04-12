@@ -4625,6 +4625,7 @@ dependencies = [
  "tree-sitter-solidity",
  "tree-sitter-tags",
  "tree-sitter-typescript",
+ "url",
  "yarn-lock-parser",
 ]
 
