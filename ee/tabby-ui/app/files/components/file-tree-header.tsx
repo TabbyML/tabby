@@ -282,7 +282,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                         </Button>
                       ) : (
                         <kbd
-                          className="bg-secondary/50 text-muted-foreground rounded-md border px-1.5 text-xs leading-4 shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
+                          className="rounded-md border bg-secondary/50 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_-0.5px_-1.5px_0_hsl(var(--muted))]"
                           onClick={e => {
                             inputRef.current?.focus()
                           }}
@@ -368,7 +368,7 @@ const HighlightMatches = ({
     <p className="text-muted-foreground">
       {text.split('').map((char, index) => {
         return indicesSet.has(index) ? (
-          <span className="text-foreground font-semibold">{char}</span>
+          <span className="font-semibold text-foreground">{char}</span>
         ) : (
           char
         )
