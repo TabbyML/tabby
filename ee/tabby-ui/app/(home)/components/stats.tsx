@@ -30,6 +30,7 @@ import {
 import { useMe } from '@/lib/hooks/use-me'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
+import { convertToDisplayName } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
@@ -156,7 +157,6 @@ const LanguageLabel: React.FC<
     return null
   }
 
-  const padding = 5
   return (
     <text
       x={+x!}
@@ -167,7 +167,7 @@ const LanguageLabel: React.FC<
       textAnchor="start"
       dominantBaseline="middle"
     >
-      {value}
+      {convertToDisplayName(value as string)}
     </text>
   )
 }
@@ -420,6 +420,7 @@ export default function Stats() {
                   />
                   {languageData.map((entry, index) => {
                     const lanColor = colorMap[entry.label.toLocaleLowerCase()]
+                    console.log(lanColor)
                     const color = lanColor
                       ? lanColor
                       : theme === 'dark'
