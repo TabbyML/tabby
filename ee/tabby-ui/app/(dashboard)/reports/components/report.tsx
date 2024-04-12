@@ -17,32 +17,30 @@ import {
 } from '@/lib/gql/generates/graphql'
 import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {
-  IconActivity,
-  IconCheck,
-  IconCode,
-  IconUsers,
-  IconChevronUpDown
-} from '@/components/ui/icons'
-
-
-import {
-	Command,
+  Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
-} from "@/components/ui/command"
+  CommandSeparator
+} from '@/components/ui/command'
+import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover"
+  IconActivity,
+  IconCheck,
+  IconChevronUpDown,
+  IconCode,
+  IconUsers
+} from '@/components/ui/icons'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
@@ -107,20 +105,20 @@ function StatsSummary({
 }
 
 type OptionType<T> = {
-	label: string;
-	value: T;
+  label: string
+  value: T
 }
 
-function MultipSelectionContent<T> ({
+function MultipSelectionContent<T>({
   title,
   options,
   selected,
   onChange
 }: {
-  title: string;
-  options: OptionType<T>[];
-  selected: T[];
-  onChange: React.Dispatch<React.SetStateAction<T[]>>;
+  title: string
+  options: OptionType<T>[]
+  selected: T[]
+  onChange: React.Dispatch<React.SetStateAction<T[]>>
 }) {
   return (
     <Command>
@@ -129,7 +127,7 @@ function MultipSelectionContent<T> ({
         <CommandEmpty>No results found.</CommandEmpty>
 
         <CommandGroup>
-          {options.map((option) => {
+          {options.map(option => {
             const isSelected = selected.includes(option.value)
             return (
               <CommandItem
@@ -137,7 +135,9 @@ function MultipSelectionContent<T> ({
                 onSelect={() => {
                   const newSelect = [...selected]
                   if (isSelected) {
-                    const idx = newSelect.findIndex(item => item === option.value)
+                    const idx = newSelect.findIndex(
+                      item => item === option.value
+                    )
                     if (idx !== -1) newSelect.splice(idx, 1)
                   } else {
                     newSelect.push(option.value)
@@ -148,13 +148,13 @@ function MultipSelectionContent<T> ({
               >
                 <div
                   className={cn(
-                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                    'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
                     isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "opacity-50 [&_svg]:invisible"
+                      ? 'bg-primary text-primary-foreground'
+                      : 'opacity-50 [&_svg]:invisible'
                   )}
                 >
-                  <IconCheck className={cn("h-4 w-4")} />
+                  <IconCheck className={cn('h-4 w-4')} />
                 </div>
                 <span>{option.label}</span>
               </CommandItem>
@@ -188,7 +188,7 @@ export function Report() {
     to: moment().toDate()
   })
   const [selectedMember, setSelectedMember] = useState<string[]>([])
-  const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([]) 
+  const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -233,7 +233,10 @@ export function Report() {
     query: queryDailyStatsInPastYear,
     variables: {
       // TODO: check if it is a bug in API, giving all members return nothing
-      users: (selectedMember.length === 0 || selectedMember.length === members.length) ? undefined : selectedMember
+      users:
+        selectedMember.length === 0 || selectedMember.length === members.length
+          ? undefined
+          : selectedMember
     }
   })
   let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
@@ -291,18 +294,16 @@ export function Report() {
               <div className="flex h-6 items-center text-sm">
                 <IconUsers className="mr-1" />
                 <p className="mr-1">Members:</p>
-                <div
-                  className="block w-20 cursor-pointer rounded-sm font-normal"
-                >
-                  {selectedMember.length === 0 &&
-                    <span>All</span>
-                  }
-                  {selectedMember.length === 1 &&
-                    <p className="w-full overflow-hidden text-ellipsis">{members.find(m => m.id === selectedMember[0])?.email}</p>
-                  }
-                  {selectedMember.length > 1 &&
+                <div className="block w-20 cursor-pointer rounded-sm font-normal">
+                  {selectedMember.length === 0 && <span>All</span>}
+                  {selectedMember.length === 1 && (
+                    <p className="w-full overflow-hidden text-ellipsis">
+                      {members.find(m => m.id === selectedMember[0])?.email}
+                    </p>
+                  )}
+                  {selectedMember.length > 1 && (
                     <span>{selectedMember.length} selected</span>
-                  }
+                  )}
                 </div>
                 <IconChevronUpDown className="h-3 w-3" />
               </div>
@@ -310,9 +311,13 @@ export function Report() {
             <PopoverContent className="w-[200px] p-0" align="end">
               <MultipSelectionContent
                 title="Member"
-                options={members.map(member => ({ label: member.email, value: member.id }))}
+                options={members.map(member => ({
+                  label: member.email,
+                  value: member.id
+                }))}
                 selected={selectedMember}
-                onChange={setSelectedMember} />
+                onChange={setSelectedMember}
+              />
             </PopoverContent>
           </Popover>
         </LoadingWrapper>
@@ -346,38 +351,45 @@ export function Report() {
             <h1 className="text-xl font-semibold">Usage</h1>
 
             <div className="flex items-center gap-x-3">
-            <Popover>
-              <PopoverTrigger asChild>
-                <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed">
-                  <span className="mr-1.5 text-muted-foreground">
-                    Language:
-                  </span>
-                  <div className="w-[80px]">
-                    {selectedLanguage.length === 0 &&
-                      <p className="w-full overflow-hidden text-ellipsis">All</p>
-                    }
-                    {selectedLanguage.length === 1 &&
-                      <p className="w-full overflow-hidden text-ellipsis">
-                        {toProgrammingLanguageDisplayName(selectedLanguage[0])}
-                      </p>
-                    }
-                    {selectedLanguage.length > 1 &&
-                      <span className="px-1">
-                        {selectedLanguage.length} selected
-                      </span>
-                    }
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed">
+                    <span className="mr-1.5 text-muted-foreground">
+                      Language:
+                    </span>
+                    <div className="w-[80px]">
+                      {selectedLanguage.length === 0 && (
+                        <p className="w-full overflow-hidden text-ellipsis">
+                          All
+                        </p>
+                      )}
+                      {selectedLanguage.length === 1 && (
+                        <p className="w-full overflow-hidden text-ellipsis">
+                          {toProgrammingLanguageDisplayName(
+                            selectedLanguage[0]
+                          )}
+                        </p>
+                      )}
+                      {selectedLanguage.length > 1 && (
+                        <span className="px-1">
+                          {selectedLanguage.length} selected
+                        </span>
+                      )}
+                    </div>
+                    <IconChevronUpDown className="h-3 w-3" />
                   </div>
-                  <IconChevronUpDown className="h-3 w-3" />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0" align="end">
-                <MultipSelectionContent
-                  title="Language"
-                  options={Object.entries(Language).sort((_, b) => (b[1] === Language.Other ? -1 : 0)).map(([key, value]) => ({ label: key, value }))}
-                  selected={selectedLanguage}
-                  onChange={setSelectedLanguage} />
-              </PopoverContent>
-            </Popover>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="end">
+                  <MultipSelectionContent
+                    title="Language"
+                    options={Object.entries(Language)
+                      .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
+                      .map(([key, value]) => ({ label: key, value }))}
+                    selected={selectedLanguage}
+                    onChange={setSelectedLanguage}
+                  />
+                </PopoverContent>
+              </Popover>
               <DatePickerWithRange
                 buttonClassName="h-full"
                 contentAlign="end"
