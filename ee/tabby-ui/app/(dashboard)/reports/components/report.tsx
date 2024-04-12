@@ -112,11 +112,6 @@ function StatsSummary({
   )
 }
 
-type OptionType<T> = {
-  label: string
-  value: T
-}
-
 export function Report() {
   const searchParams = useSearchParams()
   const sample = searchParams.get('sample') === 'true'
