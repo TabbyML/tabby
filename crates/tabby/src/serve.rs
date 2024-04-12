@@ -6,7 +6,7 @@ use hyper::StatusCode;
 use tabby_common::{
     api,
     api::{code::CodeSearch, event::EventLogger},
-    config::Config,
+    config::{Config, ConfigRepositoryAccess, RepositoryAccess},
     usage,
 };
 use tokio::time::sleep;
@@ -130,19 +130,26 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     };
 
     let logger: Arc<dyn EventLogger>;
+    let repository_access: Arc<dyn RepositoryAccess>;
     #[cfg(feature = "ee")]
     {
         logger = ws
             .as_ref()
             .map(|ws| ws.logger())
             .unwrap_or_else(|| Arc::new(create_event_logger()));
+
+        repository_access = ws
+            .as_ref()
+            .map(|ws| ws.repository_access())
+            .unwrap_or_else(|| Arc::new(ConfigRepositoryAccess));
     }
     #[cfg(not(feature = "ee"))]
     {
         logger = Arc::new(create_event_logger());
+        repository_access = Arc::new(ConfigRepositoryAccess);
     }
 
-    let code = Arc::new(create_code_search());
+    let code = Arc::new(create_code_search(repository_access));
     let api = api_router(args, config, logger.clone(), code.clone()).await;
     let ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
