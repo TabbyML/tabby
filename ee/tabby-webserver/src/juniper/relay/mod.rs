@@ -8,9 +8,7 @@ mod node_type;
 mod page_info;
 
 pub use connection::Connection;
-
 pub use node_type::NodeType;
-
 
 fn validate_first_last(
     first: Option<i32>,
