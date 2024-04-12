@@ -365,7 +365,7 @@ export default function Stats() {
     <div className="flex w-full flex-col gap-y-8">
       <LoadingWrapper
         loading={fetchingYearlyStats}
-        fallback={<Skeleton className="w-fulll h-48" />}
+        fallback={<Skeleton className="h-48" />}
       >
         <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
@@ -379,7 +379,9 @@ export default function Stats() {
 
       <LoadingWrapper
         loading={fetchingDailyState}
-        fallback={<Skeleton className="w-fulll h-48 w-full" />}
+        fallback={
+          <Skeleton className="h-48" />
+        }
       >
         <CompletionCharts
           dailyStats={dailyStats}
@@ -391,7 +393,9 @@ export default function Stats() {
 
       <LoadingWrapper
         loading={fetchingDailyState}
-        fallback={<Skeleton className="w-fulll h-48 w-full" />}
+        fallback={
+          <Skeleton className="h-48" />
+        }
       >
         <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
