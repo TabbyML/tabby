@@ -13,7 +13,6 @@ use tracing::warn;
 use super::{Segments, Snippet};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
-static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
 static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
@@ -38,15 +37,31 @@ impl PromptBuilder {
     }
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
-        if let Some(snippets) = extract_snippets_from_segments(segments) {
-            return snippets;
-        }
+        let quota_threshold_for_snippets_from_code_search = 256;
+        let mut max_snippets_chars_in_prompt = 768;
+        let mut snippets: Vec<Snippet> = vec![];
+
+        if let Some((count_characters, snippets_from_segments)) =
+            extract_snippets_from_segments(max_snippets_chars_in_prompt, segments)
+        {
+            max_snippets_chars_in_prompt -= count_characters;
+            snippets.extend(snippets_from_segments.into_iter());
+        };
 
         if let Some(code) = &self.code {
-            collect_snippets(code.as_ref(), language, &segments.prefix).await
-        } else {
-            vec![]
+            if max_snippets_chars_in_prompt > quota_threshold_for_snippets_from_code_search {
+                let snippets_from_code_search = collect_snippets(
+                    max_snippets_chars_in_prompt,
+                    code.as_ref(),
+                    language,
+                    &segments.prefix,
+                )
+                .await;
+                snippets.extend(snippets_from_code_search.into_iter());
+            }
         }
+
+        snippets
     }
 
     pub fn build(&self, language: &str, segments: Segments, snippets: &[Snippet]) -> String {
@@ -103,14 +118,17 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-fn extract_snippets_from_segments(segments: &Segments) -> Option<Vec<Snippet>> {
+fn extract_snippets_from_segments(
+    max_snippets_chars: usize,
+    segments: &Segments,
+) -> Option<(usize, Vec<Snippet>)> {
     let mut count_characters = 0;
     let mut ret = Vec::new();
 
     // declarations has highest priority.
     if let Some(declarations) = &segments.declarations {
         for declaration in declarations {
-            if count_characters + declaration.body.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
+            if count_characters + declaration.body.len() > max_snippets_chars {
                 break;
             }
 
@@ -126,7 +144,7 @@ fn extract_snippets_from_segments(segments: &Segments) -> Option<Vec<Snippet>> {
     // then comes to the snippets from changed files.
     if let Some(relevant_snippets) = &segments.relevant_snippets_from_changed_files {
         for snippet in relevant_snippets {
-            if count_characters + snippet.body.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
+            if count_characters + snippet.body.len() > max_snippets_chars {
                 break;
             }
 
@@ -142,11 +160,16 @@ fn extract_snippets_from_segments(segments: &Segments) -> Option<Vec<Snippet>> {
     if ret.is_empty() {
         None
     } else {
-        Some(ret)
+        Some((count_characters, ret))
     }
 }
 
-async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> Vec<Snippet> {
+async fn collect_snippets(
+    max_snippets_chars: usize,
+    code: &dyn CodeSearch,
+    language: &str,
+    text: &str,
+) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
@@ -174,7 +197,7 @@ async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> 
         let body = hit.doc.body;
         let mut body_tokens = tokenize_text(&body);
 
-        if count_characters + body.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
+        if count_characters + body.len() > max_snippets_chars {
             break;
         }
 
@@ -462,7 +485,8 @@ def this_is_prefix():\n";
             clipboard: None,
         };
 
-        assert!(extract_snippets_from_segments(&segments).is_none());
+        let max_snippets_chars = 768;
+        assert!(extract_snippets_from_segments(max_snippets_chars, &segments).is_none());
 
         let segments = Segments {
             prefix: "def fib(n):\n    ".to_string(),
@@ -482,6 +506,9 @@ def this_is_prefix():\n";
             clipboard: None,
         };
 
-        assert!(extract_snippets_from_segments(&segments).is_some_and(|x| x.len() == 2));
+        assert!(
+            extract_snippets_from_segments(max_snippets_chars, &segments)
+                .is_some_and(|x| x.1.len() == 2)
+        );
     }
 }
