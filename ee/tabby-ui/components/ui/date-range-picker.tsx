@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { CalendarIcon } from '@radix-ui/react-icons'
 import { addDays, format } from 'date-fns'
+import moment from 'moment'
 import { DateRange } from 'react-day-picker'
 
 import { cn } from '@/lib/utils'
@@ -13,7 +14,6 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover'
-import moment from 'moment'
 
 export default function DatePickerWithRange({
   dateRange,
