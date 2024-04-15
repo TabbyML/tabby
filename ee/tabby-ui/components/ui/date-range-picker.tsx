@@ -13,6 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover'
+import moment from 'moment'
 
 export default function DatePickerWithRange({
   dateRange,
@@ -68,10 +69,11 @@ export default function DatePickerWithRange({
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={date?.from}
+            defaultMonth={moment(date?.from).subtract(1, 'month').toDate()}
             selected={date}
             onSelect={setDate}
             numberOfMonths={2}
+            disabled={(date: Date) => date > new Date()}
           />
         </PopoverContent>
       </Popover>
