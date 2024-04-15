@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
@@ -35,7 +35,7 @@ function AdminRegisterStep({
 export default function AdminRegister() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
-  const goDashboardBtnRef = useRef<HTMLButtonElement>(null);
+  const goDashboardBtnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (currentStep === 1) return
@@ -91,7 +91,11 @@ export default function AdminRegister() {
           To start, navigate to the dashboard and invite other members to join
           your server.
         </p>
-        <Button className="mt-5 w-48 focus-visible:ring-0" onClick={() => router.replace('/')} ref={goDashboardBtnRef}>
+        <Button
+          className="mt-5 w-48 focus-visible:ring-0"
+          onClick={() => router.replace('/')}
+          ref={goDashboardBtnRef}
+        >
           Go to dashboard
         </Button>
       </AdminRegisterStep>
