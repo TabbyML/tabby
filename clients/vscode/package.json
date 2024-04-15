@@ -69,6 +69,10 @@
       {
         "command": "tabby.notifications.resetMuted",
         "title": "Tabby: Reset notifications marked as \"Don't Show Again\""
+      },
+      {
+        "command": "tabby.ai.explainCodeBlock",
+        "title": "Tabby: Explain Codes"
       }
     ],
     "menus": {
@@ -80,6 +84,10 @@
         {
           "command": "tabby.openTabbyAgentSettings",
           "when": "!isWeb"
+        },
+        {
+          "command": "tabby.ai.explainCodeBlock",
+          "when": "editorHasSelection"
         }
       ]
     },
