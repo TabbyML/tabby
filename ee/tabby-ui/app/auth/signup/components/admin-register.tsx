@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { cn } from '@/lib/utils'
@@ -35,6 +35,7 @@ function AdminRegisterStep({
 export default function AdminRegister() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const goDashboardBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (currentStep === 1) return
@@ -71,7 +72,10 @@ export default function AdminRegister() {
           password and cannot recover it for you.
         </p>
         <UserAuthForm
-          onSuccess={() => setCurrentStep(3)}
+          onSuccess={() => {
+            setCurrentStep(3)
+            goDashboardBtnRef.current?.focus()
+          }}
           buttonClass="self-start w-48"
         />
       </AdminRegisterStep>
@@ -87,7 +91,7 @@ export default function AdminRegister() {
           To start, navigate to the dashboard and invite other members to join
           your server.
         </p>
-        <Button className="mt-5 w-48" onClick={() => router.replace('/')}>
+        <Button className="mt-5 w-48 focus-visible:ring-0" onClick={() => router.replace('/')} ref={goDashboardBtnRef}>
           Go to dashboard
         </Button>
       </AdminRegisterStep>
