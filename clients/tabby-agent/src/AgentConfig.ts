@@ -17,6 +17,30 @@ export type AgentConfig = {
         // max number of characters per snippet
         maxCharsPerSnippet: number;
       };
+      collectSnippetsFromRecentChangedFiles: {
+        enabled: boolean;
+        // max number of snippets
+        maxSnippets: number;
+        indexing: {
+          // Interval in ms for indexing worker to check pending task
+          checkingChangesInterval: number;
+          // Debouncing interval in ms for sending changes to indexing task
+          changesDebouncingInterval: number;
+
+          // Determine the crop window at changed location for indexing
+          // Line before changed location
+          prefixLines: number;
+          // Line after changed location
+          suffixLines: number;
+
+          // Max number of chunks in memory
+          maxChunks: number;
+          // chars per code chunk
+          chunkSize: number;
+          // overlap lines between neighbor chunks
+          overlapLines: number;
+        };
+      };
       clipboard: {
         minChars: number;
         maxChars: number;
@@ -81,6 +105,19 @@ export const defaultAgentConfig: AgentConfig = {
         enabled: true,
         maxSnippets: 5,
         maxCharsPerSnippet: 500,
+      },
+      collectSnippetsFromRecentChangedFiles: {
+        enabled: false,
+        maxSnippets: 5,
+        indexing: {
+          checkingChangesInterval: 500,
+          changesDebouncingInterval: 1000,
+          prefixLines: 20,
+          suffixLines: 20,
+          maxChunks: 100,
+          chunkSize: 500,
+          overlapLines: 1,
+        },
       },
       clipboard: {
         minChars: 3,

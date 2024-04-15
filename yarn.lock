@@ -298,6 +298,11 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
+"@orama/orama@^2.0.15":
+  version "2.0.15"
+  resolved "https://registry.yarnpkg.com/@orama/orama/-/orama-2.0.15.tgz#2622f622924f203b4e6c6fa41c4f8c6882f3c49b"
+  integrity sha512-9C11pL4kE2wdfsngnOwaZ4Hh5x76EI8KUQEf0DoxU4E/ytE8u8utFeisJIbaSMyjVofRvmWUyXeDzxFNnkhvvw==
+
 "@pkgjs/parseargs@^0.11.0":
   version "0.11.0"
   resolved "https://registry.yarnpkg.com/@pkgjs/parseargs/-/parseargs-0.11.0.tgz#a77ea742fab25775145434eb1d2328cf5013ac33"
