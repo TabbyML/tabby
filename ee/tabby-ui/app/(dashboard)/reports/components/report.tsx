@@ -224,16 +224,15 @@ export function Report() {
           >
             <SelectTrigger className="h-auto w-auto border-none py-0 shadow-none">
               <div className="flex h-6 items-center">
-                <IconUsers className="mr-1" />
-                <p className="mr-1.5">Member:</p>
-                <div className="w-[80px] overflow-hidden text-ellipsis text-left">
+                <IconUsers className="mr-[0.45rem]" />
+                <div className="w-[190px] overflow-hidden text-ellipsis text-left">
                   <SelectValue />
                 </div>
               </div>
             </SelectTrigger>
             <SelectContent align="end">
               <SelectGroup>
-                <SelectItem value={KEY_SELECT_ALL}>All</SelectItem>
+                <SelectItem value={KEY_SELECT_ALL}>All members</SelectItem>
                 {members.map(member => (
                   <SelectItem value={member.id} key={member.id}>
                     {member.email}
