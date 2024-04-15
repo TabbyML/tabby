@@ -74,6 +74,20 @@ impl ModelRegistry {
         models_dir().join(&self.name).join(name)
     }
 
+    pub fn migrate_model_path(&self, name: &str) -> Result<(), std::io::Error> {
+        let model_path = self.get_model_path(name);
+        let old_model_path = self.get_model_dir(name).join(OLD_GGML_MODEL_RELATIVE_PATH);
+
+        if !model_path.exists() && old_model_path.exists() {
+            std::fs::rename(&old_model_path, &model_path)?;
+            #[cfg(target_family = "unix")]
+            std::os::unix::fs::symlink(&old_model_path, &model_path)?;
+            #[cfg(target_family = "windows")]
+            std::os::windows::fs::symlink_file(&old_model_path, &model_path)?;
+        }
+        Ok(())
+    }
+
     pub fn get_model_path(&self, name: &str) -> PathBuf {
         self.get_model_dir(name).join(GGML_MODEL_RELATIVE_PATH)
     }
@@ -104,4 +118,5 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
     }
 }
 
-pub static GGML_MODEL_RELATIVE_PATH: &str = "ggml/q8_0.v2.gguf";
+pub static OLD_GGML_MODEL_RELATIVE_PATH: &str = "ggml/q8_0.v2.gguf";
+pub static GGML_MODEL_RELATIVE_PATH: &str = "ggml/model.gguf";
