@@ -145,10 +145,7 @@ impl Hub for Arc<HubImpl> {
             }
         }
     }
-
     async fn list_repositories(self, _context: tarpc::context::Context) -> Vec<RepositoryConfig> {
-        let mut repositories = vec![];
-
         let result = self
             .ctx
             .repository()
@@ -160,78 +157,9 @@ impl Hub for Arc<HubImpl> {
                     .map(|r| RepositoryConfig::new_named(r.name, r.git_url))
                     .collect()
             });
-        repositories.extend(result.unwrap_or_else(|e| {
+        result.unwrap_or_else(|e| {
             warn!("Failed to fetch repositories: {e}");
             vec![]
-        }));
-
-        let provider_service = self.ctx.github_repository_provider();
-        let repository_providers = provider_service
-            .list_github_repository_providers(None, None, None, None)
-            .await
-            .unwrap_or_else(|e| {
-                warn!("Failed to fetch GitHub repository providers: {e}");
-                vec![]
-            });
-
-        for provider in repository_providers {
-            let Ok(access_token) = provider_service
-                .read_github_repository_provider_access_token(provider.id.clone())
-                .await
-            else {
-                continue;
-            };
-
-            let repos = match provider_service
-                .list_github_provided_repositories_by_provider(
-                    vec![provider.id.clone()],
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-                .await
-            {
-                Ok(repos) => repos,
-                Err(e) => {
-                    warn!(
-                        "Failed to retrieve repositories provided by {name}: {e}",
-                        name = provider.display_name
-                    );
-                    continue;
-                }
-            };
-            repositories.extend(repos.into_iter().filter(|repo| repo.active).map(|repo| {
-                RepositoryConfig::new_named(
-                    repo.name,
-                    format_authenticated_git_url(repo.git_url, &access_token),
-                )
-            }))
-        }
-
-        repositories
-    }
-}
-
-fn format_authenticated_git_url(mut git_url: String, access_token: &str) -> String {
-    let split_pos = git_url.find("://").map(|i| i + 3).unwrap_or(0);
-    git_url.insert_str(split_pos, &format!("{access_token}@"));
-    git_url
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::hub::format_authenticated_git_url;
-
-    #[test]
-    fn test_format_authenticated_git_url() {
-        assert_eq!(
-            format_authenticated_git_url("https://github.com/TabbyML/tabby".into(), "token"),
-            "https://token@github.com/TabbyML/tabby"
-        );
-        assert_eq!(
-            format_authenticated_git_url("github.com/TabbyML/tabby".into(), "token"),
-            "token@github.com/TabbyML/tabby"
-        );
+        })
     }
 }
