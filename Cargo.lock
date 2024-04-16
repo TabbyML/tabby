@@ -2021,7 +2021,6 @@ version = "0.10.0-dev.0"
 dependencies = [
  "axum",
  "juniper",
- "juniper_graphql_ws",
  "serde",
  "serde_json",
 ]
@@ -4647,6 +4646,7 @@ dependencies = [
  "jsonwebtoken",
  "juniper",
  "juniper-axum",
+ "juniper_graphql_ws",
  "lazy_static",
  "lettre",
  "mime_guess",

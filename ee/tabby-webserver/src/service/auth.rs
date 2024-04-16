@@ -671,11 +671,11 @@ mod tests {
     }
 
     use assert_matches::assert_matches;
-    use juniper_axum::relay::{self, Connection};
     use serial_test::serial;
 
     use super::*;
     use crate::{
+        juniper::relay::{self, Connection},
         schema::license::{LicenseInfo, LicenseStatus},
         service::email::{new_email_service, testutils::TestEmailServer},
     };

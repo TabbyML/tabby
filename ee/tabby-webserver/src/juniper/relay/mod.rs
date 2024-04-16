@@ -8,9 +8,7 @@ mod node_type;
 mod page_info;
 
 pub use connection::Connection;
-pub use edge::Edge;
 pub use node_type::NodeType;
-pub use page_info::PageInfo;
 
 fn validate_first_last(
     first: Option<i32>,
@@ -38,6 +36,7 @@ fn validate_first_last(
     Ok((first, last))
 }
 
+#[allow(unused)]
 pub fn query<Node, F>(
     after: Option<String>,
     before: Option<String>,

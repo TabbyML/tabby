@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
-use juniper_axum::relay::NodeType;
 use lazy_static::lazy_static;
 use regex::Regex;
 use validator::Validate;
 
 use super::{Context, Result};
+use crate::juniper::relay::NodeType;
 
 lazy_static! {
     static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("").unwrap();

@@ -1,9 +1,11 @@
 //! Defines behavior for the tabby webserver which allows users to interact with enterprise features.
 //! Using the web interface (e.g chat playground) requires using this module with the `--webserver` flag on the command line.
+mod axum;
 mod cron;
 mod handler;
 mod hub;
 mod integrations;
+mod juniper;
 mod oauth;
 mod path;
 mod repositories;
