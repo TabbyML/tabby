@@ -127,10 +127,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     info!("Starting server, this might take a few minutes...");
 
-    let webserver = !args.no_webserver;
-
     #[cfg(feature = "ee")]
-    let ws = if webserver {
+    let ws = if !args.no_webserver {
         Some(tabby_webserver::public::WebserverHandle::new(create_event_logger()).await)
     } else {
         None
@@ -162,7 +160,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let (api, ui) = if webserver {
+    let (api, ui) = if args.no_webserver {
         let (api, ui) = ws
             .unwrap()
             .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
