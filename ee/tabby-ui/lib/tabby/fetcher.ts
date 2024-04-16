@@ -14,7 +14,7 @@ interface FetcherOptions extends RequestInit {
   customFetch?: (
     input: RequestInfo | URL,
     init?: RequestInit | undefined
-  ) => Promise<Response>,
+  ) => Promise<Response>
   errorHandler?: (response: Response) => any
 }
 interface PendingRequest {
@@ -34,7 +34,7 @@ export default async function authEnhancedFetch(
     url,
     addAuthToRequest(options)
   )
-  
+
   if (response.status === 401) {
     if (refreshing) {
       return new Promise(resolve => {
@@ -106,7 +106,10 @@ function requestWithAuth(url: string, options?: FetcherOptions) {
 
 function formatResponse(
   response: Response,
-  options?: Pick<FetcherOptions, 'responseFormat' | 'responseFormatter' | 'errorHandler'>
+  options?: Pick<
+    FetcherOptions,
+    'responseFormat' | 'responseFormatter' | 'errorHandler'
+  >
 ) {
   if (!response?.ok) {
     if (options?.errorHandler) return options.errorHandler(response)

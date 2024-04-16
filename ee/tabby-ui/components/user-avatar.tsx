@@ -20,32 +20,33 @@ let fetchAvatar = true
 export function UserAvatar({ className }: { className?: string }) {
   const [{ data }] = useMe()
   const userId = data?.me.id
-  
-  const avatarUrl = userId && `/avatar/${data.me.id}` || null
-  const { data: avatarImageSrc, isLoading, error } = useSWRImmutable(
-    avatarUrl,
-    (url: string) => {
-      if (!fetchAvatar) return undefined
-      return fetcher(url, {
-        responseFormatter: async response => {
-          const blob = await response.blob()
-          const buffer = Buffer.from(await blob.arrayBuffer())
-          return `data:image/png;base64,${buffer.toString('base64')}`
-        },
-        errorHandler: (response) => {
-          if (response.status === 404) throw new Error(NOT_FOUND_ERROR)
-          return undefined
-        }
-      })
-    }
-  )
+
+  const avatarUrl = (userId && `/avatar/${data.me.id}`) || null
+  const {
+    data: avatarImageSrc,
+    isLoading,
+    error
+  } = useSWRImmutable(avatarUrl, (url: string) => {
+    if (!fetchAvatar) return undefined
+    return fetcher(url, {
+      responseFormatter: async response => {
+        const blob = await response.blob()
+        const buffer = Buffer.from(await blob.arrayBuffer())
+        return `data:image/png;base64,${buffer.toString('base64')}`
+      },
+      errorHandler: response => {
+        if (response.status === 404) throw new Error(NOT_FOUND_ERROR)
+        return undefined
+      }
+    })
+  })
 
   if (!userId) return null
 
   if (isLoading) {
     return <Skeleton className={cn('h-16 w-16 rounded-full', className)} />
   }
-  
+
   if (error?.message === NOT_FOUND_ERROR) {
     fetchAvatar = false
   }
