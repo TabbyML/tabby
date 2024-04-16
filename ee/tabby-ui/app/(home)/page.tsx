@@ -122,7 +122,7 @@ function MainPanel() {
 
   return (
     <div className="flex flex-1 justify-center lg:mt-[10vh]">
-      <div className="mx-auto flex w-screen flex-col px-5 py-20 md:w-auto md:flex-row md:justify-center md:px-0 md:py-10 lg:gap-x-10">
+      <div className="mx-auto flex w-screen flex-col px-5 py-20 lg:w-auto lg:flex-row lg:justify-center lg:gap-x-10 lg:px-0 lg:py-10">
         <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:mt-12 lg:w-64">
           <UserAvatar className="h-20 w-20 border-4 border-background" />
 
@@ -138,7 +138,7 @@ function MainPanel() {
           <Separator className="my-4" />
           <Configuration />
 
-          <div className="mt-auto flex flex-col gap-1 md:mb-[28px]">
+          <div className="mt-auto flex flex-col gap-1 lg:mb-[28px]">
             <MenuLink href="/profile" Icon={IconGear}>
               Settings
             </MenuLink>
@@ -157,7 +157,7 @@ function MainPanel() {
           </div>
         </div>
 
-        <div className="md:min-h-[700px] md:w-[calc(100vw-30rem)] xl:w-[62rem]">
+        <div className="lg:min-h-[700px] lg:w-[calc(100vw-30rem)] xl:w-[62rem]">
           <Stats />
         </div>
       </div>
