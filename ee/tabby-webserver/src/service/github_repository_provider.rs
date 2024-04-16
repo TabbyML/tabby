@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
+use url::Url;
 
 use super::AsRowid;
 use crate::{
@@ -86,6 +89,29 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .update_github_provided_repository_active(id.as_rowid()?, active)
             .await?;
         Ok(())
+    }
+
+    async fn list_provided_git_urls(&self) -> Result<Vec<String>> {
+        let tokens: HashMap<String, String> = self
+            .list_github_repository_providers(None, None, None, None)
+            .await?
+            .into_iter()
+            .filter_map(|provider| Some((provider.id.to_string(), provider.access_token?)))
+            .collect();
+
+        let urls = self
+            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .await?
+            .into_iter()
+            .filter_map(|repo| {
+                let mut url = Url::parse(&repo.git_url).ok()?;
+                url.set_username(tokens.get(&repo.github_repository_provider_id.to_string())?)
+                    .ok()?;
+                Some(url.to_string())
+            })
+            .collect();
+
+        Ok(urls)
     }
 }
 
@@ -178,5 +204,40 @@ mod tests {
 
         assert_eq!(repos.len(), 1);
         assert!(repos[0].active);
+    }
+
+    #[tokio::test]
+    async fn test_provided_git_urls() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = new_github_repository_provider_service(db.clone());
+
+        let provider_id = db
+            .create_github_provider(
+                "provider1".into(),
+                "application_id1".into(),
+                "secret1".into(),
+            )
+            .await
+            .unwrap();
+
+        db.create_github_provided_repository(
+            provider_id,
+            "vendor_id1".into(),
+            "test_repo".into(),
+            "https://github.com/TabbyML/tabby".into(),
+        )
+        .await
+        .unwrap();
+
+        service
+            .update_github_repository_provider_access_token(provider_id.as_id(), "token".into())
+            .await
+            .unwrap();
+
+        let git_urls = service.list_provided_git_urls().await.unwrap();
+        assert_eq!(
+            git_urls,
+            ["https://token@github.com/TabbyML/tabby".to_string()]
+        );
     }
 }

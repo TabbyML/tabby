@@ -20,6 +20,7 @@ use axum::{
     response::IntoResponse,
 };
 pub(in crate::service) use dao::{AsID, AsRowid};
+pub(crate) use github_repository_provider::new_github_repository_provider_service;
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper::ID;
 use tabby_common::{
@@ -31,7 +32,6 @@ use tracing::{info, warn};
 
 use self::{
     analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service,
-    github_repository_provider::new_github_repository_provider_service,
     license::new_license_service,
 };
 use crate::{

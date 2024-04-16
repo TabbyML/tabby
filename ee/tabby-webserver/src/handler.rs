@@ -30,15 +30,20 @@ use crate::{
     path::db_file,
     repositories,
     schema::{
-        auth::AuthenticationService, create_schema, repository::RepositoryService, Schema,
-        ServiceLocator,
+        auth::AuthenticationService, create_schema,
+        github_repository_provider::GithubRepositoryProviderService, repository::RepositoryService,
+        Schema, ServiceLocator,
     },
-    service::{create_service_locator, event_logger::create_event_logger},
+    service::{
+        create_service_locator, event_logger::create_event_logger,
+        new_github_repository_provider_service,
+    },
     ui,
 };
 
 struct RepositoryAccessImpl {
-    service: Arc<dyn RepositoryService>,
+    git_repository_service: Arc<dyn RepositoryService>,
+    github_repository_service: Arc<dyn GithubRepositoryProviderService>,
     url_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
@@ -46,21 +51,34 @@ struct RepositoryAccessImpl {
 impl RepositoryAccess for RepositoryAccessImpl {
     async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
         let mut cache = self.url_cache.lock().await;
-        let repos = cache
-            .try_get_or_set_with((), || async {
-                let repos = self
-                    .service
-                    .list_repositories(None, None, None, None)
-                    .await?;
-                Ok::<_, anyhow::Error>(
-                    repos
-                        .into_iter()
-                        .map(|repo| RepositoryConfig::new(repo.git_url))
-                        .collect(),
-                )
-            })
-            .await?
-            .clone();
+        let mut repos = vec![];
+
+        repos.extend(
+            self.github_repository_service
+                .list_provided_git_urls()
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(|git_url| RepositoryConfig::new(git_url)),
+        );
+
+        repos.extend(
+            cache
+                .try_get_or_set_with((), || async {
+                    let repos = self
+                        .git_repository_service
+                        .list_repositories(None, None, None, None)
+                        .await?;
+                    Ok::<_, anyhow::Error>(
+                        repos
+                            .into_iter()
+                            .map(|repo| RepositoryConfig::new(repo.git_url))
+                            .collect(),
+                    )
+                })
+                .await?
+                .clone(),
+        );
 
         Ok(repos)
     }
@@ -70,6 +88,7 @@ pub struct WebserverHandle {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
     repository_service: Arc<dyn RepositoryService>,
+    github_service: Arc<dyn GithubRepositoryProviderService>,
 }
 
 impl WebserverHandle {
@@ -78,6 +97,7 @@ impl WebserverHandle {
             .await
             .expect("Must be able to initialize db");
         let repository_service = Arc::new(db.clone());
+        let github_service = Arc::new(new_github_repository_provider_service(db.clone()));
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
@@ -85,6 +105,7 @@ impl WebserverHandle {
             db,
             logger,
             repository_service,
+            github_service,
         }
     }
 
@@ -94,7 +115,8 @@ impl WebserverHandle {
 
     pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
         Arc::new(RepositoryAccessImpl {
-            service: self.repository_service.clone(),
+            git_repository_service: self.repository_service.clone(),
+            github_repository_service: self.github_service.clone(),
             url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
         })
     }
