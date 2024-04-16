@@ -19,9 +19,8 @@ use tabby_common::{
     DependencyFile, SourceFile,
 };
 use tracing::error;
-use tree_sitter_tags::TagsContext;
 
-use crate::{code::tags, utils::tqdm};
+use crate::{code::CodeIntelligence, utils::tqdm};
 
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
@@ -41,7 +40,7 @@ impl RepositoryExt for RepositoryConfig {
             .then(|| tqdm(walk_dir_iter().count()));
         let walk_dir = walk_dir_iter();
 
-        let mut context = TagsContext::new();
+        let mut code = CodeIntelligence::default();
         for entry in walk_dir {
             pb.as_mut().map(|b| b.update(1)).transpose()?;
 
@@ -65,7 +64,7 @@ impl RepositoryExt for RepositoryConfig {
                         max_line_length: metrics::max_line_length(&file_content),
                         avg_line_length: metrics::avg_line_length(&file_content),
                         alphanum_fraction: metrics::alphanum_fraction(&file_content),
-                        tags: tags::collect(&mut context, &language, &file_content),
+                        tags: code.find_tags(&language, &file_content),
                         language,
                     };
                     writer.write_json_lines([source_file.clone()])?;
