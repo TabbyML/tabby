@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
-use juniper_axum::relay::NodeType;
 use validator::Validate;
 
 use super::{Context, Result};
+use crate::juniper::relay::NodeType;
 
 #[derive(Validate)]
 pub struct CreateRepositoryInput {

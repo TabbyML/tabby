@@ -3,9 +3,11 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
-use juniper_axum::relay;
 
-use crate::schema::{Context, Result};
+use crate::{
+    juniper::relay,
+    schema::{Context, Result},
+};
 
 #[derive(Debug, GraphQLObject)]
 #[graphql(context = Context)]

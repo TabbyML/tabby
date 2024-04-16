@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use jsonwebtoken as jwt;
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
-use juniper_axum::relay;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tabby_common::terminal::{HeaderFormat, InfoMessage};
@@ -14,7 +13,10 @@ use tracing::{error, warn};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::schema::{Context, Result};
+use crate::{
+    juniper::relay,
+    schema::{Context, Result},
+};
 
 lazy_static! {
     static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
@@ -158,12 +160,6 @@ pub struct OAuthResponse {
 
 #[derive(Error, Debug)]
 pub enum OAuthError {
-    #[error("The oauth code passed is incorrect or expired")]
-    InvalidVerificationCode,
-
-    #[error("OAuth is not enabled")]
-    CredentialNotActive,
-
     #[error("User is not invited, please contact admin for help")]
     UserNotInvited,
 
