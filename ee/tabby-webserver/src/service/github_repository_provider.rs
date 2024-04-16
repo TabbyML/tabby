@@ -96,9 +96,8 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
 
 #[cfg(test)]
 mod tests {
-    use crate::service::AsID;
-
     use super::*;
+    use crate::service::AsID;
 
     #[tokio::test]
     async fn test_github_provided_repositories() {
@@ -183,6 +182,6 @@ mod tests {
             .unwrap();
 
         assert_eq!(repos.len(), 1);
-        assert_eq!(repos[0].active, true);
+        assert!(repos[0].active);
     }
 }

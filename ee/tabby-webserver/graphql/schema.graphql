@@ -102,6 +102,7 @@ type GithubRepositoryProvider {
   id: ID!
   displayName: String!
   applicationId: String!
+  accessToken: String
 }
 
 input PasswordChangeInput {
