@@ -1,12 +1,13 @@
 import { createRequest } from '@urql/core'
+import { jwtDecode } from 'jwt-decode'
 
-import {
-  clearAuthToken,
-  getAuthToken,
-  refreshTokenMutation,
-  saveAuthToken
-} from './auth'
+import { refreshTokenMutation } from './auth'
 import { client } from './gql'
+import {
+  getAuthToken,
+  isTokenExpired,
+  tokenManagerInstance
+} from './token-management'
 
 interface FetcherOptions extends RequestInit {
   responseFormat?: 'json' | 'blob'
@@ -16,62 +17,54 @@ interface FetcherOptions extends RequestInit {
     init?: RequestInit | undefined
   ) => Promise<Response>
 }
-interface PendingRequest {
-  url: string
-  options?: FetcherOptions
-  resolve: Function
-}
-let refreshing = false
-const queue: PendingRequest[] = []
 
 export default async function authEnhancedFetch(
   url: string,
   options?: FetcherOptions
 ): Promise<any> {
   const currentFetcher = options?.customFetch ?? window.fetch
+
+  if (willAuthError()) {
+    return tokenManagerInstance.refreshToken(doRefreshToken).then(res => {
+      return requestWithAuth(url, options)
+    })
+  }
+
   const response: Response = await currentFetcher(
     url,
     addAuthToRequest(options)
   )
 
   if (response.status === 401) {
-    if (refreshing) {
-      return new Promise(resolve => {
-        queue.push({ url, options, resolve })
-      })
-    }
-
-    const refreshToken = getAuthToken()?.refreshToken
-    if (!refreshToken) {
-      clearAuthToken()
-      return
-    }
-
-    refreshing = true
-
-    const refreshAuthRes = await refreshAuth(refreshToken)
-
-    const newToken = refreshAuthRes?.data?.refreshToken
-    if (newToken) {
-      saveAuthToken({
-        accessToken: newToken.accessToken,
-        refreshToken: newToken.refreshToken
-      })
-      refreshing = false
-      while (queue.length) {
-        const q = queue.shift()
-        q?.resolve(requestWithAuth(q.url, q.options))
-      }
-
+    return tokenManagerInstance.refreshToken(doRefreshToken).then(res => {
       return requestWithAuth(url, options)
-    } else {
-      refreshing = false
-      queue.length = 0
-      clearAuthToken()
-    }
+    })
   } else {
     return formatResponse(response, options)
   }
+}
+
+function willAuthError() {
+  const accessToken = getAuthToken()?.accessToken
+  if (accessToken) {
+    // Check whether `token` JWT is expired
+    try {
+      const { exp } = jwtDecode(accessToken)
+      return exp ? isTokenExpired(exp) : true
+    } catch (e) {
+      return true
+    }
+  } else {
+    return true
+  }
+}
+
+async function doRefreshToken() {
+  let refreshToken = getAuthToken()?.refreshToken
+  if (!refreshToken) return undefined
+
+  const newToken = await refreshAuth(refreshToken)
+  return newToken?.data?.refreshToken
 }
 
 function addAuthToRequest(options?: FetcherOptions): FetcherOptions {
@@ -92,7 +85,6 @@ async function refreshAuth(refreshToken: string) {
     'mutation',
     createRequest(refreshTokenMutation, { refreshToken })
   )
-  // refreshAuth
   return client.executeMutation(refreshAuth)
 }
 
