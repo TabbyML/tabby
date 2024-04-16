@@ -84,12 +84,17 @@
         {
           "command": "tabby.openTabbyAgentSettings",
           "when": "!isWeb"
+        },
+        {
+          "command": "tabby.ai.explainCodeBlock",
+          "when": "editorHasSelection && chatModeEnabled"
         }
       ],
       "editor/context": [
         {
           "command": "tabby.ai.explainCodeBlock",
-          "group": "navigation"
+          "group": "1_close",
+          "when": "editorHasSelection && chatModeEnabled"
         }
       ]
     },

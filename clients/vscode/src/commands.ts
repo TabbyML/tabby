@@ -326,19 +326,15 @@ const explainCodeBlock: Command = {
   callback: async () => {
     const editor = window.activeTextEditor;
     const configuration = agent().getConfig();
-    
     const serverHost = configuration.server.endpoint
-    console.log(serverHost)
-    const healthState = agent().getServerHealthState();
-      console.log("explainCodeBlock healthState>>>>", healthState)
     
     if (editor) {
       const { languageId } = editor.document
       const language = languageId.startsWith('typescript') ? 'typescript' : languageId
       const text = editor.document.getText(editor.selection)
-      console.log('text', text)
       const encodedText = encodeURIComponent("```" + `${language}\n${text}\n` + "```");
-      console.log('encodedText', decodeURIComponent(encodedText))
+      console.log('decode', decodeURIComponent(encodedText))
+      console.log('url parse', Uri.parse(`${serverHost}/playground?initialMessage=${encodedText}`))
       await env.openExternal(Uri.parse(`${serverHost}/playground?initialMessage=${encodedText}`));
     } else {
       window.showInformationMessage('No active editor');

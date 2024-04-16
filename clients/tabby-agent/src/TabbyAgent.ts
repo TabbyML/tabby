@@ -241,7 +241,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
         throw new HttpError(response.response);
       }
       this.logger.debug({ requestId, response }, "Health check response");
-      this.changeStatus("ready");
       this.popIssue("connectionFailed");
       this.connectionErrorMessage = undefined;
       const healthState = response.data;
@@ -256,6 +255,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         // schedule fetch server config later, no await
         this.fetchServerConfig();
       }
+      this.changeStatus("ready");
     } catch (error) {
       this.serverHealthState = undefined;
       if (error instanceof HttpError && error.status == 405 && options?.method !== "POST") {
@@ -523,6 +523,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public getServerHealthState(): ServerHealthState | null {
+    console.log("getServerHealthState", this.serverHealthState)
     return this.serverHealthState ?? null;
   }
 
