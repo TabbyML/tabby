@@ -87,14 +87,14 @@
         },
         {
           "command": "tabby.ai.explainCodeBlock",
-          "when": "editorHasSelection && chatModeEnabled"
+          "when": "config.tabby.feature.explainCodeBlock === true && editorHasSelection && chatModeEnabled"
         }
       ],
       "editor/context": [
         {
           "command": "tabby.ai.explainCodeBlock",
           "group": "1_close",
-          "when": "editorHasSelection && chatModeEnabled"
+          "when": "config.tabby.feature.explainCodeBlock === true && editorHasSelection && chatModeEnabled"
         }
       ]
     },
@@ -175,6 +175,11 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection)."
+        },
+        "tabby.feature.explainCodeBlock": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "**Enable code explanation**  \nEnable this feature to unlock AI-powered code explanations in your VSCode editor. Use the command palette or right-click menu to interpret any selected code instantly."
         }
       }
     },
