@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { CalendarIcon } from '@radix-ui/react-icons'
 import { addDays, format } from 'date-fns'
+import moment from 'moment'
 import { DateRange } from 'react-day-picker'
 
 import { cn } from '@/lib/utils'
@@ -68,10 +69,11 @@ export default function DatePickerWithRange({
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={date?.from}
+            defaultMonth={moment(date?.from).subtract(1, 'month').toDate()}
             selected={date}
             onSelect={setDate}
             numberOfMonths={2}
+            disabled={(date: Date) => date > new Date()}
           />
         </PopoverContent>
       </Popover>

@@ -21,10 +21,6 @@ use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
     IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
-use juniper_axum::{
-    relay::{self, Connection},
-    FromAuth,
-};
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
@@ -37,7 +33,9 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    github_repository_provider::{GithubRepositoryProvider, GithubRepositoryProviderService},
+    github_repository_provider::{
+        GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
+    },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{Repository, RepositoryService},
@@ -45,7 +43,11 @@ use self::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
 };
-use crate::schema::repository::FileEntrySearchResult;
+use crate::{
+    axum::FromAuth,
+    juniper::relay::{self, Connection},
+    schema::repository::FileEntrySearchResult,
+};
 
 pub trait ServiceLocator: Send + Sync {
     fn auth(&self) -> Arc<dyn AuthenticationService>;
@@ -249,6 +251,37 @@ impl Query {
                     .locator
                     .github_repository_provider()
                     .list_github_repository_providers(ids, after, before, first, last)
+                    .await?)
+            },
+        )
+        .await
+    }
+
+    async fn github_repositories(
+        ctx: &Context,
+        provider_ids: Vec<ID>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<Connection<GithubProvidedRepository>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                Ok(ctx
+                    .locator
+                    .github_repository_provider()
+                    .list_github_provided_repositories_by_provider(
+                        provider_ids,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
                     .await?)
             },
         )
@@ -690,6 +723,18 @@ impl Mutation {
         ctx.locator
             .github_repository_provider()
             .delete_github_repository_provider(id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_github_provided_repository_active(
+        ctx: &Context,
+        id: ID,
+        active: bool,
+    ) -> Result<bool> {
+        ctx.locator
+            .github_repository_provider()
+            .update_github_provided_repository_active(id, active)
             .await?;
         Ok(true)
     }

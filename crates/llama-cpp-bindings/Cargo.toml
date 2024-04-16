@@ -1,7 +1,9 @@
 [package]
 name = "llama-cpp-bindings"
-version = "0.10.0-dev.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
 
 [features]
 cuda = []

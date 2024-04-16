@@ -1,21 +1,46 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { eachDayOfInterval } from 'date-fns'
 import { sum } from 'lodash-es'
 import moment from 'moment'
 import numeral from 'numeral'
 import { DateRange } from 'react-day-picker'
+import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
 
-import { Language } from '@/lib/gql/generates/graphql'
+import {
+  DailyStatsInPastYearQuery,
+  DailyStatsQuery,
+  Language
+} from '@/lib/gql/generates/graphql'
+import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
+import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator
+} from '@/components/ui/command'
 import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {
   IconActivity,
   IconCheck,
+  IconChevronUpDown,
   IconCode,
   IconUsers
 } from '@/components/ui/icons'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -28,8 +53,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
-import { queryDailyStats, queryDailyStatsInPastYear } from '../query'
-import type { DailyStats } from '../types/stats'
 import { useAllMembers } from '../use-all-members'
 import { AnnualActivity } from './annual-activity'
 import { DailyActivity } from './daily-activity'
@@ -40,17 +63,17 @@ const KEY_SELECT_ALL = 'all'
 function StatsSummary({
   dailyStats
 }: {
-  dailyStats: DailyStats[] | undefined
+  dailyStats?: DailyStatsQuery['dailyStats']
 }) {
   const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
   const totalAcceptances = sum(dailyStats?.map(stats => stats.selects))
   const acceptRate =
     totalAcceptances === 0
       ? 0
-      : Math.round((totalAcceptances / totalCompletions) * 100)
+      : ((totalAcceptances / totalCompletions) * 100).toFixed(2)
   return (
     <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
-      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Accept Rate</CardTitle>
           <IconActivity className="text-muted-foreground" />
@@ -60,10 +83,10 @@ function StatsSummary({
         </CardContent>
       </Card>
 
-      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            Total completions
+            Total Completions
           </CardTitle>
           <IconCode className="text-muted-foreground" />
         </CardHeader>
@@ -74,10 +97,10 @@ function StatsSummary({
         </CardContent>
       </Card>
 
-      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            Total acceptances
+            Total Acceptances
           </CardTitle>
           <IconCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
@@ -90,15 +113,15 @@ function StatsSummary({
 }
 
 export function Report() {
+  const searchParams = useSearchParams()
+  const sample = searchParams.get('sample') === 'true'
   const [members] = useAllMembers()
   const [dateRange, setDateRange] = useState<DateRange>({
     from: moment().subtract(INITIAL_DATE_RANGE, 'day').toDate(),
     to: moment().toDate()
   })
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
-  const [selectedLanguage, setSelectedLanguage] = useState<'all' | Language>(
-    KEY_SELECT_ALL
-  )
+  const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -107,18 +130,36 @@ export function Report() {
       start: moment(dateRange.from).startOf('day').utc().format(),
       end: moment(dateRange.to).endOf('day').utc().format(),
       users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
-      languages:
-        selectedLanguage === KEY_SELECT_ALL ? undefined : [selectedLanguage]
+      languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
     }
   })
-  const dailyStats: DailyStats[] | undefined = dailyStatsData?.dailyStats.map(
-    item => ({
+  let dailyStats: DailyStatsQuery['dailyStats'] | undefined
+  if (sample) {
+    const daysBetweenRange = eachDayOfInterval({
+      start: dateRange.from!,
+      end: dateRange.to || dateRange.from!
+    })
+    dailyStats = daysBetweenRange.map(date => {
+      const rng = seedrandom(
+        moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
+      )
+      const selects = Math.ceil(rng() * 20)
+      const completions = selects + Math.floor(rng() * 10)
+      return {
+        start: moment(date).startOf('day').toDate(),
+        end: moment(date).endOf('day').toDate(),
+        completions,
+        selects
+      }
+    })
+  } else {
+    dailyStats = dailyStatsData?.dailyStats.map(item => ({
       start: item.start,
       end: item.end,
       completions: item.completions,
       selects: item.selects
-    })
-  )
+    }))
+  }
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
@@ -127,13 +168,33 @@ export function Report() {
       users: selectedMember === KEY_SELECT_ALL ? undefined : selectedMember
     }
   })
-  const yearlyStats: DailyStats[] | undefined =
-    yearlyStatsData?.dailyStatsInPastYear.map(item => ({
+  let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
+  if (sample) {
+    const daysBetweenRange = eachDayOfInterval({
+      start: moment().toDate(),
+      end: moment().subtract(365, 'days').toDate()
+    })
+    yearlyStats = daysBetweenRange.map(date => {
+      const rng = seedrandom(
+        moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
+      )
+      const selects = Math.ceil(rng() * 20)
+      const completions = selects + Math.floor(rng() * 10)
+      return {
+        start: moment(date).startOf('day').toDate(),
+        end: moment(date).endOf('day').toDate(),
+        completions,
+        selects
+      }
+    })
+  } else {
+    yearlyStats = yearlyStatsData?.dailyStatsInPastYear.map(item => ({
       start: item.start,
       end: item.end,
       completions: item.completions,
       selects: item.selects
     }))
+  }
 
   const onDateOpenChange = (
     isOpen: boolean,
@@ -148,7 +209,7 @@ export function Report() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-4 flex flex-col items-center justify-between gap-y-2 md:flex-row md:items-end md:gap-y-0">
+      <div className="mb-4 flex flex-col items-center justify-between gap-y-2 lg:flex-row lg:items-end lg:gap-y-0">
         <SubHeader className="mb-0">
           Statistics around Tabby IDE / Extensions
         </SubHeader>
@@ -163,16 +224,15 @@ export function Report() {
           >
             <SelectTrigger className="h-auto w-auto border-none py-0 shadow-none">
               <div className="flex h-6 items-center">
-                <IconUsers className="mr-1" />
-                <p className="mr-1.5">Member:</p>
-                <div className="w-[80px] overflow-hidden text-ellipsis text-left">
+                <IconUsers className="mr-[0.45rem]" />
+                <div className="w-[190px] overflow-hidden text-ellipsis text-left">
                   <SelectValue />
                 </div>
               </div>
             </SelectTrigger>
             <SelectContent align="end">
               <SelectGroup>
-                <SelectItem value={KEY_SELECT_ALL}>All</SelectItem>
+                <SelectItem value={KEY_SELECT_ALL}>All members</SelectItem>
                 {members.map(member => (
                   <SelectItem value={member.id} key={member.id}>
                     {member.email}
@@ -208,38 +268,100 @@ export function Report() {
         }
       >
         <div className="mb-10 flex flex-col gap-y-5">
-          <div className="-mb-2 flex flex-col justify-between gap-y-1 md:flex-row md:items-end md:gap-y-0">
+          <div className="-mb-2 flex flex-col justify-between gap-y-1 lg:flex-row lg:items-end lg:gap-y-0">
             <h1 className="text-xl font-semibold">Usage</h1>
 
             <div className="flex items-center gap-x-3">
-              <Select
-                defaultValue={KEY_SELECT_ALL}
-                onValueChange={(value: 'all' | Language) =>
-                  setSelectedLanguage(value)
-                }
-              >
-                <SelectTrigger className="w-[180px]">
-                  <div className="flex w-full items-center truncate">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed">
                     <span className="mr-1.5 text-muted-foreground">
                       Language:
                     </span>
-                    <div className="overflow-hidden text-ellipsis">
-                      <SelectValue />
+                    <div className="w-full lg:w-[80px]">
+                      {selectedLanguage.length === 0 && (
+                        <p className="w-full overflow-hidden text-ellipsis">
+                          All
+                        </p>
+                      )}
+                      {selectedLanguage.length === 1 && (
+                        <p className="w-full overflow-hidden text-ellipsis">
+                          {toProgrammingLanguageDisplayName(
+                            selectedLanguage[0]
+                          )}
+                        </p>
+                      )}
+                      {selectedLanguage.length > 1 && (
+                        <span className="px-1">
+                          {selectedLanguage.length} selected
+                        </span>
+                      )}
                     </div>
+                    <IconChevronUpDown className="h-3 w-3" />
                   </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value={'all'}>All</SelectItem>
-                    {Object.entries(Language).map(([key, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {key}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="end">
+                  <Command>
+                    <CommandInput placeholder="Language" />
+                    <CommandList>
+                      <CommandEmpty>No results found.</CommandEmpty>
 
+                      <CommandGroup>
+                        {Object.entries(Language)
+                          .sort((_, b) => (b[1] === Language.Other ? -1 : 0))
+                          .map(([_, value]) => {
+                            const isSelected = selectedLanguage.includes(value)
+                            return (
+                              <CommandItem
+                                key={value}
+                                onSelect={() => {
+                                  const newSelect = [...selectedLanguage]
+                                  if (isSelected) {
+                                    const idx = newSelect.findIndex(
+                                      item => item === value
+                                    )
+                                    if (idx !== -1) newSelect.splice(idx, 1)
+                                  } else {
+                                    newSelect.push(value)
+                                  }
+                                  setSelectedLanguage(newSelect)
+                                }}
+                                className="!pointer-events-auto cursor-pointer !opacity-100"
+                              >
+                                <div
+                                  className={cn(
+                                    'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                                    isSelected
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'opacity-50 [&_svg]:invisible'
+                                  )}
+                                >
+                                  <IconCheck className={cn('h-4 w-4')} />
+                                </div>
+                                <span>
+                                  {toProgrammingLanguageDisplayName(value)}
+                                </span>
+                              </CommandItem>
+                            )
+                          })}
+                      </CommandGroup>
+                      {selectedLanguage.length > 0 && (
+                        <>
+                          <CommandSeparator />
+                          <CommandGroup>
+                            <CommandItem
+                              onSelect={() => setSelectedLanguage([])}
+                              className="!pointer-events-auto cursor-pointer justify-center text-center !opacity-100"
+                            >
+                              Clear filters
+                            </CommandItem>
+                          </CommandGroup>
+                        </>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <DatePickerWithRange
                 buttonClassName="h-full"
                 contentAlign="end"

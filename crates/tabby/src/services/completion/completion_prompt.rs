@@ -13,7 +13,6 @@ use tracing::warn;
 use super::{Segments, Snippet};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
-static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
 static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
@@ -38,11 +37,40 @@ impl PromptBuilder {
     }
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
-        if let Some(code) = &self.code {
-            collect_snippets(code.as_ref(), language, &segments.prefix).await
-        } else {
-            vec![]
+        let quota_threshold_for_snippets_from_code_search = 256;
+        let mut max_snippets_chars_in_prompt = 768;
+        let mut snippets: Vec<Snippet> = vec![];
+
+        if let Some((count_characters, snippets_from_segments)) =
+            extract_snippets_from_segments(max_snippets_chars_in_prompt, segments)
+        {
+            max_snippets_chars_in_prompt -= count_characters;
+            snippets.extend(snippets_from_segments.into_iter());
+        };
+
+        if max_snippets_chars_in_prompt <= quota_threshold_for_snippets_from_code_search {
+            return snippets;
         }
+
+        let Some(code) = &self.code else {
+            return snippets;
+        };
+
+        let Some(git_url) = segments.git_url.as_ref() else {
+            return snippets;
+        };
+
+        let snippets_from_code_search = collect_snippets(
+            max_snippets_chars_in_prompt,
+            code.as_ref(),
+            git_url,
+            language,
+            &segments.prefix,
+        )
+        .await;
+
+        snippets.extend(snippets_from_code_search.into_iter());
+        snippets
     }
 
     pub fn build(&self, language: &str, segments: Segments, snippets: &[Snippet]) -> String {
@@ -99,12 +127,64 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> Vec<Snippet> {
+fn extract_snippets_from_segments(
+    max_snippets_chars: usize,
+    segments: &Segments,
+) -> Option<(usize, Vec<Snippet>)> {
+    let mut count_characters = 0;
+    let mut ret = Vec::new();
+
+    // declarations has highest priority.
+    if let Some(declarations) = &segments.declarations {
+        for declaration in declarations {
+            if count_characters + declaration.body.len() > max_snippets_chars {
+                break;
+            }
+
+            count_characters += declaration.body.len();
+            ret.push(Snippet {
+                filepath: declaration.filepath.clone(),
+                body: declaration.body.clone(),
+                score: 1.0,
+            });
+        }
+    }
+
+    // then comes to the snippets from changed files.
+    if let Some(relevant_snippets) = &segments.relevant_snippets_from_changed_files {
+        for snippet in relevant_snippets {
+            if count_characters + snippet.body.len() > max_snippets_chars {
+                break;
+            }
+
+            count_characters += snippet.body.len();
+            ret.push(Snippet {
+                filepath: snippet.filepath.clone(),
+                body: snippet.body.clone(),
+                score: 1.0,
+            });
+        }
+    }
+
+    if ret.is_empty() {
+        None
+    } else {
+        Some((count_characters, ret))
+    }
+}
+
+async fn collect_snippets(
+    max_snippets_chars: usize,
+    code: &dyn CodeSearch,
+    git_url: &str,
+    language: &str,
+    text: &str,
+) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
     let serp = match code
-        .search_in_language(language, &tokens, MAX_SNIPPETS_TO_FETCH, 0)
+        .search_in_language(git_url, language, &tokens, MAX_SNIPPETS_TO_FETCH, 0)
         .await
     {
         Ok(serp) => serp,
@@ -127,7 +207,7 @@ async fn collect_snippets(code: &dyn CodeSearch, language: &str, text: &str) -> 
         let body = hit.doc.body;
         let mut body_tokens = tokenize_text(&body);
 
-        if count_characters + body.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
+        if count_characters + body.len() > max_snippets_chars {
             break;
         }
 
@@ -176,6 +256,7 @@ fn tokenize_text(text: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::services::completion::Declaration;
 
     fn create_prompt_builder(with_template: bool) -> PromptBuilder {
         let prompt_template = if with_template {
@@ -196,6 +277,7 @@ mod tests {
             filepath: None,
             git_url: None,
             declarations: None,
+            relevant_snippets_from_changed_files: None,
             clipboard: None,
         }
     }
@@ -398,6 +480,45 @@ def this_is_prefix():\n";
                 "fileName",
                 "lastIndexOf",
             ]
+        );
+    }
+
+    #[test]
+    fn it_extract_snippets_from_segments() {
+        let segments = Segments {
+            prefix: "def fib(n):\n    ".to_string(),
+            suffix: Some("\n        return fib(n - 1) + fib(n - 2)".to_string()),
+            filepath: None,
+            git_url: None,
+            declarations: None,
+            relevant_snippets_from_changed_files: None,
+            clipboard: None,
+        };
+
+        let max_snippets_chars = 768;
+        assert!(extract_snippets_from_segments(max_snippets_chars, &segments).is_none());
+
+        let segments = Segments {
+            prefix: "def fib(n):\n    ".to_string(),
+            suffix: Some("\n        return fib(n - 1) + fib(n - 2)".to_string()),
+            filepath: None,
+            git_url: None,
+            declarations: Some(vec![Declaration {
+                filepath: "file:///path/to/file.py".to_string(),
+                body: "def fib(n):\n    return n if n <= 1 else fib(n - 1) + fib(n - 2)"
+                    .to_string(),
+            }]),
+            relevant_snippets_from_changed_files: Some(vec![Snippet {
+                filepath: "a1.py".to_owned(),
+                body: "res_1 = invoke_function_1(n)".to_owned(),
+                score: 1.0,
+            }]),
+            clipboard: None,
+        };
+
+        assert!(
+            extract_snippets_from_segments(max_snippets_chars, &segments)
+                .is_some_and(|x| x.1.len() == 2)
         );
     }
 }

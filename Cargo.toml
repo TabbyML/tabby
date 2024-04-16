@@ -15,12 +15,13 @@ members = [
 ]
 
 [workspace.package]
-version = "0.10.0-dev.0"
+version = "0.11.0-dev.0"
 edition = "2021"
-authors = ["Meng Zhang"]
+authors = ["TabbyML Team"]
 homepage = "https://github.com/TabbyML/tabby"
 
 [workspace.dependencies]
+cached = { version = "0.49.3", features = ["async"] }
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
@@ -38,6 +39,7 @@ derive_builder = "0.12.0"
 futures = "0.3.28"
 async-stream = "0.3.5"
 regex = "1.10.0"
+strum = { version = "0.24", features = ["derive"] }
 thiserror = "1.0.49"
 utoipa = "3.3"
 axum = "0.6"
@@ -48,6 +50,8 @@ reqwest-eventsource = "0.5.0"
 serial_test = "3.0.0"
 hash-ids = "0.2.1"
 ignore = "0.4.20"
+nucleo = "0.5.0"
+url = "2.5.0"
 
 [workspace.dependencies.uuid]
 version = "1.3.3"

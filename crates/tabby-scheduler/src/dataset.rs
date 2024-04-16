@@ -15,7 +15,7 @@ use kdam::BarExt;
 use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
-    config::{RepositoryAccess, RepositoryConfig},
+    config::RepositoryConfig,
     path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
@@ -25,21 +25,11 @@ use tree_sitter_tags::TagsContext;
 use crate::utils::tqdm;
 
 trait RepositoryExt {
-    fn create_dataset(
-        &self,
-        writer: &mut impl Write,
-        access: &impl RepositoryAccess,
-        snapshot_version: u64,
-    ) -> Result<()>;
+    fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
 }
 
 impl RepositoryExt for RepositoryConfig {
-    fn create_dataset(
-        &self,
-        writer: &mut impl Write,
-        access: &impl RepositoryAccess,
-        snapshot_version: u64,
-    ) -> Result<()> {
+    fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
         let dir = self.dir();
 
         let walk_dir_iter = || {
@@ -71,20 +61,19 @@ impl RepositoryExt for RepositoryConfig {
             match read_to_string(entry.path()) {
                 Ok(file_content) => {
                     let source_file = SourceFile {
-                        git_url: self.git_url.clone(),
+                        git_url: self.canonical_git_url(),
+                        basedir: dir.display().to_string(),
                         filepath: relative_path.display().to_string(),
                         max_line_length: metrics::max_line_length(&file_content),
                         avg_line_length: metrics::avg_line_length(&file_content),
                         alphanum_fraction: metrics::alphanum_fraction(&file_content),
                         tags: tags::collect(&mut context, &language, &file_content),
                         language,
-                        content: file_content,
                     };
                     writer.write_json_lines([source_file.clone()])?;
-                    access.process_file(snapshot_version, source_file);
                 }
                 Err(e) => {
-                    error!("Cannot read {relative_path:?}: {e:?}");
+                    error!("Cannot read '{}': '{e}'", relative_path.display());
                 }
             }
         }
@@ -106,7 +95,7 @@ fn is_source_code(entry: &DirEntry) -> bool {
     }
 }
 
-pub fn create_dataset(config: &[RepositoryConfig], access: &impl RepositoryAccess) -> Result<()> {
+pub fn create_dataset(config: &[RepositoryConfig]) -> Result<()> {
     fs::remove_dir_all(dataset_dir()).ok();
     fs::create_dir_all(dataset_dir())?;
 
@@ -119,16 +108,10 @@ pub fn create_dataset(config: &[RepositoryConfig], access: &impl RepositoryAcces
         None,
     );
 
-    let snapshot_version = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("Failed to read system clock")
-        .as_millis() as u64;
-    access.start_snapshot(snapshot_version);
-
     let mut deps = DependencyFile::default();
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
-        repository.create_dataset(&mut writer, access, snapshot_version)?;
+        repository.create_dataset(&mut writer)?;
     }
 
     serdeconv::to_json_file(&deps, dependency_file())?;

@@ -3,7 +3,7 @@ use juniper::{
     GraphQLType, GraphQLValue, GraphQLValueAsync, Registry, ScalarValue,
 };
 
-use crate::relay::NodeType;
+use super::NodeType;
 
 /// An edge in a relay.
 pub struct Edge<Node> {

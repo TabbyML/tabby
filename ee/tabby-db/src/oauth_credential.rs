@@ -12,8 +12,6 @@ pub struct OAuthCredentialDAO {
     pub updated_at: DateTimeUtc,
 }
 
-const OAUTH_CREDENTIAL_ROW_ID: i32 = 1;
-
 impl DbConn {
     pub async fn update_oauth_credential(
         &self,
@@ -27,8 +25,7 @@ impl DbConn {
             Some(secret) => secret.to_string(),
             None => {
                 query_scalar!(
-                    "SELECT client_secret FROM oauth_credential WHERE id = ? AND provider = ?",
-                    OAUTH_CREDENTIAL_ROW_ID,
+                    "SELECT client_secret FROM oauth_credential WHERE provider = ?",
                     provider
                 )
                 .fetch_one(&mut *transaction)
@@ -36,11 +33,10 @@ impl DbConn {
             }
         };
         query!(
-            r#"INSERT INTO oauth_credential (id, provider, client_id, client_secret)
-                                VALUES ($1, $2, $3, $4) ON CONFLICT(id) DO UPDATE
-                                SET client_id = $3, client_secret = $4, updated_at = datetime('now')
-                                WHERE id = $1 AND provider = $2"#,
-            OAUTH_CREDENTIAL_ROW_ID,
+            r#"INSERT INTO oauth_credential (provider, client_id, client_secret)
+                                VALUES ($1, $2, $3) ON CONFLICT(provider) DO UPDATE
+                                SET client_id = $2, client_secret = $3, updated_at = datetime('now')
+                                WHERE provider = $1"#,
             provider,
             client_id,
             client_secret,
@@ -52,13 +48,9 @@ impl DbConn {
     }
 
     pub async fn delete_oauth_credential(&self, provider: &str) -> Result<()> {
-        query!(
-            "DELETE FROM oauth_credential WHERE id = ? AND provider = ?",
-            OAUTH_CREDENTIAL_ROW_ID,
-            provider
-        )
-        .execute(&self.pool)
-        .await?;
+        query!("DELETE FROM oauth_credential WHERE provider = ?", provider)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 
@@ -68,8 +60,7 @@ impl DbConn {
     ) -> Result<Option<OAuthCredentialDAO>> {
         let token = sqlx::query_as!(
             OAuthCredentialDAO,
-            "SELECT provider, client_id, client_secret, created_at, updated_at FROM oauth_credential WHERE id = ? AND provider = ?",
-            OAUTH_CREDENTIAL_ROW_ID,
+            "SELECT provider, client_id, client_secret, created_at, updated_at FROM oauth_credential WHERE provider = ?",
             provider
         )
             .fetch_optional(&self.pool).await?;
@@ -162,5 +153,23 @@ mod tests {
         let res = conn.read_oauth_credential("google").await.unwrap().unwrap();
         assert_eq!(res.client_id, "client_id_2");
         assert_eq!(res.client_secret, "client_secret_2");
+    }
+
+    #[tokio::test]
+    async fn test_insert_two_provider() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+
+        conn.update_oauth_credential("google", "client_id", Some("client_secret"))
+            .await
+            .unwrap();
+        let google = conn.read_oauth_credential("google").await.unwrap().unwrap();
+        assert_eq!(google.provider, "google");
+
+        conn.update_oauth_credential("github", "client_id", Some("client_secret"))
+            .await
+            .unwrap();
+        let github = conn.read_oauth_credential("github").await.unwrap().unwrap();
+
+        assert_eq!(github.provider, "github");
     }
 }

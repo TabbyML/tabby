@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+use cached::CachedAsync;
 use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 
@@ -20,6 +21,7 @@ pub struct UserCompletionDAO {
     pub updated_at: DateTimeUtc,
 }
 
+#[derive(FromRow, Clone)]
 pub struct UserCompletionDailyStatsDAO {
     pub start: DateTime<Utc>,
     pub completions: i32,
@@ -71,25 +73,46 @@ impl DbConn {
         &self,
         users: Vec<i64>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
+        if users.len() <= 1 {
+            let mut cache = self.cache.daily_stats_in_past_year.lock().await;
+            let key = if users.is_empty() {
+                None
+            } else {
+                Some(users[0])
+            };
+            return Ok(cache
+                .try_get_or_set_with(key, move || async move {
+                    self.compute_daily_stats_in_past_year_impl(users).await
+                })
+                .await?
+                .clone());
+        }
+        self.compute_daily_stats_in_past_year_impl(users).await
+    }
+
+    async fn compute_daily_stats_in_past_year_impl(
+        &self,
+        users: Vec<i64>,
+    ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         let users = users
             .iter()
             .map(|u| u.to_string())
             .collect::<Vec<_>>()
             .join(",");
-        Ok(sqlx::query_as!(
-            UserCompletionDailyStatsDAO,
+        Ok(sqlx::query_as(&format!(
             r#"
-        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as "start!: DateTime<Utc>",
-               SUM(1) as "completions!: i32",
-               SUM(selects) as "selects!: i32"
-        FROM user_completions
-        WHERE created_at >= DATE('now', '-1 year')
-            AND (?1 = '' OR user_id IN (?1))
-        GROUP BY 1
-        ORDER BY 1 ASC
-        "#,
-            users
-        )
+            SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+                   SUM(1) as completions,
+                   SUM(selects) as selects
+            FROM user_completions
+            WHERE created_at >= DATE('now', '-1 year')
+                AND ({users_empty} OR user_id IN ({users}))
+            GROUP BY 1
+            ORDER BY 1 ASC
+            "#,
+            users_empty = users.is_empty(),
+        ))
+        .bind(users)
         .fetch_all(&self.pool)
         .await?)
     }
@@ -100,31 +123,47 @@ impl DbConn {
         end: DateTime<Utc>,
         users: Vec<i64>,
         languages: Vec<String>,
+        all_languages: Vec<String>,
     ) -> Result<Vec<UserCompletionDailyStatsDAO>> {
         let users = users
             .iter()
             .map(|u| u.to_string())
             .collect::<Vec<_>>()
             .join(",");
-        let languages = languages.join(",");
-        let res = sqlx::query_as!(
-            UserCompletionDailyStatsDAO,
+        let languages = languages
+            .into_iter()
+            .map(|l| format!("'{}'", l))
+            .collect::<Vec<_>>()
+            .join(",");
+        let all_languages = all_languages
+            .into_iter()
+            .map(|l| format!("'{}'", l))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        // Groups stats by day, using `DATE(created_at)` to extract the day and converting it into seconds
+        // with `STRFTIME('%s')`. The effect of this is to extract the unix timestamp (seconds) rounded to
+        // the start of the day and group them by that.
+        let res = sqlx::query_as(&format!(
             r#"
-        SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as "start!: DateTime<Utc>",
-               SUM(1) as "completions!: i32",
-               SUM(selects) as "selects!: i32"
-        FROM user_completions
-        WHERE created_at >= ?1 AND created_at < ?2
-            AND (?3 = '' OR user_id IN (?3))
-            AND (?4 = '' OR language IN (?4))
-        GROUP BY 1
-        ORDER BY 1 ASC
-        "#,
-            start,
-            end,
-            users,
-            languages
-        )
+            SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+                   COUNT(1) as completions,
+                   SUM(selects) as selects
+            FROM (
+                SELECT user_id, created_at, selects, IIF(language IN ({all_languages}), language, 'other') as language
+                    FROM user_completions
+                    WHERE created_at >= ?1 AND created_at < ?2
+            )
+                WHERE ({no_selected_users} OR user_id IN ({users}))
+                AND ({no_selected_languages} OR language IN ({languages}))
+            GROUP BY 1
+            ORDER BY 1 ASC
+            "#,
+            no_selected_users = users.is_empty(),
+            no_selected_languages = languages.is_empty(),
+        ))
+        .bind(start)
+        .bind(end)
         .fetch_all(&self.pool)
         .await?;
         Ok(res)

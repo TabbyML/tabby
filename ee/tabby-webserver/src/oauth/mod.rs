@@ -141,10 +141,8 @@ fn match_auth_result(
             Redirect::temporary(&uri)
         }
         Err(err) => match err {
-            OAuthError::InvalidVerificationCode
-            | OAuthError::UserNotInvited
+            OAuthError::UserNotInvited
             | OAuthError::UserDisabled
-            | OAuthError::CredentialNotActive
             | OAuthError::InsufficientSeats
             | OAuthError::Unknown => make_error_redirect(provider, err.to_string()),
             OAuthError::Other(e) => {

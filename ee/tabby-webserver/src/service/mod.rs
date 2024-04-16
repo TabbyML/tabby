@@ -56,6 +56,7 @@ struct ServerContext {
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
+    repository: Arc<dyn RepositoryService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -67,6 +68,7 @@ impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
         code: Arc<dyn CodeSearch>,
+        repository: Arc<dyn RepositoryService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
     ) -> Self {
@@ -94,6 +96,7 @@ impl ServerContext {
             github_repository_provider: Arc::new(new_github_repository_provider_service(
                 db_conn.clone(),
             )),
+            repository,
             db_conn,
             logger,
             code,
@@ -283,7 +286,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn repository(&self) -> Arc<dyn RepositoryService> {
-        Arc::new(self.db_conn.clone())
+        self.repository.clone()
     }
 
     fn email(&self) -> Arc<dyn EmailService> {
@@ -310,11 +313,12 @@ impl ServiceLocator for Arc<ServerContext> {
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+    repository: Arc<dyn RepositoryService>,
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(Arc::new(
-        ServerContext::new(logger, code, db, is_chat_enabled).await,
+        ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
     ))
 }
 

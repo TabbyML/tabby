@@ -13,6 +13,16 @@ pub struct GithubRepositoryProviderDAO {
     pub access_token: Option<String>,
 }
 
+#[derive(FromRow)]
+pub struct GithubProvidedRepositoryDAO {
+    pub id: i64,
+    pub vendor_id: String,
+    pub github_repository_provider_id: i64,
+    pub name: String,
+    pub git_url: String,
+    pub active: bool,
+}
+
 impl DbConn {
     pub async fn create_github_provider(
         &self,
@@ -104,5 +114,84 @@ impl DbConn {
         .fetch_all(&self.pool)
         .await?;
         Ok(providers)
+    }
+
+    pub async fn create_github_provided_repository(
+        &self,
+        github_provider_id: i64,
+        vendor_id: String,
+        name: String,
+        git_url: String,
+    ) -> Result<i64> {
+        let res = query!("INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES (?, ?, ?, ?)",
+            github_provider_id, vendor_id, name, git_url).execute(&self.pool).await?;
+        Ok(res.last_insert_rowid())
+    }
+
+    pub async fn delete_github_provided_repository(&self, id: i64) -> Result<()> {
+        let res = query!("DELETE FROM github_provided_repositories WHERE id = ?", id)
+            .execute(&self.pool)
+            .await?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("Repository not found"));
+        }
+        Ok(())
+    }
+
+    pub async fn list_github_provided_repositories(
+        &self,
+        provider_ids: Vec<i64>,
+        limit: Option<usize>,
+        skip_id: Option<i32>,
+        backwards: bool,
+    ) -> Result<Vec<GithubProvidedRepositoryDAO>> {
+        let provider_ids = provider_ids
+            .into_iter()
+            .map(|id| id.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let repos = query_paged_as!(
+            GithubProvidedRepositoryDAO,
+            "github_provided_repositories",
+            [
+                "id",
+                "vendor_id",
+                "name",
+                "git_url",
+                "active",
+                "github_repository_provider_id"
+            ],
+            limit,
+            skip_id,
+            backwards,
+            (!provider_ids.is_empty())
+                .then(|| format!("github_repository_provider_id IN ({provider_ids})"))
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(repos)
+    }
+
+    pub async fn update_github_provided_repository_active(
+        &self,
+        id: i64,
+        active: bool,
+    ) -> Result<()> {
+        let not_active = !active;
+        let res = query!(
+            "UPDATE github_provided_repositories SET active = ? WHERE id = ? AND active = ?",
+            active,
+            id,
+            not_active
+        )
+        .execute(&self.pool)
+        .await?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("Repository active status was not changed"));
+        }
+
+        Ok(())
     }
 }

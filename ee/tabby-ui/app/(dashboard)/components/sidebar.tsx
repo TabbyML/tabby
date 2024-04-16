@@ -19,7 +19,6 @@ import {
   IconBookOpenText,
   IconChevronRight,
   IconGear,
-  IconHome,
   IconLightingBolt,
   IconUser
 } from '@/components/ui/icons'
@@ -54,9 +53,6 @@ export default function Sidebar({ children, className }: SidebarProps) {
           </Link>
           <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col gap-2 px-4 pb-4">
-              <SidebarButton href="/">
-                <IconHome /> Home
-              </SidebarButton>
               <SidebarButton href="/profile">
                 <IconUser /> Profile
               </SidebarButton>

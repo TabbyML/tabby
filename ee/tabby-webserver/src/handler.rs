@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axum::{
     extract::{Path, State},
     http::Request,
@@ -7,40 +8,95 @@ use axum::{
     response::{IntoResponse, Response},
     routing, Extension, Json, Router,
 };
+use cached::{CachedAsync, TimedCache};
 use hyper::{header::CONTENT_TYPE, Body, StatusCode};
 use juniper::ID;
-use juniper_axum::{extract::AuthBearer, graphiql, graphql, playground};
-use tabby_common::api::{
-    code::CodeSearch,
-    event::{ComposedLogger, EventLogger},
-    server_setting::ServerSetting,
+use juniper_axum::{graphiql, playground};
+use tabby_common::{
+    api::{
+        code::CodeSearch,
+        event::{ComposedLogger, EventLogger},
+        server_setting::ServerSetting,
+    },
+    config::{RepositoryAccess, RepositoryConfig},
 };
 use tabby_db::DbConn;
+use tokio::sync::Mutex;
 use tracing::{error, warn};
 
 use crate::{
+    axum::{extract::AuthBearer, graphql},
     cron, hub, integrations, oauth,
-    repositories::{self, RepositoryCache},
-    schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator},
+    path::db_file,
+    repositories,
+    schema::{
+        auth::AuthenticationService, create_schema, repository::RepositoryService, Schema,
+        ServiceLocator,
+    },
     service::{create_service_locator, event_logger::create_event_logger},
     ui,
 };
 
+struct RepositoryAccessImpl {
+    service: Arc<dyn RepositoryService>,
+    url_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
+}
+
+#[async_trait]
+impl RepositoryAccess for RepositoryAccessImpl {
+    async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
+        let mut cache = self.url_cache.lock().await;
+        let repos = cache
+            .try_get_or_set_with((), || async {
+                let repos = self
+                    .service
+                    .list_repositories(None, None, None, None)
+                    .await?;
+                Ok::<_, anyhow::Error>(
+                    repos
+                        .into_iter()
+                        .map(|repo| RepositoryConfig::new_named(repo.name, repo.git_url))
+                        .collect(),
+                )
+            })
+            .await?
+            .clone();
+
+        Ok(repos)
+    }
+}
+
 pub struct WebserverHandle {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
+    repository_service: Arc<dyn RepositoryService>,
 }
 
 impl WebserverHandle {
     pub async fn new(logger1: impl EventLogger + 'static) -> Self {
-        let db = DbConn::new().await.expect("Must be able to initialize db");
+        let db = DbConn::new(db_file().as_path())
+            .await
+            .expect("Must be able to initialize db");
+        let repository_service = Arc::new(db.clone());
+
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
-        WebserverHandle { db, logger }
+        WebserverHandle {
+            db,
+            logger,
+            repository_service,
+        }
     }
 
     pub fn logger(&self) -> Arc<dyn EventLogger + 'static> {
         self.logger.clone()
+    }
+
+    pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
+        Arc::new(RepositoryAccessImpl {
+            service: self.repository_service.clone(),
+            url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
+        })
     }
 
     pub async fn attach_webserver(
@@ -51,14 +107,17 @@ impl WebserverHandle {
         is_chat_enabled: bool,
         local_port: u16,
     ) -> (Router, Router) {
-        let ctx =
-            create_service_locator(self.logger(), code, self.db.clone(), is_chat_enabled).await;
-        let events = cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
-
-        let repository_cache = RepositoryCache::new_initialized(ctx.repository(), &events).await;
+        let ctx = create_service_locator(
+            self.logger(),
+            code,
+            self.repository_service.clone(),
+            self.db.clone(),
+            is_chat_enabled,
+        )
+        .await;
+        cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
 
         let schema = Arc::new(create_schema());
-        let rs = Arc::new(repository_cache);
 
         let api = api
             .route(
@@ -82,11 +141,15 @@ impl WebserverHandle {
             )
             .nest(
                 "/repositories",
-                repositories::routes(rs.clone(), ctx.auth()),
+                repositories::routes(ctx.repository(), ctx.auth()),
             )
             .nest(
                 "/integrations/github",
-                integrations::github::routes(ctx.setting(), ctx.github_repository_provider()),
+                integrations::github::routes(
+                    ctx.auth(),
+                    ctx.setting(),
+                    ctx.github_repository_provider(),
+                ),
             )
             .route(
                 "/avatar/:id",

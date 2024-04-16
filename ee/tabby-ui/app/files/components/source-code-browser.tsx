@@ -1,7 +1,6 @@
 'use client'
 
 import React, { PropsWithChildren } from 'react'
-import filename2prism from 'filename2prism'
 import { compact, findIndex, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
@@ -9,6 +8,7 @@ import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
+import { filename2prism } from '@/lib/language-utils'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -254,14 +254,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
 
-  // fetch active file meta
-  const { data: fileMeta } = useSWRImmutable(
-    isFileSelected
-      ? `/repositories/${activeRepoName}/meta/${activeBasename}`
-      : null,
-    fetcher
-  )
-
   // fetch active dir
   const {
     data: subTree,
@@ -377,10 +369,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       className={cn(className)}
       onLayout={onPanelLayout}
     >
-      <ResizablePanel defaultSize={20} minSize={20} maxSize={40}>
+      <ResizablePanel
+        defaultSize={20}
+        minSize={20}
+        maxSize={40}
+        className="hidden lg:block"
+      >
         <FileTreePanel />
       </ResizablePanel>
-      <ResizableHandle className="w-1 bg-border/40 hover:bg-border active:bg-blue-500" />
+      <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
           <FileDirectoryBreadcrumb className="py-4" />
@@ -393,11 +390,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
               />
             )}
             {showTextFileView && (
-              <TextFileView
-                blob={fileBlob}
-                meta={fileMeta}
-                contentLength={contentLength}
-              />
+              <TextFileView blob={fileBlob} contentLength={contentLength} />
             )}
             {showRawFileView && (
               <RawFileView
@@ -555,4 +548,4 @@ async function getFileViewType(
 
 export type { TFileMap, TFileMapItem }
 
-export { SourceCodeBrowserContext, SourceCodeBrowser, getFileViewType }
+export { SourceCodeBrowserContext, SourceCodeBrowser }

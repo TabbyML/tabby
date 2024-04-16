@@ -1,7 +1,9 @@
 [package]
 name = "tabby-common"
-version = "0.10.0-dev.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
 
 [dependencies]
 home = "0.5.5"
@@ -19,6 +21,7 @@ serde_json.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
 regex.workspace = true
+url.workspace = true
 
 [features]
 testutils = []

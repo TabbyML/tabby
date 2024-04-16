@@ -3,7 +3,7 @@ use juniper::{
     GraphQLValue, GraphQLValueAsync, Registry, ScalarValue,
 };
 
-use crate::relay::{edge::Edge, page_info::PageInfo, NodeType};
+use super::{edge::Edge, page_info::PageInfo, NodeType};
 
 /// Connection type
 ///
@@ -18,6 +18,7 @@ impl<Node> Connection<Node>
 where
     Node: NodeType,
 {
+    #[allow(unused)]
     /// Returns a relay relay with no elements.
     pub fn empty() -> Self {
         Self {

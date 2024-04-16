@@ -13,7 +13,6 @@ use axum::{
     TypedHeader,
 };
 use hyper::{Body, StatusCode};
-use juniper_axum::extract::AuthBearer;
 use tabby_common::{
     api::{code::SearchResponse, event::LogEntry},
     config::RepositoryConfig,
@@ -22,7 +21,7 @@ use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
 use websocket::WebSocketTransport;
 
-use crate::schema::ServiceLocator;
+use crate::{axum::extract::AuthBearer, schema::ServiceLocator};
 
 pub(crate) async fn ws_handler(
     ws: WebSocketUpgrade,
@@ -126,6 +125,7 @@ impl Hub for Arc<HubImpl> {
     async fn search_in_language(
         self,
         _context: tarpc::context::Context,
+        git_url: String,
         language: String,
         tokens: Vec<String>,
         limit: usize,
@@ -134,7 +134,7 @@ impl Hub for Arc<HubImpl> {
         match self
             .ctx
             .code()
-            .search_in_language(&language, &tokens, limit, offset)
+            .search_in_language(&git_url, &language, &tokens, limit, offset)
             .await
         {
             Ok(serp) => serp,

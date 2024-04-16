@@ -68,11 +68,13 @@ impl DbConn {
     }
 
     pub async fn get_repository_by_name(&self, name: &str) -> Result<RepositoryDAO> {
-        let repository =
-            sqlx::query_as("SELECT id, name, git_url FROM repositories WHERE name = ?;")
-                .bind(name)
-                .fetch_one(&self.pool)
-                .await?;
+        let repository = sqlx::query_as!(
+            RepositoryDAO,
+            "SELECT id as 'id!: i64', name, git_url FROM repositories WHERE name = ?",
+            name
+        )
+        .fetch_one(&self.pool)
+        .await?;
         Ok(repository)
     }
 }

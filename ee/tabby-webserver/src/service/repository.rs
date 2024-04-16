@@ -32,6 +32,10 @@ impl RepositoryService for DbConn {
         Ok(self.create_repository(name, git_url).await?.as_id())
     }
 
+    async fn get_repository_by_name(&self, name: &str) -> Result<Repository> {
+        Ok(self.get_repository_by_name(name).await?.into())
+    }
+
     async fn delete_repository(&self, id: &ID) -> Result<bool> {
         Ok(self.delete_repository(id.as_rowid()?).await?)
     }
@@ -80,7 +84,10 @@ async fn match_pattern(
         nucleo::pattern::Normalization::Smart,
         nucleo::pattern::AtomKind::Fuzzy,
     );
+
     let mut scored_entries: Vec<(_, _)> = Walk::new(base)
+        // Limit traversal for at most 1M entries for performance reasons.
+        .take(1_000_000)
         .filter_map(|path| {
             let entry = path.ok()?;
             let r#type = if entry.file_type().map(|x| x.is_dir()).unwrap_or_default() {
@@ -99,7 +106,7 @@ async fn match_pattern(
             let score = needle.indices(haystack.slice(..), &mut nucleo, &mut indices);
             score.map(|score| (score, FileEntrySearchResult::new(r#type, path, indices)))
         })
-        // Ensure there's at least 1000 entries with scores > 0.
+        // Ensure there's at least 1000 entries with scores > 0 for quality.
         .take(1000)
         .collect();
 

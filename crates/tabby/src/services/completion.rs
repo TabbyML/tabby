@@ -13,7 +13,6 @@ use tabby_common::{
 };
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use thiserror::Error;
-use tracing::debug;
 use utoipa::ToSchema;
 
 use super::model;
@@ -109,8 +108,8 @@ pub struct Segments {
     suffix: Option<String>,
 
     /// The relative path of the file that is being edited.
-    /// - When `git_url` is set, this is the path of the file in the git repository.
-    /// - When `git_url` is empty, this is the path of the file in the workspace.
+    /// - When [Segments::git_url] is set, this is the path of the file in the git repository.
+    /// - When [Segments::git_url] is empty, this is the path of the file in the workspace.
     filepath: Option<String>,
 
     /// The remote URL of the current git repository.
@@ -118,9 +117,21 @@ pub struct Segments {
     /// or the git repository does not have a remote URL.
     git_url: Option<String>,
 
-    /// The relevant declaration code snippets provided by editor.
-    /// It'll contains declarations extracted from `prefix` segments using LSP.
+    /// The relevant declaration code snippets provided by the editor's LSP,
+    /// contain declarations of symbols extracted from [Segments::prefix].
     declarations: Option<Vec<Declaration>>,
+
+    /// The relevant code snippets extracted from recently edited files.
+    /// These snippets are selected from candidates found within code chunks
+    /// based on the edited location.
+    /// The current editing file is excluded from the search candidates.
+    ///
+    /// When provided alongside [Segments::declarations], the snippets have
+    /// already been deduplicated to ensure no duplication with entries
+    /// in [Segments::declarations].
+    ///
+    /// Sorted in descending order of [Snippet::score].
+    relevant_snippets_from_changed_files: Option<Vec<Snippet>>,
 
     /// Clipboard content when requesting code completion.
     clipboard: Option<String>,
@@ -145,7 +156,7 @@ impl From<Segments> for api::event::Segments {
 pub struct Declaration {
     /// Filepath of the file where the snippet is from.
     /// - When the file belongs to the same workspace as the current file,
-    ///   this is a relative filepath, that has the same root as the current file.
+    ///   this is a relative filepath, use the same rule as [Segments::filepath].
     /// - When the file located outside the workspace, such as in a dependency package,
     ///   this is a file URI with an absolute filepath.
     pub filepath: String,
@@ -240,15 +251,11 @@ impl CompletionService {
         segments: &Segments,
         disable_retrieval_augmented_code_completion: bool,
     ) -> Vec<Snippet> {
-        if let Some(snippets) = extract_snippets_from_segments(segments) {
-            return snippets;
+        if disable_retrieval_augmented_code_completion {
+            return vec![];
         }
 
-        if !disable_retrieval_augmented_code_completion {
-            self.prompt_builder.collect(language, segments).await
-        } else {
-            vec![]
-        }
+        self.prompt_builder.collect(language, segments).await
     }
 
     fn text_generation_options(
@@ -283,12 +290,11 @@ impl CompletionService {
 
         let (prompt, segments, snippets) = if let Some(prompt) = request.raw_prompt() {
             (prompt, None, vec![])
-        } else if let Some(segments) = request.segments.clone() {
-            debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
+        } else if let Some(segments) = request.segments.as_ref() {
             let snippets = self
                 .build_snippets(
                     &language,
-                    &segments,
+                    segments,
                     request.disable_retrieval_augmented_code_completion(),
                 )
                 .await;
@@ -299,10 +305,9 @@ impl CompletionService {
         } else {
             return Err(CompletionError::EmptyPrompt);
         };
-        debug!("PROMPT: {}", prompt);
 
         let text = self.engine.generate(&prompt, options).await;
-        let segments = segments.map(|s| s.into());
+        let segments = segments.cloned().map(|s| s.into());
 
         self.logger.log(Event::Completion {
             completion_id: completion_id.clone(),
@@ -347,56 +352,4 @@ pub async fn create_completion_service(
     ) = model::load_text_generation(model, device, parallelism).await;
 
     CompletionService::new(engine.clone(), code, logger, prompt_template)
-}
-
-fn extract_snippets_from_segments(segments: &Segments) -> Option<Vec<Snippet>> {
-    // When there are declarations, use them as relevant snippets.
-    if let Some(declarations) = &segments.declarations {
-        return Some(
-            declarations
-                .iter()
-                .map(|declaration| Snippet {
-                    filepath: declaration.filepath.clone(),
-                    body: declaration.body.clone(),
-                    score: 1.0,
-                })
-                .collect(),
-        );
-    }
-
-    None
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_extract_snippets_from_segments() {
-        let segments = Segments {
-            prefix: "def fib(n):\n    ".to_string(),
-            suffix: Some("\n        return fib(n - 1) + fib(n - 2)".to_string()),
-            filepath: None,
-            git_url: None,
-            declarations: None,
-            clipboard: None,
-        };
-
-        assert!(extract_snippets_from_segments(&segments).is_none());
-
-        let segments = Segments {
-            prefix: "def fib(n):\n    ".to_string(),
-            suffix: Some("\n        return fib(n - 1) + fib(n - 2)".to_string()),
-            filepath: None,
-            git_url: None,
-            declarations: Some(vec![Declaration {
-                filepath: "file:///path/to/file.py".to_string(),
-                body: "def fib(n):\n    return n if n <= 1 else fib(n - 1) + fib(n - 2)"
-                    .to_string(),
-            }]),
-            clipboard: None,
-        };
-
-        assert!(extract_snippets_from_segments(&segments).is_some_and(|x| x.len() == 1));
-    }
 }

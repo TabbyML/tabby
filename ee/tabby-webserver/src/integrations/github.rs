@@ -3,6 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use axum::{
     extract::{Path, Query, State},
+    middleware::from_fn_with_state,
     response::Redirect,
     routing, Router,
 };
@@ -12,8 +13,12 @@ use serde::Deserialize;
 use tracing::error;
 use url::Url;
 
-use crate::schema::{
-    github_repository_provider::GithubRepositoryProviderService, setting::SettingService,
+use crate::{
+    handler::require_login_middleware,
+    schema::{
+        auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
+        setting::SettingService,
+    },
 };
 
 #[derive(Debug, Deserialize)]
@@ -47,6 +52,7 @@ struct IntegrationState {
 }
 
 pub fn routes(
+    auth: Arc<dyn AuthenticationService>,
     settings: Arc<dyn SettingService>,
     github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
 ) -> Router {
@@ -57,6 +63,7 @@ pub fn routes(
     Router::new()
         .route("/connect/:id", routing::get(connect))
         .route("/callback", routing::get(callback))
+        .layer(from_fn_with_state(auth, require_login_middleware))
         .with_state(state)
 }
 

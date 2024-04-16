@@ -10,6 +10,7 @@ import { IconNotice } from '@/components/ui/icons'
 
 import { ClientOnly } from './client-only'
 import { ThemeToggle } from './theme-toggle'
+import { UserAvatar } from './user-avatar'
 import UserPanel from './user-panel'
 
 export function Header() {
@@ -39,7 +40,9 @@ export function Header() {
         <ClientOnly>
           <ThemeToggle />
         </ClientOnly>
-        <UserPanel />
+        <UserPanel>
+          <UserAvatar className="h-10 w-10 border" />
+        </UserPanel>
       </div>
     </header>
   )

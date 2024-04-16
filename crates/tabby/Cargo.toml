@@ -1,7 +1,9 @@
 [package]
 name = "tabby"
-version = "0.10.0-dev.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
 
 [features]
 default = ["ee", "experimental-http"]
@@ -14,7 +16,7 @@ experimental-http = ["dep:http-api-bindings"]
 # architecture, enable this feature to compile OpenSSL as part of the build.
 # See https://docs.rs/openssl/#vendored for more.
 static-ssl = ['openssl/vendored']
-prod-db = ['tabby-webserver/prod-db']
+prod = ['tabby-webserver/prod-db']
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }
@@ -32,7 +34,7 @@ serde_json = { workspace = true }
 tower-http = { version = "0.4.0", features = ["cors", "timeout"] }
 clap = { version = "4.3.0", features = ["derive"] }
 lazy_static = { workspace = true }
-strum = { version = "0.24", features = ["derive"] }
+strum = { workspace = true }
 strfmt = "0.2.4"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -57,6 +59,7 @@ thiserror.workspace = true
 chrono.workspace = true
 axum-prometheus = "0.4.0"
 uuid.workspace = true
+nucleo = { workspace = true }
 
 [dependencies.openssl]
 optional = true

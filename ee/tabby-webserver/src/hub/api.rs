@@ -26,6 +26,7 @@ pub trait Hub {
     async fn search(q: String, limit: usize, offset: usize) -> SearchResponse;
 
     async fn search_in_language(
+        git_url: String,
         language: String,
         tokens: Vec<String>,
         limit: usize,
@@ -98,6 +99,7 @@ impl CodeSearch for WorkerClient {
 
     async fn search_in_language(
         &self,
+        git_url: &str,
         language: &str,
         tokens: &[String],
         limit: usize,
@@ -107,6 +109,7 @@ impl CodeSearch for WorkerClient {
             .0
             .search_in_language(
                 tracing_context(),
+                git_url.to_owned(),
                 language.to_owned(),
                 tokens.to_owned(),
                 limit,
