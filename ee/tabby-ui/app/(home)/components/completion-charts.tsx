@@ -179,7 +179,7 @@ export function CompletionCharts({
           <ResponsiveContainer width="100%" height={60}>
             <LineChart
               data={acceptRateData}
-              margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 15, right: 30, left: 20, bottom: 5 }}
             >
               <Line
                 type="monotone"
