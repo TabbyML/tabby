@@ -283,7 +283,6 @@ enum LicenseType {
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
-  clientSecret: String
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
 }
