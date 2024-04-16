@@ -1,5 +1,4 @@
 mod deps;
-mod tags;
 
 use std::{
     collections::HashMap,
@@ -22,7 +21,7 @@ use tabby_common::{
 use tracing::error;
 use tree_sitter_tags::TagsContext;
 
-use crate::utils::tqdm;
+use crate::{code::tags, utils::tqdm};
 
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
