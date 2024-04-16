@@ -106,8 +106,13 @@ pub struct ServeArgs {
     parallelism: u8,
 
     #[cfg(feature = "ee")]
-    #[clap(hide = true, long, default_value_t = false)]
+    #[clap(hide = true, long, default_value_t = true)]
+    #[deprecated]
     webserver: bool,
+
+    #[cfg(feature = "ee")]
+    #[clap(hide = true, long, default_value_t = false)]
+    no_webserver: bool,
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
@@ -122,8 +127,10 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     info!("Starting server, this might take a few minutes...");
 
+    let webserver = !args.no_webserver;
+
     #[cfg(feature = "ee")]
-    let ws = if args.webserver {
+    let ws = if webserver {
         Some(tabby_webserver::public::WebserverHandle::new(create_event_logger()).await)
     } else {
         None
@@ -155,7 +162,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let (api, ui) = if args.webserver {
+    let (api, ui) = if webserver {
         let (api, ui) = ws
             .unwrap()
             .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
@@ -289,7 +296,7 @@ async fn api_router(
         Router::new().route("/v1beta/server_setting", routing::get(routes::setting));
 
     #[cfg(feature = "ee")]
-    if !args.webserver {
+    if args.no_webserver {
         routers.push(server_setting_router)
     }
 
