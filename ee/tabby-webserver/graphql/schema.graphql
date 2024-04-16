@@ -102,6 +102,10 @@ type GithubRepositoryProvider {
   id: ID!
   displayName: String!
   applicationId: String!
+  """
+    Will never be returned to the client / from GraphQL endpoints.
+    Make sure to strip using [Self::strip_access_token].
+  """
   accessToken: String
 }
 
