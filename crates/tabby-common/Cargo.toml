@@ -24,7 +24,7 @@ url.workspace = true
 
 [dev-dependencies]
 temp_testdir = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
 
 [features]
 testutils = []
