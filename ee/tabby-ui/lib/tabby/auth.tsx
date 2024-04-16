@@ -142,8 +142,7 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
 
     // After being mounted, listen for changes in the access token
     if (authToken?.accessToken && authToken?.refreshToken) {
-      dispatch({ type: AuthActionType.SignIn, data: authToken })
-      // reexecuteQueryMe()
+      dispatch({ type: AuthActionType.Refresh, data: authToken })
     } else {
       dispatch({ type: AuthActionType.SignOut })
     }

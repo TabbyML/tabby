@@ -36,14 +36,14 @@ const clearAuthToken = () => {
   )
 }
 
+const isTokenExpired = (exp: number) => {
+  return Date.now() > exp * 1000
+}
+
 class TokenManager {
-  token: AuthData | undefined
-  refreshLock: boolean
-  retryQueue: Array<(success: boolean, error?: Error) => void>
+  private retryQueue: Array<(success: boolean, error?: Error) => void>
 
   constructor() {
-    this.token = getAuthToken()
-    this.refreshLock = false
     this.retryQueue = []
 
     if (typeof window !== 'undefined') {
@@ -51,28 +51,27 @@ class TokenManager {
     }
   }
 
-  handleStorageChange = (event: StorageEvent) => {
-    if (
-      event.key === AUTH_LOCK_KEY &&
-      event.newValue === null &&
-      this.retryQueue.length
-    ) {
-      // refresh_lock removed
-      this.processQueue()
-    }
+  private handleStorageChange = (event: StorageEvent) => {
+    try {
+      if (
+        event.key === AUTH_LOCK_KEY &&
+        event.newValue === null &&
+        this.retryQueue?.length
+      ) {
+        this.processQueue()
+      }
+    } catch (e) {}
   }
 
   tryGetRefreshLock() {
     const currentLock = localStorage.getItem(AUTH_LOCK_KEY)
     const lockTimestamp = currentLock ? parseInt(currentLock, 10) : null
     const now = Date.now()
-    // timeout 10s
     if (
       !currentLock ||
       (lockTimestamp && now - lockTimestamp > AUTH_LOCK_EXP)
     ) {
       localStorage.setItem(AUTH_LOCK_KEY, now.toString())
-      this.refreshLock = true
       return true
     }
     return false
@@ -80,7 +79,6 @@ class TokenManager {
 
   releaseRefreshLock() {
     localStorage.removeItem(AUTH_LOCK_KEY)
-    this.refreshLock = false
   }
 
   enqueueRetryRequest(
@@ -107,7 +105,7 @@ class TokenManager {
       return new Promise<void>((resolve, reject) => {
         this.enqueueRetryRequest((success: boolean, error?: Error) => {
           if (!success || error) {
-            reject(error ?? 'Refresh failed')
+            reject(error ?? 'Failed to refresh token')
           } else {
             resolve()
           }
@@ -115,22 +113,24 @@ class TokenManager {
       })
     }
 
-    try {
-      const newToken = await doRefreshToken()
-      if (newToken) {
-        await saveAuthToken(newToken)
-        this.processQueue()
-      } else {
-        this.rejectQueue()
-        clearAuthToken()
-      }
-    } catch (error: any) {
-      this.rejectQueue(error)
+    const newToken = await doRefreshToken()
+    if (newToken) {
+      await saveAuthToken(newToken)
+      this.processQueue()
+    } else {
+      this.rejectQueue()
       clearAuthToken()
+      throw new Error('Failed to refresh token')
     }
   }
 }
 
 const tokenManagerInstance = new TokenManager()
 
-export { tokenManagerInstance, getAuthToken, saveAuthToken, clearAuthToken }
+export {
+  tokenManagerInstance,
+  getAuthToken,
+  saveAuthToken,
+  clearAuthToken,
+  isTokenExpired
+}

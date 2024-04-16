@@ -24,6 +24,7 @@ import { listInvitations, listRepositories } from './query'
 import {
   clearAuthToken,
   getAuthToken,
+  isTokenExpired,
   tokenManagerInstance
 } from './token-management'
 
@@ -89,9 +90,6 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
   }
 }
 
-const isTokenExpired = (exp: number) => {
-  return Date.now() > exp * 1000
-}
 const client = new Client({
   url: `/graphql`,
   requestPolicy: 'cache-and-network',

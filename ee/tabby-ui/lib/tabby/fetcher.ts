@@ -1,8 +1,13 @@
 import { createRequest } from '@urql/core'
+import { jwtDecode } from 'jwt-decode'
 
 import { refreshTokenMutation } from './auth'
 import { client } from './gql'
-import { getAuthToken, tokenManagerInstance } from './token-management'
+import {
+  getAuthToken,
+  isTokenExpired,
+  tokenManagerInstance
+} from './token-management'
 
 interface FetcherOptions extends RequestInit {
   responseFormat?: 'json' | 'blob'
@@ -18,26 +23,48 @@ export default async function authEnhancedFetch(
   options?: FetcherOptions
 ): Promise<any> {
   const currentFetcher = options?.customFetch ?? window.fetch
+
+  if (willAuthError()) {
+    return tokenManagerInstance.refreshToken(doRefreshToken).then(res => {
+      return requestWithAuth(url, options)
+    })
+  }
+
   const response: Response = await currentFetcher(
     url,
     addAuthToRequest(options)
   )
 
   if (response.status === 401) {
-    return tokenManagerInstance
-      .refreshToken(async () => {
-        let refreshToken = getAuthToken()?.refreshToken
-        if (!refreshToken) return undefined
-
-        const newToken = await refreshAuth(refreshToken)
-        return newToken?.data?.refreshToken
-      })
-      .then(res => {
-        return requestWithAuth(url, options)
-      })
+    return tokenManagerInstance.refreshToken(doRefreshToken).then(res => {
+      return requestWithAuth(url, options)
+    })
   } else {
     return formatResponse(response, options)
   }
+}
+
+function willAuthError() {
+  const accessToken = getAuthToken()?.accessToken
+  if (accessToken) {
+    // Check whether `token` JWT is expired
+    try {
+      const { exp } = jwtDecode(accessToken)
+      return exp ? isTokenExpired(exp) : true
+    } catch (e) {
+      return true
+    }
+  } else {
+    return true
+  }
+}
+
+async function doRefreshToken() {
+  let refreshToken = getAuthToken()?.refreshToken
+  if (!refreshToken) return undefined
+
+  const newToken = await refreshAuth(refreshToken)
+  return newToken?.data?.refreshToken
 }
 
 function addAuthToRequest(options?: FetcherOptions): FetcherOptions {
