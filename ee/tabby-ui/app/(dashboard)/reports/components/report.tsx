@@ -165,7 +165,7 @@ export function Report() {
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
     query: queryDailyStatsInPastYear,
     variables: {
-      users: selectedMember === KEY_SELECT_ALL ? undefined : selectedMember
+      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember]
     }
   })
   let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined

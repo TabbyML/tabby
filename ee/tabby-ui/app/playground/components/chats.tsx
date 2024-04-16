@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useSearchParams } from 'next/navigation'
 import type { Message } from 'ai'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
@@ -18,8 +19,16 @@ import { ChatSessions } from './chat-sessions'
 const emptyMessages: Message[] = []
 
 export default function Chats() {
-  const { searchParams, updateSearchParams } = useRouterStuff()
-  const initialMessage = searchParams.get('initialMessage')?.toString()
+  const params = new URLSearchParams(window.location.search);
+  // decodeURIComponent(params.replace(/\+/g, ' '));
+
+  const searchParams = useSearchParams()
+  console.log(searchParams.get('initialMessage'))
+  const initialMessage = decodeURIComponent(searchParams.get('initialMessage') || "")
+  // const { searchParams, updateSearchParams } = useRouterStuff()
+  // console.log(searchParams.get('initialMessage'))
+  // const initialMessage = decodeURIComponent(searchParams.get('initialMessage') || "")
+  // console.log('initialMessage', initialMessage)
   const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
   const chatRef = React.useRef<ChatRef>(null)
 

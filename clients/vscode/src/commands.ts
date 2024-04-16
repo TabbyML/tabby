@@ -328,6 +328,7 @@ const explainCodeBlock: Command = {
     const configuration = agent().getConfig();
     
     const serverHost = configuration.server.endpoint
+    console.log(serverHost)
     const healthState = agent().getServerHealthState();
       console.log("explainCodeBlock healthState>>>>", healthState)
     
@@ -335,8 +336,9 @@ const explainCodeBlock: Command = {
       const { languageId } = editor.document
       const language = languageId.startsWith('typescript') ? 'typescript' : languageId
       const text = editor.document.getText(editor.selection)
+      console.log('text', text)
       const encodedText = encodeURIComponent("```" + `${language}\n${text}\n` + "```");
-
+      console.log('encodedText', decodeURIComponent(encodedText))
       await env.openExternal(Uri.parse(`${serverHost}/playground?initialMessage=${encodedText}`));
     } else {
       window.showInformationMessage('No active editor');

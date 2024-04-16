@@ -149,10 +149,10 @@ export class TabbyStatusBarItem {
       this.logger.info("Tabby agent statusChanged", { event });
       this.fsmService.send(event.status);
 
-      setTimeout(() => {
-        const healthState = agent().getServerHealthState();
-      console.log("statusChanged healthState>>>>", event.status, healthState)
-      }, 2000)
+      // setTimeout(() => {
+      //   const healthState = agent().getServerHealthState();
+      //   console.log("statusChanged healthState>>>>", event.status, healthState)
+      // }, 2000)
       
     // const isChatEnabled = Boolean(healthState?.chat_model);
     // console.log('isChatEnabled', isChatEnabled)

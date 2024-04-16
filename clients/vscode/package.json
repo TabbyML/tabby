@@ -84,10 +84,12 @@
         {
           "command": "tabby.openTabbyAgentSettings",
           "when": "!isWeb"
-        },
+        }
+      ],
+      "editor/context": [
         {
           "command": "tabby.ai.explainCodeBlock",
-          "when": "editorHasSelection"
+          "group": "navigation"
         }
       ]
     },
