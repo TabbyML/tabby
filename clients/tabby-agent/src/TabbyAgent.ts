@@ -374,6 +374,34 @@ export class TabbyAgent extends EventEmitter implements Agent {
       };
     });
 
+    // snippets
+    const relevantSnippetsFromChangedFiles = context.relevantSnippetsFromChangedFiles
+      // deduplicate
+      ?.filter(
+        (snippet) =>
+          // Remove snippet if find a declaration from the same file and range is overlapping
+          !context.declarations?.find((declaration) => {
+            return (
+              declaration.filepath === snippet.filepath &&
+              // Is range overlapping
+              Math.max(declaration.offset, snippet.offset) <=
+                Math.min(declaration.offset + declaration.text.length, snippet.offset + snippet.text.length)
+            );
+          }),
+      )
+      .map((snippet) => {
+        let snippetFilepath = snippet.filepath;
+        if (relativeFilepathRoot && snippetFilepath.startsWith(relativeFilepathRoot)) {
+          snippetFilepath = path.relative(relativeFilepathRoot, snippetFilepath);
+        }
+        return {
+          filepath: snippetFilepath,
+          body: snippet.text,
+          score: snippet.score,
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+
     // clipboard
     let clipboard = undefined;
     const clipboardConfig = this.config.completion.prompt.clipboard;
@@ -386,6 +414,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       filepath,
       git_url: gitUrl,
       declarations,
+      relevant_snippets_from_changed_files: relevantSnippetsFromChangedFiles,
       clipboard,
     };
   }

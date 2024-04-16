@@ -72,9 +72,8 @@ export function agent(): TabbyAgent {
 export async function createAgentInstance(context: ExtensionContext): Promise<TabbyAgent> {
   if (!instance) {
     const agent = new TabbyAgent();
-    const initPromise = agent.initialize(buildInitOptions(context));
+    await agent.initialize(buildInitOptions(context));
     workspace.onDidChangeConfiguration(async (event) => {
-      await initPromise;
       const configuration = workspace.getConfiguration("tabby");
       if (event.affectsConfiguration("tabby.api.endpoint")) {
         const endpoint = configuration.get<string>("api.endpoint");
