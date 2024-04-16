@@ -26,7 +26,7 @@ lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serdeconv = "0.4.1"
-tokio = {version = "1.28" }
+tokio = "1.28"
 tracing = "0.1"
 tokio-cron-scheduler = "0.9.4"
 tracing-subscriber = "0.3"
