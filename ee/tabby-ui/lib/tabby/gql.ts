@@ -19,13 +19,14 @@ import {
   ListInvitationsQueryVariables,
   RepositoriesQueryVariables
 } from '../gql/generates/graphql'
+import { refreshTokenMutation } from './auth'
+import { listInvitations, listRepositories } from './query'
 import {
   clearAuthToken,
   getAuthToken,
-  refreshTokenMutation,
-  saveAuthToken
-} from './auth'
-import { listInvitations, listRepositories } from './query'
+  isTokenExpired,
+  tokenManagerInstance
+} from './token-management'
 
 interface ValidationError {
   path: string
@@ -89,9 +90,6 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
   }
 }
 
-const isTokenExpired = (exp: number) => {
-  return Date.now() > exp * 1000
-}
 const client = new Client({
   url: `/graphql`,
   requestPolicy: 'cache-and-network',
@@ -223,22 +221,14 @@ const client = new Client({
           }
         },
         async refreshAuth() {
-          // if not refreshToken, do logout
           if (refreshToken) {
-            const result = await utils.mutate(refreshTokenMutation, {
-              refreshToken
-            })
-            if (result.data?.refreshToken) {
-              // Update our local variables and write to our storage
-              accessToken = result.data.refreshToken.accessToken
-              refreshToken = result.data.refreshToken.refreshToken
-              saveAuthToken({
-                accessToken,
-                refreshToken
-              })
-            } else {
-              clearAuthToken()
-            }
+            return tokenManagerInstance.refreshToken(() =>
+              utils
+                .mutate(refreshTokenMutation, {
+                  refreshToken: refreshToken as string
+                })
+                .then(res => res?.data?.refreshToken)
+            )
           } else {
             // This is where auth has gone wrong and we need to clean up and redirect to a login page
             clearAuthToken()
