@@ -1,6 +1,6 @@
 ---
 source: crates/tabby/tests/goldentests_chat.rs
-expression: "golden_test(json!({\n                \"messages\" :\n                [{\n                    \"role\" : \"user\", \"content\" :\n                    \"How to convert a list of string to numbers in python\"\n                }]\n            })).await"
+expression: "golden_test(json!({\n                \"seed\": 0, \"messages\":\n                [{\n                    \"role\": \"user\", \"content\":\n                    \"How to convert a list of string to numbers in python\"\n                }]\n            })).await"
 ---
-" In Python, you can convert a list of strings to numbers using the `map()` function and the `int()` function. Here's an example:\n```\nstrings = ['1', '2', '3', '4', '5']\nnumbers = list(map(int, strings))\nprint(numbers)\n```\nThis will output:\n```\n[1, 2, 3, 4, 5]\n```\nIn this example, the `map()` function applies the `int()` function to each element of the `strings` list, converting each string to an integer and returning a new list of integers. The `list()` function is used to convert the resulting iterator to a list."
+" In Python, you can convert a list of strings to numbers using the `map()` function and the `int()` function. Here's an example:\n```\nstrings = ['1', '2', '3', '4', '5']\nnumbers = list(map(int, strings))\nprint(numbers)\n```\nThis will output:\n```\n[1, 2, 3, 4, 5]\n```\nIn this example, the `map()` function applies the `int()` function to each element of the `strings` list, converting each string to an integer and returning a new list of integers. The `list()` function is used to convert the result of the `map()` function back into a list."
 
