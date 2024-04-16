@@ -72,6 +72,7 @@ impl ServerContext {
         logger: Arc<dyn EventLogger>,
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
+        github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
     ) -> Self {
@@ -96,9 +97,7 @@ impl ServerContext {
                 license.clone(),
             )),
             license,
-            github_repository_provider: Arc::new(new_github_repository_provider_service(
-                db_conn.clone(),
-            )),
+            github_repository_provider,
             repository,
             db_conn,
             logger,
@@ -325,11 +324,20 @@ pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
+    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(Arc::new(
-        ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
+        ServerContext::new(
+            logger,
+            code,
+            repository,
+            github_repository_provider,
+            db,
+            is_chat_enabled,
+        )
+        .await,
     ))
 }
 

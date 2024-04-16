@@ -133,6 +133,7 @@ impl WebserverHandle {
             self.logger(),
             code,
             self.repository_service.clone(),
+            self.github_service.clone(),
             self.db.clone(),
             is_chat_enabled,
         )
