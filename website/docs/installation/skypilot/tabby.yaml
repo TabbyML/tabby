@@ -6,7 +6,7 @@ resources:
   # accelerators: {T4:1, L4:1, A100:1, A10G:1}
 
 service:
-  readiness_probe: /v1/health
+  readiness_probe: /metrics
   replicas: 1
 
 run: |
