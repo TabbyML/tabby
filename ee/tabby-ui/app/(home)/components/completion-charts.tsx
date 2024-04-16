@@ -143,7 +143,10 @@ export function CompletionCharts({
     const select = dailySelectMap[dateKey] || 0
     return {
       name: moment(date).format('D MMM'),
-      value: completion === 0 ? 0 : ((select / completion) * 100).toFixed(2),
+      value:
+        completion === 0
+          ? 0
+          : parseFloat(((select / completion) * 100).toFixed(2)),
       select,
       completion
     }
@@ -163,7 +166,6 @@ export function CompletionCharts({
       selectPlaceholder: select === 0 ? 0.5 : 0
     }
   })
-
   return (
     <div>
       <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-6 md:space-y-0 xl:justify-start">
