@@ -81,9 +81,9 @@ impl ModelRegistry {
         if !model_path.exists() && old_model_path.exists() {
             std::fs::rename(&old_model_path, &model_path)?;
             #[cfg(target_family = "unix")]
-            std::os::unix::fs::symlink(&old_model_path, &model_path)?;
+            std::os::unix::fs::symlink(&model_path, &old_model_path)?;
             #[cfg(target_family = "windows")]
-            std::os::windows::fs::symlink_file(&old_model_path, &model_path)?;
+            std::os::windows::fs::symlink_file(&model_path, &old_model_path)?;
         }
         Ok(())
     }
@@ -120,3 +120,37 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
 
 pub static OLD_GGML_MODEL_RELATIVE_PATH: &str = "ggml/q8_0.v2.gguf";
 pub static GGML_MODEL_RELATIVE_PATH: &str = "ggml/model.gguf";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use temp_testdir::TempDir;
+
+    use crate::path::set_tabby_root;
+
+    use super::ModelRegistry;
+
+    #[tokio::test]
+    async fn test_model_migration() {
+        let root = TempDir::default();
+        set_tabby_root(root.to_path_buf());
+
+        let registry = ModelRegistry::new("TabbyML").await;
+        let dir = registry.get_model_dir("StarCoder-1B");
+
+        let old_model_path = dir.join(OLD_GGML_MODEL_RELATIVE_PATH);
+        tokio::fs::create_dir_all(old_model_path.parent().unwrap())
+            .await
+            .unwrap();
+        tokio::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(&old_model_path)
+            .await
+            .unwrap();
+
+        registry.migrate_model_path("StarCoder-1B").unwrap();
+        assert!(registry.get_model_path("StarCoder-1B").exists());
+        assert!(old_model_path.exists());
+    }
+}
