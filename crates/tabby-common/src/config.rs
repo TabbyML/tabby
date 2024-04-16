@@ -57,7 +57,7 @@ impl Config {
         for repo in self.repositories.iter() {
             let dir = repo.dir().display().to_string();
             if !dirs.insert(dir.clone()) {
-                return Err(anyhow!("Duplicate dir in `repositories`: {}", dir));
+                return Err(anyhow!("Duplicate directory in `repositories`: {}", dir));
             }
         }
         Ok(())
