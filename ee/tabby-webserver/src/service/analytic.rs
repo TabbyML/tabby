@@ -183,7 +183,19 @@ mod tests {
         let svc = new_analytic_service(db);
         let end = Utc::now();
         let start = end.checked_sub_days(Days::new(100)).unwrap();
+
+        // Test that there is a single completion stat (1 day of history) with 1 completion and 1 select
         let stats = svc.daily_stats(start, end, vec![], vec![]).await.unwrap();
+        assert_eq!(1, stats.len());
+        assert_eq!(1, stats[0].completions);
+        assert_eq!(1, stats[0].selects);
+
+        // Test the same, but select only the specified user - regression test to prevent SQLite short-circuiting
+        // from failing to account for `user_id` column not being present
+        let stats = svc
+            .daily_stats(start, end, vec![user_id.as_id()], vec![])
+            .await
+            .unwrap();
         assert_eq!(1, stats.len());
         assert_eq!(1, stats[0].completions);
         assert_eq!(1, stats[0].selects);
