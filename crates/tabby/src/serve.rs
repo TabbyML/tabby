@@ -275,17 +275,32 @@ async fn api_router(
     if let Some(chat_state) = chat_state {
         routers.push({
             Router::new().route(
+                "/v1/chat/completions",
+                routing::post(routes::chat_completions).with_state(chat_state.clone()),
+            )
+        });
+
+        // For forward compatibility of `/v1beta` route.
+        routers.push({
+            Router::new().route(
                 "/v1beta/chat/completions",
                 routing::post(routes::chat_completions).with_state(chat_state),
             )
-        })
+        });
     } else {
+        routers.push({
+            Router::new().route(
+                "/v1/chat/completions",
+                routing::post(StatusCode::NOT_IMPLEMENTED),
+            )
+        });
+
         routers.push({
             Router::new().route(
                 "/v1beta/chat/completions",
                 routing::post(StatusCode::NOT_IMPLEMENTED),
             )
-        })
+        });
     }
 
     routers.push({

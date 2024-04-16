@@ -14,7 +14,7 @@ use crate::services::chat::{ChatCompletionRequest, ChatService};
 
 #[utoipa::path(
     post,
-    path = "/v1beta/chat/completions",
+    path = "/v1/chat/completions",
     request_body = ChatCompletionRequest,
     operation_id = "chat_completions",
     tag = "v1beta",
