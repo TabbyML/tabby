@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
@@ -32,14 +31,6 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
     async fn read_github_repository_provider_secret(&self, id: ID) -> Result<String> {
         let provider = self.db.get_github_provider(id.as_rowid()?).await?;
         Ok(provider.secret)
-    }
-
-    async fn read_github_repository_provider_access_token(&self, id: ID) -> Result<String> {
-        let provider = self.db.get_github_provider(id.as_rowid()?).await?;
-        let Some(access_token) = provider.access_token else {
-            return Err(anyhow!("Provider has no access token").into());
-        };
-        Ok(access_token)
     }
 
     async fn update_github_repository_provider_access_token(
@@ -100,5 +91,98 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .update_github_provided_repository_active(id.as_rowid()?, active)
             .await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::service::AsID;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_github_provided_repositories() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = new_github_repository_provider_service(db.clone());
+
+        let provider_id1 = db
+            .create_github_provider(
+                "test_provider1".into(),
+                "test_id1".into(),
+                "test_secret".into(),
+            )
+            .await
+            .unwrap();
+
+        let provider_id2 = db
+            .create_github_provider(
+                "test_provider2".into(),
+                "test_id2".into(),
+                "test_secret".into(),
+            )
+            .await
+            .unwrap();
+
+        let repo_id1 = db
+            .create_github_provided_repository(
+                provider_id1,
+                "vendor_id1".into(),
+                "test_repo1".into(),
+                "https://github.com/test/test1".into(),
+            )
+            .await
+            .unwrap();
+
+        let repo_id2 = db
+            .create_github_provided_repository(
+                provider_id2,
+                "vendor_id2".into(),
+                "test_repo2".into(),
+                "https://github.com/test/test2".into(),
+            )
+            .await
+            .unwrap();
+
+        // Test listing with no filter on providers
+        let repos = service
+            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(repos.len(), 2);
+        assert_eq!(repos[0].name, "test_repo1");
+        assert_eq!(repos[1].name, "test_repo2");
+
+        // Test listing with a filter on providers
+        let repos = service
+            .list_github_provided_repositories_by_provider(
+                vec![provider_id1.as_id()],
+                None,
+                None,
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(repos.len(), 1);
+        assert_eq!(repos[0].name, "test_repo1");
+
+        // Test deletion and toggling active status
+        db.delete_github_provided_repository(repo_id1)
+            .await
+            .unwrap();
+
+        db.update_github_provided_repository_active(repo_id2, true)
+            .await
+            .unwrap();
+
+        let repos = service
+            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(repos.len(), 1);
+        assert_eq!(repos[0].active, true);
     }
 }

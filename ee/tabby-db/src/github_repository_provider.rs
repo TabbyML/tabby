@@ -112,10 +112,10 @@ impl DbConn {
         vendor_id: String,
         name: String,
         git_url: String,
-    ) -> Result<()> {
-        query!("INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES (?, ?, ?, ?)",
+    ) -> Result<i64> {
+        let res = query!("INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES (?, ?, ?, ?)",
             github_provider_id, vendor_id, name, git_url).execute(&self.pool).await?;
-        Ok(())
+        Ok(res.last_insert_rowid())
     }
 
     pub async fn delete_github_provided_repository(&self, id: i64) -> Result<()> {
