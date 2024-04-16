@@ -9,6 +9,7 @@ use argon2::{
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
+use tabby_common::demo_mode;
 use tabby_db::{DbConn, InvitationDAO};
 use tokio::task::JoinHandle;
 use tracing::warn;
@@ -157,6 +158,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
         old_password: Option<&str>,
         new_password: &str,
     ) -> Result<()> {
+        if demo_mode() {
+            return Err(anyhow!("Demo mode is enabled, cannot change passwords").into());
+        }
+
         let user = self
             .db
             .get_user(id.as_rowid()?)
