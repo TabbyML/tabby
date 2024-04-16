@@ -263,7 +263,7 @@ export default function Stats() {
       users: data?.me?.id
     }
   })
-  let lastYearCompletions = 0
+  let lastYearActivities = 0
   let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
   if (sample) {
     const daysBetweenRange = eachDayOfInterval({
@@ -292,7 +292,8 @@ export default function Stats() {
   const dailyCompletionMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
       const date = moment(cur.start).format('YYYY-MM-DD')
-      lastYearCompletions += cur.completions
+      lastYearActivities += cur.completions
+      lastYearActivities += cur.selects
       return { ...acc, [date]: cur.completions }
     }, {}) || {}
   const activities = new Array(365)
@@ -367,7 +368,7 @@ export default function Stats() {
       >
         <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
-            <b>{lastYearCompletions}</b> activities in the last year
+            <b>{lastYearActivities}</b> activities in the last year
           </h3>
           <div className="flex items-end justify-center rounded-xl border p-5">
             <ActivityCalendar data={activities} />
