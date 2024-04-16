@@ -28,6 +28,7 @@ import {
   Language
 } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
+import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent } from '@/components/ui/card'
@@ -40,10 +41,9 @@ import { CompletionCharts, type LanguageStats } from './completion-charts'
 const DATE_RANGE = 6
 
 type LanguageData = {
-  name: string
+  name: Language | 'NONE'
   selects: number
   completions: number
-  label: string
 }[]
 
 // Find auto-completion stats of each language
@@ -83,7 +83,7 @@ function useLanguageStats({
       newLanguageStats[language] = newLanguageStats[language] || {
         selects: 0,
         completions: 0,
-        name: Object.keys(Language)[lanIdx]
+        name: Object.values(Language)[lanIdx]
       }
       newLanguageStats[language].selects += sum(
         data.dailyStats.map(stats => stats.selects)
@@ -129,7 +129,7 @@ function ActivityCalendar({
   const size = useWindowSize()
   const width = size.width || 0
   const blockSize =
-    width >= 1300 ? 13 : width >= 1000 ? 8 : width >= 800 ? 6 : 9
+    width >= 1300 ? 13 : width >= 1000 ? 8 : width >= 800 ? 10 : 9
 
   return (
     <ReactActivityCalendar
@@ -150,13 +150,12 @@ const LanguageLabel: React.FC<
   LabelProps & { languageData: LanguageData; theme?: string }
 > = props => {
   const { x, y, value, languageData, theme } = props
-  const myLanguageData = languageData.find(data => data.label === value)
+  const myLanguageData = languageData.find(data => data.name === value)
 
   if (!myLanguageData || myLanguageData.completions === 0) {
     return null
   }
 
-  const padding = 5
   return (
     <text
       x={+x!}
@@ -167,7 +166,7 @@ const LanguageLabel: React.FC<
       textAnchor="start"
       dominantBaseline="middle"
     >
-      {value}
+      {toProgrammingLanguageDisplayName(value as Language)}
     </text>
   )
 }
@@ -180,16 +179,16 @@ function LanguageTooltip({
   payload?: {
     name: string
     payload: {
-      label: string
+      name: Language | 'NONE'
       completions: number
       selects: number
     }
   }[]
 }) {
   if (active && payload && payload.length) {
-    const { completions, selects, label } = payload[0].payload
+    const { completions, selects, name } = payload[0].payload
     const activities = completions + selects
-    if (!activities) return null
+    if (!activities || name === 'NONE') return null
     return (
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
@@ -197,7 +196,9 @@ function LanguageTooltip({
             <span className="mr-3 inline-block w-20">Completions:</span>
             <b>{completions}</b>
           </p>
-          <p className="text-muted-foreground">{label}</p>
+          <p className="text-muted-foreground">
+            {toProgrammingLanguageDisplayName(name)}
+          </p>
         </CardContent>
       </Card>
     )
@@ -262,7 +263,7 @@ export default function Stats() {
       users: data?.me?.id
     }
   })
-  let lastYearCompletions = 0
+  let lastYearActivities = 0
   let yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
   if (sample) {
     const daysBetweenRange = eachDayOfInterval({
@@ -291,7 +292,8 @@ export default function Stats() {
   const dailyCompletionMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
       const date = moment(cur.start).format('YYYY-MM-DD')
-      lastYearCompletions += cur.completions
+      lastYearActivities += cur.completions
+      lastYearActivities += cur.selects
       return { ...acc, [date]: cur.completions }
     }, {}) || {}
   const activities = new Array(365)
@@ -314,33 +316,31 @@ export default function Stats() {
     end: moment(endDate).toDate(),
     users: data?.me?.id
   })
-  let languageData: LanguageData | undefined
+
+  let languageData: LanguageData | []
   if (sample) {
     const rng = seedrandom(data?.me.id)
     const rustCompletion = Math.ceil(rng() * 40)
     const pythonCompletion = Math.ceil(rng() * 25)
     languageData = [
       {
-        name: 'rust',
-        label: 'Rust',
+        name: Language.Rust,
         completions: rustCompletion,
         selects: rustCompletion
       },
       {
-        name: 'python',
-        label: 'Python',
+        name: Language.Python,
         completions: pythonCompletion,
         selects: pythonCompletion
       }
     ]
   } else {
     languageData = Object.entries(languageStats)
-      .map(([key, stats]) => {
+      .map(([_, stats]) => {
         return {
-          name: key,
+          name: stats.name,
           selects: stats.selects,
-          completions: stats.completions,
-          label: stats.name
+          completions: stats.completions
         }
       })
       .filter(item => item.completions)
@@ -351,10 +351,9 @@ export default function Stats() {
     // Placeholder when there is no completions
     languageData = [
       {
-        name: 'none',
+        name: 'NONE',
         selects: 0,
-        completions: 0.01,
-        label: 'None'
+        completions: 0.01
       }
     ]
   }
@@ -362,14 +361,14 @@ export default function Stats() {
   if (!data?.me?.id) return <></>
 
   return (
-    <div className="flex flex-col gap-y-8">
+    <div className="flex w-full flex-col gap-y-8">
       <LoadingWrapper
         loading={fetchingYearlyStats}
-        fallback={<Skeleton className="h-48 md:w-[32rem] xl:w-[61rem]" />}
+        fallback={<Skeleton className="h-48" />}
       >
         <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
-            <b>{lastYearCompletions}</b> contributions in the last year
+            <b>{lastYearActivities}</b> activities in the last year
           </h3>
           <div className="flex items-end justify-center rounded-xl border p-5">
             <ActivityCalendar data={activities} />
@@ -379,9 +378,7 @@ export default function Stats() {
 
       <LoadingWrapper
         loading={fetchingDailyState}
-        fallback={
-          <Skeleton className="h-48 w-full md:w-[32rem] xl:w-[61rem]" />
-        }
+        fallback={<Skeleton className="h-48" />}
       >
         <CompletionCharts
           dailyStats={dailyStats}
@@ -393,9 +390,7 @@ export default function Stats() {
 
       <LoadingWrapper
         loading={fetchingDailyState}
-        fallback={
-          <Skeleton className="h-48 w-full md:w-[32rem] xl:w-[61rem]" />
-        }
+        fallback={<Skeleton className="h-48" />}
       >
         <div>
           <h3 className="mb-2 text-sm font-medium tracking-tight">
@@ -414,7 +409,7 @@ export default function Stats() {
               >
                 <Bar dataKey="completions" radius={3}>
                   <LabelList
-                    dataKey="label"
+                    dataKey="name"
                     content={
                       <LanguageLabel
                         languageData={languageData}
@@ -423,7 +418,7 @@ export default function Stats() {
                     }
                   />
                   {languageData.map((entry, index) => {
-                    const lanColor = colorMap[entry.label.toLocaleLowerCase()]
+                    const lanColor = colorMap[entry.name.toLocaleLowerCase()]
                     const color = lanColor
                       ? lanColor
                       : theme === 'dark'

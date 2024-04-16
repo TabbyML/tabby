@@ -1,7 +1,9 @@
 [package]
 name = "tabby"
-version = "0.10.0-dev.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
 
 [features]
 default = ["ee", "experimental-http"]
@@ -58,7 +60,6 @@ chrono.workspace = true
 axum-prometheus = "0.4.0"
 uuid.workspace = true
 nucleo = { workspace = true }
-url = { workspace = true }
 
 [dependencies.openssl]
 optional = true

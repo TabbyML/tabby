@@ -1,5 +1,4 @@
 import React from 'react'
-import { usePathname } from 'next/navigation'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
@@ -17,7 +16,6 @@ import {
   IconBackpack,
   IconChat,
   IconCode,
-  IconGear,
   IconHome,
   IconLogout,
   IconSpinner
@@ -41,9 +39,6 @@ export default function UserPanel({
     setSignOutLoading(false)
   }
 
-  const pathname = usePathname()
-  const isHome = pathname === '/'
-
   if (!user) {
     return
   }
@@ -54,24 +49,13 @@ export default function UserPanel({
       <DropdownMenuContent collisionPadding={{ right: 16 }}>
         <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {!isHome && (
-          <DropdownMenuItem
-            onClick={() => window.open('/')}
-            className="cursor-pointer"
-          >
-            <IconHome />
-            <span className="ml-2">Home</span>
-          </DropdownMenuItem>
-        )}
-        {isHome && (
-          <DropdownMenuItem
-            onClick={() => window.open('/profile')}
-            className="cursor-pointer"
-          >
-            <IconGear />
-            <span className="ml-2">Settings</span>
-          </DropdownMenuItem>
-        )}
+        <DropdownMenuItem
+          onClick={() => window.open('/')}
+          className="cursor-pointer"
+        >
+          <IconHome />
+          <span className="ml-2">Home</span>
+        </DropdownMenuItem>
         {isChatEnabled && (
           <DropdownMenuItem
             onClick={() => window.open('/playground')}
