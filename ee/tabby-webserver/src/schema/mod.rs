@@ -348,14 +348,7 @@ impl Query {
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
         check_admin(ctx).await?;
-        let Some(mut credentials) = ctx.locator.auth().read_oauth_credential(provider).await?
-        else {
-            return Ok(None);
-        };
-
-        // Client secret is not visible from GraphQL api.
-        credentials.client_secret = None;
-        Ok(Some(credentials))
+        ctx.locator.auth().read_oauth_credential(provider).await
     }
 
     async fn oauth_callback_url(ctx: &Context, provider: OAuthProvider) -> Result<String> {

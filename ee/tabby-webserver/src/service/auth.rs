@@ -1394,6 +1394,6 @@ mod tests {
             .unwrap();
         assert_eq!(cred.provider, OAuthProvider::Google);
         assert_eq!(cred.client_id, "id");
-        assert_eq!(cred.client_secret, Some("secret".into()));
+        assert_eq!(cred.client_secret, "secret");
     }
 }
