@@ -12,7 +12,7 @@ export type CodeSnippet = {
   filepath: string;
   // (Not Indexed) The offset of the snippet in the file
   offset: number;
-  // The full text of the snippet
+  // (Not Indexed) The full text of the snippet
   fullText: string;
   // The code language id of the snippet
   language: string;
@@ -44,7 +44,6 @@ export class CodeSearchEngine {
     this.db = await Engine.create({
       schema: {
         filepath: "string",
-        fullText: "string",
         language: "string",
         symbols: "string",
       },
@@ -188,10 +187,7 @@ export class CodeSearchEngine {
     }
     const searchResult = await Engine.search(this.db, {
       term: query,
-      properties: ["symbols", "fullText"],
-      boost: {
-        symbols: 2, // Give more weight to symbols
-      },
+      properties: ["symbols"],
       where: {
         // FIXME: It seems this cannot exactly filtering using the filepaths
         // So we do a manual filtering later
@@ -215,7 +211,8 @@ export class CodeSearchEngine {
         .map((hit) => {
           return {
             snippet: hit.document,
-            score: hit.score,
+            // FIXME: Why there are many scores NaN?
+            score: hit.score ?? 0,
           };
         })
     );

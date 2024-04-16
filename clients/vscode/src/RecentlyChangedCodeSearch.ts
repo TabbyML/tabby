@@ -89,6 +89,9 @@ export class RecentlyChangedCodeSearch {
     const filepaths = indexed
       .map((documentRange) => documentRange.document.uri.toString())
       .filter((filepath) => filepath !== currentDocument.uri.toString());
+    if (filepaths.length < 1) {
+      return [];
+    }
     const options = {
       filepathsFilter: filepaths,
       languagesFilter: this.getLanguageFilter(currentDocument.languageId),

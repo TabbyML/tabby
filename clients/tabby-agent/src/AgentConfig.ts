@@ -108,7 +108,7 @@ export const defaultAgentConfig: AgentConfig = {
       },
       collectSnippetsFromRecentChangedFiles: {
         enabled: false,
-        maxSnippets: 5,
+        maxSnippets: 3,
         indexing: {
           checkingChangesInterval: 500,
           changesDebouncingInterval: 1000,
