@@ -36,6 +36,11 @@ enum AuthMethod {
   LOGIN
 }
 
+type GithubProvidedRepositoryConnection {
+  edges: [GithubProvidedRepositoryEdge!]!
+  pageInfo: PageInfo!
+}
+
 type RegisterResponse {
   accessToken: String!
   refreshToken: String!
@@ -175,6 +180,7 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
+  updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
 type RepositoryEdge {
@@ -192,8 +198,13 @@ type FileEntrySearchResult {
   indices: [Int!]!
 }
 
-input NetworkSettingInput {
-  externalUrl: String!
+type GithubProvidedRepository {
+  id: ID!
+  vendorId: String!
+  githubRepositoryProviderId: ID!
+  name: String!
+  gitUrl: String!
+  active: Boolean!
 }
 
 type Query {
@@ -204,6 +215,7 @@ type Query {
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   githubRepositoryProviders(after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
+  githubRepositories(providerIds: [ID!]!, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting
@@ -219,6 +231,10 @@ type Query {
   jobs: [String!]!
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
+}
+
+input NetworkSettingInput {
+  externalUrl: String!
 }
 
 enum Encryption {
@@ -326,6 +342,11 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+type GithubProvidedRepositoryEdge {
+  node: GithubProvidedRepository!
+  cursor: String!
 }
 
 type Repository {

@@ -2,14 +2,14 @@ use anyhow::anyhow;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, GithubRepositoryProviderDAO, InvitationDAO, JobRunDAO, OAuthCredentialDAO,
-    RepositoryDAO, ServerSettingDAO, UserDAO,
+    EmailSettingDAO, GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO, InvitationDAO,
+    JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
 };
 
 use crate::schema::{
     auth::{self, OAuthCredential, OAuthProvider},
     email::{AuthMethod, EmailSetting, Encryption},
-    github_repository_provider::GithubRepositoryProvider,
+    github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
     job,
     repository::Repository,
     setting::{NetworkSetting, SecuritySetting},
@@ -126,6 +126,20 @@ impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
             display_name: value.display_name,
             application_id: value.application_id,
             id: value.id.as_id(),
+            access_token: value.access_token,
+        }
+    }
+}
+
+impl From<GithubProvidedRepositoryDAO> for GithubProvidedRepository {
+    fn from(value: GithubProvidedRepositoryDAO) -> Self {
+        Self {
+            id: value.id.as_id(),
+            github_repository_provider_id: value.github_repository_provider_id.as_id(),
+            name: value.name,
+            git_url: value.git_url,
+            vendor_id: value.vendor_id,
+            active: value.active,
         }
     }
 }

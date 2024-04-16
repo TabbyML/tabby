@@ -33,7 +33,9 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    github_repository_provider::{GithubRepositoryProvider, GithubRepositoryProviderService},
+    github_repository_provider::{
+        GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
+    },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{Repository, RepositoryService},
@@ -248,6 +250,37 @@ impl Query {
                     .locator
                     .github_repository_provider()
                     .list_github_repository_providers(after, before, first, last)
+                    .await?)
+            },
+        )
+        .await
+    }
+
+    async fn github_repositories(
+        ctx: &Context,
+        provider_ids: Vec<ID>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> FieldResult<Connection<GithubProvidedRepository>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                Ok(ctx
+                    .locator
+                    .github_repository_provider()
+                    .list_github_provided_repositories_by_provider(
+                        provider_ids,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
                     .await?)
             },
         )
@@ -667,6 +700,18 @@ impl Mutation {
     async fn reset_license(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator.license().reset_license().await?;
+        Ok(true)
+    }
+
+    async fn update_github_provided_repository_active(
+        ctx: &Context,
+        id: ID,
+        active: bool,
+    ) -> Result<bool> {
+        ctx.locator
+            .github_repository_provider()
+            .update_github_provided_repository_active(id, active)
+            .await?;
         Ok(true)
     }
 }
