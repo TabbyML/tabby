@@ -106,7 +106,7 @@ pub struct ServeArgs {
     parallelism: u8,
 
     #[cfg(feature = "ee")]
-    #[clap(long, default_value_t = false)]
+    #[clap(hide = true, long, default_value_t = false)]
     #[deprecated(since = "0.11.0", note = "webserver is enabled by default")]
     webserver: bool,
 
