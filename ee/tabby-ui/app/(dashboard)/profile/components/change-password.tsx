@@ -54,6 +54,11 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     onCompleted(values) {
       if (values?.passwordChange) {
         onSuccess?.()
+        form.reset({
+          newPassword1: '',
+          newPassword2: '',
+          oldPassword: ''
+        })
       }
     }
   })
