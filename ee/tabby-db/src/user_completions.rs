@@ -147,10 +147,10 @@ impl DbConn {
         let res = sqlx::query_as(&format!(
             r#"
             SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
-                   SUM(1) as completions,
+                   COUNT(1) as completions,
                    SUM(selects) as selects
             FROM (
-                SELECT created_at, selects, IIF(language IN ({all_languages}), language, 'other') as language
+                SELECT user_id, created_at, selects, IIF(language IN ({all_languages}), language, 'other') as language
                     FROM user_completions
                     WHERE created_at >= ?1 AND created_at < ?2
             )

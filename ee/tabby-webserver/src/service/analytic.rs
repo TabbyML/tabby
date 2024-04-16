@@ -187,6 +187,15 @@ mod tests {
         assert_eq!(1, stats.len());
         assert_eq!(1, stats[0].completions);
         assert_eq!(1, stats[0].selects);
+
+        // With user filter
+        let stats = svc
+            .daily_stats(start, end, vec![user_id.as_id()], vec![])
+            .await
+            .unwrap();
+        assert_eq!(1, stats.len());
+        assert_eq!(1, stats[0].completions);
+        assert_eq!(1, stats[0].selects);
     }
 
     #[tokio::test]
