@@ -18,8 +18,9 @@ import { ChatSessions } from './chat-sessions'
 const emptyMessages: Message[] = []
 
 export default function Chats() {
-  const { searchParams, updateSearchParams } = useRouterStuff()
-  const initialMessage = searchParams.get('initialMessage')?.toString()
+  const { updateSearchParams } = useRouterStuff()
+  const hasInitialMessage = window.location.search.startsWith("?initialMessage=")
+  const initialMessage = hasInitialMessage ? decodeURIComponent(window.location.search.replace('?initialMessage=', "")) : ""
   const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
   const chatRef = React.useRef<ChatRef>(null)
 
