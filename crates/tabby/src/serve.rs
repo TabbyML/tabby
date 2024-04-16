@@ -11,7 +11,7 @@ use tabby_common::{
 };
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
-use tracing::info;
+use tracing::{info, warn};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
@@ -107,7 +107,12 @@ pub struct ServeArgs {
 
     #[cfg(feature = "ee")]
     #[clap(hide = true, long, default_value_t = false)]
+    #[deprecated(since = "0.11.0", note = "webserver is enabled by default")]
     webserver: bool,
+
+    #[cfg(feature = "ee")]
+    #[clap(hide = true, long, default_value_t = false)]
+    no_webserver: bool,
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
@@ -123,7 +128,12 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might take a few minutes...");
 
     #[cfg(feature = "ee")]
-    let ws = if args.webserver {
+    if args.webserver {
+        warn!("'--webserver' is enabled by default since 0.11, and will be removed in the next major release. Please remove this flag from your command.");
+    }
+
+    #[cfg(feature = "ee")]
+    let ws = if !args.no_webserver {
         Some(tabby_webserver::public::WebserverHandle::new(create_event_logger()).await)
     } else {
         None
@@ -155,7 +165,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let (api, ui) = if args.webserver {
+    let (api, ui) = if args.no_webserver {
         let (api, ui) = ws
             .unwrap()
             .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
@@ -289,7 +299,7 @@ async fn api_router(
         Router::new().route("/v1beta/server_setting", routing::get(routes::setting));
 
     #[cfg(feature = "ee")]
-    if !args.webserver {
+    if args.no_webserver {
         routers.push(server_setting_router)
     }
 

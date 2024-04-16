@@ -1,3 +1,13 @@
+# v0.11.0 [UNRELEASED]
+
+## Notice
+
+* The `--webserver` flag is now enabled by default in `tabby serve`. To turn off the webserver and only use OSS features, use the `--no-webserver` flag.
+
+## Features
+
+## Fixes and Improvements
+
 # v0.10.0 [UNRELEASED]
 
 ## Features
