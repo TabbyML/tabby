@@ -129,7 +129,7 @@ function ActivityCalendar({
   const size = useWindowSize()
   const width = size.width || 0
   const blockSize =
-    width >= 1300 ? 13 : width >= 1000 ? 8 : width >= 800 ? 6 : 9
+    width >= 1300 ? 13 : width >= 1000 ? 8 : width >= 800 ? 10 : 9
 
   return (
     <ReactActivityCalendar

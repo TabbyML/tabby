@@ -73,7 +73,7 @@ function StatsSummary({
       : ((totalAcceptances / totalCompletions) * 100).toFixed(2)
   return (
     <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
-      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Accept Rate</CardTitle>
           <IconActivity className="text-muted-foreground" />
@@ -83,7 +83,7 @@ function StatsSummary({
         </CardContent>
       </Card>
 
-      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Total Completions
@@ -97,7 +97,7 @@ function StatsSummary({
         </CardContent>
       </Card>
 
-      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 md:block">
+      <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Total Acceptances
@@ -209,7 +209,7 @@ export function Report() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-4 flex flex-col items-center justify-between gap-y-2 md:flex-row md:items-end md:gap-y-0">
+      <div className="mb-4 flex flex-col items-center justify-between gap-y-2 lg:flex-row lg:items-end lg:gap-y-0">
         <SubHeader className="mb-0">
           Statistics around Tabby IDE / Extensions
         </SubHeader>
@@ -268,7 +268,7 @@ export function Report() {
         }
       >
         <div className="mb-10 flex flex-col gap-y-5">
-          <div className="-mb-2 flex flex-col justify-between gap-y-1 md:flex-row md:items-end md:gap-y-0">
+          <div className="-mb-2 flex flex-col justify-between gap-y-1 lg:flex-row lg:items-end lg:gap-y-0">
             <h1 className="text-xl font-semibold">Usage</h1>
 
             <div className="flex items-center gap-x-3">
@@ -278,7 +278,7 @@ export function Report() {
                     <span className="mr-1.5 text-muted-foreground">
                       Language:
                     </span>
-                    <div className="w-[80px]">
+                    <div className="w-full lg:w-[80px]">
                       {selectedLanguage.length === 0 && (
                         <p className="w-full overflow-hidden text-ellipsis">
                           All
