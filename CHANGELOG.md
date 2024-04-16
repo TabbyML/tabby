@@ -5,6 +5,7 @@
 * Added a "Reports" tab in the web interface, which provides team-wise statistics for Tabby IDE and Extensions usage (e.g., completions, acceptances).
 * Enabled the use of segmented models with the `tabby download` command.
 * Implemented the "Go to file" functionality in the Code Browser.
+* Supports OCaml.
 
 ## Fixes and Improvements
 * Fix worker unregisteration misfunctioning caused by unmatched address.
