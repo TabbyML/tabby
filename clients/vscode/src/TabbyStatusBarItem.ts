@@ -57,7 +57,7 @@ export class TabbyStatusBarItem {
     {
       target: "disabled",
       cond: () => this.completionProvider.getTriggerMode() === "disabled",
-    }
+    },
   ];
 
   private fsm = createMachine({
@@ -152,7 +152,7 @@ export class TabbyStatusBarItem {
       if (event.status === "ready") {
         const healthState = agent().getServerHealthState();
         const isChatEnabled = Boolean(healthState?.chat_model);
-        commands.executeCommand('setContext', 'chatModeEnabled', isChatEnabled);
+        commands.executeCommand("setContext", "chatModeEnabled", isChatEnabled);
       }
     });
 

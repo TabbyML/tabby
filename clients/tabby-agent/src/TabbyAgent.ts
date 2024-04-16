@@ -523,7 +523,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public getServerHealthState(): ServerHealthState | null {
-    console.log("getServerHealthState", this.serverHealthState)
     return this.serverHealthState ?? null;
   }
 
