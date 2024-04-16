@@ -214,6 +214,7 @@ mod tests {
             .await
             .unwrap();
 
+        // Test retrieving github provider by ID
         let provider1 = service
             .get_github_repository_provider(id.clone())
             .await
@@ -228,21 +229,37 @@ mod tests {
             }
         );
 
+        // Test reading github provider secret
         let secret1 = service
             .read_github_repository_provider_secret(id.clone())
             .await
             .unwrap();
         assert_eq!(secret1, "secret");
 
+        // Test listing github providers
+        let providers = service
+            .list_github_repository_providers(None, None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(providers.len(), 1);
+        assert_eq!(providers[0].access_token, None);
+
+        // Test updating github provider tokens
+        service
+            .update_github_repository_provider_access_token(id.clone(), "test_token".into())
+            .await
+            .unwrap();
+
         assert_eq!(
-            1,
             service
-                .list_github_repository_providers(None, None, None, None, None)
+                .get_github_repository_provider(id.clone())
                 .await
                 .unwrap()
-                .len()
+                .access_token,
+            Some("test_token".into())
         );
 
+        // Test deleting github provider
         service
             .delete_github_repository_provider(id.clone())
             .await
