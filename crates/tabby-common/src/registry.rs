@@ -123,12 +123,10 @@ pub static GGML_MODEL_RELATIVE_PATH: &str = "ggml/model.gguf";
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use temp_testdir::TempDir;
 
+    use super::{ModelRegistry, *};
     use crate::path::set_tabby_root;
-
-    use super::ModelRegistry;
 
     #[tokio::test]
     async fn test_model_migration() {
