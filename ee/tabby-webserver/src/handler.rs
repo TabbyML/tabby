@@ -55,7 +55,7 @@ impl RepositoryAccess for RepositoryAccessImpl {
                 Ok::<_, anyhow::Error>(
                     repos
                         .into_iter()
-                        .map(|repo| RepositoryConfig::new_named(repo.name, repo.git_url))
+                        .map(|repo| RepositoryConfig::new(repo.git_url))
                         .collect(),
                 )
             })

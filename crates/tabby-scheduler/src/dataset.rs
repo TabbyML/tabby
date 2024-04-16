@@ -30,10 +30,9 @@ trait RepositoryExt {
 
 impl RepositoryExt for RepositoryConfig {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
-        let dir = self.dir();
-
+        let basedir = self.dir();
         let walk_dir_iter = || {
-            Walk::new(dir.as_path())
+            Walk::new(basedir.as_path())
                 .filter_map(Result::ok)
                 .filter(is_source_code)
         };
@@ -49,7 +48,7 @@ impl RepositoryExt for RepositoryConfig {
 
             let relative_path = entry
                 .path()
-                .strip_prefix(dir.as_path())
+                .strip_prefix(basedir.as_path())
                 .expect("Paths always begin with the prefix");
             let language = get_language(
                 relative_path
@@ -62,7 +61,7 @@ impl RepositoryExt for RepositoryConfig {
                 Ok(file_content) => {
                     let source_file = SourceFile {
                         git_url: self.canonical_git_url(),
-                        basedir: dir.display().to_string(),
+                        basedir: basedir.display().to_string(),
                         filepath: relative_path.display().to_string(),
                         max_line_length: metrics::max_line_length(&file_content),
                         avg_line_length: metrics::avg_line_length(&file_content),
@@ -73,7 +72,11 @@ impl RepositoryExt for RepositoryConfig {
                     writer.write_json_lines([source_file.clone()])?;
                 }
                 Err(e) => {
-                    error!("Cannot read '{}': '{e}'", relative_path.display());
+                    error!(
+                        "Cannot read '{}/{}': '{e}'",
+                        basedir.display(),
+                        relative_path.display()
+                    );
                 }
             }
         }

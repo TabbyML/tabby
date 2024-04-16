@@ -153,7 +153,7 @@ impl Hub for Arc<HubImpl> {
             .map_err(|e| e.to_string())
             .map(|v| {
                 v.into_iter()
-                    .map(|r| RepositoryConfig::new_named(r.name, r.git_url))
+                    .map(|r| RepositoryConfig::new(r.git_url))
                     .collect()
             });
         result.unwrap_or_else(|e| {

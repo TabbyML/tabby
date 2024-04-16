@@ -20,7 +20,6 @@ utoipa.workspace = true
 serde_json.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
-regex.workspace = true
 url.workspace = true
 
 [features]
