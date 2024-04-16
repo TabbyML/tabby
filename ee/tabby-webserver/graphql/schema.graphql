@@ -278,12 +278,12 @@ enum LicenseType {
   COMMUNITY
   TEAM
   ENTERPRISE
+  DEMO
 }
 
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
-  clientSecret: String
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
 }
