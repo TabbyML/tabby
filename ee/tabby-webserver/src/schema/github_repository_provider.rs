@@ -11,19 +11,8 @@ pub struct GithubRepositoryProvider {
     pub id: ID,
     pub display_name: String,
     pub application_id: String,
-    /// Will never be returned to the client / from GraphQL endpoints.
-    /// Make sure to strip using [Self::strip_access_token].
+    #[graphql(skip)]
     pub access_token: Option<String>,
-}
-
-impl GithubRepositoryProvider {
-    /// Remove the access token for external representation.
-    pub fn strip_access_token(self) -> Self {
-        Self {
-            access_token: None,
-            ..self
-        }
-    }
 }
 
 impl NodeType for GithubRepositoryProvider {

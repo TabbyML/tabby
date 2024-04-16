@@ -250,10 +250,7 @@ impl Query {
                     .locator
                     .github_repository_provider()
                     .list_github_repository_providers(after, before, first, last)
-                    .await?
-                    .into_iter()
-                    .map(|provider| provider.strip_access_token())
-                    .collect())
+                    .await?)
             },
         )
         .await
