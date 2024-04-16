@@ -165,7 +165,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
 
     #[cfg(feature = "ee")]
-    let (api, ui) = if args.no_webserver {
+    let (api, ui) = if !args.no_webserver {
         let (api, ui) = ws
             .unwrap()
             .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
