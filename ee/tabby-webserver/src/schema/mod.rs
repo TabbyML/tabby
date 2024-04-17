@@ -157,7 +157,7 @@ pub struct Query;
 impl Query {
     async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
         check_admin(ctx).await?;
-        let workers = ctx.locator.worker().list_workers().await;
+        let workers = ctx.locator.worker().list().await;
         return Ok(workers);
     }
 

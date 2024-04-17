@@ -169,11 +169,11 @@ impl WorkerService for ServerContext {
         Ok(self.db_conn.reset_registration_token().await?)
     }
 
-    async fn list_workers(&self) -> Vec<Worker> {
+    async fn list(&self) -> Vec<Worker> {
         [self.completion.list().await, self.chat.list().await].concat()
     }
 
-    async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
+    async fn register(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
         let worker_group = match worker.kind {
             WorkerKind::Completion => &self.completion,
             WorkerKind::Chat => &self.chat,
@@ -198,7 +198,7 @@ impl WorkerService for ServerContext {
         Ok(worker)
     }
 
-    async fn unregister_worker(&self, worker_addr: &str) {
+    async fn unregister(&self, worker_addr: &str) {
         let kind = if self.chat.unregister(worker_addr).await {
             WorkerKind::Chat
         } else if self.completion.unregister(worker_addr).await {
