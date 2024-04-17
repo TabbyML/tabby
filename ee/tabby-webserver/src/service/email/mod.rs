@@ -162,7 +162,7 @@ pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
 
 #[async_trait]
 impl EmailService for EmailServiceImpl {
-    async fn read_email_setting(&self) -> Result<Option<EmailSetting>> {
+    async fn read_setting(&self) -> Result<Option<EmailSetting>> {
         let setting = self.db.read_email_setting().await?;
         let Some(setting) = setting else {
             return Ok(None);
@@ -176,7 +176,7 @@ impl EmailService for EmailServiceImpl {
         Ok(Some(setting))
     }
 
-    async fn update_email_setting(&self, input: EmailSettingInput) -> Result<()> {
+    async fn update_setting(&self, input: EmailSettingInput) -> Result<()> {
         self.db
             .update_email_setting(
                 input.smtp_username.clone(),
@@ -212,14 +212,14 @@ impl EmailService for EmailServiceImpl {
         Ok(())
     }
 
-    async fn delete_email_setting(&self) -> Result<()> {
+    async fn delete_setting(&self) -> Result<()> {
         self.db.delete_email_setting().await?;
         // When the SMTP credentials are deleted, close the SMTP server connection
         self.shutdown_smtp_connection().await;
         Ok(())
     }
 
-    async fn send_invitation_email(&self, email: String, code: String) -> Result<JoinHandle<()>> {
+    async fn send_invitation(&self, email: String, code: String) -> Result<JoinHandle<()>> {
         let network_setting = self.db.read_network_setting().await?;
         let external_url = network_setting.external_url;
         let body = templates::invitation(&external_url, &code, &email);
@@ -231,7 +231,7 @@ impl EmailService for EmailServiceImpl {
         .await
     }
 
-    async fn send_signup_email(&self, email: String) -> Result<JoinHandle<()>> {
+    async fn send_signup(&self, email: String) -> Result<JoinHandle<()>> {
         let external_url = self.db.read_network_setting().await?.external_url;
 
         let body = templates::signup_success(&external_url, &email);
@@ -239,7 +239,7 @@ impl EmailService for EmailServiceImpl {
             .await
     }
 
-    async fn send_password_reset_email(
+    async fn send_password_reset(
         &self,
         email: String,
         code: String,
@@ -250,7 +250,7 @@ impl EmailService for EmailServiceImpl {
             .await
     }
 
-    async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>> {
+    async fn send_test(&self, to: String) -> Result<JoinHandle<()>> {
         let body = templates::test();
         self.send_email_in_background(to, "Your mail server is ready to go!".into(), body)
             .await
@@ -284,11 +284,11 @@ mod tests {
             auth_method: AuthMethod::None,
             smtp_password: Some("123456".to_owned()),
         };
-        service.update_email_setting(update_input).await.unwrap();
-        let setting = service.read_email_setting().await.unwrap().unwrap();
+        service.update_setting(update_input).await.unwrap();
+        let setting = service.read_setting().await.unwrap().unwrap();
         assert_eq!(setting.smtp_username, "test@example.com");
 
-        service.delete_email_setting().await.unwrap();
+        service.delete_setting().await.unwrap();
     }
 
     /*
@@ -303,14 +303,14 @@ mod tests {
             .await;
 
         let handle = service
-            .send_invitation_email("user@localhost".into(), "12345".into())
+            .send_invitation("user@localhost".into(), "12345".into())
             .await
             .unwrap();
 
         handle.await.unwrap();
 
         let handle = service
-            .send_test_email("user@localhost".into())
+            .send_test("user@localhost".into())
             .await
             .unwrap();
 
@@ -318,7 +318,7 @@ mod tests {
 
         let mails = mail_server.list_mail().await;
         let default_from = service
-            .read_email_setting()
+            .read_setting()
             .await
             .unwrap()
             .unwrap()
@@ -335,7 +335,7 @@ mod tests {
             .await;
 
         let handle = service
-            .send_test_email("user@localhost".into())
+            .send_test("user@localhost".into())
             .await
             .unwrap();
 
