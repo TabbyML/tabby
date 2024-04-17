@@ -1,4 +1,4 @@
-import { StatusBarAlignment, ThemeColor, ExtensionContext, window, commands } from "vscode";
+import { StatusBarAlignment, ThemeColor, ExtensionContext, window, commands, workspace } from "vscode";
 import { createMachine, interpret } from "@xstate/fsm";
 import type { StatusChangedEvent, AuthRequiredEvent, IssuesUpdatedEvent } from "tabby-agent";
 import { logger } from "./logger";
@@ -153,6 +153,11 @@ export class TabbyStatusBarItem {
         const healthState = agent().getServerHealthState();
         const isChatEnabled = Boolean(healthState?.chat_model);
         commands.executeCommand("setContext", "chatModeEnabled", isChatEnabled);
+
+        const configuration = workspace.getConfiguration("tabby");
+        const experimental = configuration.get<Record<string, any>>("experimental.advanced", {});
+        const isExplainCodeEnabled = experimental["chat.explainCodeBlock"] || false;
+        commands.executeCommand("setContext", "explainCodeSettingEnabled", isExplainCodeEnabled);
       }
     });
 

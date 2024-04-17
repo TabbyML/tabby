@@ -322,7 +322,7 @@ const resetMutedNotifications = (context: ExtensionContext, statusBarItem: Tabby
 };
 
 const explainCodeBlock: Command = {
-  command: "tabby.ai.explainCodeBlock",
+  command: "tabby.experimental.chat.explainCodeBlock",
   callback: async () => {
     const editor = window.activeTextEditor;
     const configuration = agent().getConfig();

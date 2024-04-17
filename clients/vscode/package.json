@@ -71,7 +71,7 @@
         "title": "Tabby: Reset notifications marked as \"Don't Show Again\""
       },
       {
-        "command": "tabby.ai.explainCodeBlock",
+        "command": "tabby.experimental.chat.explainCodeBlock",
         "title": "Tabby: Explain Codes"
       }
     ],
@@ -86,15 +86,15 @@
           "when": "!isWeb"
         },
         {
-          "command": "tabby.ai.explainCodeBlock",
-          "when": "config.tabby.feature.explainCodeBlock === true && editorHasSelection && chatModeEnabled"
+          "command": "tabby.experimental.chat.explainCodeBlock",
+          "when": "editorHasSelection && chatModeEnabled && explainCodeSettingEnabled"
         }
       ],
       "editor/context": [
         {
-          "command": "tabby.ai.explainCodeBlock",
+          "command": "tabby.experimental.chat.explainCodeBlock",
           "group": "1_close",
-          "when": "config.tabby.feature.explainCodeBlock === true && editorHasSelection && chatModeEnabled"
+          "when": "editorHasSelection && chatModeEnabled && explainCodeSettingEnabled"
         }
       ]
     },
@@ -176,10 +176,14 @@
           "default": false,
           "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection)."
         },
-        "tabby.feature.explainCodeBlock": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "**Enable code explanation**  \nEnable this feature to unlock AI-powered code explanations in your VSCode editor. Use the command palette or right-click menu to interpret any selected code instantly."
+        "tabby.experimental.advanced": {
+          "default": {},
+          "properties": {
+            "chat.explainCodeBlock": {
+              "type": "boolean",
+              "default": false
+            }
+          }
         }
       }
     },

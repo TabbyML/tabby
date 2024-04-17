@@ -1,4 +1,4 @@
-import { ExtensionContext, workspace, env, version } from "vscode";
+import { ExtensionContext, workspace, env, version, commands } from "vscode";
 import { TabbyAgent, AgentInitOptions, PartialAgentConfig, ClientProperties, DataStore } from "tabby-agent";
 import { getLogChannel } from "./logger";
 
@@ -99,6 +99,11 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
       if (event.affectsConfiguration("tabby.keybindings")) {
         const keybindings = configuration.get<string>("keybindings", "vscode-style");
         agent.updateClientProperties("user", "vscode.keybindings", keybindings);
+      }
+      if (event.affectsConfiguration("tabby.experimental.advanced")) {
+        const experimental = configuration.get<Record<string, any>>("experimental.advanced", {});
+        const isExplainCodeEnabled = experimental["chat.explainCodeBlock"] || false;
+        commands.executeCommand("setContext", "explainCodeSettingEnabled", isExplainCodeEnabled);
       }
     });
     instance = agent;
