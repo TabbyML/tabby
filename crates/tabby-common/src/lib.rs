@@ -52,6 +52,11 @@ impl SourceFile {
         let path = Path::new(&self.basedir).join(&self.filepath);
         std::fs::read_to_string(path)
     }
+
+    pub fn read_file_size(&self) -> usize {
+        let path = Path::new(&self.basedir).join(&self.filepath);
+        std::fs::metadata(path).map(|x| x.len()).unwrap_or_default() as usize
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

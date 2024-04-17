@@ -29,24 +29,17 @@ pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
     let mut writer = index.writer(150_000_000)?;
     writer.delete_all_documents()?;
 
+    let total_file_size: usize = SourceFile::all()?
+        .filter(is_valid_file)
+        .map(|x| x.read_file_size())
+        .sum();
+
     let mut pb = std::io::stdout()
         .is_terminal()
-        .then(SourceFile::all)
-        .transpose()?
-        .map(|iter| tqdm(iter.count()));
+        .then(|| tqdm(total_file_size));
 
     let intelligence = CodeIntelligence::default();
-    for file in SourceFile::all()? {
-        pb.as_mut().map(|b| b.update(1)).transpose()?;
-
-        if file.max_line_length > MAX_LINE_LENGTH_THRESHOLD {
-            continue;
-        }
-
-        if file.avg_line_length > AVG_LINE_LENGTH_THRESHOLD {
-            continue;
-        }
-
+    for file in SourceFile::all()?.filter(is_valid_file) {
         let text = match file.read_content() {
             Ok(content) => content,
             Err(e) => {
@@ -56,6 +49,8 @@ pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
         };
 
         for body in intelligence.chunks(&text) {
+            pb.as_mut().map(|b| b.update(body.len())).transpose()?;
+
             writer.add_document(doc!(
                     code.field_git_url => file.git_url.clone(),
                     code.field_filepath => file.filepath.clone(),
@@ -69,4 +64,9 @@ pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
     writer.wait_merging_threads()?;
 
     Ok(())
+}
+
+fn is_valid_file(file: &SourceFile) -> bool {
+    file.max_line_length <= MAX_LINE_LENGTH_THRESHOLD
+        && file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
 }
