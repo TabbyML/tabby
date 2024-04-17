@@ -182,6 +182,7 @@ type Mutation {
   resetLicense: Boolean!
   createGithubRepositoryProvider(displayName: String!, applicationId: String!, applicationSecret: String!): Boolean!
   deleteGithubRepositoryProvider(id: ID!): Boolean!
+  updateGithubRepositoryProvider(id: ID!, applicationId: String!, secret: String): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
