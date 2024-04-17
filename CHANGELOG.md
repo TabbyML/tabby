@@ -7,7 +7,7 @@
 ## Features
 
 ## Fixes and Improvements
-* Changed the default model filename from `q8_0.v2.gguf` to `model.gguf`
+* Changed the default model filename from `q8_0.v2.gguf` to `model.gguf` in MODEL_SPEC.md
 
 # v0.10.0 [UNRELEASED]
 
