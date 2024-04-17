@@ -4,9 +4,12 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isEmpty } from 'lodash-es'
-import { useForm } from 'react-hook-form'
+import { useForm, UseFormReturn } from 'react-hook-form'
+import { toast } from 'sonner'
 import * as z from 'zod'
 
+import { graphql } from '@/lib/gql/generates'
+import { useMutation } from '@/lib/tabby/gql'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,12 +27,20 @@ import { IconSpinner } from '@/components/ui/icons'
 
 import {
   BasicInfoForm,
-  basicInfoFormSchema
+  basicInfoFormSchema,
+  BasicInfoFormValues
 } from '../../components/basic-info-form'
 import {
   OAuthApplicationForm,
+  OAuthApplicationFormValues,
   oauthInfoFormSchema
 } from '../../components/oauth-application-form'
+
+const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
+  mutation DeleteGithubRepositoryProvider($id: ID!) {
+    deleteGithubRepositoryProvider(id: $id)
+  }
+`)
 
 const updateProviderFormSchema = z.union([
   basicInfoFormSchema,
@@ -39,6 +50,7 @@ const updateProviderFormSchema = z.union([
 type UpdateProviderFormValues = z.infer<typeof updateProviderFormSchema>
 
 interface UpdateProviderFormProps {
+  id: string
   defaultValues?: Partial<UpdateProviderFormValues>
   onSuccess?: () => void
   onDelete: () => void
@@ -49,7 +61,8 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   defaultValues,
   onSuccess,
   onDelete,
-  onBack
+  onBack,
+  id
 }) => {
   const ENCODE_PASSWORD = '********************************'
 
@@ -58,8 +71,12 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   const [isDeleting, setIsDeleting] = React.useState(false)
   const form = useForm<UpdateProviderFormValues>({
     resolver: zodResolver(updateProviderFormSchema),
-    defaultValues: { ...defaultValues, secret: ENCODE_PASSWORD }
+    defaultValues: { ...defaultValues, applicationSecret: ENCODE_PASSWORD }
   })
+
+  const deleteGithubRepositoryProvider = useMutation(
+    deleteGithubRepositoryProviderMutation
+  )
 
   const isDirty = !isEmpty(form.formState.dirtyFields)
 
@@ -68,12 +85,39 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     onSuccess?.()
   }
 
+  const handleDeleteRepositoryProvider: React.MouseEventHandler<
+    HTMLButtonElement
+  > = async e => {
+    e.preventDefault()
+    setIsDeleting(true)
+    try {
+      const res = await deleteGithubRepositoryProvider({ id })
+      if (res?.data?.deleteGithubRepositoryProvider) {
+        toast.success('Deleted repository provider successfully')
+        onDelete?.()
+      } else {
+        toast.error(
+          res?.error?.message || 'Failed to delete repository provider'
+        )
+      }
+    } catch (error) {
+      toast.error('Failed to delete repository provider')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <Form {...form}>
       <div className="grid gap-2">
         <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
-          <BasicInfoForm form={form} isUpdate />
-          <OAuthApplicationForm form={form} />
+          <BasicInfoForm
+            form={form as UseFormReturn<BasicInfoFormValues>}
+            isUpdate
+          />
+          <OAuthApplicationForm
+            form={form as UseFormReturn<OAuthApplicationFormValues>}
+          />
           <div className="flex justify-between">
             <Button variant="ghost" onClick={() => onBack()}>
               Back to providers
@@ -102,7 +146,8 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       className={buttonVariants({ variant: 'destructive' })}
-                      onClick={() => onDelete()}
+                      onClick={handleDeleteRepositoryProvider}
+                      disabled={isDeleting}
                     >
                       {isDeleting && (
                         <IconSpinner className="mr-2 h-4 w-4 animate-spin" />

@@ -2,10 +2,12 @@
 
 import React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { find, uniqueId } from 'lodash-es'
+import { uniqueId } from 'lodash-es'
 import { toast } from 'sonner'
+import { useQuery } from 'urql'
 import useLocalStorage from 'use-local-storage'
 
+import { listGithubRepositoryProviders } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -34,16 +36,19 @@ import { UpdateProviderForm } from './provider-detail-form'
 const DetailPage: React.FC = () => {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const id = searchParams.get('id')
-  const [mockProviders, setMockProviders] = useLocalStorage<Array<any> | null>(
-    'mock-gitops-data',
-    null
-  )
+  const id = searchParams.get('id')?.toString()
+  // const id = parseInt(searchParams.get('id')?.toString() ?? '', 10)
+  // const hasValidId = !!id && !Number.isNaN(id)
+  const [{ data, fetching }] = useQuery({
+    query: listGithubRepositoryProviders,
+    variables: { ids: [1] }
+  })
+  const provider = data?.githubRepositoryProviders?.edges?.[0]?.node
+
   const [mockRepo, setMockRepo] = useLocalStorage<Array<any> | null>(
     'mock-linked-repo',
     null
   )
-  const data = find(mockProviders, item => String(item.id) === id)
   const [open, setOpen] = React.useState(false)
 
   const onCreated = (values: any) => {
@@ -54,16 +59,23 @@ const DetailPage: React.FC = () => {
   }
 
   const onDeleteRepo = (id: string) => {
-    setMockRepo(mockRepo?.filter(item => item.id !== id) ?? [])
+    // setMockRepo(mockRepo?.filter(item => item.id !== id) ?? [])
   }
 
   const onDeleteProvider = () => {
-    setMockProviders(mockProviders?.filter(item => item.id !== id))
     router.replace('/settings/gitops')
   }
 
+  if (!id || (!!id && !fetching && !provider)) {
+    return (
+      <div className="w-full h-[250px] border rounded-lg flex items-center justify-center">
+        Provider not found
+      </div>
+    )
+  }
+
   return (
-    <div>
+    <LoadingWrapper loading={fetching}>
       <CardHeader className="pl-0 pt-0">
         <CardTitle className="flex items-center justify-between">
           <span>Provider information</span>
@@ -74,13 +86,14 @@ const DetailPage: React.FC = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="pl-0">
-        <LoadingWrapper fallback={<ListSkeleton />}>
+        <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>
           <UpdateProviderForm
-            defaultValues={data}
+            defaultValues={provider}
             onDelete={onDeleteProvider}
             onBack={() => {
               router.push('/settings/gitops')
             }}
+            id={id}
           />
         </LoadingWrapper>
       </CardContent>
@@ -112,7 +125,7 @@ const DetailPage: React.FC = () => {
           <LinkedRepoTable data={mockRepo ?? []} onDelete={onDeleteRepo} />
         </LoadingWrapper>
       </CardContent>
-    </div>
+    </LoadingWrapper>
   )
 }
 

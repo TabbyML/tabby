@@ -1,28 +1,21 @@
 'use client'
 
 import Link from 'next/link'
+import { useQuery } from 'urql'
 
+import { ListGithubRepositoryProvidersQuery } from '@/lib/gql/generates/graphql'
+import { listGithubRepositoryProviders } from '@/lib/tabby/query'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IconGitHub } from '@/components/ui/icons'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-import { BasicInfoFormValues } from './basic-info-form'
 import { RepositoryHeader } from './header'
-import { OAuthApplicationFormValues } from './oauth-application-form'
-import { useQuery } from 'urql'
-import { listGithubRepositoryProviders } from '@/lib/tabby/query'
-import { ListGithubRepositoryProvidersQuery } from '@/lib/gql/generates/graphql'
-
-type ProviderItem = BasicInfoFormValues &
-  OAuthApplicationFormValues & { id: number }
-
 
 export default function GitProvidersPage() {
-  
   const [{ data }] = useQuery({ query: listGithubRepositoryProviders })
   const githubRepositoryProviders = data?.githubRepositoryProviders?.edges
-  
+
   return (
     <>
       <RepositoryHeader />
@@ -71,12 +64,10 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
               </div>
             </CardHeader>
             <CardContent className="p-4 text-sm">
-              {/* <div className="flex border-b py-2">
-                <span className="w-[30%] text-muted-foreground">
-                  Instance URL
-                </span>
-                <span>{item.instanceUrl}</span>
-              </div> */}
+              <div className="flex border-b py-2">
+                <span className="w-[30%] text-muted-foreground">Name</span>
+                <span>{item.node.displayName}</span>
+              </div>
               <div className="flex py-3 border-b">
                 <span className="w-[30%] text-muted-foreground shrink-0">
                   Application ID

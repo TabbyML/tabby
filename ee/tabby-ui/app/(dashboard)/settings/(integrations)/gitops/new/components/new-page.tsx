@@ -4,10 +4,14 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, UseFormReturn } from 'react-hook-form'
+import { toast } from 'sonner'
 import * as z from 'zod'
 
+import { graphql } from '@/lib/gql/generates'
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
+import { IconSpinner } from '@/components/ui/icons'
 import { StepItem, Steps, useSteps } from '@/components/steps/steps'
 
 import {
@@ -22,14 +26,18 @@ import {
   type OAuthApplicationFormValues
 } from '../../components/oauth-application-form'
 import ConfirmView from '../components/confirm-view'
-import { graphql } from '@/lib/gql/generates'
-import { useMutation } from '@/lib/tabby/gql'
-import { toast } from 'sonner'
-import { IconSpinner } from '@/components/ui/icons'
 
 const createGithubRepositoryProvider = graphql(/* GraphQL */ `
-  mutation CreateGithubRepositoryProvider($displayName: String!, $applicationId: String!, $applicationSecret: String!) {
-    createGithubRepositoryProvider(displayName: $displayName, applicationId: $applicationId, applicationSecret: $applicationSecret)
+  mutation CreateGithubRepositoryProvider(
+    $displayName: String!
+    $applicationId: String!
+    $applicationSecret: String!
+  ) {
+    createGithubRepositoryProvider(
+      displayName: $displayName
+      applicationId: $applicationId
+      applicationSecret: $applicationSecret
+    )
   }
 `)
 
@@ -60,18 +68,20 @@ export const NewProvider = () => {
 
   const { isSubmitting } = form.formState
 
-  const createGithubRepositoryProviderMutation = useMutation(createGithubRepositoryProvider, {
-    onCompleted(data) {
-      if (data?.createGithubRepositoryProvider) {
-        toast.success('Created successfully')
-        router.push(`/settings/gitops`)
-      }
-    },
-    form
-  })
+  const createGithubRepositoryProviderMutation = useMutation(
+    createGithubRepositoryProvider,
+    {
+      onCompleted(data) {
+        if (data?.createGithubRepositoryProvider) {
+          toast.success('Created successfully')
+          router.push(`/settings/gitops`)
+        }
+      },
+      form
+    }
+  )
 
-  const handleSubmit = async (
-  ) => {
+  const handleSubmit = async () => {
     if (currentStep === 0) {
       // basic info
       setStep(currentStep + 1)
@@ -120,9 +130,7 @@ export const NewProvider = () => {
                 </Button>
               )}
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && (
-                  <IconSpinner className="mr-2" />
-                )}
+                {isSubmitting && <IconSpinner className="mr-2" />}
                 {currentStep === 2 ? 'Confirm and add' : 'Next'}
               </Button>
             </div>

@@ -28,7 +28,7 @@ export default function ConfirmView({ data }: ConfirmViewProps) {
           </CardDescription>
         </CardHeader>
         <Separator />
-        <CardContent className="pb-0">
+        <CardContent className="pb-2">
           <InfoItem title="Type">
             <div className="flex items-center gap-2">
               <IconGitHub className="h-6 w-6" />
@@ -40,7 +40,9 @@ export default function ConfirmView({ data }: ConfirmViewProps) {
           <Separator />
           <InfoItem title="Application ID">{data.applicationId}</InfoItem>
           <Separator />
-          <InfoItem title="Application secret">{data.applicationSecret}</InfoItem>
+          <InfoItem title="Application secret">
+            {data.applicationSecret}
+          </InfoItem>
         </CardContent>
       </Card>
     </div>

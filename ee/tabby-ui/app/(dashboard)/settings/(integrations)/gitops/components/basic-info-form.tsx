@@ -34,7 +34,6 @@ export const BasicInfoForm = React.forwardRef<
   HTMLDivElement,
   BasicInfoFormProps
 >(({ className, form, isUpdate, ...rest }, ref) => {
-
   return (
     <div className={cn('grid gap-6', className)} ref={ref} {...rest}>
       {!isUpdate && (

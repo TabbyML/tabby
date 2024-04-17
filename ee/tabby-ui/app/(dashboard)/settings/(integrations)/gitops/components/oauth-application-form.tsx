@@ -56,7 +56,7 @@ export const OAuthApplicationForm = React.forwardRef<
         name="applicationSecret"
         render={({ field }) => (
           <FormItem>
-            <FormLabel required>Secret</FormLabel>
+            <FormLabel required>Application secret</FormLabel>
             <FormControl>
               <Input
                 placeholder="e.g. e363c08d7e9ca4e66e723a53f38a21f6a54c1b83"
