@@ -157,7 +157,7 @@ pub struct Query;
 impl Query {
     async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
         check_admin(ctx).await?;
-        let workers = ctx.locator.worker().list_workers().await;
+        let workers = ctx.locator.worker().list().await;
         return Ok(workers);
     }
 
@@ -301,7 +301,7 @@ impl Query {
                 Ok(ctx
                     .locator
                     .job()
-                    .list_job_runs(ids, jobs, after, before, first, last)
+                    .list(ids, jobs, after, before, first, last)
                     .await?)
             },
         )
@@ -309,12 +309,12 @@ impl Query {
     }
 
     async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> FieldResult<JobStats> {
-        Ok(ctx.locator.job().compute_job_run_stats(jobs).await?)
+        Ok(ctx.locator.job().compute_stats(jobs).await?)
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
         check_admin(ctx).await?;
-        ctx.locator.email().read_email_setting().await
+        ctx.locator.email().read_setting().await
     }
 
     async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
@@ -382,7 +382,7 @@ impl Query {
         Ok(ServerInfo {
             is_admin_initialized: ctx.locator.auth().is_admin_initialized().await?,
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
-            is_email_configured: ctx.locator.email().read_email_setting().await?.is_some(),
+            is_email_configured: ctx.locator.email().read_setting().await?.is_some(),
             allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
         })
     }
@@ -591,7 +591,7 @@ impl Mutation {
 
     async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.email().send_test_email(to).await?;
+        ctx.locator.email().send_test(to).await?;
         Ok(true)
     }
 
@@ -648,7 +648,7 @@ impl Mutation {
     async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
-        ctx.locator.email().update_email_setting(input).await?;
+        ctx.locator.email().update_setting(input).await?;
         Ok(true)
     }
 
@@ -669,7 +669,7 @@ impl Mutation {
 
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.email().delete_email_setting().await?;
+        ctx.locator.email().delete_setting().await?;
         Ok(true)
     }
 

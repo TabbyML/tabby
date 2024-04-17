@@ -42,11 +42,11 @@ pub async fn password_reset_job(auth: Arc<dyn AuthenticationService>) -> Result<
     .await
 }
 
-pub async fn stale_job_runs_job(jobs: Arc<dyn JobService>) -> Result<Job> {
+pub async fn job_cleanup(jobs: Arc<dyn JobService>) -> Result<Job> {
     let job_res = Job::new_one_shot_async(Duration::from_secs(0), move |_, _| {
         let jobs = jobs.clone();
         Box::pin(async move {
-            if let Err(e) = jobs.finalize_stale_job_runs().await {
+            if let Err(e) = jobs.cleanup().await {
                 error!("failed to finalize stale job runs: {e}");
             }
         })

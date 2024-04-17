@@ -88,7 +88,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("Unknown error").into());
         };
 
-        if let Err(e) = self.mail.send_signup_email(email.clone()).await {
+        if let Err(e) = self.mail.send_signup(email.clone()).await {
             warn!("Failed to send signup email: {e}");
         }
 
@@ -102,7 +102,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .read_security_setting()
             .await?
             .allowed_register_domain_list;
-        let is_email_configured = self.mail.read_email_setting().await?.is_some();
+        let is_email_configured = self.mail.read_setting().await?.is_some();
         Ok(is_email_configured && !domain_list.is_empty())
     }
 
@@ -126,7 +126,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let code = self.db.create_password_reset(id).await?;
         let handle = self
             .mail
-            .send_password_reset_email(user.email, code.clone())
+            .send_password_reset(user.email, code.clone())
             .await?;
         Ok(Some(handle))
     }
@@ -330,7 +330,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let invitation = self.db.create_invitation(email.clone()).await?;
         let email_sent = self
             .mail
-            .send_invitation_email(email, invitation.code.clone())
+            .send_invitation(email, invitation.code.clone())
             .await;
         match email_sent {
             Ok(_) | Err(CoreError::EmailNotConfigured) => {}
@@ -526,7 +526,7 @@ async fn get_or_create_oauth_user(
         // 2. `password_verify` will always return false for empty password hash read from user table
         // so user created here is only able to login by github oauth, normal login won't work
         let res = db.create_user(email.to_owned(), None, false).await?;
-        if let Err(e) = mail.send_signup_email(email.to_string()).await {
+        if let Err(e) = mail.send_signup(email.to_string()).await {
             warn!("Failed to send signup email: {e}");
         }
         Ok(res)
