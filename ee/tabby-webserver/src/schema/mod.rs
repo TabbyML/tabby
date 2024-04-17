@@ -21,10 +21,7 @@ use juniper::{
     graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
     IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
 };
-use tabby_common::{
-    api::{code::CodeSearch, event::EventLogger},
-    config::RepositoryAccess,
-};
+use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tracing::error;
 use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
@@ -64,7 +61,6 @@ pub trait ServiceLocator: Send + Sync {
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
     fn github_repository_provider(&self) -> Arc<dyn GithubRepositoryProviderService>;
-    fn repository_access(&self) -> Arc<dyn RepositoryAccess>;
 }
 
 pub struct Context {

@@ -25,7 +25,6 @@ use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper::ID;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
-    config::RepositoryAccess,
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::DbConn;
@@ -61,7 +60,6 @@ struct ServerContext {
     license: Arc<dyn LicenseService>,
     github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
     repository: Arc<dyn RepositoryService>,
-    repository_access: Arc<dyn RepositoryAccess>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -75,7 +73,6 @@ impl ServerContext {
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
         github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
-        repository_access: Arc<dyn RepositoryAccess>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
     ) -> Self {
@@ -102,7 +99,6 @@ impl ServerContext {
             license,
             github_repository_provider,
             repository,
-            repository_access,
             db_conn,
             logger,
             code,
@@ -322,10 +318,6 @@ impl ServiceLocator for Arc<ServerContext> {
     ) -> Arc<dyn crate::schema::github_repository_provider::GithubRepositoryProviderService> {
         self.github_repository_provider.clone()
     }
-
-    fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
-        self.repository_access.clone()
-    }
 }
 
 pub async fn create_service_locator(
@@ -333,7 +325,6 @@ pub async fn create_service_locator(
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
     github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
-    repository_access: Arc<dyn RepositoryAccess>,
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
@@ -343,7 +334,6 @@ pub async fn create_service_locator(
             code,
             repository,
             github_repository_provider,
-            repository_access,
             db,
             is_chat_enabled,
         )

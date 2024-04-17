@@ -26,7 +26,9 @@ use tracing::{error, warn};
 
 use crate::{
     axum::{extract::AuthBearer, graphql},
-    cron, hub, integrations, oauth,
+    cron,
+    hub::{self, HubState},
+    integrations, oauth,
     path::db_file,
     repositories,
     schema::{
@@ -89,6 +91,7 @@ pub struct WebserverHandle {
     logger: Arc<dyn EventLogger>,
     git_repository_service: Arc<dyn RepositoryService>,
     github_repository_service: Arc<dyn GithubRepositoryProviderService>,
+    repository_access: Arc<dyn RepositoryAccess>,
 }
 
 impl WebserverHandle {
@@ -105,8 +108,13 @@ impl WebserverHandle {
         WebserverHandle {
             db,
             logger,
-            git_repository_service,
-            github_repository_service,
+            git_repository_service: git_repository_service.clone(),
+            github_repository_service: github_repository_service.clone(),
+            repository_access: Arc::new(RepositoryAccessImpl {
+                git_repository_service,
+                github_repository_service,
+                url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
+            }),
         }
     }
 
@@ -115,11 +123,7 @@ impl WebserverHandle {
     }
 
     pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
-        Arc::new(RepositoryAccessImpl {
-            git_repository_service: self.git_repository_service.clone(),
-            github_repository_service: self.github_repository_service.clone(),
-            url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
-        })
+        self.repository_access.clone()
     }
 
     pub async fn attach_webserver(
@@ -136,7 +140,6 @@ impl WebserverHandle {
             code,
             self.git_repository_service.clone(),
             self.github_repository_service.clone(),
-            repository_access,
             self.db.clone(),
             is_chat_enabled,
         )
@@ -163,7 +166,8 @@ impl WebserverHandle {
             .layer(Extension(schema))
             .route(
                 "/hub",
-                routing::get(hub::ws_handler).with_state(ctx.clone()),
+                routing::get(hub::ws_handler)
+                    .with_state(HubState::new(ctx.clone(), repository_access).into()),
             )
             .nest(
                 "/repositories",
