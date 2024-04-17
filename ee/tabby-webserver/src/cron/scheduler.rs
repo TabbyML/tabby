@@ -58,7 +58,7 @@ async fn run_scheduler_now(
 ) -> Result<()> {
     info!("Running scheduler job...");
     let exe = std::env::current_exe()?;
-    let job_id = job.create_job_run("scheduler".to_owned()).await?;
+    let job_id = job.start("scheduler".to_owned()).await?;
 
     let mut child = tokio::process::Command::new(exe)
         .arg("scheduler")
@@ -81,7 +81,7 @@ async fn run_scheduler_now(
             let mut stdout = stdout.lines();
             while let Ok(Some(line)) = stdout.next_line().await {
                 println!("{line}");
-                let _ = job.update_job_stdout(&job_id, line + "\n").await;
+                let _ = job.update_stdout(&job_id, line + "\n").await;
             }
         });
     }
@@ -96,14 +96,14 @@ async fn run_scheduler_now(
             let mut stdout = stderr.lines();
             while let Ok(Some(line)) = stdout.next_line().await {
                 eprintln!("{line}");
-                let _ = job.update_job_stderr(&job_id, line + "\n").await;
+                let _ = job.update_stderr(&job_id, line + "\n").await;
             }
         });
     }
     if let Some(exit_code) = child.wait().await.ok().and_then(|s| s.code()) {
-        job.complete_job_run(&job_id, exit_code).await?;
+        job.complete(&job_id, exit_code).await?;
     } else {
-        job.complete_job_run(&job_id, -1).await?;
+        job.complete(&job_id, -1).await?;
     }
 
     Ok(())
