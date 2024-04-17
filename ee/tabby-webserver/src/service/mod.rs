@@ -139,7 +139,7 @@ impl ServerContext {
 
         let is_license_valid = self
             .license
-            .read_license()
+            .read()
             .await
             .ensure_valid_license()
             .is_ok();
@@ -181,7 +181,7 @@ impl WorkerService for ServerContext {
         let count_workers = worker_group.list().await.len();
         let license = self
             .license
-            .read_license()
+            .read()
             .await
             .map_err(|_| RegisterWorkerError::RequiresTeamOrEnterpriseLicense)?;
 
