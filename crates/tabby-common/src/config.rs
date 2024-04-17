@@ -93,7 +93,7 @@ impl RepositoryConfig {
             let path = self.git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(sanitize_name(&self.git_url))
+            repositories_dir().join(sanitize_name(&self.canonical_git_url()))
         }
     }
 
