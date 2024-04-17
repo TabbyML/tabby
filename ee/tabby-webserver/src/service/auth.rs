@@ -15,6 +15,7 @@ use tracing::warn;
 
 use super::{dao::DbEnum, graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
+    env::demo_mode,
     oauth,
     schema::{
         auth::{
@@ -157,6 +158,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
         old_password: Option<&str>,
         new_password: &str,
     ) -> Result<()> {
+        if demo_mode() {
+            return Err(anyhow!("Demo mode is enabled, cannot change passwords").into());
+        }
+
         let user = self
             .db
             .get_user(id.as_rowid()?)
