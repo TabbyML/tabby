@@ -15,7 +15,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 const NOT_FOUND_ERROR = 'not_found'
-let fetchAvatar = true
+let shouldFetchAvatar = true
 
 export function UserAvatar({ className }: { className?: string }) {
   const [{ data }] = useMe()
@@ -27,7 +27,7 @@ export function UserAvatar({ className }: { className?: string }) {
     isLoading,
     error
   } = useSWRImmutable(avatarUrl, (url: string) => {
-    if (!fetchAvatar) return undefined
+    if (!shouldFetchAvatar) return undefined
     return fetcher(url, {
       responseFormatter: async response => {
         const blob = await response.blob()
@@ -48,7 +48,7 @@ export function UserAvatar({ className }: { className?: string }) {
   }
 
   if (error?.message === NOT_FOUND_ERROR) {
-    fetchAvatar = false
+    shouldFetchAvatar = false
   }
 
   if (!avatarImageSrc) {
@@ -69,6 +69,6 @@ export function UserAvatar({ className }: { className?: string }) {
 }
 
 export const mutateAvatar = (userId: string) => {
-  fetchAvatar = true
+  shouldFetchAvatar = true
   mutate(`/avatar/${userId}`)
 }
