@@ -26,7 +26,7 @@ struct CodeSearchImpl {
 
     schema: CodeSearchSchema,
     repository_access: Arc<dyn RepositoryAccess>,
-    git_url_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
+    repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 impl CodeSearchImpl {
@@ -49,7 +49,7 @@ impl CodeSearchImpl {
             reader,
             query_parser,
             schema: code_schema,
-            git_url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
+            repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
         })
     }
 
@@ -129,7 +129,7 @@ impl CodeSearch for CodeSearchImpl {
         let language_query = self.schema.language_query(language);
         let body_query = self.schema.body_query(tokens);
 
-        let mut cache = self.git_url_cache.lock().await;
+        let mut cache = self.repo_cache.lock().await;
 
         let repos = cache
             .try_get_or_set_with((), || async {
