@@ -239,11 +239,7 @@ impl EmailService for EmailServiceImpl {
             .await
     }
 
-    async fn send_password_reset(
-        &self,
-        email: String,
-        code: String,
-    ) -> Result<JoinHandle<()>> {
+    async fn send_password_reset(&self, email: String, code: String) -> Result<JoinHandle<()>> {
         let external_url = self.db.read_network_setting().await?.external_url;
         let body = templates::password_reset(&external_url, &email, &code);
         self.send_email_in_background(email, "Reset your Tabby account password".into(), body)
@@ -309,20 +305,12 @@ mod tests {
 
         handle.await.unwrap();
 
-        let handle = service
-            .send_test("user@localhost".into())
-            .await
-            .unwrap();
+        let handle = service.send_test("user@localhost".into()).await.unwrap();
 
         handle.await.unwrap();
 
         let mails = mail_server.list_mail().await;
-        let default_from = service
-            .read_setting()
-            .await
-            .unwrap()
-            .unwrap()
-            .from_address;
+        let default_from = service.read_setting().await.unwrap().unwrap().from_address;
         assert!(mails[0].sender.contains(&default_from));
     }
 
@@ -334,10 +322,7 @@ mod tests {
             .create_test_email_service(DbConn::new_in_memory().await.unwrap())
             .await;
 
-        let handle = service
-            .send_test("user@localhost".into())
-            .await
-            .unwrap();
+        let handle = service.send_test("user@localhost".into()).await.unwrap();
 
         handle.await.unwrap();
 
