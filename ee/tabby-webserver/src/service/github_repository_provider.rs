@@ -28,11 +28,6 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(provider.into())
     }
 
-    async fn read_github_repository_provider_secret(&self, id: ID) -> Result<String> {
-        let provider = self.db.get_github_provider(id.as_rowid()?).await?;
-        Ok(provider.secret)
-    }
-
     async fn update_github_repository_provider_access_token(
         &self,
         id: ID,

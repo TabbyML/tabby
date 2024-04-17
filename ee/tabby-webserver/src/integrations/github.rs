@@ -97,8 +97,8 @@ async fn exchange_access_token(
 
     let secret = state
         .github_repository_provider
-        .read_github_repository_provider_secret(params.state.clone())
-        .await?;
+        .get_github_repository_provider(params.state.clone())
+        .await?.secret;
 
     Ok(client
         .post("https://github.com/login/oauth/access_token")
