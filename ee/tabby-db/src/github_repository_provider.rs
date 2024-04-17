@@ -81,6 +81,34 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_github_provider(
+        &self,
+        id: i64,
+        application_id: String,
+        secret: Option<String>,
+    ) -> Result<()> {
+        let secret = match secret {
+            Some(secret) => secret,
+            None => self.get_github_provider(id).await?.secret,
+        };
+
+        let res = query!(
+            "UPDATE github_repository_provider SET application_id = ?, secret = ? WHERE id = ?;",
+            application_id,
+            secret,
+            id
+        )
+        .execute(&self.pool)
+        .await
+        .unique_error("A provider with that application ID already exists")?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("Provider does not exist"));
+        }
+
+        Ok(())
+    }
+
     pub async fn list_github_repository_providers(
         &self,
         ids: Vec<i64>,

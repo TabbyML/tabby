@@ -117,6 +117,18 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .await?;
         Ok(())
     }
+
+    async fn update_github_repository_provider(
+        &self,
+        id: ID,
+        application_id: String,
+        secret: Option<String>,
+    ) -> Result<()> {
+        self.db
+            .update_github_provider(id.as_rowid()?, application_id, secret)
+            .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -213,7 +225,7 @@ mod tests {
     #[tokio::test]
     async fn test_github_repository_provider_crud() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = new_github_repository_provider_service(db);
+        let service = new_github_repository_provider_service(db.clone());
 
         let id = service
             .create_github_repository_provider("example".into(), "id".into(), "secret".into())
@@ -265,6 +277,31 @@ mod tests {
             Some("test_token".into())
         );
 
+        // Test updating github provider application ID / secret
+        let id2 = service
+            .create_github_repository_provider("example2".into(), "id2".into(), "secret".into())
+            .await
+            .unwrap();
+
+        // Should fail: Duplicate application ID
+        assert!(service
+            .update_github_repository_provider(id2.clone(), "id".into(), None)
+            .await
+            .is_err());
+
+        service
+            .update_github_repository_provider(id2.clone(), "id2".into(), Some("secret2".into()))
+            .await
+            .unwrap();
+
+        assert_eq!(
+            db.get_github_provider(id2.as_rowid().unwrap())
+                .await
+                .unwrap()
+                .secret,
+            "secret2"
+        );
+
         // Test deleting github provider
         service
             .delete_github_repository_provider(id.clone())
@@ -272,7 +309,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            0,
+            1,
             service
                 .list_github_repository_providers(vec![], None, None, None, None)
                 .await
