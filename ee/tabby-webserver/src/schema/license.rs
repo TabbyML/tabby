@@ -14,7 +14,6 @@ pub enum LicenseType {
     Community,
     Team,
     Enterprise,
-    Demo,
 }
 
 #[derive(GraphQLEnum, PartialEq, Debug, Clone)]
@@ -48,7 +47,6 @@ impl LicenseInfo {
             LicenseType::Community => false,
             LicenseType::Team => num_nodes <= 2,
             LicenseType::Enterprise => true,
-            LicenseType::Demo => false,
         }
     }
 
@@ -60,7 +58,6 @@ impl LicenseInfo {
             }
             LicenseType::Team => std::cmp::min(seats, Self::seat_limits_for_team_license()),
             LicenseType::Enterprise => seats,
-            LicenseType::Demo => usize::MAX,
         } as i32;
 
         self
@@ -82,7 +79,6 @@ impl LicenseInfo {
             LicenseType::Community => 1,
             LicenseType::Team => 3,
             LicenseType::Enterprise => usize::MAX,
-            LicenseType::Demo => usize::MAX,
         };
 
         if num_admins > num_admin_seats {

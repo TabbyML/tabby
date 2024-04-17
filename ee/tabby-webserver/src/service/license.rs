@@ -4,12 +4,14 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use tabby_common::demo_mode;
 use tabby_db::DbConn;
 
-use crate::schema::{
-    license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
-    Result,
+use crate::{
+    env::demo_mode,
+    schema::{
+        license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
+        Result,
+    },
 };
 
 lazy_static! {
@@ -87,9 +89,9 @@ impl LicenseServiceImpl {
     async fn make_demo_license(&self) -> Result<LicenseInfo> {
         let seats_used = self.db.count_active_users().await? as i32;
         Ok(LicenseInfo {
-            r#type: LicenseType::Demo,
+            r#type: LicenseType::Enterprise,
             status: LicenseStatus::Ok,
-            seats: i32::MAX,
+            seats: 100,
             seats_used,
             issued_at: None,
             expires_at: None,

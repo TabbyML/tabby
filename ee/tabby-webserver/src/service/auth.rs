@@ -9,13 +9,13 @@ use argon2::{
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
-use tabby_common::demo_mode;
 use tabby_db::{DbConn, InvitationDAO};
 use tokio::task::JoinHandle;
 use tracing::warn;
 
 use super::{dao::DbEnum, graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
+    env::demo_mode,
     oauth,
     schema::{
         auth::{

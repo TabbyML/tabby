@@ -7,7 +7,7 @@ use tabby_common::{
     api,
     api::{code::CodeSearch, event::EventLogger},
     config::{Config, ConfigRepositoryAccess, RepositoryAccess},
-    demo_mode, usage,
+    usage,
 };
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
@@ -242,42 +242,40 @@ async fn api_router(
             )
     });
 
-    if !demo_mode() {
-        if let Some(completion_state) = completion_state {
-            routers.push({
-                Router::new()
-                    .route(
-                        "/v1/completions",
-                        routing::post(routes::completions).with_state(completion_state),
-                    )
-                    .layer(TimeoutLayer::new(Duration::from_secs(
-                        config.server.completion_timeout,
-                    )))
-            });
-        } else {
-            routers.push({
-                Router::new().route(
+    if let Some(completion_state) = completion_state {
+        routers.push({
+            Router::new()
+                .route(
                     "/v1/completions",
-                    routing::post(StatusCode::NOT_IMPLEMENTED),
+                    routing::post(routes::completions).with_state(completion_state),
                 )
-            })
-        }
+                .layer(TimeoutLayer::new(Duration::from_secs(
+                    config.server.completion_timeout,
+                )))
+        });
+    } else {
+        routers.push({
+            Router::new().route(
+                "/v1/completions",
+                routing::post(StatusCode::NOT_IMPLEMENTED),
+            )
+        })
+    }
 
-        if let Some(chat_state) = chat_state {
-            routers.push({
-                Router::new().route(
-                    "/v1beta/chat/completions",
-                    routing::post(routes::chat_completions).with_state(chat_state),
-                )
-            })
-        } else {
-            routers.push({
-                Router::new().route(
-                    "/v1beta/chat/completions",
-                    routing::post(StatusCode::NOT_IMPLEMENTED),
-                )
-            })
-        }
+    if let Some(chat_state) = chat_state {
+        routers.push({
+            Router::new().route(
+                "/v1beta/chat/completions",
+                routing::post(routes::chat_completions).with_state(chat_state),
+            )
+        })
+    } else {
+        routers.push({
+            Router::new().route(
+                "/v1beta/chat/completions",
+                routing::post(StatusCode::NOT_IMPLEMENTED),
+            )
+        })
     }
 
     routers.push({

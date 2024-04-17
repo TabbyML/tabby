@@ -21,13 +21,6 @@ use path::dataset_dir;
 use serde::{Deserialize, Serialize};
 use serde_jsonlines::JsonLinesReader;
 
-pub fn demo_mode() -> bool {
-    matches!(
-        &*std::env::var("TABBY_WEBSERVER_DEMO_MODE").unwrap_or_default(),
-        "true" | "1"
-    )
-}
-
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SourceFile {
     pub git_url: String,

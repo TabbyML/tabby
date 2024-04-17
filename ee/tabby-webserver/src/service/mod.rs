@@ -34,17 +34,20 @@ use self::{
     github_repository_provider::new_github_repository_provider_service,
     license::new_license_service,
 };
-use crate::schema::{
-    analytic::AnalyticService,
-    auth::AuthenticationService,
-    email::EmailService,
-    github_repository_provider::GithubRepositoryProviderService,
-    job::JobService,
-    license::{IsLicenseValid, LicenseService},
-    repository::RepositoryService,
-    setting::SettingService,
-    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    CoreError, Result, ServiceLocator,
+use crate::{
+    env::demo_mode,
+    schema::{
+        analytic::AnalyticService,
+        auth::AuthenticationService,
+        email::EmailService,
+        github_repository_provider::GithubRepositoryProviderService,
+        job::JobService,
+        license::{IsLicenseValid, LicenseService},
+        repository::RepositoryService,
+        setting::SettingService,
+        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+        CoreError, Result, ServiceLocator,
+    },
 };
 
 struct ServerContext {
@@ -104,8 +107,14 @@ impl ServerContext {
         }
     }
 
+    /// Returns whether a request is authorized to access the content, and the user ID if authentication was used.
     async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<ID>) {
         let path = request.uri().path();
+        if demo_mode()
+            && (path.starts_with("/v1/completions") || path.starts_with("/v1beta/chat/completions"))
+        {
+            return (false, None);
+        }
         if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
             return (true, None);
         }
