@@ -76,18 +76,11 @@ mod tests {
         let svc: Box<dyn JobService> = Box::new(DbConn::new_in_memory().await.unwrap());
 
         let id = svc.start("test-job".to_owned()).await.unwrap();
-        svc.update_stdout(&id, "stdout".to_owned())
-            .await
-            .unwrap();
-        svc.update_stderr(&id, "stderr".to_owned())
-            .await
-            .unwrap();
+        svc.update_stdout(&id, "stdout".to_owned()).await.unwrap();
+        svc.update_stderr(&id, "stderr".to_owned()).await.unwrap();
         svc.complete(&id, 0).await.unwrap();
 
-        let job = svc
-            .list(None, None, None, None, None, None)
-            .await
-            .unwrap();
+        let job = svc.list(None, None, None, None, None, None).await.unwrap();
         let job = job.first().unwrap();
         assert_eq!(job.job, "test-job");
         assert_eq!(job.stdout, "stdout");
