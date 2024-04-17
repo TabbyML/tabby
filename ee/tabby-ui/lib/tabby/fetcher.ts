@@ -25,7 +25,7 @@ export default async function authEnhancedFetch(
 ): Promise<any> {
   const currentFetcher = options?.customFetch ?? window.fetch
 
-  if (willAuthError()) {
+  if (willAuthError(url)) {
     return tokenManagerInstance.refreshToken(doRefreshToken).then(res => {
       return requestWithAuth(url, options)
     })
@@ -45,7 +45,10 @@ export default async function authEnhancedFetch(
   }
 }
 
-function willAuthError() {
+function willAuthError(url: string) {
+  if (url.startsWith('/oauth/providers')) {
+    return false
+  }
   const accessToken = getAuthToken()?.accessToken
   if (accessToken) {
     // Check whether `token` JWT is expired
