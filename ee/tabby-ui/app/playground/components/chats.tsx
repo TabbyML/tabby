@@ -18,9 +18,9 @@ import { ChatSessions } from './chat-sessions'
 const emptyMessages: Message[] = []
 
 export default function Chats() {
-  const { updateSearchParams } = useRouterStuff()
-  const hasInitialMessage = window.location.search.startsWith("?initialMessage=")
-  const initialMessage = hasInitialMessage ? decodeURIComponent(window.location.search.replace('?initialMessage=', "")) : ""
+  const { searchParams, updateSearchParams } = useRouterStuff()
+  const [initialMessage, setInitialMessage] = React.useState(searchParams.get('initialMessage')?.toString() || "")
+
   const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
   const chatRef = React.useRef<ChatRef>(null)
 
@@ -28,6 +28,16 @@ export default function Chats() {
   const chats = useStore(useChatStore, state => state.chats)
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const chat = getChatById(chats, activeChatId)
+
+  React.useEffect(() => {
+    // Detect if the inital message is codes
+    const codeMessageRegexp = /initialMessage=```([\s\S]*?)```/;
+    const codeMessageMatch = decodeURI(window.location.search).match(codeMessageRegexp)
+    if (codeMessageMatch && codeMessageMatch.length > 0) {
+      const initalMessageQuery = codeMessageMatch[0]
+      setInitialMessage(initalMessageQuery.replace("initialMessage=", ""))
+    }
+  }, [])
 
   React.useEffect(() => {
     if (!shouldConsumeInitialMessage.current) return
