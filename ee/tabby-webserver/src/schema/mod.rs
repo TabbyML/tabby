@@ -166,11 +166,6 @@ impl Query {
         ctx.locator.worker().read_registration_token().await
     }
 
-    #[deprecated]
-    async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
-        ctx.locator.auth().is_admin_initialized().await
-    }
-
     async fn me(ctx: &Context) -> Result<User> {
         let claims = check_claims(ctx)?;
         ctx.locator.auth().get_user(&claims.sub.0).await
@@ -320,12 +315,6 @@ impl Query {
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
         check_admin(ctx).await?;
         ctx.locator.email().read_email_setting().await
-    }
-
-    #[deprecated]
-    async fn is_email_configured(ctx: &Context) -> Result<bool> {
-        let initialized = ctx.locator.email().read_email_setting().await?.is_some();
-        Ok(initialized)
     }
 
     async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
