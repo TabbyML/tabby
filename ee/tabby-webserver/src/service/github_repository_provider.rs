@@ -64,13 +64,19 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
 
     async fn list_github_repository_providers(
         &self,
-        ids: Option<Vec<i32>>,
+        ids: Vec<ID>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<GithubRepositoryProvider>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+
+        let ids = ids
+            .into_iter()
+            .map(|id| id.as_rowid())
+            .collect::<Result<Vec<_>, _>>()?;
+
         let providers = self
             .db
             .list_github_repository_providers(ids, limit, skip_id, backwards)
@@ -238,7 +244,7 @@ mod tests {
 
         // Test listing github providers
         let providers = service
-            .list_github_repository_providers(None, None, None, None, None)
+            .list_github_repository_providers(vec![], None, None, None, None)
             .await
             .unwrap();
         assert_eq!(providers.len(), 1);
@@ -268,7 +274,7 @@ mod tests {
         assert_eq!(
             0,
             service
-                .list_github_repository_providers(None, None, None, None, None)
+                .list_github_repository_providers(vec![], None, None, None, None)
                 .await
                 .unwrap()
                 .len()

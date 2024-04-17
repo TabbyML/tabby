@@ -83,13 +83,13 @@ impl DbConn {
 
     pub async fn list_github_repository_providers(
         &self,
-        ids: Option<Vec<i32>>,
+        ids: Vec<i64>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<GithubRepositoryProviderDAO>> {
-        let condition = ids.map(|v| {
-            let ids = v
+        let condition = (!ids.is_empty()).then(|| {
+            let ids = ids
                 .into_iter()
                 .map(|id| id.to_string())
                 .collect::<Vec<_>>()

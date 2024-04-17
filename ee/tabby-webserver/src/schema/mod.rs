@@ -234,7 +234,7 @@ impl Query {
 
     async fn github_repository_providers(
         ctx: &Context,
-        ids: Option<Vec<i32>>,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -250,7 +250,13 @@ impl Query {
                 Ok(ctx
                     .locator
                     .github_repository_provider()
-                    .list_github_repository_providers(ids, after, before, first, last)
+                    .list_github_repository_providers(
+                        ids.unwrap_or_default(),
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
                     .await?)
             },
         )
