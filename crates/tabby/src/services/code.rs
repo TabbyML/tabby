@@ -73,8 +73,6 @@ impl CodeSearchImpl {
                 body: get_field(&doc, self.schema.field_body),
                 filepath: get_field(&doc, self.schema.field_filepath),
                 git_url: get_field(&doc, self.schema.field_git_url),
-                kind: get_field(&doc, self.schema.field_kind),
-                name: get_field(&doc, self.schema.field_name),
                 language: get_field(&doc, self.schema.field_language),
             },
             id: doc_address.doc_id,
