@@ -286,7 +286,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()> {
         if is_admin {
-            let license = self.license.read_license().await?;
+            let license = self.license.read().await?;
             let num_admins = self.db.count_active_admin_users().await?;
             license.ensure_admin_seats(num_admins + 1)?;
         }
@@ -324,7 +324,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
-        let license = self.license.read_license().await?;
+        let license = self.license.read().await?;
         license.ensure_available_seats(1)?;
 
         let invitation = self.db.create_invitation(email.clone()).await?;
@@ -410,7 +410,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let email = client.fetch_user_email(code).await?;
         let license = self
             .license
-            .read_license()
+            .read()
             .await
             .context("Failed to read license info")?;
         let user_id = get_or_create_oauth_user(&license, &self.db, &self.mail, &email).await?;
@@ -480,7 +480,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("The owner's active status cannot be changed").into());
         }
 
-        let license = self.license.read_license().await?;
+        let license = self.license.read().await?;
 
         if active {
             // Check there's sufficient seat if switching user to active.
@@ -624,7 +624,7 @@ mod tests {
 
     #[async_trait]
     impl LicenseService for MockLicenseService {
-        async fn read_license(&self) -> Result<LicenseInfo> {
+        async fn read(&self) -> Result<LicenseInfo> {
             Ok(LicenseInfo {
                 r#type: crate::schema::license::LicenseType::Team,
                 status: self.status.clone(),
@@ -635,11 +635,11 @@ mod tests {
             })
         }
 
-        async fn update_license(&self, _: String) -> Result<()> {
+        async fn update(&self, _: String) -> Result<()> {
             unimplemented!()
         }
 
-        async fn reset_license(&self) -> Result<()> {
+        async fn reset(&self) -> Result<()> {
             unimplemented!()
         }
     }
@@ -901,7 +901,7 @@ mod tests {
     #[serial]
     async fn test_get_or_create_oauth_user() {
         let (service, mail) = test_authentication_service_with_mail().await;
-        let license = service.license.read_license().await.unwrap();
+        let license = service.license.read().await.unwrap();
         let id = service
             .db
             .create_user("test@example.com".into(), None, false)

@@ -139,7 +139,7 @@ async fn check_user(ctx: &Context) -> Result<User, CoreError> {
 }
 
 async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<(), CoreError> {
-    let license = ctx.locator.license().read_license().await?;
+    let license = ctx.locator.license().read().await?;
 
     if !license_type.contains(&license.r#type) {
         return Err(CoreError::InvalidLicense(
@@ -399,7 +399,7 @@ impl Query {
     }
 
     async fn license(ctx: &Context) -> Result<LicenseInfo> {
-        ctx.locator.license().read_license().await
+        ctx.locator.license().read().await
     }
 
     async fn jobs() -> Result<Vec<String>> {
@@ -686,13 +686,13 @@ impl Mutation {
 
     async fn upload_license(ctx: &Context, license: String) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.license().update_license(license).await?;
+        ctx.locator.license().update(license).await?;
         Ok(true)
     }
 
     async fn reset_license(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.license().reset_license().await?;
+        ctx.locator.license().reset().await?;
         Ok(true)
     }
 

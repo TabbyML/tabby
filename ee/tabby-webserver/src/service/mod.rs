@@ -137,12 +137,7 @@ impl ServerContext {
             return (true, Some(jwt.sub.0));
         }
 
-        let is_license_valid = self
-            .license
-            .read_license()
-            .await
-            .ensure_valid_license()
-            .is_ok();
+        let is_license_valid = self.license.read().await.ensure_valid_license().is_ok();
         // If there's no valid license, only allows owner access.
         match self
             .db_conn
@@ -181,7 +176,7 @@ impl WorkerService for ServerContext {
         let count_workers = worker_group.list().await.len();
         let license = self
             .license
-            .read_license()
+            .read()
             .await
             .map_err(|_| RegisterWorkerError::RequiresTeamOrEnterpriseLicense)?;
 
