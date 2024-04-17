@@ -1,4 +1,4 @@
-import { StatusBarAlignment, ThemeColor, ExtensionContext, window } from "vscode";
+import { StatusBarAlignment, ThemeColor, ExtensionContext, window, commands, workspace } from "vscode";
 import { createMachine, interpret } from "@xstate/fsm";
 import type { StatusChangedEvent, AuthRequiredEvent, IssuesUpdatedEvent } from "tabby-agent";
 import { logger } from "./logger";
@@ -148,6 +148,15 @@ export class TabbyStatusBarItem {
     agent().on("statusChanged", (event: StatusChangedEvent) => {
       this.logger.info("Tabby agent statusChanged", { event });
       this.fsmService.send(event.status);
+      if (event.status === "ready") {
+        const healthState = agent().getServerHealthState();
+        const isChatEnabled = Boolean(healthState?.chat_model);
+        commands.executeCommand("setContext", "chatModeEnabled", isChatEnabled);
+        const configuration = workspace.getConfiguration("tabby");
+        const experimental = configuration.get<Record<string, any>>("experimental", {});
+        const isExplainCodeEnabled = experimental["chat.explainCodeBlock"] || false;
+        commands.executeCommand("setContext", "explainCodeSettingEnabled", isExplainCodeEnabled);
+      }
     });
 
     agent().on("authRequired", (event: AuthRequiredEvent) => {
