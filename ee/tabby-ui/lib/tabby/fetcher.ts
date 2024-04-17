@@ -16,6 +16,7 @@ interface FetcherOptions extends RequestInit {
     input: RequestInfo | URL,
     init?: RequestInit | undefined
   ) => Promise<Response>
+  errorHandler?: (response: Response) => any
 }
 
 export default async function authEnhancedFetch(
@@ -97,9 +98,15 @@ function requestWithAuth(url: string, options?: FetcherOptions) {
 
 function formatResponse(
   response: Response,
-  options?: Pick<FetcherOptions, 'responseFormat' | 'responseFormatter'>
+  options?: Pick<
+    FetcherOptions,
+    'responseFormat' | 'responseFormatter' | 'errorHandler'
+  >
 ) {
-  if (!response?.ok) return undefined
+  if (!response?.ok) {
+    if (options?.errorHandler) return options.errorHandler(response)
+    return undefined
+  }
   if (options?.responseFormatter) {
     return options.responseFormatter(response)
   }
