@@ -82,7 +82,7 @@ async fn handle_socket(
         ConnectHubRequest::Worker(worker) => {
             let worker = worker.create_worker(addr);
             let addr = worker.addr.clone();
-            match state.locator.worker().register_worker(worker).await {
+            match state.locator.worker().register(worker).await {
                 Ok(_) => Some(addr),
                 Err(err) => {
                     warn!("Failed to register worker: {}", err);
