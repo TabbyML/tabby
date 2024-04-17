@@ -3,6 +3,7 @@
 ## Notice
 
 * The `--webserver` flag is now enabled by default in `tabby serve`. To turn off the webserver and only use OSS features, use the `--no-webserver` flag.
+* `/v1beta/chat/completions` is now moved to `/v1/chat/completions`, while the old endpoint is still available for backward compatibility.
 
 ## Features
 
