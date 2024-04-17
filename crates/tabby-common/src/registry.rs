@@ -76,7 +76,9 @@ impl ModelRegistry {
 
     pub fn migrate_model_path(&self, name: &str) -> Result<(), std::io::Error> {
         let model_path = self.get_model_path(name);
-        let old_model_path = self.get_model_dir(name).join(OLD_GGML_MODEL_RELATIVE_PATH);
+        let old_model_path = self
+            .get_model_dir(name)
+            .join(LEGACY_GGML_MODEL_RELATIVE_PATH);
 
         if !model_path.exists() && old_model_path.exists() {
             std::fs::rename(&old_model_path, &model_path)?;
@@ -118,7 +120,7 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
     }
 }
 
-pub static OLD_GGML_MODEL_RELATIVE_PATH: &str = "ggml/q8_0.v2.gguf";
+pub static LEGACY_GGML_MODEL_RELATIVE_PATH: &str = "ggml/q8_0.v2.gguf";
 pub static GGML_MODEL_RELATIVE_PATH: &str = "ggml/model.gguf";
 
 #[cfg(test)]
@@ -136,7 +138,7 @@ mod tests {
         let registry = ModelRegistry::new("TabbyML").await;
         let dir = registry.get_model_dir("StarCoder-1B");
 
-        let old_model_path = dir.join(OLD_GGML_MODEL_RELATIVE_PATH);
+        let old_model_path = dir.join(LEGACY_GGML_MODEL_RELATIVE_PATH);
         tokio::fs::create_dir_all(old_model_path.parent().unwrap())
             .await
             .unwrap();
