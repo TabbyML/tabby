@@ -148,14 +148,12 @@ export class TabbyStatusBarItem {
     agent().on("statusChanged", (event: StatusChangedEvent) => {
       this.logger.info("Tabby agent statusChanged", { event });
       this.fsmService.send(event.status);
-
       if (event.status === "ready") {
         const healthState = agent().getServerHealthState();
         const isChatEnabled = Boolean(healthState?.chat_model);
         commands.executeCommand("setContext", "chatModeEnabled", isChatEnabled);
-
         const configuration = workspace.getConfiguration("tabby");
-        const experimental = configuration.get<Record<string, any>>("experimental.advanced", {});
+        const experimental = configuration.get<Record<string, any>>("experimental", {});
         const isExplainCodeEnabled = experimental["chat.explainCodeBlock"] || false;
         commands.executeCommand("setContext", "explainCodeSettingEnabled", isExplainCodeEnabled);
       }

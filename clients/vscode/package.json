@@ -139,54 +139,61 @@
         ]
       }
     ],
-    "configuration": {
-      "title": "Tabby",
-      "properties": {
-        "tabby.api.endpoint": {
-          "type": "string",
-          "default": "",
-          "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
-          "patternErrorMessage": "Please enter a validate http or https URL.",
-          "markdownDescription": "Specify API Endpoint of Tabby.  \nIf leave empty, server endpoint in [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
-        },
-        "tabby.inlineCompletion.triggerMode": {
-          "type": "string",
-          "enum": [
-            "automatic",
-            "manual"
-          ],
-          "default": "automatic",
-          "description": "Select the code completion trigger mode.",
-          "enumDescriptions": [
-            "Automatic trigger when you stop typing",
-            "Manual trigger by pressing `Alt + \\`"
-          ]
-        },
-        "tabby.keybindings": {
-          "type": "string",
-          "enum": [
-            "vscode-style",
-            "tabby-style"
-          ],
-          "default": "vscode-style",
-          "markdownDescription": "Select the keybinding profile to accept inline completion. You can also customize it in [Keyboard Shortcuts](command:tabby.openKeybindings). \n | | Next Line | Full Completion | Next Word | \n |:---|:---|:---|:---| \n | _vscode-style_ | - | `Tab` | `Ctrl + RightArrow` (macOS: `Cmd + RightArrow`) | \n | _tabby-style_  _(experimental)_ | `Tab` | `Ctrl + Tab` | `Ctrl + RightArrow` (macOS: `Cmd + RightArrow`) | \n"
-        },
-        "tabby.usage.anonymousUsageTracking": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection)."
-        },
-        "tabby.experimental.advanced": {
-          "default": {},
-          "properties": {
-            "chat.explainCodeBlock": {
-              "type": "boolean",
-              "default": false
+    "configuration": [
+      {
+        "title": "Tabby",
+        "properties": {
+          "tabby.api.endpoint": {
+            "type": "string",
+            "default": "",
+            "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
+            "patternErrorMessage": "Please enter a validate http or https URL.",
+            "markdownDescription": "Specify API Endpoint of Tabby.  \nIf leave empty, server endpoint in [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
+          },
+          "tabby.inlineCompletion.triggerMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual"
+            ],
+            "default": "automatic",
+            "description": "Select the code completion trigger mode.",
+            "enumDescriptions": [
+              "Automatic trigger when you stop typing",
+              "Manual trigger by pressing `Alt + \\`"
+            ]
+          },
+          "tabby.keybindings": {
+            "type": "string",
+            "enum": [
+              "vscode-style",
+              "tabby-style"
+            ],
+            "default": "vscode-style",
+            "markdownDescription": "Select the keybinding profile to accept inline completion. You can also customize it in [Keyboard Shortcuts](command:tabby.openKeybindings). \n | | Next Line | Full Completion | Next Word | \n |:---|:---|:---|:---| \n | _vscode-style_ | - | `Tab` | `Ctrl + RightArrow` (macOS: `Cmd + RightArrow`) | \n | _tabby-style_  _(experimental)_ | `Tab` | `Ctrl + Tab` | `Ctrl + RightArrow` (macOS: `Cmd + RightArrow`) | \n"
+          },
+          "tabby.usage.anonymousUsageTracking": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection)."
+          }
+        }
+      },
+      {
+        "title": "Tabby2",
+        "properties": {
+          "tabby.experimental": {
+            "default": {},
+            "properties": {
+              "chat.explainCodeBlock": {
+                "type": "boolean",
+                "default": false
+              }
             }
           }
         }
       }
-    },
+    ],
     "keybindings": [
       {
         "key": "alt+\\",

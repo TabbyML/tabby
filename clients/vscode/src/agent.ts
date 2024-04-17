@@ -100,8 +100,8 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
         const keybindings = configuration.get<string>("keybindings", "vscode-style");
         agent.updateClientProperties("user", "vscode.keybindings", keybindings);
       }
-      if (event.affectsConfiguration("tabby.experimental.advanced")) {
-        const experimental = configuration.get<Record<string, any>>("experimental.advanced", {});
+      if (event.affectsConfiguration("tabby.experimental")) {
+        const experimental = configuration.get<Record<string, any>>("experimental", {});
         const isExplainCodeEnabled = experimental["chat.explainCodeBlock"] || false;
         commands.executeCommand("setContext", "explainCodeSettingEnabled", isExplainCodeEnabled);
       }
