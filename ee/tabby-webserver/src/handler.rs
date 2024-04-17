@@ -59,7 +59,7 @@ impl RepositoryAccess for RepositoryAccessImpl {
                 .await
                 .unwrap_or_default()
                 .into_iter()
-                .map(|git_url| RepositoryConfig::new(git_url)),
+                .map(RepositoryConfig::new),
         );
 
         repos.extend(
