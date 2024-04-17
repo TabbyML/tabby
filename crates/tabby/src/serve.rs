@@ -158,7 +158,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
         let (new_api, new_ui) = ws
-            .attach_webserver(api, ui, code, repository_access, args.chat_model.is_some(), args.port)
+            .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
             .await;
         api = new_api;
         ui = new_ui;

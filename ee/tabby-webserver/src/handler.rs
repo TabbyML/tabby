@@ -131,7 +131,6 @@ impl WebserverHandle {
         api: Router,
         ui: Router,
         code: Arc<dyn CodeSearch>,
-        repository_access: Arc<dyn RepositoryAccess>,
         is_chat_enabled: bool,
         local_port: u16,
     ) -> (Router, Router) {
@@ -167,7 +166,7 @@ impl WebserverHandle {
             .route(
                 "/hub",
                 routing::get(hub::ws_handler)
-                    .with_state(HubState::new(ctx.clone(), repository_access).into()),
+                    .with_state(HubState::new(ctx.clone(), self.repository_access.clone()).into()),
             )
             .nest(
                 "/repositories",
