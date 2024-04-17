@@ -278,7 +278,6 @@ enum LicenseType {
   COMMUNITY
   TEAM
   ENTERPRISE
-  DEMO
 }
 
 type OAuthCredential {
