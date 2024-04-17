@@ -212,3 +212,34 @@ top_level_keywords = [
     "function",
     "type",
 ]
+
+[[config]]
+languages = ["css"]
+line_comment = "/*"
+top_level_keywords = [
+    "color",
+    "font",
+    "margin",
+    "padding",
+    "display",
+    "position",
+    "width",
+    "height",
+    "background",
+    "border",
+    "box-shadow",
+    "animation",
+    "transition",
+    "flex",
+    "align-items",
+    "justify-content",
+    "text-align",
+    "overflow",
+    "float",
+    "clear",
+    "cursor",
+    "z-index",
+    "opacity",
+    "visibility",
+    "pointer-events",
+]
