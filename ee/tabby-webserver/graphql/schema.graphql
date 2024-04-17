@@ -210,7 +210,6 @@ type GithubProvidedRepository {
 type Query {
   workers: [Worker!]!
   registrationToken: String!
-  isAdminInitialized: Boolean! @deprecated
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
@@ -219,7 +218,6 @@ type Query {
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting
-  isEmailConfigured: Boolean! @deprecated
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   repositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
