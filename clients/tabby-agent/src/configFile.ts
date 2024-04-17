@@ -63,7 +63,7 @@ const typeCheckSchema: Record<string, string> = {
   "completion.prompt.collectSnippetsFromRecentChangedFiles.indexing": "object",
   "completion.prompt.collectSnippetsFromRecentChangedFiles.indexing.checkingChangesInterval": "number",
   "completion.prompt.collectSnippetsFromRecentChangedFiles.indexing.changesDebouncingInterval": "number",
-  "completion.prompt.collectSnippetsFromRecentChangedFiles.indexing.prefixLines": "boolean",
+  "completion.prompt.collectSnippetsFromRecentChangedFiles.indexing.prefixLines": "number",
   "completion.prompt.collectSnippetsFromRecentChangedFiles.indexing.suffixLines": "number",
   "completion.prompt.collectSnippetsFromRecentChangedFiles.indexing.maxChunks": "number",
   "completion.prompt.collectSnippetsFromRecentChangedFiles.indexing.chunkSize": "number",
