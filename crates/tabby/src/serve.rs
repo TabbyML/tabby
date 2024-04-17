@@ -128,6 +128,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might take a few minutes...");
 
     #[cfg(feature = "ee")]
+    #[allow(deprecated)]
     if args.webserver {
         warn!("'--webserver' is enabled by default since 0.11, and will be removed in the next major release. Please remove this flag from your command.");
     }
