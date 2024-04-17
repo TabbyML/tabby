@@ -145,43 +145,13 @@ impl Hub for Arc<HubImpl> {
         }
     }
     async fn list_repositories(self, _context: tarpc::context::Context) -> Vec<RepositoryConfig> {
-        let mut all_repos = vec![];
-
-        match self
-            .ctx
-            .repository()
-            .list_repositories(None, None, None, None)
+        self.ctx
+            .repository_access()
+            .list_repositories()
             .await
-        {
-            Ok(repositories) => {
-                all_repos.extend(
-                    repositories
-                        .into_iter()
-                        .map(|repo| RepositoryConfig::new(repo.git_url)),
-                );
-            }
-            Err(e) => {
-                warn!("Failed to fetch repositories: {e}");
-            }
-        }
-
-        match self
-            .ctx
-            .github_repository_provider()
-            .list_provided_git_urls()
-            .await
-        {
-            Ok(urls) => {
-                all_repos.extend(
-                    urls.into_iter()
-                        .map(|git_url| RepositoryConfig::new(git_url)),
-                );
-            }
-            Err(e) => {
-                warn!("Failed to fetch GitHub integrated repositories: {e}");
-            }
-        }
-
-        all_repos
+            .unwrap_or_else(|e| {
+                warn!("Failed to retrieve list of repositories: {e}");
+                vec![]
+            })
     }
 }

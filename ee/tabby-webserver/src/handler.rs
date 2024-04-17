@@ -127,6 +127,7 @@ impl WebserverHandle {
         api: Router,
         ui: Router,
         code: Arc<dyn CodeSearch>,
+        repository_access: Arc<dyn RepositoryAccess>,
         is_chat_enabled: bool,
         local_port: u16,
     ) -> (Router, Router) {
@@ -135,6 +136,7 @@ impl WebserverHandle {
             code,
             self.git_repository_service.clone(),
             self.github_repository_service.clone(),
+            repository_access,
             self.db.clone(),
             is_chat_enabled,
         )

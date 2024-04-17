@@ -149,7 +149,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         repository_access = ws.repository_access();
     }
 
-    let code = Arc::new(create_code_search(repository_access));
+    let code = Arc::new(create_code_search(repository_access.clone()));
     let mut api = api_router(args, config, logger.clone(), code.clone()).await;
     let mut ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
@@ -158,7 +158,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
         let (new_api, new_ui) = ws
-            .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
+            .attach_webserver(api, ui, code, repository_access, args.chat_model.is_some(), args.port)
             .await;
         api = new_api;
         ui = new_ui;
