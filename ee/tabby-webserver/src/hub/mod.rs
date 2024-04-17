@@ -15,7 +15,7 @@ use axum::{
 use hyper::{Body, StatusCode};
 use tabby_common::{
     api::{code::SearchResponse, event::LogEntry},
-    config::RepositoryConfig,
+    config::{RepositoryAccess, RepositoryConfig},
 };
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
@@ -23,9 +23,26 @@ use websocket::WebSocketTransport;
 
 use crate::{axum::extract::AuthBearer, schema::ServiceLocator};
 
+pub(crate) struct HubState {
+    locator: Arc<dyn ServiceLocator>,
+    repository_access: Arc<dyn RepositoryAccess>,
+}
+
+impl HubState {
+    pub fn new(
+        locator: Arc<dyn ServiceLocator>,
+        repository_access: Arc<dyn RepositoryAccess>,
+    ) -> Self {
+        HubState {
+            locator,
+            repository_access,
+        }
+    }
+}
+
 pub(crate) async fn ws_handler(
     ws: WebSocketUpgrade,
-    State(state): State<Arc<dyn ServiceLocator>>,
+    State(state): State<Arc<HubState>>,
     AuthBearer(token): AuthBearer,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     TypedHeader(request): TypedHeader<ConnectHubRequest>,
@@ -40,7 +57,7 @@ pub(crate) async fn ws_handler(
         return unauthorized;
     };
 
-    let Ok(registeration_token) = state.worker().read_registration_token().await else {
+    let Ok(registeration_token) = state.locator.worker().read_registration_token().await else {
         return unauthorized;
     };
 
@@ -53,7 +70,7 @@ pub(crate) async fn ws_handler(
 }
 
 async fn handle_socket(
-    state: Arc<dyn ServiceLocator>,
+    state: Arc<HubState>,
     socket: WebSocket,
     addr: IpAddr,
     req: ConnectHubRequest,
@@ -65,7 +82,7 @@ async fn handle_socket(
         ConnectHubRequest::Worker(worker) => {
             let worker = worker.create_worker(addr);
             let addr = worker.addr.clone();
-            match state.worker().register(worker).await {
+            match state.locator.worker().register(worker).await {
                 Ok(_) => Some(addr),
                 Err(err) => {
                     warn!("Failed to register worker: {}", err);
@@ -74,18 +91,31 @@ async fn handle_socket(
             }
         }
     };
-    let imp = Arc::new(HubImpl::new(state.clone(), addr));
+    let imp = Arc::new(HubImpl::new(
+        state.locator.clone(),
+        state.repository_access.clone(),
+        addr,
+    ));
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
 struct HubImpl {
     ctx: Arc<dyn ServiceLocator>,
+    repository_access: Arc<dyn RepositoryAccess>,
     worker_addr: Option<String>,
 }
 
 impl HubImpl {
-    fn new(ctx: Arc<dyn ServiceLocator>, worker_addr: Option<String>) -> Self {
-        Self { ctx, worker_addr }
+    fn new(
+        ctx: Arc<dyn ServiceLocator>,
+        repository_access: Arc<dyn RepositoryAccess>,
+        worker_addr: Option<String>,
+    ) -> Self {
+        Self {
+            ctx,
+            worker_addr,
+            repository_access,
+        }
     }
 }
 
@@ -145,20 +175,12 @@ impl Hub for Arc<HubImpl> {
         }
     }
     async fn list_repositories(self, _context: tarpc::context::Context) -> Vec<RepositoryConfig> {
-        let result = self
-            .ctx
-            .repository()
-            .list_repositories(None, None, None, None)
+        self.repository_access
+            .list_repositories()
             .await
-            .map_err(|e| e.to_string())
-            .map(|v| {
-                v.into_iter()
-                    .map(|r| RepositoryConfig::new(r.git_url))
-                    .collect()
-            });
-        result.unwrap_or_else(|e| {
-            warn!("Failed to fetch repositories: {e}");
-            vec![]
-        })
+            .unwrap_or_else(|e| {
+                warn!("Failed to retrieve list of repositories: {e}");
+                vec![]
+            })
     }
 }
