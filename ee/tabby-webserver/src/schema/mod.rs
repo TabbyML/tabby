@@ -306,7 +306,7 @@ impl Query {
                 Ok(ctx
                     .locator
                     .job()
-                    .list_job_runs(ids, jobs, after, before, first, last)
+                    .list(ids, jobs, after, before, first, last)
                     .await?)
             },
         )
@@ -314,7 +314,7 @@ impl Query {
     }
 
     async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> FieldResult<JobStats> {
-        Ok(ctx.locator.job().compute_job_run_stats(jobs).await?)
+        Ok(ctx.locator.job().compute_stats(jobs).await?)
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
