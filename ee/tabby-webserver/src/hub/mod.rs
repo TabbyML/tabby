@@ -65,7 +65,7 @@ async fn handle_socket(
         ConnectHubRequest::Worker(worker) => {
             let worker = worker.create_worker(addr);
             let addr = worker.addr.clone();
-            match state.worker().register_worker(worker).await {
+            match state.worker().register(worker).await {
                 Ok(_) => Some(addr),
                 Err(err) => {
                     warn!("Failed to register worker: {}", err);
@@ -94,7 +94,7 @@ impl Drop for HubImpl {
         let ctx = self.ctx.clone();
         if let Some(worker_addr) = self.worker_addr.clone() {
             tokio::spawn(async move {
-                ctx.worker().unregister_worker(worker_addr.as_str()).await;
+                ctx.worker().unregister(worker_addr.as_str()).await;
             });
         }
     }
