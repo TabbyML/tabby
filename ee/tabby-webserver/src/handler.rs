@@ -87,8 +87,8 @@ impl RepositoryAccess for RepositoryAccessImpl {
 pub struct WebserverHandle {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
-    repository_service: Arc<dyn RepositoryService>,
-    github_service: Arc<dyn GithubRepositoryProviderService>,
+    git_repository_service: Arc<dyn RepositoryService>,
+    github_repository_service: Arc<dyn GithubRepositoryProviderService>,
 }
 
 impl WebserverHandle {
@@ -96,16 +96,17 @@ impl WebserverHandle {
         let db = DbConn::new(db_file().as_path())
             .await
             .expect("Must be able to initialize db");
-        let repository_service = Arc::new(db.clone());
-        let github_service = Arc::new(new_github_repository_provider_service(db.clone()));
+        let git_repository_service = Arc::new(db.clone());
+        let github_repository_service =
+            Arc::new(new_github_repository_provider_service(db.clone()));
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
         WebserverHandle {
             db,
             logger,
-            repository_service,
-            github_service,
+            git_repository_service,
+            github_repository_service,
         }
     }
 
@@ -115,8 +116,8 @@ impl WebserverHandle {
 
     pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
         Arc::new(RepositoryAccessImpl {
-            git_repository_service: self.repository_service.clone(),
-            github_repository_service: self.github_service.clone(),
+            git_repository_service: self.git_repository_service.clone(),
+            github_repository_service: self.github_repository_service.clone(),
             url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
         })
     }
@@ -132,8 +133,8 @@ impl WebserverHandle {
         let ctx = create_service_locator(
             self.logger(),
             code,
-            self.repository_service.clone(),
-            self.github_service.clone(),
+            self.git_repository_service.clone(),
+            self.github_repository_service.clone(),
             self.db.clone(),
             is_chat_enabled,
         )
