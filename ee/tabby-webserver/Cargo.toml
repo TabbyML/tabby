@@ -58,4 +58,4 @@ assert_matches = "1.5.0"
 tokio = { workspace = true, features = ["macros"] }
 tabby-db = { path = "../../ee/tabby-db", features = ["testutils"] }
 serial_test = { workspace = true }
-temp_testdir = "0.2"
+temp_testdir = { workspace = true }
