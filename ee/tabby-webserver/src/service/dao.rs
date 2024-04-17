@@ -127,6 +127,7 @@ impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
             application_id: value.application_id,
             id: value.id.as_id(),
             access_token: value.access_token,
+            secret: value.secret,
         }
     }
 }

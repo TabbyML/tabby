@@ -11,6 +11,8 @@ pub struct GithubRepositoryProvider {
     pub display_name: String,
     pub application_id: String,
     #[graphql(skip)]
+    pub secret: String,
+    #[graphql(skip)]
     pub access_token: Option<String>,
 }
 
@@ -60,7 +62,6 @@ impl NodeType for GithubProvidedRepository {
 #[async_trait]
 pub trait GithubRepositoryProviderService: Send + Sync {
     async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider>;
-    async fn read_github_repository_provider_secret(&self, id: ID) -> Result<String>;
     async fn update_github_repository_provider_access_token(
         &self,
         id: ID,
