@@ -9,7 +9,7 @@ static CODE_TOKENIZER: &str = "code";
 
 pub fn register_tokenizers(index: &Index) {
     let code_tokenizer = TextAnalyzer::builder(RegexTokenizer::new(r"(?:\w+)").unwrap())
-        .filter(RemoveLongFilter::limit(128))
+        .filter(RemoveLongFilter::limit(64))
         .build();
 
     index.tokenizers().register(CODE_TOKENIZER, code_tokenizer);
@@ -29,7 +29,7 @@ impl CodeSearchSchema {
 
         let code_indexing_options = TextFieldIndexing::default()
             .set_tokenizer(CODE_TOKENIZER)
-            .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions);
+            .set_index_option(tantivy::schema::IndexRecordOption::WithFreqs);
         let code_options = TextOptions::default()
             .set_indexing_options(code_indexing_options)
             .set_stored();
@@ -66,7 +66,7 @@ impl CodeSearchSchema {
         };
         Box::new(TermQuery::new(
             Term::from_field_text(self.field_language, language),
-            IndexRecordOption::WithFreqsAndPositions,
+            IndexRecordOption::Basic,
         ))
     }
 
