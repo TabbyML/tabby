@@ -216,7 +216,7 @@ type Query {
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
-  githubRepositoryProviders(ids: [Int!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
+  githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   githubRepositories(providerIds: [ID!]!, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
@@ -285,7 +285,6 @@ enum LicenseType {
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
-  clientSecret: String
   createdAt: DateTimeUtc!
   updatedAt: DateTimeUtc!
 }
