@@ -1,3 +1,17 @@
+## 1.5.0
+
+### Features
+
+- Added support for sending additional context for completion requests, including:
+  - filepath
+  - git repository information
+  - relevant declaration code snippets
+  - relevant recently edited code snippets
+
+### Fixes
+
+- Corrected server-side config retrieval behavior for connections to Tabby servers with version < 0.9.
+
 ## 1.4.1
 
 ### Features
