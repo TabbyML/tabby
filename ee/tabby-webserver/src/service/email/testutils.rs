@@ -30,7 +30,7 @@ impl TestEmailServer {
     pub async fn create_test_email_service(&self, db_conn: DbConn) -> impl EmailService {
         let service = new_email_service(db_conn).await.unwrap();
         service
-            .update_email_setting(default_email_settings())
+            .update_setting(default_email_settings())
             .await
             .unwrap();
         service

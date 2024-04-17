@@ -319,12 +319,12 @@ impl Query {
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
         check_admin(ctx).await?;
-        ctx.locator.email().read_email_setting().await
+        ctx.locator.email().read_setting().await
     }
 
     #[deprecated]
     async fn is_email_configured(ctx: &Context) -> Result<bool> {
-        let initialized = ctx.locator.email().read_email_setting().await?.is_some();
+        let initialized = ctx.locator.email().read_setting().await?.is_some();
         Ok(initialized)
     }
 
@@ -393,7 +393,7 @@ impl Query {
         Ok(ServerInfo {
             is_admin_initialized: ctx.locator.auth().is_admin_initialized().await?,
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
-            is_email_configured: ctx.locator.email().read_email_setting().await?.is_some(),
+            is_email_configured: ctx.locator.email().read_setting().await?.is_some(),
             allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
         })
     }
@@ -602,7 +602,7 @@ impl Mutation {
 
     async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.email().send_test_email(to).await?;
+        ctx.locator.email().send_test(to).await?;
         Ok(true)
     }
 
@@ -659,7 +659,7 @@ impl Mutation {
     async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
-        ctx.locator.email().update_email_setting(input).await?;
+        ctx.locator.email().update_setting(input).await?;
         Ok(true)
     }
 
@@ -680,7 +680,7 @@ impl Mutation {
 
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.email().delete_email_setting().await?;
+        ctx.locator.email().delete_setting().await?;
         Ok(true)
     }
 
