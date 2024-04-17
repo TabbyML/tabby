@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input'
 
 export const oauthInfoFormSchema = z.object({
   applicationId: z.string(),
-  secret: z.string()
+  applicationSecret: z.string()
 })
 
 export type OAuthApplicationFormValues = z.infer<typeof oauthInfoFormSchema>
@@ -53,7 +53,7 @@ export const OAuthApplicationForm = React.forwardRef<
       />
       <FormField
         control={form.control}
-        name="secret"
+        name="applicationSecret"
         render={({ field }) => (
           <FormItem>
             <FormLabel required>Secret</FormLabel>

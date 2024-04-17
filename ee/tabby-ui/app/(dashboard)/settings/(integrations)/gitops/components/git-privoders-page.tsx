@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import useLocalStorage from 'use-local-storage'
 
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,22 +10,26 @@ import LoadingWrapper from '@/components/loading-wrapper'
 import { BasicInfoFormValues } from './basic-info-form'
 import { RepositoryHeader } from './header'
 import { OAuthApplicationFormValues } from './oauth-application-form'
+import { useQuery } from 'urql'
+import { listGithubRepositoryProviders } from '@/lib/tabby/query'
+import { ListGithubRepositoryProvidersQuery } from '@/lib/gql/generates/graphql'
 
 type ProviderItem = BasicInfoFormValues &
   OAuthApplicationFormValues & { id: number }
 
-export default function GitProvidersPage() {
-  // todo remove
-  const [mockGitopsData, setMockGitopsData] =
-    useLocalStorage<Array<ProviderItem> | null>('mock-gitops-data', null)
 
+export default function GitProvidersPage() {
+  
+  const [{ data }] = useQuery({ query: listGithubRepositoryProviders })
+  const githubRepositoryProviders = data?.githubRepositoryProviders?.edges
+  
   return (
     <>
       <RepositoryHeader />
       <LoadingWrapper loading={false}>
-        {mockGitopsData?.length ? (
+        {githubRepositoryProviders?.length ? (
           <div>
-            <GitProvidersList data={mockGitopsData} />
+            <GitProvidersList data={githubRepositoryProviders} />
             <div className="mt-4 flex justify-end">
               <Link href="/settings/gitops/new" className={buttonVariants()}>
                 Add A Git Provider
@@ -42,7 +45,7 @@ export default function GitProvidersPage() {
 }
 
 interface GitProvidersTableProps {
-  data: Array<ProviderItem>
+  data: ListGithubRepositoryProvidersQuery['githubRepositoryProviders']['edges']
 }
 
 const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
@@ -50,7 +53,7 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
     <div className="space-y-8">
       {data?.map(item => {
         return (
-          <Card key={item.id}>
+          <Card key={item.node.id}>
             <CardHeader className="border-b p-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl">
@@ -60,7 +63,7 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                   </div>
                 </CardTitle>
                 <Link
-                  href={`/settings/gitops/detail?id=${item.id}`}
+                  href={`/settings/gitops/detail?id=${item.node.id}`}
                   className={buttonVariants({ variant: 'secondary' })}
                 >
                   View
@@ -68,22 +71,23 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
               </div>
             </CardHeader>
             <CardContent className="p-4 text-sm">
-              <div className="flex border-b py-2">
+              {/* <div className="flex border-b py-2">
                 <span className="w-[30%] text-muted-foreground">
                   Instance URL
                 </span>
                 <span>{item.instanceUrl}</span>
-              </div>
+              </div> */}
               <div className="flex py-3 border-b">
                 <span className="w-[30%] text-muted-foreground shrink-0">
                   Application ID
                 </span>
-                <span className="truncate">{item.applicationId}</span>
+                <span className="truncate">{item.node.applicationId}</span>
               </div>
               <div className="flex py-3">
                 <span className="w-[30%] text-muted-foreground shrink-0">
                   Linked repositories
                 </span>
+                {/* todo: add query */}
                 <span className="truncate">2</span>
               </div>
             </CardContent>

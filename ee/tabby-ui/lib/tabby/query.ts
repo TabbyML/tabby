@@ -163,6 +163,26 @@ export const queryDailyStats = graphql(/* GraphQL */ `
       selects
       views
       language
+    }}
+`)
+  
+export const listGithubRepositoryProviders = graphql(/* GraphQL */ `
+  query ListGithubRepositoryProviders($ids: [Int!], $after: String, $before: String, $first: Int, $last: Int) {
+    githubRepositoryProviders(ids: $ids, after: $after, before: $before, first: $first, last: $last) {
+      edges {
+        node {
+          id
+          displayName
+          applicationId
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
     }
   }
 `)

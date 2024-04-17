@@ -36,13 +36,11 @@ export default function ConfirmView({ data }: ConfirmViewProps) {
             </div>
           </InfoItem>
           <Separator />
-          <InfoItem title="Name">{data.displayName}</InfoItem>
-          <Separator />
-          <InfoItem title="Instance URL">{data.instanceUrl}</InfoItem>
+          <InfoItem title="Display name">{data.displayName}</InfoItem>
           <Separator />
           <InfoItem title="Application ID">{data.applicationId}</InfoItem>
           <Separator />
-          <InfoItem title="Secret">{data.secret}</InfoItem>
+          <InfoItem title="Application secret">{data.applicationSecret}</InfoItem>
         </CardContent>
       </Card>
     </div>

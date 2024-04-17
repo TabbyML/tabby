@@ -3,9 +3,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { uniqueId } from 'lodash-es'
 import { useForm, UseFormReturn } from 'react-hook-form'
-import useLocalStorage from 'use-local-storage'
 import * as z from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -24,6 +22,16 @@ import {
   type OAuthApplicationFormValues
 } from '../../components/oauth-application-form'
 import ConfirmView from '../components/confirm-view'
+import { graphql } from '@/lib/gql/generates'
+import { useMutation } from '@/lib/tabby/gql'
+import { toast } from 'sonner'
+import { IconSpinner } from '@/components/ui/icons'
+
+const createGithubRepositoryProvider = graphql(/* GraphQL */ `
+  mutation CreateGithubRepositoryProvider($displayName: String!, $applicationId: String!, $applicationSecret: String!) {
+    createGithubRepositoryProvider(displayName: $displayName, applicationId: $applicationId, applicationSecret: $applicationSecret)
+  }
+`)
 
 export const NewProvider = () => {
   const router = useRouter()
@@ -50,13 +58,19 @@ export const NewProvider = () => {
     }
   })
 
-  // todo mock, remove later
-  const [mockGitopsData, setMockGitopsData] = useLocalStorage<Array<
-    (BasicInfoFormValues | OAuthApplicationFormValues) & { id: string }
-  > | null>('mock-gitops-data', null)
+  const { isSubmitting } = form.formState
 
-  const handleSubmit = (
-    values: BasicInfoFormValues | OAuthApplicationFormValues
+  const createGithubRepositoryProviderMutation = useMutation(createGithubRepositoryProvider, {
+    onCompleted(data) {
+      if (data?.createGithubRepositoryProvider) {
+        toast.success('Created successfully')
+        router.push(`/settings/gitops`)
+      }
+    },
+    form
+  })
+
+  const handleSubmit = async (
   ) => {
     if (currentStep === 0) {
       // basic info
@@ -65,14 +79,8 @@ export const NewProvider = () => {
       // oauth application info
       setStep(currentStep + 1)
     } else {
-      const currentMockGitopsData = mockGitopsData || []
-      const allValues = form.getValues()
-      // mock
-      setMockGitopsData([
-        ...currentMockGitopsData,
-        { id: uniqueId(), ...allValues }
-      ])
-      router.push('/settings/gitops')
+      const values = form.getValues()
+      createGithubRepositoryProviderMutation(values)
     }
   }
 
@@ -111,7 +119,10 @@ export const NewProvider = () => {
                   Back
                 </Button>
               )}
-              <Button type="submit">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && (
+                  <IconSpinner className="mr-2" />
+                )}
                 {currentStep === 2 ? 'Confirm and add' : 'Next'}
               </Button>
             </div>
