@@ -167,8 +167,20 @@ export const queryDailyStats = graphql(/* GraphQL */ `
 `)
   
 export const listGithubRepositoryProviders = graphql(/* GraphQL */ `
-  query ListGithubRepositoryProviders($ids: [Int!], $after: String, $before: String, $first: Int, $last: Int) {
-    githubRepositoryProviders(ids: $ids, after: $after, before: $before, first: $first, last: $last) {
+  query ListGithubRepositoryProviders(
+    $ids: [Int!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    githubRepositoryProviders(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
       edges {
         node {
           id
