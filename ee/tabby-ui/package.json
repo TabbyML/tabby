@@ -53,6 +53,7 @@
     "@vercel/kv": "^0.2.1",
     "@vercel/og": "^0.5.7",
     "ai": "^2.1.6",
+    "chroma-js": "^2.4.2",
     "class-variance-authority": "^0.4.0",
     "clsx": "^1.2.1",
     "cmdk": "^1.0.0",
