@@ -15,9 +15,9 @@ lazy_static! {
 pub struct CreateGithubRepositoryProviderInput {
     #[validate(regex(code = "displayName", path = "GITHUB_REPOSITORY_PROVIDER_NAME_REGEX"))]
     pub display_name: String,
-    #[validate(length(min = 20))]
+    #[validate(length(code = "applicationId", min = 20))]
     pub application_id: String,
-    #[validate(length(min = 40))]
+    #[validate(length(code = "secret", min = 40))]
     pub secret: String,
 }
 
@@ -26,9 +26,9 @@ pub struct UpdateGithubRepositoryProviderInput {
     pub id: ID,
     #[validate(regex(code = "displayName", path = "GITHUB_REPOSITORY_PROVIDER_NAME_REGEX"))]
     pub display_name: String,
-    #[validate(length(min = 20))]
+    #[validate(length(code = "applicationId", min = 20))]
     pub application_id: String,
-    #[validate(length(min = 40))]
+    #[validate(length(code = "secret", min = 40))]
     pub secret: Option<String>,
 }
 
