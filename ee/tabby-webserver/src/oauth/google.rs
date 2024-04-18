@@ -5,7 +5,10 @@ use async_trait::async_trait;
 use serde::Deserialize;
 
 use super::OAuthClient;
-use crate::{bail, schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider}};
+use crate::{
+    bail,
+    schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider},
+};
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
