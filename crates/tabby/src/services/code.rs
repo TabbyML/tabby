@@ -156,9 +156,7 @@ fn closest_match<'a>(
     search_input
         .into_iter()
         .filter_map(|elem| {
-            let Ok(git_url) = GitUrl::parse(&elem.git_url) else {
-                return None;
-            };
+            let git_url = GitUrl::parse(&elem.git_url).ok()?;
             let mut score = 0;
             // Name is scored the highest - more than 3 letters different automatically disqualifies
             score += 15 * damerau_levenshtein(&git_search.name, &git_url.name);
