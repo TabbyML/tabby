@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use nucleo::Utf32String;
+use parse_git_url::GitUrl;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
     config::{RepositoryAccess, RepositoryConfig},
@@ -16,6 +16,7 @@ use tantivy::{
     schema::Field,
     DocAddress, Document, Index, IndexReader,
 };
+use textdistance::str::damerau_levenshtein;
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
 
@@ -151,27 +152,40 @@ fn closest_match<'a>(
     search_term: &'a str,
     search_input: impl IntoIterator<Item = &'a RepositoryConfig>,
 ) -> Option<String> {
-    let search_term = RepositoryConfig::canonicalize_url(search_term);
-
-    let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
+    let git_search = GitUrl::parse(search_term).ok()?;
     search_input
         .into_iter()
-        .filter_map(|entry| {
-            let url = entry.canonical_git_url();
-            Some((
-                url.clone(),
-                // Matching using the input URL as the haystack instead of the needle yielded better scoring
-                // Example:
-                // haystack = "https://github.com/boxbeam/untwine" needle = "https://abc@github.com/boxbeam/untwine.git" => No match
-                // haystack = "https://abc@github.com/boxbeam/untwine.git" needle = "https://github.com/boxbeam/untwine" => Match, score 842
-                nucleo.fuzzy_match(
-                    Utf32String::from(&*search_term).slice(..),
-                    Utf32String::from(&*url).slice(..),
-                )?,
-            ))
+        .filter_map(|elem| {
+            let Ok(git_url) = GitUrl::parse(&elem.git_url) else {
+                return None;
+            };
+            let mut score = 0;
+            // Name is scored the highest - more than 3 letters different automatically disqualifies
+            score += 15 * damerau_levenshtein(&git_search.name, &git_url.name);
+
+            // Host is scored the second highest, but it is okay for the host to be different if
+            // the name is very similar or a perfect match
+            if let Some((host1, host2)) = git_search.host.as_ref().zip(git_url.host) {
+                score += 4 * damerau_levenshtein(host1, &host2);
+            } else {
+                score += 30;
+            }
+
+            // Owner is scored the lowest, to allow forks to be matched as long as the rest matches
+            if let Some((org1, org2)) = git_search.owner.as_ref().zip(git_url.owner) {
+                score += 3 * damerau_levenshtein(org1, &org2);
+            } else {
+                score += 15;
+            }
+
+            dbg!(score);
+            Some((score, elem))
         })
-        .max_by_key(|(_, score)| *score)
-        .map(|(entry, _score)| entry)
+        // Higher scores mean a higher degree of difference in the repositories,
+        // so we want to eliminate scores over 50 and take the lowest
+        .filter(|(score, _elem)| *score < 50)
+        .min_by_key(|(score, _elem)| *score)
+        .map(|(_score, elem)| elem.git_url.clone())
 }
 
 fn get_field(doc: &Document, field: Field) -> String {
@@ -244,6 +258,7 @@ mod tests {
 
     #[test]
     fn test_closest_match() {
+        // Test .git suffix should still match
         assert_eq!(
             closest_match(
                 "https://github.com/example/test.git",
@@ -254,6 +269,7 @@ mod tests {
             Some("https://github.com/example/test".into())
         );
 
+        // Test auth in URL should still match
         assert_eq!(
             closest_match(
                 "https://creds@github.com/example/test",
@@ -264,6 +280,7 @@ mod tests {
             Some("https://github.com/example/test".into())
         );
 
+        // Test small differences in org and repo should match
         assert_eq!(
             closest_match(
                 "https://github.com/example/another-repo",
@@ -274,6 +291,7 @@ mod tests {
             Some("https://github.com/examp/anoth-repo".into())
         );
 
+        // Test different repositories with a common prefix should not match
         assert_eq!(
             closest_match(
                 "https://github.com/TabbyML/tabby",
@@ -284,6 +302,7 @@ mod tests {
             None
         );
 
+        // Test entirely different repository names should not match
         assert_eq!(
             closest_match(
                 "https://github.com/TabbyML/tabby",
@@ -294,6 +313,7 @@ mod tests {
             None
         );
 
+        // Test incomplete git url should not match
         assert_eq!(
             closest_match(
                 "https://github.com",
@@ -304,6 +324,7 @@ mod tests {
             None
         );
 
+        // Test different host
         assert_eq!(
             closest_match(
                 "https://bitbucket.com/TabbyML/tabby",
@@ -311,12 +332,25 @@ mod tests {
                     "https://github.com/TabbyML/tabby".to_string()
                 )]
             ),
+            Some("https://github.com/TabbyML/tabby".into())
+        );
+
+        // Test multiple close matches
+        assert_eq!(
+            closest_match(
+                "git@github.com:TabbyML/tabby",
+                [
+                    &RepositoryConfig::new("https://bitbucket.com/CrabbyML/crabby".into()),
+                    &RepositoryConfig::new("https://gitlab.com/TabbyML/registry-tabby".into()),
+                ],
+            ),
             None
         );
     }
 
     #[test]
-    fn it_should_match_across_protocol() {
+    fn test_closest_match_url_format_differences() {
+        // Test different protocol and suffix should still match
         assert_eq!(
             closest_match(
                 "git@github.com:TabbyML/tabby.git",
@@ -327,6 +361,7 @@ mod tests {
             Some("https://github.com/TabbyML/tabby".into())
         );
 
+        // Test different protocol should still match
         assert_eq!(
             closest_match(
                 "git@github.com:TabbyML/tabby",
