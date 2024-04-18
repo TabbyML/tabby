@@ -32,9 +32,8 @@ use crate::{
     path::db_file,
     repositories,
     schema::{
-        auth::AuthenticationService, create_schema,
-        github_repository_provider::GithubRepositoryProviderService, repository::RepositoryService,
-        Schema, ServiceLocator,
+        auth::AuthenticationService, create_schema, git_repository::GitRepositoryService,
+        github_repository_provider::GithubRepositoryProviderService, Schema, ServiceLocator,
     },
     service::{
         create_service_locator, event_logger::create_event_logger,
@@ -44,7 +43,7 @@ use crate::{
 };
 
 struct RepositoryAccessImpl {
-    git_repository_service: Arc<dyn RepositoryService>,
+    git_repository_service: Arc<dyn GitRepositoryService>,
     github_repository_service: Arc<dyn GithubRepositoryProviderService>,
     url_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
@@ -69,7 +68,7 @@ impl RepositoryAccess for RepositoryAccessImpl {
                 .try_get_or_set_with((), || async {
                     let repos = self
                         .git_repository_service
-                        .list_repositories(None, None, None, None)
+                        .list(None, None, None, None)
                         .await?;
                     Ok::<_, anyhow::Error>(
                         repos
@@ -89,7 +88,7 @@ impl RepositoryAccess for RepositoryAccessImpl {
 pub struct WebserverHandle {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
-    git_repository_service: Arc<dyn RepositoryService>,
+    git_repository_service: Arc<dyn GitRepositoryService>,
     github_repository_service: Arc<dyn GithubRepositoryProviderService>,
     repository_access: Arc<dyn RepositoryAccess>,
 }

@@ -1,10 +1,10 @@
 pub mod analytic;
 pub mod auth;
 pub mod email;
+pub mod git_repository;
 pub mod github_repository_provider;
 pub mod job;
 pub mod license;
-pub mod repository;
 pub mod setting;
 pub mod worker;
 
@@ -33,12 +33,12 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
+    git_repository::{GitRepositoryService, Repository},
     github_repository_provider::{
         GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
     },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
@@ -46,7 +46,7 @@ use self::{
 use crate::{
     axum::FromAuth,
     juniper::relay::{self, Connection},
-    schema::repository::FileEntrySearchResult,
+    schema::git_repository::FileEntrySearchResult,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -55,7 +55,7 @@ pub trait ServiceLocator: Send + Sync {
     fn code(&self) -> Arc<dyn CodeSearch>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
-    fn repository(&self) -> Arc<dyn RepositoryService>;
+    fn repository(&self) -> Arc<dyn GitRepositoryService>;
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
@@ -331,7 +331,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .repository()
-                    .list_repositories(after, before, first, last)
+                    .list(after, before, first, last)
                     .await
             },
         )
@@ -582,17 +582,17 @@ impl Mutation {
 
     async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
         check_admin(ctx).await?;
-        let input = repository::CreateRepositoryInput { name, git_url };
+        let input = git_repository::CreateGitRepositoryInput { name, git_url };
         input.validate()?;
         ctx.locator
             .repository()
-            .create_repository(input.name, input.git_url)
+            .create(input.name, input.git_url)
             .await
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.repository().delete_repository(&id).await
+        ctx.locator.repository().delete(&id).await
     }
 
     async fn update_repository(
@@ -602,10 +602,7 @@ impl Mutation {
         git_url: String,
     ) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator
-            .repository()
-            .update_repository(&id, name, git_url)
-            .await
+        ctx.locator.repository().update(&id, name, git_url).await
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
