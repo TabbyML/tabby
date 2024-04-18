@@ -34,7 +34,8 @@ use self::{
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
     github_repository_provider::{
-        GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
+        CreateGithubRepositoryInput, DeleteGithubRepositoryInput, GithubProvidedRepository,
+        GithubRepositoryProvider, GithubRepositoryProviderService, UpdateGithubRepositoryInput,
     },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
@@ -712,37 +713,45 @@ impl Mutation {
 
     async fn create_github_repository_provider(
         ctx: &Context,
-        display_name: String,
-        application_id: String,
-        application_secret: String,
+        input: CreateGithubRepositoryInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
             .github_repository_provider()
-            .create_github_repository_provider(display_name, application_id, application_secret)
+            .create_github_repository_provider(
+                input.display_name,
+                input.application_id,
+                input.secret,
+            )
             .await?;
         Ok(true)
     }
 
-    async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
+    async fn delete_github_repository_provider(
+        ctx: &Context,
+        input: DeleteGithubRepositoryInput,
+    ) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
             .github_repository_provider()
-            .delete_github_repository_provider(id)
+            .delete_github_repository_provider(input.id)
             .await?;
         Ok(true)
     }
 
     async fn update_github_repository_provider(
         ctx: &Context,
-        id: ID,
-        application_id: String,
-        secret: Option<String>,
+        input: UpdateGithubRepositoryInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
             .github_repository_provider()
-            .update_github_repository_provider(id, application_id, secret)
+            .update_github_repository_provider(
+                input.id,
+                input.display_name,
+                input.application_id,
+                input.secret,
+            )
             .await?;
         Ok(true)
     }

@@ -1,8 +1,29 @@
 use async_trait::async_trait;
-use juniper::{GraphQLObject, ID};
+use juniper::{GraphQLInputObject, GraphQLObject, ID};
 
 use super::Context;
 use crate::{juniper::relay::NodeType, schema::Result};
+
+#[derive(GraphQLInputObject)]
+pub struct CreateGithubRepositoryInput {
+    pub id: ID,
+    pub display_name: String,
+    pub application_id: String,
+    pub secret: String,
+}
+
+#[derive(GraphQLInputObject)]
+pub struct UpdateGithubRepositoryInput {
+    pub id: ID,
+    pub display_name: String,
+    pub application_id: String,
+    pub secret: Option<String>,
+}
+
+#[derive(GraphQLInputObject)]
+pub struct DeleteGithubRepositoryInput {
+    pub id: ID,
+}
 
 #[derive(GraphQLObject, Debug, PartialEq)]
 #[graphql(context = Context)]
@@ -70,6 +91,7 @@ pub trait GithubRepositoryProviderService: Send + Sync {
     async fn update_github_repository_provider(
         &self,
         id: ID,
+        display_name: String,
         application_id: String,
         secret: Option<String>,
     ) -> Result<()>;

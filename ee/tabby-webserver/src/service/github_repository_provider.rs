@@ -121,11 +121,12 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
     async fn update_github_repository_provider(
         &self,
         id: ID,
+        display_name: String,
         application_id: String,
         secret: Option<String>,
     ) -> Result<()> {
         self.db
-            .update_github_provider(id.as_rowid()?, application_id, secret)
+            .update_github_provider(id.as_rowid()?, display_name, application_id, secret)
             .await?;
         Ok(())
     }
@@ -285,12 +286,17 @@ mod tests {
 
         // Should fail: Duplicate application ID
         assert!(service
-            .update_github_repository_provider(id2.clone(), "id".into(), None)
+            .update_github_repository_provider(id2.clone(), "example2".into(), "id".into(), None)
             .await
             .is_err());
 
         service
-            .update_github_repository_provider(id2.clone(), "id2".into(), Some("secret2".into()))
+            .update_github_repository_provider(
+                id2.clone(),
+                "example2".into(),
+                "id2".into(),
+                Some("secret2".into()),
+            )
             .await
             .unwrap();
 

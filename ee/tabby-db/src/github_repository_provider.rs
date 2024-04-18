@@ -84,6 +84,7 @@ impl DbConn {
     pub async fn update_github_provider(
         &self,
         id: i64,
+        display_name: String,
         application_id: String,
         secret: Option<String>,
     ) -> Result<()> {
@@ -93,7 +94,8 @@ impl DbConn {
         };
 
         let res = query!(
-            "UPDATE github_repository_provider SET application_id = ?, secret = ? WHERE id = ?;",
+            "UPDATE github_repository_provider SET display_name = ?, application_id = ?, secret = ? WHERE id = ?;",
+            display_name,
             application_id,
             secret,
             id
