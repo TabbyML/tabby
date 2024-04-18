@@ -1,7 +1,5 @@
 use std::future::Future;
 
-use anyhow::anyhow;
-
 mod connection;
 mod edge;
 mod node_type;
@@ -10,23 +8,19 @@ mod page_info;
 pub use connection::Connection;
 pub use node_type::NodeType;
 
-use crate::schema;
+use crate::{bail, schema};
 
 fn validate_first_last(
     first: Option<i32>,
     last: Option<i32>,
 ) -> schema::Result<(Option<usize>, Option<usize>)> {
     if first.is_some() && last.is_some() {
-        Err(anyhow!(
-            "The \"first\" and \"last\" parameters cannot exist at the same time"
-        ))?;
+        bail!("The \"first\" and \"last\" parameters cannot exist at the same time");
     }
 
     let first = match first {
         Some(first) if first < 0 => {
-            return Err(anyhow!(
-                "The \"first\" parameter must be a non-negative number"
-            ))?;
+            bail!("The \"first\" parameter must be a non-negative number");
         }
         Some(first) => Some(first as usize),
         None => None,
@@ -34,9 +28,7 @@ fn validate_first_last(
 
     let last = match last {
         Some(last) if last < 0 => {
-            return Err(anyhow!(
-                "The \"last\" parameter must be a non-negative number"
-            ))?;
+            bail!("The \"last\" parameter must be a non-negative number")
         }
         Some(last) => Some(last as usize),
         None => None,

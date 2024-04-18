@@ -97,7 +97,7 @@ pub enum CoreError {
     #[error("{0}")]
     InvalidLicense(&'static str),
 
-    #[error(transparent)]
+    #[error("{0}")]
     Other(#[from] anyhow::Error),
 }
 
