@@ -2883,6 +2883,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "parse-git-url"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9cd626725d3855a68fdede6483fae43429129bf246f42d8db598911c8036cf47"
+dependencies = [
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "password-hash"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4481,11 +4491,11 @@ dependencies = [
  "lazy_static",
  "llama-cpp-bindings",
  "minijinja",
- "nucleo",
  "nvml-wrapper",
  "openssl",
  "opentelemetry",
  "opentelemetry-otlp",
+ "parse-git-url",
  "regex",
  "reqwest",
  "reqwest-eventsource 0.5.0",

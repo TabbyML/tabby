@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
-use nucleo::Utf32String;
+use parse_git_url::GitUrl;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
     config::{RepositoryAccess, RepositoryConfig},
@@ -136,7 +136,7 @@ impl CodeSearch for CodeSearchImpl {
             return Ok(SearchResponse::default());
         };
 
-        let git_url_query = self.schema.git_url_query(&git_url);
+        let git_url_query = self.schema.git_url_query(git_url);
 
         let query = BooleanQuery::new(vec![
             (Occur::Must, language_query),
@@ -150,28 +150,15 @@ impl CodeSearch for CodeSearchImpl {
 fn closest_match<'a>(
     search_term: &'a str,
     search_input: impl IntoIterator<Item = &'a RepositoryConfig>,
-) -> Option<String> {
-    let search_term = RepositoryConfig::canonicalize_url(search_term);
+) -> Option<&'a str> {
+    let git_search = GitUrl::parse(search_term).ok()?;
 
-    let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
     search_input
         .into_iter()
-        .filter_map(|entry| {
-            let url = entry.canonical_git_url();
-            Some((
-                url.clone(),
-                // Matching using the input URL as the haystack instead of the needle yielded better scoring
-                // Example:
-                // haystack = "https://github.com/boxbeam/untwine" needle = "https://abc@github.com/boxbeam/untwine.git" => No match
-                // haystack = "https://abc@github.com/boxbeam/untwine.git" needle = "https://github.com/boxbeam/untwine" => Match, score 842
-                nucleo.fuzzy_match(
-                    Utf32String::from(&*search_term).slice(..),
-                    Utf32String::from(&*url).slice(..),
-                )?,
-            ))
-        })
-        .max_by_key(|(_, score)| *score)
-        .map(|(entry, _score)| entry)
+        .filter(|elem| GitUrl::parse(&elem.git_url).is_ok_and(|x| x.name == git_search.name))
+        // If there're multiple matches, we pick the one with highest alphabetical order
+        .min_by_key(|elem| elem.git_url.as_str())
+        .map(|x| x.git_url.as_str())
 }
 
 fn get_field(doc: &Document, field: Field) -> String {
@@ -242,76 +229,98 @@ impl CodeSearch for CodeSearchService {
 mod tests {
     use super::*;
 
+    macro_rules! assert_match_first {
+        ($query:literal, $candidates:expr) => {
+            let candidates: Vec<_> = $candidates
+                .into_iter()
+                .map(|x| RepositoryConfig::new(x.to_string()))
+                .collect();
+            let expect = &candidates[0];
+            assert_eq!(
+                closest_match($query, &candidates),
+                Some(expect.git_url.as_ref())
+            );
+        };
+    }
+
+    macro_rules! assert_match_none {
+        ($query:literal, $candidates:expr) => {
+            let candidates: Vec<_> = $candidates
+                .into_iter()
+                .map(|x| RepositoryConfig::new(x.to_string()))
+                .collect();
+            assert_eq!(closest_match($query, &candidates), None);
+        };
+    }
+
     #[test]
     fn test_closest_match() {
-        assert_eq!(
-            closest_match(
-                "https://github.com/example/test.git",
-                [&RepositoryConfig::new(
-                    "https://github.com/example/test".to_string()
-                )]
-            ),
-            Some("https://github.com/example/test".into())
+        // Test .git suffix should still match
+        assert_match_first!(
+            "https://github.com/example/test.git",
+            ["https://github.com/example/test"]
         );
 
-        assert_eq!(
-            closest_match(
-                "https://creds@github.com/example/test",
-                [&RepositoryConfig::new(
-                    "https://github.com/example/test".to_string()
-                )]
-            ),
-            Some("https://github.com/example/test".into())
+        // Test auth in URL should still match
+        assert_match_first!(
+            "https://creds@github.com/example/test",
+            ["https://github.com/example/test"]
         );
 
-        assert_eq!(
-            closest_match(
-                "https://github.com/example/another-repo",
-                [&RepositoryConfig::new(
-                    "https://github.com/examp/anoth-repo".to_string()
-                )]
-            ),
-            Some("https://github.com/examp/anoth-repo".into())
+        // Test name must be exact match
+        assert_match_none!(
+            "https://github.com/example/another-repo",
+            ["https://github.com/example/anoth-repo"]
         );
 
-        assert_eq!(
-            closest_match(
-                "https://github.com/TabbyML/tabby",
-                [&RepositoryConfig::new(
-                    "https://github.com/TabbyML/registry-tabby".to_string()
-                )]
-            ),
-            None
+        // Test different repositories with a common prefix should not match
+        assert_match_none!(
+            "https://github.com/TabbyML/tabby",
+            ["https://github.com/TabbyML/registry-tabby"]
         );
 
-        assert_eq!(
-            closest_match(
-                "https://github.com/TabbyML/tabby",
-                [&RepositoryConfig::new(
-                    "https://github.com/TabbyML/uptime".to_string()
-                )]
-            ),
-            None
+        // Test entirely different repository names should not match
+        assert_match_none!(
+            "https://github.com/TabbyML/tabby",
+            ["https://github.com/TabbyML/uptime"]
         );
 
-        assert_eq!(
-            closest_match(
-                "https://github.com",
-                [&RepositoryConfig::new(
-                    "https://github.com/TabbyML/tabby".to_string()
-                )],
-            ),
-            None
+        assert_match_none!("https://github.com", ["https://github.com/TabbyML/tabby"]);
+
+        // Test different host
+        assert_match_first!(
+            "https://bitbucket.com/TabbyML/tabby",
+            ["https://github.com/TabbyML/tabby"]
         );
 
-        assert_eq!(
-            closest_match(
-                "https://bitbucket.com/TabbyML/tabby",
-                [&RepositoryConfig::new(
-                    "https://github.com/TabbyML/tabby".to_string()
-                )]
-            ),
-            None
+        // Test multiple close matches
+        assert_match_none!(
+            "git@github.com:TabbyML/tabby",
+            [
+                "https://bitbucket.com/CrabbyML/crabby",
+                "https://gitlab.com/TabbyML/registry-tabby",
+            ]
+        );
+    }
+
+    #[test]
+    fn test_closest_match_url_format_differences() {
+        // Test different protocol and suffix should still match
+        assert_match_first!(
+            "git@github.com:TabbyML/tabby.git",
+            ["https://github.com/TabbyML/tabby"]
+        );
+
+        // Test different protocol should still match
+        assert_match_first!(
+            "git@github.com:TabbyML/tabby",
+            ["https://github.com/TabbyML/tabby"]
+        );
+
+        // Test URL without organization should still match
+        assert_match_first!(
+            "https://custom-git.com/tabby",
+            ["https://custom-git.com/TabbyML/tabby"]
         );
     }
 }
