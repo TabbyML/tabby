@@ -18,6 +18,8 @@ import {
 import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Command,
@@ -28,8 +30,6 @@ import {
   CommandList,
   CommandSeparator
 } from '@/components/ui/command'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import {
   IconActivity,
   IconCheck,
@@ -47,12 +47,12 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
-  SelectValue,
-  SelectSeparator
+  SelectValue
 } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Calendar } from '@/components/ui/calendar'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
@@ -68,7 +68,7 @@ enum DATE_OPTIONS {
   'LAST14DAYS' = '14',
   'LAST30DAYS' = '30',
   'CUSTOM_DATE' = 'custom_date',
-  'CUSTOM_RANGE' = 'custom_range',
+  'CUSTOM_RANGE' = 'custom_range'
 }
 
 function StatsSummary({
@@ -128,20 +128,30 @@ export function Report() {
   const sample = searchParams.get('sample') === 'true'
   const [members] = useAllMembers()
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: moment().subtract(parseInt(DATE_OPTIONS.LAST14DAYS, 10), 'day').toDate(),
+    from: moment()
+      .subtract(parseInt(DATE_OPTIONS.LAST14DAYS, 10), 'day')
+      .toDate(),
     to: moment().toDate()
   })
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
   const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
   const [showDateFilter, setShowDateFilter] = useState(false)
-  const [selectDateFilter, setSelectDateFilter] = useState<DATE_OPTIONS>(DATE_OPTIONS.LAST14DAYS)
+  const [selectDateFilter, setSelectDateFilter] = useState<DATE_OPTIONS>(
+    DATE_OPTIONS.LAST14DAYS
+  )
   const [showDateRangerPicker, setShowDateRangerPicker] = useState(false)
-  const [calendarDateRange, setCalendarDateRange] = useState<DateRange | undefined>({
-    from: moment().subtract(parseInt(DATE_OPTIONS.LAST14DAYS, 10), 'day').toDate(),
+  const [calendarDateRange, setCalendarDateRange] = useState<
+    DateRange | undefined
+  >({
+    from: moment()
+      .subtract(parseInt(DATE_OPTIONS.LAST14DAYS, 10), 'day')
+      .toDate(),
     to: moment().toDate()
   })
   const [showDateUntilNowPicker, setShowDateUntilNowPicker] = useState(false)
-  const [dateUntilNow, setDateUntilNow] = useState<Date | undefined>(moment().toDate())
+  const [dateUntilNow, setDateUntilNow] = useState<Date | undefined>(
+    moment().toDate()
+  )
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -223,18 +233,21 @@ export function Report() {
           from: moment().startOf('day').toDate(),
           to: moment().toDate()
         })
-        break;
+        break
       }
       case DATE_OPTIONS.YESTERDAY: {
         setDateRange({
           from: moment().subtract(1, 'd').startOf('day').toDate(),
           to: moment().subtract(1, 'd').endOf('day').toDate()
         })
-        break;
+        break
       }
       default: {
         setDateRange({
-          from: moment().subtract(parseInt(value, 10), 'day').startOf('day').toDate(),
+          from: moment()
+            .subtract(parseInt(value, 10), 'day')
+            .startOf('day')
+            .toDate(),
           to: moment().toDate()
         })
       }
@@ -307,7 +320,9 @@ export function Report() {
         fallback={<Skeleton className="mb-8 h-48" />}
       >
         <div className="mb-8">
-          <h1 className="mb-2 text-center text-xl font-semibold md:text-start">Activity</h1>
+          <h1 className="mb-2 text-center text-xl font-semibold md:text-start">
+            Activity
+          </h1>
           <AnnualActivity yearlyStats={yearlyStats} />
         </div>
       </LoadingWrapper>
@@ -355,7 +370,10 @@ export function Report() {
                     <IconChevronUpDown className="h-3 w-3" />
                   </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-[240px] p-0 md:w-[180px]" align="end">
+                <PopoverContent
+                  className="w-[240px] p-0 md:w-[180px]"
+                  align="end"
+                >
                   <Command>
                     <CommandInput placeholder="Language" />
                     <CommandList>
@@ -425,39 +443,75 @@ export function Report() {
                   open={showDateFilter}
                   onOpenChange={onDateFilterOpenChange}
                 >
-                  <SelectTrigger className="w-[240px]" onClick={() => setShowDateFilter(!showDateFilter)}>
+                  <SelectTrigger
+                    className="w-[240px]"
+                    onClick={() => setShowDateFilter(!showDateFilter)}
+                  >
                     <SelectValue placeholder="Date range" />
                   </SelectTrigger>
-                  <SelectContent align='end'>
+                  <SelectContent align="end">
                     <SelectItem value={DATE_OPTIONS.TODAY}>Today</SelectItem>
-                    <SelectItem value={DATE_OPTIONS.YESTERDAY}>Yesterday</SelectItem>
-                    <SelectItem value={DATE_OPTIONS.LAST7DAYS}>Last 7 days</SelectItem>
-                    <SelectItem value={DATE_OPTIONS.LAST14DAYS}>Last 14 days</SelectItem>
-                    <SelectItem value={DATE_OPTIONS.LAST30DAYS}>Last 30 days</SelectItem>
-                    <SelectItem value={DATE_OPTIONS.CUSTOM_DATE} className="hidden">{moment(dateRange?.from).format('ll')} - Now</SelectItem>
-                    <SelectItem value={DATE_OPTIONS.CUSTOM_RANGE} className="hidden">{moment(dateRange?.from).format('ll')}{dateRange?.to ? ` - ${moment(dateRange.to).format('ll')}` : ''}</SelectItem>
+                    <SelectItem value={DATE_OPTIONS.YESTERDAY}>
+                      Yesterday
+                    </SelectItem>
+                    <SelectItem value={DATE_OPTIONS.LAST7DAYS}>
+                      Last 7 days
+                    </SelectItem>
+                    <SelectItem value={DATE_OPTIONS.LAST14DAYS}>
+                      Last 14 days
+                    </SelectItem>
+                    <SelectItem value={DATE_OPTIONS.LAST30DAYS}>
+                      Last 30 days
+                    </SelectItem>
+                    <SelectItem
+                      value={DATE_OPTIONS.CUSTOM_DATE}
+                      className="hidden"
+                    >
+                      {moment(dateRange?.from).format('ll')} - Now
+                    </SelectItem>
+                    <SelectItem
+                      value={DATE_OPTIONS.CUSTOM_RANGE}
+                      className="hidden"
+                    >
+                      {moment(dateRange?.from).format('ll')}
+                      {dateRange?.to
+                        ? ` - ${moment(dateRange.to).format('ll')}`
+                        : ''}
+                    </SelectItem>
                     <SelectSeparator />
                     <div
                       className="relative cursor-default py-1.5 pl-8 text-sm hover:bg-accent hover:text-accent-foreground"
-                      onClick={() => setShowDateUntilNowPicker(true)}>
-                      {selectDateFilter === DATE_OPTIONS.CUSTOM_DATE && <div className="absolute inset-y-0 left-2 flex items-center"><IconCheck /></div>}
+                      onClick={() => setShowDateUntilNowPicker(true)}
+                    >
+                      {selectDateFilter === DATE_OPTIONS.CUSTOM_DATE && (
+                        <div className="absolute inset-y-0 left-2 flex items-center">
+                          <IconCheck />
+                        </div>
+                      )}
                       Custom date until now
                     </div>
                     <div
                       className="relative cursor-default py-1.5 pl-8 text-sm hover:bg-accent hover:text-accent-foreground"
-                      onClick={() => setShowDateRangerPicker(true)}>
-                      {selectDateFilter === DATE_OPTIONS.CUSTOM_RANGE && <div className="absolute inset-y-0 left-2 flex items-center"><IconCheck /></div>}
+                      onClick={() => setShowDateRangerPicker(true)}
+                    >
+                      {selectDateFilter === DATE_OPTIONS.CUSTOM_RANGE && (
+                        <div className="absolute inset-y-0 left-2 flex items-center">
+                          <IconCheck />
+                        </div>
+                      )}
                       Custom date range
                     </div>
                   </SelectContent>
                 </Select>
 
                 <Card
-                  className={cn("absolute right-0 mt-1", {
-                    'opacity-0 z-0 pointer-events-none': !showDateUntilNowPicker,
+                  className={cn('absolute right-0 mt-1', {
+                    'opacity-0 z-0 pointer-events-none':
+                      !showDateUntilNowPicker,
                     'opacity-100 pointer-events-auto': showDateUntilNowPicker
                   })}
-                  style={showDateUntilNowPicker && { 'zIndex': 99 } || {}}>
+                  style={(showDateUntilNowPicker && { zIndex: 99 }) || {}}
+                >
                   <CardContent className="w-auto pb-0">
                     <Calendar
                       initialFocus
@@ -468,23 +522,31 @@ export function Report() {
                     />
                     <Separator />
                     <div className="flex items-center justify-end gap-x-3 py-4">
-                      <Button variant="ghost" onClick={() => setShowDateUntilNowPicker(false)}>Cancel</Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowDateUntilNowPicker(false)}
+                      >
+                        Cancel
+                      </Button>
                       <Button onClick={applyDateUntilNow}>Apply</Button>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card
-                  className={cn("absolute right-0 mt-1", {
+                  className={cn('absolute right-0 mt-1', {
                     'opacity-0 z-0 pointer-events-none': !showDateRangerPicker,
                     'opacity-100 pointer-events-auto': showDateRangerPicker
                   })}
-                  style={showDateRangerPicker && { 'zIndex': 99 } || {}}>
+                  style={(showDateRangerPicker && { zIndex: 99 }) || {}}
+                >
                   <CardContent className="w-auto pb-0">
                     <Calendar
                       initialFocus
                       mode="range"
-                      defaultMonth={moment(calendarDateRange?.from).subtract(1, 'month').toDate()}
+                      defaultMonth={moment(calendarDateRange?.from)
+                        .subtract(1, 'month')
+                        .toDate()}
                       selected={calendarDateRange}
                       onSelect={setCalendarDateRange}
                       numberOfMonths={2}
@@ -492,7 +554,12 @@ export function Report() {
                     />
                     <Separator />
                     <div className="flex items-center justify-end gap-x-3 py-4">
-                      <Button variant="ghost" onClick={() => setShowDateRangerPicker(false)}>Cancel</Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowDateRangerPicker(false)}
+                      >
+                        Cancel
+                      </Button>
                       <Button onClick={applyDateRange}>Apply</Button>
                     </div>
                   </CardContent>
