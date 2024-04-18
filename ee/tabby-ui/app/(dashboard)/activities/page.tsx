@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 import Activity from './components/activity'
 
 export const metadata: Metadata = {
-  title: 'Activity'
+  title: 'Activities'
 }
 
 export default function Page() {
