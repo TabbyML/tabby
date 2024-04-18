@@ -155,23 +155,21 @@ fn closest_match<'a>(
     let git_search = GitUrl::parse(search_term).ok()?;
     search_input
         .into_iter()
+        // Name is scored the highest, an exact match is required.
+        .filter(|elem| GitUrl::parse(&elem.git_url).is_ok_and(|url| url.name == git_search.name))
         .filter_map(|elem| {
             let git_url = GitUrl::parse(&elem.git_url).ok()?;
             let mut score = 0;
-            // Name is scored the highest - more than 3 letters different automatically disqualifies
-            score += 15 * damerau_levenshtein(&git_search.name, &git_url.name);
-
-            // Host is scored the second highest, but it is okay for the host to be different if
-            // the name is very similar or a perfect match
+            // Host is scored the second highest
             if let Some((host1, host2)) = git_search.host.as_ref().zip(git_url.host) {
-                score += 4 * damerau_levenshtein(host1, &host2);
+                score += 8 * damerau_levenshtein(host1, &host2);
             } else {
                 score += 30;
             }
 
-            // Owner is scored the lowest, to allow forks to be matched as long as the rest matches
+            // Owner is scored the lowest / least important
             if let Some((org1, org2)) = git_search.owner.as_ref().zip(git_url.owner) {
-                score += 3 * damerau_levenshtein(org1, &org2);
+                score += 6 * damerau_levenshtein(org1, &org2);
             } else {
                 score += 15;
             }
@@ -278,15 +276,15 @@ mod tests {
             Some("https://github.com/example/test".into())
         );
 
-        // Test small differences in org and repo should match
+        // Test name must be exact match
         assert_eq!(
             closest_match(
                 "https://github.com/example/another-repo",
                 [&RepositoryConfig::new(
-                    "https://github.com/examp/anoth-repo".to_string()
+                    "https://github.com/example/anoth-repo".to_string()
                 )]
             ),
-            Some("https://github.com/examp/anoth-repo".into())
+            None
         );
 
         // Test different repositories with a common prefix should not match
