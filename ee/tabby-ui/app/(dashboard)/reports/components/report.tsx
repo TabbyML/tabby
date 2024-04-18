@@ -79,7 +79,7 @@ function StatsSummary({
       ? 0
       : ((totalAcceptances / totalCompletions) * 100).toFixed(2)
   return (
-    <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
+    <div className="flex w-full flex-col items-start justify-center space-y-3 md:flex-row md:items-center md:space-x-6 md:space-y-0 xl:justify-start">
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Accept Rate</CardTitle>
@@ -249,7 +249,7 @@ export function Report() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto w-[calc(100vw-2rem)] max-w-5xl md:w-auto">
       <div className="mb-4 flex flex-col items-center justify-between gap-y-2 lg:flex-row lg:items-end lg:gap-y-0">
         <SubHeader className="mb-0">
           Statistics around Tabby IDE / Extensions
@@ -290,7 +290,7 @@ export function Report() {
         fallback={<Skeleton className="mb-8 h-48" />}
       >
         <div className="mb-8">
-          <h1 className="mb-2 text-xl font-semibold">Activity</h1>
+          <h1 className="mb-2 text-center text-xl font-semibold md:text-start">Activity</h1>
           <AnnualActivity yearlyStats={yearlyStats} />
         </div>
       </LoadingWrapper>
@@ -309,20 +309,17 @@ export function Report() {
         }
       >
         <div className="mb-10 flex flex-col gap-y-5">
-          <div className="-mb-2 flex flex-col justify-between gap-y-1 lg:flex-row lg:items-end lg:gap-y-0">
+          <div className="-mb-2 flex flex-col items-center justify-between gap-y-1 md:flex-row md:gap-y-0">
             <h1 className="text-xl font-semibold">Usage</h1>
 
-            <div className="flex items-center gap-x-3">
+            <div className="flex flex-col gap-x-3 md:flex-row md:items-center">
               <Popover>
                 <PopoverTrigger asChild>
-                  <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed">
-                    <span className="mr-1.5 text-muted-foreground">
-                      Language:
-                    </span>
-                    <div className="w-full lg:w-[80px]">
+                  <div className="flex h-9 w-[270px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed md:w-[150px]">
+                    <div className="w-full">
                       {selectedLanguage.length === 0 && (
                         <p className="w-full overflow-hidden text-ellipsis">
-                          All
+                          All languages
                         </p>
                       )}
                       {selectedLanguage.length === 1 && (
@@ -341,7 +338,7 @@ export function Report() {
                     <IconChevronUpDown className="h-3 w-3" />
                   </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0" align="end">
+                <PopoverContent className="w-[270px] p-0 md:w-[180px]" align="end">
                   <Command>
                     <CommandInput placeholder="Language" />
                     <CommandList>
@@ -403,30 +400,34 @@ export function Report() {
                   </Command>
                 </PopoverContent>
               </Popover>
-              {showDatePicker &&
-                <DatePickerWithRange
-                  buttonClassName="h-full"
-                  contentAlign="end"
-                  dateRange={dateRange}
-                  onOpenChange={onDateOpenChange}
-                />
-              }
-              <Select
-                defaultValue={DATE_OPTIONS.LAST14DAYS}
-                onValueChange={onDateRangeFilterChange}
-              >
-                <SelectTrigger className="w-[240px]">
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent align='end'>
-                  <SelectItem value={DATE_OPTIONS.TODAY}>Today</SelectItem>
-                  <SelectItem value={DATE_OPTIONS.YESTERDAY}>Yesterday</SelectItem>
-                  <SelectItem value={DATE_OPTIONS.LAST7DAYS}>Last 7 days</SelectItem>
-                  <SelectItem value={DATE_OPTIONS.LAST14DAYS}>Last 14 days</SelectItem>
-                  <SelectItem value={DATE_OPTIONS.LAST30DAYS}>Last 30 days</SelectItem>
-                  <SelectItem value={DATE_OPTIONS.CUSTOM}>Custom</SelectItem>
-                </SelectContent>
-              </Select>
+
+              <div className="mt-3 flex flex-col-reverse gap-y-3 md:mt-0 md:flex-row md:gap-x-3 md:gap-y-0">
+                {showDatePicker &&
+                  <DatePickerWithRange
+                    buttonClassName="h-full"
+                    contentAlign="end"
+                    dateRange={dateRange}
+                    onOpenChange={onDateOpenChange}
+                  />
+                }
+                <Select
+                  defaultValue={DATE_OPTIONS.LAST14DAYS}
+                  onValueChange={onDateRangeFilterChange}
+                >
+                  <SelectTrigger className="w-[270px] md:w-[150px]">
+                    <SelectValue placeholder="Date range" />
+                  </SelectTrigger>
+                  <SelectContent align='end'>
+                    <SelectItem value={DATE_OPTIONS.TODAY}>Today</SelectItem>
+                    <SelectItem value={DATE_OPTIONS.YESTERDAY}>Yesterday</SelectItem>
+                    <SelectItem value={DATE_OPTIONS.LAST7DAYS}>Last 7 days</SelectItem>
+                    <SelectItem value={DATE_OPTIONS.LAST14DAYS}>Last 14 days</SelectItem>
+                    <SelectItem value={DATE_OPTIONS.LAST30DAYS}>Last 30 days</SelectItem>
+                    <SelectItem value={DATE_OPTIONS.CUSTOM}>Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
             </div>
           </div>
 
