@@ -157,10 +157,20 @@ fn closest_match<'a>(
     search_input: impl IntoIterator<Item = &'a RepositoryConfig>,
 ) -> Option<String> {
     let git_search = GitUrl::parse(search_term).ok()?;
-    search_input
+
+    let candidates: Vec<_> = search_input
         .into_iter()
         // Name is scored the highest, an exact match is required.
         .filter(|elem| GitUrl::parse(&elem.git_url).is_ok_and(|url| url.name == git_search.name))
+        .collect();
+
+    // If we only have a single repository with an exact name match, return that with no further checks
+    if let [candidate] = &*candidates {
+        return Some(candidate.git_url.clone());
+    }
+
+    candidates
+        .into_iter()
         .filter_map(|elem| {
             let git_url = GitUrl::parse(&elem.git_url).ok()?;
             let mut score = 0;
