@@ -39,7 +39,7 @@ pub async fn run_cron(
         .expect("failed to create scheduler job");
     jobs.push(job3);
 
-    let job4 = db::stale_job_runs_job(job)
+    let job4 = db::job_cleanup(job)
         .await
         .expect("failed to create stale job runs cleanup job");
     jobs.push(job4);

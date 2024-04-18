@@ -15,6 +15,7 @@ use tracing::warn;
 
 use super::{dao::DbEnum, graphql_pagination_to_filter, AsID, AsRowid};
 use crate::{
+    env::demo_mode,
     oauth,
     schema::{
         auth::{
@@ -87,7 +88,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("Unknown error").into());
         };
 
-        if let Err(e) = self.mail.send_signup_email(email.clone()).await {
+        if let Err(e) = self.mail.send_signup(email.clone()).await {
             warn!("Failed to send signup email: {e}");
         }
 
@@ -101,7 +102,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .read_security_setting()
             .await?
             .allowed_register_domain_list;
-        let is_email_configured = self.mail.read_email_setting().await?.is_some();
+        let is_email_configured = self.mail.read_setting().await?.is_some();
         Ok(is_email_configured && !domain_list.is_empty())
     }
 
@@ -125,7 +126,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let code = self.db.create_password_reset(id).await?;
         let handle = self
             .mail
-            .send_password_reset_email(user.email, code.clone())
+            .send_password_reset(user.email, code.clone())
             .await?;
         Ok(Some(handle))
     }
@@ -157,6 +158,10 @@ impl AuthenticationService for AuthenticationServiceImpl {
         old_password: Option<&str>,
         new_password: &str,
     ) -> Result<()> {
+        if demo_mode() {
+            return Err(anyhow!("Demo mode is enabled, cannot change passwords").into());
+        }
+
         let user = self
             .db
             .get_user(id.as_rowid()?)
@@ -281,7 +286,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn update_user_role(&self, id: &ID, is_admin: bool) -> Result<()> {
         if is_admin {
-            let license = self.license.read_license().await?;
+            let license = self.license.read().await?;
             let num_admins = self.db.count_active_admin_users().await?;
             license.ensure_admin_seats(num_admins + 1)?;
         }
@@ -319,13 +324,13 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
-        let license = self.license.read_license().await?;
+        let license = self.license.read().await?;
         license.ensure_available_seats(1)?;
 
         let invitation = self.db.create_invitation(email.clone()).await?;
         let email_sent = self
             .mail
-            .send_invitation_email(email, invitation.code.clone())
+            .send_invitation(email, invitation.code.clone())
             .await;
         match email_sent {
             Ok(_) | Err(CoreError::EmailNotConfigured) => {}
@@ -405,7 +410,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         let email = client.fetch_user_email(code).await?;
         let license = self
             .license
-            .read_license()
+            .read()
             .await
             .context("Failed to read license info")?;
         let user_id = get_or_create_oauth_user(&license, &self.db, &self.mail, &email).await?;
@@ -475,7 +480,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             return Err(anyhow!("The owner's active status cannot be changed").into());
         }
 
-        let license = self.license.read_license().await?;
+        let license = self.license.read().await?;
 
         if active {
             // Check there's sufficient seat if switching user to active.
@@ -521,7 +526,7 @@ async fn get_or_create_oauth_user(
         // 2. `password_verify` will always return false for empty password hash read from user table
         // so user created here is only able to login by github oauth, normal login won't work
         let res = db.create_user(email.to_owned(), None, false).await?;
-        if let Err(e) = mail.send_signup_email(email.to_string()).await {
+        if let Err(e) = mail.send_signup(email.to_string()).await {
             warn!("Failed to send signup email: {e}");
         }
         Ok(res)
@@ -619,7 +624,7 @@ mod tests {
 
     #[async_trait]
     impl LicenseService for MockLicenseService {
-        async fn read_license(&self) -> Result<LicenseInfo> {
+        async fn read(&self) -> Result<LicenseInfo> {
             Ok(LicenseInfo {
                 r#type: crate::schema::license::LicenseType::Team,
                 status: self.status.clone(),
@@ -630,11 +635,11 @@ mod tests {
             })
         }
 
-        async fn update_license(&self, _: String) -> Result<()> {
+        async fn update(&self, _: String) -> Result<()> {
             unimplemented!()
         }
 
-        async fn reset_license(&self) -> Result<()> {
+        async fn reset(&self) -> Result<()> {
             unimplemented!()
         }
     }
@@ -896,7 +901,7 @@ mod tests {
     #[serial]
     async fn test_get_or_create_oauth_user() {
         let (service, mail) = test_authentication_service_with_mail().await;
-        let license = service.license.read_license().await.unwrap();
+        let license = service.license.read().await.unwrap();
         let id = service
             .db
             .create_user("test@example.com".into(), None, false)
@@ -1394,6 +1399,6 @@ mod tests {
             .unwrap();
         assert_eq!(cred.provider, OAuthProvider::Google);
         assert_eq!(cred.client_id, "id");
-        assert_eq!(cred.client_secret, Some("secret".into()));
+        assert_eq!(cred.client_secret, "secret");
     }
 }

@@ -56,7 +56,7 @@ impl RepositoryService for DbConn {
             return Ok(vec![]);
         }
         let git_url = self.get_repository_by_name(name).await?.git_url;
-        let config = RepositoryConfig::new_named(name.into(), git_url);
+        let config = RepositoryConfig::new(git_url);
 
         let pattern = pattern.to_owned();
         let matching = tokio::task::spawn_blocking(move || async move {

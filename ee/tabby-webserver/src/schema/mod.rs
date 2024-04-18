@@ -140,7 +140,7 @@ async fn check_user(ctx: &Context) -> Result<User, CoreError> {
 }
 
 async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<(), CoreError> {
-    let license = ctx.locator.license().read_license().await?;
+    let license = ctx.locator.license().read().await?;
 
     if !license_type.contains(&license.r#type) {
         return Err(CoreError::InvalidLicense(
@@ -158,7 +158,7 @@ pub struct Query;
 impl Query {
     async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
         check_admin(ctx).await?;
-        let workers = ctx.locator.worker().list_workers().await;
+        let workers = ctx.locator.worker().list().await;
         return Ok(workers);
     }
 
@@ -314,7 +314,7 @@ impl Query {
                 Ok(ctx
                     .locator
                     .job()
-                    .list_job_runs(ids, jobs, after, before, first, last)
+                    .list(ids, jobs, after, before, first, last)
                     .await?)
             },
         )
@@ -322,17 +322,17 @@ impl Query {
     }
 
     async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> FieldResult<JobStats> {
-        Ok(ctx.locator.job().compute_job_run_stats(jobs).await?)
+        Ok(ctx.locator.job().compute_stats(jobs).await?)
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
         check_admin(ctx).await?;
-        ctx.locator.email().read_email_setting().await
+        ctx.locator.email().read_setting().await
     }
 
     #[deprecated]
     async fn is_email_configured(ctx: &Context) -> Result<bool> {
-        let initialized = ctx.locator.email().read_email_setting().await?.is_some();
+        let initialized = ctx.locator.email().read_setting().await?.is_some();
         Ok(initialized)
     }
 
@@ -389,14 +389,7 @@ impl Query {
         provider: OAuthProvider,
     ) -> Result<Option<OAuthCredential>> {
         check_admin(ctx).await?;
-        let Some(mut credentials) = ctx.locator.auth().read_oauth_credential(provider).await?
-        else {
-            return Ok(None);
-        };
-
-        // Client secret is not visible from GraphQL api.
-        credentials.client_secret = None;
-        Ok(Some(credentials))
+        ctx.locator.auth().read_oauth_credential(provider).await
     }
 
     async fn oauth_callback_url(ctx: &Context, provider: OAuthProvider) -> Result<String> {
@@ -408,13 +401,13 @@ impl Query {
         Ok(ServerInfo {
             is_admin_initialized: ctx.locator.auth().is_admin_initialized().await?,
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
-            is_email_configured: ctx.locator.email().read_email_setting().await?.is_some(),
+            is_email_configured: ctx.locator.email().read_setting().await?.is_some(),
             allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
         })
     }
 
     async fn license(ctx: &Context) -> Result<LicenseInfo> {
-        ctx.locator.license().read_license().await
+        ctx.locator.license().read().await
     }
 
     async fn jobs() -> Result<Vec<String>> {
@@ -617,7 +610,7 @@ impl Mutation {
 
     async fn send_test_email(ctx: &Context, to: String) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.email().send_test_email(to).await?;
+        ctx.locator.email().send_test(to).await?;
         Ok(true)
     }
 
@@ -674,7 +667,7 @@ impl Mutation {
     async fn update_email_setting(ctx: &Context, input: EmailSettingInput) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
-        ctx.locator.email().update_email_setting(input).await?;
+        ctx.locator.email().update_setting(input).await?;
         Ok(true)
     }
 
@@ -695,19 +688,19 @@ impl Mutation {
 
     async fn delete_email_setting(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.email().delete_email_setting().await?;
+        ctx.locator.email().delete_setting().await?;
         Ok(true)
     }
 
     async fn upload_license(ctx: &Context, license: String) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.license().update_license(license).await?;
+        ctx.locator.license().update(license).await?;
         Ok(true)
     }
 
     async fn reset_license(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.license().reset_license().await?;
+        ctx.locator.license().reset().await?;
         Ok(true)
     }
 

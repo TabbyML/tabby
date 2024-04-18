@@ -39,11 +39,13 @@ pub enum RegisterWorkerError {
 
 #[async_trait]
 pub trait WorkerService: Send + Sync {
+    async fn list(&self) -> Vec<Worker>;
+    async fn register(&self, worker: Worker) -> Result<Worker, RegisterWorkerError>;
+    async fn unregister(&self, worker_addr: &str);
+
     async fn read_registration_token(&self) -> Result<String>;
     async fn reset_registration_token(&self) -> Result<String>;
-    async fn list_workers(&self) -> Vec<Worker>;
-    async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError>;
-    async fn unregister_worker(&self, worker_addr: &str);
+
     async fn dispatch_request(
         &self,
         request: Request<Body>,

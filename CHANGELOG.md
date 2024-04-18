@@ -1,3 +1,15 @@
+# v0.11.0 [UNRELEASED]
+
+## Notice
+
+* The `--webserver` flag is now enabled by default in `tabby serve`. To turn off the webserver and only use OSS features, use the `--no-webserver` flag.
+* `/v1beta/chat/completions` is now moved to `/v1/chat/completions`, while the old endpoint is still available for backward compatibility.
+
+## Features
+
+## Fixes and Improvements
+* Changed the default model filename from `q8_0.v2.gguf` to `model.gguf` in MODEL_SPEC.md
+
 # v0.10.0 [UNRELEASED]
 
 ## Features

@@ -1,3 +1,24 @@
+## 1.5.2
+
+### Fixes
+
+- Fixed an issue where the indexing worker for recently edited code may cause a stuck.
+
+## 1.5.0
+
+### Features
+
+- Added support for sending additional context for completion requests, including:
+  - Filepath
+  - Git repository information
+  - Relevant declaration code snippets
+  - Relevant recently edited code snippets
+- Merged output channels `Tabby` and `Tabby Agent` into one output channel `Tabby`.
+
+### Fixes
+
+- Corrected server-side config retrieval behavior for connections to Tabby servers with version < 0.9.
+
 ## 1.4.0
 
 ### Features

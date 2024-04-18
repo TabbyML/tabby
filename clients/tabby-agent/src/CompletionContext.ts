@@ -18,11 +18,20 @@ export type CompletionRequest = {
     }[];
   };
   declarations?: Declaration[];
+  relevantSnippetsFromChangedFiles?: CodeSnippet[];
 };
 
 export type Declaration = {
   filepath: string;
+  offset: number;
   text: string;
+};
+
+export type CodeSnippet = {
+  filepath: string;
+  offset: number;
+  text: string;
+  score: number;
 };
 
 export type CompletionResponseChoice = {
@@ -71,6 +80,7 @@ export class CompletionContext {
   };
 
   declarations?: Declaration[];
+  relevantSnippetsFromChangedFiles?: CodeSnippet[];
 
   // "default": the cursor is at the end of the line
   // "fill-in-line": the cursor is not at the end of the line, except auto closed characters
@@ -98,6 +108,7 @@ export class CompletionContext {
     this.git = request.git;
 
     this.declarations = request.declarations;
+    this.relevantSnippetsFromChangedFiles = request.relevantSnippetsFromChangedFiles;
 
     const lineEnd = isAtLineEndExcludingAutoClosedChar(this.suffixLines[0] ?? "");
     this.mode = lineEnd ? "default" : "fill-in-line";
@@ -108,6 +119,7 @@ export class CompletionContext {
       position: this.position,
       clipboard: this.clipboard,
       declarations: this.declarations,
+      relevantSnippetsFromChangedFiles: this.relevantSnippetsFromChangedFiles,
     });
   }
 }

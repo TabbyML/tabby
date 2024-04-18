@@ -6,6 +6,7 @@ import { deepmerge } from "deepmerge-ts";
 import { getProperty, setProperty, deleteProperty } from "dot-prop";
 import createClient from "openapi-fetch";
 import type { ParseAs } from "openapi-fetch";
+import * as semver from "semver";
 import type { paths as TabbyApi, components as TabbyApiComponents } from "./types/tabbyApi";
 import type {
   Agent,
@@ -112,9 +113,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
     if (!this.api || !deepEqual(oldConfig.server, this.config.server)) {
       await this.setupApi();
-
-      // schedule fetch server config later, no await
-      this.fetchServerConfig();
     }
 
     if (!deepEqual(oldConfig.server, this.config.server)) {
@@ -241,7 +239,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
         throw new HttpError(response.response);
       }
       this.logger.debug({ requestId, response }, "Health check response");
-      this.changeStatus("ready");
       this.popIssue("connectionFailed");
       this.connectionErrorMessage = undefined;
       const healthState = response.data;
@@ -256,6 +253,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         // schedule fetch server config later, no await
         this.fetchServerConfig();
       }
+      this.changeStatus("ready");
     } catch (error) {
       this.serverHealthState = undefined;
       if (error instanceof HttpError && error.status == 405 && options?.method !== "POST") {
@@ -282,6 +280,14 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   private async fetchServerConfig(): Promise<void> {
+    const serverVersion = semver.coerce(this.serverHealthState?.version.git_describe);
+    if (serverVersion && semver.lt(serverVersion, "0.9.0")) {
+      this.logger.debug(
+        { version: this.serverHealthState?.version },
+        "Skip fetching server config due to server version",
+      );
+      return;
+    }
     const requestId = uuid();
     try {
       if (!this.api) {
@@ -318,7 +324,13 @@ export class TabbyAgent extends EventEmitter implements Agent {
         }
       }
     } catch (error) {
-      this.logger.error({ requestId, error }, "Fetch server config error");
+      if (error instanceof HttpError && error.status == 404) {
+        this.logger.debug({ requestId, error }, "Fetch server config failed due to server not supported");
+      } else if (error instanceof HttpError && [401, 403].includes(error.status)) {
+        this.logger.debug({ requestId, error }, "Fetch server config failed due to unauthorized");
+      } else {
+        this.logger.error({ requestId, error }, "Fetch server config error");
+      }
     }
   }
 
@@ -374,6 +386,34 @@ export class TabbyAgent extends EventEmitter implements Agent {
       };
     });
 
+    // snippets
+    const relevantSnippetsFromChangedFiles = context.relevantSnippetsFromChangedFiles
+      // deduplicate
+      ?.filter(
+        (snippet) =>
+          // Remove snippet if find a declaration from the same file and range is overlapping
+          !context.declarations?.find((declaration) => {
+            return (
+              declaration.filepath === snippet.filepath &&
+              // Is range overlapping
+              Math.max(declaration.offset, snippet.offset) <=
+                Math.min(declaration.offset + declaration.text.length, snippet.offset + snippet.text.length)
+            );
+          }),
+      )
+      .map((snippet) => {
+        let snippetFilepath = snippet.filepath;
+        if (relativeFilepathRoot && snippetFilepath.startsWith(relativeFilepathRoot)) {
+          snippetFilepath = path.relative(relativeFilepathRoot, snippetFilepath);
+        }
+        return {
+          filepath: snippetFilepath,
+          body: snippet.text,
+          score: snippet.score,
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+
     // clipboard
     let clipboard = undefined;
     const clipboardConfig = this.config.completion.prompt.clipboard;
@@ -386,6 +426,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       filepath,
       git_url: gitUrl,
       declarations,
+      relevant_snippets_from_changed_files: relevantSnippetsFromChangedFiles,
       clipboard,
     };
   }

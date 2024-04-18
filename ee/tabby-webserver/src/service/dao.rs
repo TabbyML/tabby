@@ -67,7 +67,7 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
             client_id: val.client_id,
             created_at: *val.created_at,
             updated_at: *val.updated_at,
-            client_secret: Some(val.client_secret),
+            client_secret: val.client_secret,
         })
     }
 }
@@ -127,6 +127,7 @@ impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
             application_id: value.application_id,
             id: value.id.as_id(),
             access_token: value.access_token,
+            secret: value.secret,
         }
     }
 }

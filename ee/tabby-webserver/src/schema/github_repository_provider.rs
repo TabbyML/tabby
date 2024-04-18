@@ -32,6 +32,8 @@ pub struct GithubRepositoryProvider {
     pub display_name: String,
     pub application_id: String,
     #[graphql(skip)]
+    pub secret: String,
+    #[graphql(skip)]
     pub access_token: Option<String>,
 }
 
@@ -121,4 +123,5 @@ pub trait GithubRepositoryProviderService: Send + Sync {
     ) -> Result<Vec<GithubProvidedRepository>>;
 
     async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
+    async fn list_provided_git_urls(&self) -> Result<Vec<String>>;
 }

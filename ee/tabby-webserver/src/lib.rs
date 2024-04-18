@@ -2,6 +2,7 @@
 //! Using the web interface (e.g chat playground) requires using this module with the `--webserver` flag on the command line.
 mod axum;
 mod cron;
+mod env;
 mod handler;
 mod hub;
 mod integrations;

@@ -64,7 +64,7 @@ pub fn sync_repositories(repositories: &[RepositoryConfig]) -> Result<()> {
 
     let mut names = HashSet::new();
     for repository in repositories {
-        names.insert(repository.name());
+        names.insert(repository.dir());
         if repository.is_local_dir() {
             if !repository.dir().exists() {
                 panic!("Directory {} does not exist", repository.dir().display());
@@ -81,12 +81,9 @@ pub fn sync_repositories(repositories: &[RepositoryConfig]) -> Result<()> {
             warn!("An unrelated file {:?} was found in repositories directory, It will now be removed...", filename);
             // There shouldn't be any files under repositories dir.
             fs::remove_file(file.path())?;
-        } else if metadata.is_dir() {
-            let filename = filename.to_str().ok_or(anyhow!("Invalid file name"))?;
-            if !names.contains(filename) {
-                warn!("An unrelated directory {:?} was found in repositories directory, It will now be removed...", filename);
-                fs::remove_dir_all(file.path())?;
-            }
+        } else if metadata.is_dir() && !names.contains(&file.path()) {
+            warn!("An unrelated directory {:?} was found in repositories directory, It will now be removed...", file.path().display());
+            fs::remove_dir_all(file.path())?;
         }
     }
 

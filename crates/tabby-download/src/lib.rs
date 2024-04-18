@@ -26,6 +26,7 @@ async fn download_model_impl(
     let model_info = registry.get_model_info(name);
     registry.save_model_info(name);
 
+    registry.migrate_model_path(name)?;
     let model_path = registry.get_model_path(name);
     if model_path.exists() {
         if !prefer_local_file {

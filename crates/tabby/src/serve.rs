@@ -11,7 +11,7 @@ use tabby_common::{
 };
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
-use tracing::info;
+use tracing::{info, warn};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
@@ -107,7 +107,12 @@ pub struct ServeArgs {
 
     #[cfg(feature = "ee")]
     #[clap(hide = true, long, default_value_t = false)]
+    #[deprecated(since = "0.11.0", note = "webserver is enabled by default")]
     webserver: bool,
+
+    #[cfg(feature = "ee")]
+    #[clap(hide = true, long, default_value_t = false)]
+    no_webserver: bool,
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
@@ -123,51 +128,41 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might take a few minutes...");
 
     #[cfg(feature = "ee")]
-    let ws = if args.webserver {
+    #[allow(deprecated)]
+    if args.webserver {
+        warn!("'--webserver' is enabled by default since 0.11, and will be removed in the next major release. Please remove this flag from your command.");
+    }
+
+    #[cfg(feature = "ee")]
+    let ws = if !args.no_webserver {
         Some(tabby_webserver::public::WebserverHandle::new(create_event_logger()).await)
     } else {
         None
     };
 
-    let logger: Arc<dyn EventLogger>;
-    let repository_access: Arc<dyn RepositoryAccess>;
-    #[cfg(feature = "ee")]
-    {
-        logger = ws
-            .as_ref()
-            .map(|ws| ws.logger())
-            .unwrap_or_else(|| Arc::new(create_event_logger()));
+    let mut logger: Arc<dyn EventLogger> = Arc::new(create_event_logger());
+    let mut repository_access: Arc<dyn RepositoryAccess> = Arc::new(ConfigRepositoryAccess);
 
-        repository_access = ws
-            .as_ref()
-            .map(|ws| ws.repository_access())
-            .unwrap_or_else(|| Arc::new(ConfigRepositoryAccess));
-    }
-    #[cfg(not(feature = "ee"))]
-    {
-        logger = Arc::new(create_event_logger());
-        repository_access = Arc::new(ConfigRepositoryAccess);
+    #[cfg(feature = "ee")]
+    if let Some(ws) = &ws {
+        logger = ws.logger();
+        repository_access = ws.repository_access();
     }
 
     let code = Arc::new(create_code_search(repository_access));
-    let api = api_router(args, config, logger.clone(), code.clone()).await;
-    let ui = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
+    let mut api = api_router(args, config, logger.clone(), code.clone()).await;
+    let mut ui = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
 
     #[cfg(feature = "ee")]
-    let (api, ui) = if args.webserver {
-        let (api, ui) = ws
-            .unwrap()
+    if let Some(ws) = &ws {
+        let (new_api, new_ui) = ws
             .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
             .await;
-        (api, ui)
-    } else {
-        let ui = ui.fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
-        (api, ui)
+        api = new_api;
+        ui = new_ui;
     };
-
-    #[cfg(not(feature = "ee"))]
-    let ui = ui.fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
 
     start_heartbeat(args);
     run_app(api, Some(ui), args.host, args.port).await
@@ -265,17 +260,32 @@ async fn api_router(
     if let Some(chat_state) = chat_state {
         routers.push({
             Router::new().route(
+                "/v1/chat/completions",
+                routing::post(routes::chat_completions).with_state(chat_state.clone()),
+            )
+        });
+
+        // For forward compatibility of `/v1beta` route.
+        routers.push({
+            Router::new().route(
                 "/v1beta/chat/completions",
                 routing::post(routes::chat_completions).with_state(chat_state),
             )
-        })
+        });
     } else {
+        routers.push({
+            Router::new().route(
+                "/v1/chat/completions",
+                routing::post(StatusCode::NOT_IMPLEMENTED),
+            )
+        });
+
         routers.push({
             Router::new().route(
                 "/v1beta/chat/completions",
                 routing::post(StatusCode::NOT_IMPLEMENTED),
             )
-        })
+        });
     }
 
     routers.push({
@@ -289,7 +299,7 @@ async fn api_router(
         Router::new().route("/v1beta/server_setting", routing::get(routes::setting));
 
     #[cfg(feature = "ee")]
-    if !args.webserver {
+    if args.no_webserver {
         routers.push(server_setting_router)
     }
 

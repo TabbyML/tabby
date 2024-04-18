@@ -20,6 +20,7 @@ use axum::{
     response::IntoResponse,
 };
 pub(in crate::service) use dao::{AsID, AsRowid};
+pub(crate) use github_repository_provider::new_github_repository_provider_service;
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper::ID;
 use tabby_common::{
@@ -31,20 +32,22 @@ use tracing::{info, warn};
 
 use self::{
     analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service,
-    github_repository_provider::new_github_repository_provider_service,
     license::new_license_service,
 };
-use crate::schema::{
-    analytic::AnalyticService,
-    auth::AuthenticationService,
-    email::EmailService,
-    github_repository_provider::GithubRepositoryProviderService,
-    job::JobService,
-    license::{IsLicenseValid, LicenseService},
-    repository::RepositoryService,
-    setting::SettingService,
-    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    CoreError, Result, ServiceLocator,
+use crate::{
+    env::demo_mode,
+    schema::{
+        analytic::AnalyticService,
+        auth::AuthenticationService,
+        email::EmailService,
+        github_repository_provider::GithubRepositoryProviderService,
+        job::JobService,
+        license::{IsLicenseValid, LicenseService},
+        repository::RepositoryService,
+        setting::SettingService,
+        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+        CoreError, Result, ServiceLocator,
+    },
 };
 
 struct ServerContext {
@@ -69,6 +72,7 @@ impl ServerContext {
         logger: Arc<dyn EventLogger>,
         code: Arc<dyn CodeSearch>,
         repository: Arc<dyn RepositoryService>,
+        github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
     ) -> Self {
@@ -93,9 +97,7 @@ impl ServerContext {
                 license.clone(),
             )),
             license,
-            github_repository_provider: Arc::new(new_github_repository_provider_service(
-                db_conn.clone(),
-            )),
+            github_repository_provider,
             repository,
             db_conn,
             logger,
@@ -104,8 +106,14 @@ impl ServerContext {
         }
     }
 
+    /// Returns whether a request is authorized to access the content, and the user ID if authentication was used.
     async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<ID>) {
         let path = request.uri().path();
+        if demo_mode()
+            && (path.starts_with("/v1/completions") || path.starts_with("/v1beta/chat/completions"))
+        {
+            return (false, None);
+        }
         if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
             return (true, None);
         }
@@ -129,12 +137,7 @@ impl ServerContext {
             return (true, Some(jwt.sub.0));
         }
 
-        let is_license_valid = self
-            .license
-            .read_license()
-            .await
-            .ensure_valid_license()
-            .is_ok();
+        let is_license_valid = self.license.read().await.ensure_valid_license().is_ok();
         // If there's no valid license, only allows owner access.
         match self
             .db_conn
@@ -160,11 +163,11 @@ impl WorkerService for ServerContext {
         Ok(self.db_conn.reset_registration_token().await?)
     }
 
-    async fn list_workers(&self) -> Vec<Worker> {
+    async fn list(&self) -> Vec<Worker> {
         [self.completion.list().await, self.chat.list().await].concat()
     }
 
-    async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
+    async fn register(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
         let worker_group = match worker.kind {
             WorkerKind::Completion => &self.completion,
             WorkerKind::Chat => &self.chat,
@@ -173,7 +176,7 @@ impl WorkerService for ServerContext {
         let count_workers = worker_group.list().await.len();
         let license = self
             .license
-            .read_license()
+            .read()
             .await
             .map_err(|_| RegisterWorkerError::RequiresTeamOrEnterpriseLicense)?;
 
@@ -189,7 +192,7 @@ impl WorkerService for ServerContext {
         Ok(worker)
     }
 
-    async fn unregister_worker(&self, worker_addr: &str) {
+    async fn unregister(&self, worker_addr: &str) {
         let kind = if self.chat.unregister(worker_addr).await {
             WorkerKind::Chat
         } else if self.completion.unregister(worker_addr).await {
@@ -314,11 +317,20 @@ pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
     repository: Arc<dyn RepositoryService>,
+    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(Arc::new(
-        ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
+        ServerContext::new(
+            logger,
+            code,
+            repository,
+            github_repository_provider,
+            db,
+            is_chat_enabled,
+        )
+        .await,
     ))
 }
 
