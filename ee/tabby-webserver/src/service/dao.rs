@@ -1,4 +1,3 @@
-
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{

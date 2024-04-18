@@ -1,7 +1,5 @@
 use std::future::Future;
 
-
-
 mod connection;
 mod edge;
 mod node_type;
