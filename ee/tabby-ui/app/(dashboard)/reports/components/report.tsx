@@ -57,8 +57,15 @@ import { useAllMembers } from '../use-all-members'
 import { AnnualActivity } from './annual-activity'
 import { DailyActivity } from './daily-activity'
 
-const INITIAL_DATE_RANGE = 14
 const KEY_SELECT_ALL = 'all'
+enum DATE_OPTIONS {
+  'TODAY' = 'today',
+  'YESTERDAY' = 'yesterday',
+  'CUSTOM' = 'custom',
+  'LAST7DAYS' = '7',
+  'LAST14DAYS' = '14',
+  'LAST30DAYS' = '30'
+}
 
 function StatsSummary({
   dailyStats
@@ -117,11 +124,12 @@ export function Report() {
   const sample = searchParams.get('sample') === 'true'
   const [members] = useAllMembers()
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: moment().subtract(INITIAL_DATE_RANGE, 'day').toDate(),
+    from: moment().subtract(parseInt(DATE_OPTIONS.LAST14DAYS, 10), 'day').toDate(),
     to: moment().toDate()
   })
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
   const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -204,6 +212,39 @@ export function Report() {
       if (dateRange) {
         setDateRange(dateRange)
       }
+    }
+  }
+
+  const onDateRangeFilterChange = (value: string) => {
+    switch (value) {
+      case 'today': {
+        setDateRange({
+          from: moment().startOf('day').toDate(),
+          to: moment().toDate()
+        })
+        break;
+      }
+      case 'yesterday': {
+        setDateRange({
+          from: moment().subtract(1, 'd').startOf('day').toDate(),
+          to: moment().subtract(1, 'd').endOf('day').toDate()
+        })
+        break;
+      }
+      case DATE_OPTIONS.CUSTOM: {
+        setShowDatePicker(true)
+        break;
+      }
+      default: {
+        setDateRange({
+          from: moment().subtract(parseInt(DATE_OPTIONS.LAST14DAYS, 10), 'day').startOf('day').toDate(),
+          to: moment().toDate()
+        })
+      }
+    }
+
+    if (value !== DATE_OPTIONS.CUSTOM && showDatePicker) {
+      setShowDatePicker(false)
     }
   }
 
@@ -362,12 +403,30 @@ export function Report() {
                   </Command>
                 </PopoverContent>
               </Popover>
-              <DatePickerWithRange
-                buttonClassName="h-full"
-                contentAlign="end"
-                dateRange={dateRange}
-                onOpenChange={onDateOpenChange}
-              />
+              {showDatePicker &&
+                <DatePickerWithRange
+                  buttonClassName="h-full"
+                  contentAlign="end"
+                  dateRange={dateRange}
+                  onOpenChange={onDateOpenChange}
+                />
+              }
+              <Select
+                defaultValue={DATE_OPTIONS.LAST14DAYS}
+                onValueChange={onDateRangeFilterChange}
+              >
+                <SelectTrigger className="w-[240px]">
+                  <SelectValue placeholder="Date range" />
+                </SelectTrigger>
+                <SelectContent align='end'>
+                  <SelectItem value={DATE_OPTIONS.TODAY}>Today</SelectItem>
+                  <SelectItem value={DATE_OPTIONS.YESTERDAY}>Yesterday</SelectItem>
+                  <SelectItem value={DATE_OPTIONS.LAST7DAYS}>Last 7 days</SelectItem>
+                  <SelectItem value={DATE_OPTIONS.LAST14DAYS}>Last 14 days</SelectItem>
+                  <SelectItem value={DATE_OPTIONS.LAST30DAYS}>Last 30 days</SelectItem>
+                  <SelectItem value={DATE_OPTIONS.CUSTOM}>Custom</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
