@@ -1,3 +1,10 @@
+input UpdateGithubRepositoryInput {
+  id: ID!
+  displayName: String!
+  applicationId: String!
+  secret: String
+}
+
 enum Language {
   RUST
   PYTHON
@@ -110,6 +117,13 @@ input PasswordChangeInput {
   newPassword2: String!
 }
 
+input CreateGithubRepositoryInput {
+  id: ID!
+  displayName: String!
+  applicationId: String!
+  secret: String!
+}
+
 type Invitation {
   id: ID!
   email: String!
@@ -180,9 +194,9 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  createGithubRepositoryProvider(displayName: String!, applicationId: String!, applicationSecret: String!): Boolean!
-  deleteGithubRepositoryProvider(id: ID!): Boolean!
-  updateGithubRepositoryProvider(id: ID!, applicationId: String!, secret: String): Boolean!
+  createGithubRepositoryProvider(input: CreateGithubRepositoryInput!): Boolean!
+  deleteGithubRepositoryProvider(input: DeleteGithubRepositoryInput!): Boolean!
+  updateGithubRepositoryProvider(input: UpdateGithubRepositoryInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
@@ -275,6 +289,10 @@ input EmailSettingInput {
   encryption: Encryption!
   authMethod: AuthMethod!
   smtpPassword: String
+}
+
+input DeleteGithubRepositoryInput {
+  id: ID!
 }
 
 enum LicenseType {
