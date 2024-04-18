@@ -65,6 +65,8 @@ const DetailPage: React.FC = () => {
     router.replace('/settings/gitops')
   }
 
+  // todo fetch all repos
+
   if (!id || (!!id && !fetching && !provider)) {
     return (
       <div className="w-full h-[250px] border rounded-lg flex items-center justify-center">
@@ -103,7 +105,7 @@ const DetailPage: React.FC = () => {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent>
               <DialogHeader className="gap-3">
-                <DialogTitle>New Repository</DialogTitle>
+                <DialogTitle>New repository link</DialogTitle>
                 <DialogDescription>
                   Add a new repository link to this provider.
                 </DialogDescription>
@@ -114,7 +116,7 @@ const DetailPage: React.FC = () => {
               />
             </DialogContent>
             <DialogTrigger asChild>
-              <Button>New repository</Button>
+              <Button>New repository link</Button>
             </DialogTrigger>
           </Dialog>
         </CardTitle>

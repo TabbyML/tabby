@@ -24,7 +24,6 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { IconCheck, IconChevronUpDown } from '@/components/ui/icons'
-import { Input } from '@/components/ui/input'
 import {
   Popover,
   PopoverContent,
@@ -121,7 +120,6 @@ export default function LinkRepositoryForm({
                     <Command>
                       <CommandInput placeholder="Search repository..." />
                       <CommandList>
-                        {/* todo loading */}
                         <CommandEmpty>No repository found.</CommandEmpty>
                         <CommandGroup>
                           {repos.map(repo => (
@@ -149,25 +147,6 @@ export default function LinkRepositoryForm({
                     </Command>
                   </PopoverContent>
                 </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>Custom name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="e.g. tabby"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    autoComplete="off"
-                    {...field}
-                  />
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
