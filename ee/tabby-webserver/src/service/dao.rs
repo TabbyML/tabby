@@ -5,15 +5,18 @@ use tabby_db::{
     JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
 };
 
-use crate::{bail, schema::{
-    auth::{self, OAuthCredential, OAuthProvider},
-    email::{AuthMethod, EmailSetting, Encryption},
-    git_repository::Repository,
-    github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
-    job,
-    setting::{NetworkSetting, SecuritySetting},
-    CoreError,
-}};
+use crate::{
+    bail,
+    schema::{
+        auth::{self, OAuthCredential, OAuthProvider},
+        email::{AuthMethod, EmailSetting, Encryption},
+        git_repository::Repository,
+        github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
+        job,
+        setting::{NetworkSetting, SecuritySetting},
+        CoreError,
+    },
+};
 
 impl From<InvitationDAO> for auth::Invitation {
     fn from(val: InvitationDAO) -> Self {
