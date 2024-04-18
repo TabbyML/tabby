@@ -1,28 +1,35 @@
 use async_trait::async_trait;
 use juniper::{GraphQLInputObject, GraphQLObject, ID};
+use lazy_static::lazy_static;
+use regex::Regex;
+use validator::Validate;
 
 use super::Context;
 use crate::{juniper::relay::NodeType, schema::Result};
 
-#[derive(GraphQLInputObject)]
-pub struct CreateGithubRepositoryInput {
-    pub id: ID,
+lazy_static! {
+    static ref GITHUB_REPOSITORY_PROVIDER_NAME_REGEX: Regex = Regex::new("^[\\w-]+$").unwrap();
+}
+
+#[derive(GraphQLInputObject, Validate)]
+pub struct CreateGithubRepositoryProviderInput {
+    #[validate(regex(code = "displayName", path = "GITHUB_REPOSITORY_PROVIDER_NAME_REGEX"))]
     pub display_name: String,
+    #[validate(length(min = 20))]
     pub application_id: String,
+    #[validate(length(min = 40))]
     pub secret: String,
 }
 
-#[derive(GraphQLInputObject)]
-pub struct UpdateGithubRepositoryInput {
+#[derive(GraphQLInputObject, Validate)]
+pub struct UpdateGithubRepositoryProviderInput {
     pub id: ID,
+    #[validate(regex(code = "displayName", path = "GITHUB_REPOSITORY_PROVIDER_NAME_REGEX"))]
     pub display_name: String,
+    #[validate(length(min = 20))]
     pub application_id: String,
+    #[validate(length(min = 40))]
     pub secret: Option<String>,
-}
-
-#[derive(GraphQLInputObject)]
-pub struct DeleteGithubRepositoryInput {
-    pub id: ID,
 }
 
 #[derive(GraphQLObject, Debug, PartialEq)]

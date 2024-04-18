@@ -34,8 +34,8 @@ use self::{
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
     github_repository_provider::{
-        CreateGithubRepositoryInput, DeleteGithubRepositoryInput, GithubProvidedRepository,
-        GithubRepositoryProvider, GithubRepositoryProviderService, UpdateGithubRepositoryInput,
+        CreateGithubRepositoryProviderInput, GithubProvidedRepository, GithubRepositoryProvider,
+        GithubRepositoryProviderService, UpdateGithubRepositoryProviderInput,
     },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
@@ -706,9 +706,10 @@ impl Mutation {
 
     async fn create_github_repository_provider(
         ctx: &Context,
-        input: CreateGithubRepositoryInput,
+        input: CreateGithubRepositoryProviderInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
+        input.validate()?;
         ctx.locator
             .github_repository_provider()
             .create_github_repository_provider(
@@ -720,23 +721,21 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn delete_github_repository_provider(
-        ctx: &Context,
-        input: DeleteGithubRepositoryInput,
-    ) -> Result<bool> {
+    async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator
             .github_repository_provider()
-            .delete_github_repository_provider(input.id)
+            .delete_github_repository_provider(id)
             .await?;
         Ok(true)
     }
 
     async fn update_github_repository_provider(
         ctx: &Context,
-        input: UpdateGithubRepositoryInput,
+        input: UpdateGithubRepositoryProviderInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
+        input.validate()?;
         ctx.locator
             .github_repository_provider()
             .update_github_repository_provider(

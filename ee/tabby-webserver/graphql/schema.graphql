@@ -118,7 +118,6 @@ input PasswordChangeInput {
 }
 
 input CreateGithubRepositoryInput {
-  id: ID!
   displayName: String!
   applicationId: String!
   secret: String!
