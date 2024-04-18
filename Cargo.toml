@@ -21,7 +21,7 @@ authors = ["TabbyML Team"]
 homepage = "https://github.com/TabbyML/tabby"
 
 [workspace.dependencies]
-cached = { version = "0.49.3", features = ["async"] }
+cached = "0.49.3"
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"

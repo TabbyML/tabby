@@ -36,6 +36,9 @@ pub enum CodeSearchError {
 
     #[error(transparent)]
     TantivyError(#[from] tantivy::TantivyError),
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
 }
 
 #[async_trait]

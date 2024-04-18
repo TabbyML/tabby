@@ -60,5 +60,9 @@ pub async fn search(
             warn!("{}", err);
             Err(StatusCode::BAD_REQUEST)
         }
+        Err(CodeSearchError::Other(err)) => {
+            warn!("{}", err);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
