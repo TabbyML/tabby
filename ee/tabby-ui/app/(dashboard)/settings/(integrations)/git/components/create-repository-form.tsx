@@ -20,8 +20,8 @@ import {
 import { Input } from '@/components/ui/input'
 
 const createRepositoryMutation = graphql(/* GraphQL */ `
-  mutation createRepository($name: String!, $gitUrl: String!) {
-    createRepository(name: $name, gitUrl: $gitUrl)
+  mutation createGitRepository($name: String!, $gitUrl: String!) {
+    createGitRepository(name: $name, gitUrl: $gitUrl)
   }
 `)
 

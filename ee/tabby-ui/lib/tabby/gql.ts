@@ -16,8 +16,8 @@ import {
 } from 'urql'
 
 import {
-  ListInvitationsQueryVariables,
-  RepositoriesQueryVariables
+  GitRepositoriesQueryVariables,
+  ListInvitationsQueryVariables
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
 import { listInvitations, listRepositories } from './query'
@@ -141,12 +141,13 @@ const client = new Client({
                   cache.updateQuery(
                     {
                       query: listRepositories,
-                      variables: field.arguments as RepositoriesQueryVariables
+                      variables:
+                        field.arguments as GitRepositoriesQueryVariables
                     },
                     data => {
-                      if (data?.repositories?.edges) {
-                        data.repositories.edges =
-                          data.repositories.edges.filter(
+                      if (data?.gitRepositories?.edges) {
+                        data.gitRepositories.edges =
+                          data.gitRepositories.edges.filter(
                             e => e.node.id !== args.id
                           )
                       }

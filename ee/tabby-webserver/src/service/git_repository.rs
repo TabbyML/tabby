@@ -8,7 +8,7 @@ use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
-    git_repository::{FileEntrySearchResult, GitRepositoryService, Repository},
+    git_repository::{FileEntrySearchResult, GitRepository, GitRepositoryService},
     Result,
 };
 
@@ -20,7 +20,7 @@ impl GitRepositoryService for DbConn {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<Repository>> {
+    ) -> Result<Vec<GitRepository>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let repositories = self
             .list_repositories_with_filter(limit, skip_id, backwards)
@@ -32,7 +32,7 @@ impl GitRepositoryService for DbConn {
         Ok(self.create_repository(name, git_url).await?.as_id())
     }
 
-    async fn get_by_name(&self, name: &str) -> Result<Repository> {
+    async fn get_by_name(&self, name: &str) -> Result<GitRepository> {
         Ok(self.get_repository_by_name(name).await?.into())
     }
 

@@ -7,7 +7,7 @@ import { useClient, useQuery } from 'urql'
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import {
-  RepositoriesQueryVariables,
+  GitRepositoriesQueryVariables,
   RepositoryEdge
 } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
@@ -32,8 +32,8 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 
 const deleteRepositoryMutation = graphql(/* GraphQL */ `
-  mutation deleteRepository($id: ID!) {
-    deleteRepository(id: $id)
+  mutation deleteGitRepository($id: ID!) {
+    deleteGitRepository(id: $id)
   }
 `)
 
@@ -46,8 +46,8 @@ export default function RepositoryTable() {
   })
 
   const [currentPage, setCurrentPage] = React.useState(1)
-  const edges = data?.repositories?.edges
-  const pageInfo = data?.repositories?.pageInfo
+  const edges = data?.gitRepositories?.edges
+  const pageInfo = data?.gitRepositories?.pageInfo
   const pageNum = Math.ceil((edges?.length || 0) / PAGE_SIZE)
 
   const currentPageRepos = React.useMemo(() => {
@@ -62,14 +62,14 @@ export default function RepositoryTable() {
   const showPagination =
     !!currentPageRepos?.length && (hasNextPage || hasPrevPage)
 
-  const fetchRepositories = (variables: RepositoriesQueryVariables) => {
+  const fetchRepositories = (variables: GitRepositoriesQueryVariables) => {
     return client.query(listRepositories, variables).toPromise()
   }
 
   const fetchRecordsSequentially = async (cursor?: string): Promise<number> => {
     const res = await fetchRepositories({ first: PAGE_SIZE, after: cursor })
-    let count = res?.data?.repositories?.edges?.length || 0
-    const _pageInfo = res?.data?.repositories?.pageInfo
+    let count = res?.data?.gitRepositories?.edges?.length || 0
+    const _pageInfo = res?.data?.gitRepositories?.pageInfo
     if (_pageInfo?.hasNextPage && _pageInfo?.endCursor) {
       // cacheExchange will merge the edges
       count = await fetchRecordsSequentially(_pageInfo.endCursor)
@@ -91,7 +91,7 @@ export default function RepositoryTable() {
 
     fetchRepositories({ first: PAGE_SIZE, after: pageInfo?.endCursor }).then(
       data => {
-        if (data?.data?.repositories?.edges?.length) {
+        if (data?.data?.gitRepositories?.edges?.length) {
           setCurrentPage(p => p + 1)
         }
       }
