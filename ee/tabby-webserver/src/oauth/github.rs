@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use serde::Deserialize;
 
 use super::OAuthClient;
-use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
+use crate::{bail, schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider}};
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -54,7 +54,7 @@ impl GithubClient {
             .await?
         {
             Some(credential) => Ok(credential),
-            None => Err(anyhow::anyhow!("No Github OAuth credential found")),
+            None => bail!("No Github OAuth credential found"),
         }
     }
 
@@ -90,10 +90,10 @@ impl OAuthClient for GithubClient {
         let credentials = self.read_credential().await?;
         let token_resp = self.exchange_access_token(code, credentials).await?;
         if !token_resp.error.is_empty() {
-            return Err(anyhow::anyhow!(
+            bail!(
                 "Failed to exchange access token: {}",
                 token_resp.error_description
-            ));
+            );
         }
 
         let resp = self
@@ -117,7 +117,7 @@ impl OAuthClient for GithubClient {
             }
         }
 
-        return Err(anyhow::anyhow!("No primary email address found"));
+        bail!("No primary email address found");
     }
 
     async fn get_authorization_url(&self) -> Result<String> {

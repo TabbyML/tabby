@@ -7,6 +7,7 @@ use serde::Deserialize;
 use tabby_db::DbConn;
 
 use crate::{
+    bail,
     env::demo_mode,
     schema::{
         license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
@@ -147,16 +148,16 @@ impl LicenseService for LicenseServiceImpl {
 
     async fn update(&self, license: String) -> Result<()> {
         if demo_mode() {
-            return Err(anyhow!("Demo mode is enabled, cannot set license").into());
+            bail!("Demo mode is enabled, cannot set license");
         }
 
         let raw = validate_license(&license).map_err(|_e| anyhow!("License is not valid"))?;
         let seats = self.db.count_active_users().await?;
         match license_info_from_raw(raw, seats)?.status {
             LicenseStatus::Ok => self.db.update_enterprise_license(Some(license)).await?,
-            LicenseStatus::Expired => return Err(anyhow!("License is expired").into()),
+            LicenseStatus::Expired => bail!("License is expired"),
             LicenseStatus::SeatsExceeded => {
-                return Err(anyhow!("License doesn't contain sufficient number of seats").into())
+                bail!("License doesn't contain sufficient number of seats")
             }
         };
         Ok(())

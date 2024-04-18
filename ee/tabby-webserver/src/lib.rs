@@ -30,3 +30,16 @@ pub mod public {
         schema::create_schema,
     };
 }
+
+#[macro_export]
+macro_rules! bail {
+    ($msg:literal $(,)?) => {
+        return std::result::Result::Err(anyhow::anyhow!($msg).into())
+    };
+    ($err:expr $(,)?) => {
+        return std::result::Result::Err(anyhow::anyhow!($err).into())
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        return std::result::Result::Err(anyhow::anyhow!($fmt, $($arg)*).into())
+    };
+}

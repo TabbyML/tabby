@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use serde::Deserialize;
 
 use super::OAuthClient;
-use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
+use crate::{bail, schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider}};
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -55,7 +55,7 @@ impl GoogleClient {
             .await?
         {
             Some(credential) => Ok(credential),
-            None => Err(anyhow::anyhow!("No Google OAuth credential found")),
+            None => bail!("No Google OAuth credential found"),
         }
     }
 
@@ -97,7 +97,7 @@ impl OAuthClient for GoogleClient {
             .exchange_access_token(code, credential, redirect_uri)
             .await?;
         if token_resp.access_token.is_empty() {
-            return Err(anyhow::anyhow!("Empty access token from Google OAuth"));
+            bail!("Empty access token from Google OAuth");
         }
 
         let resp = self
@@ -113,7 +113,7 @@ impl OAuthClient for GoogleClient {
             .await?;
 
         if let Some(err) = resp.error {
-            return Err(anyhow::anyhow!(err.message));
+            bail!(err.message);
         }
         Ok(resp.email)
     }

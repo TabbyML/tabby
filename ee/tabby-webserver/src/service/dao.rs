@@ -6,7 +6,7 @@ use tabby_db::{
     JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
 };
 
-use crate::schema::{
+use crate::{bail, schema::{
     auth::{self, OAuthCredential, OAuthProvider},
     email::{AuthMethod, EmailSetting, Encryption},
     git_repository::Repository,
@@ -14,7 +14,7 @@ use crate::schema::{
     job,
     setting::{NetworkSetting, SecuritySetting},
     CoreError,
-};
+}};
 
 impl From<InvitationDAO> for auth::Invitation {
     fn from(val: InvitationDAO) -> Self {
@@ -201,7 +201,7 @@ impl DbEnum for Encryption {
             "starttls" => Ok(Encryption::StartTls),
             "ssltls" => Ok(Encryption::SslTls),
             "none" => Ok(Encryption::None),
-            _ => Err(anyhow!("{s} is not a valid value for Encryption")),
+            _ => bail!("{s} is not a valid value for Encryption"),
         }
     }
 }
@@ -218,7 +218,7 @@ impl DbEnum for OAuthProvider {
         match s {
             "github" => Ok(OAuthProvider::Github),
             "google" => Ok(OAuthProvider::Google),
-            _ => Err(anyhow!("Invalid OAuth credential type")),
+            _ => bail!("Invalid OAuth credential type"),
         }
     }
 }
@@ -237,7 +237,7 @@ impl DbEnum for AuthMethod {
             "none" => Ok(AuthMethod::None),
             "plain" => Ok(AuthMethod::Plain),
             "login" => Ok(AuthMethod::Login),
-            _ => Err(anyhow!("{s} is not a valid value for AuthMethod")),
+            _ => bail!("{s} is not a valid value for AuthMethod"),
         }
     }
 }
