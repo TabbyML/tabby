@@ -163,12 +163,13 @@ export const queryDailyStats = graphql(/* GraphQL */ `
       selects
       views
       language
-    }}
+    }
+  }
 `)
-  
+
 export const listGithubRepositoryProviders = graphql(/* GraphQL */ `
   query ListGithubRepositoryProviders(
-    $ids: [Int!]
+    $ids: [ID!]
     $after: String
     $before: String
     $first: Int

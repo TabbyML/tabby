@@ -24,12 +24,13 @@ export type OAuthApplicationFormValues = z.infer<typeof oauthInfoFormSchema>
 interface OAuthApplicationFormProps
   extends React.HTMLAttributes<HTMLDivElement> {
   form: UseFormReturn
+  isUpdate?: boolean
 }
 
 export const OAuthApplicationForm = React.forwardRef<
   HTMLDivElement,
   OAuthApplicationFormProps
->(({ className, form }, ref) => {
+>(({ className, form, isUpdate }, ref) => {
   return (
     <div className={cn('grid gap-6', className)} ref={ref}>
       <FormField

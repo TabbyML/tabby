@@ -36,12 +36,11 @@ import { UpdateProviderForm } from './provider-detail-form'
 const DetailPage: React.FC = () => {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const id = searchParams.get('id')?.toString()
-  // const id = parseInt(searchParams.get('id')?.toString() ?? '', 10)
-  // const hasValidId = !!id && !Number.isNaN(id)
+  const id = searchParams.get('id')?.toString() ?? ''
   const [{ data, fetching }] = useQuery({
     query: listGithubRepositoryProviders,
-    variables: { ids: [1] }
+    variables: { ids: [id] },
+    pause: !id
   })
   const provider = data?.githubRepositoryProviders?.edges?.[0]?.node
 

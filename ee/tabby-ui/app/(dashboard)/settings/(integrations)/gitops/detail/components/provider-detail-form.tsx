@@ -1,10 +1,9 @@
 'use client'
 
 import React from 'react'
-import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { isEmpty } from 'lodash-es'
-import { useForm, UseFormReturn } from 'react-hook-form'
+import { isEmpty, trim } from 'lodash-es'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
@@ -22,19 +21,16 @@ import {
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Form, FormMessage } from '@/components/ui/form'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
-
-import {
-  BasicInfoForm,
-  basicInfoFormSchema,
-  BasicInfoFormValues
-} from '../../components/basic-info-form'
-import {
-  OAuthApplicationForm,
-  OAuthApplicationFormValues,
-  oauthInfoFormSchema
-} from '../../components/oauth-application-form'
+import { Input } from '@/components/ui/input'
 
 const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
   mutation DeleteGithubRepositoryProvider($id: ID!) {
@@ -42,16 +38,30 @@ const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
   }
 `)
 
-const updateProviderFormSchema = z.union([
-  basicInfoFormSchema,
-  oauthInfoFormSchema
-])
+const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
+  mutation UpdateGithubRepositoryProvider(
+    $id: ID!
+    $applicationId: String!
+    $secret: String
+  ) {
+    updateGithubRepositoryProvider(
+      id: $id
+      applicationId: $applicationId
+      secret: $secret
+    )
+  }
+`)
 
-type UpdateProviderFormValues = z.infer<typeof updateProviderFormSchema>
+export const formSchema = z.object({
+  applicationId: z.string(),
+  secret: z.string().optional()
+})
+
+type FormValues = z.infer<typeof formSchema>
 
 interface UpdateProviderFormProps {
   id: string
-  defaultValues?: Partial<UpdateProviderFormValues>
+  defaultValues?: Partial<FormValues>
   onSuccess?: () => void
   onDelete: () => void
   onBack: () => void
@@ -64,14 +74,11 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   onBack,
   id
 }) => {
-  const ENCODE_PASSWORD = '********************************'
-
-  const router = useRouter()
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
-  const form = useForm<UpdateProviderFormValues>({
-    resolver: zodResolver(updateProviderFormSchema),
-    defaultValues: { ...defaultValues, applicationSecret: ENCODE_PASSWORD }
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues
   })
 
   const deleteGithubRepositoryProvider = useMutation(
@@ -80,9 +87,25 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
 
   const isDirty = !isEmpty(form.formState.dirtyFields)
 
-  const onSubmit = async () => {
-    // todo update
-    onSuccess?.()
+  const updateGithubRepositoryProvider = useMutation(
+    updateGithubRepositoryProviderMutation,
+    {
+      form,
+      onCompleted(values) {
+        if (values?.updateGithubRepositoryProvider) {
+          toast.success('Updated repository provider successfully')
+          onSuccess?.()
+        }
+      }
+    }
+  )
+
+  const onSubmit = async (values: FormValues) => {
+    await updateGithubRepositoryProvider({
+      id,
+      applicationId: values.applicationId,
+      secret: trim(values.secret) || undefined
+    })
   }
 
   const handleDeleteRepositoryProvider: React.MouseEventHandler<
@@ -111,12 +134,42 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     <Form {...form}>
       <div className="grid gap-2">
         <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
-          <BasicInfoForm
-            form={form as UseFormReturn<BasicInfoFormValues>}
-            isUpdate
+          <FormField
+            control={form.control}
+            name="applicationId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Application ID</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. ae1542c44b154c10c859"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    autoComplete="off"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          <OAuthApplicationForm
-            form={form as UseFormReturn<OAuthApplicationFormValues>}
+          <FormField
+            control={form.control}
+            name="secret"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Application secret</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="*****"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
           <div className="flex justify-between">
             <Button variant="ghost" onClick={() => onBack()}>
