@@ -28,8 +28,18 @@ export const listInvitations = graphql(/* GraphQL */ `
 `)
 
 export const listRepositories = graphql(/* GraphQL */ `
-  query gitRepositories($after: String, $before: String, $first: Int, $last: Int) {
-    gitRepositories(after: $after, before: $before, first: $first, last: $last) {
+  query gitRepositories(
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    gitRepositories(
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
       edges {
         node {
           id
