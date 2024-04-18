@@ -3,11 +3,11 @@ mod auth;
 mod dao;
 mod email;
 pub mod event_logger;
+mod git_repository;
 mod github_repository_provider;
 mod job;
 mod license;
 mod proxy;
-mod git_repository;
 mod setting;
 mod worker;
 
