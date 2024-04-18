@@ -314,4 +314,27 @@ mod tests {
             None
         );
     }
+
+    #[test]
+    fn it_should_match_across_protocol() {
+        assert_eq!(
+            closest_match(
+                "git@github.com:TabbyML/tabby.git",
+                [&RepositoryConfig::new(
+                    "https://github.com/TabbyML/tabby".to_string()
+                )]
+            ),
+            Some("https://github.com/TabbyML/tabby".into())
+        );
+
+        assert_eq!(
+            closest_match(
+                "git@github.com:TabbyML/tabby",
+                [&RepositoryConfig::new(
+                    "https://github.com/TabbyML/tabby".to_string()
+                )]
+            ),
+            Some("https://github.com/TabbyML/tabby".into())
+        );
+    }
 }
