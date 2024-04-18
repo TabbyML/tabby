@@ -25,7 +25,7 @@ pub struct CreateGitRepositoryInput {
 
 #[derive(GraphQLObject, Debug)]
 #[graphql(context = Context)]
-pub struct Repository {
+pub struct GitRepository {
     pub id: juniper::ID,
     pub name: String,
     pub git_url: String,
@@ -50,7 +50,7 @@ impl FileEntrySearchResult {
     }
 }
 
-impl NodeType for Repository {
+impl NodeType for GitRepository {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -74,10 +74,10 @@ pub trait GitRepositoryService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<Repository>>;
+    ) -> Result<Vec<GitRepository>>;
 
     async fn create(&self, name: String, git_url: String) -> Result<ID>;
-    async fn get_by_name(&self, name: &str) -> Result<Repository>;
+    async fn get_by_name(&self, name: &str) -> Result<GitRepository>;
     async fn delete(&self, id: &ID) -> Result<bool>;
     async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
 

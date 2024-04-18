@@ -10,7 +10,7 @@ use crate::{
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
-        git_repository::Repository,
+        git_repository::GitRepository,
         github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
         job,
         setting::{NetworkSetting, SecuritySetting},
@@ -74,9 +74,9 @@ impl TryFrom<OAuthCredentialDAO> for OAuthCredential {
     }
 }
 
-impl From<RepositoryDAO> for Repository {
+impl From<RepositoryDAO> for GitRepository {
     fn from(value: RepositoryDAO) -> Self {
-        Repository {
+        GitRepository {
             id: value.id.as_id(),
             name: value.name,
             git_url: value.git_url,

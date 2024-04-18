@@ -33,7 +33,7 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    git_repository::{GitRepositoryService, Repository},
+    git_repository::{GitRepository, GitRepositoryService},
     github_repository_provider::{
         GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
     },
@@ -314,14 +314,14 @@ impl Query {
         ctx.locator.setting().read_security_setting().await
     }
 
-    async fn repositories(
+    async fn git_repositories(
         &self,
         ctx: &Context,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<Repository>> {
+    ) -> Result<Connection<GitRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -580,7 +580,7 @@ impl Mutation {
         Ok(true)
     }
 
-    async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
+    async fn create_git_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
         check_admin(ctx).await?;
         let input = git_repository::CreateGitRepositoryInput { name, git_url };
         input.validate()?;
@@ -590,12 +590,12 @@ impl Mutation {
             .await
     }
 
-    async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
+    async fn delete_git_repository(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator.repository().delete(&id).await
     }
 
-    async fn update_repository(
+    async fn update_git_repository(
         ctx: &Context,
         id: ID,
         name: String,

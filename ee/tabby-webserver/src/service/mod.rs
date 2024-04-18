@@ -7,7 +7,7 @@ mod github_repository_provider;
 mod job;
 mod license;
 mod proxy;
-mod repository;
+mod git_repository;
 mod setting;
 mod worker;
 
