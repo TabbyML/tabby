@@ -1,5 +1,5 @@
 import * as Engine from "@orama/orama";
-import { Range, TextDocument } from "vscode";
+import { Range, Position, TextDocument } from "vscode";
 import { extractSematicSymbols } from "./utils";
 
 export type DocumentRange = {
@@ -73,21 +73,22 @@ export class CodeSearchEngine {
 
   private async chunk(documentRange: DocumentRange): Promise<CodeSnippet[]> {
     const chunks: CodeSnippet[] = [];
-    const { document, range } = documentRange;
+    const document = documentRange.document;
     const documentUriString = document.uri.toString();
+    const range = document.validateRange(documentRange.range);
     let positionStart = range.start;
-    while (positionStart.isBefore(range.end)) {
+    let positionEnd;
+    do {
       const offset = document.offsetAt(positionStart);
-
       // move forward chunk size
-      let positionEnd = document.positionAt(offset + this.config.chunkSize);
+      positionEnd = document.positionAt(offset + this.config.chunkSize);
       if (positionEnd.isBefore(range.end)) {
-        // If have not moved to the end, back to the last newline instead
+        // If have not reached the end, back to the last newline instead
         positionEnd = positionEnd.with({ character: 0 });
       }
       if (positionEnd.line <= positionStart.line + this.config.overlapLines) {
         // In case of forward chunk size does not moved enough lines for overlap, force move that much lines
-        positionEnd = positionEnd.with(Math.min(document.lineCount, positionEnd.line + this.config.overlapLines + 1));
+        positionEnd = new Position(positionStart.line + this.config.overlapLines + 1, 0);
       }
       if (positionEnd.isAfter(range.end)) {
         // If have passed the end, back to the end
@@ -98,21 +99,16 @@ export class CodeSearchEngine {
       if (text.trim().length > 0) {
         chunks.push({
           filepath: documentUriString,
-          offset,
+          offset: document.offsetAt(positionStart),
           fullText: text,
           language: document.languageId,
           symbols: extractSematicSymbols(text),
         });
       }
-      if (
-        chunks.length > this.config.maxChunks ||
-        positionEnd.isAfterOrEqual(range.end) ||
-        positionEnd.line > document.lineCount
-      ) {
-        break;
-      }
-      positionStart = positionEnd.with(Math.max(0, positionEnd.line - this.config.overlapLines));
-    }
+
+      // move the start position to the next chunk start
+      positionStart = new Position(positionEnd.line - this.config.overlapLines, 0);
+    } while (chunks.length < this.config.maxChunks && positionEnd.isBefore(range.end));
     return chunks;
   }
 
@@ -212,7 +208,7 @@ export class CodeSearchEngine {
           return {
             snippet: hit.document,
             // FIXME: Why there are many scores NaN?
-            score: hit.score ?? 0,
+            score: hit.score || 0,
           };
         })
     );
