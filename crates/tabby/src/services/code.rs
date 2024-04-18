@@ -369,5 +369,16 @@ mod tests {
             ),
             Some("https://github.com/TabbyML/tabby".into())
         );
+
+        // Test different protocol should still match
+        assert_eq!(
+            closest_match(
+                "https://custom-git.com/tabby",
+                [&RepositoryConfig::new(
+                    "https://custom-git.com/TabbyML/tabby".to_string()
+                )]
+            ),
+            Some("https://custom-git.com/TabbyML/tabby".into())
+        );
     }
 }
