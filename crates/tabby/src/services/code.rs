@@ -17,7 +17,6 @@ use tantivy::{
     schema::Field,
     DocAddress, Document, Index, IndexReader,
 };
-
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{debug, log::info};
 
