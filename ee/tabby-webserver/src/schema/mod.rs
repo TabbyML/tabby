@@ -18,8 +18,8 @@ use base64::Engine;
 use chrono::{DateTime, Utc};
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
-    IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
+    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
+    Object, RootNode, ScalarValue, Value, ID,
 };
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tracing::error;
@@ -182,7 +182,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<User>> {
+    ) -> Result<Connection<User>> {
         check_admin(ctx).await?;
         return relay::query_async(
             after,
@@ -190,15 +190,10 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                match ctx
-                    .locator
+                ctx.locator
                     .auth()
                     .list_users(after, before, first, last)
                     .await
-                {
-                    Ok(users) => Ok(users),
-                    Err(err) => Err(FieldError::from(err)),
-                }
             },
         )
         .await;
@@ -210,7 +205,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<Invitation>> {
+    ) -> Result<Connection<Invitation>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -218,15 +213,10 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                match ctx
-                    .locator
+                ctx.locator
                     .auth()
                     .list_invitations(after, before, first, last)
                     .await
-                {
-                    Ok(invitations) => Ok(invitations),
-                    Err(err) => Err(FieldError::from(err)),
-                }
             },
         )
         .await
@@ -238,7 +228,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<GithubRepositoryProvider>> {
+    ) -> Result<Connection<GithubRepositoryProvider>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -246,11 +236,10 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
+                ctx.locator
                     .github_repository_provider()
                     .list_github_repository_providers(after, before, first, last)
-                    .await?)
+                    .await
             },
         )
         .await
@@ -263,7 +252,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<GithubProvidedRepository>> {
+    ) -> Result<Connection<GithubProvidedRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -271,8 +260,7 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
+                ctx.locator
                     .github_repository_provider()
                     .list_github_provided_repositories_by_provider(
                         provider_ids,
@@ -281,7 +269,7 @@ impl Query {
                         first,
                         last,
                     )
-                    .await?)
+                    .await
             },
         )
         .await
@@ -295,7 +283,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<JobRun>> {
+    ) -> Result<Connection<JobRun>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -303,18 +291,17 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
+                ctx.locator
                     .job()
                     .list(ids, jobs, after, before, first, last)
-                    .await?)
+                    .await
             },
         )
         .await
     }
 
-    async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> FieldResult<JobStats> {
-        Ok(ctx.locator.job().compute_stats(jobs).await?)
+    async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> Result<JobStats> {
+        ctx.locator.job().compute_stats(jobs).await
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
@@ -345,7 +332,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<Repository>> {
+    ) -> Result<Connection<Repository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -353,11 +340,10 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
+                ctx.locator
                     .repository()
                     .list_repositories(after, before, first, last)
-                    .await?)
+                    .await
             },
         )
         .await
@@ -367,13 +353,12 @@ impl Query {
         ctx: &Context,
         repository_name: String,
         pattern: String,
-    ) -> FieldResult<Vec<FileEntrySearchResult>> {
+    ) -> Result<Vec<FileEntrySearchResult>> {
         check_claims(ctx)?;
-        Ok(ctx
-            .locator
+        ctx.locator
             .repository()
             .search_files(&repository_name, &pattern, 40)
-            .await?)
+            .await
     }
 
     async fn oauth_credential(
