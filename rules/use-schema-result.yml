@@ -5,8 +5,10 @@ language: rust
 files:
 - ./ee/tabby-webserver/src/schema/**
 rule:
-  pattern: anyhow
-  not:
-    inside:
-      kind: enum_variant
-      stopBy: end
+  any:
+    - pattern: anyhow
+      not:
+        inside:
+          kind: enum_variant
+          stopBy: end
+    - pattern: FieldResult

@@ -9,9 +9,9 @@ use tabby_db::{
 use crate::schema::{
     auth::{self, OAuthCredential, OAuthProvider},
     email::{AuthMethod, EmailSetting, Encryption},
+    git_repository::Repository,
     github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
     job,
-    repository::Repository,
     setting::{NetworkSetting, SecuritySetting},
     CoreError,
 };

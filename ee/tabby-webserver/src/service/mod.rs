@@ -40,10 +40,10 @@ use crate::{
         analytic::AnalyticService,
         auth::AuthenticationService,
         email::EmailService,
+        git_repository::GitRepositoryService,
         github_repository_provider::GithubRepositoryProviderService,
         job::JobService,
         license::{IsLicenseValid, LicenseService},
-        repository::RepositoryService,
         setting::SettingService,
         worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
         CoreError, Result, ServiceLocator,
@@ -59,7 +59,7 @@ struct ServerContext {
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
-    repository: Arc<dyn RepositoryService>,
+    repository: Arc<dyn GitRepositoryService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -71,7 +71,7 @@ impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
         code: Arc<dyn CodeSearch>,
-        repository: Arc<dyn RepositoryService>,
+        repository: Arc<dyn GitRepositoryService>,
         github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
@@ -137,12 +137,7 @@ impl ServerContext {
             return (true, Some(jwt.sub.0));
         }
 
-        let is_license_valid = self
-            .license
-            .read_license()
-            .await
-            .ensure_valid_license()
-            .is_ok();
+        let is_license_valid = self.license.read().await.ensure_valid_license().is_ok();
         // If there's no valid license, only allows owner access.
         match self
             .db_conn
@@ -181,7 +176,7 @@ impl WorkerService for ServerContext {
         let count_workers = worker_group.list().await.len();
         let license = self
             .license
-            .read_license()
+            .read()
             .await
             .map_err(|_| RegisterWorkerError::RequiresTeamOrEnterpriseLicense)?;
 
@@ -293,7 +288,7 @@ impl ServiceLocator for Arc<ServerContext> {
         Arc::new(self.db_conn.clone())
     }
 
-    fn repository(&self) -> Arc<dyn RepositoryService> {
+    fn repository(&self) -> Arc<dyn GitRepositoryService> {
         self.repository.clone()
     }
 
@@ -323,7 +318,7 @@ impl ServiceLocator for Arc<ServerContext> {
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
-    repository: Arc<dyn RepositoryService>,
+    repository: Arc<dyn GitRepositoryService>,
     github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
     db: DbConn,
     is_chat_enabled: bool,

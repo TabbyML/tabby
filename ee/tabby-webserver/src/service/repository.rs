@@ -8,13 +8,13 @@ use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
-    repository::{FileEntrySearchResult, Repository, RepositoryService},
+    git_repository::{FileEntrySearchResult, GitRepositoryService, Repository},
     Result,
 };
 
 #[async_trait]
-impl RepositoryService for DbConn {
-    async fn list_repositories(
+impl GitRepositoryService for DbConn {
+    async fn list(
         &self,
         after: Option<String>,
         before: Option<String>,
@@ -28,19 +28,19 @@ impl RepositoryService for DbConn {
         Ok(repositories.into_iter().map(Into::into).collect())
     }
 
-    async fn create_repository(&self, name: String, git_url: String) -> Result<ID> {
+    async fn create(&self, name: String, git_url: String) -> Result<ID> {
         Ok(self.create_repository(name, git_url).await?.as_id())
     }
 
-    async fn get_repository_by_name(&self, name: &str) -> Result<Repository> {
+    async fn get_by_name(&self, name: &str) -> Result<Repository> {
         Ok(self.get_repository_by_name(name).await?.into())
     }
 
-    async fn delete_repository(&self, id: &ID) -> Result<bool> {
+    async fn delete(&self, id: &ID) -> Result<bool> {
         Ok(self.delete_repository(id.as_rowid()?).await?)
     }
 
-    async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
+    async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
         self.update_repository(id.as_rowid()?, name, git_url)
             .await?;
         Ok(true)
@@ -131,7 +131,7 @@ mod tests {
     pub async fn test_duplicate_repository_error() {
         let db = DbConn::new_in_memory().await.unwrap();
 
-        RepositoryService::create_repository(
+        GitRepositoryService::create(
             &db,
             "example".into(),
             "https://github.com/example/example".into(),
@@ -139,7 +139,7 @@ mod tests {
         .await
         .unwrap();
 
-        let err = RepositoryService::create_repository(
+        let err = GitRepositoryService::create(
             &db,
             "example".into(),
             "https://github.com/example/example".into(),
@@ -156,10 +156,10 @@ mod tests {
     #[tokio::test]
     pub async fn test_repository_mutations() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service: &dyn RepositoryService = &db;
+        let service: &dyn GitRepositoryService = &db;
 
         let id_1 = service
-            .create_repository(
+            .create(
                 "example".into(),
                 "https://github.com/example/example".into(),
             )
@@ -167,7 +167,7 @@ mod tests {
             .unwrap();
 
         let id_2 = service
-            .create_repository(
+            .create(
                 "example2".into(),
                 "https://github.com/example/example2".into(),
             )
@@ -175,35 +175,21 @@ mod tests {
             .unwrap();
 
         service
-            .create_repository(
+            .create(
                 "example3".into(),
                 "https://github.com/example/example3".into(),
             )
             .await
             .unwrap();
 
-        assert_eq!(
-            service
-                .list_repositories(None, None, None, None)
-                .await
-                .unwrap()
-                .len(),
-            3
-        );
+        assert_eq!(service.list(None, None, None, None).await.unwrap().len(), 3);
 
-        service.delete_repository(&id_1).await.unwrap();
+        service.delete(&id_1).await.unwrap();
 
-        assert_eq!(
-            service
-                .list_repositories(None, None, None, None)
-                .await
-                .unwrap()
-                .len(),
-            2
-        );
+        assert_eq!(service.list(None, None, None, None).await.unwrap().len(), 2);
 
         service
-            .update_repository(
+            .update(
                 &id_2,
                 "Example2".to_string(),
                 "https://github.com/example/Example2".to_string(),
@@ -213,7 +199,7 @@ mod tests {
 
         assert_eq!(
             service
-                .list_repositories(None, None, None, None)
+                .list(None, None, None, None)
                 .await
                 .unwrap()
                 .first()
@@ -226,13 +212,13 @@ mod tests {
     #[tokio::test]
     pub async fn test_search_files() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service: &dyn RepositoryService = &db;
+        let service: &dyn GitRepositoryService = &db;
 
         let dir = TempDir::default();
         let repo_name = "test_repo".to_owned();
         let test_repo_dir = dir.join(&repo_name);
         service
-            .create_repository(
+            .create(
                 repo_name.clone(),
                 format!("file://{}", test_repo_dir.display()),
             )

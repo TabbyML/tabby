@@ -1,10 +1,10 @@
 pub mod analytic;
 pub mod auth;
 pub mod email;
+pub mod git_repository;
 pub mod github_repository_provider;
 pub mod job;
 pub mod license;
-pub mod repository;
 pub mod setting;
 pub mod worker;
 
@@ -18,8 +18,8 @@ use base64::Engine;
 use chrono::{DateTime, Utc};
 use job::{JobRun, JobService};
 use juniper::{
-    graphql_object, graphql_value, EmptySubscription, FieldError, FieldResult, GraphQLObject,
-    IntoFieldError, Object, RootNode, ScalarValue, Value, ID,
+    graphql_object, graphql_value, EmptySubscription, FieldError, GraphQLObject, IntoFieldError,
+    Object, RootNode, ScalarValue, Value, ID,
 };
 use tabby_common::api::{code::CodeSearch, event::EventLogger};
 use tracing::error;
@@ -33,12 +33,12 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
+    git_repository::{GitRepositoryService, Repository},
     github_repository_provider::{
         GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
     },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::{Repository, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
@@ -46,7 +46,7 @@ use self::{
 use crate::{
     axum::FromAuth,
     juniper::relay::{self, Connection},
-    schema::repository::FileEntrySearchResult,
+    schema::git_repository::FileEntrySearchResult,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -55,7 +55,7 @@ pub trait ServiceLocator: Send + Sync {
     fn code(&self) -> Arc<dyn CodeSearch>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
-    fn repository(&self) -> Arc<dyn RepositoryService>;
+    fn repository(&self) -> Arc<dyn GitRepositoryService>;
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
@@ -139,7 +139,7 @@ async fn check_user(ctx: &Context) -> Result<User, CoreError> {
 }
 
 async fn check_license(ctx: &Context, license_type: &[LicenseType]) -> Result<(), CoreError> {
-    let license = ctx.locator.license().read_license().await?;
+    let license = ctx.locator.license().read().await?;
 
     if !license_type.contains(&license.r#type) {
         return Err(CoreError::InvalidLicense(
@@ -166,11 +166,6 @@ impl Query {
         ctx.locator.worker().read_registration_token().await
     }
 
-    #[deprecated]
-    async fn is_admin_initialized(ctx: &Context) -> Result<bool> {
-        ctx.locator.auth().is_admin_initialized().await
-    }
-
     async fn me(ctx: &Context) -> Result<User> {
         let claims = check_claims(ctx)?;
         ctx.locator.auth().get_user(&claims.sub.0).await
@@ -182,7 +177,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<User>> {
+    ) -> Result<Connection<User>> {
         check_admin(ctx).await?;
         return relay::query_async(
             after,
@@ -190,15 +185,10 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                match ctx
-                    .locator
+                ctx.locator
                     .auth()
                     .list_users(after, before, first, last)
                     .await
-                {
-                    Ok(users) => Ok(users),
-                    Err(err) => Err(FieldError::from(err)),
-                }
             },
         )
         .await;
@@ -210,7 +200,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<Invitation>> {
+    ) -> Result<Connection<Invitation>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -218,15 +208,10 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                match ctx
-                    .locator
+                ctx.locator
                     .auth()
                     .list_invitations(after, before, first, last)
                     .await
-                {
-                    Ok(invitations) => Ok(invitations),
-                    Err(err) => Err(FieldError::from(err)),
-                }
             },
         )
         .await
@@ -238,7 +223,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<GithubRepositoryProvider>> {
+    ) -> Result<Connection<GithubRepositoryProvider>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -246,11 +231,10 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
+                ctx.locator
                     .github_repository_provider()
                     .list_github_repository_providers(after, before, first, last)
-                    .await?)
+                    .await
             },
         )
         .await
@@ -263,7 +247,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<GithubProvidedRepository>> {
+    ) -> Result<Connection<GithubProvidedRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -271,8 +255,7 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
+                ctx.locator
                     .github_repository_provider()
                     .list_github_provided_repositories_by_provider(
                         provider_ids,
@@ -281,7 +264,7 @@ impl Query {
                         first,
                         last,
                     )
-                    .await?)
+                    .await
             },
         )
         .await
@@ -295,7 +278,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<JobRun>> {
+    ) -> Result<Connection<JobRun>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -303,29 +286,22 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
+                ctx.locator
                     .job()
                     .list(ids, jobs, after, before, first, last)
-                    .await?)
+                    .await
             },
         )
         .await
     }
 
-    async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> FieldResult<JobStats> {
-        Ok(ctx.locator.job().compute_stats(jobs).await?)
+    async fn job_run_stats(ctx: &Context, jobs: Option<Vec<String>>) -> Result<JobStats> {
+        ctx.locator.job().compute_stats(jobs).await
     }
 
     async fn email_setting(ctx: &Context) -> Result<Option<EmailSetting>> {
         check_admin(ctx).await?;
         ctx.locator.email().read_setting().await
-    }
-
-    #[deprecated]
-    async fn is_email_configured(ctx: &Context) -> Result<bool> {
-        let initialized = ctx.locator.email().read_setting().await?.is_some();
-        Ok(initialized)
     }
 
     async fn network_setting(ctx: &Context) -> Result<NetworkSetting> {
@@ -345,7 +321,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> FieldResult<Connection<Repository>> {
+    ) -> Result<Connection<Repository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -353,11 +329,10 @@ impl Query {
             first,
             last,
             |after, before, first, last| async move {
-                Ok(ctx
-                    .locator
+                ctx.locator
                     .repository()
-                    .list_repositories(after, before, first, last)
-                    .await?)
+                    .list(after, before, first, last)
+                    .await
             },
         )
         .await
@@ -367,13 +342,12 @@ impl Query {
         ctx: &Context,
         repository_name: String,
         pattern: String,
-    ) -> FieldResult<Vec<FileEntrySearchResult>> {
+    ) -> Result<Vec<FileEntrySearchResult>> {
         check_claims(ctx)?;
-        Ok(ctx
-            .locator
+        ctx.locator
             .repository()
             .search_files(&repository_name, &pattern, 40)
-            .await?)
+            .await
     }
 
     async fn oauth_credential(
@@ -399,7 +373,7 @@ impl Query {
     }
 
     async fn license(ctx: &Context) -> Result<LicenseInfo> {
-        ctx.locator.license().read_license().await
+        ctx.locator.license().read().await
     }
 
     async fn jobs() -> Result<Vec<String>> {
@@ -608,17 +582,17 @@ impl Mutation {
 
     async fn create_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
         check_admin(ctx).await?;
-        let input = repository::CreateRepositoryInput { name, git_url };
+        let input = git_repository::CreateGitRepositoryInput { name, git_url };
         input.validate()?;
         ctx.locator
             .repository()
-            .create_repository(input.name, input.git_url)
+            .create(input.name, input.git_url)
             .await
     }
 
     async fn delete_repository(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.repository().delete_repository(&id).await
+        ctx.locator.repository().delete(&id).await
     }
 
     async fn update_repository(
@@ -628,10 +602,7 @@ impl Mutation {
         git_url: String,
     ) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator
-            .repository()
-            .update_repository(&id, name, git_url)
-            .await
+        ctx.locator.repository().update(&id, name, git_url).await
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
@@ -686,13 +657,13 @@ impl Mutation {
 
     async fn upload_license(ctx: &Context, license: String) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.license().update_license(license).await?;
+        ctx.locator.license().update(license).await?;
         Ok(true)
     }
 
     async fn reset_license(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.license().reset_license().await?;
+        ctx.locator.license().reset().await?;
         Ok(true)
     }
 

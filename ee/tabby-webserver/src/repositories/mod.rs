@@ -16,11 +16,11 @@ use self::resolve::ResolveState;
 use crate::{
     handler::require_login_middleware,
     repositories::resolve::ResolveParams,
-    schema::{auth::AuthenticationService, repository::RepositoryService},
+    schema::{auth::AuthenticationService, git_repository::GitRepositoryService},
 };
 
 pub fn routes(
-    repository: Arc<dyn RepositoryService>,
+    repository: Arc<dyn GitRepositoryService>,
     auth: Arc<dyn AuthenticationService>,
 ) -> Router {
     Router::new()

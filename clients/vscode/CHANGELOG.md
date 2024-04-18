@@ -1,3 +1,9 @@
+## 1.5.2
+
+### Fixes
+
+- Fixed an issue where the indexing worker for recently edited code may cause a stuck.
+
 ## 1.5.0
 
 ### Features
