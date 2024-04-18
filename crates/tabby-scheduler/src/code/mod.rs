@@ -1,16 +1,19 @@
 use tabby_common::{Point, Tag};
+use text_splitter::{Characters, TextSplitter};
 use tree_sitter_tags::TagsContext;
 
 mod languages;
 
 pub struct CodeIntelligence {
     context: TagsContext,
+    splitter: TextSplitter<Characters>,
 }
 
 impl Default for CodeIntelligence {
     fn default() -> Self {
         Self {
             context: TagsContext::new(),
+            splitter: TextSplitter::default().with_trim_chunks(true),
         }
     }
 }
@@ -48,5 +51,13 @@ impl CodeIntelligence {
                     ..Point::new(x.span.end.row, x.span.end.column),
             })
             .collect()
+    }
+
+    // FIXME(meng): implement with treesitter based CodeSplitter.
+    pub fn chunks<'splitter, 'text: 'splitter>(
+        &'splitter self,
+        text: &'text str,
+    ) -> impl Iterator<Item = &'text str> + 'splitter {
+        self.splitter.chunks(text, 192)
     }
 }

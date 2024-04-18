@@ -2,6 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
+use cached::{CachedAsync, TimedCache};
 use parse_git_url::GitUrl;
 use tabby_common::{
     api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
@@ -26,6 +27,7 @@ struct CodeSearchImpl {
 
     schema: CodeSearchSchema,
     repository_access: Arc<dyn RepositoryAccess>,
+    repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 impl CodeSearchImpl {
@@ -48,6 +50,7 @@ impl CodeSearchImpl {
             reader,
             query_parser,
             schema: code_schema,
+            repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
         })
     }
 
@@ -74,8 +77,6 @@ impl CodeSearchImpl {
                 body: get_field(&doc, self.schema.field_body),
                 filepath: get_field(&doc, self.schema.field_filepath),
                 git_url: get_field(&doc, self.schema.field_git_url),
-                kind: get_field(&doc, self.schema.field_kind),
-                name: get_field(&doc, self.schema.field_name),
                 language: get_field(&doc, self.schema.field_language),
             },
             id: doc_address.doc_id,
@@ -127,11 +128,14 @@ impl CodeSearch for CodeSearchImpl {
         let language_query = self.schema.language_query(language);
         let body_query = self.schema.body_query(tokens);
 
-        let repos = self
-            .repository_access
-            .list_repositories()
-            .await
-            .unwrap_or_default();
+        let mut cache = self.repo_cache.lock().await;
+
+        let repos = cache
+            .try_get_or_set_with((), || async {
+                let repos = self.repository_access.list_repositories().await?;
+                Ok::<_, anyhow::Error>(repos)
+            })
+            .await?;
 
         let Some(git_url) = closest_match(git_url, repos.iter()) else {
             return Ok(SearchResponse::default());
@@ -309,7 +313,6 @@ mod tests {
             None
         );
 
-        // Test incomplete git url should not match
         assert_eq!(
             closest_match(
                 "https://github.com",

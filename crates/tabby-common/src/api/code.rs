@@ -21,9 +21,7 @@ pub struct HitDocument {
     pub body: String,
     pub filepath: String,
     pub git_url: String,
-    pub kind: String,
     pub language: String,
-    pub name: String,
 }
 
 #[derive(Error, Debug)]
@@ -36,6 +34,9 @@ pub enum CodeSearchError {
 
     #[error(transparent)]
     TantivyError(#[from] tantivy::TantivyError),
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
 }
 
 #[async_trait]

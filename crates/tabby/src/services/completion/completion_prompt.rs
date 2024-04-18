@@ -200,6 +200,10 @@ async fn collect_snippets(
             warn!("Failed to parse query: {}", err);
             return ret;
         }
+        Err(CodeSearchError::Other(err)) => {
+            warn!("Failed to search: {}", err);
+            return ret;
+        }
     };
 
     let mut count_characters = 0;

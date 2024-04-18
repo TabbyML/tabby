@@ -1,6 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { ExtensionContext, languages, workspace } from "vscode";
+import { ExtensionContext, commands, languages, workspace } from "vscode";
 import { logger } from "./logger";
 import { createAgentInstance, disposeAgentInstance } from "./agent";
 import { tabbyCommands } from "./commands";
@@ -38,6 +38,30 @@ export async function activate(context: ExtensionContext) {
   context.subscriptions.push(statusBarItem.register());
 
   context.subscriptions.push(...tabbyCommands(context, completionProvider, statusBarItem));
+
+  const updateIsChatEnabledContextVariable = () => {
+    if (agent.getStatus() === "ready") {
+      const healthState = agent.getServerHealthState();
+      const isChatEnabled = Boolean(healthState?.chat_model);
+      commands.executeCommand("setContext", "tabby.chatModeEnabled", isChatEnabled);
+    }
+  };
+  agent.on("statusChanged", () => {
+    updateIsChatEnabledContextVariable();
+  });
+  updateIsChatEnabledContextVariable();
+
+  const updateIsExplainCodeEnabledContextVariable = () => {
+    const experimental = workspace.getConfiguration("tabby").get<Record<string, any>>("experimental", {});
+    const isExplainCodeEnabled = experimental["chat.explainCodeBlock"] || false;
+    commands.executeCommand("setContext", "tabby.explainCodeSettingEnabled", isExplainCodeEnabled);
+  };
+  workspace.onDidChangeConfiguration((event) => {
+    if (event.affectsConfiguration("tabby.experimental")) {
+      updateIsExplainCodeEnabledContextVariable();
+    }
+  });
+  updateIsExplainCodeEnabledContextVariable();
 }
 
 // this method is called when your extension is deactivated

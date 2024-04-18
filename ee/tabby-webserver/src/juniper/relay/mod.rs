@@ -1,7 +1,5 @@
 use std::future::Future;
 
-use juniper::FieldResult;
-
 mod connection;
 mod edge;
 mod node_type;
@@ -10,17 +8,19 @@ mod page_info;
 pub use connection::Connection;
 pub use node_type::NodeType;
 
+use crate::{bail, schema};
+
 fn validate_first_last(
     first: Option<i32>,
     last: Option<i32>,
-) -> FieldResult<(Option<usize>, Option<usize>)> {
+) -> schema::Result<(Option<usize>, Option<usize>)> {
     if first.is_some() && last.is_some() {
-        return Err("The \"first\" and \"last\" parameters cannot exist at the same time".into());
+        bail!("The \"first\" and \"last\" parameters cannot exist at the same time");
     }
 
     let first = match first {
         Some(first) if first < 0 => {
-            return Err("The \"first\" parameter must be a non-negative number".into());
+            bail!("The \"first\" parameter must be a non-negative number");
         }
         Some(first) => Some(first as usize),
         None => None,
@@ -28,7 +28,7 @@ fn validate_first_last(
 
     let last = match last {
         Some(last) if last < 0 => {
-            return Err("The \"last\" parameter must be a non-negative number".into());
+            bail!("The \"last\" parameter must be a non-negative number")
         }
         Some(last) => Some(last as usize),
         None => None,
@@ -43,7 +43,7 @@ pub fn query<Node, F>(
     first: Option<i32>,
     last: Option<i32>,
     f: F,
-) -> FieldResult<Connection<Node>>
+) -> schema::Result<Connection<Node>>
 where
     Node: NodeType + Sync,
     F: FnOnce(
@@ -51,7 +51,7 @@ where
         Option<String>,
         Option<usize>,
         Option<usize>,
-    ) -> FieldResult<Vec<Node>>,
+    ) -> schema::Result<Vec<Node>>,
 {
     let (first, last) = validate_first_last(first, last)?;
 
@@ -75,11 +75,11 @@ pub async fn query_async<Node, F, R>(
     first: Option<i32>,
     last: Option<i32>,
     f: F,
-) -> FieldResult<Connection<Node>>
+) -> schema::Result<Connection<Node>>
 where
     Node: NodeType + Sync,
     F: FnOnce(Option<String>, Option<String>, Option<usize>, Option<usize>) -> R,
-    R: Future<Output = FieldResult<Vec<Node>>>,
+    R: Future<Output = schema::Result<Vec<Node>>>,
 {
     let (first, last) = validate_first_last(first, last)?;
 

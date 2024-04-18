@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
@@ -6,14 +5,17 @@ use tabby_db::{
     JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
 };
 
-use crate::schema::{
-    auth::{self, OAuthCredential, OAuthProvider},
-    email::{AuthMethod, EmailSetting, Encryption},
-    github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
-    job,
-    repository::Repository,
-    setting::{NetworkSetting, SecuritySetting},
-    CoreError,
+use crate::{
+    bail,
+    schema::{
+        auth::{self, OAuthCredential, OAuthProvider},
+        email::{AuthMethod, EmailSetting, Encryption},
+        git_repository::Repository,
+        github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
+        job,
+        setting::{NetworkSetting, SecuritySetting},
+        CoreError,
+    },
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -201,7 +203,7 @@ impl DbEnum for Encryption {
             "starttls" => Ok(Encryption::StartTls),
             "ssltls" => Ok(Encryption::SslTls),
             "none" => Ok(Encryption::None),
-            _ => Err(anyhow!("{s} is not a valid value for Encryption")),
+            _ => bail!("{s} is not a valid value for Encryption"),
         }
     }
 }
@@ -218,7 +220,7 @@ impl DbEnum for OAuthProvider {
         match s {
             "github" => Ok(OAuthProvider::Github),
             "google" => Ok(OAuthProvider::Google),
-            _ => Err(anyhow!("Invalid OAuth credential type")),
+            _ => bail!("Invalid OAuth credential type"),
         }
     }
 }
@@ -237,7 +239,7 @@ impl DbEnum for AuthMethod {
             "none" => Ok(AuthMethod::None),
             "plain" => Ok(AuthMethod::Plain),
             "login" => Ok(AuthMethod::Login),
-            _ => Err(anyhow!("{s} is not a valid value for AuthMethod")),
+            _ => bail!("{s} is not a valid value for AuthMethod"),
         }
     }
 }

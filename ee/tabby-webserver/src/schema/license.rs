@@ -93,9 +93,9 @@ impl LicenseInfo {
 
 #[async_trait]
 pub trait LicenseService: Send + Sync {
-    async fn read_license(&self) -> Result<LicenseInfo>;
-    async fn update_license(&self, license: String) -> Result<()>;
-    async fn reset_license(&self) -> Result<()>;
+    async fn read(&self) -> Result<LicenseInfo>;
+    async fn update(&self, license: String) -> Result<()>;
+    async fn reset(&self) -> Result<()>;
 }
 
 pub trait IsLicenseValid {
