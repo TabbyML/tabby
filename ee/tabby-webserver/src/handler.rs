@@ -50,7 +50,7 @@ impl RepositoryAccess for RepositoryAccessImpl {
     async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
         let mut repos: Vec<RepositoryConfig> = self
             .git_repository_service
-            .list_repositories(None, None, None, None)
+            .list(None, None, None, None)
             .await?
             .into_iter()
             .map(|repo| RepositoryConfig::new(repo.git_url))
