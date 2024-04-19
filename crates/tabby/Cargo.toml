@@ -6,7 +6,7 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["ee", "experimental-http"]
+default = ["ee", "experimental-http", "avx", "avx2", "fma", "f16c"]
 ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
 rocm = ["llama-cpp-bindings/rocm"]
@@ -59,7 +59,7 @@ async-stream = { workspace = true }
 minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
 regex.workspace = true
-llama-cpp-bindings = { path = "../llama-cpp-bindings" }
+llama-cpp-bindings = { path = "../llama-cpp-bindings", default-features = false }
 futures.workspace = true
 async-trait.workspace = true
 tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
