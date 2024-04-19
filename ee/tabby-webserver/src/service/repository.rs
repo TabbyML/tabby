@@ -62,8 +62,9 @@ impl RepositoryService for RepositoryServiceImpl {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tabby_db::DbConn;
+
+    use super::*;
 
     #[tokio::test]
     async fn test_list_repositories() {
