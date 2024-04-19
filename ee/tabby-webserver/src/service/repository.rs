@@ -15,8 +15,6 @@ struct RepositoryServiceImpl {
     github: Arc<dyn GithubRepositoryProviderService>,
 }
 
-impl RepositoryServiceImpl {}
-
 pub fn create(db: DbConn) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(db.clone()),
