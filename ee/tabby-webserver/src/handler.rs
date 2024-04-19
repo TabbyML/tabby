@@ -64,7 +64,7 @@ impl WebserverHandle {
     }
 
     pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
-        self.repository.clone().repository_access()
+        self.repository.clone().access()
     }
 
     pub async fn attach_webserver(

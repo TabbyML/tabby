@@ -47,7 +47,7 @@ impl RepositoryAccess for RepositoryServiceImpl {
 }
 
 impl RepositoryService for RepositoryServiceImpl {
-    fn repository_access(self: Arc<Self>) -> Arc<dyn RepositoryAccess> {
+    fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess> {
         self.clone()
     }
 

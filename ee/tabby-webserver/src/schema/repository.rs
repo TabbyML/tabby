@@ -32,5 +32,5 @@ impl FileEntrySearchResult {
 pub trait RepositoryService: Send + Sync + RepositoryAccess {
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn github(&self) -> Arc<dyn GithubRepositoryProviderService>;
-    fn repository_access(self: Arc<Self>) -> Arc<dyn RepositoryAccess>;
+    fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess>;
 }
