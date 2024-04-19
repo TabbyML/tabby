@@ -3,11 +3,11 @@ mod auth;
 mod dao;
 mod email;
 pub mod event_logger;
+mod git_repository;
 mod github_repository_provider;
 mod job;
 mod license;
 mod proxy;
-mod repository;
 mod setting;
 mod worker;
 
@@ -40,10 +40,10 @@ use crate::{
         analytic::AnalyticService,
         auth::AuthenticationService,
         email::EmailService,
+        git_repository::GitRepositoryService,
         github_repository_provider::GithubRepositoryProviderService,
         job::JobService,
         license::{IsLicenseValid, LicenseService},
-        repository::RepositoryService,
         setting::SettingService,
         worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
         CoreError, Result, ServiceLocator,
@@ -59,7 +59,7 @@ struct ServerContext {
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
-    repository: Arc<dyn RepositoryService>,
+    repository: Arc<dyn GitRepositoryService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -71,7 +71,7 @@ impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
         code: Arc<dyn CodeSearch>,
-        repository: Arc<dyn RepositoryService>,
+        repository: Arc<dyn GitRepositoryService>,
         github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
@@ -288,7 +288,7 @@ impl ServiceLocator for Arc<ServerContext> {
         Arc::new(self.db_conn.clone())
     }
 
-    fn repository(&self) -> Arc<dyn RepositoryService> {
+    fn repository(&self) -> Arc<dyn GitRepositoryService> {
         self.repository.clone()
     }
 
@@ -316,7 +316,7 @@ impl ServiceLocator for Arc<ServerContext> {
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
-    repository: Arc<dyn RepositoryService>,
+    repository: Arc<dyn GitRepositoryService>,
     github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
     db: DbConn,
     is_chat_enabled: bool,

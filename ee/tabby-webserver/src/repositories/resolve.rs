@@ -13,7 +13,7 @@ use tabby_common::config::RepositoryConfig;
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
-use crate::schema::repository::RepositoryService;
+use crate::schema::git_repository::GitRepositoryService;
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
@@ -60,11 +60,11 @@ struct DirEntry {
 }
 
 pub(super) struct ResolveState {
-    service: Arc<dyn RepositoryService>,
+    service: Arc<dyn GitRepositoryService>,
 }
 
 impl ResolveState {
-    pub fn new(service: Arc<dyn RepositoryService>) -> Self {
+    pub fn new(service: Arc<dyn GitRepositoryService>) -> Self {
         Self { service }
     }
 
@@ -129,10 +129,7 @@ impl ResolveState {
     }
 
     pub async fn resolve_all(&self) -> Result<Response> {
-        let repositories = self
-            .service
-            .list_repositories(None, None, None, None)
-            .await?;
+        let repositories = self.service.list(None, None, None, None).await?;
 
         let entries = repositories
             .into_iter()
@@ -151,7 +148,7 @@ impl ResolveState {
     }
 
     pub async fn find_repository(&self, name: &str) -> Option<RepositoryConfig> {
-        let repository = self.service.get_repository_by_name(name).await.ok()?;
+        let repository = self.service.get_by_name(name).await.ok()?;
         Some(RepositoryConfig::new(repository.git_url.clone()))
     }
 }

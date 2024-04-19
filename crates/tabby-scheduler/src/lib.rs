@@ -6,10 +6,13 @@ mod index;
 mod repository;
 mod utils;
 
-use std::sync::Arc;
+use std::{fs, sync::Arc};
 
 use anyhow::Result;
-use tabby_common::config::{RepositoryAccess, RepositoryConfig};
+use tabby_common::{
+    config::{RepositoryAccess, RepositoryConfig},
+    path,
+};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info, warn};
 
@@ -62,6 +65,13 @@ fn job_index(repositories: &[RepositoryConfig]) -> Result<()> {
     println!("Indexing repositories...");
     let ret = index::index_repositories(repositories);
     if let Err(err) = ret {
+        let index_dir = path::index_dir();
+        warn!(
+            "Failed to index repositories: {}, removing index directory '{}'...",
+            err,
+            index_dir.display()
+        );
+        fs::remove_dir_all(index_dir)?;
         return Err(err.context("Failed to index repositories"));
     }
     Ok(())

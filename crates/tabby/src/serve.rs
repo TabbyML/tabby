@@ -133,6 +133,14 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         warn!("'--webserver' is enabled by default since 0.11, and will be removed in the next major release. Please remove this flag from your command.");
     }
 
+    #[allow(unused_assignments)]
+    let mut webserver = None;
+
+    #[cfg(feature = "ee")]
+    {
+        webserver = Some(!args.no_webserver)
+    }
+
     #[cfg(feature = "ee")]
     let ws = if !args.no_webserver {
         Some(tabby_webserver::public::WebserverHandle::new(create_event_logger()).await)
@@ -150,7 +158,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
 
     let code = Arc::new(create_code_search(repository_access));
-    let mut api = api_router(args, config, logger.clone(), code.clone()).await;
+    let mut api = api_router(args, config, logger.clone(), code.clone(), webserver).await;
     let mut ui = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
@@ -164,7 +172,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         ui = new_ui;
     };
 
-    start_heartbeat(args);
+    start_heartbeat(args, webserver);
     run_app(api, Some(ui), args.host, args.port).await
 }
 
@@ -183,6 +191,7 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+    webserver: Option<bool>,
 ) -> Router {
     let completion_state = if let Some(model) = &args.model {
         Some(Arc::new(
@@ -219,6 +228,7 @@ async fn api_router(
         args.model.as_deref(),
         args.chat_model.as_deref(),
         &args.device,
+        webserver,
     ));
 
     routers.push({
@@ -313,11 +323,12 @@ async fn api_router(
     root
 }
 
-fn start_heartbeat(args: &ServeArgs) {
+fn start_heartbeat(args: &ServeArgs, webserver: Option<bool>) {
     let state = health::HealthState::new(
         args.model.as_deref(),
         args.chat_model.as_deref(),
         &args.device,
+        webserver,
     );
     tokio::spawn(async move {
         loop {

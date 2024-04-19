@@ -8,7 +8,6 @@ use axum::{
     response::{IntoResponse, Response},
     routing, Extension, Json, Router,
 };
-use cached::{CachedAsync, TimedCache};
 use hyper::{header::CONTENT_TYPE, Body, StatusCode};
 use juniper::ID;
 use juniper_axum::{graphiql, playground};
@@ -21,7 +20,6 @@ use tabby_common::{
     config::{RepositoryAccess, RepositoryConfig},
 };
 use tabby_db::DbConn;
-use tokio::sync::Mutex;
 use tracing::{error, warn};
 
 use crate::{
@@ -32,9 +30,8 @@ use crate::{
     path::db_file,
     repositories,
     schema::{
-        auth::AuthenticationService, create_schema,
-        github_repository_provider::GithubRepositoryProviderService, repository::RepositoryService,
-        Schema, ServiceLocator,
+        auth::AuthenticationService, create_schema, git_repository::GitRepositoryService,
+        github_repository_provider::GithubRepositoryProviderService, Schema, ServiceLocator,
     },
     service::{
         create_service_locator, event_logger::create_event_logger,
@@ -44,16 +41,20 @@ use crate::{
 };
 
 struct RepositoryAccessImpl {
-    git_repository_service: Arc<dyn RepositoryService>,
+    git_repository_service: Arc<dyn GitRepositoryService>,
     github_repository_service: Arc<dyn GithubRepositoryProviderService>,
-    url_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 #[async_trait]
 impl RepositoryAccess for RepositoryAccessImpl {
     async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
-        let mut cache = self.url_cache.lock().await;
-        let mut repos = vec![];
+        let mut repos: Vec<RepositoryConfig> = self
+            .git_repository_service
+            .list(None, None, None, None)
+            .await?
+            .into_iter()
+            .map(|repo| RepositoryConfig::new(repo.git_url))
+            .collect();
 
         repos.extend(
             self.github_repository_service
@@ -64,24 +65,6 @@ impl RepositoryAccess for RepositoryAccessImpl {
                 .map(RepositoryConfig::new),
         );
 
-        repos.extend(
-            cache
-                .try_get_or_set_with((), || async {
-                    let repos = self
-                        .git_repository_service
-                        .list_repositories(None, None, None, None)
-                        .await?;
-                    Ok::<_, anyhow::Error>(
-                        repos
-                            .into_iter()
-                            .map(|repo| RepositoryConfig::new(repo.git_url))
-                            .collect(),
-                    )
-                })
-                .await?
-                .clone(),
-        );
-
         Ok(repos)
     }
 }
@@ -89,7 +72,7 @@ impl RepositoryAccess for RepositoryAccessImpl {
 pub struct WebserverHandle {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
-    git_repository_service: Arc<dyn RepositoryService>,
+    git_repository_service: Arc<dyn GitRepositoryService>,
     github_repository_service: Arc<dyn GithubRepositoryProviderService>,
     repository_access: Arc<dyn RepositoryAccess>,
 }
@@ -113,7 +96,6 @@ impl WebserverHandle {
             repository_access: Arc::new(RepositoryAccessImpl {
                 git_repository_service,
                 github_repository_service,
-                url_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
             }),
         }
     }

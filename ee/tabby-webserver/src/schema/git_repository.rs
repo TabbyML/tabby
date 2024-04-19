@@ -12,7 +12,7 @@ lazy_static! {
 }
 
 #[derive(Validate)]
-pub struct CreateRepositoryInput {
+pub struct CreateGitRepositoryInput {
     #[validate(regex(
         code = "name",
         path = "self::REPOSITORY_NAME_REGEX",
@@ -25,7 +25,7 @@ pub struct CreateRepositoryInput {
 
 #[derive(GraphQLObject, Debug)]
 #[graphql(context = Context)]
-pub struct Repository {
+pub struct GitRepository {
     pub id: juniper::ID,
     pub name: String,
     pub git_url: String,
@@ -50,7 +50,7 @@ impl FileEntrySearchResult {
     }
 }
 
-impl NodeType for Repository {
+impl NodeType for GitRepository {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -67,19 +67,19 @@ impl NodeType for Repository {
 }
 
 #[async_trait]
-pub trait RepositoryService: Send + Sync {
-    async fn list_repositories(
+pub trait GitRepositoryService: Send + Sync {
+    async fn list(
         &self,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<Repository>>;
+    ) -> Result<Vec<GitRepository>>;
 
-    async fn create_repository(&self, name: String, git_url: String) -> Result<ID>;
-    async fn get_repository_by_name(&self, name: &str) -> Result<Repository>;
-    async fn delete_repository(&self, id: &ID) -> Result<bool>;
-    async fn update_repository(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
+    async fn create(&self, name: String, git_url: String) -> Result<ID>;
+    async fn get_by_name(&self, name: &str) -> Result<GitRepository>;
+    async fn delete(&self, id: &ID) -> Result<bool>;
+    async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
 
     async fn search_files(
         &self,

@@ -59,7 +59,8 @@ thiserror.workspace = true
 chrono.workspace = true
 axum-prometheus = "0.4.0"
 uuid.workspace = true
-nucleo = { workspace = true }
+cached = { workspace = true, features = ["async"] }
+parse-git-url = "0.5.1"
 
 [dependencies.openssl]
 optional = true
