@@ -61,3 +61,24 @@ impl RepositoryService for RepositoryServiceImpl {
         self.github.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tabby_db::DbConn;
+
+    #[tokio::test]
+    async fn test_list_repositories() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+        service
+            .git()
+            .create("test_git_repo".into(), "http://test_git_repo".into())
+            .await
+            .unwrap();
+
+        // FIXME(boxbeam): add repo with github service once there's syncing logic.
+        let repos = service.list_repositories().await.unwrap();
+        assert_eq!(repos.len(), 1);
+    }
+}
