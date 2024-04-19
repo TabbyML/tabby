@@ -20,7 +20,7 @@ struct GithubRepositoryProviderServiceImpl {
     db: DbConn,
 }
 
-pub fn new_github_repository_provider_service(db: DbConn) -> impl GithubRepositoryProviderService {
+pub fn create(db: DbConn) -> impl GithubRepositoryProviderService {
     GithubRepositoryProviderServiceImpl { db }
 }
 
@@ -123,7 +123,7 @@ mod tests {
     #[tokio::test]
     async fn test_github_provided_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = new_github_repository_provider_service(db.clone());
+        let service = create(db.clone());
 
         let provider_id1 = db
             .create_github_provider(
@@ -209,7 +209,7 @@ mod tests {
     #[tokio::test]
     async fn test_provided_git_urls() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = new_github_repository_provider_service(db.clone());
+        let service = create(db.clone());
 
         let provider_id = db
             .create_github_provider(

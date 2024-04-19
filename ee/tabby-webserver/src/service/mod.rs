@@ -8,6 +8,7 @@ mod github_repository_provider;
 mod job;
 mod license;
 mod proxy;
+pub mod repository;
 mod setting;
 mod worker;
 
@@ -20,7 +21,6 @@ use axum::{
     response::IntoResponse,
 };
 pub(in crate::service) use dao::{AsID, AsRowid};
-pub(crate) use github_repository_provider::new_github_repository_provider_service;
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper::ID;
 use tabby_common::{
@@ -41,9 +41,9 @@ use crate::{
         auth::AuthenticationService,
         email::EmailService,
         git_repository::GitRepositoryService,
-        github_repository_provider::GithubRepositoryProviderService,
         job::JobService,
         license::{IsLicenseValid, LicenseService},
+        repository::RepositoryService,
         setting::SettingService,
         worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
         CoreError, Result, ServiceLocator,
@@ -58,8 +58,7 @@ struct ServerContext {
     mail: Arc<dyn EmailService>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
-    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
-    repository: Arc<dyn GitRepositoryService>,
+    repository: Arc<dyn RepositoryService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -71,8 +70,7 @@ impl ServerContext {
     pub async fn new(
         logger: Arc<dyn EventLogger>,
         code: Arc<dyn CodeSearch>,
-        repository: Arc<dyn GitRepositoryService>,
-        github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
+        repository: Arc<dyn RepositoryService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
     ) -> Self {
@@ -97,7 +95,6 @@ impl ServerContext {
                 license.clone(),
             )),
             license,
-            github_repository_provider,
             repository,
             db_conn,
             logger,
@@ -288,7 +285,7 @@ impl ServiceLocator for Arc<ServerContext> {
         Arc::new(self.db_conn.clone())
     }
 
-    fn repository(&self) -> Arc<dyn GitRepositoryService> {
+    fn repository(&self) -> Arc<dyn RepositoryService> {
         self.repository.clone()
     }
 
@@ -307,32 +304,17 @@ impl ServiceLocator for Arc<ServerContext> {
     fn analytic(&self) -> Arc<dyn AnalyticService> {
         new_analytic_service(self.db_conn.clone())
     }
-
-    fn github_repository_provider(
-        &self,
-    ) -> Arc<dyn crate::schema::github_repository_provider::GithubRepositoryProviderService> {
-        self.github_repository_provider.clone()
-    }
 }
 
 pub async fn create_service_locator(
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
-    repository: Arc<dyn GitRepositoryService>,
-    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
+    repository: Arc<dyn RepositoryService>,
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(Arc::new(
-        ServerContext::new(
-            logger,
-            code,
-            repository,
-            github_repository_provider,
-            db,
-            is_chat_enabled,
-        )
-        .await,
+        ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
     ))
 }
 
