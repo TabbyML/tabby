@@ -301,14 +301,19 @@ mod tests {
             .await
             .unwrap();
 
-        db.create_github_provided_repository(
-            provider_id,
-            "vendor_id1".into(),
-            "test_repo".into(),
-            "https://github.com/TabbyML/tabby".into(),
-        )
-        .await
-        .unwrap();
+        let repo_id = db
+            .create_github_provided_repository(
+                provider_id,
+                "vendor_id1".into(),
+                "test_repo".into(),
+                "https://github.com/TabbyML/tabby".into(),
+            )
+            .await
+            .unwrap();
+
+        db.update_github_provided_repository_active(repo_id, true)
+            .await
+            .unwrap();
 
         service
             .update_github_repository_provider_access_token(provider_id.as_id(), "token".into())
