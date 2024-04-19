@@ -93,7 +93,7 @@ Tabby collects usage stats by default. This data will only be used by the Tabby 
 
 ### What data is collected?
 We collect non-sensitive data that helps us understand how Tabby is used. For now we collects `serve` command you used to start the server.
-As of the date 10/07/2023, the following information has been collected:
+As of the date 04/18/2024, the following information has been collected:
 
 ```rust
 struct HealthState {
@@ -105,6 +105,7 @@ struct HealthState {
     cpu_count: usize,
     cuda_devices: Vec<String>,
     version: Version,
+    webserver: Option<bool>,
 }
 ```
 

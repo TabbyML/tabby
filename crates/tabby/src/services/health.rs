@@ -20,10 +20,16 @@ pub struct HealthState {
     cpu_count: usize,
     cuda_devices: Vec<String>,
     version: Version,
+    webserver: Option<bool>,
 }
 
 impl HealthState {
-    pub fn new(model: Option<&str>, chat_model: Option<&str>, device: &Device) -> Self {
+    pub fn new(
+        model: Option<&str>,
+        chat_model: Option<&str>,
+        device: &Device,
+        webserver: Option<bool>,
+    ) -> Self {
         let (cpu_info, cpu_count) = read_cpu_info();
 
         let cuda_devices = match read_cuda_devices() {
@@ -40,6 +46,7 @@ impl HealthState {
             cpu_count,
             cuda_devices,
             version: Version::new(),
+            webserver,
         }
     }
 }
