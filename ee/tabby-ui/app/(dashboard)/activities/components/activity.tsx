@@ -1,21 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import moment from 'moment'
+import moment, { unitOfTime } from 'moment'
 import { useTheme } from 'next-themes'
-import SyntaxHighlighter from 'react-syntax-highlighter'
-import { tomorrowNightEighties } from 'react-syntax-highlighter/dist/esm/styles/hljs'
+import ReactJson from 'react-json-view'
+import { DateRange } from 'react-day-picker'
 
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons'
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
+import { Calendar } from '@/components/ui/calendar'
+import { IconChevronLeft, IconChevronRight, IconCheck } from '@/components/ui/icons'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
+  SelectSeparator
 } from '@/components/ui/select'
 import {
   Table,
@@ -30,6 +32,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { Separator } from '@/components/ui/separator'
 
 // TODO
 import languageColors from '../../../(home)/language-colors.json'
@@ -103,26 +106,231 @@ const demoJson = {
   }
 }
 
+enum DATE_OPTIONS {
+  'TODAY' = 'today',
+  'YESTERDAY' = 'yesterday',
+  'LAST24HOURS' = '-24h',
+  'LAST7DAYS' = '-7d',
+  'LAST14DAYS' = '-14d',
+  'CUSTOM_DATE' = 'custom_date',
+  'CUSTOM_RANGE' = 'custom_range'
+}
+
 export default function Activity() {
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: moment()
+      .add(parseInt(DATE_OPTIONS.LAST24HOURS, 10), DATE_OPTIONS.LAST24HOURS[DATE_OPTIONS.LAST24HOURS.length - 1] as 'h')
+      .toDate(),
+    to: moment().toDate()
+  })
+  const [showDateFilter, setShowDateFilter] = useState(false)
+  const [selectDateFilter, setSelectDateFilter] = useState<DATE_OPTIONS>(
+    DATE_OPTIONS.LAST24HOURS
+  )
+  const [showDateRangerPicker, setShowDateRangerPicker] = useState(false)
+  const [calendarDateRange, setCalendarDateRange] = useState<
+    DateRange | undefined
+  >({
+    from: moment()
+      .add(parseInt(DATE_OPTIONS.LAST24HOURS, 10), DATE_OPTIONS.LAST24HOURS[DATE_OPTIONS.LAST24HOURS.length - 1] as 'h')
+      .toDate(),
+    to: moment().toDate()
+  })
+  const [showDateUntilNowPicker, setShowDateUntilNowPicker] = useState(false)
+  const [dateUntilNow, setDateUntilNow] = useState<Date | undefined>(
+    moment().toDate()
+  )
+
+  const onDateFilterChange = (value: DATE_OPTIONS) => {
+    switch (value) {
+      case DATE_OPTIONS.TODAY: {
+        setDateRange({
+          from: moment().startOf('day').toDate(),
+          to: moment().toDate()
+        })
+        break
+      }
+      case DATE_OPTIONS.YESTERDAY: {
+        setDateRange({
+          from: moment().subtract(1, 'd').startOf('day').toDate(),
+          to: moment().subtract(1, 'd').endOf('day').toDate()
+        })
+        break
+      }
+      default: {
+        // TODO: noticed the unit for the shared component
+        const unit = value[value.length - 1]
+        const number = parseInt(value, 10)
+        setDateRange({
+          from: moment()
+            .add(number, unit as unitOfTime.DurationConstructor)
+            .startOf('day')
+            .toDate(),
+          to: moment().toDate()
+        })
+      }
+    }
+    setSelectDateFilter(value)
+  }
+
+  const onDateFilterOpenChange = (open: boolean) => {
+    if (!open && !showDateRangerPicker && !showDateUntilNowPicker) {
+      setShowDateFilter(false)
+    }
+  }
+
+  const applyDateRange = () => {
+    setShowDateFilter(false)
+    setShowDateRangerPicker(false)
+    setSelectDateFilter(DATE_OPTIONS.CUSTOM_RANGE)
+    setDateRange(calendarDateRange!)
+  }
+
+  const applyDateUntilNow = () => {
+    setShowDateFilter(false)
+    setShowDateUntilNowPicker(false)
+    setSelectDateFilter(DATE_OPTIONS.CUSTOM_DATE)
+    setDateRange({
+      from: moment(dateUntilNow).startOf('day').toDate(),
+      to: moment().toDate()
+    })
+  }
+
   return (
     <div className="flex min-h-screen w-full flex-col">
       <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
         <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0">
           <div className="ml-auto flex items-center gap-2">
-            <Select defaultValue="past1hour">
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Date range" />
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="yesterday">Yesterday</SelectItem>
-                <SelectItem value="past1hour">Last 1 hour</SelectItem>
-                <SelectItem value="past24hour">Last 24 hours</SelectItem>
-                <SelectItem value="past3days">Last 3 days</SelectItem>
-                <SelectItem value="custom">Custom date until now</SelectItem>
-                <SelectItem value="custom">Custom date range</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* TODO: make it as a shared component being used in the reports page as well */}
+          <div className="relative">
+                <Select
+                  value={selectDateFilter}
+                  onValueChange={onDateFilterChange}
+                  open={showDateFilter}
+                  onOpenChange={onDateFilterOpenChange}
+                >
+                  <SelectTrigger
+                    className="w-[240px]"
+                    onClick={() => setShowDateFilter(!showDateFilter)}
+                  >
+                    <SelectValue placeholder="Date range" />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    <SelectItem value={DATE_OPTIONS.TODAY}>Today</SelectItem>
+                    <SelectItem value={DATE_OPTIONS.YESTERDAY}>
+                      Yesterday
+                    </SelectItem>
+                    <SelectItem value={DATE_OPTIONS.LAST24HOURS}>
+                      Last 24 hours
+                    </SelectItem>
+                    <SelectItem value={DATE_OPTIONS.LAST7DAYS}>
+                      Last 7 days
+                    </SelectItem>
+                    <SelectItem value={DATE_OPTIONS.LAST14DAYS}>
+                      Last 14 days
+                    </SelectItem>
+                    <SelectItem
+                      value={DATE_OPTIONS.CUSTOM_DATE}
+                      className="hidden"
+                    >
+                      {moment(dateRange?.from).format('ll')} - Now
+                    </SelectItem>
+                    <SelectItem
+                      value={DATE_OPTIONS.CUSTOM_RANGE}
+                      className="hidden"
+                    >
+                      {moment(dateRange?.from).format('ll')}
+                      {dateRange?.to
+                        ? ` - ${moment(dateRange.to).format('ll')}`
+                        : ''}
+                    </SelectItem>
+                    <SelectSeparator />
+                    <div
+                      className="relative cursor-default py-1.5 pl-8 text-sm hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => setShowDateUntilNowPicker(true)}
+                    >
+                      {selectDateFilter === DATE_OPTIONS.CUSTOM_DATE && (
+                        <div className="absolute inset-y-0 left-2 flex items-center">
+                          <IconCheck />
+                        </div>
+                      )}
+                      Custom date until now
+                    </div>
+                    <div
+                      className="relative cursor-default py-1.5 pl-8 text-sm hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => setShowDateRangerPicker(true)}
+                    >
+                      {selectDateFilter === DATE_OPTIONS.CUSTOM_RANGE && (
+                        <div className="absolute inset-y-0 left-2 flex items-center">
+                          <IconCheck />
+                        </div>
+                      )}
+                      Custom date range
+                    </div>
+                  </SelectContent>
+                </Select>
+
+                <Card
+                  className={cn('absolute right-0 mt-1', {
+                    'opacity-0 z-0 pointer-events-none':
+                      !showDateUntilNowPicker,
+                    'opacity-100 pointer-events-auto': showDateUntilNowPicker
+                  })}
+                  style={(showDateUntilNowPicker && { zIndex: 99 }) || {}}
+                >
+                  <CardContent className="w-auto pb-0">
+                    <Calendar
+                      initialFocus
+                      mode="single"
+                      selected={dateUntilNow}
+                      onSelect={setDateUntilNow}
+                      disabled={(date: Date) => date > new Date()}
+                    />
+                    <Separator />
+                    <div className="flex items-center justify-end gap-x-3 py-4">
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowDateUntilNowPicker(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button onClick={applyDateUntilNow}>Apply</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  className={cn('absolute right-0 mt-1', {
+                    'opacity-0 z-0 pointer-events-none': !showDateRangerPicker,
+                    'opacity-100 pointer-events-auto': showDateRangerPicker
+                  })}
+                  style={(showDateRangerPicker && { zIndex: 99 }) || {}}
+                >
+                  <CardContent className="w-auto pb-0">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={moment(calendarDateRange?.from)
+                        .subtract(1, 'month')
+                        .toDate()}
+                      selected={calendarDateRange}
+                      onSelect={setCalendarDateRange}
+                      numberOfMonths={2}
+                      disabled={(date: Date) => date > new Date()}
+                    />
+                    <Separator />
+                    <div className="flex items-center justify-end gap-x-3 py-4">
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowDateRangerPicker(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button onClick={applyDateRange}>Apply</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
           </div>
 
           <Card x-chunk="dashboard-06-chunk-0" className="bg-transparent">
@@ -130,10 +338,10 @@ export default function Activity() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Event</TableHead>
-                    <TableHead>People</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Language</TableHead>
+                    <TableHead className="w-[25%]">Event</TableHead>
+                    <TableHead className="w-[25%]">People</TableHead>
+                    <TableHead className="w-[25%]">Time</TableHead>
+                    <TableHead className="w-[25%]">Language</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -212,93 +420,13 @@ function ActivityRow({ activity }: { activity: (typeof data)[0] }) {
       </TableRow>
 
       {isCollapse && (
-        <TableRow key={`${activity.id}-2`}>
+        <TableRow key={`${activity.id}-2`}  className="w-full bg-muted/30">
           <TableCell className="font-medium" colSpan={4}>
-            <ScrollArea className="w-full whitespace-nowrap rounded-md">
-              <div className="flex flex-col gap-y-3">
-                <div>
-                  <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                    Completion Id
-                  </h4>
-                  <p>{demoJson.event.completion.completion_id}</p>
-                </div>
-
-                <div>
-                  <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                    Language
-                  </h4>
-                  <p>{demoJson.event.completion.language}</p>
-                </div>
-
-                <div>
-                  <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                    prompt
-                  </h4>
-                  <SyntaxHighlighter
-                    language={
-                      demoJson.event.completion.language.startsWith(
-                        'typescript'
-                      )
-                        ? 'typescript'
-                        : demoJson.event.completion.language
-                    }
-                    style={tomorrowNightEighties}
-                    wrapLongLines
-                  >
-                    {demoJson.event.completion.prompt}
-                  </SyntaxHighlighter>
-                </div>
-
-                <div>
-                  <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                    segments
-                  </h4>
-                  <p>prefix</p>
-                  <SyntaxHighlighter
-                    language={
-                      demoJson.event.completion.language.startsWith(
-                        'typescript'
-                      )
-                        ? 'typescript'
-                        : demoJson.event.completion.language
-                    }
-                    style={tomorrowNightEighties}
-                    wrapLongLines
-                  >
-                    {demoJson.event.completion.segments.prefix}
-                  </SyntaxHighlighter>
-
-                  <p>suffix</p>
-                  <SyntaxHighlighter
-                    language={
-                      demoJson.event.completion.language.startsWith(
-                        'typescript'
-                      )
-                        ? 'typescript'
-                        : demoJson.event.completion.language
-                    }
-                    style={tomorrowNightEighties}
-                    wrapLongLines
-                  >
-                    {demoJson.event.completion.segments.suffix}
-                  </SyntaxHighlighter>
-                </div>
-
-                <div>
-                  <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
-                    choices
-                  </h4>
-                  <SyntaxHighlighter
-                    language="json"
-                    style={tomorrowNightEighties}
-                    wrapLongLines
-                  >
-                    {JSON.stringify(demoJson.event.completion.choices, null, 2)}
-                  </SyntaxHighlighter>
-                </div>
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            <ReactJson
+              src={demoJson}
+              name={false}
+              collapseStringsAfterLength={50} theme={theme === 'dark' ? 'tomorrow' : 'rjv-default'}
+              style={theme === 'dark' ? { background: 'transparent' } : {}}  />
           </TableCell>
         </TableRow>
       )}
