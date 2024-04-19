@@ -166,6 +166,10 @@ const client = new Client({
 
       return {
         addAuthToOperation(operation) {
+          // Sync tokens on every operation
+          const authData = getAuthToken()
+          accessToken = authData?.accessToken
+          refreshToken = authData?.refreshToken
           if (!accessToken) return operation
           return utils.appendHeaders(operation, {
             Authorization: `Bearer ${accessToken}`
