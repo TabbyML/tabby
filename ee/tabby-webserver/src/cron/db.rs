@@ -24,7 +24,6 @@ where
     F: Future<Output = Result<()>> + 'static + Send,
     S: Send + Sync + 'static + ?Sized,
 {
-    // job is run every 2 hours
     let job = Job::new_async(frequency, move |_, _| {
         let auth = service.clone();
         Box::pin(async move {
