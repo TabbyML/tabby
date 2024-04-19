@@ -1,10 +1,3 @@
-input UpdateGithubRepositoryInput {
-  id: ID!
-  displayName: String!
-  applicationId: String!
-  secret: String
-}
-
 enum Language {
   RUST
   PYTHON
@@ -123,12 +116,6 @@ input PasswordChangeInput {
   newPassword2: String!
 }
 
-input CreateGithubRepositoryInput {
-  displayName: String!
-  applicationId: String!
-  secret: String!
-}
-
 type Invitation {
   id: ID!
   email: String!
@@ -199,10 +186,17 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  createGithubRepositoryProvider(input: CreateGithubRepositoryInput!): Boolean!
-  deleteGithubRepositoryProvider(input: DeleteGithubRepositoryInput!): Boolean!
-  updateGithubRepositoryProvider(input: UpdateGithubRepositoryInput!): Boolean!
+  createGithubRepositoryProvider(input: CreateGithubRepositoryProviderInput!): Boolean!
+  deleteGithubRepositoryProvider(id: ID!): Boolean!
+  updateGithubRepositoryProvider(input: UpdateGithubRepositoryProviderInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+}
+
+input UpdateGithubRepositoryProviderInput {
+  id: ID!
+  displayName: String!
+  applicationId: String!
+  secret: String
 }
 
 type RepositoryEdge {
@@ -294,14 +288,16 @@ input EmailSettingInput {
   smtpPassword: String
 }
 
-input DeleteGithubRepositoryInput {
-  id: ID!
-}
-
 enum LicenseType {
   COMMUNITY
   TEAM
   ENTERPRISE
+}
+
+input CreateGithubRepositoryProviderInput {
+  displayName: String!
+  applicationId: String!
+  secret: String!
 }
 
 type OAuthCredential {
