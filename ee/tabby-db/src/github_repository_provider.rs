@@ -129,6 +129,45 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn delete_github_provided_repository_by_vendor_id(
+        &self,
+        vendor_id: String,
+    ) -> Result<()> {
+        let res = query!(
+            "DELETE FROM github_provided_repositories WHERE vendor_id = ?",
+            vendor_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("Repository not found"));
+        }
+        Ok(())
+    }
+
+    pub async fn update_github_provided_repository(
+        &self,
+        vendor_id: String,
+        display_name: String,
+        git_url: String,
+    ) -> Result<()> {
+        let res = query!(
+            "UPDATE github_provided_repositories SET name = ?, git_url = ? WHERE vendor_id = ?;",
+            display_name,
+            git_url,
+            vendor_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("Repository not found"));
+        }
+
+        Ok(())
+    }
+
     pub async fn list_github_provided_repositories(
         &self,
         provider_ids: Vec<i64>,

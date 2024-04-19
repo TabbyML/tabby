@@ -87,4 +87,5 @@ pub trait GithubRepositoryProviderService: Send + Sync {
 
     async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn list_provided_git_urls(&self) -> Result<Vec<String>>;
+    async fn refresh_repositories(&self) -> Result<()>;
 }

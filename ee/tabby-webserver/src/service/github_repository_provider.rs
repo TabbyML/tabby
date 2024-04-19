@@ -1,7 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use juniper::ID;
+use octocrab::{models::Repository, Octocrab};
 use tabby_db::DbConn;
 use url::Url;
 
@@ -104,6 +105,9 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .await?
             .into_iter()
             .filter_map(|repo| {
+                if !repo.active {
+                    return None;
+                }
                 let mut url = Url::parse(&repo.git_url).ok()?;
                 url.set_username(tokens.get(&repo.github_repository_provider_id.to_string())?)
                     .ok()?;
@@ -113,6 +117,83 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
 
         Ok(urls)
     }
+
+    async fn refresh_repositories(&self) -> Result<()> {
+        let mut cached_repositories: HashSet<_> = self
+            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .await?
+            .into_iter()
+            .map(|repo| repo.vendor_id)
+            .collect();
+
+        for provider in self
+            .list_github_repository_providers(None, None, None, None)
+            .await?
+        {
+            let repos = fetch_all_repos(&provider).await?;
+            for repo in repos {
+                let id = repo.id.to_string();
+                let Some(url) = repo.git_url.map(|url| url.to_string()) else {
+                    continue;
+                };
+                // Remove IDs as we process them so the remaining IDs are ones that were not found in the listing
+                if cached_repositories.remove(&id) {
+                    self.db
+                        .update_github_provided_repository(id, repo.name, url)
+                        .await?;
+                } else {
+                    self.db
+                        .create_github_provided_repository(
+                            provider.id.clone().as_rowid()?,
+                            id,
+                            repo.name,
+                            url,
+                        )
+                        .await?;
+                }
+            }
+        }
+
+        // Clean up repositories which were not returned by any listing
+        for removed_repository in cached_repositories {
+            self.db
+                .delete_github_provided_repository_by_vendor_id(removed_repository)
+                .await?;
+        }
+
+        Ok(())
+    }
+}
+
+async fn fetch_all_repos(
+    provider: &GithubRepositoryProvider,
+) -> Result<Vec<Repository>, anyhow::Error> {
+    let Some(token) = &provider.access_token else {
+        return Ok(vec![]);
+    };
+    let octocrab = Octocrab::builder()
+        .user_access_token(token.to_string())
+        .build()?;
+
+    let mut pages = 1;
+    let mut page = 1;
+    let mut repos = vec![];
+
+    while page <= pages {
+        let response = octocrab
+            .current()
+            .list_repos_for_authenticated_user()
+            .visibility("all")
+            .page(page)
+            .send()
+            .await?;
+
+        pages = response.number_of_pages().unwrap_or_default() as u8;
+        repos.extend(response.items);
+
+        page += 1;
+    }
+    Ok(repos)
 }
 
 #[cfg(test)]
