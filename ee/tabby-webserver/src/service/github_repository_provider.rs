@@ -133,9 +133,11 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             let repos = fetch_all_repos(&provider).await?;
             for repo in repos {
                 let id = repo.id.to_string();
-                let Some(url) = repo.git_url.map(|url| url.to_string()) else {
+                let Some(mut url) = repo.git_url else {
                     continue;
                 };
+                let _ = url.set_scheme("https");
+                let url = url.to_string();
                 // Remove IDs as we process them so the remaining IDs are ones that were not found in the listing
                 if cached_repositories.remove(&id) {
                     self.db
