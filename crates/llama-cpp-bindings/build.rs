@@ -25,28 +25,8 @@ fn build_llama_cpp() {
     if cfg!(feature = "native") {
         config.define("LLAMA_NATIVE", "ON");
 
-        if cfg!(not(feature = "avx")) {
-            config.define("LLAMA_AVX2", "OFF");
-        }
-
-        if cfg!(not(feature = "avx2")) {
-            config.define("LLAMA_AVX2", "OFF");
-        }
-
-        if cfg!(not(feature = "fma")) {
-            config.define("LLAMA_FMA", "OFF");
-        }
-
-        if cfg!(not(feature = "f16c")) {
-            config.define("LLAMA_F16C", "OFF");
-        }
-
-    }
-    else {
-        config.define("LLAMA_NATIVE", "OFF");
-
         if cfg!(feature = "avx") {
-            config.define("LLAMA_AVX2", "ON");
+            config.define("LLAMA_AVX", "ON");
         }
 
         if cfg!(feature = "avx2") {
@@ -59,6 +39,26 @@ fn build_llama_cpp() {
 
         if cfg!(feature = "f16c") {
             config.define("LLAMA_F16C", "ON");
+        }
+
+    }
+    else {
+        config.define("LLAMA_NATIVE", "OFF");
+
+        if cfg!(not(feature = "avx")) {
+            config.define("LLAMA_AVX", "OFF");
+        }
+
+        if cfg!(not(feature = "avx2")) {
+            config.define("LLAMA_AVX2", "OFF");
+        }
+
+        if cfg!(not(feature = "fma")) {
+            config.define("LLAMA_FMA", "OFF");
+        }
+
+        if cfg!(not(feature = "f16c")) {
+            config.define("LLAMA_F16C", "OFF");
         }
 
     }
