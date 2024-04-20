@@ -81,9 +81,9 @@ impl Language {
     }
 }
 
-impl Into<Language> for String {
-    fn into(self) -> Language {
-        if let Some(lang) = STRING_LANGUAGE_MAPPINGS.get(self.as_str()) {
+impl From<String> for Language {
+    fn from(val: String) -> Self {
+        if let Some(lang) = STRING_LANGUAGE_MAPPINGS.get(val.as_str()) {
             lang.clone()
         } else {
             Language::Other
