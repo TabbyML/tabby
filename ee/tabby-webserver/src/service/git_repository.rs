@@ -8,7 +8,8 @@ use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
-    git_repository::{FileEntrySearchResult, GitRepository, GitRepositoryService},
+    git_repository::{GitRepository, GitRepositoryService},
+    repository::FileEntrySearchResult,
     Result,
 };
 
