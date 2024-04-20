@@ -186,7 +186,17 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
+  createGithubRepositoryProvider(input: CreateGithubRepositoryProviderInput!): Boolean!
+  deleteGithubRepositoryProvider(id: ID!): Boolean!
+  updateGithubRepositoryProvider(input: UpdateGithubRepositoryProviderInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+}
+
+input UpdateGithubRepositoryProviderInput {
+  id: ID!
+  displayName: String!
+  applicationId: String!
+  secret: String
 }
 
 type RepositoryEdge {
@@ -219,7 +229,7 @@ type Query {
   me: User!
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
-  githubRepositoryProviders(after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
+  githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   githubRepositories(providerIds: [ID!]!, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
@@ -282,6 +292,12 @@ enum LicenseType {
   COMMUNITY
   TEAM
   ENTERPRISE
+}
+
+input CreateGithubRepositoryProviderInput {
+  displayName: String!
+  applicationId: String!
+  secret: String!
 }
 
 type OAuthCredential {

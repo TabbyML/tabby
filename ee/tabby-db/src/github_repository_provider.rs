@@ -81,12 +81,51 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_github_provider(
+        &self,
+        id: i64,
+        display_name: String,
+        application_id: String,
+        secret: Option<String>,
+    ) -> Result<()> {
+        let secret = match secret {
+            Some(secret) => secret,
+            None => self.get_github_provider(id).await?.secret,
+        };
+
+        let res = query!(
+            "UPDATE github_repository_provider SET display_name = ?, application_id = ?, secret = ? WHERE id = ?;",
+            display_name,
+            application_id,
+            secret,
+            id
+        )
+        .execute(&self.pool)
+        .await
+        .unique_error("A provider with that application ID already exists")?;
+
+        if res.rows_affected() != 1 {
+            return Err(anyhow!("Provider does not exist"));
+        }
+
+        Ok(())
+    }
+
     pub async fn list_github_repository_providers(
         &self,
+        ids: Vec<i64>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<GithubRepositoryProviderDAO>> {
+        let condition = (!ids.is_empty()).then(|| {
+            let ids = ids
+                .into_iter()
+                .map(|id| id.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("id in ({ids})")
+        });
         let providers = query_paged_as!(
             GithubRepositoryProviderDAO,
             "github_repository_provider",
@@ -99,7 +138,8 @@ impl DbConn {
             ],
             limit,
             skip_id,
-            backwards
+            backwards,
+            condition
         )
         .fetch_all(&self.pool)
         .await?;
