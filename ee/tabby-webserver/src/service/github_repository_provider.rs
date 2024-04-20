@@ -5,7 +5,7 @@ use juniper::ID;
 use tabby_db::DbConn;
 use url::Url;
 
-use super::AsRowid;
+use super::{AsID, AsRowid};
 use crate::{
     schema::{
         github_repository_provider::{
@@ -26,9 +26,32 @@ pub fn new_github_repository_provider_service(db: DbConn) -> impl GithubReposito
 
 #[async_trait]
 impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
+    async fn create_github_repository_provider(
+        &self,
+        display_name: String,
+        application_id: String,
+        application_secret: String,
+    ) -> Result<ID> {
+        let id = self
+            .db
+            .create_github_provider(display_name, application_id, application_secret)
+            .await?;
+        Ok(id.as_id())
+    }
+
     async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider> {
         let provider = self.db.get_github_provider(id.as_rowid()?).await?;
         Ok(provider.into())
+    }
+
+    async fn delete_github_repository_provider(&self, id: ID) -> Result<()> {
+        self.db.delete_github_provider(id.as_rowid()?).await?;
+        Ok(())
+    }
+
+    async fn read_github_repository_provider_secret(&self, id: ID) -> Result<String> {
+        let provider = self.db.get_github_provider(id.as_rowid()?).await?;
+        Ok(provider.secret)
     }
 
     async fn update_github_repository_provider_access_token(
@@ -44,15 +67,22 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
 
     async fn list_github_repository_providers(
         &self,
+        ids: Vec<ID>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<GithubRepositoryProvider>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
+
+        let ids = ids
+            .into_iter()
+            .map(|id| id.as_rowid())
+            .collect::<Result<Vec<_>, _>>()?;
+
         let providers = self
             .db
-            .list_github_repository_providers(limit, skip_id, backwards)
+            .list_github_repository_providers(ids, limit, skip_id, backwards)
             .await?;
         Ok(providers
             .into_iter()
@@ -91,9 +121,22 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(())
     }
 
+    async fn update_github_repository_provider(
+        &self,
+        id: ID,
+        display_name: String,
+        application_id: String,
+        secret: Option<String>,
+    ) -> Result<()> {
+        self.db
+            .update_github_provider(id.as_rowid()?, display_name, application_id, secret)
+            .await?;
+        Ok(())
+    }
+
     async fn list_provided_git_urls(&self) -> Result<Vec<String>> {
         let tokens: HashMap<String, String> = self
-            .list_github_repository_providers(None, None, None, None)
+            .list_github_repository_providers(vec![], None, None, None, None)
             .await?
             .into_iter()
             .filter_map(|provider| Some((provider.id.to_string(), provider.access_token?)))
@@ -204,6 +247,108 @@ mod tests {
 
         assert_eq!(repos.len(), 1);
         assert!(repos[0].active);
+    }
+
+    #[tokio::test]
+    async fn test_github_repository_provider_crud() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = new_github_repository_provider_service(db.clone());
+
+        let id = service
+            .create_github_repository_provider("example".into(), "id".into(), "secret".into())
+            .await
+            .unwrap();
+
+        // Test retrieving github provider by ID
+        let provider1 = service
+            .get_github_repository_provider(id.clone())
+            .await
+            .unwrap();
+        assert_eq!(
+            provider1,
+            GithubRepositoryProvider {
+                id: id.clone(),
+                display_name: "example".into(),
+                application_id: "id".into(),
+                secret: "secret".into(),
+                access_token: None,
+            }
+        );
+
+        // Test reading github provider secret
+        let secret1 = service
+            .read_github_repository_provider_secret(id.clone())
+            .await
+            .unwrap();
+        assert_eq!(secret1, "secret");
+
+        // Test listing github providers
+        let providers = service
+            .list_github_repository_providers(vec![], None, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(providers.len(), 1);
+        assert_eq!(providers[0].access_token, None);
+
+        // Test updating github provider tokens
+        service
+            .update_github_repository_provider_access_token(id.clone(), "test_token".into())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            service
+                .get_github_repository_provider(id.clone())
+                .await
+                .unwrap()
+                .access_token,
+            Some("test_token".into())
+        );
+
+        // Test updating github provider application ID / secret
+        let id2 = service
+            .create_github_repository_provider("example2".into(), "id2".into(), "secret".into())
+            .await
+            .unwrap();
+
+        // Should fail: Duplicate application ID
+        assert!(service
+            .update_github_repository_provider(id2.clone(), "example2".into(), "id".into(), None)
+            .await
+            .is_err());
+
+        service
+            .update_github_repository_provider(
+                id2.clone(),
+                "example2".into(),
+                "id2".into(),
+                Some("secret2".into()),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            db.get_github_provider(id2.as_rowid().unwrap())
+                .await
+                .unwrap()
+                .secret,
+            "secret2"
+        );
+
+        // Test deleting github provider
+        service
+            .delete_github_repository_provider(id.clone())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            1,
+            service
+                .list_github_repository_providers(vec![], None, None, None, None)
+                .await
+                .unwrap()
+                .len()
+        );
     }
 
     #[tokio::test]

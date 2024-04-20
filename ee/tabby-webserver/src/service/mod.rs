@@ -308,9 +308,7 @@ impl ServiceLocator for Arc<ServerContext> {
         new_analytic_service(self.db_conn.clone())
     }
 
-    fn github_repository_provider(
-        &self,
-    ) -> Arc<dyn crate::schema::github_repository_provider::GithubRepositoryProviderService> {
+    fn github_repository_provider(&self) -> Arc<dyn GithubRepositoryProviderService> {
         self.github_repository_provider.clone()
     }
 }

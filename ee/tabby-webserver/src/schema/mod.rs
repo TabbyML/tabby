@@ -35,7 +35,8 @@ use self::{
     email::{EmailService, EmailSetting, EmailSettingInput},
     git_repository::{GitRepository, GitRepositoryService},
     github_repository_provider::{
-        GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
+        CreateGithubRepositoryProviderInput, GithubProvidedRepository, GithubRepositoryProvider,
+        GithubRepositoryProviderService, UpdateGithubRepositoryProviderInput,
     },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
@@ -219,6 +220,7 @@ impl Query {
 
     async fn github_repository_providers(
         ctx: &Context,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -233,7 +235,13 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .github_repository_provider()
-                    .list_github_repository_providers(after, before, first, last)
+                    .list_github_repository_providers(
+                        ids.unwrap_or_default(),
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
                     .await
             },
         )
@@ -664,6 +672,50 @@ impl Mutation {
     async fn reset_license(ctx: &Context) -> Result<bool> {
         check_admin(ctx).await?;
         ctx.locator.license().reset().await?;
+        Ok(true)
+    }
+
+    async fn create_github_repository_provider(
+        ctx: &Context,
+        input: CreateGithubRepositoryProviderInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        ctx.locator
+            .github_repository_provider()
+            .create_github_repository_provider(
+                input.display_name,
+                input.application_id,
+                input.secret,
+            )
+            .await?;
+        Ok(true)
+    }
+
+    async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .github_repository_provider()
+            .delete_github_repository_provider(id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_github_repository_provider(
+        ctx: &Context,
+        input: UpdateGithubRepositoryProviderInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        ctx.locator
+            .github_repository_provider()
+            .update_github_repository_provider(
+                input.id,
+                input.display_name,
+                input.application_id,
+                input.secret,
+            )
+            .await?;
         Ok(true)
     }
 
