@@ -26,6 +26,7 @@ impl AnalyticService for AnalyticServiceImpl {
             .map(|s| CompletionStats {
                 start: s.start,
                 end: s.start + chrono::Duration::days(1),
+                language: s.language.into(),
                 completions: s.completions,
                 selects: s.selects,
                 views: s.views,
@@ -43,8 +44,15 @@ impl AnalyticService for AnalyticServiceImpl {
     ) -> Result<Vec<CompletionStats>> {
         let users = convert_ids(users);
 
-        let all_languages = Language::all_known().flat_map(|l| l.to_strings()).collect();
-        let languages = languages.into_iter().flat_map(|l| l.to_strings()).collect();
+        let all_languages = Language::all_known()
+            .flat_map(|l| l.to_strings().to_owned())
+            .map(str::to_owned)
+            .collect();
+        let languages = languages
+            .into_iter()
+            .flat_map(|l| l.to_strings().to_owned())
+            .map(str::to_owned)
+            .collect();
         let stats = self
             .db
             .compute_daily_stats(start, end, users, languages, all_languages)
@@ -54,6 +62,7 @@ impl AnalyticService for AnalyticServiceImpl {
             .map(|s| CompletionStats {
                 start: s.start,
                 end: s.start + chrono::Duration::days(1),
+                language: s.language.into(),
                 completions: s.completions,
                 selects: s.selects,
                 views: s.views,

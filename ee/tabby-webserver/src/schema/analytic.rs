@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
+use lazy_static::lazy_static;
 use strum::{EnumIter, IntoEnumIterator};
 
 use crate::schema::Result;
@@ -10,12 +13,13 @@ pub struct CompletionStats {
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
 
+    pub language: Language,
     pub completions: i32,
     pub views: i32,
     pub selects: i32,
 }
 
-#[derive(GraphQLEnum, Clone, Debug, Eq, PartialEq, EnumIter)]
+#[derive(GraphQLEnum, Clone, Debug, Eq, PartialEq, EnumIter, Hash)]
 pub enum Language {
     Rust,
     Python,
@@ -32,29 +36,58 @@ pub enum Language {
     Other,
 }
 
+lazy_static! {
+    static ref LANGUAGE_STRING_MAPPINGS: HashMap<Language, Vec<&'static str>> = {
+        let mut map = HashMap::new();
+        map.insert(Language::Rust, vec!["rust"]);
+        map.insert(Language::Python, vec!["python"]);
+        map.insert(Language::Java, vec!["java"]);
+        map.insert(Language::Kotlin, vec!["kotlin"]);
+        map.insert(Language::Javascript, vec!["javascript", "javascriptreact"]);
+        map.insert(Language::Typescript, vec!["typescript", "typescriptreact"]);
+        map.insert(Language::Go, vec!["go"]);
+        map.insert(Language::Ruby, vec!["ruby"]);
+        map.insert(Language::CSharp, vec!["csharp"]);
+        map.insert(Language::C, vec!["c"]);
+        map.insert(Language::Cpp, vec!["cpp", "c++"]);
+        map.insert(Language::Solidity, vec!["solidity"]);
+        map.insert(Language::Other, vec!["other"]);
+        map
+    };
+    static ref STRING_LANGUAGE_MAPPINGS: HashMap<&'static str, Language> = {
+        let mut map = HashMap::new();
+        for (language, strings) in LANGUAGE_STRING_MAPPINGS.iter() {
+            for string in strings {
+                map.insert(*string, language.clone());
+            }
+        }
+        map
+    };
+}
+
 impl Language {
     pub fn all_known() -> impl Iterator<Item = Language> {
         Language::iter().filter(|l| l != &Language::Other)
     }
 
-    pub fn to_strings(&self) -> impl IntoIterator<Item = String> {
-        match self {
-            Language::Rust => vec!["rust"],
-            Language::Python => vec!["python"],
-            Language::Java => vec!["java"],
-            Language::Kotlin => vec!["kotlin"],
-            Language::Javascript => vec!["javascript", "javascriptreact"],
-            Language::Typescript => vec!["typescript", "typescriptreact"],
-            Language::Go => vec!["go"],
-            Language::Ruby => vec!["ruby"],
-            Language::CSharp => vec!["csharp"],
-            Language::C => vec!["c"],
-            Language::Cpp => vec!["cpp"],
-            Language::Solidity => vec!["solidity"],
-            Language::Other => vec!["other"],
+    pub fn to_strings(&self) -> &'static Vec<&'static str> {
+        if let Some(vec) = LANGUAGE_STRING_MAPPINGS.get(self) {
+            vec
+        } else {
+            LANGUAGE_STRING_MAPPINGS
+                .get(&Language::Other)
+                .expect("Language::Other should present")
         }
-        .into_iter()
-        .map(|s| s.to_string())
+    }
+}
+
+impl Into<Language> for String {
+    fn into(self) -> Language {
+        if let Some(lang) = STRING_LANGUAGE_MAPPINGS.get(self.as_str()) {
+            lang.clone()
+        } else {
+            Language::Other
+        }
     }
 }
 
