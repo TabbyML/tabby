@@ -152,21 +152,29 @@ mod tests {
         assert_eq!(1, activity[0].selects);
 
         // Query user 1 + user 2 should return 2 completions and 1 select.
-        let activity2 = svc
+        let activity = svc
             .daily_stats_in_past_year(vec![user_id.as_id(), user_id2.as_id()])
             .await
             .unwrap();
 
-        assert_eq!(1, activity2.len());
-        assert_eq!(2, activity2[0].completions);
-        assert_eq!(1, activity2[0].selects);
+        assert_eq!(2, activity.len());
+        assert_eq!(Language::Other, activity[0].language);
+        assert_eq!(1, activity[0].completions);
+        assert_eq!(1, activity[0].selects);
+        assert_eq!(Language::Rust, activity[1].language);
+        assert_eq!(1, activity[1].completions);
+        assert_eq!(0, activity[1].selects);
 
         // Query all users should return 2 completions and 1 select.
-        let activity3 = svc.daily_stats_in_past_year(vec![]).await.unwrap();
+        let activity = svc.daily_stats_in_past_year(vec![]).await.unwrap();
 
-        assert_eq!(1, activity3.len());
-        assert_eq!(2, activity3[0].completions);
-        assert_eq!(1, activity3[0].selects);
+        assert_eq!(2, activity.len());
+        assert_eq!(Language::Other, activity[0].language);
+        assert_eq!(1, activity[0].completions);
+        assert_eq!(1, activity[0].selects);
+        assert_eq!(Language::Rust, activity[1].language);
+        assert_eq!(1, activity[1].completions);
+        assert_eq!(0, activity[1].selects);
     }
 
     #[tokio::test]
@@ -243,8 +251,11 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(1, stats.len());
-        assert_eq!(2, stats[0].completions);
+        assert_eq!(2, stats.len());
+        assert_eq!(Language::Other, stats[0].language);
+        assert_eq!(1, stats[0].completions);
+        assert_eq!(Language::Rust, stats[1].language);
+        assert_eq!(1, stats[1].completions);
 
         let stats2 = service
             .daily_stats(start, end, vec![], vec![Language::Other])

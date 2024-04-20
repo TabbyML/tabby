@@ -112,7 +112,7 @@ impl DbConn {
             WHERE created_at >= DATE('now', '-1 year')
                 AND ({users_empty} OR user_id IN ({users}))
             GROUP BY 1, 2
-            ORDER BY 1 ASC
+            ORDER BY 1, 2 ASC
             "#,
             users_empty = users.is_empty(),
         ))
@@ -163,7 +163,7 @@ impl DbConn {
                 WHERE ({no_selected_users} OR user_id IN ({users}))
                 AND ({no_selected_languages} OR language IN ({languages}))
             GROUP BY 1, 2
-            ORDER BY 1 ASC
+            ORDER BY 1, 2 ASC
             "#,
             no_selected_users = users.is_empty(),
             no_selected_languages = languages.is_empty(),
