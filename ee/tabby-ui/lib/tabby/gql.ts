@@ -265,13 +265,31 @@ const client = new Client({
           accessToken = authData?.accessToken
           refreshToken = authData?.refreshToken
 
+          // authToken refreshing
+          if (tokenManagerInstance.refreshPromise) {
+            return true
+          }
+
+          if (
+            operation.kind === 'query' &&
+            operation.query.definitions.some(definition => {
+              return (
+                definition.kind === 'OperationDefinition' &&
+                definition.name?.value &&
+                ['GetServerInfo'].includes(definition.name.value)
+              )
+            })
+          ) {
+            return false
+          }
+
           if (
             operation.kind === 'mutation' &&
             operation.query.definitions.some(definition => {
               return (
                 definition.kind === 'OperationDefinition' &&
                 definition.name?.value &&
-                ['tokenAuth', 'registerUser'].includes(definition.name.value)
+                ['tokenAuth', 'register'].includes(definition.name.value)
               )
             })
           ) {
@@ -305,13 +323,17 @@ const client = new Client({
         },
         async refreshAuth() {
           if (refreshToken) {
-            return tokenManagerInstance.refreshToken(() =>
-              utils
+            return tokenManagerInstance.refreshToken(() => {
+              const authData = getAuthToken()
+              accessToken = authData?.accessToken
+              refreshToken = authData?.refreshToken
+
+              return utils
                 .mutate(refreshTokenMutation, {
-                  refreshToken: refreshToken as string
+                  refreshToken: refreshToken ?? ''
                 })
                 .then(res => res?.data?.refreshToken)
-            )
+            })
           } else {
             // This is where auth has gone wrong and we need to clean up and redirect to a login page
             clearAuthToken()

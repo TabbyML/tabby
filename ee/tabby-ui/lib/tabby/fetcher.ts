@@ -1,8 +1,7 @@
-import { createRequest } from '@urql/core'
+import { Client, createRequest, fetchExchange } from '@urql/core'
 import { jwtDecode } from 'jwt-decode'
 
 import { refreshTokenMutation } from './auth'
-import { client } from './gql'
 import {
   getAuthToken,
   isTokenExpired,
@@ -24,6 +23,12 @@ export default async function authEnhancedFetch(
   options?: FetcherOptions
 ): Promise<any> {
   const currentFetcher = options?.customFetch ?? window.fetch
+
+  if (tokenManagerInstance.refreshPromise) {
+    return tokenManagerInstance.enqueueRetryRequest().then(() => {
+      return requestWithAuth(url, options)
+    })
+  }
 
   if (willAuthError(url)) {
     return tokenManagerInstance.refreshToken(doRefreshToken).then(res => {
@@ -85,6 +90,11 @@ function addAuthToRequest(options?: FetcherOptions): FetcherOptions {
 }
 
 async function refreshAuth(refreshToken: string) {
+  const client = new Client({
+    url: `/graphql`,
+    requestPolicy: 'network-only',
+    exchanges: [fetchExchange]
+  })
   const refreshAuth = client.createRequestOperation(
     'mutation',
     createRequest(refreshTokenMutation, { refreshToken })
