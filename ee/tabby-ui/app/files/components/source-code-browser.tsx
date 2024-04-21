@@ -8,6 +8,7 @@ import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
+import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
@@ -34,7 +35,6 @@ import {
   resolveFileNameFromPath,
   resolveRepoNameFromPath
 } from './utils'
-import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 
 /**
  * FileMap example

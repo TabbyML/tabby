@@ -41,9 +41,8 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   children,
   ...props
 }) => {
-  const { chatSideBarVisible, setChatSideBarVisible, isChatEnabled } = React.useContext(
-    SourceCodeBrowserContext
-  )
+  const { chatSideBarVisible, setChatSideBarVisible, isChatEnabled } =
+    React.useContext(SourceCodeBrowserContext)
   const [enableCodeBrowserQuickActionBar] = useEnableCodeBrowserQuickActionBar()
   const containerRef = React.useRef<HTMLDivElement>(null)
   const { activePath } = React.useContext(SourceCodeBrowserContext)
