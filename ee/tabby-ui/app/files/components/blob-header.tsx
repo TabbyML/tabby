@@ -10,7 +10,6 @@ import { toast } from 'sonner'
 import { useEnableCodeBrowserQuickActionBar } from '@/lib/experiment-flags'
 import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
 import { useIsSticky } from '@/lib/hooks/use-is-sticky'
-import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { IconCheck, IconCopy, IconDownload } from '@/components/ui/icons'
@@ -42,8 +41,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
   children,
   ...props
 }) => {
-  const isChatEnabled = useIsChatEnabled()
-  const { chatSideBarVisible, setChatSideBarVisible } = React.useContext(
+  const { chatSideBarVisible, setChatSideBarVisible, isChatEnabled } = React.useContext(
     SourceCodeBrowserContext
   )
   const [enableCodeBrowserQuickActionBar] = useEnableCodeBrowserQuickActionBar()
