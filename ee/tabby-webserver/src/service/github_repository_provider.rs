@@ -272,6 +272,7 @@ mod tests {
                 application_id: "id".into(),
                 secret: "secret".into(),
                 access_token: None,
+                connected: false,
             }
         );
 
