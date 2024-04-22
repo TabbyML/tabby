@@ -28,6 +28,7 @@ impl AnalyticService for AnalyticServiceImpl {
                 end: s.start + chrono::Duration::days(1),
                 completions: s.completions,
                 selects: s.selects,
+                views: s.views,
             })
             .collect();
         Ok(stats)
@@ -55,6 +56,7 @@ impl AnalyticService for AnalyticServiceImpl {
                 end: s.start + chrono::Duration::days(1),
                 completions: s.completions,
                 selects: s.selects,
+                views: s.views,
             })
             .collect();
         Ok(stats)

@@ -311,6 +311,7 @@ type CompletionStats {
   start: DateTimeUtc!
   end: DateTimeUtc!
   completions: Int!
+  views: Int!
   selects: Int!
 }
 
