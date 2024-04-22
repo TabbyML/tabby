@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
@@ -153,7 +154,11 @@ impl DbConn {
         git_url: String,
     ) -> Result<()> {
         let res = query!(
-            "UPDATE github_provided_repositories SET name = ?, git_url = ? WHERE vendor_id = ?;",
+            "UPDATE github_provided_repositories SET
+                name = ?,
+                git_url = ?,
+                updated_at = DATETIME('now')
+            WHERE vendor_id = ?;",
             display_name,
             git_url,
             vendor_id
@@ -165,6 +170,19 @@ impl DbConn {
             return Err(anyhow!("Repository not found"));
         }
 
+        Ok(())
+    }
+
+    pub async fn delete_outdated_repositories(
+        &self,
+        github_provider_id: i64,
+        cutoff_timestamp: DateTime<Utc>,
+    ) -> Result<()> {
+        query!(
+            "DELETE FROM github_provided_repositories WHERE github_repository_provider_id = ? AND updated_at < ?;",
+            github_provider_id,
+            cutoff_timestamp
+        ).execute(&self.pool).await?;
         Ok(())
     }
 

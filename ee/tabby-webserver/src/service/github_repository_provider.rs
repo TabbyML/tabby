@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::ID;
 use octocrab::{models::Repository, Octocrab};
 use tabby_db::DbConn;
@@ -118,9 +119,15 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(urls)
     }
 
-    async fn refresh_repositories(&self) -> Result<()> {
+    async fn refresh_repositories(&self, provider_id: ID) -> Result<()> {
         let mut cached_repositories: HashSet<_> = self
-            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .list_github_provided_repositories_by_provider(
+                vec![provider_id],
+                None,
+                None,
+                None,
+                None,
+            )
             .await?
             .into_iter()
             .map(|repo| repo.vendor_id)
@@ -165,6 +172,29 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
 
         Ok(())
     }
+
+    async fn update_github_provided_repository(
+        &self,
+        vendor_id: String,
+        display_name: String,
+        git_url: String,
+    ) -> Result<()> {
+        self.db
+            .update_github_provided_repository(vendor_id, display_name, git_url)
+            .await?;
+        Ok(())
+    }
+
+    async fn delete_outdated_github_provided_repositories(
+        &self,
+        provider_id: ID,
+        cutoff_timestamp: DateTime<Utc>,
+    ) -> Result<()> {
+        self.db
+            .delete_outdated_repositories(provider_id.as_rowid()?, cutoff_timestamp)
+            .await?;
+        Ok(())
+    }
 }
 
 async fn fetch_all_repos(
@@ -177,11 +207,10 @@ async fn fetch_all_repos(
         .user_access_token(token.to_string())
         .build()?;
 
-    let mut pages = 1;
     let mut page = 1;
     let mut repos = vec![];
 
-    while page <= pages {
+    loop {
         let response = octocrab
             .current()
             .list_repos_for_authenticated_user()
@@ -190,10 +219,13 @@ async fn fetch_all_repos(
             .send()
             .await?;
 
-        pages = response.number_of_pages().unwrap_or_default() as u8;
+        let pages = response.number_of_pages().unwrap_or_default() as u8;
         repos.extend(response.items);
 
         page += 1;
+        if page > pages {
+            break;
+        }
     }
     Ok(repos)
 }

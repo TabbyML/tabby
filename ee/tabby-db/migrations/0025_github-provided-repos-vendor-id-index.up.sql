@@ -1,1 +1,0 @@
-CREATE INDEX `idx_github_provided_repositories_vendor_id` ON github_provided_repositories(vendor_id);

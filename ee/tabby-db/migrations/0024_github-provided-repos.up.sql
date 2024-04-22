@@ -6,5 +6,10 @@ CREATE TABLE github_provided_repositories(
     name TEXT NOT NULL,
     git_url TEXT NOT NULL,
     active BOOLEAN NOT NULL DEFAULT FALSE,
-    FOREIGN KEY (github_repository_provider_id) REFERENCES github_repository_provider(id) ON DELETE CASCADE
+    created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
+    updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
+    FOREIGN KEY (github_repository_provider_id) REFERENCES github_repository_provider(id) ON DELETE CASCADE,
+    CONSTRAINT `idx_vendor_id` UNIQUE (vendor_id)
 );
+CREATE INDEX github_provided_repositories_created_at ON github_provided_repositories(created_at);
+CREATE INDEX github_provided_repositories_updated_at ON github_provided_repositories(updated_at);

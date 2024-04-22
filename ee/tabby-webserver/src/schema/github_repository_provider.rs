@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 
 use super::Context;
@@ -87,5 +88,16 @@ pub trait GithubRepositoryProviderService: Send + Sync {
 
     async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn list_provided_git_urls(&self) -> Result<Vec<String>>;
-    async fn refresh_repositories(&self) -> Result<()>;
+    async fn refresh_repositories(&self, provider_id: ID) -> Result<()>;
+    async fn update_github_provided_repository(
+        &self,
+        vendor_id: String,
+        display_name: String,
+        git_url: String,
+    ) -> Result<()>;
+    async fn delete_outdated_github_provided_repositories(
+        &self,
+        provider_id: ID,
+        cutoff_timestamp: DateTime<Utc>,
+    ) -> Result<()>;
 }
