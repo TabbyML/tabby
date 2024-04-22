@@ -68,7 +68,7 @@ export function PasswordCheckList({
   passworErrors: PASSWORD_ERRORCODE[]
   showPasswordError: boolean
 }) {
-  function PasswordRule({
+  function Rule({
     errorCode,
     text
   }: {
@@ -102,27 +102,27 @@ export function PasswordCheckList({
         Set up a strong password with
       </p>
       <ul className="list-disc pl-4">
-        <PasswordRule
+        <Rule
           errorCode={PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR}
           text="At least 8 characters long"
         />
-        <PasswordRule
+        <Rule
           errorCode={PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT}
           text="No more than 20 characters long"
         />
-        <PasswordRule
+        <Rule
           errorCode={PASSWORD_ERRORCODE.LOWERCASE_MSISSING}
           text="At least one lowercase character"
         />
-        <PasswordRule
+        <Rule
           errorCode={PASSWORD_ERRORCODE.UPPERCASE_MSISSING}
           text="At least one uppercase character"
         />
-        <PasswordRule
+        <Rule
           errorCode={PASSWORD_ERRORCODE.NUMBER_MISSING}
           text="At least one numeric character"
         />
-        <PasswordRule
+        <Rule
           errorCode={PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING}
           text={`At least one special character , such as @#$%^&{}`}
         />

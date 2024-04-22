@@ -26,7 +26,7 @@ import {
   PASSWORD_ERRORCODE,
   PasswordCheckList,
   usePasswordErrors
-} from '@/components/password-checklist'
+} from '@/components/password-check-list'
 
 export const registerUser = graphql(/* GraphQL */ `
   mutation register(

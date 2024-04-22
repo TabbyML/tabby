@@ -25,7 +25,7 @@ import {
   PASSWORD_ERRORCODE,
   PasswordCheckList,
   usePasswordErrors
-} from '@/components/password-checklist'
+} from '@/components/password-check-list'
 import { ListSkeleton } from '@/components/skeleton'
 
 const passwordChangeMutation = graphql(/* GraphQL */ `
