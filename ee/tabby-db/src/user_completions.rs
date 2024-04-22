@@ -146,13 +146,17 @@ impl DbConn {
         // the start of the day and group them by that.
         let res = sqlx::query_as(&format!(
             r#"
-            SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+            SELECT CAST((STRFTIME('%s', ?1) + seconds_since_start) AS TIMESTAMP) as start,
                    COUNT(1) as completions,
                    SUM(selects) as selects
             FROM (
-                SELECT user_id, created_at, selects, IIF(language IN ({all_languages}), language, 'other') as language
-                    FROM user_completions
-                    WHERE created_at >= ?1 AND created_at < ?2
+                SELECT user_id,
+                       CAST((STRFTIME('%s', created_at) - STRFTIME('%s', ?1)) / 3600 / 24 AS INT) as seconds_since_start,
+                       created_at,
+                       selects,
+                       IIF(language IN ({all_languages}), language, 'other') as language
+                FROM user_completions
+                WHERE created_at >= ?1 AND created_at < ?2
             )
                 WHERE ({no_selected_users} OR user_id IN ({users}))
                 AND ({no_selected_languages} OR language IN ({languages}))
