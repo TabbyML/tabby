@@ -10,7 +10,7 @@
 ## Fixes and Improvements
 * Changed the default model filename from `q8_0.v2.gguf` to `model.gguf` in MODEL_SPEC.md
 
-# v0.10.0 [UNRELEASED]
+# v0.10.0
 
 ## Features
 * Introduced the `--chat-device` flag to specify the device used to run the chat model.
