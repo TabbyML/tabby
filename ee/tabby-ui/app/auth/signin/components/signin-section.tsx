@@ -6,7 +6,7 @@ import useSWRImmutable from 'swr/immutable'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
 import { useAllowSelfSignup } from '@/lib/hooks/use-server-info'
-import { useSignIn } from '@/lib/tabby/auth'
+import { useSession, useSignIn } from '@/lib/tabby/auth'
 import fetcher from '@/lib/tabby/fetcher'
 import { IconGithub, IconGoogle, IconSpinner } from '@/components/ui/icons'
 
@@ -31,9 +31,16 @@ export default function SigninSection() {
   useEffect(() => {
     if (errorMessage) return
     if (accessToken && refreshToken) {
-      signin({ accessToken, refreshToken }).then(() => router.replace('/'))
+      signin({ accessToken, refreshToken })
     }
   }, [searchParams])
+
+  const { status } = useSession()
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/')
+    }
+  }, [status])
 
   if (displayLoading) {
     return <IconSpinner className="h-8 w-8 animate-spin" />
