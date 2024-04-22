@@ -42,6 +42,31 @@ export const registerUser = graphql(/* GraphQL */ `
   }
 `)
 
+enum PASSWORD_ERRORCODE {
+  LOWERCASE_MSISSING = 'lowercase_missing',
+  UPPERCASE_MSISSING = 'uppercase_missing',
+  NUMBER_MISSING = 'number_missing',
+  SPECIAL_CHAR_MISSING ='special_char_missing',
+}
+
+const passwordSchema = z.string()
+  .refine((password) => /[a-z]/.test(password), {
+    message: "Password should contain at least one lowercase character",
+    params: { errorCode: PASSWORD_ERRORCODE.LOWERCASE_MSISSING }
+  })
+  .refine((password) => /[A-Z]/.test(password), {
+    message: "Password should contain at least one uppercase character",
+    params: { errorCode: PASSWORD_ERRORCODE.UPPERCASE_MSISSING }
+  })
+  .refine((password) => /\d/.test(password), {
+    message: "Password should contain at least one numeric character",
+    params: { errorCode: PASSWORD_ERRORCODE.NUMBER_MISSING }
+  })
+  .refine((password) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(password), {
+    message: "Password should contain at least one special character, e.g @#$%^&{}",
+    params: { errorCode: PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING }
+  });
+
 const formSchema = z.object({
   email: z.string().email('Invalid email address'),
   password1: z.string(),
@@ -62,13 +87,17 @@ export function UserAuthForm({
   buttonClass,
   ...props
 }: UserAuthFormProps) {
+  const [password, setPassword] = React.useState("")
+  const [showPasswordSchema, setShowPasswordSchema] = React.useState(false)
+  const [passworErrors, setPasswordErrors] = React.useState<PASSWORD_ERRORCODE[]>([])
+  const [showPasswordError, setShowPasswordError] = React.useState(false)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       invitationCode
     }
   })
-
+ 
   const router = useRouter()
   const signIn = useSignIn()
   const { isSubmitting } = form.formState
@@ -84,6 +113,25 @@ export function UserAuthForm({
     },
     form
   })
+
+  const onChangePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const password = e.target.value
+    form.setValue('password1', password)
+    setPassword(password)
+    try {
+      passwordSchema.parse(password)
+      setPasswordErrors([])
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setPasswordErrors(err.issues.map((error: any) => error.params.errorCode))
+      }
+    }
+  }
+
+  const onPasswordBlur = () => {
+    if (passworErrors.length === 0) return setShowPasswordSchema(false)
+    setShowPasswordError(true)
+  }
 
   return (
     <Form {...form}>
@@ -117,12 +165,30 @@ export function UserAuthForm({
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} value={field.value ?? ''} />
+                  <Input
+                    type="password"
+                    {...field}
+                    value={password}
+                    onChange={onChangePassword}
+                    onFocus={() => setShowPasswordSchema(true)}
+                    onBlur={onPasswordBlur} />
                 </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />
+          <div className={cn("relative text-sm transition-all", {
+            'h-0 opacity-0 -z-10': !showPasswordSchema,
+            'h-28 opacity-100': showPasswordSchema
+          })}>
+            <p className="mb-0.5 text-xs text-muted-foreground">Set up a strong password with at least</p>
+            <ul className="list-disc pl-4">
+              <li className={cn("py-0.5", { 'text-green-600': password.length > 0 && !passworErrors.includes(PASSWORD_ERRORCODE.LOWERCASE_MSISSING), 'text-red-600': showPasswordError && password.length > 0 && passworErrors.includes(PASSWORD_ERRORCODE.LOWERCASE_MSISSING) })}>One lowercase character</li>
+              <li className={cn("py-0.5", { 'text-green-600': password.length > 0 && !passworErrors.includes(PASSWORD_ERRORCODE.UPPERCASE_MSISSING), 'text-red-600': showPasswordError && password.length > 0 && passworErrors.includes(PASSWORD_ERRORCODE.UPPERCASE_MSISSING) })}>One uppercase character</li>
+              <li className={cn("py-0.5", { 'text-green-600': password.length > 0 && !passworErrors.includes(PASSWORD_ERRORCODE.NUMBER_MISSING), 'text-red-600': showPasswordError && password.length > 0 && passworErrors.includes(PASSWORD_ERRORCODE.NUMBER_MISSING) })}>One numeric character</li>
+              <li className={cn("py-0.5", { 'text-green-600': password.length > 0 && !passworErrors.includes(PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING), 'text-red-600': showPasswordError && password.length > 0 && passworErrors.includes(PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING) })}>{`One special character, such as @#$%^&{}`}</li>
+            </ul>
+          </div>
+          
           <FormField
             control={form.control}
             name="password2"
