@@ -108,6 +108,7 @@ type GithubRepositoryProvider {
   id: ID!
   displayName: String!
   applicationId: String!
+  connected: Boolean!
 }
 
 input PasswordChangeInput {
@@ -311,6 +312,7 @@ type CompletionStats {
   start: DateTimeUtc!
   end: DateTimeUtc!
   completions: Int!
+  views: Int!
   selects: Int!
 }
 
