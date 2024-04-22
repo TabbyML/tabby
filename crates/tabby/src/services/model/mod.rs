@@ -44,7 +44,7 @@ pub async fn load_text_generation(
     if device == &Device::ExperimentalHttp {
         let (engine, prompt_template, chat_template) = http_api_bindings::create(model_id);
         return (
-            engine,
+            Arc::new(make_text_generation(engine)),
             PromptInfo {
                 prompt_template,
                 chat_template,
