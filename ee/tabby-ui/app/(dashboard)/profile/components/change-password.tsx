@@ -2,10 +2,10 @@
 
 import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { isNil } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
-import { isNil } from 'lodash-es'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMe } from '@/lib/hooks/use-me'
@@ -151,7 +151,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             )}
           />
           <PasswordCheckList
-            password={password || ""}
+            password={password || ''}
             showPasswordSchema={showPasswordSchema}
             passworErrors={passworErrors}
             showPasswordError={showPasswordError}

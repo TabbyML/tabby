@@ -3,9 +3,9 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { isNil } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
-import { isNil } from 'lodash-es'
 
 import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
@@ -162,7 +162,7 @@ export function UserAuthForm({
               )}
             />
             <PasswordCheckList
-              password={password || ""}
+              password={password || ''}
               showPasswordSchema={showPasswordSchema}
               passworErrors={passworErrors}
               showPasswordError={showPasswordError}
