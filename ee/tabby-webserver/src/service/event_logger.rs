@@ -23,6 +23,10 @@ pub fn create_event_logger(db: DbConn) -> impl EventLogger + 'static {
 
 impl EventLogger for DbEventLogger {
     fn write(&self, x: LogEntry) {
+        let Ok(event_json) = serde_json::to_string_pretty(&x.event) else {
+            warn!("Failed to convert event {x:?} to JSON");
+            return;
+        };
         match x.event {
             Event::View { completion_id, .. } => {
                 let db = self.db.clone();
@@ -30,7 +34,16 @@ impl EventLogger for DbEventLogger {
                     log_err(
                         db.add_to_user_completion(x.ts, &completion_id, 1, 0, 0)
                             .await,
-                    )
+                    );
+                    log_err(
+                        db.create_user_event_lookup_user(
+                            completion_id,
+                            "view".into(),
+                            x.ts,
+                            event_json,
+                        )
+                        .await,
+                    );
                 });
             }
             Event::Select { completion_id, .. } => {
@@ -39,7 +52,16 @@ impl EventLogger for DbEventLogger {
                     log_err(
                         db.add_to_user_completion(x.ts, &completion_id, 0, 1, 0)
                             .await,
-                    )
+                    );
+                    log_err(
+                        db.create_user_event_lookup_user(
+                            completion_id,
+                            "select".into(),
+                            x.ts,
+                            event_json,
+                        )
+                        .await,
+                    );
                 });
             }
             Event::Dismiss { completion_id, .. } => {
@@ -48,7 +70,16 @@ impl EventLogger for DbEventLogger {
                     log_err(
                         db.add_to_user_completion(x.ts, &completion_id, 0, 0, 1)
                             .await,
-                    )
+                    );
+                    log_err(
+                        db.create_user_event_lookup_user(
+                            completion_id,
+                            "dismiss".into(),
+                            x.ts,
+                            event_json,
+                        )
+                        .await,
+                    );
                 });
             }
             Event::Completion {
@@ -70,8 +101,23 @@ impl EventLogger for DbEventLogger {
                         return;
                     };
                     log_err(
-                        db.create_user_completion(x.ts, user_db.id, completion_id, language)
-                            .await,
+                        db.create_user_completion(
+                            x.ts,
+                            user_db.id,
+                            completion_id.clone(),
+                            language,
+                        )
+                        .await,
+                    );
+                    log_err(
+                        db.create_user_event(
+                            user_db.id,
+                            completion_id,
+                            "completion".into(),
+                            x.ts,
+                            event_json,
+                        )
+                        .await,
                     );
                 });
             }
