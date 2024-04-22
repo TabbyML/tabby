@@ -137,7 +137,7 @@ async fn callback(
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    Ok(Redirect::temporary("/"))
+    Ok(Redirect::temporary("/integrations/callback"))
 }
 
 async fn connect(
