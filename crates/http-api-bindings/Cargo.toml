@@ -1,6 +1,6 @@
 [package]
 name = "http-api-bindings"
-version = "0.10.0-rc.6"
+version = "0.10.0"
 edition = "2021"
 
 [dependencies]
