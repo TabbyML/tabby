@@ -99,7 +99,10 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
         return prefix.to_owned();
     }
 
-    let comment_char = &get_language(language).line_comment;
+    let Some(comment_char) = &get_language(language).line_comment else {
+        return prefix.to_owned();
+    };
+
     let mut lines: Vec<String> = vec![];
 
     for (i, snippet) in snippets.iter().enumerate() {

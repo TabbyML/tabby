@@ -42,7 +42,7 @@ impl StopConditionFactory {
         if stop_words.is_empty() {
             None
         } else {
-            let hashkey = language.get_hashkey();
+            let hashkey = language.language().to_owned();
             let mut trie = self.stop_trie_cache.get(&hashkey);
             if trie.is_none() {
                 self.stop_trie_cache
