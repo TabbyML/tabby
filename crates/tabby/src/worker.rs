@@ -51,10 +51,15 @@ async fn make_chat_route(logger: Arc<dyn EventLogger>, args: &WorkerArgs) -> Rou
     let chat_state =
         Arc::new(create_chat_service(logger, &args.model, &args.device, args.parallelism).await);
 
-    Router::new().route(
-        "/v1beta/chat/completions",
-        routing::post(routes::chat_completions).with_state(chat_state),
-    )
+    Router::new()
+        .route(
+            "/v1/chat/completions",
+            routing::post(routes::chat_completions).with_state(chat_state.clone()),
+        )
+        .route(
+            "/v1beta/chat/completions",
+            routing::post(routes::chat_completions).with_state(chat_state),
+        )
 }
 
 async fn make_completion_route(

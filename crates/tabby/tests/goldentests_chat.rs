@@ -87,7 +87,7 @@ async fn wait_for_server(gpu_device: Option<&str>) {
 async fn golden_test(body: serde_json::Value) -> String {
     let mut es = EventSource::new(
         CLIENT
-            .post("http://localhost:9090/v1beta/chat/completions")
+            .post("http://localhost:9090/v1/chat/completions")
             .json(&body),
     )
     .unwrap();
