@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { isNil } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -25,7 +24,7 @@ import { Separator } from '@/components/ui/separator'
 import {
   PASSWORD_ERRORCODE,
   PasswordCheckList,
-  passwordSchema
+  usePasswordErrors
 } from '@/components/password-checklist'
 import { ListSkeleton } from '@/components/skeleton'
 
@@ -45,9 +44,6 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   showOldPassword
 }) => {
   const [showPasswordSchema, setShowPasswordSchema] = React.useState(false)
-  const [passworErrors, setPasswordErrors] = React.useState<
-    PASSWORD_ERRORCODE[]
-  >([])
   const [showPasswordError, setShowPasswordError] = React.useState(false)
   const formSchema = z.object({
     oldPassword: showOldPassword ? z.string() : z.string().optional(),
@@ -60,21 +56,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   })
   const { isSubmitting } = form.formState
   const { newPassword1: password } = form.watch()
-
-  React.useEffect(() => {
-    if (!isNil(password)) {
-      try {
-        passwordSchema.parse(password)
-        setPasswordErrors([])
-      } catch (err) {
-        if (err instanceof z.ZodError) {
-          setPasswordErrors(
-            err.issues.map((error: any) => error.params.errorCode)
-          )
-        }
-      }
-    }
-  }, [password])
+  const [passworErrors] = usePasswordErrors(password)
 
   const passwordChange = useMutation(passwordChangeMutation, {
     form,
@@ -151,7 +133,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           <PasswordCheckList
             password={password || ''}
             showPasswordSchema={showPasswordSchema}
-            passworErrors={passworErrors}
+            passworErrors={passworErrors as PASSWORD_ERRORCODE[]}
             showPasswordError={showPasswordError}
           />
         </div>

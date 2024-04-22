@@ -1,3 +1,5 @@
+import React from 'react'
+import { isNil } from 'lodash-es'
 import * as z from 'zod'
 
 import { cn } from '@/lib/utils'
@@ -32,6 +34,29 @@ export const passwordSchema = z
     params: { errorCode: PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT }
   })
 
+export const usePasswordErrors = (password?: string) => {
+  const [passworErrors, setPasswordErrors] = React.useState<
+    PASSWORD_ERRORCODE[]
+  >([])
+
+  React.useEffect(() => {
+    if (!isNil(password)) {
+      try {
+        passwordSchema.parse(password)
+        setPasswordErrors([])
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          setPasswordErrors(
+            err.issues.map((error: any) => error.params.errorCode)
+          )
+        }
+      }
+    }
+  }, [password])
+
+  return [passworErrors, setPasswordErrors]
+}
+
 export function PasswordCheckList({
   password,
   showPasswordSchema,
@@ -43,25 +68,26 @@ export function PasswordCheckList({
   passworErrors: PASSWORD_ERRORCODE[]
   showPasswordError: boolean
 }) {
-  function PasswordRule ({
+  function PasswordRule({
     errorCode,
     text
   }: {
-    errorCode: PASSWORD_ERRORCODE,
+    errorCode: PASSWORD_ERRORCODE
     text: string
   }) {
     return (
       <li
         className={cn('py-0.5', {
           'text-green-600 dark:text-green-500':
-            password.length > 0 &&
-            !passworErrors.includes(errorCode),
+            password.length > 0 && !passworErrors.includes(errorCode),
           'text-red-600 dark:text-red-500':
             showPasswordError &&
             password.length > 0 &&
             passworErrors.includes(errorCode)
         })}
-      >{text}</li>
+      >
+        {text}
+      </li>
     )
   }
 
@@ -78,25 +104,29 @@ export function PasswordCheckList({
       <ul className="list-disc pl-4">
         <PasswordRule
           errorCode={PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR}
-          text='At least 8 characters long' />
+          text="At least 8 characters long"
+        />
         <PasswordRule
           errorCode={PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT}
-          text='No more than 20 characters long' />
+          text="No more than 20 characters long"
+        />
         <PasswordRule
           errorCode={PASSWORD_ERRORCODE.LOWERCASE_MSISSING}
-          text='At least one lowercase character' />
+          text="At least one lowercase character"
+        />
         <PasswordRule
           errorCode={PASSWORD_ERRORCODE.UPPERCASE_MSISSING}
-          text='At least one uppercase character' />
+          text="At least one uppercase character"
+        />
         <PasswordRule
           errorCode={PASSWORD_ERRORCODE.NUMBER_MISSING}
-          text='At least one numeric character' />
+          text="At least one numeric character"
+        />
         <PasswordRule
           errorCode={PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING}
-          text={`At least one special character , such as @#$%^&{}`} />
+          text={`At least one special character , such as @#$%^&{}`}
+        />
       </ul>
     </div>
   )
 }
-
-

@@ -3,7 +3,6 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { isNil } from 'lodash-es'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
@@ -26,7 +25,7 @@ import { Input } from '@/components/ui/input'
 import {
   PASSWORD_ERRORCODE,
   PasswordCheckList,
-  passwordSchema
+  usePasswordErrors
 } from '@/components/password-checklist'
 
 export const registerUser = graphql(/* GraphQL */ `
@@ -69,9 +68,6 @@ export function UserAuthForm({
   ...props
 }: UserAuthFormProps) {
   const [showPasswordSchema, setShowPasswordSchema] = React.useState(false)
-  const [passworErrors, setPasswordErrors] = React.useState<
-    PASSWORD_ERRORCODE[]
-  >([])
   const [showPasswordError, setShowPasswordError] = React.useState(false)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,21 +77,7 @@ export function UserAuthForm({
   })
 
   const { password1: password } = form.watch()
-
-  React.useEffect(() => {
-    if (!isNil(password)) {
-      try {
-        passwordSchema.parse(password)
-        setPasswordErrors([])
-      } catch (err) {
-        if (err instanceof z.ZodError) {
-          setPasswordErrors(
-            err.issues.map((error: any) => error.params.errorCode)
-          )
-        }
-      }
-    }
-  }, [password])
+  const [passworErrors] = usePasswordErrors(password)
 
   const router = useRouter()
   const signIn = useSignIn()
@@ -164,7 +146,7 @@ export function UserAuthForm({
             <PasswordCheckList
               password={password || ''}
               showPasswordSchema={showPasswordSchema}
-              passworErrors={passworErrors}
+              passworErrors={passworErrors as PASSWORD_ERRORCODE[]}
               showPasswordError={showPasswordError}
             />
           </div>
