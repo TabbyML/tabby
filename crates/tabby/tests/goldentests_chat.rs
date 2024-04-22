@@ -51,6 +51,7 @@ fn initialize_server(gpu_device: Option<&str>) {
     cmd.arg("serve")
         .arg("--chat-model")
         .arg("TabbyML/Mistral-7B")
+        .arg("--no-webserver")
         .arg("--port")
         .arg("9090")
         .kill_on_drop(true);
