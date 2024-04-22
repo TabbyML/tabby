@@ -147,14 +147,16 @@ impl DbConn {
         Ok(providers)
     }
 
-    pub async fn create_github_provided_repository(
+    pub async fn upsert_github_provided_repository(
         &self,
         github_provider_id: i64,
         vendor_id: String,
         name: String,
         git_url: String,
     ) -> Result<i64> {
-        let res = query!("INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES (?, ?, ?, ?)",
+        let res = query!(
+            "INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
+                ON CONFLICT(vendor_id) DO UPDATE SET github_repository_provider_id = $1, name = $2, git_url = $3",
             github_provider_id, vendor_id, name, git_url).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }
@@ -170,50 +172,7 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn delete_github_provided_repository_by_vendor_id(
-        &self,
-        vendor_id: String,
-    ) -> Result<()> {
-        let res = query!(
-            "DELETE FROM github_provided_repositories WHERE vendor_id = ?",
-            vendor_id
-        )
-        .execute(&self.pool)
-        .await?;
-
-        if res.rows_affected() != 1 {
-            return Err(anyhow!("Repository not found"));
-        }
-        Ok(())
-    }
-
-    pub async fn update_github_provided_repository(
-        &self,
-        vendor_id: String,
-        display_name: String,
-        git_url: String,
-    ) -> Result<()> {
-        let res = query!(
-            "UPDATE github_provided_repositories SET
-                name = ?,
-                git_url = ?,
-                updated_at = DATETIME('now')
-            WHERE vendor_id = ?;",
-            display_name,
-            git_url,
-            vendor_id
-        )
-        .execute(&self.pool)
-        .await?;
-
-        if res.rows_affected() != 1 {
-            return Err(anyhow!("Repository not found"));
-        }
-
-        Ok(())
-    }
-
-    pub async fn delete_outdated_repositories(
+    pub async fn delete_outdated_github_repositories(
         &self,
         github_provider_id: i64,
         cutoff_timestamp: DateTime<Utc>,

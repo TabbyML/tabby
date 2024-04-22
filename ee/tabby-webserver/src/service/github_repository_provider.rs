@@ -115,7 +115,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .collect())
     }
 
-    async fn create_github_provided_repository(
+    async fn upsert_github_provided_repository(
         &self,
         provider_id: ID,
         vendor_id: String,
@@ -123,7 +123,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         git_url: String,
     ) -> Result<()> {
         self.db
-            .create_github_provided_repository(
+            .upsert_github_provided_repository(
                 provider_id.as_rowid()?,
                 vendor_id,
                 display_name,
@@ -179,25 +179,13 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(urls)
     }
 
-    async fn update_github_provided_repository(
-        &self,
-        vendor_id: String,
-        display_name: String,
-        git_url: String,
-    ) -> Result<()> {
-        self.db
-            .update_github_provided_repository(vendor_id, display_name, git_url)
-            .await?;
-        Ok(())
-    }
-
     async fn delete_outdated_github_provided_repositories(
         &self,
         provider_id: ID,
         cutoff_timestamp: DateTime<Utc>,
     ) -> Result<()> {
         self.db
-            .delete_outdated_repositories(provider_id.as_rowid()?, cutoff_timestamp)
+            .delete_outdated_github_repositories(provider_id.as_rowid()?, cutoff_timestamp)
             .await?;
         Ok(())
     }
@@ -232,7 +220,7 @@ mod tests {
             .unwrap();
 
         let repo_id1 = db
-            .create_github_provided_repository(
+            .upsert_github_provided_repository(
                 provider_id1,
                 "vendor_id1".into(),
                 "test_repo1".into(),
@@ -242,7 +230,7 @@ mod tests {
             .unwrap();
 
         let repo_id2 = db
-            .create_github_provided_repository(
+            .upsert_github_provided_repository(
                 provider_id2,
                 "vendor_id2".into(),
                 "test_repo2".into(),
@@ -412,7 +400,7 @@ mod tests {
             .unwrap();
 
         let repo_id = db
-            .create_github_provided_repository(
+            .upsert_github_provided_repository(
                 provider_id,
                 "vendor_id1".into(),
                 "test_repo".into(),

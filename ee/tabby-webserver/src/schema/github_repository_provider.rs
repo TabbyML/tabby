@@ -134,7 +134,7 @@ pub trait GithubRepositoryProviderService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<GithubProvidedRepository>>;
 
-    async fn create_github_provided_repository(
+    async fn upsert_github_provided_repository(
         &self,
         provider_id: ID,
         vendor_id: String,
@@ -143,12 +143,6 @@ pub trait GithubRepositoryProviderService: Send + Sync {
     ) -> Result<()>;
     async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn list_provided_git_urls(&self) -> Result<Vec<String>>;
-    async fn update_github_provided_repository(
-        &self,
-        vendor_id: String,
-        display_name: String,
-        git_url: String,
-    ) -> Result<()>;
     async fn delete_outdated_github_provided_repositories(
         &self,
         provider_id: ID,

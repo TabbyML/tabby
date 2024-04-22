@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use chrono::Utc;
@@ -30,19 +30,6 @@ async fn refresh_repositories_for_provider(
     service: Arc<dyn GithubRepositoryProviderService>,
     provider_id: ID,
 ) -> Result<()> {
-    let cached_repositories: HashSet<_> = service
-        .list_github_provided_repositories_by_provider(
-            vec![provider_id.clone()],
-            None,
-            None,
-            None,
-            None,
-        )
-        .await?
-        .into_iter()
-        .map(|repo| repo.vendor_id)
-        .collect();
-
     let provider = service.get_github_repository_provider(provider_id).await?;
     let repos = match fetch_all_repos(&provider).await {
         Ok(repos) => repos,
@@ -71,20 +58,15 @@ async fn refresh_repositories_for_provider(
         };
         let _ = url.set_scheme("https");
         let url = url.to_string();
-        if cached_repositories.contains(&id) {
-            service
-                .update_github_provided_repository(id, repo.name, url)
-                .await?;
-        } else {
-            service
-                .create_github_provided_repository(provider.id.clone(), id, repo.name, url)
-                .await?;
-        }
+        service
+            .upsert_github_provided_repository(provider.id.clone(), id, repo.name, url)
+            .await?;
     }
 
     Ok(())
 }
 
+// FIXME(wsxiaoys): Convert to async stream
 async fn fetch_all_repos(
     provider: &GithubRepositoryProvider,
 ) -> Result<Vec<Repository>, octocrab::Error> {
