@@ -52,6 +52,7 @@ ignore.workspace = true
 nucleo.workspace = true
 regex.workspace = true
 octocrab = "0.38.0"
+http = "1.1.0"
 
 [dev-dependencies]
 assert_matches = "1.5.0"

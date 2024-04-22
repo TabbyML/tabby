@@ -63,7 +63,7 @@ impl DbConn {
     pub async fn update_github_provider_access_token(
         &self,
         id: i64,
-        access_token: String,
+        access_token: Option<String>,
     ) -> Result<()> {
         let res = query!(
             "UPDATE github_repository_provider SET access_token = ? WHERE id = ?",

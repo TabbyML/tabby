@@ -1,9 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::ID;
-use octocrab::{models::Repository, Octocrab};
 use tabby_db::DbConn;
 use url::Url;
 
@@ -36,7 +35,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
     async fn update_github_repository_provider_access_token(
         &self,
         id: ID,
-        access_token: String,
+        access_token: Option<String>,
     ) -> Result<()> {
         self.db
             .update_github_provider_access_token(id.as_rowid()?, access_token)
@@ -86,6 +85,24 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .collect())
     }
 
+    async fn create_github_provided_repository(
+        &self,
+        provider_id: ID,
+        vendor_id: String,
+        display_name: String,
+        git_url: String,
+    ) -> Result<()> {
+        self.db
+            .create_github_provided_repository(
+                provider_id.as_rowid()?,
+                vendor_id,
+                display_name,
+                git_url,
+            )
+            .await?;
+        Ok(())
+    }
+
     async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()> {
         self.db
             .update_github_provided_repository_active(id.as_rowid()?, active)
@@ -119,52 +136,6 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(urls)
     }
 
-    async fn refresh_repositories(&self, provider_id: ID) -> Result<()> {
-        let cached_repositories: HashSet<_> = self
-            .list_github_provided_repositories_by_provider(
-                vec![provider_id],
-                None,
-                None,
-                None,
-                None,
-            )
-            .await?
-            .into_iter()
-            .map(|repo| repo.vendor_id)
-            .collect();
-
-        for provider in self
-            .list_github_repository_providers(None, None, None, None)
-            .await?
-        {
-            let repos = fetch_all_repos(&provider).await?;
-            for repo in repos {
-                let id = repo.id.to_string();
-                let Some(mut url) = repo.git_url else {
-                    continue;
-                };
-                let _ = url.set_scheme("https");
-                let url = url.to_string();
-                if cached_repositories.contains(&id) {
-                    self.db
-                        .update_github_provided_repository(id, repo.name, url)
-                        .await?;
-                } else {
-                    self.db
-                        .create_github_provided_repository(
-                            provider.id.clone().as_rowid()?,
-                            id,
-                            repo.name,
-                            url,
-                        )
-                        .await?;
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     async fn update_github_provided_repository(
         &self,
         vendor_id: String,
@@ -187,39 +158,6 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .await?;
         Ok(())
     }
-}
-
-async fn fetch_all_repos(
-    provider: &GithubRepositoryProvider,
-) -> Result<Vec<Repository>, anyhow::Error> {
-    let Some(token) = &provider.access_token else {
-        return Ok(vec![]);
-    };
-    let octocrab = Octocrab::builder()
-        .user_access_token(token.to_string())
-        .build()?;
-
-    let mut page = 1;
-    let mut repos = vec![];
-
-    loop {
-        let response = octocrab
-            .current()
-            .list_repos_for_authenticated_user()
-            .visibility("all")
-            .page(page)
-            .send()
-            .await?;
-
-        let pages = response.number_of_pages().unwrap_or_default() as u8;
-        repos.extend(response.items);
-
-        page += 1;
-        if page > pages {
-            break;
-        }
-    }
-    Ok(repos)
 }
 
 #[cfg(test)]
@@ -342,7 +280,10 @@ mod tests {
             .unwrap();
 
         service
-            .update_github_repository_provider_access_token(provider_id.as_id(), "token".into())
+            .update_github_repository_provider_access_token(
+                provider_id.as_id(),
+                Some("token".into()),
+            )
             .await
             .unwrap();
 
