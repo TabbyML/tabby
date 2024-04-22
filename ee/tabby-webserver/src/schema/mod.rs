@@ -5,6 +5,7 @@ pub mod git_repository;
 pub mod github_repository_provider;
 pub mod job;
 pub mod license;
+pub mod repository;
 pub mod setting;
 pub mod worker;
 
@@ -33,12 +34,14 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    git_repository::{GitRepository, GitRepositoryService},
+    git_repository::GitRepository,
     github_repository_provider::{
-        GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
+        CreateGithubRepositoryProviderInput, GithubProvidedRepository, GithubRepositoryProvider,
+        UpdateGithubRepositoryProviderInput,
     },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
+    repository::RepositoryService,
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
@@ -46,7 +49,7 @@ use self::{
 use crate::{
     axum::FromAuth,
     juniper::relay::{self, Connection},
-    schema::git_repository::FileEntrySearchResult,
+    schema::repository::FileEntrySearchResult,
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -55,12 +58,11 @@ pub trait ServiceLocator: Send + Sync {
     fn code(&self) -> Arc<dyn CodeSearch>;
     fn logger(&self) -> Arc<dyn EventLogger>;
     fn job(&self) -> Arc<dyn JobService>;
-    fn repository(&self) -> Arc<dyn GitRepositoryService>;
+    fn repository(&self) -> Arc<dyn RepositoryService>;
     fn email(&self) -> Arc<dyn EmailService>;
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
-    fn github_repository_provider(&self) -> Arc<dyn GithubRepositoryProviderService>;
 }
 
 pub struct Context {
@@ -219,6 +221,7 @@ impl Query {
 
     async fn github_repository_providers(
         ctx: &Context,
+        ids: Option<Vec<ID>>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -232,8 +235,15 @@ impl Query {
             last,
             |after, before, first, last| async move {
                 ctx.locator
-                    .github_repository_provider()
-                    .list_github_repository_providers(after, before, first, last)
+                    .repository()
+                    .github()
+                    .list_github_repository_providers(
+                        ids.unwrap_or_default(),
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
                     .await
             },
         )
@@ -256,7 +266,8 @@ impl Query {
             last,
             |after, before, first, last| async move {
                 ctx.locator
-                    .github_repository_provider()
+                    .repository()
+                    .github()
                     .list_github_provided_repositories_by_provider(
                         provider_ids,
                         after,
@@ -331,6 +342,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .repository()
+                    .git()
                     .list(after, before, first, last)
                     .await
             },
@@ -346,6 +358,7 @@ impl Query {
         check_claims(ctx)?;
         ctx.locator
             .repository()
+            .git()
             .search_files(&repository_name, &pattern, 40)
             .await
     }
@@ -586,13 +599,14 @@ impl Mutation {
         input.validate()?;
         ctx.locator
             .repository()
+            .git()
             .create(input.name, input.git_url)
             .await
     }
 
     async fn delete_git_repository(ctx: &Context, id: ID) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.repository().delete(&id).await
+        ctx.locator.repository().git().delete(&id).await
     }
 
     async fn update_git_repository(
@@ -602,7 +616,11 @@ impl Mutation {
         git_url: String,
     ) -> Result<bool> {
         check_admin(ctx).await?;
-        ctx.locator.repository().update(&id, name, git_url).await
+        ctx.locator
+            .repository()
+            .git()
+            .update(&id, name, git_url)
+            .await
     }
 
     async fn delete_invitation(ctx: &Context, id: ID) -> Result<ID> {
@@ -667,13 +685,62 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn create_github_repository_provider(
+        ctx: &Context,
+        input: CreateGithubRepositoryProviderInput,
+    ) -> Result<ID> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        let id = ctx
+            .locator
+            .repository()
+            .github()
+            .create_github_repository_provider(
+                input.display_name,
+                input.application_id,
+                input.secret,
+            )
+            .await?;
+        Ok(id)
+    }
+
+    async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .repository()
+            .github()
+            .delete_github_repository_provider(id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_github_repository_provider(
+        ctx: &Context,
+        input: UpdateGithubRepositoryProviderInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        ctx.locator
+            .repository()
+            .github()
+            .update_github_repository_provider(
+                input.id,
+                input.display_name,
+                input.application_id,
+                input.secret,
+            )
+            .await?;
+        Ok(true)
+    }
+
     async fn update_github_provided_repository_active(
         ctx: &Context,
         id: ID,
         active: bool,
     ) -> Result<bool> {
         ctx.locator
-            .github_repository_provider()
+            .repository()
+            .github()
             .update_github_provided_repository_active(id, active)
             .await?;
         Ok(true)

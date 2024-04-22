@@ -8,6 +8,7 @@ import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
 import useRouterStuff from '@/lib/hooks/use-router-stuff'
+import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { filename2prism } from '@/lib/language-utils'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
@@ -74,6 +75,7 @@ type SourceCodeBrowserContextValue = {
   setChatSideBarVisible: React.Dispatch<React.SetStateAction<boolean>>
   pendingEvent: QuickActionEventPayload | undefined
   setPendingEvent: (d: QuickActionEventPayload | undefined) => void
+  isChatEnabled: boolean | undefined
 }
 
 const SourceCodeBrowserContext =
@@ -88,6 +90,7 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
   const activePath = React.useMemo(() => {
     return searchParams.get('path')?.toString() ?? ''
   }, [searchParams])
+  const isChatEnabled = useIsChatEnabled()
 
   const setActivePath = (path: string | undefined, replace?: boolean) => {
     if (!path) {
@@ -157,7 +160,8 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         chatSideBarVisible,
         setChatSideBarVisible,
         pendingEvent,
-        setPendingEvent
+        setPendingEvent,
+        isChatEnabled
       }}
     >
       {children}
@@ -186,6 +190,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     setChatSideBarVisible,
     setPendingEvent
   } = React.useContext(SourceCodeBrowserContext)
+  const initializing = React.useRef(false)
   const { setProgress } = useTopbarProgress()
   const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
   const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
@@ -278,6 +283,9 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     const init = async () => {
+      if (initializing.current) return
+
+      initializing.current = true
       const { patchMap, expandedKeys, repos } = await getInitialFileData(
         activePath
       )
@@ -285,6 +293,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       // By default, selecting the first repository if initialPath is empty
       if (repos?.length && !activePath) {
         setActivePath(repos?.[0]?.basename, true)
+        initializing.current = false
         return
       }
 

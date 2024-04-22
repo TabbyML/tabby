@@ -279,6 +279,7 @@ pub struct PasswordResetInput {
         code = "password1",
         message = "Password must be at most 20 characters"
     ))]
+    #[validate(custom = "validate_password")]
     pub password1: String,
     #[validate(length(
         min = 8,
@@ -312,6 +313,7 @@ pub struct PasswordChangeInput {
         code = "newPassword1",
         message = "Password must be at most 20 characters"
     ))]
+    #[validate(custom = "validate_new_password")]
     pub new_password1: String,
     #[validate(length(
         min = 8,
@@ -465,8 +467,19 @@ pub trait AuthenticationService: Send + Sync {
 }
 
 fn validate_password(value: &str) -> Result<(), validator::ValidationError> {
+    validate_password_impl(value, "password1")
+}
+
+fn validate_new_password(value: &str) -> Result<(), validator::ValidationError> {
+    validate_password_impl(value, "newPassword1")
+}
+
+fn validate_password_impl(
+    value: &str,
+    code: &'static str,
+) -> Result<(), validator::ValidationError> {
     let make_validation_error = |message: &'static str| {
-        let mut err = validator::ValidationError::new("password1");
+        let mut err = validator::ValidationError::new(code);
         err.message = Some(Cow::Borrowed(message));
         Err(err)
     };

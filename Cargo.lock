@@ -3840,7 +3840,7 @@ dependencies = [
  "log",
  "ring",
  "rustls-pki-types",
- "rustls-webpki 0.102.2",
+ "rustls-webpki 0.102.3",
  "subtle",
  "zeroize",
 ]
@@ -3907,9 +3907,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.102.2"
+version = "0.102.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faaa0a62740bedb9b2ef5afa303da42764c012f743917351dc9a237ea1663610"
+checksum = "f3bce581c0dd41bce533ce695a1437fa16a7ab5ac3ccfa99fe1a620a7885eabf"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -4893,6 +4893,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabby-search"
+version = "0.11.0-dev.0"
+dependencies = [
+ "anyhow",
+ "ignore",
+ "nucleo",
+]
+
+[[package]]
 name = "tabby-webserver"
 version = "0.11.0-dev.0"
 dependencies = [
@@ -4908,7 +4917,6 @@ dependencies = [
  "hash-ids",
  "http 1.1.0",
  "hyper 0.14.27",
- "ignore",
  "jsonwebtoken",
  "juniper",
  "juniper-axum",
@@ -4916,7 +4924,6 @@ dependencies = [
  "lazy_static",
  "lettre",
  "mime_guess",
- "nucleo",
  "octocrab",
  "pin-project",
  "querystring",
@@ -4929,6 +4936,7 @@ dependencies = [
  "strum",
  "tabby-common",
  "tabby-db",
+ "tabby-search",
  "tarpc",
  "temp_testdir",
  "thiserror",

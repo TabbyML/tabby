@@ -62,8 +62,9 @@ pub fn routes(
     };
     Router::new()
         .route("/connect/:id", routing::get(connect))
-        .route("/callback", routing::get(callback))
+        // Routes defined past this point require authentication
         .layer(from_fn_with_state(auth, require_login_middleware))
+        .route("/callback", routing::get(callback))
         .with_state(state)
 }
 
@@ -136,7 +137,7 @@ async fn callback(
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    Ok(Redirect::temporary("/"))
+    Ok(Redirect::temporary("/integrations/callback"))
 }
 
 async fn connect(

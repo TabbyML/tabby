@@ -1,0 +1,11 @@
+[package]
+name = "tabby-search"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+ignore.workspace = true
+nucleo.workspace = true

@@ -147,6 +147,10 @@ function PromptFormRenderer(
       return
     }
 
+    if (isLoading) {
+      return
+    }
+
     let finalInput = input
     // replace queryname to doc.body of selected completions
     Object.keys(selectedCompletionsMap).forEach(key => {

@@ -45,7 +45,7 @@ export function AnnualActivity({
   let lastYearActivities = 0
   const dailyCompletionMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
-      const date = moment(cur.start).format('YYYY-MM-DD')
+      const date = moment.utc(cur.start).format('YYYY-MM-DD')
       lastYearActivities += cur.completions
       lastYearActivities += cur.selects
       return { ...acc, [date]: cur.completions }

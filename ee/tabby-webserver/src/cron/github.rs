@@ -13,7 +13,7 @@ pub async fn refresh_all_repositories(
     service: Arc<dyn GithubRepositoryProviderService>,
 ) -> Result<()> {
     for provider in service
-        .list_github_repository_providers(None, None, None, None)
+        .list_github_repository_providers(vec![], None, None, None, None)
         .await?
     {
         let start = Utc::now();
@@ -30,52 +30,54 @@ async fn refresh_repositories_for_provider(
     provider_id: ID,
 ) -> Result<()> {
     let cached_repositories: HashSet<_> = service
-        .list_github_provided_repositories_by_provider(vec![provider_id], None, None, None, None)
+        .list_github_provided_repositories_by_provider(
+            vec![provider_id.clone()],
+            None,
+            None,
+            None,
+            None,
+        )
         .await?
         .into_iter()
         .map(|repo| repo.vendor_id)
         .collect();
 
-    for provider in service
-        .list_github_repository_providers(None, None, None, None)
-        .await?
-    {
-        let repos = match fetch_all_repos(&provider).await {
-            Ok(repos) => repos,
-            Err(octocrab::Error::GitHub {
-                source: source @ GitHubError { .. },
-                ..
-            }) if source.status_code == http::status::StatusCode::UNAUTHORIZED => {
-                service
-                    .update_github_repository_provider_access_token(provider.id.clone(), None)
-                    .await?;
-                warn!(
-                    "GitHub credentials for provider {} are expired or invalid",
-                    provider.display_name
-                );
-                return Err(source.into());
-            }
-            Err(e) => {
-                warn!("Failed to fetch repositories from github: {e}");
-                return Err(e.into());
-            }
+    let provider = service.get_github_repository_provider(provider_id).await?;
+    let repos = match fetch_all_repos(&provider).await {
+        Ok(repos) => repos,
+        Err(octocrab::Error::GitHub {
+            source: source @ GitHubError { .. },
+            ..
+        }) if source.status_code == http::status::StatusCode::UNAUTHORIZED => {
+            service
+                .update_github_repository_provider_access_token(provider.id.clone(), None)
+                .await?;
+            warn!(
+                "GitHub credentials for provider {} are expired or invalid",
+                provider.display_name
+            );
+            return Err(source.into());
+        }
+        Err(e) => {
+            warn!("Failed to fetch repositories from github: {e}");
+            return Err(e.into());
+        }
+    };
+    for repo in repos {
+        let id = repo.id.to_string();
+        let Some(mut url) = repo.git_url else {
+            continue;
         };
-        for repo in repos {
-            let id = repo.id.to_string();
-            let Some(mut url) = repo.git_url else {
-                continue;
-            };
-            let _ = url.set_scheme("https");
-            let url = url.to_string();
-            if cached_repositories.contains(&id) {
-                service
-                    .update_github_provided_repository(id, repo.name, url)
-                    .await?;
-            } else {
-                service
-                    .create_github_provided_repository(provider.id.clone(), id, repo.name, url)
-                    .await?;
-            }
+        let _ = url.set_scheme("https");
+        let url = url.to_string();
+        if cached_repositories.contains(&id) {
+            service
+                .update_github_provided_repository(id, repo.name, url)
+                .await?;
+        } else {
+            service
+                .create_github_provided_repository(provider.id.clone(), id, repo.name, url)
+                .await?;
         }
     }
 

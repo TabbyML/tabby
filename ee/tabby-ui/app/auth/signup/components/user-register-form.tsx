@@ -22,6 +22,11 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
+import {
+  PASSWORD_ERRORCODE,
+  PasswordCheckList,
+  usePasswordErrors
+} from '@/components/password-check-list'
 
 export const registerUser = graphql(/* GraphQL */ `
   mutation register(
@@ -62,12 +67,17 @@ export function UserAuthForm({
   buttonClass,
   ...props
 }: UserAuthFormProps) {
+  const [showPasswordSchema, setShowPasswordSchema] = React.useState(false)
+  const [showPasswordError, setShowPasswordError] = React.useState(false)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       invitationCode
     }
   })
+
+  const { password1: password } = form.watch()
+  const [passworErrors] = usePasswordErrors(password)
 
   const router = useRouter()
   const signIn = useSignIn()
@@ -84,6 +94,11 @@ export function UserAuthForm({
     },
     form
   })
+
+  const onPasswordBlur = () => {
+    if (passworErrors.length === 0) return setShowPasswordSchema(false)
+    setShowPasswordError(true)
+  }
 
   return (
     <Form {...form}>
@@ -110,19 +125,31 @@ export function UserAuthForm({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="password1"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} value={field.value ?? ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div>
+            <FormField
+              control={form.control}
+              name="password1"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      {...field}
+                      onFocus={() => setShowPasswordSchema(true)}
+                      onBlur={onPasswordBlur}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <PasswordCheckList
+              password={password || ''}
+              showPasswordSchema={showPasswordSchema}
+              passworErrors={passworErrors as PASSWORD_ERRORCODE[]}
+              showPasswordError={showPasswordError}
+            />
+          </div>
           <FormField
             control={form.control}
             name="password2"

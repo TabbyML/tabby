@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use axum::{
     extract::{Path, State},
     http::Request,
@@ -17,7 +16,7 @@ use tabby_common::{
         event::{ComposedLogger, EventLogger},
         server_setting::ServerSetting,
     },
-    config::{RepositoryAccess, RepositoryConfig},
+    config::RepositoryAccess,
 };
 use tabby_db::DbConn;
 use tracing::{error, warn};
@@ -30,51 +29,17 @@ use crate::{
     path::db_file,
     repositories,
     schema::{
-        auth::AuthenticationService, create_schema, git_repository::GitRepositoryService,
-        github_repository_provider::GithubRepositoryProviderService, Schema, ServiceLocator,
+        auth::AuthenticationService, create_schema, repository::RepositoryService, Schema,
+        ServiceLocator,
     },
-    service::{
-        create_service_locator, event_logger::create_event_logger,
-        new_github_repository_provider_service,
-    },
+    service::{create_service_locator, event_logger::create_event_logger, repository},
     ui,
 };
-
-struct RepositoryAccessImpl {
-    git_repository_service: Arc<dyn GitRepositoryService>,
-    github_repository_service: Arc<dyn GithubRepositoryProviderService>,
-}
-
-#[async_trait]
-impl RepositoryAccess for RepositoryAccessImpl {
-    async fn list_repositories(&self) -> anyhow::Result<Vec<RepositoryConfig>> {
-        let mut repos: Vec<RepositoryConfig> = self
-            .git_repository_service
-            .list(None, None, None, None)
-            .await?
-            .into_iter()
-            .map(|repo| RepositoryConfig::new(repo.git_url))
-            .collect();
-
-        repos.extend(
-            self.github_repository_service
-                .list_provided_git_urls()
-                .await
-                .unwrap_or_default()
-                .into_iter()
-                .map(RepositoryConfig::new),
-        );
-
-        Ok(repos)
-    }
-}
 
 pub struct WebserverHandle {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
-    git_repository_service: Arc<dyn GitRepositoryService>,
-    github_repository_service: Arc<dyn GithubRepositoryProviderService>,
-    repository_access: Arc<dyn RepositoryAccess>,
+    repository: Arc<dyn RepositoryService>,
 }
 
 impl WebserverHandle {
@@ -82,21 +47,15 @@ impl WebserverHandle {
         let db = DbConn::new(db_file().as_path())
             .await
             .expect("Must be able to initialize db");
-        let git_repository_service = Arc::new(db.clone());
-        let github_repository_service =
-            Arc::new(new_github_repository_provider_service(db.clone()));
+
+        let repository = repository::create(db.clone());
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
         WebserverHandle {
             db,
             logger,
-            git_repository_service: git_repository_service.clone(),
-            github_repository_service: github_repository_service.clone(),
-            repository_access: Arc::new(RepositoryAccessImpl {
-                git_repository_service,
-                github_repository_service,
-            }),
+            repository,
         }
     }
 
@@ -105,7 +64,7 @@ impl WebserverHandle {
     }
 
     pub fn repository_access(&self) -> Arc<dyn RepositoryAccess> {
-        self.repository_access.clone()
+        self.repository.clone().access()
     }
 
     pub async fn attach_webserver(
@@ -119,8 +78,7 @@ impl WebserverHandle {
         let ctx = create_service_locator(
             self.logger(),
             code,
-            self.git_repository_service.clone(),
-            self.github_repository_service.clone(),
+            self.repository.clone(),
             self.db.clone(),
             is_chat_enabled,
         )
@@ -129,7 +87,7 @@ impl WebserverHandle {
             ctx.auth(),
             ctx.job(),
             ctx.worker(),
-            ctx.github_repository_provider(),
+            ctx.repository().github(),
             local_port,
         )
         .await;
@@ -154,20 +112,18 @@ impl WebserverHandle {
             .layer(Extension(schema))
             .route(
                 "/hub",
-                routing::get(hub::ws_handler)
-                    .with_state(HubState::new(ctx.clone(), self.repository_access.clone()).into()),
+                routing::get(hub::ws_handler).with_state(
+                    HubState::new(ctx.clone(), self.repository_access().clone()).into(),
+                ),
             )
             .nest(
                 "/repositories",
-                repositories::routes(ctx.repository(), ctx.auth()),
+                // FIXME(boxbeam): repositories routes should support both git / github repositories, but currently only git repositories are supported.
+                repositories::routes(ctx.repository().git(), ctx.auth()),
             )
             .nest(
                 "/integrations/github",
-                integrations::github::routes(
-                    ctx.auth(),
-                    ctx.setting(),
-                    ctx.github_repository_provider(),
-                ),
+                integrations::github::routes(ctx.auth(), ctx.setting(), ctx.repository().github()),
             )
             .route(
                 "/avatar/:id",
