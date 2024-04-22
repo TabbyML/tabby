@@ -120,7 +120,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
     }
 
     async fn refresh_repositories(&self, provider_id: ID) -> Result<()> {
-        let mut cached_repositories: HashSet<_> = self
+        let cached_repositories: HashSet<_> = self
             .list_github_provided_repositories_by_provider(
                 vec![provider_id],
                 None,
@@ -145,8 +145,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
                 };
                 let _ = url.set_scheme("https");
                 let url = url.to_string();
-                // Remove IDs as we process them so the remaining IDs are ones that were not found in the listing
-                if cached_repositories.remove(&id) {
+                if cached_repositories.contains(&id) {
                     self.db
                         .update_github_provided_repository(id, repo.name, url)
                         .await?;
@@ -161,13 +160,6 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
                         .await?;
                 }
             }
-        }
-
-        // Clean up repositories which were not returned by any listing
-        for removed_repository in cached_repositories {
-            self.db
-                .delete_github_provided_repository_by_vendor_id(removed_repository)
-                .await?;
         }
 
         Ok(())

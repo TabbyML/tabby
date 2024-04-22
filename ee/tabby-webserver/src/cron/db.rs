@@ -12,6 +12,8 @@ use crate::schema::{
     job::JobService,
 };
 
+use super::github::refresh_all_repositories;
+
 const EVERY_TWO_HOURS: &str = "0 0 1/2 * * * *";
 const EVERY_TEN_MINUTES: &str = "0 1/10 * * * *";
 
@@ -58,7 +60,7 @@ pub async fn update_integrated_github_repositories_job(
         EVERY_TEN_MINUTES,
         github_repository_provider,
         |github_repository_provider| async move {
-            Ok(github_repository_provider.refresh_repositories().await?)
+            Ok(refresh_all_repositories(github_repository_provider).await?)
         },
     )
     .await
