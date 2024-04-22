@@ -1,4 +1,12 @@
+## 1.5.3
+
+**stable**
+
+Stable release for 1.5.2.
+
 ## 1.5.2
+
+**pre-release**
 
 ### Fixes
 
