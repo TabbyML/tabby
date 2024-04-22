@@ -1,8 +1,9 @@
+use std::{collections::HashSet, sync::Arc};
+
 use anyhow::Result;
 use chrono::Utc;
 use juniper::ID;
 use octocrab::{models::Repository, GitHubError, Octocrab};
-use std::{collections::HashSet, sync::Arc};
 use tracing::warn;
 
 use crate::schema::github_repository_provider::{
