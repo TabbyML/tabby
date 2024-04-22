@@ -1,8 +1,6 @@
 mod deps;
 
 use std::{
-    collections::HashMap,
-    ffi::OsStr,
     fs::{self, read_to_string},
     io::{IsTerminal, Write},
 };
@@ -11,10 +9,10 @@ use anyhow::{anyhow, Result};
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use ignore::{DirEntry, Walk};
 use kdam::BarExt;
-use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
+    languages::get_language_by_ext,
     path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
@@ -48,13 +46,14 @@ impl RepositoryExt for RepositoryConfig {
                 .path()
                 .strip_prefix(basedir.as_path())
                 .expect("Paths always begin with the prefix");
-            let language = get_language(
+            let language = get_language_by_ext(
                 relative_path
                     .extension()
                     .ok_or_else(|| anyhow!("Unknown file extension for {relative_path:?}"))?,
             )
             .ok_or_else(|| anyhow!("Unknown language for {relative_path:?}"))?
-            .to_owned();
+            .to_owned()
+            .language();
             match read_to_string(entry.path()) {
                 Ok(file_content) => {
                     let source_file = SourceFile {
@@ -64,8 +63,8 @@ impl RepositoryExt for RepositoryConfig {
                         max_line_length: metrics::max_line_length(&file_content),
                         avg_line_length: metrics::avg_line_length(&file_content),
                         alphanum_fraction: metrics::alphanum_fraction(&file_content),
-                        tags: code.find_tags(&language, &file_content),
-                        language,
+                        tags: code.find_tags(language, &file_content),
+                        language: language.into(),
                     };
                     writer.write_json_lines([source_file.clone()])?;
                 }
@@ -83,14 +82,13 @@ impl RepositoryExt for RepositoryConfig {
     }
 }
 
-fn get_language(ext: &OsStr) -> Option<&str> {
-    let ext = ext.to_str().unwrap_or("");
-    EXTENSION_LANGUAGE.get(ext).copied()
-}
-
 fn is_source_code(entry: &DirEntry) -> bool {
     if entry.file_type().is_some_and(|x| x.is_file()) {
-        entry.path().extension().and_then(get_language).is_some()
+        entry
+            .path()
+            .extension()
+            .and_then(get_language_by_ext)
+            .is_some()
     } else {
         false
     }
@@ -154,54 +152,4 @@ mod metrics {
             0.0
         }
     }
-}
-
-lazy_static! {
-    static ref LANGUAGE_EXTENSION: HashMap<&'static str, Vec<&'static str>> = {
-        HashMap::from([
-            ("c", vec!["c", "h"]),
-            ("csharp", vec!["cs"]),
-            (
-                "cpp",
-                vec!["cpp", "hpp", "c++", "h++", "cc", "hh", "C", "H", "tcc"],
-            ),
-            ("css", vec!["css"]),
-            ("dockerfile", vec!["Dockerfile"]),
-            ("go", vec!["go"]),
-            ("haskell", vec!["hs"]),
-            ("html", vec!["html"]),
-            ("java", vec!["java"]),
-            ("kotlin", vec!["kt", "kts"]),
-            ("julia", vec!["jl"]),
-            ("lua", vec!["lua"]),
-            ("makefile", vec!["Makefile"]),
-            ("markdown", vec!["md", "markdown"]),
-            ("php", vec!["php", "php3", "php4", "php5", "phps", "phpt"]),
-            ("perl", vec!["pl", "pm", "pod", "perl"]),
-            ("powershell", vec!["ps1", "psd1", "psm1"]),
-            ("python", vec!["py"]),
-            ("ruby", vec!["rb"]),
-            ("rust", vec!["rs"]),
-            ("solidity", vec!["sol"]),
-            ("sql", vec!["sql"]),
-            ("scala", vec!["scala"]),
-            ("shellscript", vec!["sh", "bash", "command", "zsh"]),
-            (
-                "javascript-typescript",
-                vec!["ts", "mts", "js", "mjs", "jsx", "tsx"],
-            ),
-            ("tex", vec!["tex"]),
-            ("vb", vec!["vb"]),
-        ])
-    };
-    static ref EXTENSION_LANGUAGE: HashMap<&'static str, &'static str> = {
-        let mut map = HashMap::new();
-        for (lang, exts) in &*LANGUAGE_EXTENSION {
-            for ext in exts {
-                map.insert(*ext, *lang);
-            }
-        }
-
-        map
-    };
 }
