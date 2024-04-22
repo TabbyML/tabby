@@ -11,6 +11,7 @@ pub struct CompletionStats {
     pub end: DateTime<Utc>,
 
     pub completions: i32,
+    pub views: i32,
     pub selects: i32,
 }
 
