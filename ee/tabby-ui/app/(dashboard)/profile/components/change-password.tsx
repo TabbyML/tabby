@@ -44,7 +44,6 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   onSuccess,
   showOldPassword
 }) => {
-  // const [password, setPassword] = React.useState('')
   const [showPasswordSchema, setShowPasswordSchema] = React.useState(false)
   const [passworErrors, setPasswordErrors] = React.useState<
     PASSWORD_ERRORCODE[]
@@ -60,7 +59,6 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     resolver: zodResolver(formSchema)
   })
   const { isSubmitting } = form.formState
-  
   const { newPassword1: password } = form.watch()
 
   React.useEffect(() => {
@@ -88,7 +86,6 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           newPassword2: '',
           oldPassword: ''
         })
-        // setPassword('')
       }
     }
   })
