@@ -45,12 +45,12 @@ impl AnalyticService for AnalyticServiceImpl {
         let users = convert_ids(users);
 
         let all_languages = Language::all_known()
-            .flat_map(|l| l.to_strings().to_owned())
+            .flat_map(|l| l.language_names())
             .map(str::to_owned)
             .collect();
         let languages = languages
             .into_iter()
-            .flat_map(|l| l.to_strings().to_owned())
+            .flat_map(|l| l.language_names())
             .map(str::to_owned)
             .collect();
         let stats = self

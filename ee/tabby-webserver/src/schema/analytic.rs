@@ -37,33 +37,11 @@ pub enum Language {
 }
 
 lazy_static! {
-    static ref LANGUAGE_STRING_MAPPINGS: HashMap<Language, Vec<&'static str>> = {
+    static ref NAME_LANGUAGE_MAPPINGS: HashMap<&'static str, Language> = {
         let mut map = HashMap::new();
         for language in Language::iter() {
-            let value = match language {
-                Language::Rust => vec!["rust"],
-                Language::Python => vec!["python"],
-                Language::Java => vec!["java"],
-                Language::Kotlin => vec!["kotlin"],
-                Language::Javascript => vec!["javascript", "javascriptreact"],
-                Language::Typescript => vec!["typescript", "typescriptreact"],
-                Language::Go => vec!["go"],
-                Language::Ruby => vec!["ruby"],
-                Language::CSharp => vec!["csharp"],
-                Language::C => vec!["c"],
-                Language::Cpp => vec!["cpp", "c++"],
-                Language::Solidity => vec!["solidity"],
-                Language::Other => vec!["other"],
-            };
-            map.insert(language, value);
-        }
-        map
-    };
-    static ref STRING_LANGUAGE_MAPPINGS: HashMap<&'static str, Language> = {
-        let mut map = HashMap::new();
-        for (language, strings) in LANGUAGE_STRING_MAPPINGS.iter() {
-            for string in strings {
-                map.insert(*string, language.clone());
+            for name in language.language_names() {
+                map.insert(name, language.clone());
             }
         }
         map
@@ -75,20 +53,28 @@ impl Language {
         Language::iter().filter(|l| l != &Language::Other)
     }
 
-    pub fn to_strings(&self) -> &'static Vec<&'static str> {
-        if let Some(vec) = LANGUAGE_STRING_MAPPINGS.get(self) {
-            vec
-        } else {
-            LANGUAGE_STRING_MAPPINGS
-                .get(&Language::Other)
-                .expect("Language::Other should present")
+    pub fn language_names(&self) -> Vec<&'static str> {
+        match self {
+            Language::Rust => vec!["rust"],
+            Language::Python => vec!["python"],
+            Language::Java => vec!["java"],
+            Language::Kotlin => vec!["kotlin"],
+            Language::Javascript => vec!["javascript", "javascriptreact"],
+            Language::Typescript => vec!["typescript", "typescriptreact"],
+            Language::Go => vec!["go"],
+            Language::Ruby => vec!["ruby"],
+            Language::CSharp => vec!["csharp"],
+            Language::C => vec!["c"],
+            Language::Cpp => vec!["cpp", "c++"],
+            Language::Solidity => vec!["solidity"],
+            Language::Other => vec!["other"],
         }
     }
 }
 
 impl From<String> for Language {
     fn from(val: String) -> Self {
-        if let Some(lang) = STRING_LANGUAGE_MAPPINGS.get(val.as_str()) {
+        if let Some(lang) = NAME_LANGUAGE_MAPPINGS.get(val.as_str()) {
             lang.clone()
         } else {
             Language::Other
