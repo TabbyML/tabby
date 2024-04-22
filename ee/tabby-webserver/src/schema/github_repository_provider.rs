@@ -38,8 +38,12 @@ pub struct GithubRepositoryProvider {
     pub id: ID,
     pub display_name: String,
     pub application_id: String,
+
+    pub connected: bool,
+
     #[graphql(skip)]
     pub secret: String,
+
     #[graphql(skip)]
     pub access_token: Option<String>,
 }

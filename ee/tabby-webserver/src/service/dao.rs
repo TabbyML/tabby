@@ -128,8 +128,9 @@ impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
             display_name: value.display_name,
             application_id: value.application_id,
             id: value.id.as_id(),
-            access_token: value.access_token,
             secret: value.secret,
+            connected: value.access_token.is_some(),
+            access_token: value.access_token,
         }
     }
 }
