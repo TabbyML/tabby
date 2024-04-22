@@ -217,9 +217,8 @@ export default function Stats() {
   const startDate = moment()
     .subtract(DATE_RANGE, 'day')
     .startOf('day')
-    .utc()
-    .format()
-  const endDate = moment().endOf('day').utc().format()
+    .format('YYYY-MM-DD[T]HH:mm:ss[Z]')
+  const endDate = moment().endOf('day').format('YYYY-MM-DD[T]HH:mm:ss[Z]')
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -231,18 +230,19 @@ export default function Stats() {
     }
   })
   let dailyStats: DailyStatsQuery['dailyStats'] | undefined
+
   if (sample) {
     const daysBetweenRange = eachDayOfInterval({
-      start: startDate,
-      end: endDate
+      start: moment().subtract(DATE_RANGE, 'day').toDate(),
+      end: moment().toDate()
     })
     dailyStats = daysBetweenRange.map(date => {
       const rng = seedrandom(moment(date).format('YYYY-MM-DD') + data?.me.id)
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 25)
       return {
-        start: moment(date).startOf('day').toDate(),
-        end: moment(date).endOf('day').toDate(),
+        start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
+        end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         completions,
         selects
       }
@@ -275,8 +275,8 @@ export default function Stats() {
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
-        start: moment(date).startOf('day').toDate(),
-        end: moment(date).endOf('day').toDate(),
+        start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
+        end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         completions,
         selects
       }
@@ -291,7 +291,7 @@ export default function Stats() {
   }
   const dailyCompletionMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
-      const date = moment(cur.start).format('YYYY-MM-DD')
+      const date = moment.utc(cur.start).format('YYYY-MM-DD')
       lastYearActivities += cur.completions
       lastYearActivities += cur.selects
       return { ...acc, [date]: cur.completions }
@@ -359,7 +359,6 @@ export default function Stats() {
   }
 
   if (!data?.me?.id) return <></>
-
   return (
     <div className="flex w-full flex-col gap-y-8">
       <LoadingWrapper
@@ -382,9 +381,8 @@ export default function Stats() {
       >
         <CompletionCharts
           dailyStats={dailyStats}
-          from={moment(startDate).toDate()}
-          to={moment(endDate).toDate()}
-          dateRange={DATE_RANGE}
+          from={moment().subtract(DATE_RANGE, 'day').toDate()}
+          to={moment().toDate()}
         />
       </LoadingWrapper>
 
