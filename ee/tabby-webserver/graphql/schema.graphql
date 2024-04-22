@@ -186,7 +186,7 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  createGithubRepositoryProvider(input: CreateGithubRepositoryProviderInput!): Boolean!
+  createGithubRepositoryProvider(input: CreateGithubRepositoryProviderInput!): ID!
   deleteGithubRepositoryProvider(id: ID!): Boolean!
   updateGithubRepositoryProvider(input: UpdateGithubRepositoryProviderInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
