@@ -43,6 +43,28 @@ export function PasswordCheckList({
   passworErrors: PASSWORD_ERRORCODE[]
   showPasswordError: boolean
 }) {
+  function PasswordRule ({
+    errorCode,
+    text
+  }: {
+    errorCode: PASSWORD_ERRORCODE,
+    text: string
+  }) {
+    return (
+      <li
+        className={cn('py-0.5', {
+          'text-green-600 dark:text-green-500':
+            password.length > 0 &&
+            !passworErrors.includes(errorCode),
+          'text-red-600 dark:text-red-500':
+            showPasswordError &&
+            password.length > 0 &&
+            passworErrors.includes(errorCode)
+        })}
+      >{text}</li>
+    )
+  }
+
   return (
     <div
       className={cn('relative text-sm transition-all', {
@@ -54,83 +76,27 @@ export function PasswordCheckList({
         Set up a strong password with
       </p>
       <ul className="list-disc pl-4">
-        <li
-          className={cn('py-0.5', {
-            'text-green-600 dark:text-green-500':
-              password.length > 0 &&
-              !passworErrors.includes(PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR),
-            'text-red-600 dark:text-red-500':
-              showPasswordError &&
-              password.length > 0 &&
-              passworErrors.includes(PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR)
-          })}
-        >
-          At least 8 characters long
-        </li>
-        <li
-          className={cn('py-0.5', {
-            'text-green-600 dark:text-green-500':
-              password.length > 0 &&
-              !passworErrors.includes(PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT),
-            'text-red-600 dark:text-red-500':
-              showPasswordError &&
-              password.length > 0 &&
-              passworErrors.includes(PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT)
-          })}
-        >
-          No more than 20 characters long
-        </li>
-        <li
-          className={cn('py-0.5', {
-            'text-green-600 dark:text-green-500':
-              password.length > 0 &&
-              !passworErrors.includes(PASSWORD_ERRORCODE.LOWERCASE_MSISSING),
-            'text-red-600 dark:text-red-500':
-              showPasswordError &&
-              password.length > 0 &&
-              passworErrors.includes(PASSWORD_ERRORCODE.LOWERCASE_MSISSING)
-          })}
-        >
-          At least one lowercase character
-        </li>
-        <li
-          className={cn('py-0.5', {
-            'text-green-600 dark:text-green-500':
-              password.length > 0 &&
-              !passworErrors.includes(PASSWORD_ERRORCODE.UPPERCASE_MSISSING),
-            'text-red-600 dark:text-red-500':
-              showPasswordError &&
-              password.length > 0 &&
-              passworErrors.includes(PASSWORD_ERRORCODE.UPPERCASE_MSISSING)
-          })}
-        >
-          At least one uppercase character
-        </li>
-        <li
-          className={cn('py-0.5', {
-            'text-green-600 dark:text-green-500':
-              password.length > 0 &&
-              !passworErrors.includes(PASSWORD_ERRORCODE.NUMBER_MISSING),
-            'text-red-600 dark:text-red-500':
-              showPasswordError &&
-              password.length > 0 &&
-              passworErrors.includes(PASSWORD_ERRORCODE.NUMBER_MISSING)
-          })}
-        >
-          At least one numeric character
-        </li>
-        <li
-          className={cn('py-0.5', {
-            'text-green-600 dark:text-green-500':
-              password.length > 0 &&
-              !passworErrors.includes(PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING),
-            'text-red-600 dark:text-red-500':
-              showPasswordError &&
-              password.length > 0 &&
-              passworErrors.includes(PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING)
-          })}
-        >{`At least one special character , such as @#$%^&{}`}</li>
+        <PasswordRule
+          errorCode={PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR}
+          text='At least 8 characters long' />
+        <PasswordRule
+          errorCode={PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT}
+          text='No more than 20 characters long' />
+        <PasswordRule
+          errorCode={PASSWORD_ERRORCODE.LOWERCASE_MSISSING}
+          text='At least one lowercase character' />
+        <PasswordRule
+          errorCode={PASSWORD_ERRORCODE.UPPERCASE_MSISSING}
+          text='At least one uppercase character' />
+        <PasswordRule
+          errorCode={PASSWORD_ERRORCODE.NUMBER_MISSING}
+          text='At least one numeric character' />
+        <PasswordRule
+          errorCode={PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING}
+          text={`At least one special character , such as @#$%^&{}`} />
       </ul>
     </div>
   )
 }
+
+
