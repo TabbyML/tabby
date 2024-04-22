@@ -4664,6 +4664,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabby-search"
+version = "0.11.0-dev.0"
+dependencies = [
+ "anyhow",
+ "ignore",
+ "nucleo",
+]
+
+[[package]]
 name = "tabby-webserver"
 version = "0.11.0-dev.0"
 dependencies = [
@@ -4678,7 +4687,6 @@ dependencies = [
  "futures",
  "hash-ids",
  "hyper",
- "ignore",
  "jsonwebtoken",
  "juniper",
  "juniper-axum",
@@ -4686,7 +4694,6 @@ dependencies = [
  "lazy_static",
  "lettre",
  "mime_guess",
- "nucleo",
  "pin-project",
  "querystring",
  "regex",
@@ -4698,6 +4705,7 @@ dependencies = [
  "strum",
  "tabby-common",
  "tabby-db",
+ "tabby-search",
  "tarpc",
  "temp_testdir",
  "thiserror",

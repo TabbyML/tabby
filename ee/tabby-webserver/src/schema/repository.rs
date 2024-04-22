@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use juniper::GraphQLObject;
 use tabby_common::config::RepositoryAccess;
+use tabby_search::FileSearch;
 
 use super::{
     git_repository::GitRepositoryService,
@@ -18,12 +19,12 @@ pub struct FileEntrySearchResult {
     pub indices: Vec<i32>,
 }
 
-impl FileEntrySearchResult {
-    pub fn new(r#type: String, path: String, indices: Vec<u32>) -> Self {
+impl From<FileSearch> for FileEntrySearchResult {
+    fn from(value: FileSearch) -> Self {
         Self {
-            r#type,
-            path,
-            indices: indices.into_iter().map(|i| i as i32).collect(),
+            r#type: value.r#type,
+            path: value.path,
+            indices: value.indices,
         }
     }
 }
