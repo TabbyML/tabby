@@ -19,6 +19,21 @@ where
     type Rejection = Rejection;
 
     async fn from_request_parts(req: &mut Parts, _: &B) -> Result<Self, Self::Rejection> {
+        let access_token = req
+            .uri
+            .query()
+            .and_then(|q| {
+                querystring::querify(q)
+                    .into_iter()
+                    .filter(|(k, _)| *k == "access_token")
+                    .map(|(_, v)| v)
+                    .next()
+            });
+
+        if let Some(access_token) = access_token {
+            return Ok(Self(Some(access_token.into())));
+        };
+
         // Get authorization header
         let authorization = req
             .headers
