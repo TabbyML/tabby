@@ -1,7 +1,4 @@
-use std::path::Path;
-
 use async_trait::async_trait;
-use ignore::Walk;
 use juniper::ID;
 use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
@@ -61,9 +58,8 @@ impl GitRepositoryService for DbConn {
 
         let pattern = pattern.to_owned();
         let matching = tokio::task::spawn_blocking(move || async move {
-            match_pattern(&config.dir(), &pattern, top_n)
-                .await
-                .map_err(anyhow::Error::from)
+            tabby_search::FileSearch::search(&config.dir(), &pattern, top_n)
+                .map(|x| x.into_iter().map(|f| f.into()).collect())
         })
         .await
         .map_err(anyhow::Error::from)?
@@ -71,54 +67,6 @@ impl GitRepositoryService for DbConn {
 
         Ok(matching)
     }
-}
-
-async fn match_pattern(
-    base: &Path,
-    pattern: &str,
-    limit: usize,
-) -> Result<Vec<FileEntrySearchResult>, anyhow::Error> {
-    let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
-    let needle = nucleo::pattern::Pattern::new(
-        pattern,
-        nucleo::pattern::CaseMatching::Ignore,
-        nucleo::pattern::Normalization::Smart,
-        nucleo::pattern::AtomKind::Fuzzy,
-    );
-
-    let mut scored_entries: Vec<(_, _)> = Walk::new(base)
-        // Limit traversal for at most 1M entries for performance reasons.
-        .take(1_000_000)
-        .filter_map(|path| {
-            let entry = path.ok()?;
-            let r#type = if entry.file_type().map(|x| x.is_dir()).unwrap_or_default() {
-                "dir".into()
-            } else {
-                "file".into()
-            };
-            let path = entry
-                .into_path()
-                .strip_prefix(base)
-                .ok()?
-                .to_string_lossy()
-                .into_owned();
-            let haystack: nucleo::Utf32String = path.clone().into();
-            let mut indices = Vec::new();
-            let score = needle.indices(haystack.slice(..), &mut nucleo, &mut indices);
-            score.map(|score| (score, FileEntrySearchResult::new(r#type, path, indices)))
-        })
-        // Ensure there's at least 1000 entries with scores > 0 for quality.
-        .take(1000)
-        .collect();
-
-    scored_entries.sort_by_key(|x| -(x.0 as i32));
-    let entries = scored_entries
-        .into_iter()
-        .map(|x| x.1)
-        .take(limit)
-        .collect();
-
-    Ok(entries)
 }
 
 #[cfg(test)]
