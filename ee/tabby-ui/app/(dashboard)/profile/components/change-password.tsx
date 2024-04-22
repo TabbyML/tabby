@@ -141,8 +141,6 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
                     autoCorrect="off"
                     type="password"
                     {...field}
-                    // value={password}
-                    // onChange={onChangePassword}
                     onFocus={() => setShowPasswordSchema(true)}
                     onBlur={onPasswordBlur}
                   />

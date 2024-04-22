@@ -25,10 +25,10 @@ export const passwordSchema = z
   .refine(password => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(password), {
     params: { errorCode: PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING }
   })
-  .refine(password => password.length > 8, {
+  .refine(password => password.length >= 8, {
     params: { errorCode: PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR }
   })
-  .refine(password => password.length < 20, {
+  .refine(password => password.length <= 20, {
     params: { errorCode: PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT }
   })
 
