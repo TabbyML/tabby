@@ -39,19 +39,24 @@ pub enum Language {
 lazy_static! {
     static ref LANGUAGE_STRING_MAPPINGS: HashMap<Language, Vec<&'static str>> = {
         let mut map = HashMap::new();
-        map.insert(Language::Rust, vec!["rust"]);
-        map.insert(Language::Python, vec!["python"]);
-        map.insert(Language::Java, vec!["java"]);
-        map.insert(Language::Kotlin, vec!["kotlin"]);
-        map.insert(Language::Javascript, vec!["javascript", "javascriptreact"]);
-        map.insert(Language::Typescript, vec!["typescript", "typescriptreact"]);
-        map.insert(Language::Go, vec!["go"]);
-        map.insert(Language::Ruby, vec!["ruby"]);
-        map.insert(Language::CSharp, vec!["csharp"]);
-        map.insert(Language::C, vec!["c"]);
-        map.insert(Language::Cpp, vec!["cpp", "c++"]);
-        map.insert(Language::Solidity, vec!["solidity"]);
-        map.insert(Language::Other, vec!["other"]);
+        for language in Language::iter() {
+            let value = match language {
+                Language::Rust => vec!["rust"],
+                Language::Python => vec!["python"],
+                Language::Java => vec!["java"],
+                Language::Kotlin => vec!["kotlin"],
+                Language::Javascript => vec!["javascript", "javascriptreact"],
+                Language::Typescript => vec!["typescript", "typescriptreact"],
+                Language::Go => vec!["go"],
+                Language::Ruby => vec!["ruby"],
+                Language::CSharp => vec!["csharp"],
+                Language::C => vec!["c"],
+                Language::Cpp => vec!["cpp", "c++"],
+                Language::Solidity => vec!["solidity"],
+                Language::Other => vec!["other"],
+            };
+            map.insert(language, value);
+        }
         map
     };
     static ref STRING_LANGUAGE_MAPPINGS: HashMap<&'static str, Language> = {
