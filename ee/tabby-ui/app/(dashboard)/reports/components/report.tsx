@@ -157,7 +157,9 @@ export function Report() {
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
     query: queryDailyStats,
     variables: {
-      start: moment(dateRange.from).startOf('day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
+      start: moment(dateRange.from)
+        .startOf('day')
+        .format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
       end: moment(dateRange.to).endOf('day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
       users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
       languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
