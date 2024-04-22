@@ -34,10 +34,10 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    git_repository::{GitRepository, GitRepositoryService},
+    git_repository::GitRepository,
     github_repository_provider::{
         CreateGithubRepositoryProviderInput, GithubProvidedRepository, GithubRepositoryProvider,
-        GithubRepositoryProviderService, UpdateGithubRepositoryProviderInput,
+        UpdateGithubRepositoryProviderInput,
     },
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},

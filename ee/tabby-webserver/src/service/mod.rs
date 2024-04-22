@@ -40,7 +40,6 @@ use crate::{
         analytic::AnalyticService,
         auth::AuthenticationService,
         email::EmailService,
-        git_repository::GitRepositoryService,
         job::JobService,
         license::{IsLicenseValid, LicenseService},
         repository::RepositoryService,
