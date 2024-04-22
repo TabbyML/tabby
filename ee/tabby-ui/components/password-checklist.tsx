@@ -91,7 +91,7 @@ export function PasswordCheckList({
               passworErrors.includes(PASSWORD_ERRORCODE.LOWERCASE_MSISSING)
           })}
         >
-          At least one lowercase letter
+          At least one lowercase character
         </li>
         <li
           className={cn('py-0.5', {
@@ -104,7 +104,7 @@ export function PasswordCheckList({
               passworErrors.includes(PASSWORD_ERRORCODE.UPPERCASE_MSISSING)
           })}
         >
-          At least one uppercase letter
+          At least one uppercase character
         </li>
         <li
           className={cn('py-0.5', {
@@ -117,7 +117,7 @@ export function PasswordCheckList({
               passworErrors.includes(PASSWORD_ERRORCODE.NUMBER_MISSING)
           })}
         >
-          At least one number
+          At least one numeric character
         </li>
         <li
           className={cn('py-0.5', {
