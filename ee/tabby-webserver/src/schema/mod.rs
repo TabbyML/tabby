@@ -688,10 +688,11 @@ impl Mutation {
     async fn create_github_repository_provider(
         ctx: &Context,
         input: CreateGithubRepositoryProviderInput,
-    ) -> Result<bool> {
+    ) -> Result<ID> {
         check_admin(ctx).await?;
         input.validate()?;
-        ctx.locator
+        let id = ctx
+            .locator
             .repository()
             .github()
             .create_github_repository_provider(
@@ -700,7 +701,7 @@ impl Mutation {
                 input.secret,
             )
             .await?;
-        Ok(true)
+        Ok(id)
     }
 
     async fn delete_github_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
