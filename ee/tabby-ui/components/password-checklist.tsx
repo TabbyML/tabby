@@ -56,10 +56,10 @@ export function PasswordCheckList({
       <ul className="list-disc pl-4">
         <li
           className={cn('py-0.5', {
-            'text-green-600':
+            'text-green-600 dark:text-green-500':
               password.length > 0 &&
               !passworErrors.includes(PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR),
-            'text-red-600':
+            'text-red-600 dark:text-red-500':
               showPasswordError &&
               password.length > 0 &&
               passworErrors.includes(PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR)
@@ -69,10 +69,10 @@ export function PasswordCheckList({
         </li>
         <li
           className={cn('py-0.5', {
-            'text-green-600':
+            'text-green-600 dark:text-green-500':
               password.length > 0 &&
               !passworErrors.includes(PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT),
-            'text-red-600':
+            'text-red-600 dark:text-red-500':
               showPasswordError &&
               password.length > 0 &&
               passworErrors.includes(PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT)
@@ -82,10 +82,10 @@ export function PasswordCheckList({
         </li>
         <li
           className={cn('py-0.5', {
-            'text-green-600':
+            'text-green-600 dark:text-green-500':
               password.length > 0 &&
               !passworErrors.includes(PASSWORD_ERRORCODE.LOWERCASE_MSISSING),
-            'text-red-600':
+            'text-red-600 dark:text-red-500':
               showPasswordError &&
               password.length > 0 &&
               passworErrors.includes(PASSWORD_ERRORCODE.LOWERCASE_MSISSING)
@@ -95,10 +95,10 @@ export function PasswordCheckList({
         </li>
         <li
           className={cn('py-0.5', {
-            'text-green-600':
+            'text-green-600 dark:text-green-500':
               password.length > 0 &&
               !passworErrors.includes(PASSWORD_ERRORCODE.UPPERCASE_MSISSING),
-            'text-red-600':
+            'text-red-600 dark:text-red-500':
               showPasswordError &&
               password.length > 0 &&
               passworErrors.includes(PASSWORD_ERRORCODE.UPPERCASE_MSISSING)
@@ -108,10 +108,10 @@ export function PasswordCheckList({
         </li>
         <li
           className={cn('py-0.5', {
-            'text-green-600':
+            'text-green-600 dark:text-green-500':
               password.length > 0 &&
               !passworErrors.includes(PASSWORD_ERRORCODE.NUMBER_MISSING),
-            'text-red-600':
+            'text-red-600 dark:text-red-500':
               showPasswordError &&
               password.length > 0 &&
               passworErrors.includes(PASSWORD_ERRORCODE.NUMBER_MISSING)
@@ -121,10 +121,10 @@ export function PasswordCheckList({
         </li>
         <li
           className={cn('py-0.5', {
-            'text-green-600':
+            'text-green-600 dark:text-green-500':
               password.length > 0 &&
               !passworErrors.includes(PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING),
-            'text-red-600':
+            'text-red-600 dark:text-red-500':
               showPasswordError &&
               password.length > 0 &&
               passworErrors.includes(PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING)
