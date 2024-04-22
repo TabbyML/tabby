@@ -22,6 +22,7 @@ import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { ListSkeleton } from '@/components/skeleton'
+import { PASSWORD_ERRORCODE, passwordSchema, PasswordCheckList } from '@/components/password-checklist'
 
 const passwordChangeMutation = graphql(/* GraphQL */ `
   mutation PasswordChange($input: PasswordChangeInput!) {
@@ -38,6 +39,12 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   onSuccess,
   showOldPassword
 }) => {
+  const [password, setPassword] = React.useState('')
+  const [showPasswordSchema, setShowPasswordSchema] = React.useState(false)
+  const [passworErrors, setPasswordErrors] = React.useState<
+    PASSWORD_ERRORCODE[]
+  >([])
+  const [showPasswordError, setShowPasswordError] = React.useState(false)
   const formSchema = z.object({
     oldPassword: showOldPassword ? z.string() : z.string().optional(),
     newPassword1: z.string(),
@@ -59,6 +66,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           newPassword2: '',
           oldPassword: ''
         })
+        setPassword("")
       }
     }
   })
@@ -67,6 +75,27 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     await passwordChange({
       input: values
     })
+  }
+
+  const onChangePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const password = e.target.value
+    form.setValue('newPassword1', password)
+    setPassword(password)
+    try {
+      passwordSchema.parse(password)
+      setPasswordErrors([])
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setPasswordErrors(
+          err.issues.map((error: any) => error.params.errorCode)
+        )
+      }
+    }
+  }
+
+  const onPasswordBlur = () => {
+    if (passworErrors.length === 0) return setShowPasswordSchema(false)
+    setShowPasswordError(true)
   }
 
   return (
@@ -94,26 +123,36 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             )}
           />
         )}
-        <FormField
-          control={form.control}
-          name="newPassword1"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel required>New password</FormLabel>
-              <FormControl>
-                <Input
-                  className="w-[350px]"
-                  autoCapitalize="none"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  type="password"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div>
+          <FormField
+            control={form.control}
+            name="newPassword1"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>New password</FormLabel>
+                <FormControl>
+                  <Input
+                    className="w-[350px]"
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    type="password"
+                    {...field}
+                    value={password}
+                    onChange={onChangePassword}
+                    onFocus={() => setShowPasswordSchema(true)}
+                    onBlur={onPasswordBlur}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <PasswordCheckList
+            password={password}
+            showPasswordSchema={showPasswordSchema}
+            passworErrors={passworErrors}
+            showPasswordError={showPasswordError} />
+        </div>
         <FormField
           control={form.control}
           name="newPassword2"
