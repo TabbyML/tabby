@@ -220,7 +220,7 @@ export default function Stats() {
     .utc()
     .format()
   const endDate = moment().endOf('day').utc().format()
-
+  
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
     query: queryDailyStats,
@@ -231,18 +231,19 @@ export default function Stats() {
     }
   })
   let dailyStats: DailyStatsQuery['dailyStats'] | undefined
+
   if (sample) {
     const daysBetweenRange = eachDayOfInterval({
       start: startDate,
       end: endDate
-    })
+    }).map((item: Date) => moment(item).format('YYYY-MM-DD[T]HH:mm:ss[Z]'))
     dailyStats = daysBetweenRange.map(date => {
       const rng = seedrandom(moment(date).format('YYYY-MM-DD') + data?.me.id)
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 25)
       return {
-        start: moment(date).startOf('day').toDate(),
-        end: moment(date).endOf('day').toDate(),
+        start: date,
+        end: moment(date).add(1, 'day').utc().format(),
         completions,
         selects
       }
@@ -269,14 +270,14 @@ export default function Stats() {
     const daysBetweenRange = eachDayOfInterval({
       start: moment().toDate(),
       end: moment().subtract(365, 'days').toDate()
-    })
+    }).map((item: Date) => moment(item).format('YYYY-MM-DD[T]HH:mm:ss[Z]'))
     yearlyStats = daysBetweenRange.map(date => {
       const rng = seedrandom(moment(date).format('YYYY-MM-DD') + data?.me.id)
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
-        start: moment(date).startOf('day').toDate(),
-        end: moment(date).endOf('day').toDate(),
+        start: date,
+        end: moment(date).add(1, 'day').utc().format(),
         completions,
         selects
       }
@@ -291,7 +292,7 @@ export default function Stats() {
   }
   const dailyCompletionMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
-      const date = moment(cur.start).format('YYYY-MM-DD')
+      const date = moment.utc(cur.start).format('YYYY-MM-DD')
       lastYearActivities += cur.completions
       lastYearActivities += cur.selects
       return { ...acc, [date]: cur.completions }

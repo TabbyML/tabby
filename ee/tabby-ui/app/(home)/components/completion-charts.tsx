@@ -121,13 +121,13 @@ export function CompletionCharts({
   const daysBetweenRange = eachDayOfInterval({
     start: from,
     end: to
-  })
+  }).map((item: Date) => moment(item).format('YYYY-MM-DD[T]HH:mm:ss[Z]'))
 
   // Mapping data of { date: amount }
   const dailyCompletionMap: Record<string, number> = {}
   const dailySelectMap: Record<string, number> = {}
   dailyStats?.forEach(stats => {
-    const date = moment(stats.start).format('YYYY-MM-DD')
+    const date = moment.utc(stats.start).format('YYYY-MM-DD')
     dailyCompletionMap[date] = stats.completions
     dailySelectMap[date] = stats.selects
   }, {})
@@ -138,11 +138,11 @@ export function CompletionCharts({
       ? 0
       : ((totalAccepts / totalCompletions) * 100).toFixed(2)
   const acceptRateData = daysBetweenRange.map(date => {
-    const dateKey = moment(date).format('YYYY-MM-DD')
+    const dateKey = moment.utc(date).format('YYYY-MM-DD')
     const completion = dailyCompletionMap[dateKey] || 0
     const select = dailySelectMap[dateKey] || 0
     return {
-      name: moment(date).format('D MMM'),
+      name: moment.utc(date).format('D MMM'),
       value:
         completion === 0
           ? 0
@@ -152,12 +152,12 @@ export function CompletionCharts({
     }
   })
   const completionData = daysBetweenRange.map(date => {
-    const dateKey = moment(date).format('YYYY-MM-DD')
+    const dateKey = moment.utc(date).format('YYYY-MM-DD')
     const completion = dailyCompletionMap[dateKey] || 0
     const select = dailySelectMap[dateKey] || 0
     const pending = completion - select
     return {
-      name: moment(date).format('D MMM'),
+      name: moment.utc(date).format('D MMM'),
       completion,
       select,
       pending: completion === 0 ? 0.5 : pending,
