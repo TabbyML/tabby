@@ -26,18 +26,11 @@ import {
   type OAuthApplicationFormValues
 } from '../../components/oauth-application-form'
 import ConfirmView from '../components/confirm-view'
+import { omit } from 'lodash-es'
 
 const createGithubRepositoryProvider = graphql(/* GraphQL */ `
-  mutation CreateGithubRepositoryProvider(
-    $displayName: String!
-    $applicationId: String!
-    $applicationSecret: String!
-  ) {
-    createGithubRepositoryProvider(
-      displayName: $displayName
-      applicationId: $applicationId
-      applicationSecret: $applicationSecret
-    )
+  mutation CreateGithubRepositoryProvider($input: CreateGithubRepositoryProviderInput!) {
+    createGithubRepositoryProvider(input: $input)
   }
 `)
 
@@ -74,6 +67,7 @@ export const NewProvider = () => {
       onCompleted(data) {
         if (data?.createGithubRepositoryProvider) {
           toast.success('Created successfully')
+          // todo connect
           router.push(`/settings/gitops`)
         }
       },
@@ -89,8 +83,11 @@ export const NewProvider = () => {
       // oauth application info
       setStep(currentStep + 1)
     } else {
-      const values = form.getValues()
-      createGithubRepositoryProviderMutation(values)
+      const values = omit(form.getValues(), 'provider')
+      debugger
+      createGithubRepositoryProviderMutation({
+        input: values
+      })
     }
   }
 

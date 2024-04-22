@@ -39,21 +39,14 @@ const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
 `)
 
 const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
-  mutation UpdateGithubRepositoryProvider(
-    $id: ID!
-    $applicationId: String!
-    $secret: String
-  ) {
-    updateGithubRepositoryProvider(
-      id: $id
-      applicationId: $applicationId
-      secret: $secret
-    )
+  mutation UpdateGithubRepositoryProvider($input: UpdateGithubRepositoryProviderInput!) {
+    updateGithubRepositoryProvider(input: $input)
   }
 `)
 
 export const formSchema = z.object({
   applicationId: z.string(),
+  displayName: z.string(),
   secret: z.string().optional()
 })
 
@@ -102,9 +95,11 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
 
   const onSubmit = async (values: FormValues) => {
     await updateGithubRepositoryProvider({
-      id,
-      applicationId: values.applicationId,
-      secret: trim(values.secret) || undefined
+      input: {
+        id,
+        ...values,
+        secret: trim(values.secret) || undefined
+      }
     })
   }
 
@@ -134,6 +129,25 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     <Form {...form}>
       <div className="grid gap-2">
         <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+            control={form.control}
+            name='displayName'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel required>Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. ae1542c44b154c10c859"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    autoComplete="off"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="applicationId"

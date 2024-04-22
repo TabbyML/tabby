@@ -36,38 +36,36 @@ export const BasicInfoForm = React.forwardRef<
 >(({ className, form, isUpdate, ...rest }, ref) => {
   return (
     <div className={cn('grid gap-6', className)} ref={ref} {...rest}>
-      {!isUpdate && (
-        <FormField
-          control={form.control}
-          name="provider"
-          disabled={isUpdate}
-          render={({ field: { onChange, ...rest } }) => (
-            <FormItem>
-              <FormLabel required>Choose Git provider</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  className="flex flex-wrap gap-6"
-                  orientation="horizontal"
-                  onValueChange={onChange}
-                  {...rest}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="github" id="github" />
-                    <Label
-                      className="flex cursor-pointer items-center gap-1"
-                      htmlFor="github"
-                    >
-                      <IconGitHub className="h-6 w-6" />
-                      <span>GitHub.com</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
+      <FormField
+        control={form.control}
+        name="provider"
+        disabled={isUpdate}
+        render={({ field: { onChange, ...rest } }) => (
+          <FormItem>
+            <FormLabel required>Choose Git provider</FormLabel>
+            <FormControl>
+              <RadioGroup
+                className="flex flex-wrap gap-6"
+                orientation="horizontal"
+                onValueChange={onChange}
+                {...rest}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="github" id="github" />
+                  <Label
+                    className="flex cursor-pointer items-center gap-1"
+                    htmlFor="github"
+                  >
+                    <IconGitHub className="h-6 w-6" />
+                    <span>GitHub.com</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
       <FormField
         control={form.control}
         name="displayName"
