@@ -1,0 +1,8 @@
+id: use-text-generation
+message: TextGenerationStream is only used for implementing the TextGeneration trait, do not use it directly
+severity: error
+language: rust
+files:
+- ./crates/tabby/src/**
+rule:
+  pattern: TextGenerationStream

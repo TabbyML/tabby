@@ -9,7 +9,7 @@ use tabby_common::{
 };
 use tabby_download::download_model;
 use tabby_inference::{
-    chat::ChatCompletionStream, make_text_generation, TextGeneration, TextGenerationStream,
+    chat::ChatCompletionStream, make_text_generation, TextGeneration,
 };
 use tracing::info;
 
@@ -61,7 +61,7 @@ pub async fn load_text_generation(
             parallelism,
         );
         let engine_info = PromptInfo::read(path.join("tabby.json"));
-        (Arc::new(make_text_generation(engine)), engine_info)
+        (Arc::new(engine), engine_info)
     } else {
         let (registry, name) = parse_model_id(model_id);
         let registry = ModelRegistry::new(registry).await;
@@ -69,7 +69,7 @@ pub async fn load_text_generation(
         let model_info = registry.get_model_info(name);
         let engine = create_ggml_engine(device, &model_path, parallelism);
         (
-            Arc::new(make_text_generation(engine)),
+            Arc::new(engine),
             PromptInfo {
                 prompt_template: model_info.prompt_template.clone(),
                 chat_template: model_info.chat_template.clone(),
@@ -91,11 +91,7 @@ impl PromptInfo {
     }
 }
 
-fn create_ggml_engine(
-    device: &Device,
-    model_path: &str,
-    parallelism: u8,
-) -> impl TextGenerationStream {
+fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> impl TextGeneration {
     if !device.ggml_use_gpu() {
         InfoMessage::new(
             "CPU Device",
@@ -113,7 +109,7 @@ fn create_ggml_engine(
         .build()
         .expect("Failed to create llama text generation options");
 
-    llama_cpp_bindings::LlamaTextGeneration::new(options)
+    make_text_generation(llama_cpp_bindings::LlamaTextGeneration::new(options))
 }
 
 pub async fn download_model_if_needed(model: &str) {
