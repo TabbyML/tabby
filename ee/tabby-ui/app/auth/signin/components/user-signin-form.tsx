@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -10,7 +9,7 @@ import * as z from 'zod'
 import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { useIsEmailConfigured } from '@/lib/hooks/use-server-info'
-import { useSession, useSignIn } from '@/lib/tabby/auth'
+import { useSignIn } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -52,14 +51,6 @@ export default function UserSignInForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema)
   })
-
-  const router = useRouter()
-  const { status } = useSession()
-  React.useEffect(() => {
-    if (status === 'authenticated') {
-      router.replace('/')
-    }
-  }, [status])
 
   const signIn = useSignIn()
   const { isSubmitting } = form.formState
