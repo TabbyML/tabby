@@ -312,6 +312,7 @@ pub struct PasswordChangeInput {
         code = "newPassword1",
         message = "Password must be at most 20 characters"
     ))]
+    #[validate(custom = "validate_password")]
     pub new_password1: String,
     #[validate(length(
         min = 8,
