@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
+import { isNil } from 'lodash-es'
 
 import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
@@ -67,7 +68,6 @@ export function UserAuthForm({
   buttonClass,
   ...props
 }: UserAuthFormProps) {
-  const [password, setPassword] = React.useState('')
   const [showPasswordSchema, setShowPasswordSchema] = React.useState(false)
   const [passworErrors, setPasswordErrors] = React.useState<
     PASSWORD_ERRORCODE[]
@@ -79,6 +79,23 @@ export function UserAuthForm({
       invitationCode
     }
   })
+
+  const { password1: password } = form.watch()
+
+  React.useEffect(() => {
+    if (!isNil(password)) {
+      try {
+        passwordSchema.parse(password)
+        setPasswordErrors([])
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          setPasswordErrors(
+            err.issues.map((error: any) => error.params.errorCode)
+          )
+        }
+      }
+    }
+  }, [password])
 
   const router = useRouter()
   const signIn = useSignIn()
@@ -95,22 +112,6 @@ export function UserAuthForm({
     },
     form
   })
-
-  const onChangePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const password = e.target.value
-    form.setValue('password1', password)
-    setPassword(password)
-    try {
-      passwordSchema.parse(password)
-      setPasswordErrors([])
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setPasswordErrors(
-          err.issues.map((error: any) => error.params.errorCode)
-        )
-      }
-    }
-  }
 
   const onPasswordBlur = () => {
     if (passworErrors.length === 0) return setShowPasswordSchema(false)
@@ -153,8 +154,6 @@ export function UserAuthForm({
                     <Input
                       type="password"
                       {...field}
-                      value={password}
-                      onChange={onChangePassword}
                       onFocus={() => setShowPasswordSchema(true)}
                       onBlur={onPasswordBlur}
                     />
@@ -163,7 +162,7 @@ export function UserAuthForm({
               )}
             />
             <PasswordCheckList
-              password={password}
+              password={password || ""}
               showPasswordSchema={showPasswordSchema}
               passworErrors={passworErrors}
               showPasswordError={showPasswordError}

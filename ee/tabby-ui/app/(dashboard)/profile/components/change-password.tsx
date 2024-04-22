@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
+import { isNil } from 'lodash-es'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMe } from '@/lib/hooks/use-me'
@@ -43,7 +44,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   onSuccess,
   showOldPassword
 }) => {
-  const [password, setPassword] = React.useState('')
+  // const [password, setPassword] = React.useState('')
   const [showPasswordSchema, setShowPasswordSchema] = React.useState(false)
   const [passworErrors, setPasswordErrors] = React.useState<
     PASSWORD_ERRORCODE[]
@@ -59,6 +60,23 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     resolver: zodResolver(formSchema)
   })
   const { isSubmitting } = form.formState
+  
+  const { newPassword1: password } = form.watch()
+
+  React.useEffect(() => {
+    if (!isNil(password)) {
+      try {
+        passwordSchema.parse(password)
+        setPasswordErrors([])
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          setPasswordErrors(
+            err.issues.map((error: any) => error.params.errorCode)
+          )
+        }
+      }
+    }
+  }, [password])
 
   const passwordChange = useMutation(passwordChangeMutation, {
     form,
@@ -70,7 +88,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           newPassword2: '',
           oldPassword: ''
         })
-        setPassword('')
+        // setPassword('')
       }
     }
   })
@@ -79,22 +97,6 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     await passwordChange({
       input: values
     })
-  }
-
-  const onChangePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const password = e.target.value
-    form.setValue('newPassword1', password)
-    setPassword(password)
-    try {
-      passwordSchema.parse(password)
-      setPasswordErrors([])
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setPasswordErrors(
-          err.issues.map((error: any) => error.params.errorCode)
-        )
-      }
-    }
   }
 
   const onPasswordBlur = () => {
@@ -142,8 +144,8 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
                     autoCorrect="off"
                     type="password"
                     {...field}
-                    value={password}
-                    onChange={onChangePassword}
+                    // value={password}
+                    // onChange={onChangePassword}
                     onFocus={() => setShowPasswordSchema(true)}
                     onBlur={onPasswordBlur}
                   />
@@ -152,7 +154,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             )}
           />
           <PasswordCheckList
-            password={password}
+            password={password || ""}
             showPasswordSchema={showPasswordSchema}
             passworErrors={passworErrors}
             showPasswordError={showPasswordError}
