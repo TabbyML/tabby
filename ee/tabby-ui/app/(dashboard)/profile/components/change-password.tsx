@@ -21,8 +21,12 @@ import {
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import {
+  PASSWORD_ERRORCODE,
+  PasswordCheckList,
+  passwordSchema
+} from '@/components/password-checklist'
 import { ListSkeleton } from '@/components/skeleton'
-import { PASSWORD_ERRORCODE, passwordSchema, PasswordCheckList } from '@/components/password-checklist'
 
 const passwordChangeMutation = graphql(/* GraphQL */ `
   mutation PasswordChange($input: PasswordChangeInput!) {
@@ -66,7 +70,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           newPassword2: '',
           oldPassword: ''
         })
-        setPassword("")
+        setPassword('')
       }
     }
   })
@@ -151,7 +155,8 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             password={password}
             showPasswordSchema={showPasswordSchema}
             passworErrors={passworErrors}
-            showPasswordError={showPasswordError} />
+            showPasswordError={showPasswordError}
+          />
         </div>
         <FormField
           control={form.control}

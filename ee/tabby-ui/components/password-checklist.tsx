@@ -32,16 +32,16 @@ export const passwordSchema = z
     params: { errorCode: PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT }
   })
 
-export function PasswordCheckList ({
+export function PasswordCheckList({
   password,
   showPasswordSchema,
   passworErrors,
   showPasswordError
 }: {
-  password: string;
-  showPasswordSchema: boolean;
-  passworErrors: PASSWORD_ERRORCODE[];
-  showPasswordError: boolean;
+  password: string
+  showPasswordSchema: boolean
+  passworErrors: PASSWORD_ERRORCODE[]
+  showPasswordError: boolean
 }) {
   return (
     <div
@@ -58,15 +58,11 @@ export function PasswordCheckList ({
           className={cn('py-0.5', {
             'text-green-600':
               password.length > 0 &&
-              !passworErrors.includes(
-                PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR
-              ),
+              !passworErrors.includes(PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR),
             'text-red-600':
               showPasswordError &&
               password.length > 0 &&
-              passworErrors.includes(
-                PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR
-              )
+              passworErrors.includes(PASSWORD_ERRORCODE.AT_LEAST_EIGHT_CHAR)
           })}
         >
           At least 8 characters long
@@ -75,15 +71,11 @@ export function PasswordCheckList ({
           className={cn('py-0.5', {
             'text-green-600':
               password.length > 0 &&
-              !passworErrors.includes(
-                PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT
-              ),
+              !passworErrors.includes(PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT),
             'text-red-600':
               showPasswordError &&
               password.length > 0 &&
-              passworErrors.includes(
-                PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT
-              )
+              passworErrors.includes(PASSWORD_ERRORCODE.AT_MOST_TWENTY_CHAT)
           })}
         >
           No more than 20 characters long
@@ -92,15 +84,11 @@ export function PasswordCheckList ({
           className={cn('py-0.5', {
             'text-green-600':
               password.length > 0 &&
-              !passworErrors.includes(
-                PASSWORD_ERRORCODE.LOWERCASE_MSISSING
-              ),
+              !passworErrors.includes(PASSWORD_ERRORCODE.LOWERCASE_MSISSING),
             'text-red-600':
               showPasswordError &&
               password.length > 0 &&
-              passworErrors.includes(
-                PASSWORD_ERRORCODE.LOWERCASE_MSISSING
-              )
+              passworErrors.includes(PASSWORD_ERRORCODE.LOWERCASE_MSISSING)
           })}
         >
           At least one lowercase letter
@@ -109,15 +97,11 @@ export function PasswordCheckList ({
           className={cn('py-0.5', {
             'text-green-600':
               password.length > 0 &&
-              !passworErrors.includes(
-                PASSWORD_ERRORCODE.UPPERCASE_MSISSING
-              ),
+              !passworErrors.includes(PASSWORD_ERRORCODE.UPPERCASE_MSISSING),
             'text-red-600':
               showPasswordError &&
               password.length > 0 &&
-              passworErrors.includes(
-                PASSWORD_ERRORCODE.UPPERCASE_MSISSING
-              )
+              passworErrors.includes(PASSWORD_ERRORCODE.UPPERCASE_MSISSING)
           })}
         >
           At least one uppercase letter
@@ -133,25 +117,20 @@ export function PasswordCheckList ({
               passworErrors.includes(PASSWORD_ERRORCODE.NUMBER_MISSING)
           })}
         >
-          At least one number 
+          At least one number
         </li>
         <li
           className={cn('py-0.5', {
             'text-green-600':
               password.length > 0 &&
-              !passworErrors.includes(
-                PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING
-              ),
+              !passworErrors.includes(PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING),
             'text-red-600':
               showPasswordError &&
               password.length > 0 &&
-              passworErrors.includes(
-                PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING
-              )
+              passworErrors.includes(PASSWORD_ERRORCODE.SPECIAL_CHAR_MISSING)
           })}
         >{`At least one special character , such as @#$%^&{}`}</li>
       </ul>
     </div>
   )
 }
-  

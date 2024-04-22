@@ -22,8 +22,11 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
-import { PASSWORD_ERRORCODE, passwordSchema, PasswordCheckList } from '@/components/password-checklist'
-
+import {
+  PASSWORD_ERRORCODE,
+  PasswordCheckList,
+  passwordSchema
+} from '@/components/password-checklist'
 
 export const registerUser = graphql(/* GraphQL */ `
   mutation register(
@@ -163,7 +166,8 @@ export function UserAuthForm({
               password={password}
               showPasswordSchema={showPasswordSchema}
               passworErrors={passworErrors}
-              showPasswordError={showPasswordError} />
+              showPasswordError={showPasswordError}
+            />
           </div>
           <FormField
             control={form.control}
