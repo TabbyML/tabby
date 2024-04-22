@@ -42,13 +42,15 @@ pub trait TextGenerationStream: Sync + Send {
 }
 
 #[async_trait]
+impl TextGenerationStream for Box<dyn TextGenerationStream> {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
+        self.as_ref().generate(prompt, options).await
+    }
+}
+
+#[async_trait]
 pub trait TextGeneration: Sync + Send {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String;
-    async fn generate_stream(
-        &self,
-        prompt: &str,
-        options: TextGenerationOptions,
-    ) -> BoxStream<(bool, String)>;
 }
 
 pub fn make_text_generation(imp: impl TextGenerationStream) -> impl TextGeneration {

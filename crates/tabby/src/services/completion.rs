@@ -11,7 +11,9 @@ use tabby_common::{
     },
     languages::get_language,
 };
-use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
+use tabby_inference::{
+    make_text_generation, TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder,
+};
 use thiserror::Error;
 use utoipa::ToSchema;
 
@@ -226,20 +228,20 @@ pub struct DebugData {
 }
 
 pub struct CompletionService {
-    engine: Arc<dyn TextGeneration>,
+    engine: Box<dyn TextGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
 }
 
 impl CompletionService {
     fn new(
-        engine: Arc<dyn TextGeneration>,
+        engine: impl TextGeneration + 'static,
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {
-            engine,
+            engine: Box::new(engine),
             prompt_builder: completion_prompt::PromptBuilder::new(prompt_template, Some(code)),
             logger,
         }
@@ -351,5 +353,5 @@ pub async fn create_completion_service(
         },
     ) = model::load_text_generation(model, device, parallelism).await;
 
-    CompletionService::new(engine.clone(), code, logger, prompt_template)
+    CompletionService::new(make_text_generation(engine), code, logger, prompt_template)
 }

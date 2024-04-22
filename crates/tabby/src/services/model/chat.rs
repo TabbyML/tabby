@@ -1,13 +1,10 @@
-use std::sync::Arc;
-
 use anyhow::Result;
-use async_stream::stream;
 use futures::stream::BoxStream;
 use minijinja::{context, Environment};
 use tabby_common::api::chat::Message;
 use tabby_inference::{
     chat::{self, ChatCompletionStream},
-    TextGeneration, TextGenerationOptions, TextGenerationStream,
+    TextGenerationOptions, TextGenerationStream,
 };
 
 struct ChatPromptBuilder {
@@ -37,7 +34,7 @@ impl ChatPromptBuilder {
 }
 
 struct ChatCompletionImpl {
-    engine: Arc<dyn TextGeneration>,
+    engine: Box<dyn TextGenerationStream>,
     prompt_builder: ChatPromptBuilder,
 }
 
@@ -50,21 +47,12 @@ impl chat::ChatPromptBuilder for ChatCompletionImpl {
 #[async_trait::async_trait]
 impl TextGenerationStream for ChatCompletionImpl {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
-        let prompt = prompt.to_owned();
-        let s = stream! {
-            for await (streaming, text) in self.engine.generate_stream(&prompt, options).await {
-                if streaming {
-                    yield text;
-                }
-            }
-        };
-
-        Box::pin(s)
+        self.engine.generate(prompt, options).await
     }
 }
 
 pub fn make_chat_completion(
-    engine: Arc<dyn TextGeneration>,
+    engine: Box<dyn TextGenerationStream>,
     prompt_template: String,
 ) -> impl ChatCompletionStream {
     ChatCompletionImpl {

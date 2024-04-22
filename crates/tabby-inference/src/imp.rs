@@ -18,26 +18,6 @@ impl<T: TextGenerationStream> TextGenerationImpl<T> {
             stop_condition_factory: StopConditionFactory::default(),
         }
     }
-}
-
-#[async_trait]
-impl<T: TextGenerationStream> TextGeneration for TextGenerationImpl<T> {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        let prompt = prompt.to_owned();
-        let s = stream! {
-            for await (streaming, text) in self.generate_stream(&prompt, options).await {
-                if !streaming {
-                    yield text;
-                }
-            }
-        };
-
-        if let Some(text) = Box::pin(s).into_future().await.0 {
-            text
-        } else {
-            String::new()
-        }
-    }
 
     async fn generate_stream(
         &self,
@@ -69,5 +49,25 @@ impl<T: TextGenerationStream> TextGeneration for TextGenerationImpl<T> {
             yield (false, text);
         };
         Box::pin(s)
+    }
+}
+
+#[async_trait]
+impl<T: TextGenerationStream> TextGeneration for TextGenerationImpl<T> {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
+        let prompt = prompt.to_owned();
+        let s = stream! {
+            for await (streaming, text) in self.generate_stream(&prompt, options).await {
+                if !streaming {
+                    yield text;
+                }
+            }
+        };
+
+        if let Some(text) = Box::pin(s).into_future().await.0 {
+            text
+        } else {
+            String::new()
+        }
     }
 }
