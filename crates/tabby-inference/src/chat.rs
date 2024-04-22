@@ -5,7 +5,7 @@ use derive_builder::Builder;
 use futures::stream::BoxStream;
 use tabby_common::api::chat::Message;
 
-use crate::{TextGenerationOptions, TextGenerationOptionsBuilder, TextGenerationStream};
+use crate::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 
 #[derive(Builder, Debug)]
 pub struct ChatCompletionOptions {
@@ -30,7 +30,7 @@ pub trait ChatPromptBuilder {
 }
 
 #[async_trait]
-impl<T: ChatPromptBuilder + TextGenerationStream> ChatCompletionStream for T {
+impl<T: ChatPromptBuilder + TextGeneration> ChatCompletionStream for T {
     async fn chat_completion(
         &self,
         messages: &[Message],
@@ -46,8 +46,10 @@ impl<T: ChatPromptBuilder + TextGenerationStream> ChatCompletionStream for T {
         let prompt = self.build_chat_prompt(messages)?;
 
         let s = stream! {
-            for await content in self.generate(&prompt, options).await {
-                yield content
+            for await (streaming, content) in self.generate_stream(&prompt, options).await {
+                if streaming {
+                    yield content
+                }
             }
         };
 
