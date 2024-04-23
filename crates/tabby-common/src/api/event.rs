@@ -109,16 +109,6 @@ pub struct LogEntry {
     pub event: Event,
 }
 
-impl From<Event> for LogEntry {
-    fn from(event: Event) -> Self {
-        Self {
-            ts: timestamp(),
-            user: None,
-            event,
-        }
-    }
-}
-
 fn timestamp() -> u128 {
     use std::time::{SystemTime, UNIX_EPOCH};
     let start = SystemTime::now();

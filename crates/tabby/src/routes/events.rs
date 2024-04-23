@@ -7,7 +7,7 @@ use axum::{
 use hyper::StatusCode;
 use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
 
-use crate::header::MaybeUser;
+use super::MaybeUser;
 
 #[utoipa::path(
     post,
