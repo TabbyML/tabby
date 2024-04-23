@@ -156,7 +156,7 @@ impl DbConn {
     ) -> Result<i64> {
         let res = query!(
             "INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
-                ON CONFLICT(vendor_id) DO UPDATE SET github_repository_provider_id = $1, name = $2, git_url = $3",
+                ON CONFLICT(github_repository_provider_id, vendor_id) DO UPDATE SET github_repository_provider_id = $1, name = $2, git_url = $3",
             github_provider_id, vendor_id, name, git_url).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }

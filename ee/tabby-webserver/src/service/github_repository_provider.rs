@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -161,9 +161,15 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .filter_map(|provider| Some((provider.id.to_string(), provider.access_token?)))
             .collect();
 
-        let urls = self
+        let mut repos = self
             .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
-            .await?
+            .await?;
+
+        // Deduplicate by vendor ID
+        let mut vendor_ids = HashSet::new();
+        repos.retain(|repo| vendor_ids.insert(repo.vendor_id.clone()));
+
+        let urls = repos
             .into_iter()
             .filter_map(|repo| {
                 if !repo.active {
