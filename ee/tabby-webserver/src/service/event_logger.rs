@@ -5,7 +5,9 @@ use tabby_common::api::event::{Event, EventLogger, LogEntry};
 use tabby_db::DbConn;
 use tracing::warn;
 
-use super::dao::AsRowid;
+use crate::schema::user_event::EventKind;
+
+use super::dao::{AsRowid, DbEnum};
 
 struct DbEventLogger {
     db: DbConn,
@@ -35,15 +37,17 @@ impl EventLogger for DbEventLogger {
                         db.add_to_user_completion(entry.ts, &completion_id, 1, 0, 0)
                             .await,
                     );
-                    log_err(
-                        db.create_user_event_lookup_user(
-                            completion_id,
-                            "view".into(),
-                            entry.ts,
-                            event_json,
-                        )
-                        .await,
-                    );
+                    if let Some(user) = entry.user {
+                        log_err(
+                            db.create_user_event(
+                                user,
+                                EventKind::View.as_enum_str().into(),
+                                entry.ts,
+                                event_json,
+                            )
+                            .await,
+                        );
+                    }
                 });
             }
             Event::Select { completion_id, .. } => {
@@ -53,15 +57,17 @@ impl EventLogger for DbEventLogger {
                         db.add_to_user_completion(entry.ts, &completion_id, 0, 1, 0)
                             .await,
                     );
-                    log_err(
-                        db.create_user_event_lookup_user(
-                            completion_id,
-                            "select".into(),
-                            entry.ts,
-                            event_json,
-                        )
-                        .await,
-                    );
+                    if let Some(user) = entry.user {
+                        log_err(
+                            db.create_user_event(
+                                user,
+                                EventKind::Select.as_enum_str().into(),
+                                entry.ts,
+                                event_json,
+                            )
+                            .await,
+                        );
+                    }
                 });
             }
             Event::Dismiss { completion_id, .. } => {
@@ -70,7 +76,18 @@ impl EventLogger for DbEventLogger {
                     log_err(
                         db.add_to_user_completion(entry.ts, &completion_id, 0, 0, 1)
                             .await,
-                    )
+                    );
+                    if let Some(user) = entry.user {
+                        log_err(
+                            db.create_user_event(
+                                user,
+                                EventKind::Dismiss.as_enum_str().into(),
+                                entry.ts,
+                                event_json,
+                            )
+                            .await,
+                        );
+                    }
                 });
             }
             Event::Completion {
@@ -101,9 +118,8 @@ impl EventLogger for DbEventLogger {
                     );
                     log_err(
                         db.create_user_event(
-                            user_db.id,
-                            completion_id,
-                            "completion".into(),
+                            user,
+                            EventKind::Completion.as_enum_str().into(),
                             entry.ts,
                             event_json,
                         )

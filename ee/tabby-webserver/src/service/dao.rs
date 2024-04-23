@@ -14,6 +14,7 @@ use crate::{
         github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
         job,
         setting::{NetworkSetting, SecuritySetting},
+        user_event::EventKind,
         CoreError,
     },
 };
@@ -188,6 +189,27 @@ impl AsID for i32 {
 pub trait DbEnum: Sized {
     fn as_enum_str(&self) -> &'static str;
     fn from_enum_str(s: &str) -> anyhow::Result<Self>;
+}
+
+impl DbEnum for EventKind {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            EventKind::Completion => "completion",
+            EventKind::Select => "select",
+            EventKind::View => "view",
+            EventKind::Dismiss => "dismiss",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "completion" => Ok(EventKind::Completion),
+            "select" => Ok(EventKind::Select),
+            "view" => Ok(EventKind::View),
+            "dismiss" => Ok(EventKind::Dismiss),
+            _ => bail!("{s} is not a valid value for EventKind"),
+        }
+    }
 }
 
 impl DbEnum for Encryption {
