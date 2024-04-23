@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
+use lazy_static::lazy_static;
 use strum::{EnumIter, IntoEnumIterator};
 
 use crate::schema::Result;
@@ -10,12 +13,13 @@ pub struct CompletionStats {
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
 
+    pub language: Language,
     pub completions: i32,
     pub views: i32,
     pub selects: i32,
 }
 
-#[derive(GraphQLEnum, Clone, Debug, Eq, PartialEq, EnumIter)]
+#[derive(GraphQLEnum, Clone, Debug, Eq, PartialEq, EnumIter, Hash)]
 pub enum Language {
     Rust,
     Python,
@@ -32,12 +36,24 @@ pub enum Language {
     Other,
 }
 
+lazy_static! {
+    static ref NAME_LANGUAGE_MAPPINGS: HashMap<&'static str, Language> = {
+        let mut map = HashMap::new();
+        for language in Language::iter() {
+            for name in language.language_names() {
+                map.insert(name, language.clone());
+            }
+        }
+        map
+    };
+}
+
 impl Language {
     pub fn all_known() -> impl Iterator<Item = Language> {
         Language::iter().filter(|l| l != &Language::Other)
     }
 
-    pub fn to_strings(&self) -> impl IntoIterator<Item = String> {
+    pub fn language_names(&self) -> Vec<&'static str> {
         match self {
             Language::Rust => vec!["rust"],
             Language::Python => vec!["python"],
@@ -49,12 +65,20 @@ impl Language {
             Language::Ruby => vec!["ruby"],
             Language::CSharp => vec!["csharp"],
             Language::C => vec!["c"],
-            Language::Cpp => vec!["cpp"],
+            Language::Cpp => vec!["cpp", "c++"],
             Language::Solidity => vec!["solidity"],
             Language::Other => vec!["other"],
         }
-        .into_iter()
-        .map(|s| s.to_string())
+    }
+}
+
+impl From<String> for Language {
+    fn from(val: String) -> Self {
+        if let Some(lang) = NAME_LANGUAGE_MAPPINGS.get(val.as_str()) {
+            lang.clone()
+        } else {
+            Language::Other
+        }
     }
 }
 
