@@ -22,6 +22,7 @@ export type LanguageStats = Record<
   {
     selects: number
     completions: number
+    views: number
     name: Language
   }
 >
@@ -35,15 +36,15 @@ function LineTooltip({
     name: string
     payload: {
       name: string
-      select: number
+      selects: number
       value: string
-      completion: number
+      views: number
     }
   }[]
 }) {
   if (active && payload && payload.length) {
-    const { value, completion, name } = payload[0].payload
-    if (!completion) return null
+    const { value, views, name } = payload[0].payload
+    if (!views) return null
     return (
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
@@ -70,29 +71,29 @@ function BarTooltip({
     name: string
     payload: {
       name: string
-      completion: number
-      select: number
-      pending: number
+      views: number
+      selects: number
+      pendings: number
     }
   }[]
-  type: 'accept' | 'completion' | 'all'
+  type: 'accept' | 'view' | 'all'
 }) {
   if (active && payload && payload.length) {
-    const { completion, select, name } = payload[0].payload
-    if (!completion) return null
+    const { views, selects, name } = payload[0].payload
+    if (!views) return null
     return (
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
-          {(type === 'completion' || type === 'all') && (
+          {(type === 'view' || type === 'all') && (
             <p className="flex items-center">
               <span className="mr-3 inline-block w-20">Completions:</span>
-              <b>{completion}</b>
+              <b>{views}</b>
             </p>
           )}
           {(type === 'accept' || type === 'all') && (
             <p className="flex items-center">
               <span className="mr-3 inline-block w-20">Acceptances:</span>
-              <b>{select}</b>
+              <b>{selects}</b>
             </p>
           )}
           <p className="text-muted-foreground">{name}</p>
@@ -114,7 +115,7 @@ export function CompletionCharts({
   dailyStats?: DailyStatsQuery['dailyStats']
 }) {
   const { theme } = useTheme()
-  const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
+  const totalViews = sum(dailyStats?.map(stats => stats.views))
   const totalAccepts = sum(dailyStats?.map(stats => stats.selects))
   const daysBetweenRange = eachDayOfInterval({
     start: from,
@@ -122,46 +123,41 @@ export function CompletionCharts({
   })
 
   // Mapping data of { date: amount }
-  const dailyCompletionMap: Record<string, number> = {}
+  const dailyViewMap: Record<string, number> = {}
   const dailySelectMap: Record<string, number> = {}
   dailyStats?.forEach(stats => {
     const date = moment(stats.start).format('YYYY-MM-DD')
-    dailyCompletionMap[date] = stats.completions
+    dailyViewMap[date] = stats.views
     dailySelectMap[date] = stats.selects
   }, {})
 
   // Data for charts
   const averageAcceptance =
-    totalCompletions === 0
-      ? 0
-      : ((totalAccepts / totalCompletions) * 100).toFixed(2)
+    totalViews === 0 ? 0 : ((totalAccepts / totalViews) * 100).toFixed(2)
   const acceptRateData = daysBetweenRange.map(date => {
     const dateKey = moment(date).format('YYYY-MM-DD')
-    const completion = dailyCompletionMap[dateKey] || 0
-    const select = dailySelectMap[dateKey] || 0
+    const views = dailyViewMap[dateKey] || 0
+    const selects = dailySelectMap[dateKey] || 0
     return {
       name: moment(date).format('D MMM'),
-      value:
-        completion === 0
-          ? 0
-          : parseFloat(((select / completion) * 100).toFixed(2)),
-      select,
-      completion
+      value: views === 0 ? 0 : parseFloat(((selects / views) * 100).toFixed(2)),
+      selects,
+      views
     }
   })
-  const completionData = daysBetweenRange.map(date => {
+  const viewData = daysBetweenRange.map(date => {
     const dateKey = moment(date).format('YYYY-MM-DD')
-    const completion = dailyCompletionMap[dateKey] || 0
-    const select = dailySelectMap[dateKey] || 0
-    const pending = completion - select
+    const views = dailyViewMap[dateKey] || 0
+    const selects = dailySelectMap[dateKey] || 0
+    const pendings = views - selects
     return {
       name: moment(date).format('D MMM'),
-      completion,
-      select,
-      pending: completion === 0 ? 0.5 : pending,
-      realPending: completion === 0 ? 0 : pending,
-      completionPlaceholder: completion === 0 ? 0.5 : 0,
-      selectPlaceholder: select === 0 ? 0.5 : 0
+      views,
+      selects,
+      pending: views === 0 ? 0.5 : pendings,
+      realPending: views === 0 ? 0 : pendings,
+      viewPlaceholder: views === 0 ? 0.5 : 0,
+      selectPlaceholder: selects === 0 ? 0.5 : 0
     }
   })
   return (
@@ -204,35 +200,35 @@ export function CompletionCharts({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {numeral(totalCompletions).format('0,0')}
+              {numeral(totalViews).format('0,0')}
             </div>
           </CardContent>
 
           <ResponsiveContainer width="100%" height={60}>
             <BarChart
-              data={completionData}
+              data={viewData}
               margin={{
-                top: totalCompletions === 0 ? 40 : 5,
+                top: totalViews === 0 ? 40 : 5,
                 right: 20,
                 left: 20,
                 bottom: 5
               }}
             >
               <Bar
-                dataKey="completion"
+                dataKey="views"
                 stackId="stats"
                 fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
                 radius={3}
               />
               <Bar
-                dataKey="completionPlaceholder"
+                dataKey="viewPlaceholder"
                 stackId="stats"
                 fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
                 radius={3}
               />
               <Tooltip
                 cursor={{ fill: 'transparent' }}
-                content={<BarTooltip type="completion" />}
+                content={<BarTooltip type="view" />}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -252,16 +248,16 @@ export function CompletionCharts({
 
           <ResponsiveContainer width="100%" height={60}>
             <BarChart
-              data={completionData}
+              data={viewData}
               margin={{
-                top: totalCompletions === 0 ? 40 : 5,
+                top: totalViews === 0 ? 40 : 5,
                 right: 20,
                 left: 20,
                 bottom: 5
               }}
             >
               <Bar
-                dataKey="select"
+                dataKey="selects"
                 stackId="stats"
                 fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
                 radius={3}

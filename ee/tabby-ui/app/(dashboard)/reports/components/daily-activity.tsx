@@ -26,25 +26,25 @@ function BarTooltip({
   payload?: {
     name: string
     payload: {
-      completion: number
-      select: number
-      pending: number
+      views: number
+      selects: number
+      pendings: number
     }
   }[]
 }) {
   if (active && payload && payload.length) {
-    const { completion, select } = payload[0].payload
-    if (!completion) return null
+    const { views, selects } = payload[0].payload
+    if (!views) return null
     return (
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
           <p className="flex items-center">
             <span className="mr-3 inline-block w-20">Completion:</span>
-            <b>{completion}</b>
+            <b>{views}</b>
           </p>
           <p className="flex items-center">
             <span className="mr-3 inline-block w-20">Acceptance:</span>
-            <b>{select}</b>
+            <b>{selects}</b>
           </p>
           <p className="text-muted-foreground">{label}</p>
         </CardContent>
@@ -66,12 +66,12 @@ export function DailyActivity({
   const from = dateRange.from || new Date()
   const to = dateRange.to || from
 
-  const dailyCompletionMap: Record<string, number> = {}
+  const dailyViewMap: Record<string, number> = {}
   const dailySelectMap: Record<string, number> = {}
 
   dailyStats?.forEach(stats => {
     const date = moment(stats.start).format('YYYY-MM-DD')
-    dailyCompletionMap[date] = stats.completions
+    dailyViewMap[date] = stats.views
     dailySelectMap[date] = stats.selects
   }, {})
 
@@ -82,14 +82,14 @@ export function DailyActivity({
 
   const chartData = daysBetweenRange.map(date => {
     const dateKey = moment(date).format('YYYY-MM-DD')
-    const completion = dailyCompletionMap[dateKey] || 0
-    const select = dailySelectMap[dateKey] || 0
-    const pending = completion - select
+    const views = dailyViewMap[dateKey] || 0
+    const selects = dailySelectMap[dateKey] || 0
+    const pendings = views - selects
     return {
       name: moment(date).format('D MMM'),
-      completion,
-      select,
-      pending
+      views,
+      selects,
+      pendings
     }
   })
   return (
@@ -108,13 +108,13 @@ export function DailyActivity({
           }}
         >
           <Bar
-            dataKey="select"
+            dataKey="selects"
             stackId="stats"
             fill={theme === 'dark' ? '#e8e1d3' : '#54452c'}
             radius={3}
           />
           <Bar
-            dataKey="pending"
+            dataKey="pendings"
             stackId="stats"
             fill={theme === 'dark' ? '#423929' : '#e8e1d3'}
             radius={3}

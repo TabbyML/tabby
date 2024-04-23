@@ -44,6 +44,7 @@ type LanguageData = {
   name: Language | 'NONE'
   selects: number
   completions: number
+  views: number
 }[]
 
 // Find auto-completion stats of each language
@@ -83,6 +84,7 @@ function useLanguageStats({
       newLanguageStats[language] = newLanguageStats[language] || {
         selects: 0,
         completions: 0,
+        views: 0,
         name: Object.values(Language)[lanIdx]
       }
       newLanguageStats[language].selects += sum(
@@ -90,6 +92,9 @@ function useLanguageStats({
       )
       newLanguageStats[language].completions += sum(
         data.dailyStats.map(stats => stats.completions)
+      )
+      newLanguageStats[language].views += sum(
+        data.dailyStats.map(stats => stats.views)
       )
 
       const newLanIdx = lanIdx + 1
@@ -152,7 +157,7 @@ const LanguageLabel: React.FC<
   const { x, y, value, languageData, theme } = props
   const myLanguageData = languageData.find(data => data.name === value)
 
-  if (!myLanguageData || myLanguageData.completions === 0) {
+  if (!myLanguageData || myLanguageData.views === 0) {
     return null
   }
 
@@ -180,21 +185,21 @@ function LanguageTooltip({
     name: string
     payload: {
       name: Language | 'NONE'
-      completions: number
+      views: number
       selects: number
     }
   }[]
 }) {
   if (active && payload && payload.length) {
-    const { completions, selects, name } = payload[0].payload
-    const activities = completions + selects
+    const { views, selects, name } = payload[0].payload
+    const activities = views + selects
     if (!activities || name === 'NONE') return null
     return (
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
           <p className="flex items-center">
             <span className="mr-3 inline-block w-20">Completions:</span>
-            <b>{completions}</b>
+            <b>{views}</b>
           </p>
           <p className="text-muted-foreground">
             {toProgrammingLanguageDisplayName(name)}
@@ -245,7 +250,8 @@ export default function Stats() {
         start: moment(date).utc().format(),
         end: moment(date).add(1, 'day').utc().format(),
         completions,
-        selects
+        selects,
+        views: completions
       }
     })
   } else {
@@ -253,7 +259,8 @@ export default function Stats() {
       start: item.start,
       end: item.end,
       completions: item.completions,
-      selects: item.selects
+      selects: item.selects,
+      views: item.views
     }))
   }
 
@@ -279,7 +286,8 @@ export default function Stats() {
         start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         completions,
-        selects
+        selects,
+        views: completions
       }
     })
   } else {
@@ -287,15 +295,16 @@ export default function Stats() {
       start: item.start,
       end: item.end,
       completions: item.completions,
-      selects: item.selects
+      selects: item.selects,
+      views: item.views
     }))
   }
   const dailyCompletionMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
       const date = moment.utc(cur.start).format('YYYY-MM-DD')
-      lastYearActivities += cur.completions
+      lastYearActivities += cur.views
       lastYearActivities += cur.selects
-      return { ...acc, [date]: cur.completions }
+      return { ...acc, [date]: cur.views }
     }, {}) || {}
   const activities = new Array(365)
     .fill('')
@@ -327,12 +336,14 @@ export default function Stats() {
       {
         name: Language.Rust,
         completions: rustCompletion,
-        selects: rustCompletion
+        selects: rustCompletion,
+        views: rustCompletion
       },
       {
         name: Language.Python,
         completions: pythonCompletion,
-        selects: pythonCompletion
+        selects: pythonCompletion,
+        views: pythonCompletion
       }
     ]
   } else {
@@ -341,20 +352,22 @@ export default function Stats() {
         return {
           name: stats.name,
           selects: stats.selects,
-          completions: stats.completions
+          completions: stats.completions,
+          views: stats.views
         }
       })
-      .filter(item => item.completions)
+      .filter(item => item.views)
       .slice(0, 5)
   }
-  languageData = languageData.sort((a, b) => b.completions - a.completions)
+  languageData = languageData.sort((a, b) => b.views - a.views)
   if (languageData.length === 0) {
-    // Placeholder when there is no completions
+    // Placeholder when there is no views
     languageData = [
       {
         name: 'NONE',
         selects: 0,
-        completions: 0.01
+        completions: 0.01,
+        views: 0.01
       }
     ]
   }
@@ -406,7 +419,7 @@ export default function Stats() {
                 barCategoryGap={12}
                 margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
               >
-                <Bar dataKey="completions" radius={3}>
+                <Bar dataKey="views" radius={3}>
                   <LabelList
                     dataKey="name"
                     content={

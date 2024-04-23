@@ -144,6 +144,7 @@ export const queryDailyStatsInPastYear = graphql(/* GraphQL */ `
       end
       completions
       selects
+      views
     }
   }
 `)
@@ -160,6 +161,7 @@ export const queryDailyStats = graphql(/* GraphQL */ `
       end
       completions
       selects
+      views
     }
   }
 `)
