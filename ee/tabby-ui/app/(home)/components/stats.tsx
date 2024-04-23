@@ -41,10 +41,10 @@ import { CompletionCharts, type LanguageStats } from './completion-charts'
 const DATE_RANGE = 6
 
 type LanguageData = {
-  name: Language | 'NONE';
-  selects: number;
-  completions: number;
-  views: number;
+  name: Language | 'NONE'
+  selects: number
+  completions: number
+  views: number
 }[]
 
 // Find auto-completion stats of each language
@@ -251,7 +251,7 @@ export default function Stats() {
         end: moment(date).add(1, 'day').utc().format(),
         completions,
         selects,
-        views: completions,
+        views: completions
       }
     })
   } else {
@@ -337,7 +337,7 @@ export default function Stats() {
         name: Language.Rust,
         completions: rustCompletion,
         selects: rustCompletion,
-        views: rustCompletion,
+        views: rustCompletion
       },
       {
         name: Language.Python,

@@ -133,19 +133,14 @@ export function CompletionCharts({
 
   // Data for charts
   const averageAcceptance =
-    totalViews === 0
-      ? 0
-      : ((totalAccepts / totalViews) * 100).toFixed(2)
+    totalViews === 0 ? 0 : ((totalAccepts / totalViews) * 100).toFixed(2)
   const acceptRateData = daysBetweenRange.map(date => {
     const dateKey = moment(date).format('YYYY-MM-DD')
     const views = dailyViewMap[dateKey] || 0
     const selects = dailySelectMap[dateKey] || 0
     return {
       name: moment(date).format('D MMM'),
-      value:
-        views === 0
-          ? 0
-          : parseFloat(((selects / views) * 100).toFixed(2)),
+      value: views === 0 ? 0 : parseFloat(((selects / views) * 100).toFixed(2)),
       selects,
       views
     }
