@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[derive(Debug)]
 pub struct FileSearch {
     pub r#type: String,
     pub path: String,
@@ -25,16 +26,13 @@ impl FileSearch {
         pattern: &str,
         limit: usize,
     ) -> Result<Vec<FileSearch>, anyhow::Error> {
-        let repo = git2::Repository::open(base)?;
         let paths = {
-            let mut options = git2::StatusOptions::default();
-            options.include_unmodified(true);
-            let statuses = repo.statuses(Some(&mut options))?;
-
+            let repo = git2::Repository::open(base)?;
+            let index = repo.index()?;
             let mut paths = HashSet::new();
-            statuses
+            index
                 .iter()
-                .filter_map(|x| x.path().map(|x| x.to_owned()))
+                .map(|x| bytes2path(&x.path).to_owned())
                 .for_each(|relpath| {
                     let relpath = PathBuf::from(relpath);
                     if let Some(parent) = relpath.parent() {
@@ -80,5 +78,34 @@ impl FileSearch {
             .collect();
 
         Ok(entries)
+    }
+}
+
+#[cfg(unix)]
+pub fn bytes2path(b: &[u8]) -> &Path {
+    use std::os::unix::prelude::*;
+    Path::new(std::ffi::OsStr::from_bytes(b))
+}
+#[cfg(windows)]
+pub fn bytes2path(b: &[u8]) -> &Path {
+    use std::str;
+    Path::new(str::from_utf8(b).unwrap())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use crate::FileSearch;
+
+    #[test]
+    fn it_search() {
+        let result = FileSearch::search(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../"),
+            "website".into(),
+            1,
+        )
+        .unwrap();
+        assert_eq!(result.len(), 1);
     }
 }
