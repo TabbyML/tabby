@@ -106,7 +106,9 @@ impl ServerContext {
     async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<ID>) {
         let path = request.uri().path();
         if demo_mode()
-            && (path.starts_with("/v1/completions") || path.starts_with("/v1beta/chat/completions"))
+            && (path.starts_with("/v1/completions")
+                || path.starts_with("/v1/chat/completions")
+                || path.starts_with("/v1beta/chat/completions"))
         {
             return (false, None);
         }
@@ -234,7 +236,9 @@ impl WorkerService for ServerContext {
         let path = request.uri().path();
         let worker = if path.starts_with("/v1/completions") {
             self.completion.select().await
-        } else if path.starts_with("/v1beta/chat/completions") {
+        } else if path.starts_with("/v1/chat/completions")
+            || path.starts_with("/v1beta/chat/completions")
+        {
             self.chat.select().await
         } else {
             None

@@ -76,12 +76,12 @@ function StatsSummary({
 }: {
   dailyStats?: DailyStatsQuery['dailyStats']
 }) {
-  const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
+  const totalViews = sum(dailyStats?.map(stats => stats.views))
   const totalAcceptances = sum(dailyStats?.map(stats => stats.selects))
   const acceptRate =
     totalAcceptances === 0
       ? 0
-      : ((totalAcceptances / totalCompletions) * 100).toFixed(2)
+      : ((totalAcceptances / totalViews) * 100).toFixed(2)
   return (
     <div className="flex w-full flex-col items-start justify-center space-y-3 md:flex-row md:items-center md:space-x-6 md:space-y-0 xl:justify-start">
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
@@ -103,7 +103,7 @@ function StatsSummary({
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {numeral(totalCompletions).format('0,0')}
+            {numeral(totalViews).format('0,0')}
           </div>
         </CardContent>
       </Card>
@@ -157,12 +157,9 @@ export function Report() {
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
     query: queryDailyStats,
     variables: {
-      start: moment(dateRange.from)
-        .startOf('day')
-        .format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
-      end: moment(dateRange.to).endOf('day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
-      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
-      languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
+      start: moment(dateRange.from).startOf('day').utc().format(),
+      end: moment(dateRange.to).endOf('day').utc().format(),
+      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember]
     }
   })
   let dailyStats: DailyStatsQuery['dailyStats'] | undefined
@@ -172,16 +169,19 @@ export function Report() {
       end: dateRange.to || dateRange.from!
     })
     dailyStats = daysBetweenRange.map(date => {
+      const languages = [Language.Typescript, Language.Python, Language.Rust]
       const rng = seedrandom(
         moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
       )
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
-        start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
-        end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
+        start: moment(date).utc().format(),
+        end: moment(date).add(1, 'day').utc().format(),
         completions,
-        selects
+        selects,
+        views: completions,
+        language: languages[selects % languages.length]
       }
     })
   } else {
@@ -189,9 +189,15 @@ export function Report() {
       start: item.start,
       end: item.end,
       completions: item.completions,
-      selects: item.selects
+      selects: item.selects,
+      views: item.views,
+      language: item.language
     }))
   }
+  dailyStats = dailyStats?.filter(stats => {
+    if (selectedLanguage.length === 0) return true
+    return selectedLanguage.includes(stats.language)
+  })
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
@@ -216,7 +222,8 @@ export function Report() {
         start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         completions,
-        selects
+        selects,
+        views: completions
       }
     })
   } else {
@@ -224,7 +231,8 @@ export function Report() {
       start: item.start,
       end: item.end,
       completions: item.completions,
-      selects: item.selects
+      selects: item.selects,
+      views: item.views
     }))
   }
 
