@@ -159,8 +159,10 @@ export function Report() {
     variables: {
       start: moment(dateRange.from)
         .startOf('day')
-        .format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
-      end: moment(dateRange.to).endOf('day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
+        .utc()
+        .format(),
+      end: moment(dateRange.to).endOf('day').utc()
+      .format(),
       users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
       languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
     }
@@ -178,8 +180,10 @@ export function Report() {
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
-        start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
-        end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
+        start: moment(date).utc()
+        .format(),
+        end: moment(date).add(1, 'day').utc()
+        .format(),
         completions,
         selects
       }
