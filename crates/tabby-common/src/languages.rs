@@ -84,14 +84,13 @@ lazy_static! {
         let mut map = HashMap::new();
         for c in &CONFIG.config {
             for e in &c.exts {
-                for l in &c.languages {
-                    assert!(
-                        !map.contains_key(e.as_str()),
-                        "Duplicate extension found: {}",
-                        e
-                    );
-                    map.insert(e.as_str(), l.as_str());
-                }
+                let l = c.language();
+                assert!(
+                    !map.contains_key(e.as_str()),
+                    "Duplicate extension found: {}",
+                    e
+                );
+                map.insert(e.as_str(), l);
             }
         }
         map
