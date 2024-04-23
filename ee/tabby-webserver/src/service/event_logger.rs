@@ -5,12 +5,14 @@ use tabby_common::api::event::{Event, EventLogger, LogEntry};
 use tabby_db::DbConn;
 use tracing::warn;
 
-use super::dao::AsRowid;
+use super::dao::{AsRowid, DbEnum};
+use crate::schema::user_event::EventKind;
 
 struct DbEventLogger {
     db: DbConn,
 }
 
+// FIXME(boxbeam, TAB-629): Refactor to `write_impl` which returns `Result` to allow `?` to still be used
 fn log_err<T, E: Display>(res: Result<T, E>) {
     if let Err(e) = res {
         warn!("Failed to log event: {e}");
@@ -21,8 +23,16 @@ pub fn create_event_logger(db: DbConn) -> impl EventLogger + 'static {
     DbEventLogger { db }
 }
 
+fn get_user_id(user: Option<String>) -> Option<i64> {
+    user.and_then(|id| ID::new(id).as_rowid().ok())
+}
+
 impl EventLogger for DbEventLogger {
     fn write(&self, entry: LogEntry) {
+        let Ok(event_json) = serde_json::to_string_pretty(&entry.event) else {
+            warn!("Failed to convert event {entry:?} to JSON");
+            return;
+        };
         match entry.event {
             Event::View { completion_id, .. } => {
                 let db = self.db.clone();
@@ -30,7 +40,18 @@ impl EventLogger for DbEventLogger {
                     log_err(
                         db.add_to_user_completion(entry.ts, &completion_id, 1, 0, 0)
                             .await,
-                    )
+                    );
+                    if let Some(user) = get_user_id(entry.user) {
+                        log_err(
+                            db.create_user_event(
+                                user,
+                                EventKind::View.as_enum_str().into(),
+                                entry.ts,
+                                event_json,
+                            )
+                            .await,
+                        );
+                    }
                 });
             }
             Event::Select { completion_id, .. } => {
@@ -39,7 +60,18 @@ impl EventLogger for DbEventLogger {
                     log_err(
                         db.add_to_user_completion(entry.ts, &completion_id, 0, 1, 0)
                             .await,
-                    )
+                    );
+                    if let Some(user) = get_user_id(entry.user) {
+                        log_err(
+                            db.create_user_event(
+                                user,
+                                EventKind::Select.as_enum_str().into(),
+                                entry.ts,
+                                event_json,
+                            )
+                            .await,
+                        );
+                    }
                 });
             }
             Event::Dismiss { completion_id, .. } => {
@@ -48,7 +80,18 @@ impl EventLogger for DbEventLogger {
                     log_err(
                         db.add_to_user_completion(entry.ts, &completion_id, 0, 0, 1)
                             .await,
-                    )
+                    );
+                    if let Some(user) = get_user_id(entry.user) {
+                        log_err(
+                            db.create_user_event(
+                                user,
+                                EventKind::Dismiss.as_enum_str().into(),
+                                entry.ts,
+                                event_json,
+                            )
+                            .await,
+                        );
+                    }
                 });
             }
             Event::Completion {
@@ -56,21 +99,33 @@ impl EventLogger for DbEventLogger {
                 language,
                 ..
             } => {
-                let Some(user) = entry.user else { return };
+                let Some(user) = get_user_id(entry.user) else {
+                    return;
+                };
                 let db = self.db.clone();
                 tokio::spawn(async move {
-                    let Ok(id) = ID::new(&user).as_rowid() else {
-                        warn!("Invalid user ID");
-                        return;
-                    };
-                    let user_db = db.get_user(id).await;
+                    let user_db = db.get_user(user).await;
                     let Ok(Some(user_db)) = user_db else {
                         warn!("Failed to retrieve user for {user}");
                         return;
                     };
                     log_err(
-                        db.create_user_completion(entry.ts, user_db.id, completion_id, language)
-                            .await,
+                        db.create_user_completion(
+                            entry.ts,
+                            user_db.id,
+                            completion_id.clone(),
+                            language,
+                        )
+                        .await,
+                    );
+                    log_err(
+                        db.create_user_event(
+                            user,
+                            EventKind::Completion.as_enum_str().into(),
+                            entry.ts,
+                            event_json,
+                        )
+                        .await,
                     );
                 });
             }

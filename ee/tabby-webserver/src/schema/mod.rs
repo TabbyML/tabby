@@ -7,6 +7,7 @@ pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
+pub mod user_event;
 pub mod worker;
 
 use std::sync::Arc;
