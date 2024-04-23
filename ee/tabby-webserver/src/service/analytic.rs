@@ -26,6 +26,7 @@ impl AnalyticService for AnalyticServiceImpl {
             .map(|s| CompletionStats {
                 start: s.start,
                 end: s.start + chrono::Duration::days(1),
+                language: s.language.into(),
                 completions: s.completions,
                 selects: s.selects,
                 views: s.views,
@@ -43,8 +44,15 @@ impl AnalyticService for AnalyticServiceImpl {
     ) -> Result<Vec<CompletionStats>> {
         let users = convert_ids(users);
 
-        let all_languages = Language::all_known().flat_map(|l| l.to_strings()).collect();
-        let languages = languages.into_iter().flat_map(|l| l.to_strings()).collect();
+        let all_languages = Language::all_known()
+            .flat_map(|l| l.language_names())
+            .map(str::to_owned)
+            .collect();
+        let languages = languages
+            .into_iter()
+            .flat_map(|l| l.language_names())
+            .map(str::to_owned)
+            .collect();
         let stats = self
             .db
             .compute_daily_stats(start, end, users, languages, all_languages)
@@ -54,6 +62,7 @@ impl AnalyticService for AnalyticServiceImpl {
             .map(|s| CompletionStats {
                 start: s.start,
                 end: s.start + chrono::Duration::days(1),
+                language: s.language.into(),
                 completions: s.completions,
                 selects: s.selects,
                 views: s.views,
@@ -143,21 +152,29 @@ mod tests {
         assert_eq!(1, activity[0].selects);
 
         // Query user 1 + user 2 should return 2 completions and 1 select.
-        let activity2 = svc
+        let activity = svc
             .daily_stats_in_past_year(vec![user_id.as_id(), user_id2.as_id()])
             .await
             .unwrap();
 
-        assert_eq!(1, activity2.len());
-        assert_eq!(2, activity2[0].completions);
-        assert_eq!(1, activity2[0].selects);
+        assert_eq!(2, activity.len());
+        assert_eq!(Language::Other, activity[0].language);
+        assert_eq!(1, activity[0].completions);
+        assert_eq!(1, activity[0].selects);
+        assert_eq!(Language::Rust, activity[1].language);
+        assert_eq!(1, activity[1].completions);
+        assert_eq!(0, activity[1].selects);
 
         // Query all users should return 2 completions and 1 select.
-        let activity3 = svc.daily_stats_in_past_year(vec![]).await.unwrap();
+        let activity = svc.daily_stats_in_past_year(vec![]).await.unwrap();
 
-        assert_eq!(1, activity3.len());
-        assert_eq!(2, activity3[0].completions);
-        assert_eq!(1, activity3[0].selects);
+        assert_eq!(2, activity.len());
+        assert_eq!(Language::Other, activity[0].language);
+        assert_eq!(1, activity[0].completions);
+        assert_eq!(1, activity[0].selects);
+        assert_eq!(Language::Rust, activity[1].language);
+        assert_eq!(1, activity[1].completions);
+        assert_eq!(0, activity[1].selects);
     }
 
     #[tokio::test]
@@ -234,8 +251,11 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(1, stats.len());
-        assert_eq!(2, stats[0].completions);
+        assert_eq!(2, stats.len());
+        assert_eq!(Language::Other, stats[0].language);
+        assert_eq!(1, stats[0].completions);
+        assert_eq!(Language::Rust, stats[1].language);
+        assert_eq!(1, stats[1].completions);
 
         let stats2 = service
             .daily_stats(start, end, vec![], vec![Language::Other])
