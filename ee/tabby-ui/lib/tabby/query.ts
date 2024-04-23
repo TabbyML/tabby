@@ -187,6 +187,43 @@ export const listGithubRepositoryProviders = graphql(/* GraphQL */ `
           id
           displayName
           applicationId
+          connected
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGithubRepositories = graphql(/* GraphQL */ `
+  query ListGithubRepositories(
+    $providerIds: [ID!]!
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    githubRepositories(
+      providerIds: $providerIds
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          vendorId
+          githubRepositoryProviderId
+          name
+          gitUrl
+          active
         }
         cursor
       }

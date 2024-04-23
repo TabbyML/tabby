@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
+import { QueryResponseData, useMutation } from '@/lib/tabby/gql'
+import { listGithubRepositories } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,37 +25,39 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import { IconCheck, IconChevronUpDown } from '@/components/ui/icons'
+import {
+  IconCheck,
+  IconChevronUpDown,
+  IconSpinner
+} from '@/components/ui/icons'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover'
 
+import { updateGithubProvidedRepositoryActiveMutation } from '../query'
+
 const formSchema = z.object({
-  gitUrl: z.string(),
-  name: z.string()
+  id: z.string()
 })
 
 type LinkRepositoryFormValues = z.infer<typeof formSchema>
 
-const repos = [
-  {
-    value: 'https://github.com/tabbyml/tabby',
-    label: 'https://github.com/tabbyml/tabby'
-  },
-  {
-    value: 'https://github.com/tabbyml/test',
-    label: 'https://github.com/tabbyml/test'
-  }
-]
-
 export default function LinkRepositoryForm({
   onCreated,
-  onCancel
+  onCancel,
+  repositories,
+  fetchingRepositories
 }: {
-  onCreated?: (values: LinkRepositoryFormValues) => void
+  onCreated?: () => void
   onCancel: () => void
+  repositories:
+    | QueryResponseData<
+        typeof listGithubRepositories
+      >['githubRepositories']['edges']
+    | undefined
+  fetchingRepositories: boolean
 }) {
   const [open, setOpen] = React.useState(false)
   const form = useForm<LinkRepositoryFormValues>({
@@ -61,27 +65,24 @@ export default function LinkRepositoryForm({
   })
 
   const { isSubmitting } = form.formState
-  // const createRepository = useMutation(createRepositoryMutation, {
-  //   onCompleted() {
-  //     form.reset({ name: undefined, gitUrl: undefined })
-  //     onCreated()
-  //   },
-  //   form
-  // })
-
-  const git_url = form.watch('gitUrl')
-
-  React.useEffect(() => {
-    if (!git_url) {
-      form.setValue('name', '')
-    } else {
-      const name = resolveRepoNameFromUrl(git_url) || git_url
-      form.setValue('name', name)
+  const updateGithubProvidedRepositoryActive = useMutation(
+    updateGithubProvidedRepositoryActiveMutation,
+    {
+      onCompleted(data) {
+        if (data?.updateGithubProvidedRepositoryActive) {
+          form.reset({ id: undefined })
+          onCreated?.()
+        }
+      },
+      form
     }
-  }, [git_url])
+  )
 
   const onSubmit = (values: LinkRepositoryFormValues) => {
-    onCreated?.(values)
+    return updateGithubProvidedRepositoryActive({
+      id: values.id,
+      active: true
+    })
   }
 
   return (
@@ -90,7 +91,7 @@ export default function LinkRepositoryForm({
         <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
           <FormField
             control={form.control}
-            name="gitUrl"
+            name="id"
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel required>Repository</FormLabel>
@@ -106,8 +107,9 @@ export default function LinkRepositoryForm({
                         )}
                       >
                         {field.value
-                          ? repos.find(repo => repo.value === field.value)
-                              ?.label
+                          ? repositories?.find(
+                              repo => repo.node.id === field.value
+                            )?.node?.gitUrl
                           : 'Select repository'}
                         <IconChevronUpDown />
                       </Button>
@@ -120,26 +122,32 @@ export default function LinkRepositoryForm({
                     <Command>
                       <CommandInput placeholder="Search repository..." />
                       <CommandList>
-                        <CommandEmpty>No repository found.</CommandEmpty>
+                        <CommandEmpty>
+                          {fetchingRepositories ? (
+                            <IconSpinner />
+                          ) : (
+                            'No repository found.'
+                          )}
+                        </CommandEmpty>
                         <CommandGroup>
-                          {repos.map(repo => (
+                          {repositories?.map(repo => (
                             <CommandItem
-                              value={repo.label}
-                              key={repo.value}
+                              value={repo.node.id}
+                              key={repo.node.id}
                               onSelect={() => {
-                                form.setValue('gitUrl', repo.value)
+                                form.setValue('id', repo.node.id)
                                 setOpen(false)
                               }}
                             >
                               <IconCheck
                                 className={cn(
                                   'mr-2',
-                                  repo.value === field.value
+                                  repo.node.id === field.value
                                     ? 'opacity-100'
                                     : 'opacity-0'
                                 )}
                               />
-                              {repo.label}
+                              {repo.node.gitUrl}
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -169,9 +177,4 @@ export default function LinkRepositoryForm({
       </div>
     </Form>
   )
-}
-
-function resolveRepoNameFromUrl(path: string | undefined) {
-  if (!path) return ''
-  return path.split('/')?.pop()
 }

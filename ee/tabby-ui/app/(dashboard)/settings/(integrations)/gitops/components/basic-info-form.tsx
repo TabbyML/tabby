@@ -19,7 +19,13 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 export const basicInfoFormSchema = z.object({
-  displayName: z.string(),
+  displayName: z
+    .string()
+    .trim()
+    .regex(
+      /^[\w-]+$/,
+      'Display name must contain only alphanumeric characters, underscores, and hyphens'
+    ),
   provider: z.string()
 })
 
@@ -73,12 +79,12 @@ export const BasicInfoForm = React.forwardRef<
           <FormItem>
             <FormLabel required>Display name</FormLabel>
             <FormDescription>
-              An optional display name to help identifying among different
-              configs using the same Git provider.
+              A display name to help identifying among different configs using
+              the same Git provider.
             </FormDescription>
             <FormControl>
               <Input
-                placeholder="e.g. GitHub.com"
+                placeholder="e.g. GitHub"
                 autoCapitalize="none"
                 autoCorrect="off"
                 {...field}

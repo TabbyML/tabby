@@ -40,9 +40,7 @@ export default function ConfirmView({ data }: ConfirmViewProps) {
           <Separator />
           <InfoItem title="Application ID">{data.applicationId}</InfoItem>
           <Separator />
-          <InfoItem title="Application secret">
-            {data.secret}
-          </InfoItem>
+          <InfoItem title="Application secret">{data.secret}</InfoItem>
         </CardContent>
       </Card>
     </div>

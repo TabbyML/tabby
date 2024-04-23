@@ -5,23 +5,24 @@ import { useQuery } from 'urql'
 
 import { ListGithubRepositoryProvidersQuery } from '@/lib/gql/generates/graphql'
 import { listGithubRepositoryProviders } from '@/lib/tabby/query'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IconGitHub } from '@/components/ui/icons'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 import { RepositoryHeader } from './header'
-import fetcher from '@/lib/tabby/fetcher'
-import { getAuthToken } from '@/lib/tabby/token-management'
 
 export default function GitProvidersPage() {
-  const [{ data }] = useQuery({ query: listGithubRepositoryProviders })
+  const [{ data, fetching }] = useQuery({
+    query: listGithubRepositoryProviders
+  })
   const githubRepositoryProviders = data?.githubRepositoryProviders?.edges
 
   return (
     <>
       <RepositoryHeader />
-      <LoadingWrapper loading={false}>
+      <LoadingWrapper loading={fetching}>
         {githubRepositoryProviders?.length ? (
           <div>
             <GitProvidersList data={githubRepositoryProviders} />
@@ -44,39 +45,6 @@ interface GitProvidersTableProps {
 }
 
 const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
-
-  const handleConnect = async (id: string) => {
-    const width = 600, height = 600;
-    const left = (window.innerWidth - width) / 2;
-    const top = (window.innerHeight - height) / 2;
-
-    await fetch(`/integrations/github/connect/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${getAuthToken()?.accessToken}`,
-      },
-      redirect: 'manual'
-    }).then(response => {
-      // 处理响应
-      if (response.type === 'opaqueredirect') {
-        // 获取重定向的 URL
-        const redirectUrl = response.url;
-        debugger
-        // 根据重定向 URL 打开小窗口进行 OAuth 认证
-        if (redirectUrl) {
-          window.open(redirectUrl, 'GitHubAuth', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=no, width=${width}, height=${height}, top=${top}, left=${left}`);
-        } else {
-          throw new Error('Redirect URL not found');
-        }
-      } else {
-        // 处理非重定向响应
-        console.log('Not a redirect response');
-      }
-    })
-
-    // window.open(url, 'GitHubAuth', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=no, width=${width}, height=${height}, top=${top}, left=${left}`);
-  }
-
-
   return (
     <div className="space-y-8">
       {data?.map(item => {
@@ -90,7 +58,6 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                     GitHub.com
                   </div>
                 </CardTitle>
-                <Button onClick={e => handleConnect(item.node.id)}>connect</Button>
                 <Link
                   href={`/settings/gitops/detail?id=${item.node.id}`}
                   className={buttonVariants({ variant: 'secondary' })}
@@ -112,10 +79,15 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
               </div>
               <div className="flex py-3">
                 <span className="w-[30%] text-muted-foreground shrink-0">
-                  Linked repositories
+                  Status
                 </span>
-                {/* todo: add query */}
-                <span className="truncate">2</span>
+                <span className="-ml-1">
+                  {item.node?.connected ? (
+                    <Badge variant="successful">Connected</Badge>
+                  ) : (
+                    <Badge variant="destructive">Not Connected</Badge>
+                  )}
+                </span>
               </div>
             </CardContent>
           </Card>

@@ -1,13 +1,17 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { uniqueId } from 'lodash-es'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
-import useLocalStorage from 'use-local-storage'
 
-import { listGithubRepositoryProviders } from '@/lib/tabby/query'
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
+import { QueryResponseData, QueryVariables, useMutation } from '@/lib/tabby/gql'
+import {
+  listGithubRepositories,
+  listGithubRepositoryProviders
+} from '@/lib/tabby/query'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -18,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { IconGitHub, IconTrash } from '@/components/ui/icons'
+import { IconChevronLeft, IconGitHub, IconTrash } from '@/components/ui/icons'
 import {
   Table,
   TableBody,
@@ -30,8 +34,13 @@ import {
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
+import { updateGithubProvidedRepositoryActiveMutation } from '../query'
 import LinkRepositoryForm from './new-repository-form'
 import { UpdateProviderForm } from './provider-detail-form'
+
+type GithubRepositories = QueryResponseData<
+  typeof listGithubRepositories
+>['githubRepositories']['edges']
 
 const DetailPage: React.FC = () => {
   const searchParams = useSearchParams()
@@ -43,33 +52,34 @@ const DetailPage: React.FC = () => {
     pause: !id
   })
   const provider = data?.githubRepositoryProviders?.edges?.[0]?.node
+  const [githubRepositories, fetchingRepositories] =
+    useAllProvidedRepositories(id)
 
-  const [mockRepo, setMockRepo] = useLocalStorage<Array<any> | null>(
-    'mock-linked-repo',
-    null
-  )
   const [open, setOpen] = React.useState(false)
 
-  const onCreated = (values: any) => {
-    const currentRepos = mockRepo || []
-    setMockRepo([...currentRepos, { ...values, id: uniqueId() }])
+  const onCreated = () => {
     toast.success('Created successfully')
     setOpen(false)
   }
 
-  const onDeleteRepo = (id: string) => {
-    // setMockRepo(mockRepo?.filter(item => item.id !== id) ?? [])
-  }
+  // const onDeleteRepo = () => {
+  // }
 
   const onDeleteProvider = () => {
     router.replace('/settings/gitops')
   }
 
-  // todo fetch all repos
+  const unlinkedRepos = useMemo(() => {
+    return githubRepositories?.filter(item => !item.node.active)
+  }, [githubRepositories])
+
+  const linkedRepos = useMemo(() => {
+    return githubRepositories?.filter(item => item.node.active)
+  }, [githubRepositories])
 
   if (!id || (!!id && !fetching && !provider)) {
     return (
-      <div className="w-full h-[250px] border rounded-lg flex items-center justify-center">
+      <div className="flex h-[250px] w-full items-center justify-center rounded-lg border">
         Provider not found
       </div>
     )
@@ -79,10 +89,25 @@ const DetailPage: React.FC = () => {
     <LoadingWrapper loading={fetching}>
       <CardHeader className="pl-0 pt-0">
         <CardTitle className="flex items-center justify-between">
-          <span>Provider information</span>
+          <div
+            onClick={() => router.back()}
+            className="-ml-1 flex cursor-pointer items-center transition-opacity hover:opacity-60"
+          >
+            <IconChevronLeft className="mr-1 h-6 w-6" />
+            <h2 className="text-3xl font-bold tracking-tight">
+              Provider information
+            </h2>
+          </div>
           <div className="flex items-center gap-2 text-base">
             <IconGitHub className="h-6 w-6" />
             GitHub.com
+            <div className="ml-1">
+              {provider?.connected ? (
+                <Badge variant="successful">Connected</Badge>
+              ) : (
+                <Badge variant="destructive">Not Connected</Badge>
+              )}
+            </div>
           </div>
         </CardTitle>
       </CardHeader>
@@ -113,6 +138,8 @@ const DetailPage: React.FC = () => {
               <LinkRepositoryForm
                 onCancel={() => setOpen(false)}
                 onCreated={onCreated}
+                repositories={unlinkedRepos}
+                fetchingRepositories={fetchingRepositories}
               />
             </DialogContent>
             <DialogTrigger asChild>
@@ -122,8 +149,8 @@ const DetailPage: React.FC = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="pl-0">
-        <LoadingWrapper>
-          <LinkedRepoTable data={mockRepo ?? []} onDelete={onDeleteRepo} />
+        <LoadingWrapper loading={fetchingRepositories}>
+          <LinkedRepoTable data={linkedRepos} />
         </LoadingWrapper>
       </CardContent>
     </LoadingWrapper>
@@ -131,9 +158,33 @@ const DetailPage: React.FC = () => {
 }
 
 const LinkedRepoTable: React.FC<{
-  data: Array<any>
-  onDelete: (id: string) => void
+  data: GithubRepositories | undefined
+  onDelete?: () => void
 }> = ({ data, onDelete }) => {
+  // const [isDeleting, setIsDeleting] = useState(false)
+  const updateGithubProvidedRepositoryActive = useMutation(
+    updateGithubProvidedRepositoryActiveMutation,
+    {
+      onCompleted(data) {
+        if (data?.updateGithubProvidedRepositoryActive) {
+          onDelete?.()
+        }
+        // setIsDeleting(false)
+      },
+      onError() {
+        // setIsDeleting(false)
+      }
+    }
+  )
+
+  const handleDelete = async (id: string) => {
+    // setIsDeleting(true)
+    updateGithubProvidedRepositoryActive({
+      id,
+      active: false
+    })
+  }
+
   return (
     <Table className="mt-4">
       <TableHeader>
@@ -148,15 +199,15 @@ const LinkedRepoTable: React.FC<{
           <>
             {data?.map(x => {
               return (
-                <TableRow key={x.id}>
-                  <TableCell>{x.name}</TableCell>
-                  <TableCell>{x.gitUrl}</TableCell>
+                <TableRow key={x.node.id}>
+                  <TableCell>{x.node.name}</TableCell>
+                  <TableCell>{x.node.gitUrl}</TableCell>
                   <TableCell className="flex justify-end">
                     <div className="flex gap-1">
                       <Button
                         size="icon"
                         variant="hover-destructive"
-                        onClick={e => onDelete(x.id)}
+                        onClick={e => handleDelete(x.node.id)}
                       >
                         <IconTrash />
                       </Button>
@@ -176,6 +227,41 @@ const LinkedRepoTable: React.FC<{
       </TableBody>
     </Table>
   )
+}
+
+export function useAllProvidedRepositories(
+  id: string
+): [GithubRepositories, boolean] {
+  const [queryVariables, setQueryVariables] = useState<
+    QueryVariables<typeof listGithubRepositories>
+  >({ providerIds: [id], first: DEFAULT_PAGE_SIZE })
+
+  const [isAllLoaded, setIsAllLoaded] = useState(!id)
+
+  const [{ data, fetching }] = useQuery({
+    query: listGithubRepositories,
+    variables: queryVariables,
+    pause: !id
+  })
+
+  useEffect(() => {
+    if (isAllLoaded) return
+    if (!fetching && data) {
+      const pageInfo = data?.githubRepositories?.pageInfo
+
+      if (pageInfo?.hasNextPage) {
+        setQueryVariables({
+          providerIds: [id],
+          first: DEFAULT_PAGE_SIZE,
+          after: pageInfo.endCursor
+        })
+      } else {
+        setIsAllLoaded(true)
+      }
+    }
+  }, [queryVariables, fetching])
+
+  return [data?.githubRepositories?.edges ?? [], !isAllLoaded]
 }
 
 export default DetailPage

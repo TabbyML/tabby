@@ -39,14 +39,22 @@ const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
 `)
 
 const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
-  mutation UpdateGithubRepositoryProvider($input: UpdateGithubRepositoryProviderInput!) {
+  mutation UpdateGithubRepositoryProvider(
+    $input: UpdateGithubRepositoryProviderInput!
+  ) {
     updateGithubRepositoryProvider(input: $input)
   }
 `)
 
 export const formSchema = z.object({
   applicationId: z.string(),
-  displayName: z.string(),
+  displayName: z
+    .string()
+    .trim()
+    .regex(
+      /^[\w-]+$/,
+      'Display name must contain only alphanumeric characters, underscores, and hyphens'
+    ),
   secret: z.string().optional()
 })
 
@@ -87,6 +95,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
       onCompleted(values) {
         if (values?.updateGithubRepositoryProvider) {
           toast.success('Updated repository provider successfully')
+          form.reset(form.getValues())
           onSuccess?.()
         }
       }
@@ -129,9 +138,9 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     <Form {...form}>
       <div className="grid gap-2">
         <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
+          <FormField
             control={form.control}
-            name='displayName'
+            name="displayName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel required>Name</FormLabel>
@@ -185,10 +194,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="flex justify-between">
-            <Button variant="ghost" onClick={() => onBack()}>
-              Back to providers
-            </Button>
+          <div className="flex justify-end">
             <div className="items-cetner flex gap-4">
               <AlertDialog
                 open={deleteAlertVisible}
