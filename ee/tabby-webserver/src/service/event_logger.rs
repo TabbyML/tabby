@@ -13,6 +13,7 @@ struct DbEventLogger {
     db: DbConn,
 }
 
+// FIXME(boxbeam, TAB-629): Refactor to `write_impl` which returns `Result` to allow `?` to still be used
 fn log_err<T, E: Display>(res: Result<T, E>) {
     if let Err(e) = res {
         warn!("Failed to log event: {e}");
