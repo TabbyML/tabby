@@ -260,7 +260,10 @@ export default function Stats() {
   // Prepare and structure data for populating the language usage charts
   const languageStats = {} as LanguageStats
   dailyStats?.forEach(stats => {
-    languageStats[stats.language] = languageStats[stats.language] || { views: 0, name: stats.language }
+    languageStats[stats.language] = languageStats[stats.language] || {
+      views: 0,
+      name: stats.language
+    }
     languageStats[stats.language].views += stats.views
   })
   let languageData: LanguageData = Object.entries(languageStats)
