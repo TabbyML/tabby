@@ -45,7 +45,7 @@ use crate::{
         license::{IsLicenseValid, LicenseService},
         repository::RepositoryService,
         setting::SettingService,
-        user_events::UserEventService,
+        user_event::UserEventService,
         worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
         CoreError, Result, ServiceLocator,
     },
@@ -60,7 +60,7 @@ struct ServerContext {
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
-    user_events: Arc<dyn UserEventService>,
+    user_event: Arc<dyn UserEventService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -99,7 +99,7 @@ impl ServerContext {
             )),
             license,
             repository,
-            user_events: user_event,
+            user_event,
             db_conn,
             logger,
             code,
@@ -314,7 +314,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn user_event(&self) -> Arc<dyn UserEventService> {
-        self.user_events.clone()
+        self.user_event.clone()
     }
 }
 

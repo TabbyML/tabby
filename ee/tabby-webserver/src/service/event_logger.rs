@@ -6,7 +6,7 @@ use tabby_db::DbConn;
 use tracing::warn;
 
 use super::dao::{AsRowid, DbEnum};
-use crate::schema::user_events::EventKind;
+use crate::schema::user_event::EventKind;
 
 struct DbEventLogger {
     db: DbConn,

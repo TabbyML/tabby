@@ -14,7 +14,7 @@ use crate::{
         github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
         job,
         setting::{NetworkSetting, SecuritySetting},
-        user_events::{EventKind, UserEvent},
+        user_event::{EventKind, UserEvent},
         CoreError,
     },
 };
