@@ -83,7 +83,14 @@ impl WebserverHandle {
             is_chat_enabled,
         )
         .await;
-        cron::run_cron(ctx.auth(), ctx.job(), ctx.worker(), local_port).await;
+        cron::run_cron(
+            ctx.auth(),
+            ctx.job(),
+            ctx.worker(),
+            ctx.repository().github(),
+            local_port,
+        )
+        .await;
 
         let schema = Arc::new(create_schema());
 

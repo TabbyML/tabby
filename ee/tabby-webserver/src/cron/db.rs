@@ -7,15 +7,25 @@ use futures::Future;
 use tokio_cron_scheduler::Job;
 use tracing::error;
 
-use crate::schema::{auth::AuthenticationService, job::JobService};
+use super::github::refresh_all_repositories;
+use crate::schema::{
+    auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
+    job::JobService,
+};
 
-async fn service_job<F, S>(service: Arc<S>, job: fn(Arc<S>) -> F) -> Result<Job>
+const EVERY_TWO_HOURS: &str = "0 0 1/2 * * * *";
+const EVERY_TEN_MINUTES: &str = "0 1/10 * * * *";
+
+async fn service_job<F, S>(
+    frequency: &'static str,
+    service: Arc<S>,
+    job: fn(Arc<S>) -> F,
+) -> Result<Job>
 where
     F: Future<Output = Result<()>> + 'static + Send,
     S: Send + Sync + 'static + ?Sized,
 {
-    // job is run every 2 hours
-    let job = Job::new_async("0 0 1/2 * * * *", move |_, _| {
+    let job = Job::new_async(frequency, move |_, _| {
         let auth = service.clone();
         Box::pin(async move {
             let res = job(auth.clone()).await;
@@ -29,16 +39,29 @@ where
 }
 
 pub async fn refresh_token_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
-    service_job(auth, |auth| async move {
+    service_job(EVERY_TWO_HOURS, auth, |auth| async move {
         Ok(auth.delete_expired_token().await?)
     })
     .await
 }
 
 pub async fn password_reset_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
-    service_job(auth, |auth| async move {
+    service_job(EVERY_TWO_HOURS, auth, |auth| async move {
         Ok(auth.delete_expired_password_resets().await?)
     })
+    .await
+}
+
+pub async fn update_integrated_github_repositories_job(
+    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
+) -> Result<Job> {
+    service_job(
+        EVERY_TEN_MINUTES,
+        github_repository_provider,
+        |github_repository_provider| async move {
+            refresh_all_repositories(github_repository_provider).await
+        },
+    )
     .await
 }
 

@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
@@ -62,7 +63,7 @@ impl DbConn {
     pub async fn update_github_provider_access_token(
         &self,
         id: i64,
-        access_token: String,
+        access_token: Option<String>,
     ) -> Result<()> {
         let res = query!(
             "UPDATE github_repository_provider SET access_token = ? WHERE id = ?",
@@ -146,14 +147,16 @@ impl DbConn {
         Ok(providers)
     }
 
-    pub async fn create_github_provided_repository(
+    pub async fn upsert_github_provided_repository(
         &self,
         github_provider_id: i64,
         vendor_id: String,
         name: String,
         git_url: String,
     ) -> Result<i64> {
-        let res = query!("INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES (?, ?, ?, ?)",
+        let res = query!(
+            "INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
+                ON CONFLICT(github_repository_provider_id, vendor_id) DO UPDATE SET github_repository_provider_id = $1, name = $2, git_url = $3",
             github_provider_id, vendor_id, name, git_url).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }
@@ -166,6 +169,19 @@ impl DbConn {
         if res.rows_affected() != 1 {
             return Err(anyhow!("Repository not found"));
         }
+        Ok(())
+    }
+
+    pub async fn delete_outdated_github_repositories(
+        &self,
+        github_provider_id: i64,
+        cutoff_timestamp: DateTime<Utc>,
+    ) -> Result<()> {
+        query!(
+            "DELETE FROM github_provided_repositories WHERE github_repository_provider_id = ? AND updated_at < ?;",
+            github_provider_id,
+            cutoff_timestamp
+        ).execute(&self.pool).await?;
         Ok(())
     }
 
