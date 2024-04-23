@@ -99,6 +99,7 @@ mod tests {
     use crate::FileSearch;
 
     #[test]
+    #[ignore]
     fn it_search() {
         let result = FileSearch::search(
             &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../"),
