@@ -7,5 +7,5 @@ homepage.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-ignore.workspace = true
+git2.workspace = true
 nucleo.workspace = true

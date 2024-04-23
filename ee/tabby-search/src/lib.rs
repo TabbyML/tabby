@@ -1,6 +1,7 @@
-use std::path::Path;
-
-use ignore::Walk;
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 pub struct FileSearch {
     pub r#type: String,
@@ -24,6 +25,34 @@ impl FileSearch {
         pattern: &str,
         limit: usize,
     ) -> Result<Vec<FileSearch>, anyhow::Error> {
+        let repo = git2::Repository::open(base)?;
+        let paths: Vec<PathBuf> = {
+            let mut options = git2::StatusOptions::default();
+            options.include_unmodified(true);
+            let statuses = repo.statuses(Some(&mut options))?;
+
+            let mut dirs = HashSet::new();
+            statuses
+                .iter()
+                .filter_map(|x| x.path().map(|x| x.to_owned()))
+                .flat_map(|relpath| {
+                    let relpath = PathBuf::from(relpath);
+                    let Some(parent) = relpath.parent() else {
+                        return vec![relpath.to_owned()];
+                    };
+
+                    // Add directories to paths as git statues only tracks files.
+                    if !dirs.contains(parent) {
+                        // De-dupe directories with `dirs`
+                        dirs.insert(parent.to_owned());
+                        vec![parent.to_owned(), relpath]
+                    } else {
+                        vec![relpath]
+                    }
+                })
+                .collect()
+        };
+
         let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
         let needle = nucleo::pattern::Pattern::new(
             pattern,
@@ -32,26 +61,23 @@ impl FileSearch {
             nucleo::pattern::AtomKind::Fuzzy,
         );
 
-        let mut scored_entries: Vec<(_, _)> = Walk::new(base)
+        let mut scored_entries: Vec<(_, _)> = paths
+            .into_iter()
             // Limit traversal for at most 1M entries for performance reasons.
             .take(1_000_000)
-            .filter_map(|path| {
-                let entry = path.ok()?;
-                let r#type = if entry.file_type().map(|x| x.is_dir()).unwrap_or_default() {
+            .filter_map(|basepath| {
+                let path = PathBuf::from(base).join(&basepath);
+                let metadata = path.metadata().ok()?;
+                let r#type = if metadata.is_dir() {
                     "dir".into()
                 } else {
                     "file".into()
                 };
-                let path = entry
-                    .into_path()
-                    .strip_prefix(base)
-                    .ok()?
-                    .to_string_lossy()
-                    .into_owned();
-                let haystack: nucleo::Utf32String = path.clone().into();
+                let basepath = basepath.display().to_string();
+                let haystack: nucleo::Utf32String = basepath.clone().into();
                 let mut indices = Vec::new();
                 let score = needle.indices(haystack.slice(..), &mut nucleo, &mut indices);
-                score.map(|score| (score, FileSearch::new(r#type, path, indices)))
+                score.map(|score| (score, FileSearch::new(r#type, basepath, indices)))
             })
             // Ensure there's at least 1000 entries with scores > 0 for quality.
             .take(1000)
