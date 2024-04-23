@@ -10,6 +10,12 @@ update-ui:
 	cd ee/tabby-ui && yarn build
 	rm -rf ee/tabby-webserver/ui && cp -R ee/tabby-ui/out ee/tabby-webserver/ui
 
+update-db-schema:
+	sqlite3 ee/tabby-db/schema.sqlite ".schema --indent" > ee/tabby-db/schema/dump.sql
+	sqlite3 ee/tabby-db/schema.sqlite -init  ee/tabby-db/schema/sqlite-schema-visualize.sql "" > schema.dot
+	dot -Tsvg schema.dot > ee/tabby-db/schema/schema.svg
+	rm schema.dot
+
 update-email-templates:
 	cd ee/tabby-email && yarn export
 	rm -rf ee/tabby-webserver/email_templates && cp -R ee/tabby-email/out ee/tabby-webserver/email_templates
