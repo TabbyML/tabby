@@ -1,16 +1,16 @@
 use super::graphql_pagination_to_filter;
-use crate::schema::{user_event::UserEvent, Result};
+use crate::schema::{user_events::UserEvent, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use tabby_db::DbConn;
 
-use crate::schema::user_event::UserEventService;
+use crate::schema::user_events::UserEventService;
 
 struct UserEventServiceImpl {
     db: DbConn,
 }
 
-pub fn new_user_event_service(db: DbConn) -> impl UserEventService {
+pub fn create(db: DbConn) -> impl UserEventService {
     UserEventServiceImpl { db }
 }
 
@@ -22,12 +22,13 @@ impl UserEventService for UserEventServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-        timestamp: DateTime<Utc>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
     ) -> Result<Vec<UserEvent>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let events = self
             .db
-            .list_user_events(limit, skip_id, backwards, timestamp)
+            .list_user_events(limit, skip_id, backwards, start, end)
             .await?;
         Ok(events
             .into_iter()

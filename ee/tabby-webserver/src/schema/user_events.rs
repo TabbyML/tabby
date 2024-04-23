@@ -3,6 +3,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 
+use super::Context;
+
 #[derive(GraphQLEnum)]
 pub enum EventKind {
     Completion,
@@ -12,6 +14,7 @@ pub enum EventKind {
 }
 
 #[derive(GraphQLObject)]
+#[graphql(context = Context)]
 pub struct UserEvent {
     pub id: ID,
     pub user_id: ID,
@@ -44,6 +47,7 @@ pub trait UserEventService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-        timestamp: DateTime<Utc>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
     ) -> Result<Vec<UserEvent>>;
 }

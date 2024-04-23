@@ -33,7 +33,7 @@ use tracing::{info, warn};
 
 use self::{
     analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service,
-    license::new_license_service, user_event::new_user_event_service,
+    license::new_license_service,
 };
 use crate::{
     env::demo_mode,
@@ -45,7 +45,7 @@ use crate::{
         license::{IsLicenseValid, LicenseService},
         repository::RepositoryService,
         setting::SettingService,
-        user_event::UserEventService,
+        user_events::UserEventService,
         worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
         CoreError, Result, ServiceLocator,
     },
@@ -60,7 +60,7 @@ struct ServerContext {
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
-    user_event: Arc<dyn UserEventService>,
+    user_events: Arc<dyn UserEventService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -86,7 +86,7 @@ impl ServerContext {
                 .await
                 .expect("failed to initialize license service"),
         );
-        let user_event = Arc::new(new_user_event_service(db_conn.clone()));
+        let user_event = Arc::new(user_event::create(db_conn.clone()));
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -99,7 +99,7 @@ impl ServerContext {
             )),
             license,
             repository,
-            user_event,
+            user_events: user_event,
             db_conn,
             logger,
             code,
@@ -314,7 +314,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn user_event(&self) -> Arc<dyn UserEventService> {
-        self.user_event.clone()
+        self.user_events.clone()
     }
 }
 

@@ -7,7 +7,7 @@ pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
-pub mod user_event;
+pub mod user_events;
 pub mod worker;
 
 use std::sync::Arc;
@@ -46,7 +46,7 @@ use self::{
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
-    user_event::{UserEvent, UserEventService},
+    user_events::{UserEvent, UserEventService},
 };
 use crate::{
     axum::FromAuth,
@@ -426,7 +426,8 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-        after_timestamp: DateTime<Utc>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
     ) -> Result<Connection<UserEvent>> {
         check_admin(ctx).await?;
         relay::query_async(
@@ -437,7 +438,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .user_event()
-                    .list(after, before, first, last, after_timestamp)
+                    .list(after, before, first, last, start, end)
                     .await
             },
         )

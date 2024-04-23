@@ -45,9 +45,10 @@ impl DbConn {
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
-        timestamp: DateTime<Utc>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
     ) -> Result<Vec<UserEventDAO>> {
-        let condition = Some(format!("created_at > {timestamp}"));
+        let condition = Some(format!("created_at > {start} AND created_at < {end}"));
         let events = query_paged_as!(
             UserEventDAO,
             "user_events",
