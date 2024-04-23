@@ -123,7 +123,6 @@ export function CompletionCharts({
     dailySelectMap[date] += stats.selects
   }, {})
 
-  // Prepare and structure data for populating the language usage charts
   const averageAcceptance =
     totalViews === 0 ? 0 : ((totalAccepts / totalViews) * 100).toFixed(2)
   const acceptRateData = daysBetweenRange.map(date => {

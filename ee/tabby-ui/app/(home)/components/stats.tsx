@@ -257,7 +257,7 @@ export default function Stats() {
     })
     .reverse()
 
-  // Make data for language charts
+  // Prepare and structure data for populating the language usage charts
   const languageStats = {} as LanguageStats
   dailyStats?.forEach(stats => {
     languageStats[stats.language] = languageStats[stats.language] || { views: 0, name: stats.language }
