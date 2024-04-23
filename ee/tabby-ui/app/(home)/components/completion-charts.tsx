@@ -125,7 +125,7 @@ export function CompletionCharts({
   const dailyCompletionMap: Record<string, number> = {}
   const dailySelectMap: Record<string, number> = {}
   dailyStats?.forEach(stats => {
-    const date = moment.utc(stats.start).format('YYYY-MM-DD')
+    const date = moment(stats.start).format('YYYY-MM-DD')
     dailyCompletionMap[date] = stats.completions
     dailySelectMap[date] = stats.selects
   }, {})

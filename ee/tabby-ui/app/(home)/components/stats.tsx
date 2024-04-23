@@ -217,8 +217,9 @@ export default function Stats() {
   const startDate = moment()
     .subtract(DATE_RANGE, 'day')
     .startOf('day')
-    .format('YYYY-MM-DD[T]HH:mm:ss[Z]')
-  const endDate = moment().endOf('day').format('YYYY-MM-DD[T]HH:mm:ss[Z]')
+    .utc()
+    .format()
+  const endDate = moment().endOf('day').utc().format()
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -241,8 +242,8 @@ export default function Stats() {
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 25)
       return {
-        start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
-        end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
+        start: moment(date).utc().format(),
+        end: moment(date).add(1, 'day').utc().format(),
         completions,
         selects
       }
