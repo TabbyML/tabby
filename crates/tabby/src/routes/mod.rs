@@ -41,9 +41,9 @@ pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
 }
 
 #[derive(Debug)]
-pub struct MaybeUser(pub Option<String>);
+pub(crate) struct MaybeUser(pub Option<String>);
 
-pub static USER_HEADER: HeaderName = HeaderName::from_static(USER_HEADER_FIELD_NAME);
+pub(crate) static USER_HEADER: HeaderName = HeaderName::from_static(USER_HEADER_FIELD_NAME);
 
 impl Header for MaybeUser {
     fn name() -> &'static axum::http::HeaderName {
