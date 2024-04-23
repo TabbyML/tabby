@@ -145,20 +145,23 @@ impl DbConn {
             .collect::<Vec<_>>()
             .join(",");
 
-        // Groups stats by day, using `DATE(created_at)` to extract the day and converting it into seconds
-        // with `STRFTIME('%s')`. The effect of this is to extract the unix timestamp (seconds) rounded to
-        // the start of the day and group them by that.
+        // Groups stats by day, round all timestamps to the begining of the day relative to `start`.
         let res = sqlx::query_as(&format!(
             r#"
-            SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+            SELECT CAST((STRFTIME('%s', ?1) + days_since_start * 3600 * 24) AS TIMESTAMP) as start,
                    language,
                    COUNT(1) as completions,
                    SUM(selects) as selects,
                    SUM(views) as views
             FROM (
-                SELECT user_id, created_at, selects, views, IIF(language IN ({all_languages}), language, 'other') as language
-                    FROM user_completions
-                    WHERE created_at >= ?1 AND created_at < ?2
+                SELECT user_id,
+                       CAST((STRFTIME('%s', created_at) - STRFTIME('%s', ?1)) / 3600 / 24 AS INT) as days_since_start,
+                       created_at,
+                       selects,
+                       views,
+                       IIF(language IN ({all_languages}), language, 'other') as language
+                FROM user_completions
+                WHERE created_at >= ?1 AND created_at < ?2
             )
                 WHERE ({no_selected_users} OR user_id IN ({users}))
                 AND ({no_selected_languages} OR language IN ({languages}))
