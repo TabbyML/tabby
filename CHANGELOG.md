@@ -10,6 +10,7 @@
 
 ## Fixes and Improvements
 * Changed the default model filename from `q8_0.v2.gguf` to `model.gguf` in MODEL_SPEC.md
+* Inactive users are no longer counted in analytics
 
 # v0.10.0
 
