@@ -217,7 +217,8 @@ export default function Stats() {
   const startDate = moment()
     .subtract(DATE_RANGE, 'day')
     .startOf('day')
-    .utc().format()
+    .utc()
+    .format()
   const endDate = moment().endOf('day').utc().format()
 
   // Query stats of selected date range
@@ -255,7 +256,6 @@ export default function Stats() {
       selects: item.selects
     }))
   }
-
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({

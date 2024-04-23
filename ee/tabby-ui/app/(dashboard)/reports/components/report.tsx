@@ -157,12 +157,8 @@ export function Report() {
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
     query: queryDailyStats,
     variables: {
-      start: moment(dateRange.from)
-        .startOf('day')
-        .utc()
-        .format(),
-      end: moment(dateRange.to).endOf('day').utc()
-      .format(),
+      start: moment(dateRange.from).startOf('day').utc().format(),
+      end: moment(dateRange.to).endOf('day').utc().format(),
       users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
       languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
     }
@@ -180,10 +176,8 @@ export function Report() {
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
-        start: moment(date).utc()
-        .format(),
-        end: moment(date).add(1, 'day').utc()
-        .format(),
+        start: moment(date).utc().format(),
+        end: moment(date).add(1, 'day').utc().format(),
         completions,
         selects
       }
