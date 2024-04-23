@@ -162,6 +162,7 @@ export const queryDailyStats = graphql(/* GraphQL */ `
       completions
       selects
       views
+      language
     }
   }
 `)
