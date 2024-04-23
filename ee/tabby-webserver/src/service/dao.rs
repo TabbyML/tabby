@@ -2,7 +2,7 @@ use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO, InvitationDAO,
-    JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
+    JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
         github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
         job,
         setting::{NetworkSetting, SecuritySetting},
-        user_event::EventKind,
+        user_event::{EventKind, UserEvent},
         CoreError,
     },
 };
@@ -146,6 +146,19 @@ impl From<GithubProvidedRepositoryDAO> for GithubProvidedRepository {
             vendor_id: value.vendor_id,
             active: value.active,
         }
+    }
+}
+
+impl TryFrom<UserEventDAO> for UserEvent {
+    type Error = anyhow::Error;
+    fn try_from(value: UserEventDAO) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: value.id.as_id(),
+            user_id: value.user_id.as_id(),
+            kind: EventKind::from_enum_str(&value.kind)?,
+            created_at: value.created_at,
+            payload: String::from_utf8(value.payload)?,
+        })
     }
 }
 

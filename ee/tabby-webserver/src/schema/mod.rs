@@ -46,6 +46,7 @@ use self::{
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
+    user_event::{UserEvent, UserEventService},
 };
 use crate::{
     axum::FromAuth,
@@ -64,6 +65,7 @@ pub trait ServiceLocator: Send + Sync {
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
+    fn user_event(&self) -> Arc<dyn UserEventService>;
 }
 
 pub struct Context {
@@ -416,6 +418,31 @@ impl Query {
             .analytic()
             .daily_stats(start, end, users, languages.unwrap_or_default())
             .await
+    }
+
+    async fn user_events(
+        ctx: &Context,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    ) -> Result<Connection<UserEvent>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .user_event()
+                    .list(after, before, first, last, start, end)
+                    .await
+            },
+        )
+        .await
     }
 }
 

@@ -17,6 +17,7 @@ use sqlx::{
 };
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
+pub use user_events::UserEventDAO;
 pub use users::UserDAO;
 
 pub mod cache;
