@@ -1,0 +1,28 @@
+import SSOCreateUrl from "./sso_create.png";
+import SSOSigninUrl from "./sso_signin.png";
+
+# Single Sign-On
+
+:::subscription
+This feature is available in the **Enterprise** plans.
+:::
+
+Single Sign-On (SSO) is an authentication method that enables users to securely authenticate with multiple applications using just one set of credentials.
+
+## Create an Identity Provider
+
+1. Navigate to the **Integrations > SSO** page.
+
+   ![Integrations > SSO](./integrations_sso.png)
+
+2. Click **Create** to begin the process of creating an identity provider. (Currently, as of version 0.10, only GitHub OAuth and Google OAuth are supported. More options are forthcoming.)
+
+    <img src={SSOCreateUrl} width={600} alt="Create SSO"/>
+
+3. Complete all the required fields and submit the form with **Create** button.
+
+## Sign in with SSO
+
+After a valid identity provider has been established, users can select the provider to sign in with.
+
+<img src={SSOSigninUrl} width={600} alt="Sign in with SSO"/>
