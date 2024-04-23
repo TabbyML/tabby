@@ -2,6 +2,7 @@ mod routes;
 mod services;
 
 mod download;
+pub(crate) mod header;
 mod serve;
 
 #[cfg(feature = "ee")]
