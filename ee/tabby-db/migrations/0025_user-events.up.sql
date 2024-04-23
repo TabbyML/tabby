@@ -1,7 +1,7 @@
 CREATE TABLE user_events (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
-    type TEXT NOT NULL,
+    kind TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     payload BLOB NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
