@@ -9,10 +9,11 @@ use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct UserEventDAO {
-    user_id: i64,
-    kind: String,
-    created_at: DateTime<Utc>,
-    payload: Vec<u8>,
+    pub id: i64,
+    pub user_id: i64,
+    pub kind: String,
+    pub created_at: DateTime<Utc>,
+    pub payload: Vec<u8>,
 }
 
 impl DbConn {
@@ -50,7 +51,7 @@ impl DbConn {
         let events = query_paged_as!(
             UserEventDAO,
             "user_events",
-            ["user_id", "kind", "created_at" as "created_at: DateTime<Utc>", "payload"],
+            ["id", "user_id", "kind", "created_at" as "created_at: DateTime<Utc>", "payload"],
             limit,
             skip_id,
             backwards,

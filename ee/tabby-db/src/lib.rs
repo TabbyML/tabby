@@ -17,6 +17,7 @@ use sqlx::{
 };
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
+pub use user_event::UserEventDAO;
 pub use users::UserDAO;
 
 pub mod cache;
@@ -30,7 +31,7 @@ mod refresh_tokens;
 mod repositories;
 mod server_setting;
 mod user_completions;
-mod user_events;
+mod user_event;
 mod users;
 
 use anyhow::Result;
