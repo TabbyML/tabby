@@ -36,7 +36,7 @@ async fn refresh_repositories_for_provider(
         Err(octocrab::Error::GitHub {
             source: source @ GitHubError { .. },
             ..
-        }) if source.status_code == http::status::StatusCode::UNAUTHORIZED => {
+        }) if source.status_code.is_client_error() => {
             service
                 .update_github_repository_provider_access_token(provider.id.clone(), None)
                 .await?;
