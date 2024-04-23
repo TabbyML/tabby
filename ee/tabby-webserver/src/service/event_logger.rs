@@ -23,6 +23,10 @@ pub fn create_event_logger(db: DbConn) -> impl EventLogger + 'static {
     DbEventLogger { db }
 }
 
+fn get_user_id(user: Option<String>) -> Option<i64> {
+    user.and_then(|id| ID::new(id).as_rowid().ok())
+}
+
 impl EventLogger for DbEventLogger {
     fn write(&self, entry: LogEntry) {
         let Ok(event_json) = serde_json::to_string_pretty(&entry.event) else {
@@ -37,7 +41,7 @@ impl EventLogger for DbEventLogger {
                         db.add_to_user_completion(entry.ts, &completion_id, 1, 0, 0)
                             .await,
                     );
-                    if let Some(user) = entry.user {
+                    if let Some(user) = get_user_id(entry.user) {
                         log_err(
                             db.create_user_event(
                                 user,
@@ -57,7 +61,7 @@ impl EventLogger for DbEventLogger {
                         db.add_to_user_completion(entry.ts, &completion_id, 0, 1, 0)
                             .await,
                     );
-                    if let Some(user) = entry.user {
+                    if let Some(user) = get_user_id(entry.user) {
                         log_err(
                             db.create_user_event(
                                 user,
@@ -77,7 +81,7 @@ impl EventLogger for DbEventLogger {
                         db.add_to_user_completion(entry.ts, &completion_id, 0, 0, 1)
                             .await,
                     );
-                    if let Some(user) = entry.user {
+                    if let Some(user) = get_user_id(entry.user) {
                         log_err(
                             db.create_user_event(
                                 user,
@@ -95,14 +99,12 @@ impl EventLogger for DbEventLogger {
                 language,
                 ..
             } => {
-                let Some(user) = entry.user else { return };
+                let Some(user) = get_user_id(entry.user) else {
+                    return;
+                };
                 let db = self.db.clone();
                 tokio::spawn(async move {
-                    let Ok(id) = ID::new(&user).as_rowid() else {
-                        warn!("Invalid user ID");
-                        return;
-                    };
-                    let user_db = db.get_user(id).await;
+                    let user_db = db.get_user(user).await;
                     let Ok(Some(user_db)) = user_db else {
                         warn!("Failed to retrieve user for {user}");
                         return;

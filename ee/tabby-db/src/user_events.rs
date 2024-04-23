@@ -9,7 +9,7 @@ use crate::DbConn;
 
 #[derive(FromRow)]
 pub struct UserEventDAO {
-    user_name: String,
+    user_id: i64,
     typ: String,
     created_at: DateTime<Utc>,
     payload: Vec<u8>,
@@ -18,7 +18,7 @@ pub struct UserEventDAO {
 impl DbConn {
     pub async fn create_user_event(
         &self,
-        user_name: String,
+        user_id: i64,
         typ: String,
         created_at: u128,
         payload: String,
@@ -28,8 +28,8 @@ impl DbConn {
             DateTime::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
                 .context("Invalid created_at timestamp")?;
         query!(
-            r#"INSERT INTO user_events(user_name, type, created_at, payload) VALUES (?, ?, ?, ?)"#,
-            user_name,
+            r#"INSERT INTO user_events(user_id, type, created_at, payload) VALUES (?, ?, ?, ?)"#,
+            user_id,
             typ,
             created_at,
             payload
@@ -50,7 +50,7 @@ impl DbConn {
         let events = query_paged_as!(
             UserEventDAO,
             "user_events",
-            ["user_name", "type" as "typ", "created_at" as "created_at: DateTime<Utc>", "payload"],
+            ["user_id", "type" as "typ", "created_at" as "created_at: DateTime<Utc>", "payload"],
             limit,
             skip_id,
             backwards,
