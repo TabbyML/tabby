@@ -4,9 +4,8 @@ use axum::{extract::State, Json, TypedHeader};
 use hyper::StatusCode;
 use tracing::{instrument, warn};
 
-use crate::services::completion::{CompletionRequest, CompletionResponse, CompletionService};
-
 use super::MaybeUser;
+use crate::services::completion::{CompletionRequest, CompletionResponse, CompletionService};
 
 #[utoipa::path(
     post,
