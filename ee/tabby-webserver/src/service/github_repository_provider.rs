@@ -165,9 +165,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
             .await?;
 
-        // Deduplicate by vendor ID
-        let mut vendor_ids = HashSet::new();
-        repos.retain(|repo| vendor_ids.insert(repo.vendor_id.clone()));
+        deduplicate_github_repositories(&mut repos);
 
         let urls = repos
             .into_iter()
@@ -195,6 +193,11 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .await?;
         Ok(())
     }
+}
+
+fn deduplicate_github_repositories(repositories: &mut Vec<GithubProvidedRepository>) {
+    let mut vendor_ids = HashSet::new();
+    repositories.retain(|repo| vendor_ids.insert(repo.vendor_id.clone()));
 }
 
 #[cfg(test)]

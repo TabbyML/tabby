@@ -4915,7 +4915,6 @@ dependencies = [
  "chrono",
  "futures",
  "hash-ids",
- "http 1.1.0",
  "hyper 0.14.27",
  "jsonwebtoken",
  "juniper",
