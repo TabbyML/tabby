@@ -54,8 +54,6 @@ impl FileSearch {
         );
 
         let mut scored_entries: Vec<(_, _)> = paths
-            // Limit traversal for at most 1M entries for performance reasons.
-            .take(1_000_000)
             .filter_map(|basepath| {
                 let path = PathBuf::from(base).join(&basepath);
                 let metadata = path.metadata().ok()?;
