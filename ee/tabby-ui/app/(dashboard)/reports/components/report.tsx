@@ -159,8 +159,7 @@ export function Report() {
     variables: {
       start: moment(dateRange.from).startOf('day').utc().format(),
       end: moment(dateRange.to).endOf('day').utc().format(),
-      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
-      languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
+      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember]
     }
   })
   let dailyStats: DailyStatsQuery['dailyStats'] | undefined
@@ -170,6 +169,7 @@ export function Report() {
       end: dateRange.to || dateRange.from!
     })
     dailyStats = daysBetweenRange.map(date => {
+      const languages = [Language.Typescript, Language.Python, Language.Rust]
       const rng = seedrandom(
         moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
       )
@@ -180,7 +180,8 @@ export function Report() {
         end: moment(date).add(1, 'day').utc().format(),
         completions,
         selects,
-        views: completions
+        views: completions,
+        language: languages[selects % languages.length]
       }
     })
   } else {
@@ -189,9 +190,14 @@ export function Report() {
       end: item.end,
       completions: item.completions,
       selects: item.selects,
-      views: item.views
+      views: item.views,
+      language: item.language
     }))
   }
+  dailyStats = dailyStats?.filter(stats => {
+    if (selectedLanguage.length === 0) return true
+    return selectedLanguage.includes(stats.language)
+  })
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({

@@ -14,18 +14,8 @@ import {
   Tooltip
 } from 'recharts'
 
-import { DailyStatsQuery, Language } from '@/lib/gql/generates/graphql'
+import { DailyStatsQuery } from '@/lib/gql/generates/graphql'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
-export type LanguageStats = Record<
-  Language,
-  {
-    selects: number
-    completions: number
-    views: number
-    name: Language
-  }
->
 
 function LineTooltip({
   active,
@@ -122,16 +112,17 @@ export function CompletionCharts({
     end: to
   })
 
-  // Mapping data of { date: amount }
   const dailyViewMap: Record<string, number> = {}
   const dailySelectMap: Record<string, number> = {}
   dailyStats?.forEach(stats => {
     const date = moment(stats.start).format('YYYY-MM-DD')
-    dailyViewMap[date] = stats.views
-    dailySelectMap[date] = stats.selects
+    dailyViewMap[date] = dailyViewMap[date] || 0
+    dailySelectMap[date] = dailySelectMap[date] || 0
+
+    dailyViewMap[date] += stats.views
+    dailySelectMap[date] += stats.selects
   }, {})
 
-  // Data for charts
   const averageAcceptance =
     totalViews === 0 ? 0 : ((totalAccepts / totalViews) * 100).toFixed(2)
   const acceptRateData = daysBetweenRange.map(date => {

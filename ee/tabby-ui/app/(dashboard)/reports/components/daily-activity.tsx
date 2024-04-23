@@ -71,8 +71,11 @@ export function DailyActivity({
 
   dailyStats?.forEach(stats => {
     const date = moment(stats.start).format('YYYY-MM-DD')
-    dailyViewMap[date] = stats.views
-    dailySelectMap[date] = stats.selects
+    dailyViewMap[date] = dailyViewMap[date] || 0
+    dailySelectMap[date] = dailySelectMap[date] || 0
+
+    dailyViewMap[date] += stats.views
+    dailySelectMap[date] += stats.selects
   }, {})
 
   const daysBetweenRange = eachDayOfInterval({
