@@ -113,8 +113,8 @@ mod tests {
     #[tokio::test]
     async fn test_create_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
-
-        let token = conn.create_refresh_token(1).await.unwrap();
+        let user_id = conn.create_user("email@email".into(), None, true).await.unwrap();
+        let token = conn.create_refresh_token(user_id).await.unwrap();
 
         let dao = conn.get_refresh_token(&token).await.unwrap().unwrap();
 
@@ -128,7 +128,8 @@ mod tests {
     async fn test_replace_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        let old = conn.create_refresh_token(1).await.unwrap();
+        let user_id = conn.create_user("email@email".into(), None, true).await.unwrap();
+        let old = conn.create_refresh_token(user_id).await.unwrap();
         let new = conn.renew_refresh_token(1, &old).await.unwrap();
 
         let token = conn.get_refresh_token(&old).await.unwrap();
