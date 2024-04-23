@@ -26,31 +26,23 @@ impl FileSearch {
         limit: usize,
     ) -> Result<Vec<FileSearch>, anyhow::Error> {
         let repo = git2::Repository::open(base)?;
-        let paths: Vec<PathBuf> = {
+        let paths = {
             let mut options = git2::StatusOptions::default();
             options.include_unmodified(true);
             let statuses = repo.statuses(Some(&mut options))?;
 
-            let mut dirs = HashSet::new();
+            let mut paths = HashSet::new();
             statuses
                 .iter()
                 .filter_map(|x| x.path().map(|x| x.to_owned()))
-                .flat_map(|relpath| {
+                .for_each(|relpath| {
                     let relpath = PathBuf::from(relpath);
-                    let Some(parent) = relpath.parent() else {
-                        return vec![relpath.to_owned()];
+                    if let Some(parent) = relpath.parent() {
+                        paths.insert(parent.to_owned());
                     };
-
-                    // Add directories to paths as git statues only tracks files.
-                    if !dirs.contains(parent) {
-                        // De-dupe directories with `dirs`
-                        dirs.insert(parent.to_owned());
-                        vec![parent.to_owned(), relpath]
-                    } else {
-                        vec![relpath]
-                    }
-                })
-                .collect()
+                    paths.insert(relpath);
+                });
+            paths.into_iter()
         };
 
         let mut nucleo = nucleo::Matcher::new(nucleo::Config::DEFAULT.match_paths());
@@ -62,7 +54,6 @@ impl FileSearch {
         );
 
         let mut scored_entries: Vec<(_, _)> = paths
-            .into_iter()
             // Limit traversal for at most 1M entries for performance reasons.
             .take(1_000_000)
             .filter_map(|basepath| {
