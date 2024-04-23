@@ -34,7 +34,6 @@ impl FileSearch {
                 .iter()
                 .map(|x| bytes2path(&x.path).to_owned())
                 .for_each(|relpath| {
-                    let relpath = PathBuf::from(relpath);
                     if let Some(parent) = relpath.parent() {
                         paths.insert(parent.to_owned());
                     };
@@ -103,7 +102,7 @@ mod tests {
     fn it_search() {
         let result = FileSearch::search(
             &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../"),
-            "website".into(),
+            "website",
             1,
         )
         .unwrap();
