@@ -130,7 +130,7 @@ async fn callback(
 
     if let Err(e) = state
         .github_repository_provider
-        .update_github_repository_provider_access_token(params.state, response.access_token)
+        .update_github_repository_provider_access_token(params.state, Some(response.access_token))
         .await
     {
         error!("Failed to update github access token: {e}");

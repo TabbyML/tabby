@@ -1,11 +1,15 @@
 mod db;
+mod github;
 mod scheduler;
 
 use std::sync::Arc;
 
 use tokio_cron_scheduler::{Job, JobScheduler};
 
-use crate::schema::{auth::AuthenticationService, job::JobService, worker::WorkerService};
+use crate::schema::{
+    auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
+    job::JobService, worker::WorkerService,
+};
 
 async fn new_job_scheduler(jobs: Vec<Job>) -> anyhow::Result<JobScheduler> {
     let scheduler = JobScheduler::new().await?;
@@ -20,6 +24,7 @@ pub async fn run_cron(
     auth: Arc<dyn AuthenticationService>,
     job: Arc<dyn JobService>,
     worker: Arc<dyn WorkerService>,
+    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
     local_port: u16,
 ) {
     let mut jobs = vec![];
@@ -43,6 +48,11 @@ pub async fn run_cron(
         .await
         .expect("failed to create stale job runs cleanup job");
     jobs.push(job4);
+
+    let job5 = db::update_integrated_github_repositories_job(github_repository_provider)
+        .await
+        .expect("Failed to create github repository refresh job");
+    jobs.push(job5);
 
     new_job_scheduler(jobs)
         .await

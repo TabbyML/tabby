@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::ID;
 use tabby_db::DbConn;
 use url::Url;
@@ -57,7 +58,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
     async fn update_github_repository_provider_access_token(
         &self,
         id: ID,
-        access_token: String,
+        access_token: Option<String>,
     ) -> Result<()> {
         self.db
             .update_github_provider_access_token(id.as_rowid()?, access_token)
@@ -114,6 +115,24 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .collect())
     }
 
+    async fn upsert_github_provided_repository(
+        &self,
+        provider_id: ID,
+        vendor_id: String,
+        display_name: String,
+        git_url: String,
+    ) -> Result<()> {
+        self.db
+            .upsert_github_provided_repository(
+                provider_id.as_rowid()?,
+                vendor_id,
+                display_name,
+                git_url,
+            )
+            .await?;
+        Ok(())
+    }
+
     async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()> {
         self.db
             .update_github_provided_repository_active(id.as_rowid()?, active)
@@ -142,11 +161,18 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .filter_map(|provider| Some((provider.id.to_string(), provider.access_token?)))
             .collect();
 
-        let urls = self
+        let mut repos = self
             .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
-            .await?
+            .await?;
+
+        deduplicate_github_repositories(&mut repos);
+
+        let urls = repos
             .into_iter()
             .filter_map(|repo| {
+                if !repo.active {
+                    return None;
+                }
                 let mut url = Url::parse(&repo.git_url).ok()?;
                 url.set_username(tokens.get(&repo.github_repository_provider_id.to_string())?)
                     .ok()?;
@@ -156,6 +182,22 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
 
         Ok(urls)
     }
+
+    async fn delete_outdated_github_provided_repositories(
+        &self,
+        provider_id: ID,
+        cutoff_timestamp: DateTime<Utc>,
+    ) -> Result<()> {
+        self.db
+            .delete_outdated_github_repositories(provider_id.as_rowid()?, cutoff_timestamp)
+            .await?;
+        Ok(())
+    }
+}
+
+fn deduplicate_github_repositories(repositories: &mut Vec<GithubProvidedRepository>) {
+    let mut vendor_ids = HashSet::new();
+    repositories.retain(|repo| vendor_ids.insert(repo.vendor_id.clone()));
 }
 
 #[cfg(test)]
@@ -187,7 +229,7 @@ mod tests {
             .unwrap();
 
         let repo_id1 = db
-            .create_github_provided_repository(
+            .upsert_github_provided_repository(
                 provider_id1,
                 "vendor_id1".into(),
                 "test_repo1".into(),
@@ -197,7 +239,7 @@ mod tests {
             .unwrap();
 
         let repo_id2 = db
-            .create_github_provided_repository(
+            .upsert_github_provided_repository(
                 provider_id2,
                 "vendor_id2".into(),
                 "test_repo2".into(),
@@ -293,7 +335,7 @@ mod tests {
 
         // Test updating github provider tokens
         service
-            .update_github_repository_provider_access_token(id.clone(), "test_token".into())
+            .update_github_repository_provider_access_token(id.clone(), Some("test_token".into()))
             .await
             .unwrap();
 
@@ -366,17 +408,25 @@ mod tests {
             .await
             .unwrap();
 
-        db.create_github_provided_repository(
-            provider_id,
-            "vendor_id1".into(),
-            "test_repo".into(),
-            "https://github.com/TabbyML/tabby".into(),
-        )
-        .await
-        .unwrap();
+        let repo_id = db
+            .upsert_github_provided_repository(
+                provider_id,
+                "vendor_id1".into(),
+                "test_repo".into(),
+                "https://github.com/TabbyML/tabby".into(),
+            )
+            .await
+            .unwrap();
+
+        db.update_github_provided_repository_active(repo_id, true)
+            .await
+            .unwrap();
 
         service
-            .update_github_repository_provider_access_token(provider_id.as_id(), "token".into())
+            .update_github_repository_provider_access_token(
+                provider_id.as_id(),
+                Some("token".into()),
+            )
             .await
             .unwrap();
 

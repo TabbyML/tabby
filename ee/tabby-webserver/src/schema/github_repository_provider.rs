@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use juniper::{GraphQLInputObject, GraphQLObject, ID};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -112,7 +113,7 @@ pub trait GithubRepositoryProviderService: Send + Sync {
     async fn update_github_repository_provider_access_token(
         &self,
         id: ID,
-        access_token: String,
+        access_token: Option<String>,
     ) -> Result<()>;
 
     async fn list_github_repository_providers(
@@ -133,6 +134,18 @@ pub trait GithubRepositoryProviderService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<GithubProvidedRepository>>;
 
+    async fn upsert_github_provided_repository(
+        &self,
+        provider_id: ID,
+        vendor_id: String,
+        display_name: String,
+        git_url: String,
+    ) -> Result<()>;
     async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn list_provided_git_urls(&self) -> Result<Vec<String>>;
+    async fn delete_outdated_github_provided_repositories(
+        &self,
+        provider_id: ID,
+        cutoff_timestamp: DateTime<Utc>,
+    ) -> Result<()>;
 }
