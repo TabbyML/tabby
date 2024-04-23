@@ -67,8 +67,6 @@ pub enum Event {
         #[serde(skip_serializing_if = "Option::is_none")]
         segments: Option<Segments>,
         choices: Vec<Choice>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        user: Option<String>,
     },
     ChatCompletion {
         completion_id: String,
@@ -106,17 +104,9 @@ pub struct Declaration {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LogEntry {
+    pub user: Option<String>,
     pub ts: u128,
     pub event: Event,
-}
-
-impl From<Event> for LogEntry {
-    fn from(event: Event) -> Self {
-        Self {
-            ts: timestamp(),
-            event,
-        }
-    }
 }
 
 fn timestamp() -> u128 {
@@ -129,8 +119,12 @@ fn timestamp() -> u128 {
 }
 
 pub trait EventLogger: Send + Sync {
-    fn log(&self, x: Event) {
-        self.write(x.into())
+    fn log(&self, user: Option<String>, event: Event) {
+        self.write(LogEntry {
+            user,
+            ts: timestamp(),
+            event,
+        })
     }
     fn write(&self, x: LogEntry);
 }
