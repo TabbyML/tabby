@@ -103,13 +103,13 @@ impl DbConn {
             .join(",");
         Ok(sqlx::query_as(&format!(
             r#"
-            SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+            SELECT CAST(STRFTIME('%s', DATE(user_completions.created_at)) AS TIMESTAMP) as start,
                    language,
                    SUM(1) as completions,
                    SUM(selects) as selects,
                    SUM(views) as views
-            FROM user_completions
-            WHERE created_at >= DATE('now', '-1 year')
+            FROM user_completions JOIN users ON user_id = users.id AND users.active
+            WHERE user_completions.created_at >= DATE('now', '-1 year')
                 AND ({users_empty} OR user_id IN ({users}))
             GROUP BY 1, 2
             ORDER BY 1, 2 ASC
@@ -155,13 +155,13 @@ impl DbConn {
                    SUM(views) as views
             FROM (
                 SELECT user_id,
-                       CAST((STRFTIME('%s', created_at) - STRFTIME('%s', ?1)) / 3600 / 24 AS INT) as days_since_start,
-                       created_at,
+                       CAST((STRFTIME('%s', user_completions.created_at) - STRFTIME('%s', ?1)) / 3600 / 24 AS INT) as days_since_start,
+                       user_completions.created_at,
                        selects,
                        views,
                        IIF(language IN ({all_languages}), language, 'other') as language
-                FROM user_completions
-                WHERE created_at >= ?1 AND created_at < ?2
+                FROM user_completions JOIN users ON user_id = users.id AND users.active
+                WHERE user_completions.created_at >= ?1 AND user_completions.created_at < ?2
             )
                 WHERE ({no_selected_users} OR user_id IN ({users}))
                 AND ({no_selected_languages} OR language IN ({languages}))

@@ -265,4 +265,36 @@ mod tests {
         assert_eq!(1, stats2.len());
         assert_eq!(1, stats2[0].completions);
     }
+
+    #[tokio::test]
+    async fn test_inactive_user_gets_no_stats() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = new_analytic_service(db.clone());
+
+        let id = db
+            .create_user("testuser".into(), None, false)
+            .await
+            .unwrap();
+
+        db.create_user_completion(timestamp(), id, "completion_id".into(), "rust".into())
+            .await
+            .unwrap();
+
+        db.update_user_active(id, false).await.unwrap();
+
+        assert!(service
+            .daily_stats_in_past_year(vec![id.as_id()])
+            .await
+            .unwrap()
+            .is_empty());
+
+        let end = Utc::now();
+        let start = end.checked_sub_days(Days::new(100)).unwrap();
+
+        assert!(service
+            .daily_stats(start, end, vec![id.as_id()], vec![])
+            .await
+            .unwrap()
+            .is_empty());
+    }
 }
