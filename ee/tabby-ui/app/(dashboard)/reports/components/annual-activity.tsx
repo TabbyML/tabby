@@ -43,19 +43,19 @@ export function AnnualActivity({
   yearlyStats: DailyStatsInPastYearQuery['dailyStatsInPastYear'] | undefined
 }) {
   let lastYearActivities = 0
-  const dailyCompletionMap: Record<string, number> =
+  const dailyViewMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
       const date = moment.utc(cur.start).format('YYYY-MM-DD')
-      lastYearActivities += cur.completions
+      lastYearActivities += cur.views
       lastYearActivities += cur.selects
-      return { ...acc, [date]: cur.completions }
+      return { ...acc, [date]: cur.views }
     }, {}) || {}
 
   const data = new Array(365)
     .fill('')
     .map((_, idx) => {
       const date = moment().subtract(idx, 'days').format('YYYY-MM-DD')
-      const count = dailyCompletionMap[date] || 0
+      const count = dailyViewMap[date] || 0
       const level = Math.min(4, Math.ceil(count / 5))
       return {
         date: date,

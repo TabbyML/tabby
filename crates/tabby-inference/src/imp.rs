@@ -1,6 +1,6 @@
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::{stream::BoxStream, StreamExt};
+use futures::stream::BoxStream;
 
 use crate::{
     decoding::StopConditionFactory, TextGeneration, TextGenerationOptions, TextGenerationStream,
@@ -22,23 +22,6 @@ impl<T: TextGenerationStream> TextGenerationImpl<T> {
 
 #[async_trait]
 impl<T: TextGenerationStream> TextGeneration for TextGenerationImpl<T> {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        let prompt = prompt.to_owned();
-        let s = stream! {
-            for await (streaming, text) in self.generate_stream(&prompt, options).await {
-                if !streaming {
-                    yield text;
-                }
-            }
-        };
-
-        if let Some(text) = Box::pin(s).into_future().await.0 {
-            text
-        } else {
-            String::new()
-        }
-    }
-
     async fn generate_stream(
         &self,
         prompt: &str,

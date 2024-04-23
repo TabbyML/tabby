@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use async_stream::stream;
 use futures::stream::BoxStream;
 use minijinja::{context, Environment};
 use tabby_common::api::chat::Message;
 use tabby_inference::{
     chat::{self, ChatCompletionStream},
-    TextGeneration, TextGenerationOptions, TextGenerationStream,
+    TextGeneration, TextGenerationOptions,
 };
 
 struct ChatPromptBuilder {
@@ -48,18 +47,13 @@ impl chat::ChatPromptBuilder for ChatCompletionImpl {
 }
 
 #[async_trait::async_trait]
-impl TextGenerationStream for ChatCompletionImpl {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
-        let prompt = prompt.to_owned();
-        let s = stream! {
-            for await (streaming, text) in self.engine.generate_stream(&prompt, options).await {
-                if streaming {
-                    yield text;
-                }
-            }
-        };
-
-        Box::pin(s)
+impl TextGeneration for ChatCompletionImpl {
+    async fn generate_stream(
+        &self,
+        prompt: &str,
+        options: TextGenerationOptions,
+    ) -> BoxStream<(bool, String)> {
+        self.engine.generate_stream(prompt, options).await
     }
 }
 

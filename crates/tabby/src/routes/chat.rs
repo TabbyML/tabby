@@ -17,7 +17,7 @@ use crate::services::chat::{ChatCompletionRequest, ChatService};
     path = "/v1/chat/completions",
     request_body = ChatCompletionRequest,
     operation_id = "chat_completions",
-    tag = "v1beta",
+    tag = "v1",
     responses(
         (status = 200, description = "Success", body = ChatCompletionChunk, content_type = "text/event-stream"),
         (status = 405, description = "When chat model is not specified, the endpoint returns 405 Method Not Allowed"),
