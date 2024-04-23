@@ -3,6 +3,7 @@ DROP TABLE google_oauth_credential;
 
 -- Drop the entire refresh_token table to resolve the foreign key issue.
 -- This is acceptable as it is equivalent to asking all users to sign in again for the new release.
+DROP TABLE refresh_tokens;
 
 CREATE TABLE refresh_tokens(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
