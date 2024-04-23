@@ -1,9 +1,9 @@
-use crate::{juniper::relay::NodeType, schema::Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 
 use super::Context;
+use crate::{juniper::relay::NodeType, schema::Result};
 
 #[derive(GraphQLEnum)]
 pub enum EventKind {

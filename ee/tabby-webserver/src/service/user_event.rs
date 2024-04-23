@@ -1,10 +1,12 @@
-use super::graphql_pagination_to_filter;
-use crate::schema::{user_event::UserEvent, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use tabby_db::DbConn;
 
-use crate::schema::user_event::UserEventService;
+use super::graphql_pagination_to_filter;
+use crate::schema::{
+    user_event::{UserEvent, UserEventService},
+    Result,
+};
 
 struct UserEventServiceImpl {
     db: DbConn,

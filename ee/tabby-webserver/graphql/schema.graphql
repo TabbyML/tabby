@@ -153,6 +153,14 @@ type JobRunEdge {
   cursor: String!
 }
 
+type UserEvent {
+  id: ID!
+  userId: ID!
+  kind: EventKind!
+  createdAt: DateTimeUtc!
+  payload: String!
+}
+
 enum WorkerKind {
   COMPLETION
   CHAT
@@ -193,16 +201,21 @@ type Mutation {
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
-input UpdateGithubRepositoryProviderInput {
-  id: ID!
-  displayName: String!
-  applicationId: String!
-  secret: String
+type UserEventEdge {
+  node: UserEvent!
+  cursor: String!
 }
 
 type RepositoryEdge {
   node: GitRepository!
   cursor: String!
+}
+
+input UpdateGithubRepositoryProviderInput {
+  id: ID!
+  displayName: String!
+  applicationId: String!
+  secret: String
 }
 
 "DateTime"
@@ -246,6 +259,7 @@ type Query {
   jobs: [String!]!
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
+  userEvents(after: String, before: String, first: Int, last: Int, start: DateTimeUtc!, end: DateTimeUtc!): UserEventConnection!
 }
 
 input NetworkSettingInput {
@@ -295,12 +309,6 @@ enum LicenseType {
   ENTERPRISE
 }
 
-input CreateGithubRepositoryProviderInput {
-  displayName: String!
-  applicationId: String!
-  secret: String!
-}
-
 type OAuthCredential {
   provider: OAuthProvider!
   clientId: String!
@@ -317,10 +325,21 @@ type CompletionStats {
   selects: Int!
 }
 
+type UserEventConnection {
+  edges: [UserEventEdge!]!
+  pageInfo: PageInfo!
+}
+
 input PasswordResetInput {
   code: String!
   password1: String!
   password2: String!
+}
+
+input CreateGithubRepositoryProviderInput {
+  displayName: String!
+  applicationId: String!
+  secret: String!
 }
 
 type User {
@@ -369,6 +388,13 @@ type PageInfo {
 type GithubProvidedRepositoryEdge {
   node: GithubProvidedRepository!
   cursor: String!
+}
+
+enum EventKind {
+  COMPLETION
+  SELECT
+  VIEW
+  DISMISS
 }
 
 type InvitationConnection {
