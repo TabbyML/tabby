@@ -112,7 +112,6 @@ export function CompletionCharts({
     end: to
   })
 
-  // Mapping data of { date: amount }
   const dailyViewMap: Record<string, number> = {}
   const dailySelectMap: Record<string, number> = {}
   dailyStats?.forEach(stats => {
@@ -124,7 +123,7 @@ export function CompletionCharts({
     dailySelectMap[date] += stats.selects
   }, {})
 
-  // Data for charts
+  // Prepare and structure data for populating the language usage charts
   const averageAcceptance =
     totalViews === 0 ? 0 : ((totalAccepts / totalViews) * 100).toFixed(2)
   const acceptRateData = daysBetweenRange.map(date => {
