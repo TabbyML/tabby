@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
-import { BookOpenText, ChevronsDownUp, Mail } from 'lucide-react'
+import { BookOpenText, ChevronsDownUp, Mail, FolderOpen } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -1374,6 +1374,10 @@ function IconChevronsDownUp({
   )
 }
 
+function IconFolderOpen({ className, ...props }: React.ComponentProps<typeof FolderOpen>) {
+  return <FolderOpen className={cn('h4 w-4', className)} {...props} />
+}
+
 export {
   IconEdit,
   IconNextChat,
@@ -1444,5 +1448,6 @@ export {
   IconActivity,
   IconBookOpenText,
   IconMail,
-  IconChevronsDownUp
+  IconChevronsDownUp,
+  IconFolderOpen
 }
