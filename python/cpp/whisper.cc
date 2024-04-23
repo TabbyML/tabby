@@ -67,6 +67,8 @@ namespace ctranslate2 {
           options.suppress_tokens = suppress_tokens.value();
         else
           options.suppress_tokens.clear();
+        std::shared_lock lock(_mutex);
+        assert_model_is_ready();
 
         if (prompts.index() == 0)
           futures = _pool->generate(features, std::get<BatchTokens>(prompts), options);
@@ -78,6 +80,8 @@ namespace ctranslate2 {
 
       std::vector<std::vector<std::pair<std::string, float>>>
       detect_language(const StorageView& features) {
+        std::shared_lock lock(_mutex);
+        assert_model_is_ready();
         auto futures = _pool->detect_language(features);
         return wait_on_futures(std::move(futures));
       }
@@ -95,6 +99,8 @@ namespace ctranslate2 {
           batch_num_frames.resize(batch_size, std::get<size_t>(num_frames));
         else
           batch_num_frames = std::get<std::vector<size_t>>(num_frames);
+        std::shared_lock lock(_mutex);
+        assert_model_is_ready();
 
         auto futures = _pool->align(features,
                                     std::move(start_sequence),
@@ -328,6 +334,29 @@ namespace ctranslate2 {
                    A list of alignment results.
              )pbdoc")
 
+        .def("unload_model", &WhisperWrapper::unload_model,
+             py::arg("to_cpu")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Unloads the model attached to this whisper but keep enough runtime context
+                 to quickly resume whisper on the initial device.
+
+                 Arguments:
+                   to_cpu: If ``True``, the model is moved to the CPU memory and not fully unloaded.
+             )pbdoc")
+
+        .def("load_model", &WhisperWrapper::load_model,
+             py::arg("keep_cache")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Loads the model back to the initial device.
+
+                 Arguments:
+                   keep_cache: If ``True``, the model cache in the CPU memory is not deleted if it exists.
+             )pbdoc")
+
+        .def_property_readonly("model_is_loaded", &WhisperWrapper::model_is_loaded,
+                               "Whether the model is loaded on the initial device and ready to be used.")
         ;
     }
 

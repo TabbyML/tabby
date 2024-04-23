@@ -1,7 +1,5 @@
 #include "module.h"
 
-#include <shared_mutex>
-
 #include <ctranslate2/translator.h>
 
 #include "replica_pool.h"
@@ -26,36 +24,7 @@ namespace ctranslate2 {
     class TranslatorWrapper : public ReplicaPoolHelper<Translator>
     {
     public:
-      TranslatorWrapper(const std::string& model_path,
-                        const std::string& device,
-                        const std::variant<int, std::vector<int>>& device_index,
-                        const StringOrMap& compute_type,
-                        size_t inter_threads,
-                        size_t intra_threads,
-                        long max_queued_batches,
-                        bool flash_attention,
-                        bool tensor_parallel,
-                        py::object files)
-        : ReplicaPoolHelper(model_path,
-                            device,
-                            device_index,
-                            compute_type,
-                            inter_threads,
-                            intra_threads,
-                            max_queued_batches,
-                            flash_attention,
-                            tensor_parallel,
-                            files)
-        , _device(_model_loader.device)
-        , _device_index(_model_loader.device_indices)
-        , _num_replicas_per_device(_model_loader.num_replicas_per_device)
-        , _model_is_loaded(true) {
-      }
-
-      bool model_is_loaded() {
-        std::shared_lock lock(_mutex);
-        return _model_is_loaded;
-      }
+      using ReplicaPoolHelper::ReplicaPoolHelper;
 
       using TokenizeFn = std::function<std::vector<std::string>(const std::string&)>;
       using DetokenizeFn = std::function<std::string(const std::vector<std::string>&)>;
@@ -296,86 +265,6 @@ namespace ctranslate2 {
                                         batch_type,
                                         with_tokens_score);
         }
-      }
-
-      void unload_model(const bool to_cpu) {
-        if (to_cpu && _device == Device::CPU)
-          return;
-
-        // Do not unload the model if some batches are still being processed.
-        if (_pool->num_active_batches() > 0)
-          return;
-
-        // If the lock is not acquired immediately it means the model is being used
-        // in another thread and we can't unload it at this time.
-        std::unique_lock lock(_mutex, std::try_to_lock);
-        if (!lock)
-          return;
-        
-        std::vector<std::shared_ptr<const models::Model>> loaded_models;
-        if (_model_is_loaded)
-          loaded_models = _pool->detach_models();
-
-        if (to_cpu && _cached_models.empty())
-          _cached_models = clone_models(Device::CPU, std::vector<int>(loaded_models.size(), 0), loaded_models);
-        else if (!to_cpu)
-          _cached_models.clear();
-        loaded_models.clear();
-
-        // We clear the CUDA allocator cache to further reduce the memory after unloading the model.
-        if (_device == Device::CUDA)
-          _pool->clear_cache();
-
-        _model_is_loaded = false;
-      }
-
-      void load_model(const bool keep_cache) {
-        std::unique_lock lock(_mutex);
-        if (_model_is_loaded)
-          return;
-        
-        std::vector<std::shared_ptr<const models::Model>> loaded_models;
-        if (_cached_models.empty())
-          loaded_models = _model_loader.load();
-        else 
-          loaded_models = clone_models(_device, _device_index, _cached_models, _num_replicas_per_device);
-
-        _pool->set_models(loaded_models);
-        if (!keep_cache)
-          _cached_models.clear();
-        _model_is_loaded = true;
-      }
-
-    private:
-      const Device _device;
-      const std::vector<int>& _device_index;
-      const size_t _num_replicas_per_device;
-
-      std::vector<std::shared_ptr<const models::Model>> _cached_models;
-      bool _model_is_loaded;
-
-      // Use a shared mutex to protect the model state (loaded/unloaded).
-      // Multiple threads can read the model at the same time, but a single thread can change
-      // the model state (e.g. load or unload the model).
-      std::shared_mutex _mutex;
-
-      void assert_model_is_ready() const {
-        if (!_model_is_loaded)
-          throw std::runtime_error("The model for this translator was unloaded");
-      }
-
-
-      std::vector<std::shared_ptr<const models::Model>> clone_models(Device device,
-                                                                     const std::vector<int>& device_index,
-                                                                     std::vector<std::shared_ptr<const models::Model>> cached_models,
-                                                                     size_t num_models_per_device = 1) {
-        std::vector<std::shared_ptr<const models::Model>> copied_models;
-        for (size_t i = 0; i < cached_models.size(); ++i) {
-          auto& model = const_cast<models::Model&>(*cached_models[i]);
-          auto copied_model = model.copy_to(device, device_index[i / num_models_per_device]);
-          copied_models.push_back(copied_model);
-        }
-        return copied_models;
       }
     };
 

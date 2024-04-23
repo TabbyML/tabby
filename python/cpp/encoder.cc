@@ -16,6 +16,8 @@ namespace ctranslate2 {
                     const std::optional<StorageView>& lengths,
                     const std::optional<BatchIds>& token_type_ids) {
         std::future<EncoderForwardOutput> future;
+        std::shared_lock lock(_mutex);
+        assert_model_is_ready();
 
         switch (inputs.index()) {
         case 0:
@@ -140,6 +142,30 @@ namespace ctranslate2 {
                  Returns:
                    The encoder model output.
              )pbdoc")
+
+        .def("unload_model", &EncoderWrapper::unload_model,
+             py::arg("to_cpu")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Unloads the model attached to this encoder but keep enough runtime context
+                 to quickly resume encoder on the initial device.
+
+                 Arguments:
+                   to_cpu: If ``True``, the model is moved to the CPU memory and not fully unloaded.
+             )pbdoc")
+
+        .def("load_model", &EncoderWrapper::load_model,
+             py::arg("keep_cache")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Loads the model back to the initial device.
+
+                 Arguments:
+                   keep_cache: If ``True``, the model cache in the CPU memory is not deleted if it exists.
+             )pbdoc")
+
+        .def_property_readonly("model_is_loaded", &EncoderWrapper::model_is_loaded,
+                               "Whether the model is loaded on the initial device and ready to be used.")
         ;
     }
 

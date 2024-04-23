@@ -1,5 +1,6 @@
 #pragma once
 
+#include <shared_mutex>
 #include <ctranslate2/replica_pool.h>
 
 #include "utils.h"
@@ -48,6 +49,8 @@ namespace ctranslate2 {
                         bool tensor_parallel,
                         py::object files)
         : _model_loader(create_model_reader(model_path, files))
+        , _device(str_to_device(device))
+        , _num_replicas_per_device(inter_threads)
       {
         pybind11::gil_scoped_release nogil;
 
@@ -62,6 +65,8 @@ namespace ctranslate2 {
         _pool_config.max_queued_batches = max_queued_batches;
 
         _pool = std::make_unique<T>(_model_loader, _pool_config);
+        _device_index = _model_loader.device_indices;
+        _model_is_loaded = true;
       }
 
       ~ReplicaPoolHelper() {
@@ -97,13 +102,94 @@ namespace ctranslate2 {
         return _pool->num_active_batches();
       }
 
+      bool model_is_loaded() {
+        std::shared_lock lock(_mutex);
+        return _model_is_loaded;
+      }
+
+      void unload_model(const bool to_cpu) {
+        if (to_cpu && _device == Device::CPU)
+          return;
+
+        // Do not unload the model if some batches are still being processed.
+        if (_pool->num_active_batches() > 0)
+          return;
+
+        // If the lock is not acquired immediately it means the model is being used
+        // in another thread and we can't unload it at this time.
+        std::unique_lock lock(_mutex, std::try_to_lock);
+        if (!lock)
+          return;
+
+        std::vector<std::shared_ptr<const models::Model>> loaded_models;
+        if (_model_is_loaded)
+          loaded_models = _pool->detach_models();
+
+        if (to_cpu && _cached_models.empty())
+          _cached_models = clone_models(Device::CPU, std::vector<int>(loaded_models.size(), 0), loaded_models);
+        else if (!to_cpu)
+          _cached_models.clear();
+        loaded_models.clear();
+
+        // We clear the CUDA allocator cache to further reduce the memory after unloading the model.
+        if (_device == Device::CUDA)
+          _pool->clear_cache();
+
+        _model_is_loaded = false;
+      }
+
+      void load_model(const bool keep_cache) {
+        std::unique_lock lock(_mutex);
+        if (_model_is_loaded)
+          return;
+
+        std::vector<std::shared_ptr<const models::Model>> loaded_models;
+        if (_cached_models.empty())
+          loaded_models = _model_loader.load();
+        else
+          loaded_models = clone_models(_device, _device_index, _cached_models, _num_replicas_per_device);
+
+        _pool->set_models(loaded_models);
+        if (!keep_cache)
+          _cached_models.clear();
+        _model_is_loaded = true;
+      }
+
     protected:
       std::unique_ptr<T> _pool;
       models::ModelLoader _model_loader;
       ReplicaPoolConfig _pool_config;
+      const Device _device;
+      const size_t _num_replicas_per_device;
+      std::vector<int> _device_index;
+      std::vector<std::shared_ptr<const models::Model>> _cached_models;
+      bool _model_is_loaded;
+
+      // Use a shared mutex to protect the model state (loaded/unloaded).
+      // Multiple threads can read the model at the same time, but a single thread can change
+      // the model state (e.g. load or unload the model).
+      std::shared_mutex _mutex;
+
+      std::vector<std::shared_ptr<const models::Model>> clone_models(Device device,
+      const std::vector<int>& device_index,
+        std::vector<std::shared_ptr<const models::Model>> cached_models,
+        size_t num_models_per_device = 1) {
+        std::vector<std::shared_ptr<const models::Model>> copied_models;
+        for (size_t i = 0; i < cached_models.size(); ++i) {
+          auto& model = const_cast<models::Model&>(*cached_models[i]);
+          auto copied_model = model.copy_to(device, device_index[i / num_models_per_device]);
+          copied_models.push_back(copied_model);
+        }
+        return copied_models;
+      }
 
       const std::shared_ptr<const models::Model>& model() const {
         return _pool->get_first_replica().model();
+      }
+
+      void assert_model_is_ready() const {
+        if (!_model_is_loaded)
+          throw std::runtime_error("The model for this translator was unloaded");
       }
     };
 

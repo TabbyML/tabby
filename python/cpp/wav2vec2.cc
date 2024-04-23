@@ -12,6 +12,8 @@ namespace ctranslate2 {
       using ReplicaPoolHelper::ReplicaPoolHelper;
 
       StorageView encode(const StorageView& features, const bool to_cpu) {
+        std::shared_lock lock(_mutex);
+        assert_model_is_ready();
         return _pool->encode(features, to_cpu).get();
       }
     };
@@ -92,6 +94,29 @@ namespace ctranslate2 {
                    The encoder output.
              )pbdoc")
 
+        .def("unload_model", &Wav2Vec2Wrapper::unload_model,
+             py::arg("to_cpu")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Unloads the model attached to this wav2vec2 but keep enough runtime context
+                 to quickly resume wav2vec2 on the initial device.
+
+                 Arguments:
+                   to_cpu: If ``True``, the model is moved to the CPU memory and not fully unloaded.
+             )pbdoc")
+
+        .def("load_model", &Wav2Vec2Wrapper::load_model,
+             py::arg("keep_cache")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Loads the model back to the initial device.
+
+                 Arguments:
+                   keep_cache: If ``True``, the model cache in the CPU memory is not deleted if it exists.
+             )pbdoc")
+
+        .def_property_readonly("model_is_loaded", &Wav2Vec2Wrapper::model_is_loaded,
+                               "Whether the model is loaded on the initial device and ready to be used.")
         ;
     }
 

@@ -69,6 +69,8 @@ namespace ctranslate2 {
           options.end_token = end_token.value();
         if (static_prompt)
           options.static_prompt = static_prompt.value();
+        std::shared_lock lock(_mutex);
+        assert_model_is_ready();
 
         auto futures = _pool->generate_batch_async(tokens, options, max_batch_size, batch_type);
         return maybe_wait_on_futures(std::move(futures), asynchronous);
@@ -84,6 +86,8 @@ namespace ctranslate2 {
         const auto batch_type = str_to_batch_type(batch_type_str);
         ScoringOptions options;
         options.max_input_length = max_input_length;
+        std::shared_lock lock(_mutex);
+        assert_model_is_ready();
 
         auto futures = _pool->score_batch_async(tokens, options, max_batch_size, batch_type);
         return maybe_wait_on_futures(std::move(futures), asynchronous);
@@ -321,6 +325,31 @@ namespace ctranslate2 {
                    The output logits, or the output log probabilities if :obj:`return_log_probs`
                    is enabled.
              )pbdoc")
+
+        .def("unload_model", &GeneratorWrapper::unload_model,
+             py::arg("to_cpu")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Unloads the model attached to this generator but keep enough runtime context
+                 to quickly resume generator on the initial device. The model is not guaranteed
+                 to be unloaded if generations are running concurrently.
+
+                 Arguments:
+                   to_cpu: If ``True``, the model is moved to the CPU memory and not fully unloaded.
+             )pbdoc")
+
+        .def("load_model", &GeneratorWrapper::load_model,
+             py::arg("keep_cache")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Loads the model back to the initial device.
+
+                 Arguments:
+                   keep_cache: If ``True``, the model cache in the CPU memory is not deleted if it exists.
+             )pbdoc")
+
+        .def_property_readonly("model_is_loaded", &GeneratorWrapper::model_is_loaded,
+                               "Whether the model is loaded on the initial device and ready to be used.")
         ;
     }
 
