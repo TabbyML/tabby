@@ -35,14 +35,6 @@ CREATE TABLE invitations(
   CONSTRAINT `idx_email` UNIQUE(`email`)
   CONSTRAINT `idx_code` UNIQUE(`code`)
 );
-CREATE TABLE refresh_tokens(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
-  token VARCHAR(255) NOT NULL COLLATE NOCASE,
-  expires_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT(DATETIME('now')),
-  CONSTRAINT `idx_token` UNIQUE(`token`)
-);
 CREATE TABLE job_runs(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   job VARCHAR(255) NOT NULL,
@@ -54,26 +46,12 @@ CREATE TABLE job_runs(
   created_at TIMESTAMP DEFAULT(DATETIME('now')),
   updated_at TIMESTAMP DEFAULT(DATETIME('now'))
 );
-CREATE TABLE github_oauth_credential(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  client_id VARCHAR(32) NOT NULL,
-  client_secret VARCHAR(64) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
-  updated_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now'))
-);
 CREATE TABLE repositories(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name VARCHAR(255) NOT NULL,
   git_url VARCHAR(255) NOT NULL,
   CONSTRAINT `idx_name` UNIQUE(`name`)
   CONSTRAINT `idx_git_url` UNIQUE(`git_url`)
-);
-CREATE TABLE google_oauth_credential(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  client_id VARCHAR(256) NOT NULL,
-  client_secret VARCHAR(64) NOT NULL,
-  created_at TIMESTAMP DEFAULT(DATETIME('now')),
-  updated_at TIMESTAMP DEFAULT(DATETIME('now'))
 );
 CREATE TABLE server_setting(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,12 +71,6 @@ CREATE TABLE email_setting(
   auth_method VARCHAR(255) NOT NULL DEFAULT 'plain'
   ,
   smtp_port INTEGER NOT NULL DEFAULT 25
-);
-CREATE TABLE password_reset(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL UNIQUE,
-  code VARCHAR(36) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now'))
 );
 CREATE TABLE oauth_credential(
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -163,3 +135,19 @@ CREATE TABLE user_events(
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE INDEX idx_user_events_created_at ON user_events(created_at);
+CREATE TABLE refresh_tokens(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  token VARCHAR(255) NOT NULL COLLATE NOCASE,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT(DATETIME('now')),
+  CONSTRAINT `idx_token` UNIQUE(`token`)
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);
+CREATE TABLE password_reset(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE,
+  code VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);
