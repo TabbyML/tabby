@@ -43,7 +43,7 @@ impl UserEventService for UserEventServiceImpl {
 mod tests {
     use super::*;
     use chrono::Duration;
-    use tabby_db::{DateTimeUtc, DbConn};
+    use tabby_db::DbConn;
 
     fn timestamp() -> u128 {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -78,8 +78,8 @@ mod tests {
                     None,
                     None,
                     None,
-                    DateTimeUtc::now() - Duration::minutes(1),
-                    DateTimeUtc::now() + Duration::minutes(1),
+                    Utc::now() - Duration::minutes(1),
+                    Utc::now() + Duration::minutes(1),
                 )
                 .await
                 .unwrap()
