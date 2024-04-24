@@ -55,11 +55,11 @@ export const getLanguageDisplayName = (
 
   const indexInSupportedLanguages = Object.values(ProgrammingLanguage)
     .map(lan => lan.toLocaleLowerCase())
-    .indexOf(lan)
+    .indexOf(lan.toLocaleLowerCase())
   if (indexInSupportedLanguages === -1) return returnDefault()
 
   const displayName =
-    Object.values(ProgrammingLanguage)[indexInSupportedLanguages]
+    Object.keys(ProgrammingLanguage)[indexInSupportedLanguages]
   const mapping: Record<string, string> = {
     csharp: 'C#',
     cpp: 'C++',
