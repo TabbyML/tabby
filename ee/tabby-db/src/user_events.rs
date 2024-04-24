@@ -44,12 +44,18 @@ impl DbConn {
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
+        users: Vec<i64>,
         start: DateTimeUtc,
         end: DateTimeUtc,
     ) -> Result<Vec<UserEventDAO>> {
+        let users = users
+            .iter()
+            .map(|u| u.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let no_selected_users = users.is_empty();
         let condition = Some(format!(
-            "created_at >= '{}' AND created_at < '{}'",
-            start, end,
+            "created_at >= '{start}' AND created_at < '{end}' AND ({no_selected_users} OR user_id IN ({users}))"
         ));
         let events = query_paged_as!(
             UserEventDAO,

@@ -259,7 +259,7 @@ type Query {
   jobs: [String!]!
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
-  userEvents(after: String, before: String, first: Int, last: Int, start: DateTimeUtc!, end: DateTimeUtc!): UserEventConnection!
+  userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTimeUtc!, end: DateTimeUtc!): UserEventConnection!
 }
 
 input NetworkSettingInput {
