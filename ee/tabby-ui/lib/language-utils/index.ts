@@ -1,5 +1,6 @@
 import path from 'path'
 import { has } from 'lodash-es'
+import {isNil} from 'lodash-es'
 
 import { Language as ProgrammingLanguage } from '@/lib/gql/generates/graphql'
 
@@ -50,13 +51,14 @@ export const getLanguageDisplayName = (
   lan?: string,
   defaultLan?: string
 ): string => {
-  if (!lan) return defaultLan || 'Other'
+  const returnDefault = () => !isNil(defaultLan) ? defaultLan : 'Other'
+  if (!lan) return returnDefault()
 
   const indexInSupportedLanguages = Object
     .values(ProgrammingLanguage)
     .map(lan => lan.toLocaleLowerCase())
     .indexOf(lan)
-  if (indexInSupportedLanguages === -1) return defaultLan || 'Other'
+  if (indexInSupportedLanguages === -1) return returnDefault()
 
   const displayName = Object.values(ProgrammingLanguage)[indexInSupportedLanguages]
   const mapping: Record<string, string> = {
