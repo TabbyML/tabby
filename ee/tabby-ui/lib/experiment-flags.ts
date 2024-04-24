@@ -99,7 +99,7 @@ const enableCodeBrowserQuickActionBarFactory = new ExperimentFlagFactory(
   'enable_code_browser_quick_action_bar',
   'Quick Action Bar',
   'Enable Quick Action Bar to display a convenient toolbar when you select code, offering options to explain the code, add unit tests, and more.',
-  false
+  true
 )
 
 export const EXP_enable_code_browser_quick_action_bar =
