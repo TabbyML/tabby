@@ -47,6 +47,7 @@ pub trait UserEventService: Send + Sync {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
+        users: Vec<ID>,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<Vec<UserEvent>>;

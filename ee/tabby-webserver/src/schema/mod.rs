@@ -422,10 +422,15 @@ impl Query {
 
     async fn user_events(
         ctx: &Context,
+
+        // pagination arguments
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
+
+        // filter arguments
+        users: Option<Vec<ID>>,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<Connection<UserEvent>> {
@@ -438,7 +443,7 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .user_event()
-                    .list(after, before, first, last, start, end)
+                    .list(after, before, first, last, users.unwrap_or_default(), start, end)
                     .await
             },
         )
