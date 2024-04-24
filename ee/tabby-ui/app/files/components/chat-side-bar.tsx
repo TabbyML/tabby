@@ -1,18 +1,18 @@
-import React, { useState } from 'react'
+import React from 'react'
 
 import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
-import { cn } from '@/lib/utils'
 import fetcher from '@/lib/tabby/fetcher'
+import { ISearchHit, SearchReponse } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose } from '@/components/ui/icons'
 
 import { QuickActionEventPayload } from '../lib/event-emitter'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { ISearchHit, SearchReponse } from '@/lib/types'
 
 interface ChatSideBarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> { }
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {}
 
 export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   className,
@@ -32,7 +32,7 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
     lineFrom,
     lineTo
   }: QuickActionEventPayload) => {
-    const contextPrompt = await buildContextPrompt(language, code, path);
+    const contextPrompt = await buildContextPrompt(language, code, path)
     let builtInPrompt = ''
     switch (action) {
       case 'explain':
@@ -47,8 +47,9 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       default:
         break
     }
-    const codeBlockMeta = `${language ?? ''
-      } is_reference=1 path=${path} line_from=${lineFrom} line_to=${lineTo}`;
+    const codeBlockMeta = `${
+      language ?? ''
+    } is_reference=1 path=${path} line_from=${lineFrom} line_to=${lineTo}`
     return `${contextPrompt}${builtInPrompt}\n${'```'}${codeBlockMeta}\n${code}\n${'```'}\n`
   }
 
@@ -97,57 +98,71 @@ function Header() {
   )
 }
 
-async function buildContextPrompt(language: string | undefined, code: string, path: string | undefined) {
+async function buildContextPrompt(
+  language: string | undefined,
+  code: string,
+  path: string | undefined
+) {
   if (!language || !path) {
-    return [];
+    return []
   }
 
   if (code.length < 128) {
-    return [];
+    return []
   }
 
-  const repo = path = path.split("/")[0];
+  const repo = (path = path.split('/')[0])
 
-  const tokens = code.split(/[^\w]/).filter(x => x);
+  const tokens = code.split(/[^\w]/).filter(x => x)
 
   // FIXME(meng): restrict query with `git_url` of `repo`.
   const languageQuery = buildLanguageQuery(language)
-  const bodyQuery = tokens.map(x => `body:${x}`).join(' OR ');
+  const bodyQuery = tokens.map(x => `body:${x}`).join(' OR ')
   const query = `${languageQuery} AND (${bodyQuery})`
 
-  const queryParam = `q=${encodeURIComponent(query)}&limit=20`;
+  const queryParam = `q=${encodeURIComponent(query)}&limit=20`
 
   const data: SearchReponse = await fetcher(`/v1beta/search?${queryParam}`, {
-    responseFormat: "json"
-  });
-  const snippets = data.hits.filter(x => x.score > 30 && path !== x.doc.filepath) || [];
-  return formatContextPrompt(repo, language, snippets.slice(0, 3));
+    responseFormat: 'json'
+  })
+  const snippets =
+    data.hits.filter(x => x.score > 30 && path !== x.doc.filepath) || []
+  return formatContextPrompt(repo, language, snippets.slice(0, 3))
 }
 
-function formatContextPrompt(repo: string, language: string, snippets: ISearchHit[]) {
-  let prompt = "Given following relevant code snippets:\n\n";
+function formatContextPrompt(
+  repo: string,
+  language: string,
+  snippets: ISearchHit[]
+) {
+  let prompt = 'Given following relevant code snippets:\n\n'
   for (const { doc } of snippets) {
-    const numLines = doc.body.split(/\r\n|\r|\n/).length;
-    const fromLine = doc.start_line;
-    const toLine = doc.start_line + numLines - 1;
+    const numLines = doc.body.split(/\r\n|\r|\n/).length
+    const fromLine = doc.start_line
+    const toLine = doc.start_line + numLines - 1
     const reference = `\`\`\`${language} is_reference=1 path=${repo}/${doc.filepath} line_from=${fromLine} line_to=${toLine}
 ${doc.body}
 \`\`\`
-`;
+`
     prompt += reference
   }
 
   if (snippets.length) {
-    return prompt;
+    return prompt
   } else {
-    return '';
+    return ''
   }
 }
 
 function buildLanguageQuery(language: string) {
-  if (language == "javascript" || language == "jsx" || language == "typescript" || language == "tsx") {
-    language = "javascript-typescript"
+  if (
+    language == 'javascript' ||
+    language == 'jsx' ||
+    language == 'typescript' ||
+    language == 'tsx'
+  ) {
+    language = 'javascript-typescript'
   }
 
-  return `language:${language}`;
+  return `language:${language}`
 }
