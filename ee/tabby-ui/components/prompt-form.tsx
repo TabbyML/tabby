@@ -5,7 +5,6 @@ import useSWR from 'swr'
 
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit'
 import fetcher from '@/lib/tabby/fetcher'
-import type { ISearchHit, SearchReponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -118,7 +117,6 @@ function PromptFormRenderer(
   }, [])
 
   const handleCompletionSelect = (item: ISearchHit) => {
-    /*
     const selectionEnd = prevInputSelectionEnd.current ?? 0
     const queryNameMatches = getSearchCompletionQueryName(input, selectionEnd)
     if (queryNameMatches) {
@@ -138,7 +136,6 @@ function PromptFormRenderer(
     }
     setOptions([])
     setSuggestionOpen(false)
-    */
   }
 
   const handlePromptSubmit: React.FormEventHandler<
@@ -350,4 +347,22 @@ function IconForCompletionKind({
     default:
       return <IconSymbolFunction {...rest} />
   }
+}
+
+type ISearchHit = {
+  id: number
+  score: number
+  doc: {
+    body: string
+    filepath: string
+    git_url: string
+    language: string
+    name: string
+    kind: string
+  }
+}
+
+type SearchReponse = {
+  hits: Array<ISearchHit>
+  num_hits: number
 }

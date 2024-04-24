@@ -21,6 +21,7 @@ export type ISearchHit = {
     start_line: number
   }
 }
+
 export type SearchReponse = {
   hits: Array<ISearchHit>
   num_hits: number
