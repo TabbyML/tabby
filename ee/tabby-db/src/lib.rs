@@ -261,16 +261,6 @@ where
     }
 }
 
-pub trait AsSQLiteDateTime {
-    fn as_sqlite_datetime(&self) -> String;
-}
-
-impl AsSQLiteDateTime for DateTime<Utc> {
-    fn as_sqlite_datetime(&self) -> String {
-        self.format("%F %X").to_string()
-    }
-}
-
 #[derive(Default, Clone)]
 pub struct DateTimeUtc(DateTime<Utc>);
 
@@ -334,7 +324,7 @@ impl<'a> Encode<'a, Sqlite> for DateTimeUtc {
         &self,
         buf: &mut <Sqlite as sqlx::database::HasArguments<'a>>::ArgumentBuffer,
     ) -> sqlx::encode::IsNull {
-        <String as Encode<Sqlite>>::encode(self.0.as_sqlite_datetime(), buf)
+        <String as Encode<Sqlite>>::encode(self.as_sqlite_datetime(), buf)
     }
 }
 
@@ -373,6 +363,10 @@ impl DateTimeUtc {
 
     pub fn from_timestamp(secs: i64, subsec_nanos: u32) -> Option<Self> {
         DateTime::from_timestamp(secs, subsec_nanos).map(Self)
+    }
+
+    fn as_sqlite_datetime(&self) -> String {
+        self.0.format("%F %X").to_string()
     }
 }
 

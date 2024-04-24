@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use sqlx::{prelude::FromRow, query};
 use tabby_db_macros::query_paged_as;
 
-use crate::{AsSQLiteDateTime, DateTimeUtc, DbConn};
+use crate::{DateTimeUtc, DbConn};
 
 #[derive(FromRow)]
 pub struct UserEventDAO {
@@ -49,8 +49,7 @@ impl DbConn {
     ) -> Result<Vec<UserEventDAO>> {
         let condition = Some(format!(
             "created_at >= '{}' AND created_at < '{}'",
-            start.as_sqlite_datetime(),
-            end.as_sqlite_datetime()
+            start, end,
         ));
         let events = query_paged_as!(
             UserEventDAO,

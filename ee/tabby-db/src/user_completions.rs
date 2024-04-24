@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use cached::CachedAsync;
 use sqlx::{prelude::FromRow, query};
 
-use crate::{AsSQLiteDateTime, DateTimeUtc, DbConn};
+use crate::{DateTimeUtc, DbConn};
 
 #[derive(FromRow)]
 pub struct UserCompletionDAO {
@@ -170,8 +170,8 @@ impl DbConn {
             no_selected_users = users.is_empty(),
             no_selected_languages = languages.is_empty(),
         ))
-        .bind(start.as_sqlite_datetime())
-        .bind(end.as_sqlite_datetime())
+        .bind(start)
+        .bind(end)
         .fetch_all(&self.pool)
         .await?;
         Ok(res)
