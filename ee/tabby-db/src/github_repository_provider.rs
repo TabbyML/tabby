@@ -160,7 +160,7 @@ impl DbConn {
             github_provider_id, 
             vendor_id, 
             name, 
-            git_url, 
+            git_url
         ).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }
