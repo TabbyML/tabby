@@ -10,7 +10,7 @@ import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import { ListUserEventsQuery, EventKind } from '@/lib/gql/generates/graphql'
+import { EventKind, ListUserEventsQuery } from '@/lib/gql/generates/graphql'
 import { useAllMembers } from '@/lib/hooks/use-all-members'
 import { getLanguageColor, getLanguageDisplayName } from '@/lib/language-utils'
 import { QueryVariables } from '@/lib/tabby/gql'
@@ -251,26 +251,26 @@ function ActivityRow({
     (language && getLanguageColor(language)) ||
     (theme === 'dark' ? '#ffffff' : '#000000')
 
-  let tooltip = ""
-  switch(activity.kind) {
-     case EventKind.Completion: {
-       tooltip = "Code completion supplied"
-       break
-     }
-     
-     case EventKind.Dismiss: {
-       tooltip = "Code completion viewed but not used"
-       break
-     }
-     case EventKind.Select: {
-       tooltip = "Code completion accepted and inserted"
-       break
-     }
-     case EventKind.View: {
-       tooltip = "Code completion shown in editor"
-       break
-     }
-  } 
+  let tooltip = ''
+  switch (activity.kind) {
+    case EventKind.Completion: {
+      tooltip = 'Code completion supplied'
+      break
+    }
+
+    case EventKind.Dismiss: {
+      tooltip = 'Code completion viewed but not used'
+      break
+    }
+    case EventKind.Select: {
+      tooltip = 'Code completion accepted and inserted'
+      break
+    }
+    case EventKind.View: {
+      tooltip = 'Code completion shown in editor'
+      break
+    }
+  }
   return (
     <>
       <TableRow
