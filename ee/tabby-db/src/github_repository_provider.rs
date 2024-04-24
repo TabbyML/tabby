@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
-use crate::{DbConn, SQLXResultExt};
+use crate::{AsSQLiteDateTime, DbConn, SQLXResultExt};
 
 #[derive(FromRow)]
 pub struct GithubRepositoryProviderDAO {
@@ -156,8 +156,12 @@ impl DbConn {
     ) -> Result<i64> {
         let res = query!(
             "INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
-                ON CONFLICT(github_repository_provider_id, vendor_id) DO UPDATE SET github_repository_provider_id = $1, name = $2, git_url = $3",
-            github_provider_id, vendor_id, name, git_url).execute(&self.pool).await?;
+                ON CONFLICT(github_repository_provider_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, updated_at = DATETIME('now')",
+            github_provider_id,
+            vendor_id,
+            name,
+            git_url
+        ).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }
 
@@ -177,6 +181,7 @@ impl DbConn {
         github_provider_id: i64,
         cutoff_timestamp: DateTime<Utc>,
     ) -> Result<()> {
+        let cutoff_timestamp = cutoff_timestamp.as_sqlite_datetime();
         query!(
             "DELETE FROM github_provided_repositories WHERE github_repository_provider_id = ? AND updated_at < ?;",
             github_provider_id,
