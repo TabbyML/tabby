@@ -53,7 +53,7 @@ import DateRangePicker from '@/components/date-range-picker'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
-import { useAllMembers } from '../../../../lib/hooks/use-all-members'
+import { useAllMembers } from '@/lib/hooks/use-all-members'
 import { AnnualActivity } from './annual-activity'
 import { DailyActivity } from './daily-activity'
 
