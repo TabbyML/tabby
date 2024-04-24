@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes'
 import { DateRange } from 'react-day-picker'
 import ReactJson from 'react-json-view'
 import { useQuery } from 'urql'
+import { toast } from 'sonner'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { QueryVariables } from '@/lib/tabby/gql'
@@ -14,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent } from '@/components/ui/card'
+import LoadingWrapper from '@/components/loading-wrapper'
 import {
   IconCheck,
   IconChevronLeft,
@@ -42,7 +44,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-import { getLanguageColor } from '@/lib/language-utils'
+import { getLanguageColor, getLanguageDisplayName } from '@/lib/language-utils'
 
 import type { ListUserEventsQuery } from '@/lib/gql/generates/graphql'
 
@@ -83,7 +85,7 @@ export const listUserEvents = graphql(/* GraphQL */ `
   }
 `)
 
-const data = [
+const mockData = [
   {
     type: 'Completion',
     user: 'acme@tabbyml.com',
@@ -159,19 +161,30 @@ export default function Activity() {
   const [queryVariables, setQueryVariables] = React.useState<
     QueryVariables<typeof listUserEvents>
   >({
-    first: DEFAULT_PAGE_SIZE,
+    last: DEFAULT_PAGE_SIZE,
     start: moment()
-      .subtract(2, 'day')
+      .subtract(1, 'day')
       .utc()
       .format(),
     end: moment().utc().format()
   })
-  const [{ data: test, error, fetching }] = useQuery({
+  const [{ data, error, fetching }] = useQuery({
     query: listUserEvents,
     variables: queryVariables
   })
   const [userEvents, setUserEvents] = React.useState<ListUserEventsQuery['userEvents']>()
-  console.log('test data', test)
+
+  React.useEffect(() => {
+    if (data?.userEvents.edges.length) {
+      setUserEvents(data.userEvents)
+    }
+  }, [data])
+
+  React.useEffect(() => {
+    if (error?.message) {
+      toast.error(error.message)
+    }
+  }, [error])
 
 
   const [dateRange, setDateRange] = React.useState<DateRange>({
@@ -259,8 +272,11 @@ export default function Activity() {
     })
   }
 
+
+  console.log('userEvents', userEvents)
   return (
-    <div className="flex min-h-screen w-full flex-col">
+    <LoadingWrapper loading={fetching}>
+      <div className="flex min-h-screen w-full flex-col">
       <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
         <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0">
           <div className="ml-auto flex items-center gap-2">
@@ -407,8 +423,8 @@ export default function Activity() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map(item => (
-                    <ActivityRow key={item.id} activity={item} />
+                  {userEvents?.edges.map(userEvent => (
+                    <ActivityRow key={userEvent.cursor} activity={userEvent.node} />
                   ))}
                 </TableBody>
               </Table>
@@ -441,13 +457,22 @@ export default function Activity() {
         </main>
       </div>
     </div>
+    </LoadingWrapper>
   )
 }
 
-function ActivityRow({ activity }: { activity: (typeof data)[0] }) {
+function ActivityRow({
+  activity
+}: {
+  activity: ListUserEventsQuery['userEvents']['edges'][0]['node']
+}) {
   const [isCollapse, setIsCollapse] = React.useState(false)
   const { theme } = useTheme()
-  const color = getLanguageColor(activity.language)
+  const payloadJson = JSON.parse(activity.payload) as { [key: string]: { language?: string } }
+
+  let language = payloadJson[activity.kind.toLocaleLowerCase()]?.language
+  if (language?.startsWith('typescript')) language = 'typescript'
+  const languageColor = language && getLanguageColor(language) || (theme === 'dark'? '#ffffff' : '#000000')
   return (
     <>
       <TableRow
@@ -457,25 +482,25 @@ function ActivityRow({ activity }: { activity: (typeof data)[0] }) {
       >
         <TableCell className="font-medium">
           <Tooltip>
-            <TooltipTrigger>{activity.type}</TooltipTrigger>
+            <TooltipTrigger>{activity.kind}</TooltipTrigger>
             <TooltipContent>
               <p>Code completion showed</p>
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell>{activity.user}</TableCell>
+        <TableCell>{activity.userId}</TableCell>
         <TableCell>
-          {moment(activity.date).isBefore(moment().subtract(1, 'days'))
-            ? moment(activity.date).format('YYYY-MM-DD HH:mm')
-            : moment(activity.date).fromNow()}
+          {moment(activity.createdAt).isBefore(moment().subtract(1, 'days'))
+            ? moment(activity.createdAt).format('YYYY-MM-DD HH:mm')
+            : moment(activity.createdAt).fromNow()}
         </TableCell>
         <TableCell>
           <div className="flex items-center text-xs">
             <div
               className="mr-1.5 h-2 w-2 rounded-full"
-              style={{ backgroundColor: color }}
+              style={{ backgroundColor: languageColor }}
             />
-            {activity.language}
+            {getLanguageDisplayName(language)}
           </div>
         </TableCell>
       </TableRow>
@@ -484,7 +509,7 @@ function ActivityRow({ activity }: { activity: (typeof data)[0] }) {
         <TableRow key={`${activity.id}-2`} className="w-full bg-muted/30">
           <TableCell className="font-medium" colSpan={4}>
             <ReactJson
-              src={demoJson}
+              src={payloadJson}
               name={false}
               collapseStringsAfterLength={50}
               theme={theme === 'dark' ? 'tomorrow' : 'rjv-default'}

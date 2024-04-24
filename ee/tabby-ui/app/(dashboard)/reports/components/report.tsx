@@ -15,7 +15,7 @@ import {
   DailyStatsQuery,
   Language
 } from '@/lib/gql/generates/graphql'
-import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
+import { getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -366,7 +366,7 @@ export function Report() {
                       )}
                       {selectedLanguage.length === 1 && (
                         <p className="w-full overflow-hidden text-ellipsis">
-                          {toProgrammingLanguageDisplayName(
+                          {getLanguageDisplayName(
                             selectedLanguage[0]
                           )}
                         </p>
@@ -422,7 +422,7 @@ export function Report() {
                                   <IconCheck className={cn('h-4 w-4')} />
                                 </div>
                                 <span>
-                                  {toProgrammingLanguageDisplayName(value)}
+                                  {getLanguageDisplayName(value)}
                                 </span>
                               </CommandItem>
                             )

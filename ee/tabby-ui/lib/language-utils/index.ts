@@ -46,13 +46,19 @@ export const filename2prism: (filename: string) => Array<string> = filename => {
     .filter(Boolean)
 }
 
-export const toProgrammingLanguageDisplayName = (
-  lan: ProgrammingLanguage
+export const getLanguageDisplayName = (
+  lan?: string,
+  defaultLan?: string
 ): string => {
-  const displayName =
-    Object.keys(ProgrammingLanguage)[
-      Object.values(ProgrammingLanguage).indexOf(lan)
-    ] || ''
+  if (!lan) return defaultLan || 'Other'
+
+  const indexInSupportedLanguages = Object
+    .values(ProgrammingLanguage)
+    .map(lan => lan.toLocaleLowerCase())
+    .indexOf(lan)
+  if (indexInSupportedLanguages === -1) return defaultLan || 'Other'
+
+  const displayName = Object.values(ProgrammingLanguage)[indexInSupportedLanguages]
   const mapping: Record<string, string> = {
     csharp: 'C#',
     cpp: 'C++',

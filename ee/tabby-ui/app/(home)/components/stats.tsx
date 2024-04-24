@@ -26,7 +26,7 @@ import {
   Language
 } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
-import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
+import { getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -99,7 +99,7 @@ const LanguageLabel: React.FC<
       textAnchor="start"
       dominantBaseline="middle"
     >
-      {toProgrammingLanguageDisplayName(value as Language)}
+      {getLanguageDisplayName(value as Language)}
     </text>
   )
 }
@@ -128,7 +128,7 @@ function LanguageTooltip({
             <b>{views}</b>
           </p>
           <p className="text-muted-foreground">
-            {toProgrammingLanguageDisplayName(name)}
+            {getLanguageDisplayName(name)}
           </p>
         </CardContent>
       </Card>
