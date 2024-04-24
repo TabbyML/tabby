@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use cached::CachedAsync;
 use sqlx::{prelude::FromRow, query};
 
-use crate::{DateTimeUtc, DbConn};
+use crate::{AsSQLiteDateTime, DateTimeUtc, DbConn};
 
 #[derive(FromRow)]
 pub struct UserCompletionDAO {
@@ -108,7 +108,7 @@ impl DbConn {
                    SUM(selects) as selects,
                    SUM(views) as views
             FROM user_completions JOIN users ON user_id = users.id AND users.active
-            WHERE user_completions.created_at >= DATE('now', '-1 year')
+            WHERE user_completions.created_at >= DATETIME('now', '-1 year')
                 AND ({users_empty} OR user_id IN ({users}))
             GROUP BY 1, 2
             ORDER BY 1, 2 ASC
@@ -170,8 +170,8 @@ impl DbConn {
             no_selected_users = users.is_empty(),
             no_selected_languages = languages.is_empty(),
         ))
-        .bind(start)
-        .bind(end)
+        .bind(start.as_sqlite_datetime())
+        .bind(end.as_sqlite_datetime())
         .fetch_all(&self.pool)
         .await?;
         Ok(res)

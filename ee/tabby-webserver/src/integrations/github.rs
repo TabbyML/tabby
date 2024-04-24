@@ -62,7 +62,7 @@ pub fn routes(
     };
     Router::new()
         .route("/connect/:id", routing::get(connect))
-        // Routes defined past this point require authentication
+        // Routes defined above this point require authentication
         .layer(from_fn_with_state(auth, require_login_middleware))
         .route("/callback", routing::get(callback))
         .with_state(state)

@@ -90,7 +90,7 @@ pub fn new_analytic_service(db: DbConn) -> Arc<dyn AnalyticService> {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Days;
+    use chrono::{Days, Duration};
 
     use super::*;
     use crate::service::AsID;
@@ -200,7 +200,7 @@ mod tests {
             .unwrap();
 
         let svc = new_analytic_service(db);
-        let end = Utc::now();
+        let end = Utc::now() + Duration::days(1);
         let start = end.checked_sub_days(Days::new(100)).unwrap();
 
         // Test that there is a single completion stat (1 day of history) with 1 completion and 1 select
@@ -243,7 +243,7 @@ mod tests {
             .unwrap();
 
         let service = new_analytic_service(db);
-        let end = Utc::now();
+        let end = Utc::now() + Duration::days(1);
         let start = end.checked_sub_days(Days::new(100)).unwrap();
 
         let stats = service
@@ -288,7 +288,7 @@ mod tests {
             .unwrap()
             .is_empty());
 
-        let end = Utc::now();
+        let end = Utc::now() + Duration::days(1);
         let start = end.checked_sub_days(Days::new(100)).unwrap();
 
         assert!(service
