@@ -10,7 +10,7 @@ import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import type { ListUserEventsQuery } from '@/lib/gql/generates/graphql'
+import { ListUserEventsQuery, EventKind } from '@/lib/gql/generates/graphql'
 import { useAllMembers } from '@/lib/hooks/use-all-members'
 import { getLanguageColor, getLanguageDisplayName } from '@/lib/language-utils'
 import { QueryVariables } from '@/lib/tabby/gql'
@@ -125,7 +125,7 @@ export default function Activity() {
 
   return (
     <LoadingWrapper loading={fetching}>
-      <div className="flex min-h-screen w-full flex-col">
+      <div className="flex w-full flex-col">
         <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
           <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0">
             <div className="ml-auto flex items-center gap-2">
@@ -158,14 +158,14 @@ export default function Activity() {
 
               {data?.userEvents.edges && data?.userEvents.edges.length > 0 && (
                 <>
-                  <CardContent className="pb-0">
+                  <CardContent className="w-[calc(100vw-4rem)] overflow-x-auto pb-0 md:w-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[25%]">Event</TableHead>
-                          <TableHead className="w-[25%]">People</TableHead>
-                          <TableHead className="w-[25%]">Time</TableHead>
-                          <TableHead className="w-[25%]">Language</TableHead>
+                          <TableHead className="md:w-[25%]">Event</TableHead>
+                          <TableHead className="md:w-[25%]">People</TableHead>
+                          <TableHead className="md:w-[25%]">Time</TableHead>
+                          <TableHead className="md:w-[25%]">Language</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -250,6 +250,27 @@ function ActivityRow({
   const languageColor =
     (language && getLanguageColor(language)) ||
     (theme === 'dark' ? '#ffffff' : '#000000')
+
+  let tooltip = ""
+  switch(activity.kind) {
+     case EventKind.Completion: {
+       tooltip = "Code completion supplied"
+       break
+     }
+     
+     case EventKind.Dismiss: {
+       tooltip = "Code completion viewed but not used"
+       break
+     }
+     case EventKind.Select: {
+       tooltip = "Code completion accepted and inserted"
+       break
+     }
+     case EventKind.View: {
+       tooltip = "Code completion shown in editor"
+       break
+     }
+  } 
   return (
     <>
       <TableRow
@@ -261,7 +282,7 @@ function ActivityRow({
           <Tooltip>
             <TooltipTrigger>{activity.kind}</TooltipTrigger>
             <TooltipContent>
-              <p>Code completion showed</p>
+              <p>{tooltip}</p>
             </TooltipContent>
           </Tooltip>
         </TableCell>
