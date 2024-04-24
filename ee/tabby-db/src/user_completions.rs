@@ -163,7 +163,7 @@ impl DbConn {
                        views,
                        IIF(language IN ({all_languages}), language, 'other') as language
                 FROM user_completions JOIN users ON user_id = users.id AND users.active
-                WHERE user_completions.created_at >= ?1 AND user_completions.created_at <= ?2
+                WHERE user_completions.created_at >= ?1 AND user_completions.created_at < ?2
             )
                 WHERE ({no_selected_users} OR user_id IN ({users}))
                 AND ({no_selected_languages} OR language IN ({languages}))
