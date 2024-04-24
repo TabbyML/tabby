@@ -48,7 +48,7 @@ pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
             }
         };
 
-        for body in intelligence.chunks(&text) {
+        for (start_line, body) in intelligence.chunks(&text) {
             pb.as_mut().map(|b| b.update(body.len())).transpose()?;
 
             writer.add_document(doc!(
@@ -56,6 +56,7 @@ pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
                     code.field_filepath => file.filepath.clone(),
                     code.field_language => file.language.clone(),
                     code.field_body => body,
+                    code.field_start_line => start_line,
             ))?;
         }
     }

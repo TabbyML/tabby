@@ -57,7 +57,26 @@ impl CodeIntelligence {
     pub fn chunks<'splitter, 'text: 'splitter>(
         &'splitter self,
         text: &'text str,
-    ) -> impl Iterator<Item = &'text str> + 'splitter {
-        self.splitter.chunks(text, 192)
+    ) -> impl Iterator<Item = (i64, &'text str)> + 'splitter {
+        self.splitter.chunk_indices(text, 256).map(|(offset, chunk)| {
+            (line_number_from_byte_offset(text, offset), chunk)
+        })
     }
+}
+
+fn line_number_from_byte_offset(s: &str, byte_offset: usize) -> i64{
+    let mut line_number = 1; // Start counting from line 1
+    let mut current_offset = 0;
+
+    for c in s.chars() {
+        if c == '\n' {
+            line_number += 1;
+        }
+        current_offset += c.len_utf8();
+        if current_offset >= byte_offset {
+            break;
+        }
+    }
+
+    line_number
 }

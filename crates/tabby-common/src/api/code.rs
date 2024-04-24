@@ -22,6 +22,7 @@ pub struct HitDocument {
     pub filepath: String,
     pub git_url: String,
     pub language: String,
+    pub start_line: i64,
 }
 
 #[derive(Error, Debug)]

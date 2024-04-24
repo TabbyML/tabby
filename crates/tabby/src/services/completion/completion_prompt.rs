@@ -38,7 +38,7 @@ impl PromptBuilder {
 
     pub async fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         let quota_threshold_for_snippets_from_code_search = 256;
-        let mut max_snippets_chars_in_prompt = 768;
+        let mut max_snippets_chars_in_prompt = 1024;
         let mut snippets: Vec<Snippet> = vec![];
 
         if let Some((count_characters, snippets_from_segments)) =

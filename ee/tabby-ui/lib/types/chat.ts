@@ -12,18 +12,18 @@ export interface Chat extends Record<string, any> {
 
 export type ISearchHit = {
   id: number
-  doc?: {
-    body?: string
-    name?: string
-    filepath?: string
-    git_url?: string
-    kind?: string
-    language?: string
+  score: number
+  doc: {
+    body: string
+    filepath: string
+    git_url: string
+    language: string
+    start_line: string
   }
 }
 export type SearchReponse = {
-  hits?: Array<ISearchHit>
-  num_hits?: number
+  hits: Array<ISearchHit>
+  num_hits: number
 }
 
 export type MessageActionType = 'edit' | 'delete' | 'regenerate'

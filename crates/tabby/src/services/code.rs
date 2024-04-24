@@ -77,6 +77,7 @@ impl CodeSearchImpl {
                 filepath: get_field(&doc, self.schema.field_filepath),
                 git_url: get_field(&doc, self.schema.field_git_url),
                 language: get_field(&doc, self.schema.field_language),
+                start_line: get_i64_field(&doc, self.schema.field_start_line)
             },
             id: doc_address.doc_id,
         }
@@ -168,6 +169,13 @@ fn closest_match<'a>(
 fn get_field(doc: &Document, field: Field) -> String {
     doc.get_first(field)
         .and_then(|x| x.as_text())
+        .expect("Missing field")
+        .to_owned()
+}
+
+fn get_i64_field(doc: &Document, field: Field) -> i64 {
+    doc.get_first(field)
+        .and_then(|x| x.as_i64())
         .expect("Missing field")
         .to_owned()
 }
