@@ -154,15 +154,13 @@ impl DbConn {
         name: String,
         git_url: String,
     ) -> Result<i64> {
-        let updated_at = Utc::now().as_sqlite_datetime();
         let res = query!(
-            "INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url, updated_at) VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT(github_repository_provider_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, updated_at = $5",
+            "INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
+                ON CONFLICT(github_repository_provider_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, updated_at = DATETIME('now')",
             github_provider_id, 
             vendor_id, 
             name, 
             git_url, 
-            updated_at
         ).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }
@@ -183,6 +181,7 @@ impl DbConn {
         github_provider_id: i64,
         cutoff_timestamp: DateTime<Utc>,
     ) -> Result<()> {
+        let cutoff_timestamp =cutoff_timestamp.as_sqlite_datetime();
         query!(
             "DELETE FROM github_provided_repositories WHERE github_repository_provider_id = ? AND updated_at < ?;",
             github_provider_id,
