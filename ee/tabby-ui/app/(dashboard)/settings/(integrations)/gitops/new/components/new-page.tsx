@@ -158,7 +158,7 @@ export const NewProvider = () => {
           {currentStep === 2 && (
             <>
               <ConfirmView data={form.getValues()} />
-              <div className="text-destructive-foreground mt-2 text-center">
+              <div className="mt-2 text-center text-destructive-foreground">
                 {errorMessage}
               </div>
             </>

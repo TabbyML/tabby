@@ -28,7 +28,7 @@ const Callback = () => {
 
   return (
     <div className="flex h-screen w-full items-center justify-center">
-      <IconSpinner className="w-6 h-6" />
+      <IconSpinner className="h-6 w-6" />
     </div>
   )
 }
