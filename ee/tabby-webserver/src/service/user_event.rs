@@ -38,3 +38,52 @@ impl UserEventService for UserEventServiceImpl {
             .collect::<Result<_, _>>()?)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+    use tabby_db::{DateTimeUtc, DbConn};
+
+    fn timestamp() -> u128 {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let start = SystemTime::now();
+        start
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis()
+    }
+
+    #[tokio::test]
+    async fn test_list_events() {
+        let db = DbConn::new_in_memory().await.unwrap();
+
+        let user = db.create_user("testuser".into(), None, true).await.unwrap();
+        db.create_user_event(
+            user,
+            "completion".into(),
+            timestamp(),
+            "event payload".into(),
+        )
+        .await
+        .unwrap();
+
+        let service = create(db.clone());
+
+        assert_eq!(
+            1,
+            service
+                .list(
+                    None,
+                    None,
+                    None,
+                    None,
+                    DateTimeUtc::now() - Duration::minutes(1),
+                    DateTimeUtc::now() + Duration::minutes(1),
+                )
+                .await
+                .unwrap()
+                .len()
+        );
+    }
+}
