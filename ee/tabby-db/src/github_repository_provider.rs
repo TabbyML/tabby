@@ -154,10 +154,16 @@ impl DbConn {
         name: String,
         git_url: String,
     ) -> Result<i64> {
+        let updated_at = Utc::now();
         let res = query!(
-            "INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url) VALUES ($1, $2, $3, $4)
-                ON CONFLICT(github_repository_provider_id, vendor_id) DO UPDATE SET github_repository_provider_id = $1, name = $2, git_url = $3",
-            github_provider_id, vendor_id, name, git_url).execute(&self.pool).await?;
+            "INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url, updated_at) VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT(github_repository_provider_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, updated_at = $5",
+            github_provider_id, 
+            vendor_id, 
+            name, 
+            git_url, 
+            updated_at
+        ).execute(&self.pool).await?;
         Ok(res.last_insert_rowid())
     }
 
