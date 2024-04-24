@@ -111,7 +111,9 @@ async function buildContextPrompt(
     return []
   }
 
-  const repo = (path = path.split('/')[0])
+  const segments = path.split('/');
+  const repo = segments[0];
+  path = segments.slice(1).join('/');
 
   const tokens = code.split(/[^\w]/).filter(x => x)
 
