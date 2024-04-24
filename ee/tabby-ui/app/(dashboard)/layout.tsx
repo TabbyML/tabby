@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
 
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Header } from '@/components/header'
 
 import Sidebar from './components/sidebar'
