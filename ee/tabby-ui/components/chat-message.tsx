@@ -155,16 +155,22 @@ const CodeReferences = ({ references }: CodeReferencesProps) => {
       }
     })
   }, [references])
+  const isMultipleReferences = formatedReferences?.length > 1
+
+  if (!formatedReferences?.length) return null
 
   return (
     <Accordion
       type="single"
       collapsible
       className="bg-background text-foreground"
+      defaultValue="references"
     >
-      <AccordionItem value="reference" className="my-0 border-0">
+      <AccordionItem value="references" className="my-0 border-0">
         <AccordionTrigger className="my-0 py-2">
-          <span className="mr-2">Used 1 reference</span>
+          <span className="mr-2">{`Used ${formatedReferences.length} reference${
+            isMultipleReferences ? 's' : ''
+          }`}</span>
         </AccordionTrigger>
         <AccordionContent>
           {formatedReferences?.map(item => {
