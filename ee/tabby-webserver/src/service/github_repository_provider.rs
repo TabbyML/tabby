@@ -202,6 +202,8 @@ fn deduplicate_github_repositories(repositories: &mut Vec<GithubProvidedReposito
 
 #[cfg(test)]
 mod tests {
+    use chrono::Duration;
+
     use super::*;
     use crate::service::AsID;
 
@@ -434,6 +436,62 @@ mod tests {
         assert_eq!(
             git_urls,
             ["https://token@github.com/TabbyML/tabby".to_string()]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_delete_outdated_repos() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+        let time = Utc::now();
+
+        let provider_id = db
+            .create_github_provider(
+                "provider1".into(),
+                "application_id1".into(),
+                "secret1".into(),
+            )
+            .await
+            .unwrap();
+
+        let _repo_id = db
+            .upsert_github_provided_repository(
+                provider_id,
+                "vendor_id1".into(),
+                "test_repo".into(),
+                "https://github.com/TabbyML/tabby".into(),
+            )
+            .await
+            .unwrap();
+
+        service
+            .delete_outdated_github_provided_repositories(provider_id.as_id(), time)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            1,
+            service
+                .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+                .await
+                .unwrap()
+                .len()
+        );
+
+        let time = time + Duration::minutes(1);
+
+        service
+            .delete_outdated_github_provided_repositories(provider_id.as_id(), time)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            0,
+            service
+                .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+                .await
+                .unwrap()
+                .len()
         );
     }
 }
