@@ -1436,7 +1436,9 @@ class LlamaLoader(ModelLoader):
     def set_config(self, config, model, tokenizer):
         config.bos_token = tokenizer.bos_token
         config.eos_token = tokenizer.eos_token
-        config.unk_token = tokenizer.unk_token
+        config.unk_token = (
+            tokenizer.unk_token if tokenizer.unk_token is not None else ""
+        )
         config.layer_norm_epsilon = model.config.rms_norm_eps
 
     def set_layer_norm(self, spec, layer_norm):
