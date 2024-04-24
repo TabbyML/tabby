@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use chrono::{Duration};
+use chrono::Duration;
 use sqlx::{query, query_as};
 use uuid::Uuid;
 

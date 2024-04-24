@@ -438,7 +438,7 @@ mod tests {
         // No assertions, these will fail at compiletime if adding/subtracting from these types
         // yields DateTime<Utc>, which could be dangerous
         let time = DateTimeUtc::now();
-        let _added_time: DateTimeUtc = time.clone() + Duration::milliseconds(1);
+        let _added_time: DateTimeUtc = time + Duration::milliseconds(1);
         let _subbed_time: DateTimeUtc = time - Duration::milliseconds(1);
     }
 }

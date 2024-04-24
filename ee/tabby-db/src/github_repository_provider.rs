@@ -1,9 +1,8 @@
 use anyhow::{anyhow, Result};
-use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
-use crate::{AsSQLiteDateTime, DbConn, SQLXResultExt};
+use crate::{AsSQLiteDateTime, DateTimeUtc, DbConn, SQLXResultExt};
 
 #[derive(FromRow)]
 pub struct GithubRepositoryProviderDAO {
@@ -179,7 +178,7 @@ impl DbConn {
     pub async fn delete_outdated_github_repositories(
         &self,
         github_provider_id: i64,
-        cutoff_timestamp: DateTime<Utc>,
+        cutoff_timestamp: DateTimeUtc,
     ) -> Result<()> {
         let cutoff_timestamp = cutoff_timestamp.as_sqlite_datetime();
         query!(
