@@ -454,7 +454,7 @@ mod tests {
             .await
             .unwrap();
 
-        let repo_id = db
+        let _repo_id = db
             .upsert_github_provided_repository(
                 provider_id,
                 "vendor_id1".into(),
