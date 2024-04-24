@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use sqlx::{query, FromRow};
 use tabby_db_macros::query_paged_as;
 
@@ -123,7 +123,7 @@ impl DbConn {
             None => "".into(),
         };
 
-        let cutoff = Utc::now() - Duration::days(7);
+        let cutoff = DateTimeUtc::now() - Duration::days(7);
 
         let stats = sqlx::query_as(&format!(
             r#"SELECT

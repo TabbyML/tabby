@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use cached::CachedAsync;
-use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 
 use crate::{DateTimeUtc, DbConn};
@@ -23,7 +22,7 @@ pub struct UserCompletionDAO {
 
 #[derive(FromRow, Clone)]
 pub struct UserCompletionDailyStatsDAO {
-    pub start: DateTime<Utc>,
+    pub start: DateTimeUtc,
     pub language: String,
     pub completions: i32,
     pub views: i32,
@@ -40,7 +39,7 @@ impl DbConn {
     ) -> Result<i32> {
         let duration = Duration::from_millis(ts as u64);
         let created_at =
-            DateTime::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
+            DateTimeUtc::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
                 .context("Invalid created_at timestamp")?;
         let res = query!(
             "INSERT INTO user_completions (user_id, completion_id, language, created_at) VALUES (?, ?, ?, ?);",
@@ -64,7 +63,7 @@ impl DbConn {
     ) -> Result<()> {
         let duration = Duration::from_millis(ts as u64);
         let updated_at =
-            DateTime::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
+            DateTimeUtc::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
                 .context("Invalid updated_at timestamp")?;
         query!("UPDATE user_completions SET views = views + ?, selects = selects + ?, dismisses = dismisses + ?, updated_at = ? WHERE completion_id = ?",
             views, selects, dismisses, updated_at, completion_id).execute(&self.pool).await?;
@@ -123,8 +122,8 @@ impl DbConn {
 
     pub async fn compute_daily_stats(
         &self,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        start: DateTimeUtc,
+        end: DateTimeUtc,
         users: Vec<i64>,
         languages: Vec<String>,
         all_languages: Vec<String>,

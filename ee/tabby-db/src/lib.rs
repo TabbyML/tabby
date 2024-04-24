@@ -1,9 +1,13 @@
-use std::{ops::Deref, path::Path, sync::Arc};
+use std::{
+    ops::{Add, Deref, Sub},
+    path::Path,
+    sync::Arc,
+};
 
 use anyhow::anyhow;
 use cache::Cache;
 use cached::TimedSizedCache;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
 pub use github_repository_provider::{GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO};
 pub use invitations::InvitationDAO;
@@ -309,9 +313,43 @@ impl Deref for DateTimeUtc {
     }
 }
 
+impl Add<Duration> for DateTimeUtc {
+    type Output = DateTimeUtc;
+
+    fn add(self, rhs: Duration) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
+impl Sub<Duration> for DateTimeUtc {
+    type Output = DateTimeUtc;
+
+    fn sub(self, rhs: Duration) -> Self::Output {
+        Self(self.0 - rhs)
+    }
+}
+
+impl PartialEq for DateTimeUtc {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl PartialOrd for DateTimeUtc {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Copy for DateTimeUtc {}
+
 impl DateTimeUtc {
-    pub fn into_inner(self) -> DateTime<Utc> {
-        self.0
+    pub fn now() -> Self {
+        Self(Utc::now())
+    }
+
+    pub fn from_timestamp(secs: i64, subsec_nanos: u32) -> Option<Self> {
+        DateTime::from_timestamp(secs, subsec_nanos).map(Self)
     }
 }
 
