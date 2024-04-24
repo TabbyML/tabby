@@ -4,6 +4,16 @@
 
 ### Fixes and improvements
 
+## [v4.2.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.2.1) (2024-04-24)
+
+Note: Because of the increasing of package's size (> 100 MB), the release v4.2.0 was pushed unsuccessfully.
+
+### New features
+* Support load/unload for generator/Whisper Attention (#1670)
+
+### Fixes and improvements
+* Fix Llama 3 (#1671)
+
 ## [v4.2.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v4.2.0) (2024-04-10)
 
 ### New features
