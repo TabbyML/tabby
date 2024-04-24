@@ -118,6 +118,7 @@ function PromptFormRenderer(
   }, [])
 
   const handleCompletionSelect = (item: ISearchHit) => {
+    /*
     const selectionEnd = prevInputSelectionEnd.current ?? 0
     const queryNameMatches = getSearchCompletionQueryName(input, selectionEnd)
     if (queryNameMatches) {
@@ -137,6 +138,7 @@ function PromptFormRenderer(
     }
     setOptions([])
     setSuggestionOpen(false)
+    */
   }
 
   const handlePromptSubmit: React.FormEventHandler<
