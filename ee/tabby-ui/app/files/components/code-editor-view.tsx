@@ -24,7 +24,9 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { theme } = useTheme()
   const tags: TCodeTag[] = []
   const editorRef = React.useRef<CodeMirrorEditorRef>(null)
-  const { isChatEnabled } = React.useContext(SourceCodeBrowserContext)
+  const { isChatEnabled, activePath } = React.useContext(
+    SourceCodeBrowserContext
+  )
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [
@@ -43,8 +45,12 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       }),
       drawSelection()
     ]
-    if (EXP_enable_code_browser_quick_action_bar.value && isChatEnabled) {
-      result.push(ActionBarWidgetExtension({ language }))
+    if (
+      EXP_enable_code_browser_quick_action_bar.value &&
+      isChatEnabled &&
+      activePath
+    ) {
+      result.push(ActionBarWidgetExtension({ language, path: activePath }))
     }
     if (value && tags) {
       result.push(
