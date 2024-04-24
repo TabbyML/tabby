@@ -1,9 +1,14 @@
-use std::{ops::Deref, path::Path, sync::Arc};
+use std::{
+    fmt::Display,
+    ops::{Add, Deref, Sub},
+    path::Path,
+    sync::Arc,
+};
 
 use anyhow::anyhow;
 use cache::Cache;
 use cached::TimedSizedCache;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
 pub use github_repository_provider::{GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO};
 pub use invitations::InvitationDAO;
@@ -256,8 +261,52 @@ where
     }
 }
 
+pub trait AsSQLiteDateTime {
+    fn as_sqlite_datetime(&self) -> String;
+}
+
+impl AsSQLiteDateTime for DateTime<Utc> {
+    fn as_sqlite_datetime(&self) -> String {
+        self.format("%F %X").to_string()
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct DateTimeUtc(DateTime<Utc>);
+
+impl Display for DateTimeUtc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_sqlite_datetime())
+    }
+}
+
+impl std::fmt::Debug for DateTimeUtc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_sqlite_datetime())
+    }
+}
+
+impl DateTimeUtc {
+    pub fn now() -> Self {
+        Utc::now().into()
+    }
+}
+
+impl Add<Duration> for DateTimeUtc {
+    type Output = Self;
+
+    fn add(self, rhs: Duration) -> Self::Output {
+        ((self.0) + rhs).into()
+    }
+}
+
+impl Sub<Duration> for DateTimeUtc {
+    type Output = Self;
+
+    fn sub(self, rhs: Duration) -> Self::Output {
+        ((self.0) - rhs).into()
+    }
+}
 
 impl From<DateTime<Utc>> for DateTimeUtc {
     fn from(value: DateTime<Utc>) -> Self {
@@ -291,7 +340,7 @@ impl<'a> Encode<'a, Sqlite> for DateTimeUtc {
         &self,
         buf: &mut <Sqlite as sqlx::database::HasArguments<'a>>::ArgumentBuffer,
     ) -> sqlx::encode::IsNull {
-        self.0.encode_by_ref(buf)
+        <String as Encode<Sqlite>>::encode(self.0.as_sqlite_datetime(), buf)
     }
 }
 
@@ -351,6 +400,27 @@ mod tests {
         let new_token = conn.read_registration_token().await.unwrap();
         assert_eq!(new_token.len(), 36);
         assert_ne!(old_token, new_token);
+    }
+
+    #[tokio::test]
+    async fn test_timestamp_format() {
+        let db = DbConn::new_in_memory().await.unwrap();
+
+        let time = DateTimeUtc::now();
+        let time_str = time.as_sqlite_datetime();
+        let sql_time: String = sqlx::query_scalar::<_, String>("SELECT ?;")
+            .bind(time)
+            .fetch_one(&db.pool)
+            .await
+            .unwrap();
+
+        assert_eq!(time_str, sql_time);
+
+        let sql_time: String = sqlx::query_scalar::<_, String>("SELECT DATETIME('now');")
+            .fetch_one(&db.pool)
+            .await
+            .unwrap();
+        assert_eq!(sql_time, DateTimeUtc::now().as_sqlite_datetime());
     }
 }
 

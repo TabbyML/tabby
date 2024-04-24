@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query, query_as};
 use tabby_db_macros::query_paged_as;
 
-use crate::{DbConn, SQLXResultExt};
+use crate::{AsSQLiteDateTime, DbConn, SQLXResultExt};
 
 #[derive(FromRow)]
 pub struct GithubRepositoryProviderDAO {
@@ -154,7 +154,7 @@ impl DbConn {
         name: String,
         git_url: String,
     ) -> Result<i64> {
-        let updated_at = Utc::now();
+        let updated_at = Utc::now().as_sqlite_datetime();
         let res = query!(
             "INSERT INTO github_provided_repositories (github_repository_provider_id, vendor_id, name, git_url, updated_at) VALUES ($1, $2, $3, $4, $5)
                 ON CONFLICT(github_repository_provider_id, vendor_id) DO UPDATE SET name = $3, git_url = $4, updated_at = $5",
