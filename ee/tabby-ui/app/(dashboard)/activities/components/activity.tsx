@@ -242,9 +242,18 @@ function ActivityRow({
   const [members] = useAllMembers()
   const [isCollapse, setIsCollapse] = React.useState(false)
 
-  const payloadJson = JSON.parse(activity.payload) as {
-    [key: string]: { language?: string }
+  let payloadJson
+  try {
+    payloadJson = JSON.parse(activity.payload) as {
+      [key: string]: { language?: string }
+    }
+  } catch (error: any) {
+    if (error?.message) {
+      toast.error(error.message)
+    }
   }
+  if (!payloadJson) return null
+
   let language = payloadJson[activity.kind.toLocaleLowerCase()]?.language
   if (language?.startsWith('typescript')) language = 'typescript'
   const languageColor =
