@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import React from 'react'
 import moment, { unitOfTime } from 'moment'
 import { useTheme } from 'next-themes'
 import { DateRange } from 'react-day-picker'
 import ReactJson from 'react-json-view'
+import { useQuery } from 'urql'
 
+import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
+import { QueryVariables } from '@/lib/tabby/gql'
+import { graphql } from '@/lib/gql/generates'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -38,15 +42,46 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 
-// TODO
-import languageColors from '../../../(home)/language-colors.json'
+import { getLanguageColor } from '@/lib/language-utils'
 
-const getLanguageColorMap = (): Record<string, string> => {
-  return Object.entries(languageColors).reduce((acc, cur) => {
-    const [lan, color] = cur
-    return { ...acc, [lan.toLocaleLowerCase()]: color }
-  }, {})
-}
+import type { ListUserEventsQuery } from '@/lib/gql/generates/graphql'
+
+export const listUserEvents = graphql(/* GraphQL */ `
+  query ListUserEvents(
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+    $start: DateTimeUtc!
+    $end: DateTimeUtc!
+  ) {
+    userEvents(
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+      start: $start
+      end: $end
+    ) {
+      edges {
+        node {
+          id
+          userId
+          createdAt
+          kind
+          payload
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
 
 const data = [
   {
@@ -121,7 +156,25 @@ enum DATE_OPTIONS {
 }
 
 export default function Activity() {
-  const [dateRange, setDateRange] = useState<DateRange>({
+  const [queryVariables, setQueryVariables] = React.useState<
+    QueryVariables<typeof listUserEvents>
+  >({
+    first: DEFAULT_PAGE_SIZE,
+    start: moment()
+      .subtract(2, 'day')
+      .utc()
+      .format(),
+    end: moment().utc().format()
+  })
+  const [{ data: test, error, fetching }] = useQuery({
+    query: listUserEvents,
+    variables: queryVariables
+  })
+  const [userEvents, setUserEvents] = React.useState<ListUserEventsQuery['userEvents']>()
+  console.log('test data', test)
+
+
+  const [dateRange, setDateRange] = React.useState<DateRange>({
     from: moment()
       .add(
         parseInt(DATE_OPTIONS.LAST24HOURS, 10),
@@ -130,12 +183,12 @@ export default function Activity() {
       .toDate(),
     to: moment().toDate()
   })
-  const [showDateFilter, setShowDateFilter] = useState(false)
-  const [selectDateFilter, setSelectDateFilter] = useState<DATE_OPTIONS>(
+  const [showDateFilter, setShowDateFilter] = React.useState(false)
+  const [selectDateFilter, setSelectDateFilter] = React.useState<DATE_OPTIONS>(
     DATE_OPTIONS.LAST24HOURS
   )
-  const [showDateRangerPicker, setShowDateRangerPicker] = useState(false)
-  const [calendarDateRange, setCalendarDateRange] = useState<
+  const [showDateRangerPicker, setShowDateRangerPicker] = React.useState(false)
+  const [calendarDateRange, setCalendarDateRange] = React.useState<
     DateRange | undefined
   >({
     from: moment()
@@ -146,8 +199,8 @@ export default function Activity() {
       .toDate(),
     to: moment().toDate()
   })
-  const [showDateUntilNowPicker, setShowDateUntilNowPicker] = useState(false)
-  const [dateUntilNow, setDateUntilNow] = useState<Date | undefined>(
+  const [showDateUntilNowPicker, setShowDateUntilNowPicker] = React.useState(false)
+  const [dateUntilNow, setDateUntilNow] = React.useState<Date | undefined>(
     moment().toDate()
   )
 
@@ -392,10 +445,9 @@ export default function Activity() {
 }
 
 function ActivityRow({ activity }: { activity: (typeof data)[0] }) {
-  const [isCollapse, setIsCollapse] = useState(false)
+  const [isCollapse, setIsCollapse] = React.useState(false)
   const { theme } = useTheme()
-  const colorMap = getLanguageColorMap()
-  const color = colorMap[activity.language.toLocaleLowerCase()]
+  const color = getLanguageColor(activity.language)
   return (
     <>
       <TableRow

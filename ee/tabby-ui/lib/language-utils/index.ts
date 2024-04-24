@@ -4,6 +4,14 @@ import { has } from 'lodash-es'
 import { Language as ProgrammingLanguage } from '@/lib/gql/generates/graphql'
 
 import languages from './languages'
+import languageColors from './language-colors.json'
+
+const languageColorMapping: Record<string, string> = Object
+  .entries(languageColors)
+  .reduce((acc, cur) => {
+    const [lan, color] = cur
+    return { ...acc, [lan.toLocaleLowerCase()]: color }
+  }, {})
 
 // Fork from
 // https://github.com/TomerAberbach/filename2prism/
@@ -52,4 +60,8 @@ export const toProgrammingLanguageDisplayName = (
     typescript: 'TypeScript'
   }
   return mapping[displayName.toLocaleLowerCase()] || displayName
+}
+
+export const getLanguageColor = (lan: string): string | undefined => {
+  return languageColorMapping[lan.toLowerCase()]
 }

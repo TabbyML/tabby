@@ -31,8 +31,7 @@ import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
-
-import languageColors from '../language-colors.json'
+import { getLanguageColor } from '@/lib/language-utils'
 import { CompletionCharts } from './completion-charts'
 
 const DATE_RANGE = 6
@@ -49,13 +48,6 @@ type LanguageStats = Record<
     name: Language
   }
 >
-
-const getLanguageColorMap = (): Record<string, string> => {
-  return Object.entries(languageColors).reduce((acc, cur) => {
-    const [lan, color] = cur
-    return { ...acc, [lan.toLocaleLowerCase()]: color }
-  }, {})
-}
 
 function ActivityCalendar({
   data
@@ -152,7 +144,6 @@ export default function Stats() {
   const searchParams = useSearchParams()
 
   const sample = searchParams.get('sample') === 'true'
-  const colorMap = getLanguageColorMap()
   const startDate = moment()
     .subtract(DATE_RANGE, 'day')
     .startOf('day')
@@ -344,7 +335,7 @@ export default function Stats() {
                     }
                   />
                   {languageData.map((entry, index) => {
-                    const lanColor = colorMap[entry.name.toLocaleLowerCase()]
+                    const lanColor = getLanguageColor(entry.name)
                     const color = lanColor
                       ? lanColor
                       : theme === 'dark'
