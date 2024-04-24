@@ -74,7 +74,7 @@ export const NewProvider = () => {
       'query',
       createRequest(listGithubRepositoryProviders, { ids: [id] })
     )
-    return client.executeMutation(queryProvider)
+    return client.executeQuery(queryProvider)
   }
 
   const getPopupUrl = (id: string) => {

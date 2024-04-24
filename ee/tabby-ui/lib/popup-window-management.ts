@@ -74,7 +74,6 @@ const usePopupWindow = (
   const managementRef = useRef<PopupWindowManagement | null>(null)
 
   const open = (url: string) => {
-    debugger
     if (managementRef.current) {
       const popupUrl = managementRef.current.getPopupUrl()
       if (popupUrl === url) {

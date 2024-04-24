@@ -94,9 +94,7 @@ const DetailPage: React.FC = () => {
             className="-ml-1 flex cursor-pointer items-center transition-opacity hover:opacity-60"
           >
             <IconChevronLeft className="mr-1 h-6 w-6" />
-            <span>
-              Provider information
-            </span>
+            <span>Provider information</span>
           </div>
           <div className="flex items-center gap-2 text-base">
             <IconGitHub className="h-6 w-6" />

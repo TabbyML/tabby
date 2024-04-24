@@ -137,7 +137,9 @@ const linkVariants = cva(
 function SidebarButton({ href, children }: SidebarButtonProps) {
   const pathname = usePathname()
   const isSelected = React.useMemo(() => {
-    return href === '/' ? href === pathname : shouldPathnameHighlight(pathname, href)
+    return href === '/'
+      ? href === pathname
+      : shouldPathnameHighlight(pathname, href)
   }, [pathname, href])
 
   const state = isSelected ? 'selected' : 'not-selected'
@@ -148,9 +150,12 @@ function SidebarButton({ href, children }: SidebarButtonProps) {
   )
 }
 
-function shouldPathnameHighlight(currentPathname: string, pathToHighlight: string) {
-  const regex = new RegExp(`^${escapeRegExp(pathToHighlight)}(/|\\?|$)`);
-  return regex.test(currentPathname);
+function shouldPathnameHighlight(
+  currentPathname: string,
+  pathToHighlight: string
+) {
+  const regex = new RegExp(`^${escapeRegExp(pathToHighlight)}(/|\\?|$)`)
+  return regex.test(currentPathname)
 }
 
 function escapeRegExp(string: String) {
