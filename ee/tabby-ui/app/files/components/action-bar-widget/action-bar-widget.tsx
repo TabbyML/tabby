@@ -16,16 +16,29 @@ import { CodeBrowserQuickAction, emitter } from '../../lib/event-emitter'
 interface ActionBarWidgetProps extends React.HTMLAttributes<HTMLDivElement> {
   text: string
   language?: string
+  path: string
+  lineFrom: number
+  lineTo: number
 }
 
 export const ActionBarWidget: React.FC<ActionBarWidgetProps> = ({
   className,
   text,
   language,
+  path,
+  lineFrom,
+  lineTo,
   ...props
 }) => {
   const handleAction = (action: CodeBrowserQuickAction) => {
-    emitter.emit('code_browser_quick_action', { action, code: text, language })
+    emitter.emit('code_browser_quick_action', {
+      action,
+      code: text,
+      language,
+      path,
+      lineFrom,
+      lineTo
+    })
   }
 
   return (
