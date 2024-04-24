@@ -407,6 +407,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
 
         let time = DateTimeUtc::now();
+
         let time_str = time.as_sqlite_datetime();
         let sql_time: String = sqlx::query_scalar::<_, String>("SELECT ?;")
             .bind(time)
@@ -421,6 +422,12 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(sql_time, DateTimeUtc::now().as_sqlite_datetime());
+
+        // No assertions, these will fail at compiletime if adding/subtracting from these types
+        // yields DateTime<Utc>, which could be dangerous
+        let time = DateTimeUtc::now();
+        let _added_time: DateTimeUtc = time.clone() + Duration::milliseconds(1);
+        let _subbed_time: DateTimeUtc = time - Duration::milliseconds(1);
     }
 }
 
