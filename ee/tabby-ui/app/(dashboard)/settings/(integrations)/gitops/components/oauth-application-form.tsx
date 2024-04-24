@@ -13,6 +13,8 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { CopyButton } from '@/components/copy-button'
+import { useExternalURL } from '@/lib/hooks/use-network-setting'
 
 export const oauthInfoFormSchema = z.object({
   applicationId: z.string(),
@@ -24,15 +26,38 @@ export type OAuthApplicationFormValues = z.infer<typeof oauthInfoFormSchema>
 interface OAuthApplicationFormProps
   extends React.HTMLAttributes<HTMLDivElement> {
   form: UseFormReturn
-  isUpdate?: boolean
 }
 
 export const OAuthApplicationForm = React.forwardRef<
   HTMLDivElement,
   OAuthApplicationFormProps
->(({ className, form, isUpdate }, ref) => {
+>(({ className, form }, ref) => {
+  const externalURL = useExternalURL()
+  const integrationsCallbackURL = externalURL ? `${externalURL}/integrations/github/callback` : ''
+
   return (
     <div className={cn('grid gap-6', className)} ref={ref}>
+      {!!integrationsCallbackURL && (
+      <FormItem className="mt-4">
+        <div className="flex flex-col gap-2 rounded-lg border px-3 py-2">
+          <div className="text-sm text-muted-foreground">
+            Create your OAuth2 application with the following information
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">
+              Authorization callback URL
+            </div>
+            <span className="flex items-center text-sm">
+              {integrationsCallbackURL}
+              <CopyButton
+                type="button"
+                value={integrationsCallbackURL}
+              />
+            </span>
+          </div>
+        </div>
+      </FormItem>
+      )}
       <FormField
         control={form.control}
         name="applicationId"
