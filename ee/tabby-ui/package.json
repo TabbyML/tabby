@@ -84,6 +84,7 @@
     "react-markdown": "^8.0.7",
     "react-nice-avatar": "^1.5.0",
     "react-resizable-panels": "^1.0.7",
+    "react-syntax-highlighter": "^15.5.0",
     "react-textarea-autosize": "^8.4.1",
     "react-topbar-progress-indicator": "^4.1.1",
     "recharts": "^2.12.4",
