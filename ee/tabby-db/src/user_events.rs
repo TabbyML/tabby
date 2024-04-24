@@ -48,7 +48,11 @@ impl DbConn {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<Vec<UserEventDAO>> {
-        let condition = Some(format!("created_at >= '{}' AND created_at < '{}'", start.to_rfc3339(), end.to_rfc3339()));
+        let condition = Some(format!(
+            "created_at >= '{}' AND created_at < '{}'",
+            start.to_rfc3339(),
+            end.to_rfc3339()
+        ));
         let events = query_paged_as!(
             UserEventDAO,
             "user_events",
