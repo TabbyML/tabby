@@ -20,12 +20,10 @@ export default function RootLayout({ children }: DashboardLayoutProps) {
   return (
     <main className="flex flex-1">
       <Sidebar />
-
-      {/* Wraps right hand side into ScrollArea, making scroll bar consistent across all browsers */}
-      <ScrollArea className="flex h-[100vh] flex-1 flex-col">
+      <div className="flex h-[100vh] flex-1 flex-col">
         <Header />
         <div className="flex-1 p-4 lg:p-10">{children}</div>
-      </ScrollArea>
+      </div>
     </main>
   )
 }
