@@ -443,7 +443,15 @@ impl Query {
             |after, before, first, last| async move {
                 ctx.locator
                     .user_event()
-                    .list(after, before, first, last, users.unwrap_or_default(), start, end)
+                    .list(
+                        after,
+                        before,
+                        first,
+                        last,
+                        users.unwrap_or_default(),
+                        start,
+                        end,
+                    )
                     .await
             },
         )

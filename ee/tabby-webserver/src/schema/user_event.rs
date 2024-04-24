@@ -5,7 +5,7 @@ use juniper::{GraphQLEnum, GraphQLObject, ID};
 use super::Context;
 use crate::{juniper::relay::NodeType, schema::Result};
 
-#[derive(GraphQLEnum)]
+#[derive(GraphQLEnum, Debug)]
 pub enum EventKind {
     Completion,
     Select,
