@@ -18,7 +18,7 @@ export type ISearchHit = {
     filepath: string
     git_url: string
     language: string
-    start_line: string
+    start_line: number
   }
 }
 export type SearchReponse = {

@@ -129,8 +129,8 @@ function formatContextPrompt(repo: string, language: string, snippets: ISearchHi
   for (const { doc } of snippets) {
     const numLines = doc.body.split(/\r\n|\r|\n/).length;
     const fromLine = doc.start_line;
-    const toLine = doc.start_line + numLines;
-    const reference = `\`\`\`${language} is_reference=1 path=${repo}/${doc.filepath} git_url=${doc.git_url} line_from=${fromLine} line_to=${toLine}
+    const toLine = doc.start_line + numLines - 1;
+    const reference = `\`\`\`${language} is_reference=1 path=${repo}/${doc.filepath} line_from=${fromLine} line_to=${toLine}
 ${doc.body}
 \`\`\`
 `;

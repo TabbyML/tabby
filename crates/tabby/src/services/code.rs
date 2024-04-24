@@ -77,7 +77,7 @@ impl CodeSearchImpl {
                 filepath: get_field(&doc, self.schema.field_filepath),
                 git_url: get_field(&doc, self.schema.field_git_url),
                 language: get_field(&doc, self.schema.field_language),
-                start_line: get_i64_field(&doc, self.schema.field_start_line)
+                start_line: get_i64_field(&doc, self.schema.field_start_line),
             },
             id: doc_address.doc_id,
         }
