@@ -134,6 +134,7 @@ CREATE TABLE user_events(
   payload BLOB NOT NULL,
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+CREATE INDEX idx_user_events_user_id ON user_events(user_id);
 CREATE INDEX idx_user_events_created_at ON user_events(created_at);
 CREATE TABLE refresh_tokens(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
