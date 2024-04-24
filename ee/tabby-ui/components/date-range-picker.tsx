@@ -5,10 +5,10 @@ import moment, { unitOfTime } from 'moment'
 import { DateRange } from 'react-day-picker'
 
 import { cn } from '@/lib/utils'
-
-import {
-  IconCheck,
-} from '@/components/ui/icons'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Card, CardContent } from '@/components/ui/card'
+import { IconCheck } from '@/components/ui/icons'
 import {
   Select,
   SelectContent,
@@ -17,10 +17,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { Calendar } from '@/components/ui/calendar'
-import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
 
 enum DATE_OPTIONS {
   'TODAY' = 'today',
@@ -36,24 +33,27 @@ const parseDateValue = (value: string) => {
   }
 }
 
-export default function DateRangePicker ({
+export default function DateRangePicker({
   options,
   onSelect,
   defaultValue,
   hasToday,
   hasYesterday
 }: {
-  options: { label: string; value: string }[];
-  onSelect?: (range: DateRange) => void;
-  defaultValue?: string;
-  hasToday?: boolean;
+  options: { label: string; value: string }[]
+  onSelect?: (range: DateRange) => void
+  defaultValue?: string
+  hasToday?: boolean
   hasYesterday?: boolean
 }) {
   defaultValue = defaultValue || options[0].value
   const defaultDate = parseDateValue(defaultValue)
   const [dateRange, setDateRange] = React.useState<DateRange>({
     from: moment()
-      .add(defaultDate.number, defaultDate.unit as unitOfTime.DurationConstructor)
+      .add(
+        defaultDate.number,
+        defaultDate.unit as unitOfTime.DurationConstructor
+      )
       .toDate(),
     to: moment().toDate()
   })
@@ -64,11 +64,15 @@ export default function DateRangePicker ({
     DateRange | undefined
   >({
     from: moment()
-    .add(defaultDate.number, defaultDate.unit as unitOfTime.DurationConstructor)
+      .add(
+        defaultDate.number,
+        defaultDate.unit as unitOfTime.DurationConstructor
+      )
       .toDate(),
     to: moment().toDate()
   })
-  const [showDateUntilNowPicker, setShowDateUntilNowPicker] = React.useState(false)
+  const [showDateUntilNowPicker, setShowDateUntilNowPicker] =
+    React.useState(false)
   const [dateUntilNow, setDateUntilNow] = React.useState<Date | undefined>(
     moment().toDate()
   )
@@ -148,31 +152,23 @@ export default function DateRangePicker ({
           <SelectValue placeholder="Date range" />
         </SelectTrigger>
         <SelectContent align="end">
-          {hasToday && <SelectItem value={DATE_OPTIONS.TODAY}>Today</SelectItem>}
-          {hasYesterday &&
-            <SelectItem value={DATE_OPTIONS.YESTERDAY}>
-              Yesterday
-            </SelectItem>
-          }
+          {hasToday && (
+            <SelectItem value={DATE_OPTIONS.TODAY}>Today</SelectItem>
+          )}
+          {hasYesterday && (
+            <SelectItem value={DATE_OPTIONS.YESTERDAY}>Yesterday</SelectItem>
+          )}
           {options.map(option => (
             <SelectItem value={option.value} key={option.value}>
               {option.label}
             </SelectItem>
           ))}
-          <SelectItem
-            value={DATE_OPTIONS.CUSTOM_DATE}
-            className="hidden"
-          >
+          <SelectItem value={DATE_OPTIONS.CUSTOM_DATE} className="hidden">
             {moment(dateRange?.from).format('ll')} - Now
           </SelectItem>
-          <SelectItem
-            value={DATE_OPTIONS.CUSTOM_RANGE}
-            className="hidden"
-          >
+          <SelectItem value={DATE_OPTIONS.CUSTOM_RANGE} className="hidden">
             {moment(dateRange?.from).format('ll')}
-            {dateRange?.to
-              ? ` - ${moment(dateRange.to).format('ll')}`
-              : ''}
+            {dateRange?.to ? ` - ${moment(dateRange.to).format('ll')}` : ''}
           </SelectItem>
           <SelectSeparator />
           <div

@@ -26,12 +26,12 @@ import {
   Language
 } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
-import { getLanguageDisplayName } from '@/lib/language-utils'
+import { getLanguageColor, getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
-import { getLanguageColor } from '@/lib/language-utils'
+
 import { CompletionCharts } from './completion-charts'
 
 const DATE_RANGE = 6

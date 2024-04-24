@@ -1,18 +1,17 @@
 import path from 'path'
-import { has } from 'lodash-es'
-import {isNil} from 'lodash-es'
+import { has, isNil } from 'lodash-es'
 
 import { Language as ProgrammingLanguage } from '@/lib/gql/generates/graphql'
 
-import languages from './languages'
 import languageColors from './language-colors.json'
+import languages from './languages'
 
-const languageColorMapping: Record<string, string> = Object
-  .entries(languageColors)
-  .reduce((acc, cur) => {
-    const [lan, color] = cur
-    return { ...acc, [lan.toLocaleLowerCase()]: color }
-  }, {})
+const languageColorMapping: Record<string, string> = Object.entries(
+  languageColors
+).reduce((acc, cur) => {
+  const [lan, color] = cur
+  return { ...acc, [lan.toLocaleLowerCase()]: color }
+}, {})
 
 // Fork from
 // https://github.com/TomerAberbach/filename2prism/
@@ -51,16 +50,16 @@ export const getLanguageDisplayName = (
   lan?: string,
   defaultLan?: string
 ): string => {
-  const returnDefault = () => !isNil(defaultLan) ? defaultLan : 'Other'
+  const returnDefault = () => (!isNil(defaultLan) ? defaultLan : 'Other')
   if (!lan) return returnDefault()
 
-  const indexInSupportedLanguages = Object
-    .values(ProgrammingLanguage)
+  const indexInSupportedLanguages = Object.values(ProgrammingLanguage)
     .map(lan => lan.toLocaleLowerCase())
     .indexOf(lan)
   if (indexInSupportedLanguages === -1) return returnDefault()
 
-  const displayName = Object.values(ProgrammingLanguage)[indexInSupportedLanguages]
+  const displayName =
+    Object.values(ProgrammingLanguage)[indexInSupportedLanguages]
   const mapping: Record<string, string> = {
     csharp: 'C#',
     cpp: 'C++',

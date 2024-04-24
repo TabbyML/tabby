@@ -49,9 +49,9 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import DateRangePicker from '@/components/date-range-picker'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
-import DateRangePicker from '@/components/date-range-picker'
 
 import { useAllMembers } from '../../../../lib/hooks/use-all-members'
 import { AnnualActivity } from './annual-activity'
@@ -117,9 +117,7 @@ export function Report() {
   const sample = searchParams.get('sample') === 'true'
   const [members] = useAllMembers()
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: moment()
-      .add(parseInt(DEFAULT_DATE_RANGE, 10), 'day')
-      .toDate(),
+    from: moment().add(parseInt(DEFAULT_DATE_RANGE, 10), 'day').toDate(),
     to: moment().toDate()
   })
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
@@ -286,9 +284,7 @@ export function Report() {
                       )}
                       {selectedLanguage.length === 1 && (
                         <p className="w-full overflow-hidden text-ellipsis">
-                          {getLanguageDisplayName(
-                            selectedLanguage[0]
-                          )}
+                          {getLanguageDisplayName(selectedLanguage[0])}
                         </p>
                       )}
                       {selectedLanguage.length > 1 && (
@@ -341,9 +337,7 @@ export function Report() {
                                 >
                                   <IconCheck className={cn('h-4 w-4')} />
                                 </div>
-                                <span>
-                                  {getLanguageDisplayName(value)}
-                                </span>
+                                <span>{getLanguageDisplayName(value)}</span>
                               </CommandItem>
                             )
                           })}
@@ -368,9 +362,9 @@ export function Report() {
 
               <DateRangePicker
                 options={[
-                  { label: 'Last 7 days' , value: '-7d' },
-                  { label: 'Last 14 days' , value: '-14d' },
-                  { label: 'Last 30 days' , value: '-30d' },
+                  { label: 'Last 7 days', value: '-7d' },
+                  { label: 'Last 14 days', value: '-14d' },
+                  { label: 'Last 30 days', value: '-30d' }
                 ]}
                 defaultValue={DEFAULT_DATE_RANGE}
                 onSelect={setDateRange}
