@@ -24,8 +24,8 @@ impl AnalyticService for AnalyticServiceImpl {
         let stats = stats
             .into_iter()
             .map(|s| CompletionStats {
-                start: s.start,
-                end: s.start + chrono::Duration::days(1),
+                start: s.start.into(),
+                end: (s.start + chrono::Duration::days(1)).into(),
                 language: s.language.into(),
                 completions: s.completions,
                 selects: s.selects,
@@ -55,13 +55,13 @@ impl AnalyticService for AnalyticServiceImpl {
             .collect();
         let stats = self
             .db
-            .compute_daily_stats(start, end, users, languages, all_languages)
+            .compute_daily_stats(start.into(), end.into(), users, languages, all_languages)
             .await?;
         let stats = stats
             .into_iter()
             .map(|s| CompletionStats {
-                start: s.start,
-                end: s.start + chrono::Duration::days(1),
+                start: s.start.into(),
+                end: (s.start + chrono::Duration::days(1)).into(),
                 language: s.language.into(),
                 completions: s.completions,
                 selects: s.selects,

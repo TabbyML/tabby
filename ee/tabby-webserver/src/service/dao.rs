@@ -156,7 +156,7 @@ impl TryFrom<UserEventDAO> for UserEvent {
             id: value.id.as_id(),
             user_id: value.user_id.as_id(),
             kind: EventKind::from_enum_str(&value.kind)?,
-            created_at: value.created_at,
+            created_at: value.created_at.into(),
             payload: String::from_utf8(value.payload)?,
         })
     }

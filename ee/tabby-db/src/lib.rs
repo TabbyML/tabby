@@ -261,16 +261,6 @@ where
     }
 }
 
-pub trait AsSQLiteDateTime {
-    fn as_sqlite_datetime(&self) -> String;
-}
-
-impl AsSQLiteDateTime for DateTime<Utc> {
-    fn as_sqlite_datetime(&self) -> String {
-        self.format("%F %X").to_string()
-    }
-}
-
 #[derive(Default, Clone)]
 pub struct DateTimeUtc(DateTime<Utc>);
 
@@ -283,12 +273,6 @@ impl Display for DateTimeUtc {
 impl std::fmt::Debug for DateTimeUtc {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_sqlite_datetime())
-    }
-}
-
-impl DateTimeUtc {
-    pub fn now() -> Self {
-        Utc::now().into()
     }
 }
 
@@ -340,7 +324,7 @@ impl<'a> Encode<'a, Sqlite> for DateTimeUtc {
         &self,
         buf: &mut <Sqlite as sqlx::database::HasArguments<'a>>::ArgumentBuffer,
     ) -> sqlx::encode::IsNull {
-        <String as Encode<Sqlite>>::encode(self.0.as_sqlite_datetime(), buf)
+        <String as Encode<Sqlite>>::encode(self.as_sqlite_datetime(), buf)
     }
 }
 
@@ -358,9 +342,31 @@ impl Deref for DateTimeUtc {
     }
 }
 
+impl PartialEq for DateTimeUtc {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl PartialOrd for DateTimeUtc {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Copy for DateTimeUtc {}
+
 impl DateTimeUtc {
-    pub fn into_inner(self) -> DateTime<Utc> {
-        self.0
+    pub fn now() -> Self {
+        Self(Utc::now())
+    }
+
+    pub fn from_timestamp(secs: i64, subsec_nanos: u32) -> Option<Self> {
+        DateTime::from_timestamp(secs, subsec_nanos).map(Self)
+    }
+
+    fn as_sqlite_datetime(&self) -> String {
+        self.0.format("%F %X").to_string()
     }
 }
 
@@ -426,7 +432,7 @@ mod tests {
         // No assertions, these will fail at compiletime if adding/subtracting from these types
         // yields DateTime<Utc>, which could be dangerous
         let time = DateTimeUtc::now();
-        let _added_time: DateTimeUtc = time.clone() + Duration::milliseconds(1);
+        let _added_time: DateTimeUtc = time + Duration::milliseconds(1);
         let _subbed_time: DateTimeUtc = time - Duration::milliseconds(1);
     }
 }

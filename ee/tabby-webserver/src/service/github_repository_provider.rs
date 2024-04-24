@@ -189,7 +189,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         cutoff_timestamp: DateTime<Utc>,
     ) -> Result<()> {
         self.db
-            .delete_outdated_github_repositories(provider_id.as_rowid()?, cutoff_timestamp)
+            .delete_outdated_github_repositories(provider_id.as_rowid()?, cutoff_timestamp.into())
             .await?;
         Ok(())
     }
