@@ -102,7 +102,7 @@ impl DbConn {
             .join(",");
         Ok(sqlx::query_as(&format!(
             r#"
-            SELECT CAST(STRFTIME('%s', DATE(user_completions.created_at)) AS TIMESTAMP) as start,
+            SELECT STRFTIME('%F %T', DATE(user_completions.created_at)) as start,
                    language,
                    SUM(1) as completions,
                    SUM(selects) as selects,
@@ -147,7 +147,7 @@ impl DbConn {
         // Groups stats by day, round all timestamps to the begining of the day relative to `start`.
         let res = sqlx::query_as(&format!(
             r#"
-            SELECT CAST((STRFTIME('%s', ?1) + days_since_start * 3600 * 24) AS TIMESTAMP) as start,
+            SELECT DATETIME((STRFTIME('%s', ?1) + days_since_start * 3600 * 24), 'unixepoch') as start,
                    language,
                    COUNT(1) as completions,
                    SUM(selects) as selects,
