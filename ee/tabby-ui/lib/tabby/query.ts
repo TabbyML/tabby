@@ -166,3 +166,73 @@ export const queryDailyStats = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listGithubRepositoryProviders = graphql(/* GraphQL */ `
+  query ListGithubRepositoryProviders(
+    $ids: [ID!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    githubRepositoryProviders(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          displayName
+          applicationId
+          connected
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGithubRepositories = graphql(/* GraphQL */ `
+  query ListGithubRepositories(
+    $providerIds: [ID!]!
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    githubRepositories(
+      providerIds: $providerIds
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          vendorId
+          githubRepositoryProviderId
+          name
+          gitUrl
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)

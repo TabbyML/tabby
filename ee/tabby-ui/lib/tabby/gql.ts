@@ -17,10 +17,15 @@ import {
 
 import {
   GitRepositoriesQueryVariables,
+  ListGithubRepositoriesQueryVariables,
   ListInvitationsQueryVariables
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
-import { listInvitations, listRepositories } from './query'
+import {
+  listGithubRepositories,
+  listInvitations,
+  listRepositories
+} from './query'
 import {
   clearAuthToken,
   getAuthToken,
@@ -103,7 +108,8 @@ const client = new Client({
       resolvers: {
         Query: {
           invitations: relayPagination(),
-          repositories: relayPagination()
+          repositories: relayPagination(),
+          githubRepositories: relayPagination()
         }
       },
       updates: {
@@ -150,6 +156,40 @@ const client = new Client({
                           data.gitRepositories.edges.filter(
                             e => e.node.id !== args.id
                           )
+                      }
+                      return data
+                    }
+                  )
+                })
+            }
+          },
+          updateGithubProvidedRepositoryActive(result, args, cache, info) {
+            if (result.updateGithubProvidedRepositoryActive) {
+              cache
+                .inspectFields('Query')
+                .filter(field => field.fieldName === 'githubRepositories')
+                .forEach(field => {
+                  cache.updateQuery(
+                    {
+                      query: listGithubRepositories,
+                      variables:
+                        field.arguments as ListGithubRepositoriesQueryVariables
+                    },
+                    data => {
+                      if (data?.githubRepositories?.edges?.length) {
+                        data.githubRepositories.edges =
+                          data.githubRepositories.edges.map(edge => {
+                            if (edge.node.id === args.id) {
+                              return {
+                                ...edge,
+                                node: {
+                                  ...edge.node,
+                                  active: args.active as boolean
+                                }
+                              }
+                            }
+                            return edge
+                          })
                       }
                       return data
                     }
