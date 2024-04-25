@@ -11,8 +11,7 @@ import { useQuery } from 'urql'
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { EventKind, ListUserEventsQuery } from '@/lib/gql/generates/graphql'
-import { useAllMembers } from '@/lib/hooks/use-all-members'
-import { getLanguageColor, getLanguageDisplayName } from '@/lib/language-utils'
+import { useAllMembers, Member } from '@/lib/hooks/use-all-members'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -34,10 +33,19 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import DateRangePicker from '@/components/date-range-picker'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 const DEFAULT_DATE_RANGE = '-24h'
+const KEY_SELECT_ALL = 'all'
 
 export const listUserEvents = graphql(/* GraphQL */ `
   query ListUserEvents(
@@ -47,6 +55,7 @@ export const listUserEvents = graphql(/* GraphQL */ `
     $last: Int
     $start: DateTimeUtc!
     $end: DateTimeUtc!
+    $users: [ID!]
   ) {
     userEvents(
       after: $after
@@ -55,6 +64,7 @@ export const listUserEvents = graphql(/* GraphQL */ `
       last: $last
       start: $start
       end: $end
+      users: $users
     ) {
       edges {
         node {
@@ -80,13 +90,15 @@ export default function Activity() {
   const defaultFromDate = moment().add(parseInt(DEFAULT_DATE_RANGE, 10), 'day')
   const defaultToDate = moment()
 
+  const [members] = useAllMembers()
   const [dateRange, setDateRange] = React.useState<DateRange>({
     from: defaultFromDate.toDate(),
     to: defaultToDate.toDate()
   })
+  const [page, setPage] = React.useState(1)
   const [userEvents, setUserEvents] =
     React.useState<ListUserEventsQuery['userEvents']>()
-  const [page, setPage] = React.useState(1)
+  const [selectedMember, setSelectedMember] = React.useState(KEY_SELECT_ALL)
 
   const [queryVariables, setQueryVariables] = React.useState<
     Omit<QueryVariables<typeof listUserEvents>, 'start' | 'end'>
@@ -101,6 +113,7 @@ export default function Activity() {
       end: dateRange.to
         ? moment(dateRange.to).utc().format()
         : moment(dateRange.from!).utc().format(),
+      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
       ...queryVariables
     }
   })
@@ -129,6 +142,29 @@ export default function Activity() {
         <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
           <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0">
             <div className="ml-auto flex items-center gap-2">
+              <Select
+                defaultValue={KEY_SELECT_ALL}
+                onValueChange={setSelectedMember}
+              >
+                <SelectTrigger className="w-auto py-0">
+                  <div className="flex h-6 items-center">
+                    <div className="w-[190px] overflow-hidden text-ellipsis text-left">
+                      <SelectValue />
+                    </div>
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectGroup>
+                    <SelectItem value={KEY_SELECT_ALL}>All members</SelectItem>
+                    {members.map(member => (
+                      <SelectItem value={member.id} key={member.id}>
+                        {member.email}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
               <DateRangePicker
                 options={[
                   { label: 'Last 24 hours', value: '-24h' },
@@ -162,10 +198,9 @@ export default function Activity() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="md:w-[25%]">Event</TableHead>
-                          <TableHead className="md:w-[25%]">People</TableHead>
-                          <TableHead className="md:w-[25%]">Time</TableHead>
-                          <TableHead className="md:w-[25%]">Language</TableHead>
+                          <TableHead className="md:w-[30%]">Event</TableHead>
+                          <TableHead className="md:w-[40%]">People</TableHead>
+                          <TableHead className="md:w-[30%]">Time</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -179,6 +214,7 @@ export default function Activity() {
                             <ActivityRow
                               key={userEvent.cursor}
                               activity={userEvent.node}
+                              members={members}
                             />
                           ))}
                       </TableBody>
@@ -190,18 +226,17 @@ export default function Activity() {
 
             {(data?.userEvents.pageInfo?.hasNextPage ||
               data?.userEvents.pageInfo?.hasPreviousPage) && (
-              <div className="flex justify-end">
-                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                  Page {page}
+                <div className="flex justify-end">
+                <div className="flex w-[100px] items-center justify-center text-sm font-medium"> Page {page}
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    disabled={!data?.userEvents.pageInfo?.hasNextPage}
-                    onClick={e => {
-                      setQueryVariables({
-                        first: DEFAULT_PAGE_SIZE,
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  disabled={!data?.userEvents.pageInfo?.hasNextPage}
+                  onClick={e => {
+                    setQueryVariables({
+                      first: DEFAULT_PAGE_SIZE,
                         after: data?.userEvents.pageInfo?.endCursor
                       })
                       setPage(page - 1)
@@ -223,8 +258,8 @@ export default function Activity() {
                   >
                     <IconChevronRight className="h-4 w-4" />
                   </Button>
+                </div>  
                 </div>
-              </div>
             )}
           </main>
         </div>
@@ -234,13 +269,15 @@ export default function Activity() {
 }
 
 function ActivityRow({
-  activity
+  activity,
+  members
 }: {
-  activity: ListUserEventsQuery['userEvents']['edges'][0]['node']
+  activity: ListUserEventsQuery['userEvents']['edges'][0]['node'],
+  members: Member[]
 }) {
   const { theme } = useTheme()
-  const [members] = useAllMembers()
-  const [isCollapse, setIsCollapse] = React.useState(false)
+  // const [members] = useAllMembers()
+  const [isExpanded, setIsExpanded] = React.useState(false)
 
   let payloadJson
   try {
@@ -252,13 +289,8 @@ function ActivityRow({
       toast.error(error.message)
     }
   }
+  
   if (!payloadJson) return null
-
-  let language = payloadJson[activity.kind.toLocaleLowerCase()]?.language
-  if (language?.startsWith('typescript')) language = 'typescript'
-  const languageColor =
-    (language && getLanguageColor(language)) ||
-    (theme === 'dark' ? '#ffffff' : '#000000')
 
   let tooltip = ''
   switch (activity.kind) {
@@ -284,10 +316,10 @@ function ActivityRow({
     <>
       <TableRow
         key={`${activity.id}}-1`}
-        className="cursor-pointer"
-        onClick={() => setIsCollapse(!isCollapse)}
+        className="cursor-pointer text-sm"
+        onClick={() => setIsExpanded(!isExpanded)}
       >
-        <TableCell className="font-medium">
+        <TableCell className="py-3 font-medium">
           <Tooltip>
             <TooltipTrigger>{activity.kind}</TooltipTrigger>
             <TooltipContent>
@@ -295,27 +327,18 @@ function ActivityRow({
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell>
+        <TableCell className="py-3">
           {members.find(user => user.id === activity.userId)?.email ||
             activity.userId}
         </TableCell>
-        <TableCell>
+        <TableCell className="py-3">
           {moment(activity.createdAt).isBefore(moment().subtract(1, 'days'))
             ? moment(activity.createdAt).format('YYYY-MM-DD HH:mm')
             : moment(activity.createdAt).fromNow()}
         </TableCell>
-        <TableCell>
-          <div className="flex items-center text-xs">
-            <div
-              className="mr-1.5 h-2 w-2 rounded-full"
-              style={{ backgroundColor: languageColor }}
-            />
-            {getLanguageDisplayName(language)}
-          </div>
-        </TableCell>
       </TableRow>
 
-      {isCollapse && (
+      {isExpanded && (
         <TableRow key={`${activity.id}-2`} className="w-full bg-muted/30">
           <TableCell className="font-medium" colSpan={4}>
             <ReactJson

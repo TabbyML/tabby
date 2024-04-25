@@ -5,7 +5,7 @@ import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { listUsers } from '@/lib/tabby/query'
 
-type Member = {
+export type Member = {
   id: string
   email: string
 }
