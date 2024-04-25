@@ -3990,6 +3990,33 @@ supports-color@^9.4.0:
   resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-9.4.0.tgz#17bfcf686288f531db3dea3215510621ccb55954"
   integrity sha512-VL+lNrEoIXww1coLPOmiEmK/0sGigko5COxI09KzHc2VJXJsQ37UaQ+8quuxjDeA7+KnLGTWRyOXSLLR2Wb4jw==
 
+tabby-agent@1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/tabby-agent/-/tabby-agent-1.5.0.tgz#514ea471163948e999a19de177dcfa5327166aff"
+  integrity sha512-A502A5KUU8nO8T5J+Z6nq5hwXqG8/Yzh1dPcqwgm7W7Umm/f36OBUY5y22WQgySXOmTRyD0LKM59BdWXasxDEg==
+  dependencies:
+    chokidar "^3.5.3"
+    deep-equal "^2.2.1"
+    deepmerge-ts "^5.1.0"
+    dot-prop "^8.0.2"
+    fast-levenshtein "^3.0.0"
+    file-stream-rotator "^1.0.0"
+    fs-extra "^11.1.1"
+    jwt-decode "^3.1.2"
+    lru-cache "^9.1.1"
+    mac-ca "^2.0.3"
+    object-hash "^3.0.0"
+    openapi-fetch "^0.7.6"
+    pino "^8.14.1"
+    semver "^7.6.0"
+    stats-logscale "^1.0.9"
+    toml "^3.0.0"
+    uuid "^9.0.0"
+    vscode-languageserver "^9.0.1"
+    vscode-languageserver-textdocument "^1.0.11"
+    web-tree-sitter "^0.20.8"
+    win-ca "^3.5.1"
+
 tar-fs@^2.0.0, tar-fs@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/tar-fs/-/tar-fs-2.1.1.tgz#489a15ab85f1f0befabb370b7de4f9eb5cbe8784"
