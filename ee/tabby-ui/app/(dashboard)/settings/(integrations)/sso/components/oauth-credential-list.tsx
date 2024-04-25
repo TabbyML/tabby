@@ -130,12 +130,12 @@ const OauthCredentialCard = ({
           </Link>
         </div>
       </CardHeader>
-      <CardContent className="p-4 text-sm">
-        <div className="flex border-b py-2">
+      <CardContent className="p-0 text-sm">
+        <div className="flex px-8 py-4 border-b">
           <span className="w-[100px]">Type</span>
           <span>OAuth 2.0</span>
         </div>
-        <div className="flex py-3">
+        <div className="flex px-8 py-4">
           <span className="w-[100px] shrink-0">Domain</span>
           <span className="truncate">{meta?.domain}</span>
         </div>

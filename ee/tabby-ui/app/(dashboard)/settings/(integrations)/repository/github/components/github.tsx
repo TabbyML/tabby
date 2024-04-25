@@ -50,7 +50,6 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl">
                   <div className="flex items-center gap-2">
-                    <IconGitHub className="h-6 w-6" />
                     {item.node.displayName}
                   </div>
                 </CardTitle>
@@ -62,12 +61,8 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                 </Link>
               </div>
             </CardHeader>
-            <CardContent className="p-4 text-sm">
-              <div className="flex border-b py-2">
-                <span className="w-[30%] text-muted-foreground">Name</span>
-                <span>{item.node.displayName}</span>
-              </div>
-              <div className="flex py-3">
+            <CardContent className="p-0 text-sm">
+              <div className="flex px-8 py-4">
                 <span className="w-[30%] shrink-0 text-muted-foreground">
                   Status
                 </span>
