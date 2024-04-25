@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -8,7 +8,7 @@ use tracing::warn;
 
 use super::AsRowid;
 use crate::schema::{
-    analytic::{AnalyticService, CompletionStats, Language},
+    analytic::{AnalyticService, CompletionStats, DiskUsage, DiskUsageStats, Language},
     Result,
 };
 
@@ -70,6 +70,35 @@ impl AnalyticService for AnalyticServiceImpl {
             .collect();
         Ok(stats)
     }
+
+    async fn disk_usage_stats(&self) -> Result<DiskUsageStats> {
+        Ok(DiskUsageStats {
+            events: recursive_dir_size(tabby_common::path::events_dir()).await?,
+            indexed_repositories: recursive_dir_size(tabby_common::path::dataset_dir())
+                .await?
+                .combine(recursive_dir_size(tabby_common::path::index_dir()).await?),
+            database: recursive_dir_size(crate::path::tabby_ee_root()).await?,
+            models: recursive_dir_size(tabby_common::path::models_dir()).await?,
+        })
+    }
+}
+
+/// Calculate the size of a directory in kilobytes recursively
+async fn recursive_dir_size(path: PathBuf) -> Result<DiskUsage, anyhow::Error> {
+    let path_str = path.to_string_lossy().to_string();
+
+    let size = if path.exists() {
+        tokio::task::spawn_blocking(|| async { fs_extra::dir::get_size(path) })
+            .await?
+            .await?
+    } else {
+        0
+    };
+
+    Ok(DiskUsage {
+        file_paths: vec![path_str],
+        size: size as f64 / 1024.0,
+    })
 }
 
 fn convert_ids(ids: Vec<ID>) -> Vec<i64> {
@@ -91,6 +120,8 @@ pub fn new_analytic_service(db: DbConn) -> Arc<dyn AnalyticService> {
 #[cfg(test)]
 mod tests {
     use chrono::{Days, Duration};
+    use tabby_common::path::set_tabby_root;
+    use temp_testdir::TempDir;
 
     use super::*;
     use crate::service::AsID;
@@ -296,5 +327,32 @@ mod tests {
             .await
             .unwrap()
             .is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_disk_usage() {
+        let tmp_dir = TempDir::default();
+        set_tabby_root(tmp_dir.to_path_buf());
+
+        tokio::fs::create_dir_all(tabby_common::path::models_dir())
+            .await
+            .unwrap();
+
+        tokio::fs::write(
+            tabby_common::path::models_dir().join("testfile"),
+            "0".repeat(1024).as_bytes(),
+        )
+        .await
+        .unwrap();
+
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = new_analytic_service(db);
+
+        let disk_usage = service.disk_usage_stats().await.unwrap();
+
+        assert_eq!(disk_usage.events.size, 0.0);
+        assert_eq!(disk_usage.indexed_repositories.size, 0.0);
+        assert_eq!(disk_usage.database.size, 0.0);
+        assert_eq!(disk_usage.models.size, 1.0);
     }
 }

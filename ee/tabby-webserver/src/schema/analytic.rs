@@ -8,6 +8,33 @@ use strum::{EnumIter, IntoEnumIterator};
 
 use crate::schema::Result;
 
+#[derive(GraphQLObject)]
+pub struct DiskUsageStats {
+    pub events: DiskUsage,
+    pub indexed_repositories: DiskUsage,
+    pub database: DiskUsage,
+    pub models: DiskUsage,
+}
+
+#[derive(GraphQLObject)]
+pub struct DiskUsage {
+    pub file_paths: Vec<String>,
+    pub size: f64,
+}
+
+impl DiskUsage {
+    pub fn combine(self, other: Self) -> Self {
+        DiskUsage {
+            size: self.size + other.size,
+            file_paths: self
+                .file_paths
+                .into_iter()
+                .chain(other.file_paths)
+                .collect(),
+        }
+    }
+}
+
 #[derive(GraphQLObject, Debug, Clone)]
 pub struct CompletionStats {
     pub start: DateTime<Utc>,
@@ -101,4 +128,6 @@ pub trait AnalyticService: Send + Sync {
         users: Vec<ID>,
         languages: Vec<Language>,
     ) -> Result<Vec<CompletionStats>>;
+
+    async fn disk_usage_stats(&self) -> Result<DiskUsageStats>;
 }

@@ -91,6 +91,13 @@ type UserConnection {
   pageInfo: PageInfo!
 }
 
+type DiskUsageStats {
+  events: DiskUsage!
+  indexedRepositories: DiskUsage!
+  database: DiskUsage!
+  models: DiskUsage!
+}
+
 input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
@@ -258,6 +265,7 @@ type Query {
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTimeUtc!, end: DateTimeUtc!): UserEventConnection!
+  diskUsageStats: DiskUsageStats!
 }
 
 input NetworkSettingInput {
@@ -273,6 +281,11 @@ enum Encryption {
 type UserEdge {
   node: User!
   cursor: String!
+}
+
+type DiskUsage {
+  filePaths: [String!]!
+  size: Float!
 }
 
 type JobRunConnection {
