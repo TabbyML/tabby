@@ -53,11 +53,15 @@ async fn refresh_repositories_for_provider(
     };
     for repo in repos {
         let id = repo.id.to_string();
-        let Some(mut url) = repo.git_url else {
+        let Some(url) = repo.git_url else {
             continue;
         };
-        let _ = url.set_scheme("https");
         let url = url.to_string();
+        let url = url
+            .strip_prefix("git://")
+            .map(|url| format!("https://{url}"))
+            .unwrap_or(url);
+
         service
             .upsert_github_provided_repository(provider.id.clone(), id, repo.name, url)
             .await?;
