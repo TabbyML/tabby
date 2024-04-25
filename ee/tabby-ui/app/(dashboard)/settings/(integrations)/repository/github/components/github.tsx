@@ -18,16 +18,12 @@ export default function GitProvidersPage() {
 
   return (
     <>
-      <CardTitle className="py-6">Git Providers</CardTitle>
       <LoadingWrapper loading={fetching}>
         {githubRepositoryProviders?.length ? (
           <div>
             <GitProvidersList data={githubRepositoryProviders} />
             <div className="mt-4 flex justify-end">
-              <Link
-                href="/settings/git/gitops/new"
-                className={buttonVariants()}
-              >
+              <Link href="./github/new" className={buttonVariants()}>
                 Create
               </Link>
             </div>
@@ -54,12 +50,12 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl">
                   <div className="flex items-center gap-2">
-                    <IconGitHub className="h-8 w-8" />
-                    GitHub.com
+                    <IconGitHub className="h-6 w-6" />
+                    {item.node.displayName}
                   </div>
                 </CardTitle>
                 <Link
-                  href={`/settings/git/gitops/detail?id=${item.node.id}`}
+                  href={`github/detail?id=${item.node.id}`}
                   className={buttonVariants({ variant: 'secondary' })}
                 >
                   View
@@ -76,7 +72,9 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                   Status
                 </span>
                 <span>
-                  {item.node?.connected ? 'Connected' : 'Not Connected'}
+                  {item.node?.connected
+                    ? 'Connected'
+                    : 'access_token needs update'}
                 </span>
               </div>
             </CardContent>
@@ -92,7 +90,10 @@ const GitProvidersPlaceholder = () => {
     <div className="flex flex-col items-center gap-4 rounded-lg border-4 border-dashed py-8">
       <div>No Data</div>
       <div className="flex justify-center">
-        <Link href="./new" className={buttonVariants({ variant: 'default' })}>
+        <Link
+          href="./github/new"
+          className={buttonVariants({ variant: 'default' })}
+        >
           Create
         </Link>
       </div>

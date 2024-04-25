@@ -1,4 +1,7 @@
+import { Metadata } from 'next'
+
 import { SubHeader } from '@/components/sub-header'
+
 import RepositoryTabsHeader from './components/tabs-header'
 
 const Header = ({ className }: { className?: string }) => {
@@ -21,4 +24,8 @@ export default function GitLayout({ children }: { children: React.ReactNode }) {
       {children}
     </>
   )
+}
+
+export const metadata: Metadata = {
+  title: 'Repository Providers'
 }

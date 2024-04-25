@@ -14,12 +14,9 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import { IconGitHub } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
-export const createGitProviderSchema = z.object({
+export const createGithubProviderSchema = z.object({
   provider: z.string(),
   displayName: z
     .string()
@@ -31,33 +28,35 @@ export const createGitProviderSchema = z.object({
   accessToken: z.string()
 })
 
-export const updateGitProviderSchema = createGitProviderSchema.extend({
-  provider: createGitProviderSchema.shape.provider.optional()
+export const updateGithubProviderSchema = createGithubProviderSchema.extend({
+  provider: createGithubProviderSchema.shape.provider.optional()
 })
 
-export type CreateGitProviderFormValues = z.infer<
-  typeof createGitProviderSchema
+export type CreateGithubProviderFormValues = z.infer<
+  typeof createGithubProviderSchema
 >
-export type UpdateGitProviderFormValues = z.infer<
-  typeof updateGitProviderSchema
+export type UpdateGithubProviderFormValues = z.infer<
+  typeof updateGithubProviderSchema
 >
 
-interface GitProviderFormProps {
+interface GithubProviderFormProps {
   isNew?: boolean
-  defaultValues?: Partial<z.infer<typeof createGitProviderSchema>>
+  defaultValues?: Partial<z.infer<typeof createGithubProviderSchema>>
   footer: React.ReactNode
   onSubmit: (values: any) => Promise<any>
 }
 
-export const GitProviderForm = React.forwardRef<
+export const GithubProviderForm = React.forwardRef<
   {
     form: UseFormReturn<
-      CreateGitProviderFormValues | UpdateGitProviderFormValues
+      CreateGithubProviderFormValues | UpdateGithubProviderFormValues
     >
   },
-  GitProviderFormProps
+  GithubProviderFormProps
 >(({ isNew, defaultValues, footer, onSubmit }, ref) => {
-  const formSchema = isNew ? createGitProviderSchema : updateGitProviderSchema
+  const formSchema = isNew
+    ? createGithubProviderSchema
+    : updateGithubProviderSchema
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues
@@ -77,38 +76,6 @@ export const GitProviderForm = React.forwardRef<
     <Form {...form}>
       <div className="grid gap-2">
         <form className="grid gap-6" onSubmit={form.handleSubmit(onSubmit)}>
-          {isNew && (
-            <FormField
-              control={form.control}
-              name="provider"
-              disabled={!isNew}
-              render={({ field: { onChange, ...rest } }) => (
-                <FormItem>
-                  <FormLabel required>Choose Git provider</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      className="flex flex-wrap gap-6"
-                      orientation="horizontal"
-                      onValueChange={onChange}
-                      {...rest}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="github" id="github" />
-                        <Label
-                          className="flex cursor-pointer items-center gap-1"
-                          htmlFor="github"
-                        >
-                          <IconGitHub className="h-5 w-5" />
-                          <span>GitHub.com</span>
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
           <FormField
             control={form.control}
             name="displayName"
@@ -148,7 +115,7 @@ export const GitProviderForm = React.forwardRef<
                 </FormDescription>
                 <FormControl>
                   <Input
-                    placeholder="e.g. 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0NB"
+                    placeholder="e.g. github_pat_1ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234"
                     autoCapitalize="none"
                     autoCorrect="off"
                     autoComplete="off"
@@ -160,24 +127,10 @@ export const GitProviderForm = React.forwardRef<
             )}
           />
           {footer}
-          {/* <div className="flex items-center justify-between">
-            <div>
-              <FormMessage />
-            </div>
-            <div>
-              <Button
-                type="submit"
-                disabled={isSubmitting || (!isNew && !isDirty)}
-              >
-                {isSubmitting && <IconSpinner className="mr-2" />}
-                {isNew ? 'Create' : 'Update'}
-              </Button>
-            </div>
-          </div> */}
         </form>
       </div>
     </Form>
   )
 })
 
-GitProviderForm.displayName = 'GitProviderForm'
+GithubProviderForm.displayName = 'GithubProviderForm'

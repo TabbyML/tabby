@@ -11,14 +11,13 @@ import { graphql } from '@/lib/gql/generates'
 import { client, useMutation } from '@/lib/tabby/gql'
 import { listGithubRepositoryProviders } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
-import { CardTitle } from '@/components/ui/card'
 import { FormMessage } from '@/components/ui/form'
-import { IconChevronLeft, IconSpinner } from '@/components/ui/icons'
+import { IconSpinner } from '@/components/ui/icons'
 
 import {
-  CreateGitProviderFormValues,
-  GitProviderForm,
-  UpdateGitProviderFormValues
+  CreateGithubProviderFormValues,
+  GithubProviderForm,
+  UpdateGithubProviderFormValues
 } from '../../components/github-form'
 
 const createGithubRepositoryProvider = graphql(/* GraphQL */ `
@@ -32,7 +31,7 @@ const createGithubRepositoryProvider = graphql(/* GraphQL */ `
 export const NewProvider = () => {
   const router = useRouter()
   const formRef = React.useRef<{
-    form: UseFormReturn<UpdateGitProviderFormValues>
+    form: UseFormReturn<UpdateGithubProviderFormValues>
   }>(null)
   const isSubmitting = formRef.current?.form?.formState?.isSubmitting
 
@@ -49,8 +48,7 @@ export const NewProvider = () => {
     {
       onCompleted(data) {
         if (data?.createGithubRepositoryProvider) {
-          toast.success('Provider created successfully')
-          router.replace('/settings/git/gitops')
+          router.back()
         }
       },
       onError(err) {
@@ -60,7 +58,7 @@ export const NewProvider = () => {
     }
   )
 
-  const handleSubmit = async (values: CreateGitProviderFormValues) => {
+  const handleSubmit = async (values: CreateGithubProviderFormValues) => {
     return createGithubRepositoryProviderMutation({
       input: omit(values, 'provider')
     })
@@ -68,19 +66,7 @@ export const NewProvider = () => {
 
   return (
     <>
-      <CardTitle className="py-6">
-        <div className="-ml-1 flex items-center">
-          <Button
-            onClick={() => router.back()}
-            variant={'ghost'}
-            className="h-6 px-1"
-          >
-            <IconChevronLeft className="h-5 w-5" />
-          </Button>
-          <span className="ml-2">Create Git Provider</span>
-        </div>
-      </CardTitle>
-      <GitProviderForm
+      <GithubProviderForm
         isNew
         ref={formRef}
         defaultValues={{ provider: 'github' }}
@@ -90,6 +76,14 @@ export const NewProvider = () => {
               <FormMessage />
             </div>
             <div>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isSubmitting}
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <IconSpinner className="mr-2" />}
                 Create

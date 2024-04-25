@@ -14,10 +14,10 @@ export default function GitTabsHeader() {
       <div className="sticky top-0 mb-4 flex">
         <TabsList className="grid grid-cols-2">
           <TabsTrigger value="git" asChild>
-            <Link href="git">Git</Link>
+            <Link href="/settings/repository/git">Git</Link>
           </TabsTrigger>
           <TabsTrigger value="github" asChild>
-            <Link href="github">Github</Link>
+            <Link href="/settings/repository/github">GitHub</Link>
           </TabsTrigger>
         </TabsList>
       </div>

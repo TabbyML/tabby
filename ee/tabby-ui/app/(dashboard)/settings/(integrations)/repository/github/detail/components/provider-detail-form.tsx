@@ -24,10 +24,10 @@ import { FormMessage } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 
 import {
-  GitProviderForm,
-  UpdateGitProviderFormValues,
-  updateGitProviderSchema
-} from '../../components/git-provider-form'
+  GithubProviderForm,
+  UpdateGithubProviderFormValues,
+  updateGithubProviderSchema
+} from '../../components/github-form'
 
 const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
   mutation DeleteGithubRepositoryProvider($id: ID!) {
@@ -43,7 +43,7 @@ const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
   }
 `)
 
-type FormValues = z.infer<typeof updateGitProviderSchema>
+type FormValues = z.infer<typeof updateGithubProviderSchema>
 
 interface UpdateProviderFormProps {
   id: string
@@ -59,7 +59,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   id
 }) => {
   const formRef = React.useRef<{
-    form: UseFormReturn<UpdateGitProviderFormValues>
+    form: UseFormReturn<UpdateGithubProviderFormValues>
   }>(null)
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
@@ -102,22 +102,21 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     try {
       const res = await deleteGithubRepositoryProvider({ id })
       if (res?.data?.deleteGithubRepositoryProvider) {
-        toast.success('Deleted repository provider successfully')
         onDelete?.()
       } else {
         toast.error(
-          res?.error?.message || 'Failed to delete repository provider'
+          res?.error?.message || 'Failed to delete github repository provider'
         )
       }
     } catch (error) {
-      toast.error('Failed to delete repository provider')
+      toast.error('Failed to delete github repository provider')
     } finally {
       setIsDeleting(false)
     }
   }
 
   return (
-    <GitProviderForm
+    <GithubProviderForm
       ref={formRef}
       defaultValues={defaultValues}
       footer={
