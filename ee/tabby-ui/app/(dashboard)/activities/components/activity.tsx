@@ -11,7 +11,7 @@ import { useQuery } from 'urql'
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import { EventKind, ListUserEventsQuery } from '@/lib/gql/generates/graphql'
-import { useAllMembers, Member } from '@/lib/hooks/use-all-members'
+import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { QueryVariables } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -20,6 +20,14 @@ import {
   IconChevronRight,
   IconFileSearch
 } from '@/components/ui/icons'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -33,14 +41,6 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
 import DateRangePicker from '@/components/date-range-picker'
 import LoadingWrapper from '@/components/loading-wrapper'
 
@@ -226,17 +226,19 @@ export default function Activity() {
 
             {(data?.userEvents.pageInfo?.hasNextPage ||
               data?.userEvents.pageInfo?.hasPreviousPage) && (
-                <div className="flex justify-end">
-                <div className="flex w-[100px] items-center justify-center text-sm font-medium"> Page {page}
+              <div className="flex justify-end">
+                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                  {' '}
+                  Page {page}
                 </div>
                 <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  disabled={!data?.userEvents.pageInfo?.hasNextPage}
-                  onClick={e => {
-                    setQueryVariables({
-                      first: DEFAULT_PAGE_SIZE,
+                  <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    disabled={!data?.userEvents.pageInfo?.hasNextPage}
+                    onClick={e => {
+                      setQueryVariables({
+                        first: DEFAULT_PAGE_SIZE,
                         after: data?.userEvents.pageInfo?.endCursor
                       })
                       setPage(page - 1)
@@ -258,8 +260,8 @@ export default function Activity() {
                   >
                     <IconChevronRight className="h-4 w-4" />
                   </Button>
-                </div>  
                 </div>
+              </div>
             )}
           </main>
         </div>
@@ -272,7 +274,7 @@ function ActivityRow({
   activity,
   members
 }: {
-  activity: ListUserEventsQuery['userEvents']['edges'][0]['node'],
+  activity: ListUserEventsQuery['userEvents']['edges'][0]['node']
   members: Member[]
 }) {
   const { theme } = useTheme()
@@ -289,7 +291,7 @@ function ActivityRow({
       toast.error(error.message)
     }
   }
-  
+
   if (!payloadJson) return null
 
   let tooltip = ''
