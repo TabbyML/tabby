@@ -72,7 +72,7 @@ pub async fn update_integrated_gitlab_repositories_job(
     gitlab_repository_provider: Arc<dyn GitlabRepositoryProviderService>,
 ) -> Result<Job> {
     service_job(
-        "0 * * * * *",
+        EVERY_TEN_MINUTES,
         gitlab_repository_provider,
         |gitlab_repository_provider| async move {
             debug!("Syncing gitlab repositories...");
