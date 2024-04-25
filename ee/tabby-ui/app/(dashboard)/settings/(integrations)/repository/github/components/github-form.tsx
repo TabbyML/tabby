@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, UseFormReturn } from 'react-hook-form'
 import * as z from 'zod'
@@ -14,9 +15,8 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import Link from 'next/link'
 import { IconExternalLink } from '@/components/ui/icons'
+import { Input } from '@/components/ui/input'
 
 export const createGithubProviderSchema = z.object({
   provider: z.string(),
@@ -108,9 +108,14 @@ export const GithubProviderForm = React.forwardRef<
                 <FormLabel required={isNew}>Personal Access Token</FormLabel>
                 <FormDescription>
                   <div>
-                    Create a dedicated service user and generate a <ExternalLink href="https://github.com/settings/personal-access-tokens/new">fine-grained personal access</ExternalLink> token with the member role for the organization or all projects to be managed.
+                    Create a dedicated service user and generate a{' '}
+                    <ExternalLink href="https://github.com/settings/personal-access-tokens/new">
+                      fine-grained personal access
+                    </ExternalLink>{' '}
+                    token with the member role for the organization or all
+                    projects to be managed.
                   </div>
-                  <div className="ml-4 my-2">• Contents (Read-only)</div>
+                  <div className="my-2 ml-4">• Contents (Read-only)</div>
                 </FormDescription>
                 <FormControl>
                   <Input
@@ -127,20 +132,28 @@ export const GithubProviderForm = React.forwardRef<
           />
           {footer}
         </form>
-      </div >
-    </Form >
+      </div>
+    </Form>
   )
 })
 
 GithubProviderForm.displayName = 'GithubProviderForm'
 
-function ExternalLink({ href, children }: { href: string, children: React.ReactNode }) {
-  return <Link
-    className="inline-flex cursor-pointer flex-row items-center underline"
-    href={href}
-    target="_blank"
-  >
-    {children}
-    <IconExternalLink className="ml-1" />
-  </Link>
+function ExternalLink({
+  href,
+  children
+}: {
+  href: string
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      className="inline-flex cursor-pointer flex-row items-center underline"
+      href={href}
+      target="_blank"
+    >
+      {children}
+      <IconExternalLink className="ml-1" />
+    </Link>
+  )
 }

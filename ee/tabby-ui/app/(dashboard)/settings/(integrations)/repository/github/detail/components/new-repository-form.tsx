@@ -24,10 +24,7 @@ import {
   FormItem,
   FormMessage
 } from '@/components/ui/form'
-import {
-  IconCheck,
-  IconChevronUpDown
-} from '@/components/ui/icons'
+import { IconCheck, IconChevronUpDown } from '@/components/ui/icons'
 import {
   Popover,
   PopoverContent,

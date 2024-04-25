@@ -7,7 +7,6 @@ import { ListGithubRepositoryProvidersQuery } from '@/lib/gql/generates/graphql'
 import { listGithubRepositoryProviders } from '@/lib/tabby/query'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { IconGitHub } from '@/components/ui/icons'
 import LoadingWrapper from '@/components/loading-wrapper'
 
 export default function GitProvidersPage() {

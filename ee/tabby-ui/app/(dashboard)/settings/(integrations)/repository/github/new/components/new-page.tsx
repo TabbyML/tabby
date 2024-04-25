@@ -65,7 +65,7 @@ export const NewProvider = () => {
   }
 
   return (
-    <div className='ml-4'>
+    <div className="ml-4">
       <GithubProviderForm
         isNew
         ref={formRef}
@@ -75,7 +75,7 @@ export const NewProvider = () => {
             <div>
               <FormMessage />
             </div>
-            <div className='flex gap-2'>
+            <div className="flex gap-2">
               <Button
                 type="button"
                 variant="ghost"

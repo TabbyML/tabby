@@ -131,7 +131,7 @@ const OauthCredentialCard = ({
         </div>
       </CardHeader>
       <CardContent className="p-0 text-sm">
-        <div className="flex px-8 py-4 border-b">
+        <div className="flex border-b px-8 py-4">
           <span className="w-[100px]">Type</span>
           <span>OAuth 2.0</span>
         </div>
