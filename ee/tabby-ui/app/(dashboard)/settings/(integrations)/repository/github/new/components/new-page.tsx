@@ -2,14 +2,12 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { createRequest } from '@urql/core'
 import { omit } from 'lodash-es'
 import { UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
-import { client, useMutation } from '@/lib/tabby/gql'
-import { listGithubRepositoryProviders } from '@/lib/tabby/query'
+import { useMutation } from '@/lib/tabby/gql'
 import { Button } from '@/components/ui/button'
 import { FormMessage } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
@@ -34,14 +32,6 @@ export const NewProvider = () => {
     form: UseFormReturn<UpdateGithubProviderFormValues>
   }>(null)
   const isSubmitting = formRef.current?.form?.formState?.isSubmitting
-
-  const getProvider = (id: string) => {
-    const queryProvider = client.createRequestOperation(
-      'query',
-      createRequest(listGithubRepositoryProviders, { ids: [id] })
-    )
-    return client.executeQuery(queryProvider)
-  }
 
   const createGithubRepositoryProviderMutation = useMutation(
     createGithubRepositoryProvider,
@@ -69,7 +59,6 @@ export const NewProvider = () => {
       <GithubProviderForm
         isNew
         ref={formRef}
-        defaultValues={{ provider: 'github' }}
         footer={
           <div className="flex items-center justify-between">
             <div>
