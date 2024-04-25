@@ -1,9 +1,7 @@
-description = 'Replace range experimental: syntax rust: bad case 01'
+description = 'Replace range: rust 01'
 
-[config.limitScope]
-experimentalSyntax = true
-[config.calculateReplaceRange]
-experimentalSyntax = true
+[config]
+# use default config
 
 [context]
 filepath = 'myTest.rs'
@@ -27,4 +25,3 @@ pub fun myTest(&self, text: String) {
     headers.insert("Content-Type".to_string(), "application/json".to_string());
 }
 '''
-notEqual = true

@@ -7,7 +7,6 @@ export type AgentConfig = {
   };
   completion: {
     prompt: {
-      experimentalStripAutoClosingCharacters: boolean;
       maxPrefixLines: number;
       maxSuffixLines: number;
       fillDeclarations: {
@@ -52,20 +51,8 @@ export type AgentConfig = {
     };
   };
   postprocess: {
-    limitScope: {
-      // Prefer to use syntax parser than indentation
-      experimentalSyntax: boolean;
-      indentation: {
-        // When completion is continuing the current line, limit the scope to:
-        // false(default): the line scope, meaning use the next indent level as the limit.
-        // true: the block scope, meaning use the current indent level as the limit.
-        experimentalKeepBlockScopeWhenCompletingLine: boolean;
-      };
-    };
-    calculateReplaceRange: {
-      // Prefer to use syntax parser than bracket stack
-      experimentalSyntax: boolean;
-    };
+    limitScope: any;
+    calculateReplaceRange: any;
   };
   logs: {
     level: "debug" | "error" | "silent";
@@ -98,7 +85,6 @@ export const defaultAgentConfig: AgentConfig = {
   },
   completion: {
     prompt: {
-      experimentalStripAutoClosingCharacters: false,
       maxPrefixLines: 20,
       maxSuffixLines: 20,
       fillDeclarations: {
@@ -130,15 +116,8 @@ export const defaultAgentConfig: AgentConfig = {
     },
   },
   postprocess: {
-    limitScope: {
-      experimentalSyntax: false,
-      indentation: {
-        experimentalKeepBlockScopeWhenCompletingLine: false,
-      },
-    },
-    calculateReplaceRange: {
-      experimentalSyntax: false,
-    },
+    limitScope: {},
+    calculateReplaceRange: {},
   },
   logs: {
     level: "silent",

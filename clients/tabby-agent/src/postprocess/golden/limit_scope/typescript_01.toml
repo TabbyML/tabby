@@ -1,7 +1,7 @@
-description = 'Limit scope experimental: syntax typescript: case 01'
+description = 'Limit scope: typescript 01'
 
-[config.limitScope]
-experimentalSyntax = true
+[config]
+# use default config
 
 [context]
 filepath = 'foo.ts'

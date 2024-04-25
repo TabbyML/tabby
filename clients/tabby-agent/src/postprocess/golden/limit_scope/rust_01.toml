@@ -1,7 +1,7 @@
-description = 'Limit scope experimental: syntax rust: case 01'
+description = 'Limit scope: rust 01'
 
-[config.limitScope]
-experimentalSyntax = true
+[config]
+# use default config
 
 [context]
 filepath = 'stop.rs'
@@ -24,3 +24,4 @@ pub struct StopCondition {
     max_decoding_time: Duration,┤
 }
 '''
+notEqual = true

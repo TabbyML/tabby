@@ -1,7 +1,7 @@
-description = 'Limit scope experimental: syntax rust: case 02'
+description = 'Limit scope: rust 02'
 
-[config.limitScope]
-experimentalSyntax = true
+[config]
+# use default config
 
 [context]
 filepath = 'stop.rs'

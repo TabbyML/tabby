@@ -1,9 +1,7 @@
-description = 'Replace range experimental: syntax typescript: case 01'
+description = 'Replace range: typescript 01'
 
-[config.limitScope]
-experimentalSyntax = true
-[config.calculateReplaceRange]
-experimentalSyntax = true
+[config]
+# use default config
 
 [context]
 filepath = 'print.ts'

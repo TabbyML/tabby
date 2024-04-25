@@ -1,9 +1,7 @@
-description = 'Replace range experimental: syntax javascript: case 01'
+description = 'Replace range: javascript 01'
 
-[config.limitScope]
-experimentalSyntax = true
-[config.calculateReplaceRange]
-experimentalSyntax = true
+[config]
+# use default config
 
 [context]
 filepath = 'listener.js'
