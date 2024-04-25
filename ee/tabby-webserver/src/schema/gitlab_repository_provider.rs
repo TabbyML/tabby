@@ -9,12 +9,12 @@ use super::Context;
 use crate::{juniper::relay::NodeType, schema::Result};
 
 lazy_static! {
-    static ref GITHUB_REPOSITORY_PROVIDER_NAME_REGEX: Regex = Regex::new("^[\\w-]+$").unwrap();
+    static ref GITLAB_REPOSITORY_PROVIDER_NAME_REGEX: Regex = Regex::new("^[\\w-]+$").unwrap();
 }
 
 #[derive(GraphQLInputObject, Validate)]
 pub struct CreateGitlabRepositoryProviderInput {
-    #[validate(regex(code = "displayName", path = "GITHUB_REPOSITORY_PROVIDER_NAME_REGEX"))]
+    #[validate(regex(code = "displayName", path = "GITLAB_REPOSITORY_PROVIDER_NAME_REGEX"))]
     pub display_name: String,
     #[validate(length(code = "access_token", min = 10))]
     pub access_token: String,
@@ -23,7 +23,7 @@ pub struct CreateGitlabRepositoryProviderInput {
 #[derive(GraphQLInputObject, Validate)]
 pub struct UpdateGitlabRepositoryProviderInput {
     pub id: ID,
-    #[validate(regex(code = "displayName", path = "GITHUB_REPOSITORY_PROVIDER_NAME_REGEX"))]
+    #[validate(regex(code = "displayName", path = "GITLAB_REPOSITORY_PROVIDER_NAME_REGEX"))]
     pub display_name: String,
     #[validate(length(code = "access_token", min = 10))]
     pub access_token: String,
