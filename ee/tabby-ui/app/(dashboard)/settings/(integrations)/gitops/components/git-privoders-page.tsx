@@ -5,7 +5,6 @@ import { useQuery } from 'urql'
 
 import { ListGithubRepositoryProvidersQuery } from '@/lib/gql/generates/graphql'
 import { listGithubRepositoryProviders } from '@/lib/tabby/query'
-import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IconGitHub } from '@/components/ui/icons'
@@ -28,7 +27,7 @@ export default function GitProvidersPage() {
             <GitProvidersList data={githubRepositoryProviders} />
             <div className="mt-4 flex justify-end">
               <Link href="/settings/gitops/new" className={buttonVariants()}>
-                Add A Git Provider
+                Create
               </Link>
             </div>
           </div>
@@ -81,12 +80,8 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                 <span className="w-[30%] shrink-0 text-muted-foreground">
                   Status
                 </span>
-                <span className="-ml-1">
-                  {item.node?.connected ? (
-                    <Badge variant="successful">Connected</Badge>
-                  ) : (
-                    <Badge variant="destructive">Not Connected</Badge>
-                  )}
+                <span>
+                  {item.node?.connected ? 'Connected' : 'Not Connected'}
                 </span>
               </div>
             </CardContent>
@@ -106,7 +101,7 @@ const GitProvidersPlaceholder = () => {
           href="/settings/gitops/new"
           className={buttonVariants({ variant: 'default' })}
         >
-          Add A Git Provider
+          Create
         </Link>
       </div>
     </div>

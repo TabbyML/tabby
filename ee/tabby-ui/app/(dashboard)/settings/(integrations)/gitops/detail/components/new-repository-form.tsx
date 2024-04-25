@@ -172,7 +172,7 @@ export default function LinkRepositoryForm({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              Create
+              Add
             </Button>
           </div>
         </form>

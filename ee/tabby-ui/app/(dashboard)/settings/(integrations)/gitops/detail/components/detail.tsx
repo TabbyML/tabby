@@ -59,12 +59,9 @@ const DetailPage: React.FC = () => {
   const [open, setOpen] = React.useState(false)
 
   const onCreated = () => {
-    toast.success('Created successfully')
+    toast.success('Added successfully')
     setOpen(false)
   }
-
-  // const onDeleteRepo = () => {
-  // }
 
   const onDeleteProvider = () => {
     router.replace('/settings/gitops')
@@ -131,7 +128,7 @@ const DetailPage: React.FC = () => {
               <DialogHeader className="gap-3">
                 <DialogTitle>Add repository</DialogTitle>
                 <DialogDescription>
-                  Add a new repository link to this provider.
+                  Add a new repository to this provider.
                 </DialogDescription>
               </DialogHeader>
               <LinkRepositoryForm
@@ -142,7 +139,7 @@ const DetailPage: React.FC = () => {
               />
             </DialogContent>
             <DialogTrigger asChild>
-              <Button>New repository link</Button>
+              <Button>Add repository</Button>
             </DialogTrigger>
           </Dialog>
         </CardTitle>
