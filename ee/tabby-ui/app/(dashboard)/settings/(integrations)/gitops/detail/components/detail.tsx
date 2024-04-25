@@ -189,7 +189,7 @@ const LinkedRepoTable: React.FC<{
       <TableHeader>
         <TableRow>
           <TableHead className="w-[25%]">Name</TableHead>
-          <TableHead className="w-[45%]">Git url</TableHead>
+          <TableHead className="w-[45%]">Git URL</TableHead>
           <TableHead></TableHead>
         </TableRow>
       </TableHeader>
