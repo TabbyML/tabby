@@ -19,7 +19,6 @@ import { IconExternalLink } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
 export const createGithubProviderSchema = z.object({
-  provider: z.string(),
   displayName: z
     .string()
     .trim()
@@ -31,7 +30,6 @@ export const createGithubProviderSchema = z.object({
 })
 
 export const updateGithubProviderSchema = createGithubProviderSchema.extend({
-  provider: createGithubProviderSchema.shape.provider.optional()
 })
 
 export type CreateGithubProviderFormValues = z.infer<
@@ -105,7 +103,7 @@ export const GithubProviderForm = React.forwardRef<
             name="accessToken"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required={isNew}>Personal Access Token</FormLabel>
+                <FormLabel required>Personal Access Token</FormLabel>
                 <FormDescription>
                   <div>
                     Create a dedicated service user and generate a{' '}
