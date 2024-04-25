@@ -368,7 +368,7 @@ mod tests {
         let git_urls = service.list_provided_git_urls().await.unwrap();
         assert_eq!(
             git_urls,
-            ["https://token@gitlab.com/TabbyML/tabby".to_string()]
+            ["https://oauth2:token@gitlab.com/TabbyML/tabby".to_string()]
         );
     }
 
