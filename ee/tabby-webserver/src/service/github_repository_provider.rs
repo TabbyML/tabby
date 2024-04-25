@@ -103,7 +103,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .into_iter()
             .map(|i| i.as_rowid())
             .collect::<Result<Vec<_>, _>>()?;
-        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, last, first)?;
+        let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let repos = self
             .db
             .list_github_provided_repositories(providers, limit, skip_id, backwards)
