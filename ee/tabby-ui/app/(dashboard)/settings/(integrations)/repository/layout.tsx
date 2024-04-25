@@ -21,7 +21,7 @@ export default function GitLayout({ children }: { children: React.ReactNode }) {
     <>
       <Header />
       <RepositoryTabsHeader />
-      {children}
+      <div className='mt-8'>{children}</div>
     </>
   )
 }

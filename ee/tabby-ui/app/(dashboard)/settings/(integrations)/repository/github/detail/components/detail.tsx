@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
@@ -12,7 +13,7 @@ import {
 } from '@/lib/tabby/query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CardContent, CardTitle } from '@/components/ui/card'
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -21,11 +22,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import {
-  IconChevronLeft,
-  IconPlus,
-  IconTrash
-} from '@/components/ui/icons'
+import { IconChevronLeft, IconGitHub, IconPlus, IconTrash } from '@/components/ui/icons'
 import {
   Table,
   TableBody,
@@ -40,6 +37,7 @@ import { ListSkeleton } from '@/components/skeleton'
 import { updateGithubProvidedRepositoryActiveMutation } from '../query'
 import LinkRepositoryForm from './new-repository-form'
 import { UpdateProviderForm } from './provider-detail-form'
+import { Separator } from '@/components/ui/separator'
 
 type GithubRepositories = QueryResponseData<
   typeof listGithubRepositories
@@ -161,7 +159,7 @@ const LinkedRepoTable: React.FC<{
         <TableRow>
           <TableHead className="w-[25%]">Name</TableHead>
           <TableHead className="w-[45%]">URL</TableHead>
-          <TableHead className="text-right">
+          <TableHead className='text-right'>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogContent>
                 <DialogHeader className="gap-3">
@@ -177,11 +175,10 @@ const LinkedRepoTable: React.FC<{
                 />
               </DialogContent>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <IconPlus />
-                </Button>
+                <Button variant="ghost" size="icon"><IconPlus /></Button>
               </DialogTrigger>
             </Dialog>
+
           </TableHead>
         </TableRow>
       </TableHeader>

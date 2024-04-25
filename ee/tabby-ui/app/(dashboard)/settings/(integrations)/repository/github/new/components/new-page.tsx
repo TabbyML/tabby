@@ -65,7 +65,7 @@ export const NewProvider = () => {
   }
 
   return (
-    <>
+    <div className='ml-4'>
       <GithubProviderForm
         isNew
         ref={formRef}
@@ -75,7 +75,7 @@ export const NewProvider = () => {
             <div>
               <FormMessage />
             </div>
-            <div>
+            <div className='flex gap-2'>
               <Button
                 type="button"
                 variant="ghost"
@@ -93,6 +93,6 @@ export const NewProvider = () => {
         }
         onSubmit={handleSubmit}
       />
-    </>
+    </div>
   )
 }
