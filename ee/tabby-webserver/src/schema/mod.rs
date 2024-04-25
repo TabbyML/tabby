@@ -733,11 +733,7 @@ impl Mutation {
             .locator
             .repository()
             .github()
-            .create_github_repository_provider(
-                input.display_name,
-                input.application_id,
-                input.secret,
-            )
+            .create_github_repository_provider(input.display_name, input.access_token)
             .await?;
         Ok(id)
     }
@@ -761,12 +757,7 @@ impl Mutation {
         ctx.locator
             .repository()
             .github()
-            .update_github_repository_provider(
-                input.id,
-                input.display_name,
-                input.application_id,
-                input.secret,
-            )
+            .update_github_repository_provider(input.id, input.display_name, input.access_token)
             .await?;
         Ok(true)
     }

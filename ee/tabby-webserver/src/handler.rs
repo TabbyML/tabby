@@ -25,7 +25,7 @@ use crate::{
     axum::{extract::AuthBearer, graphql},
     cron,
     hub::{self, HubState},
-    integrations, oauth,
+    oauth,
     path::db_file,
     repositories,
     schema::{
@@ -120,10 +120,6 @@ impl WebserverHandle {
                 "/repositories",
                 // FIXME(boxbeam): repositories routes should support both git / github repositories, but currently only git repositories are supported.
                 repositories::routes(ctx.repository().git(), ctx.auth()),
-            )
-            .nest(
-                "/integrations/github",
-                integrations::github::routes(ctx.auth(), ctx.setting(), ctx.repository().github()),
             )
             .route(
                 "/avatar/:id",
