@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -48,6 +48,7 @@ export default function CreateRepositoryForm({
     form
   })
 
+  const router = useRouter()
   return (
     <Form {...form}>
       <div className="grid gap-2">
@@ -93,11 +94,14 @@ export default function CreateRepositoryForm({
             )}
           />
           <div className="flex justify-end gap-4">
-            <Link href="/settings/git/generic">
-              <Button type="button" variant="ghost" disabled={isSubmitting}>
-                Cancel
-              </Button>
-            </Link>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isSubmitting}
+              onClick={() => router.back()}
+            >
+              Cancel
+            </Button>
             <Button type="submit" disabled={isSubmitting}>
               Create
             </Button>

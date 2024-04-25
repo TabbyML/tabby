@@ -19,7 +19,7 @@ import {
   CreateGitProviderFormValues,
   GitProviderForm,
   UpdateGitProviderFormValues
-} from '../../components/git-provider-form'
+} from '../../components/github-form'
 
 const createGithubRepositoryProvider = graphql(/* GraphQL */ `
   mutation CreateGithubRepositoryProvider(

@@ -92,10 +92,7 @@ const GitProvidersPlaceholder = () => {
     <div className="flex flex-col items-center gap-4 rounded-lg border-4 border-dashed py-8">
       <div>No Data</div>
       <div className="flex justify-center">
-        <Link
-          href="/settings/git/gitops/new"
-          className={buttonVariants({ variant: 'default' })}
-        >
+        <Link href="./new" className={buttonVariants({ variant: 'default' })}>
           Create
         </Link>
       </div>

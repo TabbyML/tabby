@@ -7,19 +7,17 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function GitTabsHeader() {
   const pathname = usePathname()
-  const defualtValue = pathname.startsWith('/settings/git/generic')
-    ? 'generic'
-    : 'gitops'
+  const defualtValue = pathname.indexOf('github') >= 0 ? 'github' : 'git'
 
   return (
     <Tabs defaultValue={defualtValue}>
       <div className="sticky top-0 mb-4 flex">
         <TabsList className="grid grid-cols-2">
-          <TabsTrigger value="gitops" asChild>
-            <Link href="/settings/git/gitops">Gitops</Link>
+          <TabsTrigger value="git" asChild>
+            <Link href="git">Git</Link>
           </TabsTrigger>
-          <TabsTrigger value="generic" asChild>
-            <Link href="/settings/git/generic">Generic Git Repositories</Link>
+          <TabsTrigger value="github" asChild>
+            <Link href="github">Github</Link>
           </TabsTrigger>
         </TabsList>
       </div>
