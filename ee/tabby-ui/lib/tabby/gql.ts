@@ -167,7 +167,7 @@ const client = new Client({
             if (result.updateGithubProvidedRepositoryActive) {
               cache
                 .inspectFields('Query')
-                .filter(field => field.fieldName === 'repositories')
+                .filter(field => field.fieldName === 'githubRepositories')
                 .forEach(field => {
                   cache.updateQuery(
                     {

@@ -118,10 +118,11 @@ export default function LinkRepositoryForm({
                   <PopoverContent
                     className="w-[var(--radix-popover-trigger-width)] p-0"
                     align="start"
+                    side="bottom"
                   >
                     <Command>
                       <CommandInput placeholder="Search repository..." />
-                      <CommandList>
+                      <CommandList className="max-h-60">
                         <CommandEmpty>
                           {fetchingRepositories ? (
                             <IconSpinner />
@@ -132,7 +133,7 @@ export default function LinkRepositoryForm({
                         <CommandGroup>
                           {repositories?.map(repo => (
                             <CommandItem
-                              value={repo.node.id}
+                              // value={repo.node.id}
                               key={repo.node.id}
                               onSelect={() => {
                                 form.setValue('id', repo.node.id)

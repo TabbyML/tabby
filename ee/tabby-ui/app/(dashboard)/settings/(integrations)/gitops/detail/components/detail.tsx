@@ -54,6 +54,7 @@ const DetailPage: React.FC = () => {
   const provider = data?.githubRepositoryProviders?.edges?.[0]?.node
   const [githubRepositories, fetchingRepositories] =
     useAllProvidedRepositories(id)
+  console.log(githubRepositories)
 
   const [open, setOpen] = React.useState(false)
 
@@ -257,7 +258,7 @@ export function useAllProvidedRepositories(
         setIsAllLoaded(true)
       }
     }
-  }, [queryVariables, fetching])
+  }, [fetching, data])
 
   return [data?.githubRepositories?.edges ?? [], !isAllLoaded]
 }
