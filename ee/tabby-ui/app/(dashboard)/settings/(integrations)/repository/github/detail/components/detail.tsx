@@ -21,11 +21,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import {
-  IconChevronLeft,
-  IconPlus,
-  IconTrash
-} from '@/components/ui/icons'
+import { IconChevronLeft, IconPlus, IconTrash } from '@/components/ui/icons'
 import {
   Table,
   TableBody,
