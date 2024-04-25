@@ -531,10 +531,7 @@ impl Mutation {
 
     async fn logout_all_sessions(ctx: &Context) -> Result<bool> {
         let claims = check_claims(ctx)?;
-        ctx.locator
-            .auth()
-            .logout_all_sessions(&claims.sub)
-            .await?;
+        ctx.locator.auth().logout_all_sessions(&claims.sub).await?;
         Ok(true)
     }
 
