@@ -1,3 +1,10 @@
+type StorageStats {
+  events: DirectoryStat!
+  indexedRepositories: DirectoryStat!
+  database: DirectoryStat!
+  models: DirectoryStat!
+}
+
 enum Language {
   RUST
   PYTHON
@@ -258,6 +265,7 @@ type Query {
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTimeUtc!, end: DateTimeUtc!): UserEventConnection!
+  storageStats: StorageStats!
 }
 
 input NetworkSettingInput {
@@ -278,6 +286,11 @@ type UserEdge {
 type JobRunConnection {
   edges: [JobRunEdge!]!
   pageInfo: PageInfo!
+}
+
+type DirectoryStat {
+  filePaths: [String!]!
+  size: Float!
 }
 
 type RefreshTokenResponse {
