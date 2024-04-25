@@ -112,9 +112,6 @@ const DetailPage: React.FC = () => {
           <UpdateProviderForm
             defaultValues={provider}
             onDelete={onDeleteProvider}
-            onBack={() => {
-              router.push('/settings/git/gitops')
-            }}
             id={id}
           />
         </LoadingWrapper>

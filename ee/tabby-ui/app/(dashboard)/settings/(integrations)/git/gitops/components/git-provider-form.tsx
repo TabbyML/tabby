@@ -2,11 +2,9 @@
 
 import * as React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { isEmpty } from 'lodash-es'
-import { useForm } from 'react-hook-form'
+import { useForm, UseFormReturn } from 'react-hook-form'
 import * as z from 'zod'
 
-import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -16,12 +14,12 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import { IconGitHub, IconSpinner } from '@/components/ui/icons'
+import { IconGitHub } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
-const createGitProviderSchema = z.object({
+export const createGitProviderSchema = z.object({
   provider: z.string(),
   displayName: z
     .string()
@@ -33,33 +31,42 @@ const createGitProviderSchema = z.object({
   accessToken: z.string()
 })
 
-const updateGitProviderSchema = createGitProviderSchema
+export const updateGitProviderSchema = createGitProviderSchema
   .extend({
-    accessToken: createGitProviderSchema.shape.accessToken.optional()
+    provider: createGitProviderSchema.shape.provider.optional()
   })
-  .omit({ provider: true })
 
-interface GitProviderFormProps extends React.HTMLAttributes<HTMLFormElement> {
+export type CreateGitProviderFormValues = z.infer<typeof createGitProviderSchema>
+export type UpdateGitProviderFormValues = z.infer<typeof updateGitProviderSchema>
+
+interface GitProviderFormProps {
   isNew?: boolean
   defaultValues?: Partial<z.infer<typeof createGitProviderSchema>>
+  footer: React.ReactNode
+  onSubmit: (
+    values: any
+  ) => Promise<any>
 }
 
-export const GitProviderForm: React.FC<GitProviderFormProps> = ({
-  className,
-  isNew,
-  defaultValues
-}) => {
+export const GitProviderForm = React.forwardRef<
+  {
+    form: UseFormReturn<
+      CreateGitProviderFormValues | UpdateGitProviderFormValues
+    >
+  },
+  GitProviderFormProps
+>(({ isNew, defaultValues, footer, onSubmit }, ref) => {
   const formSchema = isNew ? createGitProviderSchema : updateGitProviderSchema
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues
   })
-  const { isSubmitting, dirtyFields } = form.formState
-  const isDirty = !isEmpty(dirtyFields)
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    //
-  }
+  React.useImperativeHandle(ref, () => {
+    return {
+      form
+    }
+  }, [form])
 
   return (
     <Form {...form}>
@@ -147,7 +154,8 @@ export const GitProviderForm: React.FC<GitProviderFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="flex items-center justify-between">
+          {footer}
+          {/* <div className="flex items-center justify-between">
             <div>
               <FormMessage />
             </div>
@@ -160,9 +168,11 @@ export const GitProviderForm: React.FC<GitProviderFormProps> = ({
                 {isNew ? 'Create' : 'Update'}
               </Button>
             </div>
-          </div>
+          </div> */}
         </form>
       </div>
     </Form>
   )
-}
+})
+
+GitProviderForm.displayName = 'GitProviderForm'

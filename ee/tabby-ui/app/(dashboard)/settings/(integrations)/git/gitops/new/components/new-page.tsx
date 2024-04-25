@@ -9,9 +9,13 @@ import { client, useMutation } from '@/lib/tabby/gql'
 import { listGithubRepositoryProviders } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
 import { CardHeader, CardTitle } from '@/components/ui/card'
-import { IconChevronLeft } from '@/components/ui/icons'
+import { IconChevronLeft, IconSpinner } from '@/components/ui/icons'
 
-import { GitProviderForm } from '../../components/git-provider-form'
+import { CreateGitProviderFormValues, GitProviderForm, UpdateGitProviderFormValues } from '../../components/git-provider-form'
+import { FormMessage } from '@/components/ui/form'
+import React from 'react'
+import { UseFormReturn } from 'react-hook-form'
+import { omit } from 'lodash-es'
 
 const createGithubRepositoryProvider = graphql(/* GraphQL */ `
   mutation CreateGithubRepositoryProvider(
@@ -23,6 +27,8 @@ const createGithubRepositoryProvider = graphql(/* GraphQL */ `
 
 export const NewProvider = () => {
   const router = useRouter()
+  const formRef = React.useRef<{ form: UseFormReturn<UpdateGitProviderFormValues> }>(null)
+  const isSubmitting = formRef.current?.form?.formState?.isSubmitting
 
   const getProvider = (id: string) => {
     const queryProvider = client.createRequestOperation(
@@ -32,24 +38,26 @@ export const NewProvider = () => {
     return client.executeQuery(queryProvider)
   }
 
-  // const createGithubRepositoryProviderMutation = useMutation(
-  //   createGithubRepositoryProvider,
-  //   {
-  //     onCompleted(data) {
-  //       if (data?.createGithubRepositoryProvider) {
-  //       }
-  //     },
-  //     onError(err) {
-  //       toast.error(err?.message)
-  //     },
-  //     form
-  //   }
-  // )
+  const createGithubRepositoryProviderMutation = useMutation(
+    createGithubRepositoryProvider,
+    {
+      onCompleted(data) {
+        if (data?.createGithubRepositoryProvider) {
+          toast.success('Provider created successfully')
+          router.replace('/settings/git/gitops')
+        }
+      },
+      onError(err) {
+        toast.error(err?.message)
+      },
+      form: formRef.current
+    }
+  )
 
-  const handleSubmit = async () => {
-    // createGithubRepositoryProviderMutation({
-    //   input: values
-    // })
+  const handleSubmit = async (values: CreateGitProviderFormValues) => {
+    return createGithubRepositoryProviderMutation({
+      input: omit(values, 'provider')
+    })
   }
 
   return (
@@ -62,13 +70,34 @@ export const NewProvider = () => {
               variant={'ghost'}
               className="px-1"
             >
-              <IconChevronLeft className="w-6 h-6" />
+              <IconChevronLeft className="h-6 w-6" />
             </Button>
             <span className="ml-2">Create Git Provider</span>
           </div>
         </CardTitle>
       </CardHeader>
-      <GitProviderForm isNew defaultValues={{ provider: 'github' }} />
+      <GitProviderForm
+        isNew
+        ref={formRef}
+        defaultValues={{ provider: 'github' }}
+        footer={(
+          <div className="flex items-center justify-between">
+            <div>
+              <FormMessage />
+            </div>
+            <div>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting && <IconSpinner className="mr-2" />}
+                Create
+              </Button>
+            </div>
+          </div>
+        )}
+        onSubmit={handleSubmit}
+      />
     </>
   )
 }

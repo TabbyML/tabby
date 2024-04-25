@@ -65,12 +65,6 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                 <span className="w-[30%] text-muted-foreground">Name</span>
                 <span>{item.node.displayName}</span>
               </div>
-              <div className="flex border-b py-3">
-                <span className="w-[30%] shrink-0 text-muted-foreground">
-                  Application ID
-                </span>
-                <span className="truncate">{item.node.applicationId}</span>
-              </div>
               <div className="flex py-3">
                 <span className="w-[30%] shrink-0 text-muted-foreground">
                   Status

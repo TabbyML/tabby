@@ -94,7 +94,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       </>
                     }
                   >
-                    <SidebarButton href="/settings/git/generic">
+                    <SidebarButton href="/settings/git/gitops">
                       Git Providers
                     </SidebarButton>
                     <SidebarButton href="/settings/sso">SSO</SidebarButton>
@@ -135,9 +135,10 @@ const linkVariants = cva(
 function SidebarButton({ href, children }: SidebarButtonProps) {
   const pathname = usePathname()
   const isSelected = React.useMemo(() => {
-    return href === '/'
-      ? href === pathname
-      : shouldPathnameHighlight(pathname, href)
+    if (href === '/') return href === pathname
+    if (href === '/settings/git/gitops') return pathname.startsWith('/settings/git/')
+
+    return shouldPathnameHighlight(pathname, href)
   }, [pathname, href])
 
   const state = isSelected ? 'selected' : 'not-selected'
