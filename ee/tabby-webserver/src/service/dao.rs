@@ -1,8 +1,9 @@
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
-    EmailSettingDAO, GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO, InvitationDAO,
-    JobRunDAO, OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
+    EmailSettingDAO, GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO,
+    GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO, InvitationDAO, JobRunDAO,
+    OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
 use crate::{
@@ -12,6 +13,7 @@ use crate::{
         email::{AuthMethod, EmailSetting, Encryption},
         git_repository::GitRepository,
         github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
+        gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProvider},
         job,
         setting::{NetworkSetting, SecuritySetting},
         user_event::{EventKind, UserEvent},
@@ -139,6 +141,30 @@ impl From<GithubProvidedRepositoryDAO> for GithubProvidedRepository {
         Self {
             id: value.id.as_id(),
             github_repository_provider_id: value.github_repository_provider_id.as_id(),
+            name: value.name,
+            git_url: value.git_url,
+            vendor_id: value.vendor_id,
+            active: value.active,
+        }
+    }
+}
+
+impl From<GitlabRepositoryProviderDAO> for GitlabRepositoryProvider {
+    fn from(value: GitlabRepositoryProviderDAO) -> Self {
+        Self {
+            display_name: value.display_name,
+            id: value.id.as_id(),
+            connected: value.access_token.is_some(),
+            access_token: value.access_token,
+        }
+    }
+}
+
+impl From<GitlabProvidedRepositoryDAO> for GitlabProvidedRepository {
+    fn from(value: GitlabProvidedRepositoryDAO) -> Self {
+        Self {
+            id: value.id.as_id(),
+            gitlab_repository_provider_id: value.gitlab_repository_provider_id.as_id(),
             name: value.name,
             git_url: value.git_url,
             vendor_id: value.vendor_id,

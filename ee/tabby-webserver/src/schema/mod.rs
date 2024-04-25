@@ -3,6 +3,7 @@ pub mod auth;
 pub mod email;
 pub mod git_repository;
 pub mod github_repository_provider;
+pub mod gitlab_repository_provider;
 pub mod job;
 pub mod license;
 pub mod repository;

@@ -5,6 +5,7 @@ mod email;
 pub mod event_logger;
 mod git_repository;
 mod github_repository_provider;
+mod gitlab_repository_provider;
 mod job;
 mod license;
 mod proxy;

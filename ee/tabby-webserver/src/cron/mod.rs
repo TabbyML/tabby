@@ -1,5 +1,6 @@
 mod db;
 mod github;
+mod gitlab;
 mod scheduler;
 
 use std::sync::Arc;
