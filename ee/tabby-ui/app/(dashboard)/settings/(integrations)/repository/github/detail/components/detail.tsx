@@ -51,7 +51,8 @@ const DetailPage: React.FC = () => {
     pause: !id
   })
   const provider = data?.githubRepositoryProviders?.edges?.[0]?.node
-  const [githubRepositories, isGithubRepositoriesLoading] = useAllProvidedRepositories(id)
+  const [githubRepositories, isGithubRepositoriesLoading] =
+    useAllProvidedRepositories(id)
 
   const onDeleteProvider = () => {
     router.back()

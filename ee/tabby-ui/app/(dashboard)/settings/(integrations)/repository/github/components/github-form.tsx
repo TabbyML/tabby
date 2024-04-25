@@ -29,8 +29,7 @@ export const createGithubProviderSchema = z.object({
   accessToken: z.string()
 })
 
-export const updateGithubProviderSchema = createGithubProviderSchema.extend({
-})
+export const updateGithubProviderSchema = createGithubProviderSchema.extend({})
 
 export type CreateGithubProviderFormValues = z.infer<
   typeof createGithubProviderSchema
