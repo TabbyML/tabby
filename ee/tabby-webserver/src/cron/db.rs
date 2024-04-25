@@ -7,12 +7,10 @@ use futures::Future;
 use tokio_cron_scheduler::Job;
 use tracing::{debug, error};
 
-use super::github;
-use super::gitlab;
-use crate::schema::gitlab_repository_provider::GitlabRepositoryProviderService;
+use super::{github, gitlab};
 use crate::schema::{
     auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
-    job::JobService,
+    gitlab_repository_provider::GitlabRepositoryProviderService, job::JobService,
 };
 
 const EVERY_TWO_HOURS: &str = "0 0 1/2 * * * *";

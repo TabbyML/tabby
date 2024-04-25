@@ -49,7 +49,7 @@ async fn refresh_repositories_for_provider(
         }
         Err(e) => {
             warn!("Failed to fetch repositories from github: {e}");
-            return Err(e.into());
+            return Err(e);
         }
     };
     for repo in repos {
