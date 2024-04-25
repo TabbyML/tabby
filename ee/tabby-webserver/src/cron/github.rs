@@ -4,7 +4,7 @@ use anyhow::Result;
 use chrono::Utc;
 use juniper::ID;
 use octocrab::{models::Repository, GitHubError, Octocrab};
-use tracing::{debug, warn};
+use tracing::warn;
 
 use crate::schema::github_repository_provider::{
     GithubRepositoryProvider, GithubRepositoryProviderService,
