@@ -80,6 +80,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.48.2",
     "react-intersection-observer": "^9.4.4",
+    "react-json-view": "^1.21.3",
     "react-markdown": "^8.0.7",
     "react-nice-avatar": "^1.5.0",
     "react-resizable-panels": "^1.0.7",

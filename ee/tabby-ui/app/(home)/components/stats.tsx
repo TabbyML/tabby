@@ -26,13 +26,12 @@ import {
   Language
 } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
-import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
+import { getLanguageColor, getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-import languageColors from '../language-colors.json'
 import { CompletionCharts } from './completion-charts'
 
 const DATE_RANGE = 6
@@ -49,13 +48,6 @@ type LanguageStats = Record<
     name: Language
   }
 >
-
-const getLanguageColorMap = (): Record<string, string> => {
-  return Object.entries(languageColors).reduce((acc, cur) => {
-    const [lan, color] = cur
-    return { ...acc, [lan.toLocaleLowerCase()]: color }
-  }, {})
-}
 
 function ActivityCalendar({
   data
@@ -107,7 +99,7 @@ const LanguageLabel: React.FC<
       textAnchor="start"
       dominantBaseline="middle"
     >
-      {toProgrammingLanguageDisplayName(value as Language)}
+      {getLanguageDisplayName(value as Language)}
     </text>
   )
 }
@@ -136,7 +128,7 @@ function LanguageTooltip({
             <b>{views}</b>
           </p>
           <p className="text-muted-foreground">
-            {toProgrammingLanguageDisplayName(name)}
+            {getLanguageDisplayName(name)}
           </p>
         </CardContent>
       </Card>
@@ -152,7 +144,6 @@ export default function Stats() {
   const searchParams = useSearchParams()
 
   const sample = searchParams.get('sample') === 'true'
-  const colorMap = getLanguageColorMap()
   const startDate = moment()
     .subtract(DATE_RANGE, 'day')
     .startOf('day')
@@ -344,7 +335,7 @@ export default function Stats() {
                     }
                   />
                   {languageData.map((entry, index) => {
-                    const lanColor = colorMap[entry.name.toLocaleLowerCase()]
+                    const lanColor = getLanguageColor(entry.name)
                     const color = lanColor
                       ? lanColor
                       : theme === 'dark'
