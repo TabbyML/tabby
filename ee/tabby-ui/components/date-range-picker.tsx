@@ -148,7 +148,7 @@ export default function DateRangePicker({
         onOpenChange={onDateFilterOpenChange}
       >
         <SelectTrigger
-          className={cn("w-[240px]", className)}
+          className={cn('w-[240px]', className)}
           onClick={() => setShowDateFilter(!showDateFilter)}
         >
           <SelectValue placeholder="Date range" />
