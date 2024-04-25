@@ -7,7 +7,7 @@ use super::Context;
 use crate::{juniper::relay::NodeType, schema::Result};
 
 #[derive(GraphQLInputObject, Validate)]
-pub struct CreateGithubRepositoryProviderInput {
+pub struct CreateGitlabRepositoryProviderInput {
     #[validate(regex(
         code = "displayName",
         path = "crate::schema::constants::REPOSITORY_NAME_REGEX"
@@ -18,7 +18,7 @@ pub struct CreateGithubRepositoryProviderInput {
 }
 
 #[derive(GraphQLInputObject, Validate)]
-pub struct UpdateGithubRepositoryProviderInput {
+pub struct UpdateGitlabRepositoryProviderInput {
     pub id: ID,
     #[validate(regex(
         code = "displayName",
@@ -31,7 +31,7 @@ pub struct UpdateGithubRepositoryProviderInput {
 
 #[derive(GraphQLObject, Debug, PartialEq)]
 #[graphql(context = Context)]
-pub struct GithubRepositoryProvider {
+pub struct GitlabRepositoryProvider {
     pub id: ID,
     pub display_name: String,
 
@@ -41,7 +41,7 @@ pub struct GithubRepositoryProvider {
     pub access_token: Option<String>,
 }
 
-impl NodeType for GithubRepositoryProvider {
+impl NodeType for GitlabRepositoryProvider {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -49,26 +49,26 @@ impl NodeType for GithubRepositoryProvider {
     }
 
     fn connection_type_name() -> &'static str {
-        "GithubRepositoryProviderConnection"
+        "GitlabRepositoryProviderConnection"
     }
 
     fn edge_type_name() -> &'static str {
-        "GithubRepositoryProviderEdge"
+        "GitlabRepositoryProviderEdge"
     }
 }
 
 #[derive(GraphQLObject, Debug)]
 #[graphql(context = Context)]
-pub struct GithubProvidedRepository {
+pub struct GitlabProvidedRepository {
     pub id: ID,
     pub vendor_id: String,
-    pub github_repository_provider_id: ID,
+    pub gitlab_repository_provider_id: ID,
     pub name: String,
     pub git_url: String,
     pub active: bool,
 }
 
-impl NodeType for GithubProvidedRepository {
+impl NodeType for GitlabProvidedRepository {
     type Cursor = String;
 
     fn cursor(&self) -> Self::Cursor {
@@ -76,59 +76,59 @@ impl NodeType for GithubProvidedRepository {
     }
 
     fn connection_type_name() -> &'static str {
-        "GithubProvidedRepositoryConnection"
+        "GitlabProvidedRepositoryConnection"
     }
 
     fn edge_type_name() -> &'static str {
-        "GithubProvidedRepositoryEdge"
+        "GitlabProvidedRepositoryEdge"
     }
 }
 
 #[async_trait]
-pub trait GithubRepositoryProviderService: Send + Sync {
-    async fn create_github_repository_provider(
+pub trait GitlabRepositoryProviderService: Send + Sync {
+    async fn create_gitlab_repository_provider(
         &self,
         display_name: String,
         access_token: String,
     ) -> Result<ID>;
-    async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider>;
-    async fn delete_github_repository_provider(&self, id: ID) -> Result<()>;
-    async fn update_github_repository_provider(
+    async fn get_gitlab_repository_provider(&self, id: ID) -> Result<GitlabRepositoryProvider>;
+    async fn delete_gitlab_repository_provider(&self, id: ID) -> Result<()>;
+    async fn update_gitlab_repository_provider(
         &self,
         id: ID,
         display_name: String,
         access_token: String,
     ) -> Result<()>;
-    async fn reset_github_repository_provider_access_token(&self, id: ID) -> Result<()>;
+    async fn reset_gitlab_repository_provider_access_token(&self, id: ID) -> Result<()>;
 
-    async fn list_github_repository_providers(
+    async fn list_gitlab_repository_providers(
         &self,
         ids: Vec<ID>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<GithubRepositoryProvider>>;
+    ) -> Result<Vec<GitlabRepositoryProvider>>;
 
-    async fn list_github_provided_repositories_by_provider(
+    async fn list_gitlab_provided_repositories_by_provider(
         &self,
         provider: Vec<ID>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<GithubProvidedRepository>>;
+    ) -> Result<Vec<GitlabProvidedRepository>>;
 
-    async fn upsert_github_provided_repository(
+    async fn upsert_gitlab_provided_repository(
         &self,
         provider_id: ID,
         vendor_id: String,
         display_name: String,
         git_url: String,
     ) -> Result<()>;
-    async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
+    async fn update_gitlab_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn list_provided_git_urls(&self) -> Result<Vec<String>>;
-    async fn delete_outdated_github_provided_repositories(
+    async fn delete_outdated_gitlab_provided_repositories(
         &self,
         provider_id: ID,
         cutoff_timestamp: DateTime<Utc>,

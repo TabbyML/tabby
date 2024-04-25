@@ -87,7 +87,7 @@ impl WebserverHandle {
             ctx.auth(),
             ctx.job(),
             ctx.worker(),
-            ctx.repository().github(),
+            ctx.repository(),
             local_port,
         )
         .await;

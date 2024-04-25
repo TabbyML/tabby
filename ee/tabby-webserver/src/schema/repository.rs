@@ -8,6 +8,7 @@ use tabby_search::FileSearch;
 use super::{
     git_repository::GitRepositoryService,
     github_repository_provider::GithubRepositoryProviderService,
+    gitlab_repository_provider::GitlabRepositoryProviderService,
 };
 
 #[derive(GraphQLObject, Debug)]
@@ -33,5 +34,6 @@ impl From<FileSearch> for FileEntrySearchResult {
 pub trait RepositoryService: Send + Sync + RepositoryAccess {
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn github(&self) -> Arc<dyn GithubRepositoryProviderService>;
+    fn gitlab(&self) -> Arc<dyn GitlabRepositoryProviderService>;
     fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess>;
 }
