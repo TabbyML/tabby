@@ -7,7 +7,7 @@ use super::Context;
 use crate::{juniper::relay::NodeType, schema::Result};
 
 #[derive(GraphQLInputObject, Validate)]
-pub struct CreateGithubRepositoryProviderInput {
+pub struct CreateRepositoryProviderInput {
     #[validate(regex(
         code = "displayName",
         path = "crate::schema::constants::REPOSITORY_NAME_REGEX"
@@ -18,7 +18,7 @@ pub struct CreateGithubRepositoryProviderInput {
 }
 
 #[derive(GraphQLInputObject, Validate)]
-pub struct UpdateGithubRepositoryProviderInput {
+pub struct UpdateRepositoryProviderInput {
     pub id: ID,
     #[validate(regex(
         code = "displayName",
