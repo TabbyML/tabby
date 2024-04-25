@@ -17,7 +17,7 @@ export const NewRepository = () => {
 
   return (
     <>
-      <CardTitle className="py-3">
+      <CardTitle className="py-6">
         <div className="-ml-1 flex items-center">
           <Button
             onClick={() => router.back()}

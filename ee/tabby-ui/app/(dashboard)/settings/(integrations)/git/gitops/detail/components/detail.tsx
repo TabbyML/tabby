@@ -85,7 +85,7 @@ const DetailPage: React.FC = () => {
 
   return (
     <LoadingWrapper loading={fetching}>
-      <CardTitle className="flex items-center justify-between py-3">
+      <CardTitle className="flex items-center justify-between py-6">
         <div className="-ml-1 flex items-center">
           <Button
             onClick={() => router.back()}

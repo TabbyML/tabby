@@ -18,7 +18,7 @@ export default function GitProvidersPage() {
 
   return (
     <>
-      <CardTitle className="py-3">Git Providers</CardTitle>
+      <CardTitle className="py-6">Git Providers</CardTitle>
       <LoadingWrapper loading={fetching}>
         {githubRepositoryProviders?.length ? (
           <div>
