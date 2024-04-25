@@ -1,5 +1,6 @@
 pub mod analytic;
 pub mod auth;
+pub mod constants;
 pub mod email;
 pub mod git_repository;
 pub mod github_repository_provider;

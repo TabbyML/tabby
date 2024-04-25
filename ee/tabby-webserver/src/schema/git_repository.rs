@@ -1,21 +1,15 @@
 use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
-use lazy_static::lazy_static;
-use regex::Regex;
 use validator::Validate;
 
 use super::{repository::FileEntrySearchResult, Context, Result};
 use crate::juniper::relay::NodeType;
 
-lazy_static! {
-    static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.-]+$").unwrap();
-}
-
 #[derive(Validate)]
 pub struct CreateGitRepositoryInput {
     #[validate(regex(
         code = "name",
-        path = "self::REPOSITORY_NAME_REGEX",
+        path = "crate::schema::constants::REPOSITORY_NAME_REGEX",
         message = "Invalid repository name"
     ))]
     pub name: String,
