@@ -101,10 +101,7 @@ CREATE INDEX idx_repository_name ON repositories(name);
 CREATE TABLE github_repository_provider(
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   display_name TEXT NOT NULL,
-  application_id TEXT NOT NULL,
-  secret TEXT NOT NULL,
-  access_token TEXT,
-  CONSTRAINT `idx_application_id` UNIQUE(`application_id`)
+  access_token TEXT
 );
 CREATE INDEX idx_user_completion_user_id_created_at_language ON user_completions(
   user_id,
