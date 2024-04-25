@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
-import { CardHeader, CardTitle } from '@/components/ui/card'
+import { CardTitle } from '@/components/ui/card'
 import { IconChevronLeft } from '@/components/ui/icons'
 
 import RepositoryForm from './create-repository-form'
