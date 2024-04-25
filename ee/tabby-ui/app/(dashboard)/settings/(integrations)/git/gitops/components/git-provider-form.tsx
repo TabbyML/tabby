@@ -98,7 +98,7 @@ export const GitProviderForm = React.forwardRef<
                           className="flex cursor-pointer items-center gap-1"
                           htmlFor="github"
                         >
-                          <IconGitHub className="h-6 w-6" />
+                          <IconGitHub className="h-5 w-5" />
                           <span>GitHub.com</span>
                         </Label>
                       </div>

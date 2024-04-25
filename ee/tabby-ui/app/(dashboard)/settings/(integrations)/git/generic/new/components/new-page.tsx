@@ -22,9 +22,9 @@ export const NewRepository = () => {
           <Button
             onClick={() => router.back()}
             variant={'ghost'}
-            className="px-1"
+            className="px-1 h-6"
           >
-            <IconChevronLeft className="h-6 w-6" />
+            <IconChevronLeft className="h-5 w-5" />
           </Button>
           <span className="ml-2">Create Generic git repository</span>
         </div>
