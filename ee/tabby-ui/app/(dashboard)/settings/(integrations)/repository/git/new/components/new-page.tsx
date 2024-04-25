@@ -2,19 +2,17 @@
 
 import { useRouter } from 'next/navigation'
 
-import RepositoryForm from '../../components/create-repository-form'
-import { RepositoryHeader } from '../../components/header'
+import RepositoryForm from './create-repository-form'
 
 export const NewRepository = () => {
   const router = useRouter()
 
   const onCreated = () => {
-    router.replace('/settings/git')
+    router.back()
   }
 
   return (
     <>
-      <RepositoryHeader />
       <RepositoryForm onCreated={onCreated} />
     </>
   )

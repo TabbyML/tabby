@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
@@ -13,7 +12,7 @@ import {
 } from '@/lib/tabby/query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardContent, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -22,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { IconChevronLeft, IconGitHub, IconTrash } from '@/components/ui/icons'
+import { IconChevronLeft, IconPlus, IconTrash } from '@/components/ui/icons'
 import {
   Table,
   TableBody,
@@ -52,28 +51,12 @@ const DetailPage: React.FC = () => {
     pause: !id
   })
   const provider = data?.githubRepositoryProviders?.edges?.[0]?.node
-  const [githubRepositories, fetchingRepositories] =
+  const [githubRepositories, isGithubRepositoriesLoading] =
     useAllProvidedRepositories(id)
-  console.log(githubRepositories)
-
-  const [open, setOpen] = React.useState(false)
-
-  const onCreated = () => {
-    toast.success('Added successfully')
-    setOpen(false)
-  }
 
   const onDeleteProvider = () => {
-    router.replace('/settings/gitops')
+    router.back()
   }
-
-  const unlinkedRepos = useMemo(() => {
-    return githubRepositories?.filter(item => !item.node.active)
-  }, [githubRepositories])
-
-  const linkedRepos = useMemo(() => {
-    return githubRepositories?.filter(item => item.node.active)
-  }, [githubRepositories])
 
   if (!id || (!!id && !fetching && !provider)) {
     return (
@@ -85,70 +68,42 @@ const DetailPage: React.FC = () => {
 
   return (
     <LoadingWrapper loading={fetching}>
-      <CardHeader className="pl-0 pt-0">
-        <CardTitle className="flex items-center justify-between">
-          <div
+      <CardTitle className="flex items-center justify-between">
+        <div className="-ml-1 flex items-center">
+          <Button
             onClick={() => router.back()}
-            className="-ml-1 flex cursor-pointer items-center transition-opacity hover:opacity-60"
+            variant={'ghost'}
+            className="h-6 px-1"
           >
-            <IconChevronLeft className="mr-1 h-6 w-6" />
-            <span>Provider information</span>
+            <IconChevronLeft className="h-5 w-5" />
+          </Button>
+          <span className="ml-2">{provider?.displayName}</span>
+        </div>
+        <div className="flex items-center gap-2 text-base">
+          <div className="ml-1">
+            {provider?.connected ? (
+              <Badge variant="successful">Connected</Badge>
+            ) : (
+              <Badge variant="destructive">Not Connected</Badge>
+            )}
           </div>
-          <div className="flex items-center gap-2 text-base">
-            <IconGitHub className="h-6 w-6" />
-            GitHub.com
-            <div className="ml-1">
-              {provider?.connected ? (
-                <Badge variant="successful">Connected</Badge>
-              ) : (
-                <Badge variant="destructive">Not Connected</Badge>
-              )}
-            </div>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pl-0">
+        </div>
+      </CardTitle>
+      <CardContent className="mt-8">
         <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>
           <UpdateProviderForm
             defaultValues={provider}
             onDelete={onDeleteProvider}
-            onBack={() => {
-              router.push('/settings/gitops')
-            }}
             id={id}
           />
         </LoadingWrapper>
       </CardContent>
 
-      <CardHeader className="mt-8 pl-0 pt-0">
-        <CardTitle className="flex items-center justify-between">
-          <span>Repositories</span>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent>
-              <DialogHeader className="gap-3">
-                <DialogTitle>Add repository</DialogTitle>
-                <DialogDescription>
-                  Add a new repository to this provider.
-                </DialogDescription>
-              </DialogHeader>
-              <LinkRepositoryForm
-                onCancel={() => setOpen(false)}
-                onCreated={onCreated}
-                repositories={unlinkedRepos}
-                fetchingRepositories={fetchingRepositories}
-              />
-            </DialogContent>
-            <DialogTrigger asChild>
-              <Button>Add repository</Button>
-            </DialogTrigger>
-          </Dialog>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pl-0">
-        <LoadingWrapper loading={fetchingRepositories}>
-          <LinkedRepoTable data={linkedRepos} />
+      <div className="p-4">
+        <LoadingWrapper loading={isGithubRepositoriesLoading}>
+          <LinkedRepoTable data={githubRepositories} />
         </LoadingWrapper>
-      </CardContent>
+      </div>
     </LoadingWrapper>
   )
 }
@@ -181,19 +136,54 @@ const LinkedRepoTable: React.FC<{
     })
   }
 
+  const [open, setOpen] = React.useState(false)
+
+  const onCreated = () => {
+    setOpen(false)
+  }
+
+  const linkedRepos = useMemo(() => {
+    return data?.filter(item => item.node.active)
+  }, [data])
+
+  const unlinkedRepos = useMemo(() => {
+    return data?.filter(item => !item.node.active)
+  }, [data])
+
   return (
-    <Table className="mt-4">
+    <Table>
       <TableHeader>
         <TableRow>
           <TableHead className="w-[25%]">Name</TableHead>
-          <TableHead className="w-[45%]">Git URL</TableHead>
-          <TableHead></TableHead>
+          <TableHead className="w-[45%]">URL</TableHead>
+          <TableHead className="text-right">
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogContent>
+                <DialogHeader className="gap-3">
+                  <DialogTitle>Add new repository</DialogTitle>
+                  <DialogDescription>
+                    Add new GitHub repository from this provider
+                  </DialogDescription>
+                </DialogHeader>
+                <LinkRepositoryForm
+                  onCancel={() => setOpen(false)}
+                  onCreated={onCreated}
+                  repositories={unlinkedRepos}
+                />
+              </DialogContent>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <IconPlus />
+                </Button>
+              </DialogTrigger>
+            </Dialog>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {data?.length ? (
+        {linkedRepos?.length ? (
           <>
-            {data?.map(x => {
+            {linkedRepos?.map(x => {
               return (
                 <TableRow key={x.node.id}>
                   <TableCell>{x.node.name}</TableCell>

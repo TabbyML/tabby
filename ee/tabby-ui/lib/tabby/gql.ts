@@ -138,11 +138,11 @@ const client = new Client({
                 })
             }
           },
-          deleteRepository(result, args, cache, info) {
-            if (result.deleteRepository) {
+          deleteGitRepository(result, args, cache, info) {
+            if (result.deleteGitRepository) {
               cache
                 .inspectFields('Query')
-                .filter(field => field.fieldName === 'repositories')
+                .filter(field => field.fieldName === 'gitRepositories')
                 .forEach(field => {
                   cache.updateQuery(
                     {

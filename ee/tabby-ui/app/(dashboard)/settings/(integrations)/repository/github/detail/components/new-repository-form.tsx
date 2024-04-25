@@ -22,14 +22,9 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage
 } from '@/components/ui/form'
-import {
-  IconCheck,
-  IconChevronUpDown,
-  IconSpinner
-} from '@/components/ui/icons'
+import { IconCheck, IconChevronUpDown } from '@/components/ui/icons'
 import {
   Popover,
   PopoverContent,
@@ -47,8 +42,7 @@ type LinkRepositoryFormValues = z.infer<typeof formSchema>
 export default function LinkRepositoryForm({
   onCreated,
   onCancel,
-  repositories,
-  fetchingRepositories
+  repositories
 }: {
   onCreated?: () => void
   onCancel: () => void
@@ -57,7 +51,6 @@ export default function LinkRepositoryForm({
         typeof listGithubRepositories
       >['githubRepositories']['edges']
     | undefined
-  fetchingRepositories: boolean
 }) {
   const [open, setOpen] = React.useState(false)
   const form = useForm<LinkRepositoryFormValues>({
@@ -94,7 +87,6 @@ export default function LinkRepositoryForm({
             name="id"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel required>Repository</FormLabel>
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -123,15 +115,7 @@ export default function LinkRepositoryForm({
                     <Command>
                       <CommandInput placeholder="Search repository..." />
                       <CommandList className="max-h-60">
-                        <CommandEmpty>
-                          {fetchingRepositories ? (
-                            <div className="flex w-full justify-center">
-                              <IconSpinner />
-                            </div>
-                          ) : (
-                            'No repository found.'
-                          )}
-                        </CommandEmpty>
+                        <CommandEmpty>No repository found.</CommandEmpty>
                         <CommandGroup>
                           {repositories?.map(repo => (
                             <CommandItem
