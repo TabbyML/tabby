@@ -38,13 +38,15 @@ export default function DateRangePicker({
   onSelect,
   defaultValue,
   hasToday,
-  hasYesterday
+  hasYesterday,
+  className
 }: {
   options: { label: string; value: string }[]
   onSelect?: (range: DateRange) => void
   defaultValue?: string
   hasToday?: boolean
   hasYesterday?: boolean
+  className?: string
 }) {
   defaultValue = defaultValue || options[0].value
   const defaultDate = parseDateValue(defaultValue)
@@ -146,7 +148,7 @@ export default function DateRangePicker({
         onOpenChange={onDateFilterOpenChange}
       >
         <SelectTrigger
-          className="w-[240px]"
+          className={cn("w-[240px]", className)}
           onClick={() => setShowDateFilter(!showDateFilter)}
         >
           <SelectValue placeholder="Date range" />

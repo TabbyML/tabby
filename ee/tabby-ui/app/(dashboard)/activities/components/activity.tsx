@@ -7,6 +7,7 @@ import { DateRange } from 'react-day-picker'
 import ReactJson from 'react-json-view'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
+import { capitalize } from 'lodash-es'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
@@ -137,48 +138,59 @@ export default function Activity() {
   }
 
   return (
-    <LoadingWrapper loading={fetching}>
+    <>
       <div className="flex w-full flex-col">
-        <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
-          <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0">
-            <div className="ml-auto flex items-center gap-2">
-              <Select
-                defaultValue={KEY_SELECT_ALL}
-                onValueChange={setSelectedMember}
-              >
-                <SelectTrigger className="w-auto py-0">
-                  <div className="flex h-6 items-center">
-                    <div className="w-[190px] overflow-hidden text-ellipsis text-left">
-                      <SelectValue />
+        <div className="flex flex-col sm:gap-4 sm:py-4">
+          <main className="grid flex-1 items-start gap-4 py-4 sm:py-0">
+            <div className="flex flex-col gap-y-2 xl:flex-row xl:items-center xl:justify-between">
+              <p className="text-sm text-muted-foreground">
+                View a log of code completion events. Tracing the progression from initiation to final insertion.
+              </p>
+
+              {!fetching && (
+                <div className="flex flex-col items-center gap-2 md:flex-row xl:ml-auto">
+                <Select
+                  defaultValue={KEY_SELECT_ALL}
+                  onValueChange={setSelectedMember}
+                >
+                  <SelectTrigger className="w-[calc(100vw-2rem)] py-0 md:w-auto">
+                    <div className="flex h-6 items-center">
+                      <div className="overflow-hidden text-ellipsis text-left md:w-[190px]">
+                        <SelectValue />
+                      </div>
                     </div>
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="end">
-                  <SelectGroup>
-                    <SelectItem value={KEY_SELECT_ALL}>All members</SelectItem>
-                    {members.map(member => (
-                      <SelectItem value={member.id} key={member.id}>
-                        {member.email}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    <SelectGroup>
+                      <SelectItem value={KEY_SELECT_ALL}>All members</SelectItem>
+                      {members.map(member => (
+                        <SelectItem value={member.id} key={member.id}>
+                          {member.email}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
 
-              <DateRangePicker
-                options={[
-                  { label: 'Last 24 hours', value: '-24h' },
-                  { label: 'Last 7 days', value: '-7d' },
-                  { label: 'Last 14 days', value: '-14d' }
-                ]}
-                defaultValue={DEFAULT_DATE_RANGE}
-                onSelect={updateDateRange}
-                hasToday
-                hasYesterday
-              />
+                <DateRangePicker
+                  className="w-[calc(100vw-2rem)] md:w-[240px]"
+                  options={[
+                    { label: 'Last 24 hours', value: '-24h' },
+                    { label: 'Last 7 days', value: '-7d' },
+                    { label: 'Last 14 days', value: '-14d' }
+                  ]}
+                  defaultValue={DEFAULT_DATE_RANGE}
+                  onSelect={updateDateRange}
+                  hasToday
+                  hasYesterday
+                />
+              </div>
+              )}
+              
             </div>
-
-            <Card x-chunk="dashboard-06-chunk-0" className="bg-transparent">
+            <LoadingWrapper loading={fetching}>
+              <>
+              <Card x-chunk="dashboard-06-chunk-0" className="bg-transparent">
               {(!data?.userEvents.edges ||
                 data?.userEvents.edges.length === 0) && (
                 <CardContent className="flex flex-col items-center py-40 text-sm">
@@ -194,13 +206,13 @@ export default function Activity() {
 
               {data?.userEvents.edges && data?.userEvents.edges.length > 0 && (
                 <>
-                  <CardContent className="w-[calc(100vw-4rem)] overflow-x-auto pb-0 md:w-auto">
+                  <CardContent className="w-[calc(100vw-2rem)] overflow-x-auto px-0 pb-0 md:w-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="md:w-[30%]">Event</TableHead>
-                          <TableHead className="md:w-[40%]">People</TableHead>
-                          <TableHead className="md:w-[30%]">Time</TableHead>
+                          <TableHead className="pl-4 md:w-[30%] md:pl-8">Event</TableHead>
+                          <TableHead className="md:w-[40%]">User</TableHead>
+                          <TableHead className="pl-4 md:w-[30%] md:pr-8">Time</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -219,54 +231,58 @@ export default function Activity() {
                           ))}
                       </TableBody>
                     </Table>
-                  </CardContent>
-                </>
-              )}
-            </Card>
+                    </CardContent>
+                  </>
+                )}
+              </Card>
 
-            {(data?.userEvents.pageInfo?.hasNextPage ||
-              data?.userEvents.pageInfo?.hasPreviousPage) && (
-              <div className="flex justify-end">
-                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                  {' '}
-                  Page {page}
+              {(data?.userEvents.pageInfo?.hasNextPage ||
+                data?.userEvents.pageInfo?.hasPreviousPage) && (
+                <div className="flex justify-end">
+                  <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                    {' '}
+                    Page {page}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      className="h-8 w-8 p-0"
+                      disabled={!data?.userEvents.pageInfo?.hasNextPage}
+                      onClick={e => {
+                        setQueryVariables({
+                          first: DEFAULT_PAGE_SIZE,
+                          after: data?.userEvents.pageInfo?.endCursor
+                        })
+                        setPage(page - 1)
+                      }}
+                    >
+                      <IconChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-8 w-8 p-0"
+                      disabled={!data?.userEvents.pageInfo?.hasPreviousPage}
+                      onClick={e => {
+                        setQueryVariables({
+                          last: DEFAULT_PAGE_SIZE,
+                          before: data?.userEvents.pageInfo?.startCursor
+                        })
+                        setPage(page + 1)
+                      }}
+                    >
+                      <IconChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    disabled={!data?.userEvents.pageInfo?.hasNextPage}
-                    onClick={e => {
-                      setQueryVariables({
-                        first: DEFAULT_PAGE_SIZE,
-                        after: data?.userEvents.pageInfo?.endCursor
-                      })
-                      setPage(page - 1)
-                    }}
-                  >
-                    <IconChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    disabled={!data?.userEvents.pageInfo?.hasPreviousPage}
-                    onClick={e => {
-                      setQueryVariables({
-                        last: DEFAULT_PAGE_SIZE,
-                        before: data?.userEvents.pageInfo?.startCursor
-                      })
-                      setPage(page + 1)
-                    }}
-                  >
-                    <IconChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+              )}
+              </>
+
+            </LoadingWrapper>
+            
           </main>
         </div>
       </div>
-    </LoadingWrapper>
+    </>
   )
 }
 
@@ -278,7 +294,6 @@ function ActivityRow({
   members: Member[]
 }) {
   const { theme } = useTheme()
-  // const [members] = useAllMembers()
   const [isExpanded, setIsExpanded] = React.useState(false)
 
   let payloadJson
@@ -321,19 +336,19 @@ function ActivityRow({
         className="cursor-pointer text-sm"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <TableCell className="py-3 font-medium">
+        <TableCell className="pl-4 font-medium md:pl-8">
           <Tooltip>
-            <TooltipTrigger>{activity.kind}</TooltipTrigger>
+            <TooltipTrigger>{capitalize(activity.kind)}</TooltipTrigger>
             <TooltipContent>
               <p>{tooltip}</p>
             </TooltipContent>
           </Tooltip>
         </TableCell>
-        <TableCell className="py-3">
+        <TableCell>
           {members.find(user => user.id === activity.userId)?.email ||
             activity.userId}
         </TableCell>
-        <TableCell className="py-3">
+        <TableCell className="pl-4 md:pr-8">
           {moment(activity.createdAt).isBefore(moment().subtract(1, 'days'))
             ? moment(activity.createdAt).format('YYYY-MM-DD HH:mm')
             : moment(activity.createdAt).fromNow()}
@@ -342,7 +357,7 @@ function ActivityRow({
 
       {isExpanded && (
         <TableRow key={`${activity.id}-2`} className="w-full bg-muted/30">
-          <TableCell className="font-medium" colSpan={4}>
+          <TableCell className="px-8 font-medium" colSpan={4}>
             <ReactJson
               src={payloadJson}
               name={false}
