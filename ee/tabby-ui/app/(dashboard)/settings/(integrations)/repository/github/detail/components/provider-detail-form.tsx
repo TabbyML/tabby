@@ -77,7 +77,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
       form,
       onCompleted(values) {
         if (values?.updateGithubRepositoryProvider) {
-          toast.success('Updated repository provider successfully')
+          toast.success('Updated GitHub repository provider successfully')
           form?.reset(form?.getValues())
           onSuccess?.()
         }
@@ -105,11 +105,11 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
         onDelete?.()
       } else {
         toast.error(
-          res?.error?.message || 'Failed to delete github repository provider'
+          res?.error?.message || 'Failed to delete GitHub repository provider'
         )
       }
     } catch (error) {
-      toast.error('Failed to delete github repository provider')
+      toast.error('Failed to delete GitHub repository provider')
     } finally {
       setIsDeleting(false)
     }
