@@ -9,6 +9,7 @@ pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
+pub mod types;
 pub mod user_event;
 pub mod worker;
 
@@ -51,11 +52,9 @@ use crate::{
     axum::FromAuth,
     juniper::relay::{self, Connection},
     schema::{
-        github_repository_provider::{
-            CreateRepositoryProviderInput, UpdateRepositoryProviderInput,
-        },
         gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProvider},
         repository::FileEntrySearchResult,
+        types::{CreateRepositoryProviderInput, UpdateRepositoryProviderInput},
     },
 };
 
