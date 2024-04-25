@@ -107,7 +107,6 @@ type ServerInfo {
 type GithubRepositoryProvider {
   id: ID!
   displayName: String!
-  applicationId: String!
   connected: Boolean!
 }
 
@@ -214,8 +213,7 @@ type RepositoryEdge {
 input UpdateGithubRepositoryProviderInput {
   id: ID!
   displayName: String!
-  applicationId: String!
-  secret: String
+  accessToken: String!
 }
 
 "DateTime"
@@ -338,8 +336,7 @@ input PasswordResetInput {
 
 input CreateGithubRepositoryProviderInput {
   displayName: String!
-  applicationId: String!
-  secret: String!
+  accessToken: String!
 }
 
 type User {

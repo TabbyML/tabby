@@ -127,9 +127,7 @@ impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
     fn from(value: GithubRepositoryProviderDAO) -> Self {
         Self {
             display_name: value.display_name,
-            application_id: value.application_id,
             id: value.id.as_id(),
-            secret: value.secret,
             connected: value.access_token.is_some(),
             access_token: value.access_token,
         }

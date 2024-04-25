@@ -30,12 +30,11 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
     async fn create_github_repository_provider(
         &self,
         display_name: String,
-        application_id: String,
-        application_secret: String,
+        access_token: String,
     ) -> Result<ID> {
         let id = self
             .db
-            .create_github_provider(display_name, application_id, application_secret)
+            .create_github_provider(display_name, access_token)
             .await?;
         Ok(id.as_id())
     }
@@ -50,18 +49,9 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(())
     }
 
-    async fn read_github_repository_provider_secret(&self, id: ID) -> Result<String> {
-        let provider = self.db.get_github_provider(id.as_rowid()?).await?;
-        Ok(provider.secret)
-    }
-
-    async fn update_github_repository_provider_access_token(
-        &self,
-        id: ID,
-        access_token: Option<String>,
-    ) -> Result<()> {
+    async fn reset_github_repository_provider_access_token(&self, id: ID) -> Result<()> {
         self.db
-            .update_github_provider_access_token(id.as_rowid()?, access_token)
+            .reset_github_provider_access_token(id.as_rowid()?)
             .await?;
         Ok(())
     }
@@ -144,11 +134,10 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         &self,
         id: ID,
         display_name: String,
-        application_id: String,
-        secret: Option<String>,
+        access_token: String,
     ) -> Result<()> {
         self.db
-            .update_github_provider(id.as_rowid()?, display_name, application_id, secret)
+            .update_github_provider(id.as_rowid()?, display_name, access_token)
             .await?;
         Ok(())
     }
@@ -213,20 +202,12 @@ mod tests {
         let service = create(db.clone());
 
         let provider_id1 = db
-            .create_github_provider(
-                "test_provider1".into(),
-                "test_id1".into(),
-                "test_secret".into(),
-            )
+            .create_github_provider("test_id1".into(), "test_secret".into())
             .await
             .unwrap();
 
         let provider_id2 = db
-            .create_github_provider(
-                "test_provider2".into(),
-                "test_id2".into(),
-                "test_secret".into(),
-            )
+            .create_github_provider("test_id2".into(), "test_secret".into())
             .await
             .unwrap();
 
@@ -299,7 +280,7 @@ mod tests {
         let service = super::create(db.clone());
 
         let id = service
-            .create_github_repository_provider("example".into(), "id".into(), "secret".into())
+            .create_github_repository_provider("id".into(), "secret".into())
             .await
             .unwrap();
 
@@ -312,20 +293,11 @@ mod tests {
             provider1,
             GithubRepositoryProvider {
                 id: id.clone(),
-                display_name: "example".into(),
-                application_id: "id".into(),
-                secret: "secret".into(),
-                access_token: None,
-                connected: false,
+                display_name: "id".into(),
+                access_token: Some("secret".into()),
+                connected: true,
             }
         );
-
-        // Test reading github provider secret
-        let secret1 = service
-            .read_github_repository_provider_secret(id.clone())
-            .await
-            .unwrap();
-        assert_eq!(secret1, "secret");
 
         // Test listing github providers
         let providers = service
@@ -333,11 +305,11 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(providers.len(), 1);
-        assert_eq!(providers[0].access_token, None);
+        assert_eq!(providers[0].access_token, Some("secret".into()));
 
-        // Test updating github provider tokens
+        // Test resetgithub provider tokens
         service
-            .update_github_repository_provider_access_token(id.clone(), Some("test_token".into()))
+            .reset_github_repository_provider_access_token(id.clone())
             .await
             .unwrap();
 
@@ -347,37 +319,7 @@ mod tests {
                 .await
                 .unwrap()
                 .access_token,
-            Some("test_token".into())
-        );
-
-        // Test updating github provider application ID / secret
-        let id2 = service
-            .create_github_repository_provider("example2".into(), "id2".into(), "secret".into())
-            .await
-            .unwrap();
-
-        // Should fail: Duplicate application ID
-        assert!(service
-            .update_github_repository_provider(id2.clone(), "example2".into(), "id".into(), None)
-            .await
-            .is_err());
-
-        service
-            .update_github_repository_provider(
-                id2.clone(),
-                "example2".into(),
-                "id2".into(),
-                Some("secret2".into()),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(
-            db.get_github_provider(id2.as_rowid().unwrap())
-                .await
-                .unwrap()
-                .secret,
-            "secret2"
+            None
         );
 
         // Test deleting github provider
@@ -387,7 +329,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            1,
+            0,
             service
                 .list_github_repository_providers(vec![], None, None, None, None)
                 .await
@@ -402,11 +344,7 @@ mod tests {
         let service = create(db.clone());
 
         let provider_id = db
-            .create_github_provider(
-                "provider1".into(),
-                "application_id1".into(),
-                "secret1".into(),
-            )
+            .create_github_provider("provider1".into(), "token".into())
             .await
             .unwrap();
 
@@ -424,14 +362,6 @@ mod tests {
             .await
             .unwrap();
 
-        service
-            .update_github_repository_provider_access_token(
-                provider_id.as_id(),
-                Some("token".into()),
-            )
-            .await
-            .unwrap();
-
         let git_urls = service.list_provided_git_urls().await.unwrap();
         assert_eq!(
             git_urls,
@@ -446,11 +376,7 @@ mod tests {
         let time = Utc::now();
 
         let provider_id = db
-            .create_github_provider(
-                "provider1".into(),
-                "application_id1".into(),
-                "secret1".into(),
-            )
+            .create_github_provider("provider1".into(), "secret1".into())
             .await
             .unwrap();
 

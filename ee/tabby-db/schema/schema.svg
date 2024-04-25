@@ -116,26 +116,18 @@
 <title>github_repository_provider</title>
 <polygon fill="none" stroke="black" points="365.5,-518.5 365.5,-539.5 584.5,-539.5 584.5,-518.5 365.5,-518.5"/>
 <text text-anchor="start" x="368.5" y="-526.3" font-family="Times,serif" font-weight="bold" font-size="14.00">github_repository_provider</text>
-<polygon fill="none" stroke="black" points="365.5,-497.5 365.5,-518.5 433.5,-518.5 433.5,-497.5 365.5,-497.5"/>
-<text text-anchor="start" x="390.5" y="-504.3" font-family="Times,serif" font-size="14.00">🔑</text>
-<polygon fill="none" stroke="black" points="433.5,-497.5 433.5,-518.5 584.5,-518.5 584.5,-497.5 433.5,-497.5"/>
-<text text-anchor="start" x="502" y="-504.3" font-family="Times,serif" font-size="14.00">id</text>
-<polygon fill="none" stroke="black" points="365.5,-476.5 365.5,-497.5 433.5,-497.5 433.5,-476.5 365.5,-476.5"/>
-<text text-anchor="start" x="397" y="-483.3" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="433.5,-476.5 433.5,-497.5 584.5,-497.5 584.5,-476.5 433.5,-476.5"/>
-<text text-anchor="start" x="460.5" y="-483.3" font-family="Times,serif" font-size="14.00">display_name</text>
-<polygon fill="none" stroke="black" points="365.5,-455.5 365.5,-476.5 433.5,-476.5 433.5,-455.5 365.5,-455.5"/>
-<text text-anchor="start" x="397" y="-462.3" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="433.5,-455.5 433.5,-476.5 584.5,-476.5 584.5,-455.5 433.5,-455.5"/>
-<text text-anchor="start" x="459" y="-462.3" font-family="Times,serif" font-size="14.00">application_id</text>
-<polygon fill="none" stroke="black" points="365.5,-434.5 365.5,-455.5 433.5,-455.5 433.5,-434.5 365.5,-434.5"/>
-<text text-anchor="start" x="397" y="-441.3" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="433.5,-434.5 433.5,-455.5 584.5,-455.5 584.5,-434.5 433.5,-434.5"/>
-<text text-anchor="start" x="486.5" y="-441.3" font-family="Times,serif" font-size="14.00">secret</text>
-<polygon fill="none" stroke="black" points="365.5,-413.5 365.5,-434.5 433.5,-434.5 433.5,-413.5 365.5,-413.5"/>
-<text text-anchor="start" x="397" y="-420.3" font-family="Times,serif" font-size="14.00"> </text>
-<polygon fill="none" stroke="black" points="433.5,-413.5 433.5,-434.5 584.5,-434.5 584.5,-413.5 433.5,-413.5"/>
-<text text-anchor="start" x="462" y="-420.3" font-family="Times,serif" font-size="14.00">access_token</text>
+<polygon fill="none" stroke="black" points="365.5,-497.5 365.5,-518.5 435.5,-518.5 435.5,-497.5 365.5,-497.5"/>
+<text text-anchor="start" x="391.5" y="-504.3" font-family="Times,serif" font-size="14.00">🔑</text>
+<polygon fill="none" stroke="black" points="435.5,-497.5 435.5,-518.5 584.5,-518.5 584.5,-497.5 435.5,-497.5"/>
+<text text-anchor="start" x="503" y="-504.3" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="365.5,-476.5 365.5,-497.5 435.5,-497.5 435.5,-476.5 365.5,-476.5"/>
+<text text-anchor="start" x="398" y="-483.3" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="435.5,-476.5 435.5,-497.5 584.5,-497.5 584.5,-476.5 435.5,-476.5"/>
+<text text-anchor="start" x="461.5" y="-483.3" font-family="Times,serif" font-size="14.00">display_name</text>
+<polygon fill="none" stroke="black" points="365.5,-455.5 365.5,-476.5 435.5,-476.5 435.5,-455.5 365.5,-455.5"/>
+<text text-anchor="start" x="398" y="-462.3" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="435.5,-455.5 435.5,-476.5 584.5,-476.5 584.5,-455.5 435.5,-455.5"/>
+<text text-anchor="start" x="463" y="-462.3" font-family="Times,serif" font-size="14.00">access_token</text>
 </g>
 <!-- github_provided_repositories&#45;&gt;github_repository_provider -->
 <g id="edge3" class="edge">

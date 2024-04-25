@@ -38,7 +38,7 @@ async fn refresh_repositories_for_provider(
             ..
         }) if source.status_code.is_client_error() => {
             service
-                .update_github_repository_provider_access_token(provider.id.clone(), None)
+                .reset_github_repository_provider_access_token(provider.id.clone())
                 .await?;
             warn!(
                 "GitHub credentials for provider {} are expired or invalid",

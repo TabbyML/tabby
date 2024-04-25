@@ -5,7 +5,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::Result;
 use futures::Future;
 use tokio_cron_scheduler::Job;
-use tracing::error;
+use tracing::{debug, error};
 
 use super::github::refresh_all_repositories;
 use crate::schema::{
@@ -59,6 +59,7 @@ pub async fn update_integrated_github_repositories_job(
         EVERY_TEN_MINUTES,
         github_repository_provider,
         |github_repository_provider| async move {
+            debug!("Syncing github repositories...");
             refresh_all_repositories(github_repository_provider).await
         },
     )

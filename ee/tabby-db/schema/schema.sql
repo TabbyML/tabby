@@ -98,14 +98,6 @@ CREATE INDEX user_completions_completion_id_idx ON user_completions(
 );
 CREATE INDEX idx_job_created_at ON job_runs(job, created_at);
 CREATE INDEX idx_repository_name ON repositories(name);
-CREATE TABLE github_repository_provider(
-  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  display_name TEXT NOT NULL,
-  application_id TEXT NOT NULL,
-  secret TEXT NOT NULL,
-  access_token TEXT,
-  CONSTRAINT `idx_application_id` UNIQUE(`application_id`)
-);
 CREATE INDEX idx_user_completion_user_id_created_at_language ON user_completions(
   user_id,
   created_at,
@@ -151,4 +143,9 @@ CREATE TABLE password_reset(
   code VARCHAR(36) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT(DATETIME('now')),
   FOREIGN KEY(user_id) REFERENCES users(id)
+);
+CREATE TABLE github_repository_provider(
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  display_name TEXT NOT NULL,
+  access_token TEXT
 );
