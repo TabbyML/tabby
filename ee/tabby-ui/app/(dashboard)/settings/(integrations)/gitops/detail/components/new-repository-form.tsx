@@ -125,7 +125,9 @@ export default function LinkRepositoryForm({
                       <CommandList className="max-h-60">
                         <CommandEmpty>
                           {fetchingRepositories ? (
-                            <IconSpinner />
+                            <div className="flex w-full justify-center">
+                              <IconSpinner />
+                            </div>
                           ) : (
                             'No repository found.'
                           )}
