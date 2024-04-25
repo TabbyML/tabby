@@ -139,7 +139,7 @@ async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
 
 async fn check_user(ctx: &Context) -> Result<User, CoreError> {
     let claims = check_claims(ctx)?;
-    let user = ctx.locator.auth().get_user(&claims.sub.0).await?;
+    let user = ctx.locator.auth().get_user(&claims.sub).await?;
     Ok(user)
 }
 
@@ -173,7 +173,7 @@ impl Query {
 
     async fn me(ctx: &Context) -> Result<User> {
         let claims = check_claims(ctx)?;
-        ctx.locator.auth().get_user(&claims.sub.0).await
+        ctx.locator.auth().get_user(&claims.sub).await
     }
 
     async fn users(
@@ -512,7 +512,7 @@ impl Mutation {
         ctx.locator
             .auth()
             .update_user_password(
-                &claims.sub.0,
+                &claims.sub,
                 input.old_password.as_deref(),
                 &input.new_password1,
             )
@@ -524,7 +524,7 @@ impl Mutation {
         let claims = check_claims(ctx)?;
         ctx.locator
             .auth()
-            .reset_user_auth_token(&claims.sub.0)
+            .reset_user_auth_token(&claims.sub)
             .await?;
         Ok(true)
     }
@@ -533,14 +533,14 @@ impl Mutation {
         let claims = check_claims(ctx)?;
         ctx.locator
             .auth()
-            .logout_all_sessions(&claims.sub.0)
+            .logout_all_sessions(&claims.sub)
             .await?;
         Ok(true)
     }
 
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
         check_admin(ctx).await?;
-        if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
+        if ctx.claims.as_ref().is_some_and(|c| c.sub == id) {
             return Err(CoreError::Forbidden(
                 "You cannot change your own active status",
             ));
@@ -551,7 +551,7 @@ impl Mutation {
 
     async fn update_user_role(ctx: &Context, id: ID, is_admin: bool) -> Result<bool> {
         check_admin(ctx).await?;
-        if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
+        if ctx.claims.as_ref().is_some_and(|c| c.sub == id) {
             return Err(CoreError::Forbidden("You cannot update your own role"));
         }
         ctx.locator.auth().update_user_role(&id, is_admin).await?;
@@ -564,7 +564,7 @@ impl Mutation {
         avatar_base64: Option<String>,
     ) -> Result<bool> {
         let claims = check_claims(ctx)?;
-        if claims.sub.0 != id {
+        if claims.sub != id {
             return Err(CoreError::Unauthorized(
                 "You cannot change another user's avatar",
             ));
