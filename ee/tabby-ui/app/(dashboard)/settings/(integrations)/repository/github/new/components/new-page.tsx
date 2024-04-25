@@ -20,7 +20,7 @@ import {
 
 const createGithubRepositoryProvider = graphql(/* GraphQL */ `
   mutation CreateGithubRepositoryProvider(
-    $input: CreateGithubRepositoryProviderInput!
+    $input: CreateRepositoryProviderInput!
   ) {
     createGithubRepositoryProvider(input: $input)
   }

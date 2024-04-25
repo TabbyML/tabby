@@ -30,14 +30,14 @@ import {
 } from '../../components/github-form'
 
 const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
-  mutation DeleteGithubRepositoryProvider($id: ID!) {
+  mutation DeleteRepositoryProvider($id: ID!) {
     deleteGithubRepositoryProvider(id: $id)
   }
 `)
 
 const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
-  mutation UpdateGithubRepositoryProvider(
-    $input: UpdateGithubRepositoryProviderInput!
+  mutation UpdateRepositoryProvider(
+    $input: UpdateRepositoryProviderInput!
   ) {
     updateGithubRepositoryProvider(input: $input)
   }
