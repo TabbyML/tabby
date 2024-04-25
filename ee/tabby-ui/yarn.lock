@@ -3644,14 +3644,6 @@ cmdk@^1.0.0:
     "@radix-ui/react-dialog" "1.0.5"
     "@radix-ui/react-primitive" "1.0.3"
 
-cmdk@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/cmdk/-/cmdk-1.0.0.tgz#0a095fdafca3dfabed82d1db78a6262fb163ded9"
-  integrity sha512-gDzVf0a09TvoJ5jnuPvygTB77+XdOSwEmJ88L6XPFPlv7T3RxbP9jgenfylrAMD0+Le1aO0nVjQUzl2g+vjz5Q==
-  dependencies:
-    "@radix-ui/react-dialog" "1.0.5"
-    "@radix-ui/react-primitive" "1.0.3"
-
 codemirror-lang-mermaid@^0.5.0:
   version "0.5.0"
   resolved "https://registry.yarnpkg.com/codemirror-lang-mermaid/-/codemirror-lang-mermaid-0.5.0.tgz#7e31bd474128febf6296d72412e85d86a9a493eb"
