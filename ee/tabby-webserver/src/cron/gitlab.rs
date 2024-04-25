@@ -2,14 +2,16 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use chrono::Utc;
-use gitlab::AsyncGitlab;
+use gitlab::{
+    api::{projects::Projects, AsyncQuery, Pagination},
+    GitlabBuilder,
+};
 use juniper::ID;
-use octocrab::{models::Repository, GitHubError, Octocrab};
+use serde::Deserialize;
 use tracing::warn;
 
-use crate::schema::{
-    github_repository_provider::{GithubRepositoryProvider, GithubRepositoryProviderService},
-    gitlab_repository_provider::{GitlabRepositoryProvider, GitlabRepositoryProviderService},
+use crate::schema::gitlab_repository_provider::{
+    GitlabRepositoryProvider, GitlabRepositoryProviderService,
 };
 
 pub async fn refresh_all_repositories(
@@ -35,10 +37,7 @@ async fn refresh_repositories_for_provider(
     let provider = service.get_gitlab_repository_provider(provider_id).await?;
     let repos = match fetch_all_repos(&provider).await {
         Ok(repos) => repos,
-        Err(octocrab::Error::GitHub {
-            source: source @ GitHubError { .. },
-            ..
-        }) if source.status_code.is_client_error() => {
+        Err(e) if e.to_string().contains("401 Unauthorized") => {
             service
                 .reset_gitlab_repository_provider_access_token(provider.id.clone())
                 .await?;
@@ -46,7 +45,7 @@ async fn refresh_repositories_for_provider(
                 "GitLab credentials for provider {} are expired or invalid",
                 provider.display_name
             );
-            return Err(source.into());
+            return Err(e);
         }
         Err(e) => {
             warn!("Failed to fetch repositories from github: {e}");
@@ -55,49 +54,41 @@ async fn refresh_repositories_for_provider(
     };
     for repo in repos {
         let id = repo.id.to_string();
-        let Some(url) = repo.git_url else {
-            continue;
-        };
-        let url = url.to_string();
 
         service
-            .upsert_gitlab_provided_repository(provider.id.clone(), id, repo.name, url)
+            .upsert_gitlab_provided_repository(
+                provider.id.clone(),
+                id,
+                repo.name,
+                repo.http_url_to_repo,
+            )
             .await?;
     }
 
     Ok(())
 }
 
-// FIXME(wsxiaoys): Convert to async stream
+#[derive(Deserialize)]
+struct Repository {
+    id: u128,
+    name: String,
+    http_url_to_repo: String,
+}
+
 async fn fetch_all_repos(
     provider: &GitlabRepositoryProvider,
-) -> Result<Vec<Repository>, octocrab::Error> {
+) -> Result<Vec<Repository>, anyhow::Error> {
     let Some(token) = &provider.access_token else {
         return Ok(vec![]);
     };
-    let octocrab = Octocrab::builder()
-        .user_access_token(token.to_string())
-        .build()?;
+    let gitlab = GitlabBuilder::new("gitlab.com", token)
+        .build_async()
+        .await?;
 
-    let mut page = 1;
-    let mut repos = vec![];
-
-    loop {
-        let response = octocrab
-            .current()
-            .list_repos_for_authenticated_user()
-            .visibility("all")
-            .page(page)
-            .send()
-            .await?;
-
-        let pages = response.number_of_pages().unwrap_or_default() as u8;
-        repos.extend(response.items);
-
-        page += 1;
-        if page > pages {
-            break;
-        }
-    }
-    Ok(repos)
+    Ok(gitlab::api::paged(
+        Projects::builder().membership(true).build()?,
+        Pagination::All,
+    )
+    .query_async(&gitlab)
+    .await?)
 }

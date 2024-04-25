@@ -1,1 +1,3 @@
--- Add down migration script here
+DROP TABLE gitlab_provided_repositories;
+DROP TABLE gitlab_repository_provider;
+

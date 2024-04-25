@@ -7,7 +7,9 @@ use futures::Future;
 use tokio_cron_scheduler::Job;
 use tracing::{debug, error};
 
-use super::github::refresh_all_repositories;
+use super::github;
+use super::gitlab;
+use crate::schema::gitlab_repository_provider::GitlabRepositoryProviderService;
 use crate::schema::{
     auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
     job::JobService,
@@ -60,7 +62,21 @@ pub async fn update_integrated_github_repositories_job(
         github_repository_provider,
         |github_repository_provider| async move {
             debug!("Syncing github repositories...");
-            refresh_all_repositories(github_repository_provider).await
+            github::refresh_all_repositories(github_repository_provider).await
+        },
+    )
+    .await
+}
+
+pub async fn update_integrated_gitlab_repositories_job(
+    gitlab_repository_provider: Arc<dyn GitlabRepositoryProviderService>,
+) -> Result<Job> {
+    service_job(
+        "0 * * * * *",
+        gitlab_repository_provider,
+        |gitlab_repository_provider| async move {
+            debug!("Syncing gitlab repositories...");
+            gitlab::refresh_all_repositories(gitlab_repository_provider).await
         },
     )
     .await
