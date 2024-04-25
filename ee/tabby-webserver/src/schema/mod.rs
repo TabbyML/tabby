@@ -29,7 +29,7 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    analytic::{AnalyticService, CompletionStats},
+    analytic::{AnalyticService, CompletionStats, StorageStats},
     auth::{
         JWTPayload, OAuthCredential, OAuthProvider, PasswordChangeInput, PasswordResetInput,
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
@@ -456,6 +456,12 @@ impl Query {
             },
         )
         .await
+    }
+
+    async fn storage_stats(ctx: &Context) -> Result<StorageStats> {
+        check_admin(ctx).await?;
+        let storage_stats = ctx.locator.analytic().storage_stats().await?;
+        Ok(storage_stats)
     }
 }
 

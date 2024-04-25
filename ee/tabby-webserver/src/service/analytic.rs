@@ -1,14 +1,15 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use futures::Future;
 use juniper::ID;
 use tabby_db::DbConn;
 use tracing::warn;
 
 use super::AsRowid;
 use crate::schema::{
-    analytic::{AnalyticService, CompletionStats, Language},
+    analytic::{AnalyticService, CompletionStats, DirectoryStat, Language, StorageStats},
     Result,
 };
 
@@ -70,6 +71,41 @@ impl AnalyticService for AnalyticServiceImpl {
             .collect();
         Ok(stats)
     }
+
+    async fn storage_stats(&self) -> Result<StorageStats> {
+        Ok(StorageStats {
+            events: recursive_dir_size(tabby_common::path::events_dir()).await?,
+            indexed_repositories: recursive_dir_size(tabby_common::path::dataset_dir())
+                .await?
+                .combine(recursive_dir_size(tabby_common::path::index_dir()).await?),
+            database: recursive_dir_size(crate::path::tabby_ee_root()).await?,
+            models: recursive_dir_size(tabby_common::path::models_dir()).await?,
+        })
+    }
+}
+
+/// Calculate the size of a directory in kilobytes recursively
+fn recursive_dir_size(
+    path: PathBuf,
+) -> Box<dyn Future<Output = Result<DirectoryStat, anyhow::Error>> + Unpin + Send> {
+    Box::new(Box::pin(async move {
+        let mut size: f64 = 0.0;
+        if path.exists() {
+            let mut read_dir = tokio::fs::read_dir(path.clone()).await?;
+            while let Some(next) = read_dir.next_entry().await? {
+                let meta = next.metadata().await?;
+                if meta.is_dir() {
+                    size += recursive_dir_size(next.path()).await?.size;
+                } else {
+                    size += meta.len() as f64 / 1024.0;
+                }
+            }
+        }
+        Ok(DirectoryStat {
+            file_paths: vec![path.to_string_lossy().to_string()],
+            size,
+        })
+    }))
 }
 
 fn convert_ids(ids: Vec<ID>) -> Vec<i64> {

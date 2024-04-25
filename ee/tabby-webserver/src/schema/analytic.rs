@@ -8,6 +8,33 @@ use strum::{EnumIter, IntoEnumIterator};
 
 use crate::schema::Result;
 
+#[derive(GraphQLObject)]
+pub struct StorageStats {
+    pub events: DirectoryStat,
+    pub indexed_repositories: DirectoryStat,
+    pub database: DirectoryStat,
+    pub models: DirectoryStat,
+}
+
+#[derive(GraphQLObject)]
+pub struct DirectoryStat {
+    pub file_paths: Vec<String>,
+    pub size: f64,
+}
+
+impl DirectoryStat {
+    pub fn combine(self, other: Self) -> Self {
+        DirectoryStat {
+            size: self.size + other.size,
+            file_paths: self
+                .file_paths
+                .into_iter()
+                .chain(other.file_paths)
+                .collect(),
+        }
+    }
+}
+
 #[derive(GraphQLObject, Debug, Clone)]
 pub struct CompletionStats {
     pub start: DateTime<Utc>,
@@ -101,4 +128,6 @@ pub trait AnalyticService: Send + Sync {
         users: Vec<ID>,
         languages: Vec<Language>,
     ) -> Result<Vec<CompletionStats>>;
+
+    async fn storage_stats(&self) -> Result<StorageStats>;
 }
