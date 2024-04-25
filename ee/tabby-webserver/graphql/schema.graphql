@@ -1,10 +1,3 @@
-type StorageStats {
-  events: DirectoryStat!
-  indexedRepositories: DirectoryStat!
-  database: DirectoryStat!
-  models: DirectoryStat!
-}
-
 enum Language {
   RUST
   PYTHON
@@ -96,6 +89,13 @@ type SecuritySetting {
 type UserConnection {
   edges: [UserEdge!]!
   pageInfo: PageInfo!
+}
+
+type DiskUsageStats {
+  events: DiskUsage!
+  indexedRepositories: DiskUsage!
+  database: DiskUsage!
+  models: DiskUsage!
 }
 
 input UpdateOAuthCredentialInput {
@@ -265,7 +265,7 @@ type Query {
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTimeUtc!, end: DateTimeUtc!): UserEventConnection!
-  storageStats: StorageStats!
+  diskUsageStats: DiskUsageStats!
 }
 
 input NetworkSettingInput {
@@ -283,14 +283,14 @@ type UserEdge {
   cursor: String!
 }
 
+type DiskUsage {
+  filePaths: [String!]!
+  size: Float!
+}
+
 type JobRunConnection {
   edges: [JobRunEdge!]!
   pageInfo: PageInfo!
-}
-
-type DirectoryStat {
-  filePaths: [String!]!
-  size: Float!
 }
 
 type RefreshTokenResponse {
