@@ -129,7 +129,7 @@ const DetailPage: React.FC = () => {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent>
               <DialogHeader className="gap-3">
-                <DialogTitle>New repository link</DialogTitle>
+                <DialogTitle>Add repository</DialogTitle>
                 <DialogDescription>
                   Add a new repository link to this provider.
                 </DialogDescription>
