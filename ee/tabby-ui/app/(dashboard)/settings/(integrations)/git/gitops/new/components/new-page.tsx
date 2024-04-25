@@ -1,21 +1,25 @@
 'use client'
 
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { createRequest } from '@urql/core'
+import { omit } from 'lodash-es'
+import { UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
 import { client, useMutation } from '@/lib/tabby/gql'
 import { listGithubRepositoryProviders } from '@/lib/tabby/query'
 import { Button } from '@/components/ui/button'
-import { CardHeader, CardTitle } from '@/components/ui/card'
+import { CardTitle } from '@/components/ui/card'
+import { FormMessage } from '@/components/ui/form'
 import { IconChevronLeft, IconSpinner } from '@/components/ui/icons'
 
-import { CreateGitProviderFormValues, GitProviderForm, UpdateGitProviderFormValues } from '../../components/git-provider-form'
-import { FormMessage } from '@/components/ui/form'
-import React from 'react'
-import { UseFormReturn } from 'react-hook-form'
-import { omit } from 'lodash-es'
+import {
+  CreateGitProviderFormValues,
+  GitProviderForm,
+  UpdateGitProviderFormValues
+} from '../../components/git-provider-form'
 
 const createGithubRepositoryProvider = graphql(/* GraphQL */ `
   mutation CreateGithubRepositoryProvider(
@@ -27,7 +31,9 @@ const createGithubRepositoryProvider = graphql(/* GraphQL */ `
 
 export const NewProvider = () => {
   const router = useRouter()
-  const formRef = React.useRef<{ form: UseFormReturn<UpdateGitProviderFormValues> }>(null)
+  const formRef = React.useRef<{
+    form: UseFormReturn<UpdateGitProviderFormValues>
+  }>(null)
   const isSubmitting = formRef.current?.form?.formState?.isSubmitting
 
   const getProvider = (id: string) => {
@@ -62,40 +68,35 @@ export const NewProvider = () => {
 
   return (
     <>
-      <CardHeader className="pl-0">
-        <CardTitle>
-          <div className="-ml-1 flex items-center">
-            <Button
-              onClick={() => router.back()}
-              variant={'ghost'}
-              className="px-1"
-            >
-              <IconChevronLeft className="h-6 w-6" />
-            </Button>
-            <span className="ml-2">Create Git Provider</span>
-          </div>
-        </CardTitle>
-      </CardHeader>
+      <CardTitle className="py-3">
+        <div className="-ml-1 flex items-center">
+          <Button
+            onClick={() => router.back()}
+            variant={'ghost'}
+            className="px-1"
+          >
+            <IconChevronLeft className="h-6 w-6" />
+          </Button>
+          <span className="ml-2">Create Git Provider</span>
+        </div>
+      </CardTitle>
       <GitProviderForm
         isNew
         ref={formRef}
         defaultValues={{ provider: 'github' }}
-        footer={(
+        footer={
           <div className="flex items-center justify-between">
             <div>
               <FormMessage />
             </div>
             <div>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <IconSpinner className="mr-2" />}
                 Create
               </Button>
             </div>
           </div>
-        )}
+        }
         onSubmit={handleSubmit}
       />
     </>

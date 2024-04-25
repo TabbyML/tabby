@@ -31,21 +31,22 @@ export const createGitProviderSchema = z.object({
   accessToken: z.string()
 })
 
-export const updateGitProviderSchema = createGitProviderSchema
-  .extend({
-    provider: createGitProviderSchema.shape.provider.optional()
-  })
+export const updateGitProviderSchema = createGitProviderSchema.extend({
+  provider: createGitProviderSchema.shape.provider.optional()
+})
 
-export type CreateGitProviderFormValues = z.infer<typeof createGitProviderSchema>
-export type UpdateGitProviderFormValues = z.infer<typeof updateGitProviderSchema>
+export type CreateGitProviderFormValues = z.infer<
+  typeof createGitProviderSchema
+>
+export type UpdateGitProviderFormValues = z.infer<
+  typeof updateGitProviderSchema
+>
 
 interface GitProviderFormProps {
   isNew?: boolean
   defaultValues?: Partial<z.infer<typeof createGitProviderSchema>>
   footer: React.ReactNode
-  onSubmit: (
-    values: any
-  ) => Promise<any>
+  onSubmit: (values: any) => Promise<any>
 }
 
 export const GitProviderForm = React.forwardRef<
@@ -62,11 +63,15 @@ export const GitProviderForm = React.forwardRef<
     defaultValues
   })
 
-  React.useImperativeHandle(ref, () => {
-    return {
-      form
-    }
-  }, [form])
+  React.useImperativeHandle(
+    ref,
+    () => {
+      return {
+        form
+      }
+    },
+    [form]
+  )
 
   return (
     <Form {...form}>

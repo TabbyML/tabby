@@ -17,20 +17,26 @@ export default function GitProvidersPage() {
   const githubRepositoryProviders = data?.githubRepositoryProviders?.edges
 
   return (
-    <LoadingWrapper loading={fetching}>
-      {githubRepositoryProviders?.length ? (
-        <div>
-          <GitProvidersList data={githubRepositoryProviders} />
-          <div className="mt-4 flex justify-end">
-            <Link href="/settings/git/gitops/new" className={buttonVariants()}>
-              Create
-            </Link>
+    <>
+      <CardTitle className="py-3">Git Providers</CardTitle>
+      <LoadingWrapper loading={fetching}>
+        {githubRepositoryProviders?.length ? (
+          <div>
+            <GitProvidersList data={githubRepositoryProviders} />
+            <div className="mt-4 flex justify-end">
+              <Link
+                href="/settings/git/gitops/new"
+                className={buttonVariants()}
+              >
+                Create
+              </Link>
+            </div>
           </div>
-        </div>
-      ) : (
-        <GitProvidersPlaceholder />
-      )}
-    </LoadingWrapper>
+        ) : (
+          <GitProvidersPlaceholder />
+        )}
+      </LoadingWrapper>
+    </>
   )
 }
 

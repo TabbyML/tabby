@@ -136,7 +136,8 @@ function SidebarButton({ href, children }: SidebarButtonProps) {
   const pathname = usePathname()
   const isSelected = React.useMemo(() => {
     if (href === '/') return href === pathname
-    if (href === '/settings/git/gitops') return pathname.startsWith('/settings/git/')
+    if (href === '/settings/git/gitops')
+      return pathname.startsWith('/settings/git/')
 
     return shouldPathnameHighlight(pathname, href)
   }, [pathname, href])

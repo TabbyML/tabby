@@ -85,28 +85,29 @@ const DetailPage: React.FC = () => {
 
   return (
     <LoadingWrapper loading={fetching}>
-      <CardHeader className="pl-0 pt-0">
-        <CardTitle className="flex items-center justify-between">
-          <div
+      <CardTitle className="flex items-center justify-between py-3">
+        <div className="-ml-1 flex items-center">
+          <Button
             onClick={() => router.back()}
-            className="-ml-1 flex cursor-pointer items-center transition-opacity hover:opacity-60"
+            variant={'ghost'}
+            className="px-1"
           >
-            <IconChevronLeft className="mr-1 h-6 w-6" />
-            <span>Provider information</span>
+            <IconChevronLeft className="h-6 w-6" />
+          </Button>
+          <span className="ml-2">Provider information</span>
+        </div>
+        <div className="flex items-center gap-2 text-base">
+          <IconGitHub className="h-6 w-6" />
+          GitHub.com
+          <div className="ml-1">
+            {provider?.connected ? (
+              <Badge variant="successful">Connected</Badge>
+            ) : (
+              <Badge variant="destructive">Not Connected</Badge>
+            )}
           </div>
-          <div className="flex items-center gap-2 text-base">
-            <IconGitHub className="h-6 w-6" />
-            GitHub.com
-            <div className="ml-1">
-              {provider?.connected ? (
-                <Badge variant="successful">Connected</Badge>
-              ) : (
-                <Badge variant="destructive">Not Connected</Badge>
-              )}
-            </div>
-          </div>
-        </CardTitle>
-      </CardHeader>
+        </div>
+      </CardTitle>
       <CardContent className="pl-0">
         <LoadingWrapper loading={fetching} fallback={<ListSkeleton />}>
           <UpdateProviderForm

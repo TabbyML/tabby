@@ -1,6 +1,8 @@
 'use client'
 
 import React from 'react'
+import { isEmpty } from 'lodash-es'
+import { UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
@@ -18,13 +20,14 @@ import {
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  FormMessage
-} from '@/components/ui/form'
+import { FormMessage } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
-import { GitProviderForm, UpdateGitProviderFormValues, updateGitProviderSchema } from '../../components/git-provider-form'
-import { UseFormReturn } from 'react-hook-form'
-import { isEmpty } from 'lodash-es'
+
+import {
+  GitProviderForm,
+  UpdateGitProviderFormValues,
+  updateGitProviderSchema
+} from '../../components/git-provider-form'
 
 const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
   mutation DeleteGithubRepositoryProvider($id: ID!) {
@@ -40,7 +43,6 @@ const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
   }
 `)
 
-
 type FormValues = z.infer<typeof updateGitProviderSchema>
 
 interface UpdateProviderFormProps {
@@ -50,14 +52,15 @@ interface UpdateProviderFormProps {
   onDelete: () => void
 }
 
-
 export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   defaultValues,
   onSuccess,
   onDelete,
   id
 }) => {
-  const formRef = React.useRef<{ form: UseFormReturn<UpdateGitProviderFormValues> }>(null)
+  const formRef = React.useRef<{
+    form: UseFormReturn<UpdateGitProviderFormValues>
+  }>(null)
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const form = formRef.current?.form
@@ -86,7 +89,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     await updateGithubRepositoryProvider({
       input: {
         id,
-        ...values,
+        ...values
       }
     })
   }
@@ -117,7 +120,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     <GitProviderForm
       ref={formRef}
       defaultValues={defaultValues}
-      footer={(
+      footer={
         <div className="flex justify-between">
           <div>
             <FormMessage />
@@ -134,9 +137,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    Are you absolutely sure?
-                  </AlertDialogTitle>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This will delete the provider and remove any repositories
                     that have already been added to the provider.
@@ -149,23 +150,19 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
                     onClick={handleDeleteRepositoryProvider}
                     disabled={isDeleting}
                   >
-                    {isDeleting && (
-                      <IconSpinner className="mr-2" />
-                    )}
+                    {isDeleting && <IconSpinner className="mr-2" />}
                     Yes, delete it
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
             <Button type="submit" disabled={!isDirty}>
-              {isSubmitting && (
-                <IconSpinner className="mr-2 " />
-              )}
+              {isSubmitting && <IconSpinner className="mr-2 " />}
               Update
             </Button>
           </div>
         </div>
-      )}
+      }
       onSubmit={onSubmit}
     />
   )
