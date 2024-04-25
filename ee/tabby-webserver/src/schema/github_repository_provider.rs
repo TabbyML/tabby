@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 
-use super::Context;
+use super::{repository::RepositoryProvider, Context};
 use crate::{juniper::relay::NodeType, schema::Result};
 
 #[derive(GraphQLObject, Debug, PartialEq)]
@@ -61,7 +61,7 @@ impl NodeType for GithubProvidedRepository {
 }
 
 #[async_trait]
-pub trait GithubRepositoryProviderService: Send + Sync {
+pub trait GithubRepositoryProviderService: Send + Sync + RepositoryProvider {
     async fn create_github_repository_provider(
         &self,
         display_name: String,

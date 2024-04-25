@@ -12,6 +12,7 @@ use crate::{
         gitlab_repository_provider::{
             GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryProviderService,
         },
+        repository::{Repository, RepositoryProvider},
         Result,
     },
     service::graphql_pagination_to_filter,
@@ -190,6 +191,27 @@ impl GitlabRepositoryProviderService for GitlabRepositoryProviderServiceImpl {
 fn deduplicate_gitlab_repositories(repositories: &mut Vec<GitlabProvidedRepository>) {
     let mut vendor_ids = HashSet::new();
     repositories.retain(|repo| vendor_ids.insert(repo.vendor_id.clone()));
+}
+
+#[async_trait]
+impl RepositoryProvider for GitlabRepositoryProviderServiceImpl {
+    async fn repository_list(&self) -> Result<Vec<Repository>> {
+        Ok(self
+            .list_gitlab_provided_repositories_by_provider(vec![], None, None, None, None)
+            .await?
+            .into_iter()
+            .map(|x| x.into())
+            .collect())
+    }
+
+    async fn get_repository(&self, id: &ID) -> Result<Repository> {
+        let repo: GitlabProvidedRepository = self
+            .db
+            .get_gitlab_provided_repository(id.as_rowid()?)
+            .await?
+            .into();
+        Ok(repo.into())
+    }
 }
 
 #[cfg(test)]

@@ -166,6 +166,20 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn get_github_provided_repository(
+        &self,
+        id: i64,
+    ) -> Result<GithubProvidedRepositoryDAO> {
+        let repo = query_as!(
+            GithubProvidedRepositoryDAO,
+            "SELECT id, vendor_id, name, git_url, active, github_repository_provider_id FROM github_provided_repositories WHERE id = ?",
+            id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(repo)
+    }
+
     pub async fn list_github_provided_repositories(
         &self,
         provider_ids: Vec<i64>,

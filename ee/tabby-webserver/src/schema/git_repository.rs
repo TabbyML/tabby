@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use juniper::{GraphQLObject, ID};
 use validator::Validate;
 
-use super::{repository::FileEntrySearchResult, Context, Result};
+use super::{repository::RepositoryProvider, Context, Result};
 use crate::juniper::relay::NodeType;
 
 #[derive(Validate)]
@@ -42,7 +42,7 @@ impl NodeType for GitRepository {
 }
 
 #[async_trait]
-pub trait GitRepositoryService: Send + Sync {
+pub trait GitRepositoryService: Send + Sync + RepositoryProvider {
     async fn list(
         &self,
         after: Option<String>,
@@ -52,14 +52,6 @@ pub trait GitRepositoryService: Send + Sync {
     ) -> Result<Vec<GitRepository>>;
 
     async fn create(&self, name: String, git_url: String) -> Result<ID>;
-    async fn get_by_name(&self, name: &str) -> Result<GitRepository>;
     async fn delete(&self, id: &ID) -> Result<bool>;
     async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool>;
-
-    async fn search_files(
-        &self,
-        name: &str,
-        pattern: &str,
-        top_n: usize,
-    ) -> Result<Vec<FileEntrySearchResult>>;
 }

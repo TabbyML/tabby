@@ -40,22 +40,19 @@ use self::{
     email::{EmailService, EmailSetting, EmailSettingInput},
     git_repository::GitRepository,
     github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
+    gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProvider},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
-    repository::RepositoryService,
+    repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
+    types::{CreateRepositoryProviderInput, UpdateRepositoryProviderInput},
     user_event::{UserEvent, UserEventService},
 };
 use crate::{
     axum::FromAuth,
     juniper::relay::{self, Connection},
-    schema::{
-        gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProvider},
-        repository::FileEntrySearchResult,
-        types::{CreateRepositoryProviderInput, UpdateRepositoryProviderInput},
-    },
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -421,14 +418,14 @@ impl Query {
 
     async fn repository_search(
         ctx: &Context,
-        repository_name: String,
+        kind: RepositoryKind,
+        id: ID,
         pattern: String,
     ) -> Result<Vec<FileEntrySearchResult>> {
         check_claims(ctx)?;
         ctx.locator
             .repository()
-            .git()
-            .search_files(&repository_name, &pattern, 40)
+            .search_files(&kind, &id, &pattern, 40)
             .await
     }
 
@@ -526,8 +523,12 @@ impl Query {
 
     async fn disk_usage_stats(ctx: &Context) -> Result<DiskUsageStats> {
         check_admin(ctx).await?;
-        let storage_stats = ctx.locator.analytic().disk_usage_stats().await?;
-        Ok(storage_stats)
+        ctx.locator.analytic().disk_usage_stats().await
+    }
+
+    async fn repository_list(ctx: &Context) -> Result<Vec<Repository>> {
+        check_admin(ctx).await?;
+        ctx.locator.repository().repository_list().await
     }
 }
 

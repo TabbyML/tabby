@@ -118,8 +118,7 @@ impl WebserverHandle {
             )
             .nest(
                 "/repositories",
-                // FIXME(boxbeam): repositories routes should support both git / github repositories, but currently only git repositories are supported.
-                repositories::routes(ctx.repository().git(), ctx.auth()),
+                repositories::routes(ctx.repository(), ctx.auth()),
             )
             .route(
                 "/avatar/:id",
