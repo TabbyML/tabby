@@ -36,7 +36,9 @@ const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
 `)
 
 const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
-  mutation UpdateGithubRepositoryProvider($input: UpdateRepositoryProviderInput!) {
+  mutation UpdateGithubRepositoryProvider(
+    $input: UpdateRepositoryProviderInput!
+  ) {
     updateGithubRepositoryProvider(input: $input)
   }
 `)
