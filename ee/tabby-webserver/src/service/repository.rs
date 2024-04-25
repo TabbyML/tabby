@@ -45,6 +45,15 @@ impl RepositoryAccess for RepositoryServiceImpl {
                 .map(RepositoryConfig::new),
         );
 
+        repos.extend(
+            self.gitlab
+                .list_provided_git_urls()
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(RepositoryConfig::new),
+        );
+
         Ok(repos)
     }
 }
