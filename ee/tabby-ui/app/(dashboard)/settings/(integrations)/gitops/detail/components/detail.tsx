@@ -125,7 +125,7 @@ const DetailPage: React.FC = () => {
 
       <CardHeader className="mt-8 pl-0 pt-0">
         <CardTitle className="flex items-center justify-between">
-          <span>Linked repositories</span>
+          <span>Repositories</span>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent>
               <DialogHeader className="gap-3">
