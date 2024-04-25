@@ -96,9 +96,6 @@ export default function Sidebar({ children, className }: SidebarProps) {
                     <SidebarButton href="/settings/git">
                       Git Providers
                     </SidebarButton>
-                    <SidebarButton href="/settings/gitops">
-                      GitOps
-                    </SidebarButton>
                     <SidebarButton href="/settings/sso">SSO</SidebarButton>
                     <SidebarButton href="/settings/mail">
                       Mail Delivery
