@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { IconGitHub } from '@/components/ui/icons'
 
 export default function GitTabsHeader() {
   const pathname = usePathname()
@@ -17,7 +18,7 @@ export default function GitTabsHeader() {
             <Link href="/settings/repository/git">Git</Link>
           </TabsTrigger>
           <TabsTrigger value="github" asChild>
-            <Link href="/settings/repository/github">GitHub</Link>
+            <Link href="/settings/repository/github"><IconGitHub /><span className='ml-2'>GitHub</span></Link>
           </TabsTrigger>
         </TabsList>
       </div>
