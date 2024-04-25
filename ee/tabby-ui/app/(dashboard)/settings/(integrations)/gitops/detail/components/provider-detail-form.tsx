@@ -211,8 +211,8 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
                       Are you absolutely sure?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will delete the provider and unlink any repositories
-                      that have already been linked to the provider.
+                      This will delete the provider and remove any repositories
+                      that have already been added to the provider.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
