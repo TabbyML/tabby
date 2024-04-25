@@ -216,7 +216,7 @@ const LinkedRepoTable: React.FC<{
         ) : (
           <TableRow>
             <TableCell colSpan={3} className="h-[100px] text-center">
-              No linked repositories yet.
+              No repositories yet.
             </TableCell>
           </TableRow>
         )}
