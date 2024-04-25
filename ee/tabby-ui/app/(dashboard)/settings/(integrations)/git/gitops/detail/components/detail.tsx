@@ -64,7 +64,7 @@ const DetailPage: React.FC = () => {
   }
 
   const onDeleteProvider = () => {
-    router.replace('/settings/gitops')
+    router.replace('/settings/git/gitops')
   }
 
   const unlinkedRepos = useMemo(() => {
@@ -113,7 +113,7 @@ const DetailPage: React.FC = () => {
             defaultValues={provider}
             onDelete={onDeleteProvider}
             onBack={() => {
-              router.push('/settings/gitops')
+              router.push('/settings/git/gitops')
             }}
             id={id}
           />

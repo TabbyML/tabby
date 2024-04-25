@@ -10,8 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { IconGitHub } from '@/components/ui/icons'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-import { RepositoryHeader } from './header'
-
 export default function GitProvidersPage() {
   const [{ data, fetching }] = useQuery({
     query: listGithubRepositoryProviders
@@ -19,23 +17,20 @@ export default function GitProvidersPage() {
   const githubRepositoryProviders = data?.githubRepositoryProviders?.edges
 
   return (
-    <>
-      <RepositoryHeader />
-      <LoadingWrapper loading={fetching}>
-        {githubRepositoryProviders?.length ? (
-          <div>
-            <GitProvidersList data={githubRepositoryProviders} />
-            <div className="mt-4 flex justify-end">
-              <Link href="/settings/gitops/new" className={buttonVariants()}>
-                Create
-              </Link>
-            </div>
+    <LoadingWrapper loading={fetching}>
+      {githubRepositoryProviders?.length ? (
+        <div>
+          <GitProvidersList data={githubRepositoryProviders} />
+          <div className="mt-4 flex justify-end">
+            <Link href="/settings/git/gitops/new" className={buttonVariants()}>
+              Create
+            </Link>
           </div>
-        ) : (
-          <GitProvidersPlaceholder />
-        )}
-      </LoadingWrapper>
-    </>
+        </div>
+      ) : (
+        <GitProvidersPlaceholder />
+      )}
+    </LoadingWrapper>
   )
 }
 
@@ -58,7 +53,7 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                   </div>
                 </CardTitle>
                 <Link
-                  href={`/settings/gitops/detail?id=${item.node.id}`}
+                  href={`/settings/git/gitops/detail?id=${item.node.id}`}
                   className={buttonVariants({ variant: 'secondary' })}
                 >
                   View
@@ -98,7 +93,7 @@ const GitProvidersPlaceholder = () => {
       <div>No Data</div>
       <div className="flex justify-center">
         <Link
-          href="/settings/gitops/new"
+          href="/settings/git/gitops/new"
           className={buttonVariants({ variant: 'default' })}
         >
           Create
