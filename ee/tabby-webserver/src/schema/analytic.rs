@@ -9,22 +9,22 @@ use strum::{EnumIter, IntoEnumIterator};
 use crate::schema::Result;
 
 #[derive(GraphQLObject)]
-pub struct StorageStats {
-    pub events: DirectoryStat,
-    pub indexed_repositories: DirectoryStat,
-    pub database: DirectoryStat,
-    pub models: DirectoryStat,
+pub struct DiskUsageStats {
+    pub events: DiskUsage,
+    pub indexed_repositories: DiskUsage,
+    pub database: DiskUsage,
+    pub models: DiskUsage,
 }
 
 #[derive(GraphQLObject)]
-pub struct DirectoryStat {
+pub struct DiskUsage {
     pub file_paths: Vec<String>,
     pub size: f64,
 }
 
-impl DirectoryStat {
+impl DiskUsage {
     pub fn combine(self, other: Self) -> Self {
-        DirectoryStat {
+        DiskUsage {
             size: self.size + other.size,
             file_paths: self
                 .file_paths
@@ -129,5 +129,5 @@ pub trait AnalyticService: Send + Sync {
         languages: Vec<Language>,
     ) -> Result<Vec<CompletionStats>>;
 
-    async fn storage_stats(&self) -> Result<StorageStats>;
+    async fn disk_usage_stats(&self) -> Result<DiskUsageStats>;
 }
