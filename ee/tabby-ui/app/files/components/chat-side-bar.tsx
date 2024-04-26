@@ -117,7 +117,7 @@ async function buildContextPrompt(
 
   const tokens = code.split(/[^\w]/).filter(x => x)
 
-  // FIXME(meng): restrict query with `git_url` of `repo`.
+  // FIXME(jueliang): restrict query with `git_url` of `repo`.
   const languageQuery = buildLanguageQuery(language)
   const bodyQuery = tokens.map(x => `body:${x}`).join(' OR ')
   const query = `${languageQuery} AND (${bodyQuery})`
