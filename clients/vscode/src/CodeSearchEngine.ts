@@ -1,6 +1,6 @@
 import * as Engine from "@orama/orama";
-import { Range, Position, TextDocument } from "vscode";
-import { extractSematicSymbols } from "./utils";
+import { Position, Range, TextDocument } from "vscode";
+import { extractNonReservedWordList } from "./utils";
 
 export type DocumentRange = {
   document: TextDocument;
@@ -16,7 +16,7 @@ export type CodeSnippet = {
   fullText: string;
   // The code language id of the snippet
   language: string;
-  // The sematic symbols extracted from the snippet
+  // The semantic symbols extracted from the snippet
   symbols: string;
 };
 
@@ -102,7 +102,7 @@ export class CodeSearchEngine {
           offset: document.offsetAt(positionStart),
           fullText: text,
           language: document.languageId,
-          symbols: extractSematicSymbols(text),
+          symbols: extractNonReservedWordList(text),
         });
       }
 
