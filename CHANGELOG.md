@@ -12,7 +12,7 @@
 * Changed the default model filename from `q8_0.v2.gguf` to `model.gguf` in MODEL_SPEC.md
 * Activities from deactivated users are no longer counted in reports
 
-# v0.10.0
+# v0.10.0 (04/22/2024)
 
 ## Features
 * Introduced the `--chat-device` flag to specify the device used to run the chat model.
@@ -25,13 +25,13 @@
 * Accurate repository context filtering using fuzzy matching on `git_url` field.
 * Support the use of client-side context, including function/class declarations from LSP, and relevant snippets from local changed files.
 
-# v0.9.1
+# v0.9.1 (03/19/2024)
 
 ## Fixes and Improvements
 * Fix worker registration check against enterprise licenses.
 * Fix default value of `disable_client_side_telemetry` when `--webserver` is not used.
 
-# v0.9.0
+# v0.9.0 (03/06/2024)
 
 ## Features
 
@@ -39,14 +39,14 @@
 * Support for SSO and team management as features in the Enterprise tier.
 * Fully managed repository indexing using `--webserver`, with job history logging available in the web interface.
 
-# v0.8.3
+# v0.8.3 (02/06/2024)
 
 ## Fixes and Improvements
 
 * Ensure `~/.tabby/repositories` exists for tabby scheduler jobs: https://github.com/TabbyML/tabby/pull/1375
 * Add cpu only binary `tabby-cpu` to docker distribution.
 
-# v0.8.0
+# v0.8.0 (02/02/2024)
 
 ## Notice
 
