@@ -1,3 +1,9 @@
+## 1.5.4
+
+### Fixes
+
+- Fixed settings title on the VSCode settings page.
+
 ## 1.5.3
 
 **stable**
