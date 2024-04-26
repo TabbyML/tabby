@@ -9,7 +9,7 @@ pub struct CreateRepositoryProviderInput {
         message = "Invalid repository provider name"
     ))]
     pub display_name: String,
-    #[validate(length(code = "accessToken", min = 10, message="Invalid access token"))]
+    #[validate(length(code = "accessToken", min = 10, message = "Invalid access token"))]
     pub access_token: String,
 }
 
@@ -22,6 +22,6 @@ pub struct UpdateRepositoryProviderInput {
         message = "Invalid repository provider name"
     ))]
     pub display_name: String,
-    #[validate(length(code = "accessToken", min = 10, message="Invalid access token"))]
+    #[validate(length(code = "accessToken", min = 10, message = "Invalid access token"))]
     pub access_token: String,
 }

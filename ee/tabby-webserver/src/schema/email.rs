@@ -32,7 +32,7 @@ pub struct EmailSetting {
 #[derive(GraphQLInputObject, Validate)]
 pub struct EmailSettingInput {
     pub smtp_username: String,
-    #[validate(email(code = "fromAddress", message="Invalid email address"))]
+    #[validate(email(code = "fromAddress", message = "Invalid email address"))]
     pub from_address: String,
     pub smtp_server: String,
     pub smtp_port: i32,
