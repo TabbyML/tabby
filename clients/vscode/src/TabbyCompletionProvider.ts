@@ -22,7 +22,7 @@ import { API as GitAPI } from "./types/git";
 import { logger } from "./logger";
 import { agent } from "./agent";
 import { RecentlyChangedCodeSearch } from "./RecentlyChangedCodeSearch";
-import { getWordStartIndices, extractSematicSymbols } from "./utils";
+import { extractSemanticSymbols, extractNonReservedWordList } from "./utils";
 
 type DisplayedCompletion = {
   id: string;
@@ -342,19 +342,33 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       position.line,
       position.character,
     );
-    const prefixText = document.getText(prefixRange);
-    const prefixRangeStartOffset = document.offsetAt(prefixRange.start);
-    const symbolPositions = getWordStartIndices(prefixText).map((offset) =>
-      document.positionAt(prefixRangeStartOffset + offset),
-    );
-    this.logger.trace("Found symbol positions in prefix text", { prefixText, symbolPositions });
+    const allowedSymbolTypes = [
+      "class",
+      "decorator",
+      "enum",
+      "function",
+      "interface",
+      "macro",
+      "method",
+      "namespace",
+      "struct",
+      "type",
+      "typeParameter",
+    ];
+    const allSymbols = await extractSemanticSymbols(document, prefixRange);
+    if (!allSymbols) {
+      this.logger.trace("End collectDeclarationSnippets early, symbols provider not available.");
+      return undefined;
+    }
+    const symbols = allSymbols.filter((symbol) => allowedSymbolTypes.includes(symbol.type));
+    this.logger.trace("Found symbols in prefix text", { symbols });
     // Loop through the symbol positions backwards
-    for (let symbolIndex = symbolPositions.length - 1; symbolIndex >= 0; symbolIndex--) {
+    for (let symbolIndex = symbols.length - 1; symbolIndex >= 0; symbolIndex--) {
       if (snippets.length >= config.fillDeclarations.maxSnippets) {
         // Stop collecting snippets if the max number of snippets is reached
         break;
       }
-      const symbolPosition = symbolPositions[symbolIndex];
+      const symbolPosition = symbols[symbolIndex]!.position;
       const declarationLinks = await commands.executeCommand(
         "vscode.executeDefinitionProvider",
         document.uri,
@@ -425,7 +439,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       position.character,
     );
     const prefixText = document.getText(prefixRange);
-    const query = extractSematicSymbols(prefixText);
+    const query = extractNonReservedWordList(prefixText);
     const snippets = await this.recentlyChangedCodeSearch.collectRelevantSnippets(
       query,
       document,
