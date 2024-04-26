@@ -2,8 +2,11 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 
-use super::{repository::RepositoryProvider, types::RepositoryProviderStatus, Context};
-use crate::{juniper::relay::NodeType, schema::Result};
+use super::{RepositoryProvider, RepositoryProviderStatus};
+use crate::{
+    juniper::relay::NodeType,
+    schema::{Context, Result},
+};
 
 #[derive(GraphQLObject, Debug, PartialEq)]
 #[graphql(context = Context)]

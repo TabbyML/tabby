@@ -6,43 +6,42 @@ use juniper::ID;
 use tabby_db::DbConn;
 use url::Url;
 
-use super::{AsID, AsRowid};
 use crate::{
     schema::{
-        github_repository::{
-            GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryService,
+        repository::{
+            GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService,
+            Repository, RepositoryProvider,
         },
-        repository::{Repository, RepositoryProvider},
         Result,
     },
-    service::graphql_pagination_to_filter,
+    service::{graphql_pagination_to_filter, AsID, AsRowid},
 };
 
-struct GithubRepositoryProviderServiceImpl {
+struct GitlabRepositoryProviderServiceImpl {
     db: DbConn,
 }
 
-pub fn create(db: DbConn) -> impl GithubRepositoryService {
-    GithubRepositoryProviderServiceImpl { db }
+pub fn create(db: DbConn) -> impl GitlabRepositoryService {
+    GitlabRepositoryProviderServiceImpl { db }
 }
 
 #[async_trait]
-impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
+impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
     async fn create_provider(&self, display_name: String, access_token: String) -> Result<ID> {
         let id = self
             .db
-            .create_github_provider(display_name, access_token)
+            .create_gitlab_provider(display_name, access_token)
             .await?;
         Ok(id.as_id())
     }
 
-    async fn get_provider(&self, id: ID) -> Result<GithubRepositoryProvider> {
-        let provider = self.db.get_github_provider(id.as_rowid()?).await?;
+    async fn get_provider(&self, id: ID) -> Result<GitlabRepositoryProvider> {
+        let provider = self.db.get_gitlab_provider(id.as_rowid()?).await?;
         Ok(provider.into())
     }
 
     async fn delete_provider(&self, id: ID) -> Result<()> {
-        self.db.delete_github_provider(id.as_rowid()?).await?;
+        self.db.delete_gitlab_provider(id.as_rowid()?).await?;
         Ok(())
     }
 
@@ -53,7 +52,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<GithubRepositoryProvider>> {
+    ) -> Result<Vec<GitlabRepositoryProvider>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
 
         let ids = ids
@@ -63,11 +62,11 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
 
         let providers = self
             .db
-            .list_github_repository_providers(ids, limit, skip_id, backwards)
+            .list_gitlab_repository_providers(ids, limit, skip_id, backwards)
             .await?;
         Ok(providers
             .into_iter()
-            .map(GithubRepositoryProvider::from)
+            .map(GitlabRepositoryProvider::from)
             .collect())
     }
 
@@ -78,7 +77,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         before: Option<String>,
         first: Option<usize>,
         last: Option<usize>,
-    ) -> Result<Vec<GithubProvidedRepository>> {
+    ) -> Result<Vec<GitlabProvidedRepository>> {
         let providers = providers
             .into_iter()
             .map(|i| i.as_rowid())
@@ -86,12 +85,12 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let repos = self
             .db
-            .list_github_provided_repositories(providers, limit, skip_id, backwards)
+            .list_gitlab_provided_repositories(providers, limit, skip_id, backwards)
             .await?;
 
         Ok(repos
             .into_iter()
-            .map(GithubProvidedRepository::from)
+            .map(GitlabProvidedRepository::from)
             .collect())
     }
 
@@ -103,7 +102,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         git_url: String,
     ) -> Result<()> {
         self.db
-            .upsert_github_provided_repository(
+            .upsert_gitlab_provided_repository(
                 provider_id.as_rowid()?,
                 vendor_id,
                 display_name,
@@ -115,7 +114,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()> {
         self.db
-            .update_github_provided_repository_active(id.as_rowid()?, active)
+            .update_gitlab_provided_repository_active(id.as_rowid()?, active)
             .await?;
         Ok(())
     }
@@ -127,7 +126,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         access_token: String,
     ) -> Result<()> {
         self.db
-            .update_github_provider(id.as_rowid()?, display_name, access_token)
+            .update_gitlab_provider(id.as_rowid()?, display_name, access_token)
             .await?;
         Ok(())
     }
@@ -147,7 +146,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
             .filter(|x| x.active)
             .collect();
 
-        deduplicate_github_repositories(&mut repos);
+        deduplicate_gitlab_repositories(&mut repos);
 
         let urls = repos
             .into_iter()
@@ -156,8 +155,11 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
                     return None;
                 }
                 let mut url = Url::parse(&repo.git_url).ok()?;
-                url.set_username(tokens.get(&repo.github_repository_provider_id.to_string())?)
-                    .ok()?;
+                url.set_username("oauth2").ok()?;
+                url.set_password(Some(
+                    tokens.get(&repo.gitlab_repository_provider_id.to_string())?,
+                ))
+                .ok()?;
                 Some(url.to_string())
             })
             .collect();
@@ -171,21 +173,26 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         cutoff_timestamp: DateTime<Utc>,
     ) -> Result<()> {
         self.db
-            .delete_outdated_github_repositories(provider_id.as_rowid()?, cutoff_timestamp.into())
+            .delete_outdated_gitlab_repositories(provider_id.as_rowid()?, cutoff_timestamp.into())
             .await?;
         Ok(())
     }
 
     async fn update_provider_status(&self, id: ID, success: bool) -> Result<()> {
         self.db
-            .update_github_provider_sync_status(id.as_rowid()?, success)
+            .update_gitlab_provider_sync_status(id.as_rowid()?, success)
             .await?;
         Ok(())
     }
 }
 
+fn deduplicate_gitlab_repositories(repositories: &mut Vec<GitlabProvidedRepository>) {
+    let mut vendor_ids = HashSet::new();
+    repositories.retain(|repo| vendor_ids.insert(repo.vendor_id.clone()));
+}
+
 #[async_trait]
-impl RepositoryProvider for GithubRepositoryProviderServiceImpl {
+impl RepositoryProvider for GitlabRepositoryProviderServiceImpl {
     async fn repository_list(&self) -> Result<Vec<Repository>> {
         Ok(self
             .list_repositories(vec![], None, None, None, None)
@@ -197,18 +204,13 @@ impl RepositoryProvider for GithubRepositoryProviderServiceImpl {
     }
 
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
-        let repo: GithubProvidedRepository = self
+        let repo: GitlabProvidedRepository = self
             .db
-            .get_github_provided_repository(id.as_rowid()?)
+            .get_gitlab_provided_repository(id.as_rowid()?)
             .await?
             .into();
         Ok(repo.into())
     }
-}
-
-fn deduplicate_github_repositories(repositories: &mut Vec<GithubProvidedRepository>) {
-    let mut vendor_ids = HashSet::new();
-    repositories.retain(|repo| vendor_ids.insert(repo.vendor_id.clone()));
 }
 
 #[cfg(test)]
@@ -216,39 +218,39 @@ mod tests {
     use chrono::Duration;
 
     use super::*;
-    use crate::{schema::types::RepositoryProviderStatus, service::AsID};
+    use crate::{schema::repository::RepositoryProviderStatus, service::AsID};
 
     #[tokio::test]
-    async fn test_github_provided_repositories() {
+    async fn test_gitlab_provided_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
         let provider_id1 = db
-            .create_github_provider("test_id1".into(), "test_secret".into())
+            .create_gitlab_provider("test_id1".into(), "test_secret".into())
             .await
             .unwrap();
 
         let provider_id2 = db
-            .create_github_provider("test_id2".into(), "test_secret".into())
+            .create_gitlab_provider("test_id2".into(), "test_secret".into())
             .await
             .unwrap();
 
         let repo_id1 = db
-            .upsert_github_provided_repository(
+            .upsert_gitlab_provided_repository(
                 provider_id1,
                 "vendor_id1".into(),
                 "test_repo1".into(),
-                "https://github.com/test/test1".into(),
+                "https://gitlab.com/test/test1".into(),
             )
             .await
             .unwrap();
 
         let repo_id2 = db
-            .upsert_github_provided_repository(
+            .upsert_gitlab_provided_repository(
                 provider_id2,
                 "vendor_id2".into(),
                 "test_repo2".into(),
-                "https://github.com/test/test2".into(),
+                "https://gitlab.com/test/test2".into(),
             )
             .await
             .unwrap();
@@ -273,11 +275,11 @@ mod tests {
         assert_eq!(repos[0].name, "test_repo1");
 
         // Test deletion and toggling active status
-        db.delete_github_provided_repository(repo_id1)
+        db.delete_gitlab_provided_repository(repo_id1)
             .await
             .unwrap();
 
-        db.update_github_provided_repository_active(repo_id2, true)
+        db.update_gitlab_provided_repository_active(repo_id2, true)
             .await
             .unwrap();
 
@@ -291,7 +293,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_github_repository_provider_crud() {
+    async fn test_gitlab_repository_provider_crud() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = super::create(db.clone());
 
@@ -300,19 +302,19 @@ mod tests {
             .await
             .unwrap();
 
-        // Test retrieving github provider by ID
+        // Test retrieving gitlab provider by ID
         let provider1 = service.get_provider(id.clone()).await.unwrap();
         assert_eq!(
             provider1,
-            GithubRepositoryProvider {
+            GitlabRepositoryProvider {
                 id: id.clone(),
                 display_name: "id".into(),
                 access_token: Some("secret".into()),
-                status: RepositoryProviderStatus::Pending,
+                status: RepositoryProviderStatus::Pending
             }
         );
 
-        // Test listing github providers
+        // Test listing gitlab providers
         let providers = service
             .list_providers(vec![], None, None, None, None)
             .await
@@ -320,7 +322,7 @@ mod tests {
         assert_eq!(providers.len(), 1);
         assert_eq!(providers[0].access_token, Some("secret".into()));
 
-        // Test deleting github provider
+        // Test deleting gitlab provider
         service.delete_provider(id.clone()).await.unwrap();
 
         assert_eq!(
@@ -334,43 +336,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_provided_git_urls() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone());
-
-        let provider_id = db
-            .create_github_provider("provider1".into(), "token".into())
-            .await
-            .unwrap();
-
-        let repo_id = db
-            .upsert_github_provided_repository(
-                provider_id,
-                "vendor_id1".into(),
-                "test_repo".into(),
-                "https://github.com/TabbyML/tabby".into(),
-            )
-            .await
-            .unwrap();
-
-        db.update_github_provided_repository_active(repo_id, true)
-            .await
-            .unwrap();
-
-        let git_urls = service.list_active_git_urls().await.unwrap();
-        assert_eq!(
-            git_urls,
-            ["https://token@github.com/TabbyML/tabby".to_string()]
-        );
-    }
-
-    #[tokio::test]
     async fn test_sync_status() {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = create(db.clone());
 
         let provider_id = db
-            .create_github_provider("provider1".into(), "token".into())
+            .create_gitlab_provider("provider1".into(), "token".into())
             .await
             .unwrap();
 
@@ -379,7 +350,7 @@ mod tests {
             .await
             .unwrap();
 
-        let provider = db.get_github_provider(provider_id).await.unwrap();
+        let provider = db.get_gitlab_provider(provider_id).await.unwrap();
 
         assert!(provider.access_token.is_some());
         assert!(provider.synced_at.is_some());
@@ -389,10 +360,41 @@ mod tests {
             .await
             .unwrap();
 
-        let provider = db.get_github_provider(provider_id).await.unwrap();
+        let provider = db.get_gitlab_provider(provider_id).await.unwrap();
 
         assert!(provider.access_token.is_none());
         assert!(provider.synced_at.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_provided_git_urls() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let provider_id = db
+            .create_gitlab_provider("provider1".into(), "token".into())
+            .await
+            .unwrap();
+
+        let repo_id = db
+            .upsert_gitlab_provided_repository(
+                provider_id,
+                "vendor_id1".into(),
+                "test_repo".into(),
+                "https://gitlab.com/TabbyML/tabby".into(),
+            )
+            .await
+            .unwrap();
+
+        db.update_gitlab_provided_repository_active(repo_id, true)
+            .await
+            .unwrap();
+
+        let git_urls = service.list_active_git_urls().await.unwrap();
+        assert_eq!(
+            git_urls,
+            ["https://oauth2:token@gitlab.com/TabbyML/tabby".to_string()]
+        );
     }
 
     #[tokio::test]
@@ -402,16 +404,16 @@ mod tests {
         let time = Utc::now();
 
         let provider_id = db
-            .create_github_provider("provider1".into(), "secret1".into())
+            .create_gitlab_provider("provider1".into(), "secret1".into())
             .await
             .unwrap();
 
         let _repo_id = db
-            .upsert_github_provided_repository(
+            .upsert_gitlab_provided_repository(
                 provider_id,
                 "vendor_id1".into(),
                 "test_repo".into(),
-                "https://github.com/TabbyML/tabby".into(),
+                "https://gitlab.com/TabbyML/tabby".into(),
             )
             .await
             .unwrap();

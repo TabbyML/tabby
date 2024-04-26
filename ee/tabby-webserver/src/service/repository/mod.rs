@@ -1,3 +1,7 @@
+mod git_repository;
+mod github_repository;
+mod gitlab_repository;
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -5,12 +9,12 @@ use juniper::ID;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
 
-use super::{github_repository, gitlab_repository, Result};
 use crate::schema::{
-    git_repository::GitRepositoryService,
-    github_repository::GithubRepositoryService,
-    gitlab_repository::GitlabRepositoryService,
-    repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
+    repository::{
+        FileEntrySearchResult, GitRepositoryService, GithubRepositoryService,
+        GitlabRepositoryService, Repository, RepositoryKind, RepositoryService,
+    },
+    Result,
 };
 
 struct RepositoryServiceImpl {

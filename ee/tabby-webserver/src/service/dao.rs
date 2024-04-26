@@ -11,12 +11,12 @@ use crate::{
     schema::{
         auth::{self, OAuthCredential, OAuthProvider},
         email::{AuthMethod, EmailSetting, Encryption},
-        git_repository::GitRepository,
-        github_repository::{GithubProvidedRepository, GithubRepositoryProvider},
-        gitlab_repository::{GitlabProvidedRepository, GitlabRepositoryProvider},
         job,
+        repository::{
+            GitRepository, GithubProvidedRepository, GithubRepositoryProvider,
+            GitlabProvidedRepository, GitlabRepositoryProvider, RepositoryProviderStatus,
+        },
         setting::{NetworkSetting, SecuritySetting},
-        types::RepositoryProviderStatus,
         user_event::{EventKind, UserEvent},
         CoreError,
     },

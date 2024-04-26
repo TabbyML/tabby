@@ -10,7 +10,7 @@ use juniper::ID;
 use serde::Deserialize;
 use tracing::warn;
 
-use crate::schema::gitlab_repository::{GitlabRepositoryProvider, GitlabRepositoryService};
+use crate::schema::repository::{GitlabRepositoryProvider, GitlabRepositoryService};
 
 pub async fn refresh_all_repositories(service: Arc<dyn GitlabRepositoryService>) -> Result<()> {
     for provider in service

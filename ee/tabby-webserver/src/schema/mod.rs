@@ -2,14 +2,10 @@ pub mod analytic;
 pub mod auth;
 pub mod constants;
 pub mod email;
-pub mod git_repository;
-pub mod github_repository;
-pub mod gitlab_repository;
 pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
-pub mod types;
 pub mod user_event;
 pub mod worker;
 
@@ -38,16 +34,12 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    git_repository::GitRepository,
-    github_repository::{GithubProvidedRepository, GithubRepositoryProvider},
-    gitlab_repository::{GitlabProvidedRepository, GitlabRepositoryProvider},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
-    types::{CreateRepositoryProviderInput, UpdateRepositoryProviderInput},
     user_event::{UserEvent, UserEventService},
 };
 use crate::{
@@ -230,7 +222,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GithubRepositoryProvider>> {
+    ) -> Result<Connection<repository::GithubRepositoryProvider>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -255,7 +247,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GithubProvidedRepository>> {
+    ) -> Result<Connection<repository::GithubProvidedRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -280,7 +272,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GitlabRepositoryProvider>> {
+    ) -> Result<Connection<repository::GitlabRepositoryProvider>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -305,7 +297,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GitlabProvidedRepository>> {
+    ) -> Result<Connection<repository::GitlabProvidedRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -374,7 +366,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GitRepository>> {
+    ) -> Result<Connection<repository::GitRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -682,7 +674,7 @@ impl Mutation {
 
     async fn create_git_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
         check_admin(ctx).await?;
-        let input = git_repository::CreateGitRepositoryInput { name, git_url };
+        let input = repository::CreateGitRepositoryInput { name, git_url };
         input.validate()?;
         ctx.locator
             .repository()
@@ -774,7 +766,7 @@ impl Mutation {
 
     async fn create_github_repository_provider(
         ctx: &Context,
-        input: CreateRepositoryProviderInput,
+        input: repository::CreateRepositoryProviderInput,
     ) -> Result<ID> {
         check_admin(ctx).await?;
         input.validate()?;
@@ -799,7 +791,7 @@ impl Mutation {
 
     async fn update_github_repository_provider(
         ctx: &Context,
-        input: UpdateRepositoryProviderInput,
+        input: repository::UpdateRepositoryProviderInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
@@ -826,7 +818,7 @@ impl Mutation {
 
     async fn create_gitlab_repository_provider(
         ctx: &Context,
-        input: CreateRepositoryProviderInput,
+        input: repository::CreateRepositoryProviderInput,
     ) -> Result<ID> {
         check_admin(ctx).await?;
         input.validate()?;
@@ -851,7 +843,7 @@ impl Mutation {
 
     async fn update_gitlab_repository_provider(
         ctx: &Context,
-        input: UpdateRepositoryProviderInput,
+        input: repository::UpdateRepositoryProviderInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;

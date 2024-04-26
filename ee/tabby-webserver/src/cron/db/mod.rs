@@ -11,8 +11,9 @@ use tokio_cron_scheduler::Job;
 use tracing::{debug, error};
 
 use crate::schema::{
-    auth::AuthenticationService, github_repository::GithubRepositoryService,
-    gitlab_repository::GitlabRepositoryService, job::JobService,
+    auth::AuthenticationService,
+    job::JobService,
+    repository::{GithubRepositoryService, GitlabRepositoryService},
 };
 
 const EVERY_TWO_HOURS: &str = "0 0 1/2 * * * *";

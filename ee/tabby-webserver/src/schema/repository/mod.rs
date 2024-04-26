@@ -1,17 +1,27 @@
+mod types;
+pub use types::*;
+
+mod git_repository;
+pub use git_repository::{CreateGitRepositoryInput, GitRepository, GitRepositoryService};
+
+mod github_repository;
+pub use github_repository::{
+    GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryService,
+};
+
+mod gitlab_repository;
 use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
+pub use gitlab_repository::{
+    GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService,
+};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_search::FileSearch;
 
-use super::{
-    git_repository::{GitRepository, GitRepositoryService},
-    github_repository::{GithubProvidedRepository, GithubRepositoryService},
-    gitlab_repository::{GitlabProvidedRepository, GitlabRepositoryService},
-    Result,
-};
+use super::Result;
 
 #[derive(GraphQLObject, Debug)]
 pub struct FileEntrySearchResult {
