@@ -79,6 +79,7 @@ impl RepositoryConfig {
     }
 
     pub fn canonicalize_url(url: &str) -> String {
+        let url = url.strip_suffix(".git").unwrap_or(url);
         url::Url::parse(url)
             .map(|mut url| {
                 let _ = url.set_password(None);
