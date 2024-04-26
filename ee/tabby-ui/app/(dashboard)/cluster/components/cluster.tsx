@@ -160,12 +160,12 @@ type UsageItemWithSize = UsageItem & { size: number }
 
 const usageList: UsageItem[] = [
   {
-    label: 'Model Cache',
+    label: 'Model',
     key: 'models',
     color: '#0088FE'
   },
   {
-    label: 'Repository Context',
+    label: 'Indexing',
     key: 'indexedRepositories',
     color: '#00C49F'
   },
@@ -206,9 +206,9 @@ function Usage() {
     <LoadingWrapper loading={fetching} fallback={<></>}>
       <>
         <div>
-          <p className="font-bold">Storage Usage</p>
+          <p className="font-bold">Disk Usage</p>
           <p className="text-sm text-muted-foreground">
-            Disk Space Utilization by Type
+            Storage utilization by Type
           </p>
         </div>
         <div className="flex flex-col items-center gap-x-3 md:flex-row">
@@ -247,7 +247,7 @@ function Usage() {
                   />
                   <p className="font-semibold">{usage!.label}</p>
                 </div>
-                <p>{bytes(usage!.size * 1024)}</p>
+                <p>{toBytes(usage!.size)}</p>
               </div>
             ))}
           </div>
@@ -274,7 +274,7 @@ function CustomLabel({
     <g>
       <text
         x={cx}
-        y={cy - 10}
+        y={cy - 20}
         textAnchor="middle"
         dominantBaseline="central"
         alignmentBaseline="middle"
@@ -292,8 +292,12 @@ function CustomLabel({
         fill={theme === 'dark' ? '#FDFDFD' : '#030302'}
         className="text-lg font-semibold"
       >
-        {bytes(totalUsage * 1024)}
+        {toBytes(totalUsage)}
       </text>
     </g>
   )
+}
+
+function toBytes(value: number) {
+  return bytes(value * 1024, { unitSeparator: " " })
 }
