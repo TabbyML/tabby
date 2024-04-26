@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use futures::Future;
 use tokio::io::AsyncBufReadExt;
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{error, info, warn};
+use tracing::{debug, error, warn};
 
 use crate::schema::{job::JobService, worker::WorkerService};
 
@@ -31,7 +31,7 @@ pub async fn scheduler_job(
                 }
 
                 if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {
-                    info!(
+                    debug!(
                         "Next time for scheduler job is {:?}",
                         next_tick.with_timezone(&chrono::Local)
                     );
@@ -56,7 +56,7 @@ async fn run_scheduler_now(
     worker: Arc<dyn WorkerService>,
     local_port: u16,
 ) -> Result<()> {
-    info!("Running scheduler job...");
+    debug!("Running scheduler job...");
     let exe = std::env::current_exe()?;
     let job_id = job.start("scheduler".to_owned()).await?;
 
