@@ -321,8 +321,6 @@ const FileTreeRenderer: React.FC = () => {
   const { initialized, activePath, fileMap, fileTreeData } =
     React.useContext(FileTreeContext)
   const repoPrefix = generatePathPrefixFromPath(activePath)
-  // todo fix no data
-  console.log(fileTreeData, '======filetreedata')
 
   if (!initialized) return <FileTreeSkeleton />
 

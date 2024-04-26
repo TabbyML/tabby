@@ -222,7 +222,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
               </div>
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-[50vh] overflow-y-auto">
             {noIndexedRepo ? (
               <SelectItem isPlaceHolder value="" disabled>
                 No indexed repository
@@ -312,7 +312,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                   side="bottom"
                   onOpenAutoFocus={e => e.preventDefault()}
                   style={{ width: '50vw', maxWidth: 700 }}
-                  className="max-h-[50vh] overflow-y-scroll"
+                  className="max-h-[50vh] overflow-y-auto"
                 >
                   <>
                     {options?.length ? (
