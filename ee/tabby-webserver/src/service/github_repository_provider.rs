@@ -192,6 +192,7 @@ impl RepositoryProvider for GithubRepositoryProviderServiceImpl {
             .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
             .await?
             .into_iter()
+            .filter(|x| x.active)
             .map(|x| x.into())
             .collect())
     }
