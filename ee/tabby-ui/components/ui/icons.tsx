@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
-import { BookOpenText, Mail, ChevronsDownUp } from 'lucide-react'
+import { BookOpenText, ChevronsDownUp, Mail } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -1352,7 +1352,10 @@ function IconMail({ className, ...props }: React.ComponentProps<typeof Mail>) {
   return <Mail className={cn('h4 w-4', className)} {...props} />
 }
 
-function IconChevronsDownUp({ className, ...props }: React.ComponentProps<typeof ChevronsDownUp>) {
+function IconChevronsDownUp({
+  className,
+  ...props
+}: React.ComponentProps<typeof ChevronsDownUp>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1365,8 +1368,8 @@ function IconChevronsDownUp({ className, ...props }: React.ComponentProps<typeof
       className={cn('h-4 w-4', className)}
       {...props}
     >
-      <path d="m7 20 5-5 5 5"/>
-      <path d="m7 4 5 5 5-5"/>
+      <path d="m7 20 5-5 5 5" />
+      <path d="m7 4 5 5 5-5" />
     </svg>
   )
 }

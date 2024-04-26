@@ -20,9 +20,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import {
   IconChevronLeft,
   IconChevronRight,
-  IconFileSearch,
   IconChevronsDownUp,
-  IconChevronUpDown
+  IconChevronUpDown,
+  IconFileSearch
 } from '@/components/ui/icons'
 import {
   Select,
@@ -48,7 +48,7 @@ import {
 import DateRangePicker from '@/components/date-range-picker'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-const ReactJson = dynamic(() => import('react-json-view'), { ssr: false });
+const ReactJson = dynamic(() => import('react-json-view'), { ssr: false })
 
 const DEFAULT_DATE_RANGE = '-24h'
 const KEY_SELECT_ALL = 'all'
@@ -365,12 +365,22 @@ function ActivityRow({
         </TableCell>
         <TableCell className="pr-4 md:pr-8">
           <Tooltip>
-            <TooltipTrigger>{moment(activity.createdAt).isBefore(moment().subtract(1, 'days'))
-              ? moment(activity.createdAt).format('YYYY-MM-DD HH:mm')
-              : moment(activity.createdAt).fromNow()}</TooltipTrigger>
+            <TooltipTrigger>
+              {moment(activity.createdAt).isBefore(moment().subtract(1, 'days'))
+                ? moment(activity.createdAt).format('YYYY-MM-DD HH:mm')
+                : moment(activity.createdAt).fromNow()}
+            </TooltipTrigger>
             <TooltipContent>
-              <p className="py-0.5"><b className="mr-1 inline-block w-7">UTC:</b>{moment.utc(activity.createdAt).format('YYYY-MM-DD HH:mm:ss')}</p>
-              <p className="py-0.5"><b className="mr-1 inline-block w-7">{momentTimezone.tz(momentTimezone.tz.guess()).format('z')}:</b>{moment(activity.createdAt).format('YYYY-MM-DD HH:mm:ss')}</p>
+              <p className="py-0.5">
+                <b className="mr-1 inline-block w-7">UTC:</b>
+                {moment.utc(activity.createdAt).format('YYYY-MM-DD HH:mm:ss')}
+              </p>
+              <p className="py-0.5">
+                <b className="mr-1 inline-block w-7">
+                  {momentTimezone.tz(momentTimezone.tz.guess()).format('z')}:
+                </b>
+                {moment(activity.createdAt).format('YYYY-MM-DD HH:mm:ss')}
+              </p>
             </TooltipContent>
           </Tooltip>
         </TableCell>
