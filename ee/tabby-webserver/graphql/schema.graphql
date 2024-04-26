@@ -1,3 +1,9 @@
+type Repository {
+  id: ID!
+  name: String!
+  kind: RepositoryKind!
+}
+
 input UpdateRepositoryProviderInput {
   id: ID!
   displayName: String!
@@ -283,7 +289,7 @@ type Query {
   networkSetting: NetworkSetting!
   securitySetting: SecuritySetting!
   gitRepositories(after: String, before: String, first: Int, last: Int): RepositoryConnection!
-  repositorySearch(repositoryName: String!, pattern: String!): [FileEntrySearchResult!]!
+  repositorySearch(kind: RepositoryKind!, id: ID!, pattern: String!): [FileEntrySearchResult!]!
   oauthCredential(provider: OAuthProvider!): OAuthCredential
   oauthCallbackUrl(provider: OAuthProvider!): String!
   serverInfo: ServerInfo!
@@ -293,6 +299,7 @@ type Query {
   dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
   userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTimeUtc!, end: DateTimeUtc!): UserEventConnection!
   diskUsageStats: DiskUsageStats!
+  repositoryList: [Repository!]!
 }
 
 input NetworkSettingInput {
@@ -334,6 +341,12 @@ type GitlabRepositoryProviderConnection {
 type RepositoryConnection {
   edges: [RepositoryEdge!]!
   pageInfo: PageInfo!
+}
+
+enum RepositoryKind {
+  GIT
+  GITHUB
+  GITLAB
 }
 
 input EmailSettingInput {

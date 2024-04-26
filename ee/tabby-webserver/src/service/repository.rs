@@ -90,8 +90,8 @@ impl RepositoryService for RepositoryServiceImpl {
     async fn get(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
         match kind {
             RepositoryKind::Git => self.git().get_repository(id).await,
-            RepositoryKind::GitHub => self.github().get_repository(id).await,
-            RepositoryKind::GitLab => self.gitlab().get_repository(id).await,
+            RepositoryKind::Github => self.github().get_repository(id).await,
+            RepositoryKind::Gitlab => self.gitlab().get_repository(id).await,
         }
     }
 

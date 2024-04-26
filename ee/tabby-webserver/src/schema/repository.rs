@@ -36,8 +36,8 @@ impl From<FileSearch> for FileEntrySearchResult {
 #[serde(rename_all = "lowercase")]
 pub enum RepositoryKind {
     Git,
-    GitHub,
-    GitLab,
+    Github,
+    Gitlab,
 }
 
 #[derive(GraphQLObject)]
@@ -66,7 +66,7 @@ impl From<GithubProvidedRepository> for Repository {
         Self {
             id: value.id,
             name: value.name,
-            kind: RepositoryKind::GitHub,
+            kind: RepositoryKind::Github,
             dir: RepositoryConfig::new(value.git_url).dir(),
         }
     }
@@ -77,7 +77,7 @@ impl From<GitlabProvidedRepository> for Repository {
         Self {
             id: value.id,
             name: value.name,
-            kind: RepositoryKind::GitLab,
+            kind: RepositoryKind::Gitlab,
             dir: RepositoryConfig::new(value.git_url).dir(),
         }
     }
