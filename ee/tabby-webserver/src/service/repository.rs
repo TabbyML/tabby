@@ -8,14 +8,14 @@ use tabby_db::DbConn;
 use super::{github_repository_provider, gitlab_repository_provider, Result};
 use crate::schema::{
     git_repository::GitRepositoryService,
-    github_repository_provider::GithubRepositoryProviderService,
+    github_repository::GithubRepositoryService,
     gitlab_repository::GitlabRepositoryService,
     repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
 };
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
-    github: Arc<dyn GithubRepositoryProviderService>,
+    github: Arc<dyn GithubRepositoryService>,
     gitlab: Arc<dyn GitlabRepositoryService>,
 }
 
@@ -40,7 +40,7 @@ impl RepositoryAccess for RepositoryServiceImpl {
 
         repos.extend(
             self.github
-                .list_provided_git_urls()
+                .list_active_git_urls()
                 .await
                 .unwrap_or_default()
                 .into_iter()
@@ -66,7 +66,7 @@ impl RepositoryService for RepositoryServiceImpl {
         self.git.clone()
     }
 
-    fn github(&self) -> Arc<dyn GithubRepositoryProviderService> {
+    fn github(&self) -> Arc<dyn GithubRepositoryService> {
         self.github.clone()
     }
 

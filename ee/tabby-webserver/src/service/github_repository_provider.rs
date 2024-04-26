@@ -9,8 +9,8 @@ use url::Url;
 use super::{AsID, AsRowid};
 use crate::{
     schema::{
-        github_repository_provider::{
-            GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
+        github_repository::{
+            GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryService,
         },
         repository::{Repository, RepositoryProvider},
         Result,
@@ -22,17 +22,13 @@ struct GithubRepositoryProviderServiceImpl {
     db: DbConn,
 }
 
-pub fn create(db: DbConn) -> impl GithubRepositoryProviderService {
+pub fn create(db: DbConn) -> impl GithubRepositoryService {
     GithubRepositoryProviderServiceImpl { db }
 }
 
 #[async_trait]
-impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
-    async fn create_github_repository_provider(
-        &self,
-        display_name: String,
-        access_token: String,
-    ) -> Result<ID> {
+impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
+    async fn create_provider(&self, display_name: String, access_token: String) -> Result<ID> {
         let id = self
             .db
             .create_github_provider(display_name, access_token)
@@ -40,17 +36,17 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(id.as_id())
     }
 
-    async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider> {
+    async fn get_provider(&self, id: ID) -> Result<GithubRepositoryProvider> {
         let provider = self.db.get_github_provider(id.as_rowid()?).await?;
         Ok(provider.into())
     }
 
-    async fn delete_github_repository_provider(&self, id: ID) -> Result<()> {
+    async fn delete_provider(&self, id: ID) -> Result<()> {
         self.db.delete_github_provider(id.as_rowid()?).await?;
         Ok(())
     }
 
-    async fn list_github_repository_providers(
+    async fn list_providers(
         &self,
         ids: Vec<ID>,
         after: Option<String>,
@@ -75,7 +71,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .collect())
     }
 
-    async fn list_github_provided_repositories_by_provider(
+    async fn list_repositories(
         &self,
         providers: Vec<ID>,
         after: Option<String>,
@@ -99,7 +95,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .collect())
     }
 
-    async fn upsert_github_provided_repository(
+    async fn upsert_repository(
         &self,
         provider_id: ID,
         vendor_id: String,
@@ -117,14 +113,14 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(())
     }
 
-    async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()> {
+    async fn update_repository_active(&self, id: ID, active: bool) -> Result<()> {
         self.db
             .update_github_provided_repository_active(id.as_rowid()?, active)
             .await?;
         Ok(())
     }
 
-    async fn update_github_repository_provider(
+    async fn update_provider(
         &self,
         id: ID,
         display_name: String,
@@ -136,16 +132,16 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(())
     }
 
-    async fn list_provided_git_urls(&self) -> Result<Vec<String>> {
+    async fn list_active_git_urls(&self) -> Result<Vec<String>> {
         let tokens: HashMap<String, String> = self
-            .list_github_repository_providers(vec![], None, None, None, None)
+            .list_providers(vec![], None, None, None, None)
             .await?
             .into_iter()
             .filter_map(|provider| Some((provider.id.to_string(), provider.access_token?)))
             .collect();
 
         let mut repos = self
-            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None)
             .await?;
 
         deduplicate_github_repositories(&mut repos);
@@ -166,7 +162,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(urls)
     }
 
-    async fn delete_outdated_github_provided_repositories(
+    async fn delete_outdated_repositories(
         &self,
         provider_id: ID,
         cutoff_timestamp: DateTime<Utc>,
@@ -177,11 +173,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(())
     }
 
-    async fn update_github_repository_provider_sync_status(
-        &self,
-        id: ID,
-        success: bool,
-    ) -> Result<()> {
+    async fn update_provider_status(&self, id: ID, success: bool) -> Result<()> {
         self.db
             .update_github_provider_sync_status(id.as_rowid()?, success)
             .await?;
@@ -193,7 +185,7 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
 impl RepositoryProvider for GithubRepositoryProviderServiceImpl {
     async fn repository_list(&self) -> Result<Vec<Repository>> {
         Ok(self
-            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None)
             .await?
             .into_iter()
             .filter(|x| x.active)
@@ -260,7 +252,7 @@ mod tests {
 
         // Test listing with no filter on providers
         let repos = service
-            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None)
             .await
             .unwrap();
 
@@ -270,13 +262,7 @@ mod tests {
 
         // Test listing with a filter on providers
         let repos = service
-            .list_github_provided_repositories_by_provider(
-                vec![provider_id1.as_id()],
-                None,
-                None,
-                None,
-                None,
-            )
+            .list_repositories(vec![provider_id1.as_id()], None, None, None, None)
             .await
             .unwrap();
 
@@ -293,7 +279,7 @@ mod tests {
             .unwrap();
 
         let repos = service
-            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None)
             .await
             .unwrap();
 
@@ -307,15 +293,12 @@ mod tests {
         let service = super::create(db.clone());
 
         let id = service
-            .create_github_repository_provider("id".into(), "secret".into())
+            .create_provider("id".into(), "secret".into())
             .await
             .unwrap();
 
         // Test retrieving github provider by ID
-        let provider1 = service
-            .get_github_repository_provider(id.clone())
-            .await
-            .unwrap();
+        let provider1 = service.get_provider(id.clone()).await.unwrap();
         assert_eq!(
             provider1,
             GithubRepositoryProvider {
@@ -328,22 +311,19 @@ mod tests {
 
         // Test listing github providers
         let providers = service
-            .list_github_repository_providers(vec![], None, None, None, None)
+            .list_providers(vec![], None, None, None, None)
             .await
             .unwrap();
         assert_eq!(providers.len(), 1);
         assert_eq!(providers[0].access_token, Some("secret".into()));
 
         // Test deleting github provider
-        service
-            .delete_github_repository_provider(id.clone())
-            .await
-            .unwrap();
+        service.delete_provider(id.clone()).await.unwrap();
 
         assert_eq!(
             0,
             service
-                .list_github_repository_providers(vec![], None, None, None, None)
+                .list_providers(vec![], None, None, None, None)
                 .await
                 .unwrap()
                 .len()
@@ -374,7 +354,7 @@ mod tests {
             .await
             .unwrap();
 
-        let git_urls = service.list_provided_git_urls().await.unwrap();
+        let git_urls = service.list_active_git_urls().await.unwrap();
         assert_eq!(
             git_urls,
             ["https://token@github.com/TabbyML/tabby".to_string()]
@@ -392,7 +372,7 @@ mod tests {
             .unwrap();
 
         service
-            .update_github_repository_provider_sync_status(provider_id.as_id(), true)
+            .update_provider_status(provider_id.as_id(), true)
             .await
             .unwrap();
 
@@ -402,7 +382,7 @@ mod tests {
         assert!(provider.synced_at.is_some());
 
         service
-            .update_github_repository_provider_sync_status(provider_id.as_id(), false)
+            .update_provider_status(provider_id.as_id(), false)
             .await
             .unwrap();
 
@@ -434,14 +414,14 @@ mod tests {
             .unwrap();
 
         service
-            .delete_outdated_github_provided_repositories(provider_id.as_id(), time)
+            .delete_outdated_repositories(provider_id.as_id(), time)
             .await
             .unwrap();
 
         assert_eq!(
             1,
             service
-                .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+                .list_repositories(vec![], None, None, None, None)
                 .await
                 .unwrap()
                 .len()
@@ -450,14 +430,14 @@ mod tests {
         let time = time + Duration::minutes(1);
 
         service
-            .delete_outdated_github_provided_repositories(provider_id.as_id(), time)
+            .delete_outdated_repositories(provider_id.as_id(), time)
             .await
             .unwrap();
 
         assert_eq!(
             0,
             service
-                .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+                .list_repositories(vec![], None, None, None, None)
                 .await
                 .unwrap()
                 .len()

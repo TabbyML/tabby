@@ -61,27 +61,19 @@ impl NodeType for GithubProvidedRepository {
 }
 
 #[async_trait]
-pub trait GithubRepositoryProviderService: Send + Sync + RepositoryProvider {
-    async fn create_github_repository_provider(
-        &self,
-        display_name: String,
-        access_token: String,
-    ) -> Result<ID>;
-    async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider>;
-    async fn delete_github_repository_provider(&self, id: ID) -> Result<()>;
-    async fn update_github_repository_provider(
+pub trait GithubRepositoryService: Send + Sync + RepositoryProvider {
+    async fn create_provider(&self, display_name: String, access_token: String) -> Result<ID>;
+    async fn get_provider(&self, id: ID) -> Result<GithubRepositoryProvider>;
+    async fn delete_provider(&self, id: ID) -> Result<()>;
+    async fn update_provider(
         &self,
         id: ID,
         display_name: String,
         access_token: String,
     ) -> Result<()>;
-    async fn update_github_repository_provider_sync_status(
-        &self,
-        id: ID,
-        success: bool,
-    ) -> Result<()>;
+    async fn update_provider_status(&self, id: ID, success: bool) -> Result<()>;
 
-    async fn list_github_repository_providers(
+    async fn list_providers(
         &self,
         ids: Vec<ID>,
         after: Option<String>,
@@ -90,7 +82,7 @@ pub trait GithubRepositoryProviderService: Send + Sync + RepositoryProvider {
         last: Option<usize>,
     ) -> Result<Vec<GithubRepositoryProvider>>;
 
-    async fn list_github_provided_repositories_by_provider(
+    async fn list_repositories(
         &self,
         provider: Vec<ID>,
         after: Option<String>,
@@ -99,18 +91,18 @@ pub trait GithubRepositoryProviderService: Send + Sync + RepositoryProvider {
         last: Option<usize>,
     ) -> Result<Vec<GithubProvidedRepository>>;
 
-    async fn upsert_github_provided_repository(
+    async fn upsert_repository(
         &self,
         provider_id: ID,
         vendor_id: String,
         display_name: String,
         git_url: String,
     ) -> Result<()>;
-    async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
-    async fn list_provided_git_urls(&self) -> Result<Vec<String>>;
-    async fn delete_outdated_github_provided_repositories(
+    async fn update_repository_active(&self, id: ID, active: bool) -> Result<()>;
+    async fn delete_outdated_repositories(
         &self,
         provider_id: ID,
         cutoff_timestamp: DateTime<Utc>,
     ) -> Result<()>;
+    async fn list_active_git_urls(&self) -> Result<Vec<String>>;
 }

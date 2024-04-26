@@ -11,7 +11,7 @@ use tokio_cron_scheduler::Job;
 use tracing::{debug, error};
 
 use crate::schema::{
-    auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
+    auth::AuthenticationService, github_repository::GithubRepositoryService,
     gitlab_repository::GitlabRepositoryService, job::JobService,
 };
 
@@ -64,7 +64,7 @@ pub async fn password_reset_job(auth: Arc<dyn AuthenticationService>) -> Result<
 }
 
 pub async fn update_integrated_github_repositories_job(
-    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
+    github_repository_provider: Arc<dyn GithubRepositoryService>,
 ) -> Result<Job> {
     service_job(
         "sync github repositories",

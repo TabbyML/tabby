@@ -3,7 +3,7 @@ pub mod auth;
 pub mod constants;
 pub mod email;
 pub mod git_repository;
-pub mod github_repository_provider;
+pub mod github_repository;
 pub mod gitlab_repository;
 pub mod job;
 pub mod license;
@@ -39,7 +39,7 @@ use self::{
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
     git_repository::GitRepository,
-    github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
+    github_repository::{GithubProvidedRepository, GithubRepositoryProvider},
     gitlab_repository::{GitlabProvidedRepository, GitlabRepositoryProvider},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
@@ -241,13 +241,7 @@ impl Query {
                 ctx.locator
                     .repository()
                     .github()
-                    .list_github_repository_providers(
-                        ids.unwrap_or_default(),
-                        after,
-                        before,
-                        first,
-                        last,
-                    )
+                    .list_providers(ids.unwrap_or_default(), after, before, first, last)
                     .await
             },
         )
@@ -272,13 +266,7 @@ impl Query {
                 ctx.locator
                     .repository()
                     .github()
-                    .list_github_provided_repositories_by_provider(
-                        provider_ids,
-                        after,
-                        before,
-                        first,
-                        last,
-                    )
+                    .list_repositories(provider_ids, after, before, first, last)
                     .await
             },
         )
@@ -794,7 +782,7 @@ impl Mutation {
             .locator
             .repository()
             .github()
-            .create_github_repository_provider(input.display_name, input.access_token)
+            .create_provider(input.display_name, input.access_token)
             .await?;
         Ok(id)
     }
@@ -804,7 +792,7 @@ impl Mutation {
         ctx.locator
             .repository()
             .github()
-            .delete_github_repository_provider(id)
+            .delete_provider(id)
             .await?;
         Ok(true)
     }
@@ -818,7 +806,7 @@ impl Mutation {
         ctx.locator
             .repository()
             .github()
-            .update_github_repository_provider(input.id, input.display_name, input.access_token)
+            .update_provider(input.id, input.display_name, input.access_token)
             .await?;
         Ok(true)
     }
@@ -831,7 +819,7 @@ impl Mutation {
         ctx.locator
             .repository()
             .github()
-            .update_github_provided_repository_active(id, active)
+            .update_repository_active(id, active)
             .await?;
         Ok(true)
     }

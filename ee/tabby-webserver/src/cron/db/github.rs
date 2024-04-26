@@ -6,31 +6,29 @@ use juniper::ID;
 use octocrab::{models::Repository, GitHubError, Octocrab};
 use tracing::warn;
 
-use crate::schema::github_repository_provider::{
-    GithubRepositoryProvider, GithubRepositoryProviderService,
+use crate::schema::github_repository::{
+    GithubRepositoryProvider, GithubRepositoryService,
 };
 
-pub async fn refresh_all_repositories(
-    service: Arc<dyn GithubRepositoryProviderService>,
-) -> Result<()> {
+pub async fn refresh_all_repositories(service: Arc<dyn GithubRepositoryService>) -> Result<()> {
     for provider in service
-        .list_github_repository_providers(vec![], None, None, None, None)
+        .list_providers(vec![], None, None, None, None)
         .await?
     {
         let start = Utc::now();
         refresh_repositories_for_provider(service.clone(), provider.id.clone()).await?;
         service
-            .delete_outdated_github_provided_repositories(provider.id, start)
+            .delete_outdated_repositories(provider.id, start)
             .await?;
     }
     Ok(())
 }
 
 async fn refresh_repositories_for_provider(
-    service: Arc<dyn GithubRepositoryProviderService>,
+    service: Arc<dyn GithubRepositoryService>,
     provider_id: ID,
 ) -> Result<()> {
-    let provider = service.get_github_repository_provider(provider_id).await?;
+    let provider = service.get_provider(provider_id).await?;
     let repos = match fetch_all_repos(&provider).await {
         Ok(repos) => repos,
         Err(octocrab::Error::GitHub {
@@ -38,7 +36,7 @@ async fn refresh_repositories_for_provider(
             ..
         }) if source.status_code.is_client_error() => {
             service
-                .update_github_repository_provider_sync_status(provider.id.clone(), false)
+                .update_provider_status(provider.id.clone(), false)
                 .await?;
             warn!(
                 "GitHub credentials for provider {} are expired or invalid",
@@ -64,7 +62,7 @@ async fn refresh_repositories_for_provider(
         let url = url.strip_suffix(".git").unwrap_or(&url);
 
         service
-            .upsert_github_provided_repository(
+            .upsert_repository(
                 provider.id.clone(),
                 id,
                 repo.full_name.unwrap_or(repo.name),
@@ -73,7 +71,7 @@ async fn refresh_repositories_for_provider(
             .await?;
     }
     service
-        .update_github_repository_provider_sync_status(provider.id.clone(), true)
+        .update_provider_status(provider.id.clone(), true)
         .await?;
 
     Ok(())
