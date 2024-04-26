@@ -172,7 +172,7 @@ mod tests {
         let repo = RepositoryConfig {
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
         };
-        assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby.git"));
+        assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby"));
     }
 
     #[test]
