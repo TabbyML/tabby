@@ -28,8 +28,6 @@ export const NewProvider = () => {
   const formRef = React.useRef<{
     form: UseFormReturn<UpdateGithubProviderFormValues>
   }>(null)
-  const isSubmitting = formRef.current?.form?.formState?.isSubmitting
-  console.log(formRef.current?.form)
   const createGithubRepositoryProviderMutation = useMutation(
     createGithubRepositoryProvider,
     {
