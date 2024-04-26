@@ -93,7 +93,7 @@ pub fn bytes2path(b: &[u8]) -> &Path {
 
 #[cfg(test)]
 mod tests {
-    use std::{process::Command};
+    use std::process::Command;
 
     use temp_testdir::TempDir;
 
