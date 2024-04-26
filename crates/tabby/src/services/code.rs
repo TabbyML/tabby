@@ -161,7 +161,7 @@ fn closest_match<'a>(
         .into_iter()
         .filter(|elem| GitUrl::parse(&elem.git_url).is_ok_and(|x| x.name == git_search.name))
         // If there're multiple matches, we pick the one with highest alphabetical order
-        .min_by_key(|elem| elem.git_url.as_str())
+        .min_by_key(|elem| elem.canonical_git_url())
         .map(|x| x.git_url.as_str())
 }
 
