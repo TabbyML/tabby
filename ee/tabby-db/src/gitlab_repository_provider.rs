@@ -9,6 +9,7 @@ pub struct GitlabRepositoryProviderDAO {
     pub id: i64,
     pub display_name: String,
     pub access_token: Option<String>,
+    pub synced_at: Option<DateTimeUtc>,
 }
 
 #[derive(FromRow)]
@@ -36,7 +37,7 @@ impl DbConn {
     pub async fn get_gitlab_provider(&self, id: i64) -> Result<GitlabRepositoryProviderDAO> {
         let provider = query_as!(
             GitlabRepositoryProviderDAO,
-            "SELECT id, display_name, access_token FROM gitlab_repository_provider WHERE id = ?;",
+            r#"SELECT id, display_name, access_token, synced_at AS "synced_at: DateTimeUtc" FROM gitlab_repository_provider WHERE id = ?;"#,
             id
         )
         .fetch_one(&self.pool)
@@ -51,23 +52,6 @@ impl DbConn {
         if res.rows_affected() != 1 {
             return Err(anyhow!("No gitlab provider details to delete"));
         }
-        Ok(())
-    }
-
-    pub async fn reset_gitlab_provider_access_token(&self, id: i64) -> Result<()> {
-        let res = query!(
-            "UPDATE gitlab_repository_provider SET access_token = NULL WHERE id = ?",
-            id
-        )
-        .execute(&self.pool)
-        .await?;
-
-        if res.rows_affected() != 1 {
-            return Err(anyhow!(
-                "The specified gitlab repository provider does not exist"
-            ));
-        }
-
         Ok(())
     }
 
@@ -95,6 +79,19 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_gitlab_provider_sync_status(&self, id: i64, success: bool) -> Result<()> {
+        let time = success.then_some(DateTimeUtc::now());
+        query!(
+            "UPDATE gitlab_repository_provider SET synced_at = ?, access_token = IIF(?, access_token, NULL) WHERE id = ?",
+            time,
+            success,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     pub async fn list_gitlab_repository_providers(
         &self,
         ids: Vec<i64>,
@@ -113,7 +110,7 @@ impl DbConn {
         let providers = query_paged_as!(
             GitlabRepositoryProviderDAO,
             "gitlab_repository_provider",
-            ["id", "display_name", "access_token"],
+            ["id", "display_name", "access_token", "synced_at" as "synced_at: DateTimeUtc"],
             limit,
             skip_id,
             backwards,

@@ -50,13 +50,6 @@ impl GitlabRepositoryProviderService for GitlabRepositoryProviderServiceImpl {
         Ok(())
     }
 
-    async fn reset_gitlab_repository_provider_access_token(&self, id: ID) -> Result<()> {
-        self.db
-            .reset_gitlab_provider_access_token(id.as_rowid()?)
-            .await?;
-        Ok(())
-    }
-
     async fn list_gitlab_repository_providers(
         &self,
         ids: Vec<ID>,
@@ -186,6 +179,17 @@ impl GitlabRepositoryProviderService for GitlabRepositoryProviderServiceImpl {
             .await?;
         Ok(())
     }
+
+    async fn update_gitlab_repository_provider_sync_status(
+        &self,
+        id: ID,
+        success: bool,
+    ) -> Result<()> {
+        self.db
+            .update_gitlab_provider_sync_status(id.as_rowid()?, success)
+            .await?;
+        Ok(())
+    }
 }
 
 fn deduplicate_gitlab_repositories(repositories: &mut Vec<GitlabProvidedRepository>) {
@@ -220,7 +224,7 @@ mod tests {
     use chrono::Duration;
 
     use super::*;
-    use crate::service::AsID;
+    use crate::{schema::types::RepositoryProviderStatus, service::AsID};
 
     #[tokio::test]
     async fn test_gitlab_provided_repositories() {
@@ -321,7 +325,7 @@ mod tests {
                 id: id.clone(),
                 display_name: "id".into(),
                 access_token: Some("secret".into()),
-                connected: true,
+                status: RepositoryProviderStatus::Pending
             }
         );
 
@@ -332,21 +336,6 @@ mod tests {
             .unwrap();
         assert_eq!(providers.len(), 1);
         assert_eq!(providers[0].access_token, Some("secret".into()));
-
-        // Test resetgitlab provider tokens
-        service
-            .reset_gitlab_repository_provider_access_token(id.clone())
-            .await
-            .unwrap();
-
-        assert_eq!(
-            service
-                .get_gitlab_repository_provider(id.clone())
-                .await
-                .unwrap()
-                .access_token,
-            None
-        );
 
         // Test deleting gitlab provider
         service
@@ -362,6 +351,37 @@ mod tests {
                 .unwrap()
                 .len()
         );
+    }
+
+    #[tokio::test]
+    async fn test_sync_status() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let provider_id = db
+            .create_gitlab_provider("provider1".into(), "token".into())
+            .await
+            .unwrap();
+
+        service
+            .update_gitlab_repository_provider_sync_status(provider_id.as_id(), true)
+            .await
+            .unwrap();
+
+        let provider = db.get_gitlab_provider(provider_id).await.unwrap();
+
+        assert!(provider.access_token.is_some());
+        assert!(provider.synced_at.is_some());
+
+        service
+            .update_gitlab_repository_provider_sync_status(provider_id.as_id(), false)
+            .await
+            .unwrap();
+
+        let provider = db.get_gitlab_provider(provider_id).await.unwrap();
+
+        assert!(provider.access_token.is_none());
+        assert!(provider.synced_at.is_none());
     }
 
     #[tokio::test]

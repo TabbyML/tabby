@@ -39,7 +39,7 @@ async fn refresh_repositories_for_provider(
         Ok(repos) => repos,
         Err(e) if e.to_string().contains("401 Unauthorized") => {
             service
-                .reset_gitlab_repository_provider_access_token(provider.id.clone())
+                .update_gitlab_repository_provider_sync_status(provider.id.clone(), false)
                 .await?;
             warn!(
                 "GitLab credentials for provider {} are expired or invalid",
@@ -66,6 +66,9 @@ async fn refresh_repositories_for_provider(
             )
             .await?;
     }
+    service
+        .update_gitlab_repository_provider_sync_status(provider.id.clone(), true)
+        .await?;
 
     Ok(())
 }

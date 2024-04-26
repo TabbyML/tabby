@@ -34,13 +34,7 @@ import { IconExternalLink, IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
 export const createGithubProviderSchema = z.object({
-  displayName: z
-    .string()
-    .trim()
-    .regex(
-      /^[\w-]+$/,
-      'Display name must contain only alphanumeric characters, underscores, and hyphens'
-    ),
+  displayName: z.string(),
   accessToken: z.string()
 })
 

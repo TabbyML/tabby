@@ -13,7 +13,7 @@ input UpdateRepositoryProviderInput {
 type GitlabRepositoryProvider {
   id: ID!
   displayName: String!
-  connected: Boolean!
+  status: RepositoryProviderStatus!
 }
 
 enum Language {
@@ -119,6 +119,12 @@ type UserConnection {
   pageInfo: PageInfo!
 }
 
+enum RepositoryProviderStatus {
+  READY
+  PENDING
+  ERROR
+}
+
 type DiskUsageStats {
   events: DiskUsage!
   indexedRepositories: DiskUsage!
@@ -142,7 +148,7 @@ type ServerInfo {
 type GithubRepositoryProvider {
   id: ID!
   displayName: String!
-  connected: Boolean!
+  status: RepositoryProviderStatus!
 }
 
 input PasswordChangeInput {

@@ -1,4 +1,4 @@
-use juniper::{GraphQLInputObject, ID};
+use juniper::{GraphQLEnum, GraphQLInputObject, ID};
 use validator::Validate;
 
 #[derive(GraphQLInputObject, Validate)]
@@ -22,4 +22,21 @@ pub struct UpdateRepositoryProviderInput {
     pub display_name: String,
     #[validate(length(code = "access_token", min = 10))]
     pub access_token: String,
+}
+
+#[derive(GraphQLEnum, Debug, PartialEq)]
+pub enum RepositoryProviderStatus {
+    Ready,
+    Pending,
+    Error,
+}
+
+impl RepositoryProviderStatus {
+    pub fn new(access_token_set: bool, synced_at_set: bool) -> Self {
+        match (access_token_set, synced_at_set) {
+            (true, true) => RepositoryProviderStatus::Ready,
+            (true, false) => RepositoryProviderStatus::Pending,
+            _ => RepositoryProviderStatus::Error,
+        }
+    }
 }
