@@ -55,23 +55,6 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn reset_github_provider_access_token(&self, id: i64) -> Result<()> {
-        let res = query!(
-            "UPDATE github_repository_provider SET access_token = NULL WHERE id = ?",
-            id
-        )
-        .execute(&self.pool)
-        .await?;
-
-        if res.rows_affected() != 1 {
-            return Err(anyhow!(
-                "The specified Github repository provider does not exist"
-            ));
-        }
-
-        Ok(())
-    }
-
     pub async fn update_github_provider(
         &self,
         id: i64,
