@@ -8,9 +8,6 @@ import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
-import { Button } from '@/components/ui/button'
-import { FormMessage } from '@/components/ui/form'
-import { IconSpinner } from '@/components/ui/icons'
 
 import {
   CreateGithubProviderFormValues,
@@ -31,8 +28,6 @@ export const NewProvider = () => {
   const formRef = React.useRef<{
     form: UseFormReturn<UpdateGithubProviderFormValues>
   }>(null)
-  const isSubmitting = formRef.current?.form?.formState?.isSubmitting
-
   const createGithubRepositoryProviderMutation = useMutation(
     createGithubRepositoryProvider,
     {
@@ -56,32 +51,7 @@ export const NewProvider = () => {
 
   return (
     <div className="ml-4">
-      <GithubProviderForm
-        isNew
-        ref={formRef}
-        footer={
-          <div className="flex items-center justify-between">
-            <div>
-              <FormMessage />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={isSubmitting}
-                onClick={() => router.back()}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <IconSpinner className="mr-2" />}
-                Create
-              </Button>
-            </div>
-          </div>
-        }
-        onSubmit={handleSubmit}
-      />
+      <GithubProviderForm isNew ref={formRef} onSubmit={handleSubmit} />
     </div>
   )
 }
