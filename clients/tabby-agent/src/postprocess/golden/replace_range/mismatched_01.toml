@@ -1,9 +1,7 @@
-description = 'Replace range experimental: syntax mismatched: case 01'
+description = 'Replace range: mismatched case 01'
 
-[config.limitScope]
-experimentalSyntax = true
-[config.calculateReplaceRange]
-experimentalSyntax = true
+[config]
+# use default config
 
 [context]
 filepath = 'fibonacci.ts'
