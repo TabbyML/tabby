@@ -61,9 +61,15 @@ async fn refresh_repositories_for_provider(
             .strip_prefix("git://")
             .map(|url| format!("https://{url}"))
             .unwrap_or(url);
+        let url = url.strip_suffix(".git").unwrap_or(&url);
 
         service
-            .upsert_github_provided_repository(provider.id.clone(), id, repo.name, url)
+            .upsert_github_provided_repository(
+                provider.id.clone(),
+                id,
+                repo.full_name.unwrap_or(repo.name),
+                url.to_string(),
+            )
             .await?;
     }
 
