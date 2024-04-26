@@ -44,16 +44,22 @@ where
 }
 
 pub async fn refresh_token_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
-    service_job("cleanup staled refresh token", EVERY_TWO_HOURS, auth, |auth| async move {
-        Ok(auth.delete_expired_token().await?)
-    })
+    service_job(
+        "cleanup staled refresh token",
+        EVERY_TWO_HOURS,
+        auth,
+        |auth| async move { Ok(auth.delete_expired_token().await?) },
+    )
     .await
 }
 
 pub async fn password_reset_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
-    service_job("cleanup staled password reset", EVERY_TWO_HOURS, auth, |auth| async move {
-        Ok(auth.delete_expired_password_resets().await?)
-    })
+    service_job(
+        "cleanup staled password reset",
+        EVERY_TWO_HOURS,
+        auth,
+        |auth| async move { Ok(auth.delete_expired_password_resets().await?) },
+    )
     .await
 }
 
