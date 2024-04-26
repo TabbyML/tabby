@@ -16,20 +16,18 @@ use self::resolve::ResolveState;
 use crate::{
     handler::require_login_middleware,
     repositories::resolve::ResolveParams,
-    schema::{auth::AuthenticationService, git_repository::GitRepositoryService},
+    schema::{auth::AuthenticationService, repository::RepositoryService},
 };
 
 pub fn routes(
-    repository: Arc<dyn GitRepositoryService>,
+    repository: Arc<dyn RepositoryService>,
     auth: Arc<dyn AuthenticationService>,
 ) -> Router {
     Router::new()
-        .route("/resolve", routing::get(resolve))
-        .route("/resolve/", routing::get(resolve))
-        .route("/:name/resolve/.git/", routing::get(not_found))
-        .route("/:name/resolve/.git/*path", routing::get(not_found))
-        .route("/:name/resolve/", routing::get(resolve_path))
-        .route("/:name/resolve/*path", routing::get(resolve_path))
+        .route("/:kind/:id/resolve/.git/", routing::get(not_found))
+        .route("/:kind/:id/resolve/.git/*path", routing::get(not_found))
+        .route("/:kind/:id/resolve/", routing::get(resolve_path))
+        .route("/:kind/:id/resolve/*path", routing::get(resolve_path))
         .with_state(Arc::new(ResolveState::new(repository)))
         .fallback(not_found)
         .layer(from_fn_with_state(auth, require_login_middleware))
@@ -44,11 +42,11 @@ async fn resolve_path(
     State(rs): State<Arc<ResolveState>>,
     Path(repo): Path<ResolveParams>,
 ) -> Result<Response, StatusCode> {
-    let Some(conf) = rs.find_repository(repo.name_str()).await else {
+    let relpath = repo.os_path();
+    let Some(root) = rs.find_repository(&repo).await else {
         return Err(StatusCode::NOT_FOUND);
     };
-    let root = conf.dir();
-    let full_path = root.join(repo.os_path());
+    let full_path = root.join(relpath);
     let is_dir = tokio::fs::metadata(full_path.clone())
         .await
         .map(|m| m.is_dir())
@@ -71,8 +69,4 @@ async fn resolve_path(
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
-}
-
-async fn resolve(State(rs): State<Arc<ResolveState>>) -> Result<Response, StatusCode> {
-    rs.resolve_all().await.map_err(|_| StatusCode::NOT_FOUND)
 }

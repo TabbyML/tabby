@@ -1,12 +1,11 @@
 use async_trait::async_trait;
 use juniper::ID;
-use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 
 use super::{graphql_pagination_to_filter, AsID, AsRowid};
 use crate::schema::{
     git_repository::{GitRepository, GitRepositoryService},
-    repository::FileEntrySearchResult,
+    repository::{Repository, RepositoryProvider},
     Result,
 };
 
@@ -30,10 +29,6 @@ impl GitRepositoryService for DbConn {
         Ok(self.create_repository(name, git_url).await?.as_id())
     }
 
-    async fn get_by_name(&self, name: &str) -> Result<GitRepository> {
-        Ok(self.get_repository_by_name(name).await?.into())
-    }
-
     async fn delete(&self, id: &ID) -> Result<bool> {
         Ok(self.delete_repository(id.as_rowid()?).await?)
     }
@@ -43,29 +38,25 @@ impl GitRepositoryService for DbConn {
             .await?;
         Ok(true)
     }
+}
 
-    async fn search_files(
-        &self,
-        name: &str,
-        pattern: &str,
-        top_n: usize,
-    ) -> Result<Vec<FileEntrySearchResult>> {
-        if pattern.trim().is_empty() {
-            return Ok(vec![]);
-        }
-        let git_url = self.get_repository_by_name(name).await?.git_url;
-        let config = RepositoryConfig::new(git_url);
+#[async_trait]
+impl RepositoryProvider for DbConn {
+    async fn repository_list(&self) -> Result<Vec<Repository>> {
+        Ok(self
+            .list(None, None, None, None)
+            .await?
+            .into_iter()
+            .map(|x| x.into())
+            .collect())
+    }
 
-        let pattern = pattern.to_owned();
-        let matching = tokio::task::spawn_blocking(move || async move {
-            tabby_search::FileSearch::search(&config.dir(), &pattern, top_n)
-                .map(|x| x.into_iter().map(|f| f.into()).collect())
-        })
-        .await
-        .map_err(anyhow::Error::from)?
-        .await?;
-
-        Ok(matching)
+    async fn get_repository(&self, id: &ID) -> Result<Repository> {
+        let git_repo: GitRepository = (self as &DbConn)
+            .get_repository(id.as_rowid()?)
+            .await?
+            .into();
+        Ok(git_repo.into())
     }
 }
 

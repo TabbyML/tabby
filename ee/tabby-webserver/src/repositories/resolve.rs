@@ -8,26 +8,23 @@ use axum::{
     Json,
 };
 use hyper::Body;
+use juniper::ID;
 use serde::{Deserialize, Serialize};
-use tabby_common::config::RepositoryConfig;
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
-use crate::schema::git_repository::GitRepositoryService;
+use crate::schema::repository::{RepositoryKind, RepositoryService};
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
 #[derive(Deserialize, Debug)]
 pub struct ResolveParams {
-    name: String,
+    pub kind: RepositoryKind,
+    pub id: ID,
     path: Option<String>,
 }
 
 impl ResolveParams {
-    pub fn name_str(&self) -> &str {
-        self.name.as_str()
-    }
-
     pub fn path_str(&self) -> &str {
         self.path.as_deref().unwrap_or("")
     }
@@ -60,11 +57,11 @@ struct DirEntry {
 }
 
 pub(super) struct ResolveState {
-    service: Arc<dyn GitRepositoryService>,
+    service: Arc<dyn RepositoryService>,
 }
 
 impl ResolveState {
-    pub fn new(service: Arc<dyn GitRepositoryService>) -> Self {
+    pub fn new(service: Arc<dyn RepositoryService>) -> Self {
         Self { service }
     }
 
@@ -128,27 +125,12 @@ impl ResolveState {
         Ok(resp.map(boxed))
     }
 
-    pub async fn resolve_all(&self) -> Result<Response> {
-        let repositories = self.service.list(None, None, None, None).await?;
-
-        let entries = repositories
-            .into_iter()
-            .map(|repo| DirEntry {
-                kind: DirEntryKind::Dir,
-                basename: repo.name.clone(),
-            })
-            .collect();
-
-        let body = Json(ListDir { entries }).into_response();
-        let resp = Response::builder()
-            .header(header::CONTENT_TYPE, DIRECTORY_MIME_TYPE)
-            .body(body.into_body())?;
-
-        Ok(resp)
-    }
-
-    pub async fn find_repository(&self, name: &str) -> Option<RepositoryConfig> {
-        let repository = self.service.get_by_name(name).await.ok()?;
-        Some(RepositoryConfig::new(repository.git_url.clone()))
+    pub async fn find_repository(&self, params: &ResolveParams) -> Option<PathBuf> {
+        let repository = self
+            .service
+            .resolve_repository(&params.kind, &params.id)
+            .await
+            .ok()?;
+        Some(repository.dir)
     }
 }

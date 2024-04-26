@@ -12,6 +12,7 @@ use crate::{
         github_repository_provider::{
             GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryProviderService,
         },
+        repository::{Repository, RepositoryProvider},
         Result,
     },
     service::graphql_pagination_to_filter,
@@ -181,6 +182,27 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .delete_outdated_github_repositories(provider_id.as_rowid()?, cutoff_timestamp.into())
             .await?;
         Ok(())
+    }
+}
+
+#[async_trait]
+impl RepositoryProvider for GithubRepositoryProviderServiceImpl {
+    async fn repository_list(&self) -> Result<Vec<Repository>> {
+        Ok(self
+            .list_github_provided_repositories_by_provider(vec![], None, None, None, None)
+            .await?
+            .into_iter()
+            .map(|x| x.into())
+            .collect())
+    }
+
+    async fn get_repository(&self, id: &ID) -> Result<Repository> {
+        let repo: GithubProvidedRepository = self
+            .db
+            .get_github_provided_repository(id.as_rowid()?)
+            .await?
+            .into();
+        Ok(repo.into())
     }
 }
 

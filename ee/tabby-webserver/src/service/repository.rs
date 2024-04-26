@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use juniper::ID;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
 
-use super::{github_repository_provider, gitlab_repository_provider};
+use super::{github_repository_provider, gitlab_repository_provider, Result};
 use crate::schema::{
     git_repository::GitRepositoryService,
     github_repository_provider::GithubRepositoryProviderService,
-    gitlab_repository_provider::GitlabRepositoryProviderService, repository::RepositoryService,
+    gitlab_repository_provider::GitlabRepositoryProviderService,
+    repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
 };
 
 struct RepositoryServiceImpl {
@@ -58,11 +60,8 @@ impl RepositoryAccess for RepositoryServiceImpl {
     }
 }
 
+#[async_trait]
 impl RepositoryService for RepositoryServiceImpl {
-    fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess> {
-        self.clone()
-    }
-
     fn git(&self) -> Arc<dyn GitRepositoryService> {
         self.git.clone()
     }
@@ -73,6 +72,51 @@ impl RepositoryService for RepositoryServiceImpl {
 
     fn gitlab(&self) -> Arc<dyn GitlabRepositoryProviderService> {
         self.gitlab.clone()
+    }
+
+    fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess> {
+        self.clone()
+    }
+
+    async fn repository_list(&self) -> Result<Vec<Repository>> {
+        let mut all = vec![];
+        all.append(&mut self.git().repository_list().await?);
+        all.append(&mut self.github().repository_list().await?);
+        all.append(&mut self.gitlab().repository_list().await?);
+
+        Ok(all)
+    }
+
+    async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
+        match kind {
+            RepositoryKind::Git => self.git().get_repository(id).await,
+            RepositoryKind::Github => self.github().get_repository(id).await,
+            RepositoryKind::Gitlab => self.gitlab().get_repository(id).await,
+        }
+    }
+
+    async fn search_files(
+        &self,
+        kind: &RepositoryKind,
+        id: &ID,
+        pattern: &str,
+        top_n: usize,
+    ) -> Result<Vec<FileEntrySearchResult>> {
+        if pattern.trim().is_empty() {
+            return Ok(vec![]);
+        }
+        let dir = self.resolve_repository(kind, id).await?.dir;
+
+        let pattern = pattern.to_owned();
+        let matching = tokio::task::spawn_blocking(move || async move {
+            tabby_search::FileSearch::search(&dir, &pattern, top_n)
+                .map(|x| x.into_iter().map(|f| f.into()).collect())
+        })
+        .await
+        .map_err(anyhow::Error::from)?
+        .await?;
+
+        Ok(matching)
     }
 }
 
