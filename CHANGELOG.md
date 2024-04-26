@@ -7,6 +7,7 @@
 
 ## Features
 * Upgrade [llama.cpp](https://github.com/ggerganov/llama.cpp) to [b2715](https://github.com/ggerganov/llama.cpp/releases/tag/b2715).
+* Support integration of private repositories from GitHub and GitLab using personal access tokens
 
 ## Fixes and Improvements
 * Changed the default model filename from `q8_0.v2.gguf` to `model.gguf` in MODEL_SPEC.md
