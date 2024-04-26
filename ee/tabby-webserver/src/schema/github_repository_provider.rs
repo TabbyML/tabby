@@ -1,48 +1,17 @@
 use async_trait::async_trait;
-use juniper::{GraphQLInputObject, GraphQLObject, ID};
-use lazy_static::lazy_static;
-use regex::Regex;
-use validator::Validate;
+use chrono::{DateTime, Utc};
+use juniper::{GraphQLObject, ID};
 
 use super::Context;
 use crate::{juniper::relay::NodeType, schema::Result};
-
-lazy_static! {
-    static ref GITHUB_REPOSITORY_PROVIDER_NAME_REGEX: Regex = Regex::new("^[\\w-]+$").unwrap();
-}
-
-#[derive(GraphQLInputObject, Validate)]
-pub struct CreateGithubRepositoryProviderInput {
-    #[validate(regex(code = "displayName", path = "GITHUB_REPOSITORY_PROVIDER_NAME_REGEX"))]
-    pub display_name: String,
-    #[validate(length(code = "applicationId", min = 20))]
-    pub application_id: String,
-    #[validate(length(code = "secret", min = 40))]
-    pub secret: String,
-}
-
-#[derive(GraphQLInputObject, Validate)]
-pub struct UpdateGithubRepositoryProviderInput {
-    pub id: ID,
-    #[validate(regex(code = "displayName", path = "GITHUB_REPOSITORY_PROVIDER_NAME_REGEX"))]
-    pub display_name: String,
-    #[validate(length(code = "applicationId", min = 20))]
-    pub application_id: String,
-    #[validate(length(code = "secret", min = 40))]
-    pub secret: Option<String>,
-}
 
 #[derive(GraphQLObject, Debug, PartialEq)]
 #[graphql(context = Context)]
 pub struct GithubRepositoryProvider {
     pub id: ID,
     pub display_name: String,
-    pub application_id: String,
 
     pub connected: bool,
-
-    #[graphql(skip)]
-    pub secret: String,
 
     #[graphql(skip)]
     pub access_token: Option<String>,
@@ -96,8 +65,7 @@ pub trait GithubRepositoryProviderService: Send + Sync {
     async fn create_github_repository_provider(
         &self,
         display_name: String,
-        application_id: String,
-        application_secret: String,
+        access_token: String,
     ) -> Result<ID>;
     async fn get_github_repository_provider(&self, id: ID) -> Result<GithubRepositoryProvider>;
     async fn delete_github_repository_provider(&self, id: ID) -> Result<()>;
@@ -105,15 +73,9 @@ pub trait GithubRepositoryProviderService: Send + Sync {
         &self,
         id: ID,
         display_name: String,
-        application_id: String,
-        secret: Option<String>,
-    ) -> Result<()>;
-    async fn read_github_repository_provider_secret(&self, id: ID) -> Result<String>;
-    async fn update_github_repository_provider_access_token(
-        &self,
-        id: ID,
         access_token: String,
     ) -> Result<()>;
+    async fn reset_github_repository_provider_access_token(&self, id: ID) -> Result<()>;
 
     async fn list_github_repository_providers(
         &self,
@@ -133,6 +95,18 @@ pub trait GithubRepositoryProviderService: Send + Sync {
         last: Option<usize>,
     ) -> Result<Vec<GithubProvidedRepository>>;
 
+    async fn upsert_github_provided_repository(
+        &self,
+        provider_id: ID,
+        vendor_id: String,
+        display_name: String,
+        git_url: String,
+    ) -> Result<()>;
     async fn update_github_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn list_provided_git_urls(&self) -> Result<Vec<String>>;
+    async fn delete_outdated_github_provided_repositories(
+        &self,
+        provider_id: ID,
+        cutoff_timestamp: DateTime<Utc>,
+    ) -> Result<()>;
 }

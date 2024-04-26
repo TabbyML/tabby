@@ -148,6 +148,12 @@ static const char* ADDITIONAL_EOS_TOKENS[] = {
   "<|fim_suffix|>",
   "<|fim_middle|>",
   "<|file_separator|>",
+
+  // chat_ml
+  "<|system|>",
+  "<|user|>",
+  "<|end|>",
+  "<|assistant|>",
 };
 
 template<class T>

@@ -1,3 +1,15 @@
+input UpdateRepositoryProviderInput {
+  id: ID!
+  displayName: String!
+  accessToken: String!
+}
+
+type GitlabRepositoryProvider {
+  id: ID!
+  displayName: String!
+  connected: Boolean!
+}
+
 enum Language {
   RUST
   PYTHON
@@ -36,6 +48,11 @@ type JobRun {
   stderr: String!
 }
 
+type GitlabProvidedRepositoryEdge {
+  node: GitlabProvidedRepository!
+  cursor: String!
+}
+
 enum AuthMethod {
   NONE
   PLAIN
@@ -71,6 +88,11 @@ type LicenseInfo {
   expiresAt: DateTimeUtc
 }
 
+type GitlabRepositoryProviderEdge {
+  node: GitlabRepositoryProvider!
+  cursor: String!
+}
+
 type GithubRepositoryProviderConnection {
   edges: [GithubRepositoryProviderEdge!]!
   pageInfo: PageInfo!
@@ -91,6 +113,13 @@ type UserConnection {
   pageInfo: PageInfo!
 }
 
+type DiskUsageStats {
+  events: DiskUsage!
+  indexedRepositories: DiskUsage!
+  database: DiskUsage!
+  models: DiskUsage!
+}
+
 input UpdateOAuthCredentialInput {
   provider: OAuthProvider!
   clientId: String!
@@ -107,7 +136,6 @@ type ServerInfo {
 type GithubRepositoryProvider {
   id: ID!
   displayName: String!
-  applicationId: String!
   connected: Boolean!
 }
 
@@ -124,6 +152,11 @@ type Invitation {
   createdAt: DateTimeUtc!
 }
 
+type GitlabProvidedRepositoryConnection {
+  edges: [GitlabProvidedRepositoryEdge!]!
+  pageInfo: PageInfo!
+}
+
 type EmailSetting {
   smtpUsername: String!
   smtpServer: String!
@@ -133,15 +166,15 @@ type EmailSetting {
   authMethod: AuthMethod!
 }
 
-type TokenAuthResponse {
-  accessToken: String!
-  refreshToken: String!
-}
-
 type JobStats {
   success: Int!
   failed: Int!
   pending: Int!
+}
+
+type TokenAuthResponse {
+  accessToken: String!
+  refreshToken: String!
 }
 
 type NetworkSetting {
@@ -151,6 +184,14 @@ type NetworkSetting {
 type JobRunEdge {
   node: JobRun!
   cursor: String!
+}
+
+type UserEvent {
+  id: ID!
+  userId: ID!
+  kind: EventKind!
+  createdAt: DateTimeUtc!
+  payload: String!
 }
 
 enum WorkerKind {
@@ -187,17 +228,19 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  createGithubRepositoryProvider(input: CreateGithubRepositoryProviderInput!): ID!
+  createGithubRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
   deleteGithubRepositoryProvider(id: ID!): Boolean!
-  updateGithubRepositoryProvider(input: UpdateGithubRepositoryProviderInput!): Boolean!
+  updateGithubRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  createGitlabRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
+  deleteGitlabRepositoryProvider(id: ID!): Boolean!
+  updateGitlabRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
+  updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
-input UpdateGithubRepositoryProviderInput {
-  id: ID!
-  displayName: String!
-  applicationId: String!
-  secret: String
+type UserEventEdge {
+  node: UserEvent!
+  cursor: String!
 }
 
 type RepositoryEdge {
@@ -232,6 +275,8 @@ type Query {
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   githubRepositories(providerIds: [ID!]!, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
+  gitlabRepositories(providerIds: [ID!]!, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting
@@ -246,6 +291,8 @@ type Query {
   jobs: [String!]!
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
   dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
+  userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTimeUtc!, end: DateTimeUtc!): UserEventConnection!
+  diskUsageStats: DiskUsageStats!
 }
 
 input NetworkSettingInput {
@@ -263,6 +310,11 @@ type UserEdge {
   cursor: String!
 }
 
+type DiskUsage {
+  filePaths: [String!]!
+  size: Float!
+}
+
 type JobRunConnection {
   edges: [JobRunEdge!]!
   pageInfo: PageInfo!
@@ -272,6 +324,11 @@ type RefreshTokenResponse {
   accessToken: String!
   refreshToken: String!
   refreshExpiresAt: DateTimeUtc!
+}
+
+type GitlabRepositoryProviderConnection {
+  edges: [GitlabRepositoryProviderEdge!]!
+  pageInfo: PageInfo!
 }
 
 type RepositoryConnection {
@@ -295,10 +352,13 @@ enum LicenseType {
   ENTERPRISE
 }
 
-input CreateGithubRepositoryProviderInput {
-  displayName: String!
-  applicationId: String!
-  secret: String!
+type GitlabProvidedRepository {
+  id: ID!
+  vendorId: String!
+  gitlabRepositoryProviderId: ID!
+  name: String!
+  gitUrl: String!
+  active: Boolean!
 }
 
 type OAuthCredential {
@@ -317,10 +377,20 @@ type CompletionStats {
   selects: Int!
 }
 
+type UserEventConnection {
+  edges: [UserEventEdge!]!
+  pageInfo: PageInfo!
+}
+
 input PasswordResetInput {
   code: String!
   password1: String!
   password2: String!
+}
+
+input CreateRepositoryProviderInput {
+  displayName: String!
+  accessToken: String!
 }
 
 type User {
@@ -334,10 +404,6 @@ type User {
   isPasswordSet: Boolean!
 }
 
-input RequestInvitationInput {
-  email: String!
-}
-
 type Worker {
   kind: WorkerKind!
   name: String!
@@ -349,14 +415,14 @@ type Worker {
   cudaDevices: [String!]!
 }
 
-enum OAuthProvider {
-  GITHUB
-  GOOGLE
-}
-
 type InvitationEdge {
   node: Invitation!
   cursor: String!
+}
+
+enum OAuthProvider {
+  GITHUB
+  GOOGLE
 }
 
 type PageInfo {
@@ -366,9 +432,20 @@ type PageInfo {
   endCursor: String
 }
 
+input RequestInvitationInput {
+  email: String!
+}
+
 type GithubProvidedRepositoryEdge {
   node: GithubProvidedRepository!
   cursor: String!
+}
+
+enum EventKind {
+  COMPLETION
+  SELECT
+  VIEW
+  DISMISS
 }
 
 type InvitationConnection {

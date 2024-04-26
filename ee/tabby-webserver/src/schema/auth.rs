@@ -197,11 +197,6 @@ impl RefreshTokenResponse {
     }
 }
 
-// IDWrapper to used as a type guard for refactoring, can be removed in a follow up PR.
-// FIXME(meng): refactor out IDWrapper.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct IDWrapper(pub ID);
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JWTPayload {
     /// Expiration time (as UTC timestamp)
@@ -211,7 +206,7 @@ pub struct JWTPayload {
     iat: i64,
 
     /// User id string
-    pub sub: IDWrapper,
+    pub sub: ID,
 }
 
 impl JWTPayload {
@@ -220,7 +215,7 @@ impl JWTPayload {
         Self {
             iat: now as i64,
             exp: (now + *JWT_DEFAULT_EXP) as i64,
-            sub: IDWrapper(id),
+            sub: id,
         }
     }
 }
@@ -525,6 +520,6 @@ mod tests {
         let claims = JWTPayload::new(ID::from("test".to_owned()));
         let token = generate_jwt(claims).unwrap();
         let claims = validate_jwt(&token).unwrap();
-        assert_eq!(claims.sub.0.to_string(), "test");
+        assert_eq!(claims.sub.to_string(), "test");
     }
 }

@@ -60,12 +60,10 @@ impl DbConn {
         }
 
         let code = Uuid::new_v4().to_string();
-        let created_at = chrono::offset::Utc::now().into();
         let res = query!(
-            "INSERT INTO invitations (email, code, created_at) VALUES (?, ?, ?)",
+            "INSERT INTO invitations (email, code) VALUES (?, ?)",
             email,
             code,
-            created_at
         )
         .execute(&self.pool)
         .await;
@@ -73,12 +71,13 @@ impl DbConn {
         let res = res.unique_error("Failed to create invitation, email already exists")?;
         let id = res.last_insert_rowid();
 
-        Ok(InvitationDAO {
-            id,
-            email,
-            code,
-            created_at,
-        })
+        let invitation = sqlx::query_as!(
+            InvitationDAO,
+            r#"SELECT id as "id!", email, code, created_at as "created_at!" FROM invitations WHERE id = ?"#,
+            id
+        ).fetch_one(&self.pool).await?;
+
+        Ok(invitation)
     }
 
     pub async fn delete_invitation(&self, id: i64) -> Result<i64> {

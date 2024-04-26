@@ -1,0 +1,17 @@
+id: use-datetimeutc-in-tabby-db
+message: Use tabby_db::DateTimeUtc in tabby-db
+severity: error
+language: rust
+files:
+    - ./ee/tabby-db/**
+ignores:
+    - ./ee/tabby-db/src/lib.rs
+rule:
+    any:
+        - kind: generic_type
+          has:
+              kind: type_identifier
+              regex: ^Utc$
+              stopBy: end
+        - pattern: Utc
+        - pattern: DateTime

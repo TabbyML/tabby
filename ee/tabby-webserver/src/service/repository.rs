@@ -4,21 +4,24 @@ use async_trait::async_trait;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
 
-use super::github_repository_provider;
+use super::{github_repository_provider, gitlab_repository_provider};
 use crate::schema::{
     git_repository::GitRepositoryService,
-    github_repository_provider::GithubRepositoryProviderService, repository::RepositoryService,
+    github_repository_provider::GithubRepositoryProviderService,
+    gitlab_repository_provider::GitlabRepositoryProviderService, repository::RepositoryService,
 };
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
     github: Arc<dyn GithubRepositoryProviderService>,
+    gitlab: Arc<dyn GitlabRepositoryProviderService>,
 }
 
 pub fn create(db: DbConn) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(db.clone()),
         github: Arc::new(github_repository_provider::create(db.clone())),
+        gitlab: Arc::new(gitlab_repository_provider::create(db.clone())),
     })
 }
 
@@ -42,6 +45,15 @@ impl RepositoryAccess for RepositoryServiceImpl {
                 .map(RepositoryConfig::new),
         );
 
+        repos.extend(
+            self.gitlab
+                .list_provided_git_urls()
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(RepositoryConfig::new),
+        );
+
         Ok(repos)
     }
 }
@@ -57,6 +69,10 @@ impl RepositoryService for RepositoryServiceImpl {
 
     fn github(&self) -> Arc<dyn GithubRepositoryProviderService> {
         self.github.clone()
+    }
+
+    fn gitlab(&self) -> Arc<dyn GitlabRepositoryProviderService> {
+        self.gitlab.clone()
     }
 }
 

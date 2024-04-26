@@ -1,12 +1,16 @@
 pub mod analytic;
 pub mod auth;
+pub mod constants;
 pub mod email;
 pub mod git_repository;
 pub mod github_repository_provider;
+pub mod gitlab_repository_provider;
 pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
+pub mod types;
+pub mod user_event;
 pub mod worker;
 
 use std::sync::Arc;
@@ -28,28 +32,30 @@ use validator::{Validate, ValidationErrors};
 use worker::{Worker, WorkerService};
 
 use self::{
-    analytic::{AnalyticService, CompletionStats},
+    analytic::{AnalyticService, CompletionStats, DiskUsageStats},
     auth::{
         JWTPayload, OAuthCredential, OAuthProvider, PasswordChangeInput, PasswordResetInput,
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
     git_repository::GitRepository,
-    github_repository_provider::{
-        CreateGithubRepositoryProviderInput, GithubProvidedRepository, GithubRepositoryProvider,
-        UpdateGithubRepositoryProviderInput,
-    },
+    github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::RepositoryService,
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
+    user_event::{UserEvent, UserEventService},
 };
 use crate::{
     axum::FromAuth,
     juniper::relay::{self, Connection},
-    schema::repository::FileEntrySearchResult,
+    schema::{
+        gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProvider},
+        repository::FileEntrySearchResult,
+        types::{CreateRepositoryProviderInput, UpdateRepositoryProviderInput},
+    },
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -63,6 +69,7 @@ pub trait ServiceLocator: Send + Sync {
     fn setting(&self) -> Arc<dyn SettingService>;
     fn license(&self) -> Arc<dyn LicenseService>;
     fn analytic(&self) -> Arc<dyn AnalyticService>;
+    fn user_event(&self) -> Arc<dyn UserEventService>;
 }
 
 pub struct Context {
@@ -136,7 +143,7 @@ async fn check_admin(ctx: &Context) -> Result<(), CoreError> {
 
 async fn check_user(ctx: &Context) -> Result<User, CoreError> {
     let claims = check_claims(ctx)?;
-    let user = ctx.locator.auth().get_user(&claims.sub.0).await?;
+    let user = ctx.locator.auth().get_user(&claims.sub).await?;
     Ok(user)
 }
 
@@ -170,7 +177,7 @@ impl Query {
 
     async fn me(ctx: &Context) -> Result<User> {
         let claims = check_claims(ctx)?;
-        ctx.locator.auth().get_user(&claims.sub.0).await
+        ctx.locator.auth().get_user(&claims.sub).await
     }
 
     async fn users(
@@ -269,6 +276,68 @@ impl Query {
                     .repository()
                     .github()
                     .list_github_provided_repositories_by_provider(
+                        provider_ids,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn gitlab_repository_providers(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<GitlabRepositoryProvider>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .repository()
+                    .gitlab()
+                    .list_gitlab_repository_providers(
+                        ids.unwrap_or_default(),
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn gitlab_repositories(
+        ctx: &Context,
+        provider_ids: Vec<ID>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<GitlabProvidedRepository>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .repository()
+                    .gitlab()
+                    .list_gitlab_provided_repositories_by_provider(
                         provider_ids,
                         after,
                         before,
@@ -416,6 +485,50 @@ impl Query {
             .daily_stats(start, end, users, languages.unwrap_or_default())
             .await
     }
+
+    async fn user_events(
+        ctx: &Context,
+
+        // pagination arguments
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+
+        // filter arguments
+        users: Option<Vec<ID>>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    ) -> Result<Connection<UserEvent>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .user_event()
+                    .list(
+                        after,
+                        before,
+                        first,
+                        last,
+                        users.unwrap_or_default(),
+                        start,
+                        end,
+                    )
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn disk_usage_stats(ctx: &Context) -> Result<DiskUsageStats> {
+        check_admin(ctx).await?;
+        let storage_stats = ctx.locator.analytic().disk_usage_stats().await?;
+        Ok(storage_stats)
+    }
 }
 
 #[derive(GraphQLObject)]
@@ -471,7 +584,7 @@ impl Mutation {
         ctx.locator
             .auth()
             .update_user_password(
-                &claims.sub.0,
+                &claims.sub,
                 input.old_password.as_deref(),
                 &input.new_password1,
             )
@@ -483,23 +596,20 @@ impl Mutation {
         let claims = check_claims(ctx)?;
         ctx.locator
             .auth()
-            .reset_user_auth_token(&claims.sub.0)
+            .reset_user_auth_token(&claims.sub)
             .await?;
         Ok(true)
     }
 
     async fn logout_all_sessions(ctx: &Context) -> Result<bool> {
         let claims = check_claims(ctx)?;
-        ctx.locator
-            .auth()
-            .logout_all_sessions(&claims.sub.0)
-            .await?;
+        ctx.locator.auth().logout_all_sessions(&claims.sub).await?;
         Ok(true)
     }
 
     async fn update_user_active(ctx: &Context, id: ID, active: bool) -> Result<bool> {
         check_admin(ctx).await?;
-        if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
+        if ctx.claims.as_ref().is_some_and(|c| c.sub == id) {
             return Err(CoreError::Forbidden(
                 "You cannot change your own active status",
             ));
@@ -510,7 +620,7 @@ impl Mutation {
 
     async fn update_user_role(ctx: &Context, id: ID, is_admin: bool) -> Result<bool> {
         check_admin(ctx).await?;
-        if ctx.claims.as_ref().is_some_and(|c| c.sub.0 == id) {
+        if ctx.claims.as_ref().is_some_and(|c| c.sub == id) {
             return Err(CoreError::Forbidden("You cannot update your own role"));
         }
         ctx.locator.auth().update_user_role(&id, is_admin).await?;
@@ -523,7 +633,7 @@ impl Mutation {
         avatar_base64: Option<String>,
     ) -> Result<bool> {
         let claims = check_claims(ctx)?;
-        if claims.sub.0 != id {
+        if claims.sub != id {
             return Err(CoreError::Unauthorized(
                 "You cannot change another user's avatar",
             ));
@@ -687,7 +797,7 @@ impl Mutation {
 
     async fn create_github_repository_provider(
         ctx: &Context,
-        input: CreateGithubRepositoryProviderInput,
+        input: CreateRepositoryProviderInput,
     ) -> Result<ID> {
         check_admin(ctx).await?;
         input.validate()?;
@@ -695,11 +805,7 @@ impl Mutation {
             .locator
             .repository()
             .github()
-            .create_github_repository_provider(
-                input.display_name,
-                input.application_id,
-                input.secret,
-            )
+            .create_github_repository_provider(input.display_name, input.access_token)
             .await?;
         Ok(id)
     }
@@ -716,19 +822,14 @@ impl Mutation {
 
     async fn update_github_repository_provider(
         ctx: &Context,
-        input: UpdateGithubRepositoryProviderInput,
+        input: UpdateRepositoryProviderInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
             .repository()
             .github()
-            .update_github_repository_provider(
-                input.id,
-                input.display_name,
-                input.application_id,
-                input.secret,
-            )
+            .update_github_repository_provider(input.id, input.display_name, input.access_token)
             .await?;
         Ok(true)
     }
@@ -742,6 +843,58 @@ impl Mutation {
             .repository()
             .github()
             .update_github_provided_repository_active(id, active)
+            .await?;
+        Ok(true)
+    }
+
+    async fn create_gitlab_repository_provider(
+        ctx: &Context,
+        input: CreateRepositoryProviderInput,
+    ) -> Result<ID> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        let id = ctx
+            .locator
+            .repository()
+            .gitlab()
+            .create_gitlab_repository_provider(input.display_name, input.access_token)
+            .await?;
+        Ok(id)
+    }
+
+    async fn delete_gitlab_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .repository()
+            .gitlab()
+            .delete_gitlab_repository_provider(id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_gitlab_repository_provider(
+        ctx: &Context,
+        input: UpdateRepositoryProviderInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        ctx.locator
+            .repository()
+            .gitlab()
+            .update_gitlab_repository_provider(input.id, input.display_name, input.access_token)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_gitlab_provided_repository_active(
+        ctx: &Context,
+        id: ID,
+        active: bool,
+    ) -> Result<bool> {
+        ctx.locator
+            .repository()
+            .gitlab()
+            .update_gitlab_provided_repository_active(id, active)
             .await?;
         Ok(true)
     }

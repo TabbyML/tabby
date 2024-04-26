@@ -10,6 +10,7 @@ let delayTimer: number
 
 interface Options {
   language?: string
+  path: string
 }
 
 function ActionBarWidgetExtension(options: Options): Extension {
@@ -62,7 +63,13 @@ function createActionBarWidget(state: EditorState, options: Options): Tooltip {
       if (delayTimer) clearTimeout(delayTimer)
       delayTimer = window.setTimeout(() => {
         root.render(
-          <ActionBarWidget text={text} language={options?.language} />
+          <ActionBarWidget
+            text={text}
+            language={options?.language}
+            lineFrom={lineFrom.number}
+            lineTo={lineTo.number}
+            path={options?.path}
+          />
         )
       }, 1000)
 

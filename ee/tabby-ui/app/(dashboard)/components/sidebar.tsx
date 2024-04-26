@@ -68,6 +68,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
                     <SidebarButton href="/cluster">Cluster</SidebarButton>
                     <SidebarButton href="/jobs">Jobs</SidebarButton>
                     <SidebarButton href="/reports">Reports</SidebarButton>
+                    <SidebarButton href="/activities">Activities</SidebarButton>
                   </SidebarCollapsible>
                   <SidebarCollapsible
                     title={
@@ -93,8 +94,8 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       </>
                     }
                   >
-                    <SidebarButton href="/settings/git">
-                      Git Providers
+                    <SidebarButton href="/settings/repository/git">
+                      Repository Providers
                     </SidebarButton>
                     <SidebarButton href="/settings/sso">SSO</SidebarButton>
                     <SidebarButton href="/settings/mail">
@@ -134,7 +135,12 @@ const linkVariants = cva(
 function SidebarButton({ href, children }: SidebarButtonProps) {
   const pathname = usePathname()
   const isSelected = React.useMemo(() => {
-    return href === '/' ? href === pathname : pathname?.startsWith(href)
+    if (href === '/') return href === pathname
+    if (href.startsWith('/settings/repository')) {
+      return pathname.startsWith('/settings/repository/')
+    }
+
+    return shouldPathnameHighlight(pathname, href)
   }, [pathname, href])
 
   const state = isSelected ? 'selected' : 'not-selected'
@@ -143,6 +149,18 @@ function SidebarButton({ href, children }: SidebarButtonProps) {
       {children}
     </Link>
   )
+}
+
+function shouldPathnameHighlight(
+  currentPathname: string,
+  pathToHighlight: string
+) {
+  const regex = new RegExp(`^${escapeRegExp(pathToHighlight)}(/|\\?|$)`)
+  return regex.test(currentPathname)
+}
+
+function escapeRegExp(string: String) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 interface SidebarCollapsibleProps {

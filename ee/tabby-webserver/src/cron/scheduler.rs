@@ -80,7 +80,6 @@ async fn run_scheduler_now(
             let stdout = tokio::io::BufReader::new(stdout);
             let mut stdout = stdout.lines();
             while let Ok(Some(line)) = stdout.next_line().await {
-                println!("{line}");
                 let _ = job.update_stdout(&job_id, line + "\n").await;
             }
         });
@@ -95,7 +94,6 @@ async fn run_scheduler_now(
             let stderr = tokio::io::BufReader::new(stderr);
             let mut stdout = stderr.lines();
             while let Ok(Some(line)) = stdout.next_line().await {
-                eprintln!("{line}");
                 let _ = job.update_stderr(&job_id, line + "\n").await;
             }
         });

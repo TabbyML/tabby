@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use cached::CachedAsync;
-use chrono::{DateTime, Utc};
 use sqlx::{prelude::FromRow, query};
 
 use crate::{DateTimeUtc, DbConn};
@@ -23,7 +22,7 @@ pub struct UserCompletionDAO {
 
 #[derive(FromRow, Clone)]
 pub struct UserCompletionDailyStatsDAO {
-    pub start: DateTime<Utc>,
+    pub start: DateTimeUtc,
     pub language: String,
     pub completions: i32,
     pub views: i32,
@@ -40,7 +39,7 @@ impl DbConn {
     ) -> Result<i32> {
         let duration = Duration::from_millis(ts as u64);
         let created_at =
-            DateTime::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
+            DateTimeUtc::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
                 .context("Invalid created_at timestamp")?;
         let res = query!(
             "INSERT INTO user_completions (user_id, completion_id, language, created_at) VALUES (?, ?, ?, ?);",
@@ -64,7 +63,7 @@ impl DbConn {
     ) -> Result<()> {
         let duration = Duration::from_millis(ts as u64);
         let updated_at =
-            DateTime::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
+            DateTimeUtc::from_timestamp(duration.as_secs() as i64, duration.subsec_nanos())
                 .context("Invalid updated_at timestamp")?;
         query!("UPDATE user_completions SET views = views + ?, selects = selects + ?, dismisses = dismisses + ?, updated_at = ? WHERE completion_id = ?",
             views, selects, dismisses, updated_at, completion_id).execute(&self.pool).await?;
@@ -103,13 +102,13 @@ impl DbConn {
             .join(",");
         Ok(sqlx::query_as(&format!(
             r#"
-            SELECT CAST(STRFTIME('%s', DATE(created_at)) AS TIMESTAMP) as start,
+            SELECT STRFTIME('%F %T', DATE(user_completions.created_at)) as start,
                    language,
                    SUM(1) as completions,
                    SUM(selects) as selects,
                    SUM(views) as views
-            FROM user_completions
-            WHERE created_at >= DATE('now', '-1 year')
+            FROM user_completions JOIN users ON user_id = users.id AND users.active
+            WHERE user_completions.created_at >= DATETIME('now', '-1 year')
                 AND ({users_empty} OR user_id IN ({users}))
             GROUP BY 1, 2
             ORDER BY 1, 2 ASC
@@ -123,8 +122,8 @@ impl DbConn {
 
     pub async fn compute_daily_stats(
         &self,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        start: DateTimeUtc,
+        end: DateTimeUtc,
         users: Vec<i64>,
         languages: Vec<String>,
         all_languages: Vec<String>,
@@ -148,20 +147,20 @@ impl DbConn {
         // Groups stats by day, round all timestamps to the begining of the day relative to `start`.
         let res = sqlx::query_as(&format!(
             r#"
-            SELECT CAST((STRFTIME('%s', ?1) + days_since_start * 3600 * 24) AS TIMESTAMP) as start,
+            SELECT DATETIME((STRFTIME('%s', ?1) + days_since_start * 3600 * 24), 'unixepoch') as start,
                    language,
                    COUNT(1) as completions,
                    SUM(selects) as selects,
                    SUM(views) as views
             FROM (
                 SELECT user_id,
-                       CAST((STRFTIME('%s', created_at) - STRFTIME('%s', ?1)) / 3600 / 24 AS INT) as days_since_start,
-                       created_at,
+                       CAST((STRFTIME('%s', user_completions.created_at) - STRFTIME('%s', ?1)) / 3600 / 24 AS INT) as days_since_start,
+                       user_completions.created_at,
                        selects,
                        views,
                        IIF(language IN ({all_languages}), language, 'other') as language
-                FROM user_completions
-                WHERE created_at >= ?1 AND created_at < ?2
+                FROM user_completions JOIN users ON user_id = users.id AND users.active
+                WHERE user_completions.created_at >= ?1 AND user_completions.created_at < ?2
             )
                 WHERE ({no_selected_users} OR user_id IN ({users}))
                 AND ({no_selected_languages} OR language IN ({languages}))

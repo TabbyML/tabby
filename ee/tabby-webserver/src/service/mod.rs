@@ -5,11 +5,13 @@ mod email;
 pub mod event_logger;
 mod git_repository;
 mod github_repository_provider;
+mod gitlab_repository_provider;
 mod job;
 mod license;
 mod proxy;
 pub mod repository;
 mod setting;
+mod user_event;
 mod worker;
 
 use std::{net::SocketAddr, sync::Arc};
@@ -44,6 +46,7 @@ use crate::{
         license::{IsLicenseValid, LicenseService},
         repository::RepositoryService,
         setting::SettingService,
+        user_event::UserEventService,
         worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
         CoreError, Result, ServiceLocator,
     },
@@ -58,6 +61,7 @@ struct ServerContext {
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
+    user_event: Arc<dyn UserEventService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -83,6 +87,7 @@ impl ServerContext {
                 .await
                 .expect("failed to initialize license service"),
         );
+        let user_event = Arc::new(user_event::create(db_conn.clone()));
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -95,6 +100,7 @@ impl ServerContext {
             )),
             license,
             repository,
+            user_event,
             db_conn,
             logger,
             code,
@@ -132,7 +138,7 @@ impl ServerContext {
 
         // Allow JWT based access (from web browser), regardless of the license status.
         if let Ok(jwt) = self.auth.verify_access_token(token).await {
-            return (true, Some(jwt.sub.0));
+            return (true, Some(jwt.sub));
         }
 
         let is_license_valid = self.license.read().await.ensure_valid_license().is_ok();
@@ -306,6 +312,10 @@ impl ServiceLocator for Arc<ServerContext> {
 
     fn analytic(&self) -> Arc<dyn AnalyticService> {
         new_analytic_service(self.db_conn.clone())
+    }
+
+    fn user_event(&self) -> Arc<dyn UserEventService> {
+        self.user_event.clone()
     }
 }
 

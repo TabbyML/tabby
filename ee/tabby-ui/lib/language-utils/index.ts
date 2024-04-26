@@ -1,9 +1,17 @@
 import path from 'path'
-import { has } from 'lodash-es'
+import { has, isNil } from 'lodash-es'
 
 import { Language as ProgrammingLanguage } from '@/lib/gql/generates/graphql'
 
+import languageColors from './language-colors.json'
 import languages from './languages'
+
+const languageColorMapping: Record<string, string> = Object.entries(
+  languageColors
+).reduce((acc, cur) => {
+  const [lan, color] = cur
+  return { ...acc, [lan.toLocaleLowerCase()]: color }
+}, {})
 
 // Fork from
 // https://github.com/TomerAberbach/filename2prism/
@@ -38,13 +46,20 @@ export const filename2prism: (filename: string) => Array<string> = filename => {
     .filter(Boolean)
 }
 
-export const toProgrammingLanguageDisplayName = (
-  lan: ProgrammingLanguage
+export const getLanguageDisplayName = (
+  lan?: string,
+  defaultLan?: string
 ): string => {
+  const returnDefault = () => (!isNil(defaultLan) ? defaultLan : 'Other')
+  if (!lan) return returnDefault()
+
+  const indexInSupportedLanguages = Object.values(ProgrammingLanguage)
+    .map(lan => lan.toLocaleLowerCase())
+    .indexOf(lan.toLocaleLowerCase())
+  if (indexInSupportedLanguages === -1) return returnDefault()
+
   const displayName =
-    Object.keys(ProgrammingLanguage)[
-      Object.values(ProgrammingLanguage).indexOf(lan)
-    ] || ''
+    Object.keys(ProgrammingLanguage)[indexInSupportedLanguages]
   const mapping: Record<string, string> = {
     csharp: 'C#',
     cpp: 'C++',
@@ -52,4 +67,8 @@ export const toProgrammingLanguageDisplayName = (
     typescript: 'TypeScript'
   }
   return mapping[displayName.toLocaleLowerCase()] || displayName
+}
+
+export const getLanguageColor = (lan: string): string | undefined => {
+  return languageColorMapping[lan.toLowerCase()]
 }
