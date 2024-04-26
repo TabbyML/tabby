@@ -1,12 +1,17 @@
 'use client'
 
-import { noop } from 'lodash-es'
+import bytes from 'bytes'
+import { noop, sum } from 'lodash-es'
+import { useTheme } from 'next-themes'
+import { Cell, Label, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import { useQuery } from 'urql'
-import bytes from 'bytes';
-import { useTheme } from 'next-themes';
 
 import { graphql } from '@/lib/gql/generates'
-import { WorkerKind } from '@/lib/gql/generates/graphql'
+import {
+  DiskUsage,
+  DiskUsageStats,
+  WorkerKind
+} from '@/lib/gql/generates/graphql'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useWorkers } from '@/lib/hooks/use-workers'
 import { useMutation } from '@/lib/tabby/gql'
@@ -15,19 +20,7 @@ import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { CopyButton } from '@/components/copy-button'
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Label,
-} from 'recharts'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { IconFolderOpen } from '@/components/ui/icons';
+import LoadingWrapper from '@/components/loading-wrapper'
 
 import WorkerCard from './worker-card'
 
@@ -61,15 +54,6 @@ export default function Workers() {
   })
 
   if (!healthInfo) return
-
-  // TODO: mock data
-  const usageData = [
-    { name: "Models", usage: 1024 * 1024 * 1024 * 1.1, color: "#0088FE", folders: ["~/.tabby/models"] },
-    { name: "Repository data", usage: 1024 * 1024 * 2.1, color: "#00C49F", folders: ["~/.tabby/dataset", "~/.tabby/index"] },
-    { name: "Database", usage: 1024 * 85, color: "#FFBB28", folders: ["~/.tabby/ee"] },
-    { name: "Events", usage: 1024 * 1200 * 11, color: "#FF8042", folders: ["~/.tabby/events"] }
-  ];
-  const totalUsage = 1024 * 1300 * 1200
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -137,76 +121,151 @@ export default function Workers() {
         />
       </div>
 
-      <Separator className="mt-5" />
-
-      <div>
-        <p className="font-bold">
-          Storage Usage
-        </p>
-        <p className="text-sm text-muted-foreground">Disk space used by Tabby</p>
-      </div>
-      
-      
-      <div className="flex flex-col items-center gap-x-3 md:flex-row">
-        <ResponsiveContainer width={230} height={220}>
-          <PieChart>
-            <Pie 
-              data={usageData} 
-              dataKey="usage"
-              cx={110}
-              cy={100}
-              innerRadius={70}
-              outerRadius={90}
-              stroke='none'
-            >
-              {usageData.map((entry) => (
-                <Cell key={entry.name} fill={entry.color} />
-              ))}
-              <Label  
-                content={<CustomLabel totalUsage={totalUsage} />}
-                position="center"
-              />
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-
-        <div className="flex w-full flex-col gap-y-2 md:ml-10 md:w-auto">
-          {usageData.map(item => (
-            <Tooltip key={item.name}>
-              <TooltipTrigger>
-                <div className="flex cursor-default items-center justify-between text-xs" >
-                  <div className="flex w-40 items-center">
-                    <div className="mr-1.5 h-3 w-3 rounded" style={{ backgroundColor: item.color }} />
-                    <p className="font-semibold">{item.name}</p>
-                  </div>
-                  <p>{bytes(item.usage)}</p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="flex items-center text-muted-foreground">
-                  <IconFolderOpen className="mr-0.5" />
-                  <p>Folder</p>
-                </div>
-                
-                {item.folders.map(folder => (<p>{folder}</p>))}
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
-      </div>
+      <Separator className="mt-6" />
+      <Usage />
     </div>
   )
 }
 
-function CustomLabel ({
+export const getDiskUsageStats = graphql(/* GraphQL */ `
+  query GetDiskUsageStats {
+    diskUsageStats {
+      events {
+        filePaths
+        size
+      }
+      indexedRepositories {
+        filePaths
+        size
+      }
+      database {
+        filePaths
+        size
+      }
+      models {
+        filePaths
+        size
+      }
+    }
+  }
+`)
+
+type UsageItem = {
+  label: string
+  key: keyof DiskUsageStats
+  color: string
+}
+
+type UsageItemWithSize = UsageItem & { size: number }
+
+const usageList: UsageItem[] = [
+  {
+    label: 'Model Cache',
+    key: 'models',
+    color: '#0088FE'
+  },
+  {
+    label: 'Repository Context',
+    key: 'indexedRepositories',
+    color: '#00C49F'
+  },
+  {
+    label: 'Event Logs',
+    key: 'events',
+    color: '#FF8042'
+  },
+  {
+    label: 'Other',
+    key: 'database',
+    color: '#FFBB28'
+  }
+]
+
+function Usage() {
+  const [{ data, fetching }] = useQuery({
+    query: getDiskUsageStats
+  })
+
+  let usageData: UsageItemWithSize[] = []
+  let totalUsage: number = 0
+  if (data) {
+    usageData = usageList
+      .map(usage => {
+        if (!data.diskUsageStats[usage.key]) return null
+        const diskUsage = data.diskUsageStats[usage.key] as DiskUsage
+        return {
+          ...usage,
+          size: diskUsage.size
+        }
+      })
+      .filter(usage => usage) as UsageItemWithSize[]
+    totalUsage = sum(usageData.map(data => data.size))
+  }
+
+  return (
+    <LoadingWrapper loading={fetching} fallback={<></>}>
+      <>
+        <div>
+          <p className="font-bold">Storage Usage</p>
+          <p className="text-sm text-muted-foreground">
+            Disk Space Utilization by Type
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-x-3 md:flex-row">
+          <ResponsiveContainer width={230} height={220}>
+            <PieChart>
+              <Pie
+                data={usageData}
+                dataKey="size"
+                cx={110}
+                cy={100}
+                innerRadius={70}
+                outerRadius={90}
+                stroke="none"
+              >
+                {usageData.map(entry => (
+                  <Cell key={entry.key} fill={entry.color} />
+                ))}
+                <Label
+                  content={<CustomLabel totalUsage={totalUsage} />}
+                  position="center"
+                />
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+
+          <div className="flex w-full flex-col gap-y-2 md:ml-10 md:w-auto">
+            {usageData.map(usage => (
+              <div
+                className="flex cursor-default items-center justify-between text-xs"
+                key={usage!.key}
+              >
+                <div className="flex w-40 items-center">
+                  <div
+                    className="mr-1.5 h-3 w-3 rounded"
+                    style={{ backgroundColor: usage!.color }}
+                  />
+                  <p className="font-semibold">{usage!.label}</p>
+                </div>
+                <p>{bytes(usage!.size * 1024)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    </LoadingWrapper>
+  )
+}
+
+function CustomLabel({
   viewBox,
   totalUsage
 }: {
   viewBox?: {
-    cx: number;
-    cy: number;
-  };
-  totalUsage: number;
+    cx: number
+    cy: number
+  }
+  totalUsage: number
 }) {
   const { theme } = useTheme()
   if (!viewBox) return
@@ -222,7 +281,7 @@ function CustomLabel ({
         fill={theme === 'dark' ? '#FDFDFD' : '#030302'}
         className="text-sm"
       >
-        Total Usuage
+        Total Usage
       </text>
       <text
         x={cx}
@@ -233,8 +292,8 @@ function CustomLabel ({
         fill={theme === 'dark' ? '#FDFDFD' : '#030302'}
         className="text-lg font-semibold"
       >
-        {bytes(totalUsage)}
+        {bytes(totalUsage * 1024)}
       </text>
     </g>
-  );
-};
+  )
+}
