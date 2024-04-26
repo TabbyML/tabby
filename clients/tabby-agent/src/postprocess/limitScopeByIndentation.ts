@@ -77,9 +77,7 @@ function parseIndentationContext(
   return result;
 }
 
-export function limitScopeByIndentation(
-  config: AgentConfig["postprocess"]["limitScope"],
-): PostprocessFilter {
+export function limitScopeByIndentation(config: AgentConfig["postprocess"]["limitScope"]): PostprocessFilter {
   return (input: string, context: CompletionContext) => {
     const { prefixLines, suffixLines, currentLinePrefix } = context;
     const inputLines = splitLines(input);
