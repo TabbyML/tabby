@@ -299,5 +299,5 @@ function CustomLabel({
 }
 
 function toBytes(value: number) {
-  return bytes(value * 1024, { unitSeparator: " " })
+  return bytes(value * 1024, { unitSeparator: ' ' })
 }
