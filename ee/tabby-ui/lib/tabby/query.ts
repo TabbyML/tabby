@@ -186,7 +186,7 @@ export const listGithubRepositoryProviders = graphql(/* GraphQL */ `
         node {
           id
           displayName
-          connected
+          status
         }
         cursor
       }

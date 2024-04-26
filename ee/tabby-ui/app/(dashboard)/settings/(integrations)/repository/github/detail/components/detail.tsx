@@ -36,6 +36,7 @@ import { ListSkeleton } from '@/components/skeleton'
 import { updateGithubProvidedRepositoryActiveMutation } from '../query'
 import LinkRepositoryForm from './new-repository-form'
 import { UpdateProviderForm } from './provider-detail-form'
+import { RepositoryProviderStatus } from '@/lib/gql/generates/graphql'
 
 type GithubRepositories = QueryResponseData<
   typeof listGithubRepositories
@@ -68,7 +69,7 @@ const DetailPage: React.FC = () => {
 
   return (
     <LoadingWrapper loading={fetching}>
-      <CardTitle className="flex items-center justify-between">
+      <CardTitle className="flex items-center gap-4">
         <div className="-ml-1 flex items-center">
           <Button
             onClick={() => router.back()}
@@ -81,11 +82,7 @@ const DetailPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-2 text-base">
           <div className="ml-1">
-            {provider?.connected ? (
-              <Badge variant="successful">Connected</Badge>
-            ) : (
-              <Badge variant="destructive">Not Connected</Badge>
-            )}
+            {provider && toStatusBadge(provider.status)}
           </div>
         </div>
       </CardTitle>
@@ -106,6 +103,17 @@ const DetailPage: React.FC = () => {
       </div>
     </LoadingWrapper>
   )
+}
+
+function toStatusBadge(status: RepositoryProviderStatus) {
+  switch (status) {
+    case RepositoryProviderStatus.Ready:
+      return <Badge variant="successful">Ready</Badge>
+    case RepositoryProviderStatus.Error:
+      return <Badge variant="destructive">Error</Badge>
+    case RepositoryProviderStatus.Error:
+      return <Badge>Pending</Badge>
+  }
 }
 
 const LinkedRepoTable: React.FC<{
