@@ -128,6 +128,10 @@
 <text text-anchor="start" x="398" y="-462.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="435.5,-455.5 435.5,-476.5 584.5,-476.5 584.5,-455.5 435.5,-455.5"/>
 <text text-anchor="start" x="463" y="-462.3" font-family="Times,serif" font-size="14.00">access_token</text>
+<polygon fill="none" stroke="black" points="365.5,-434.5 365.5,-455.5 435.5,-455.5 435.5,-434.5 365.5,-434.5"/>
+<text text-anchor="start" x="398" y="-441.3" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="435.5,-434.5 435.5,-455.5 584.5,-455.5 584.5,-434.5 435.5,-434.5"/>
+<text text-anchor="start" x="474.5" y="-441.3" font-family="Times,serif" font-size="14.00">synced_at</text>
 </g>
 <!-- github_provided_repositories&#45;&gt;github_repository_provider -->
 <g id="edge4" class="edge">
@@ -186,6 +190,10 @@
 <text text-anchor="start" x="399" y="-656.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="434.5,-649.5 434.5,-670.5 580.5,-670.5 580.5,-649.5 434.5,-649.5"/>
 <text text-anchor="start" x="460.5" y="-656.3" font-family="Times,serif" font-size="14.00">access_token</text>
+<polygon fill="none" stroke="black" points="368.5,-628.5 368.5,-649.5 434.5,-649.5 434.5,-628.5 368.5,-628.5"/>
+<text text-anchor="start" x="399" y="-635.3" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="434.5,-628.5 434.5,-649.5 580.5,-649.5 580.5,-628.5 434.5,-628.5"/>
+<text text-anchor="start" x="472" y="-635.3" font-family="Times,serif" font-size="14.00">synced_at</text>
 </g>
 <!-- gitlab_provided_repositories&#45;&gt;gitlab_repository_provider -->
 <g id="edge2" class="edge">
