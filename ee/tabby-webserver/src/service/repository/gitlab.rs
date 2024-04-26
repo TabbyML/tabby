@@ -292,7 +292,7 @@ mod tests {
     #[tokio::test]
     async fn test_gitlab_repository_provider_crud() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = gitlab::create(db.clone());
+        let service = super::create(db.clone());
 
         let id = service
             .create_provider("id".into(), "secret".into())
