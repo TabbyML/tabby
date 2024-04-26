@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useContext } from 'react'
+import { isEmpty } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -32,9 +33,12 @@ import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import {
   fetchEntriesFromPath,
+  generatePathPrefixFromPath,
   getDirectoriesFromBasename,
+  key2RepositoryKind,
   resolveFileNameFromPath,
-  resolveRepoNameFromPath
+  resolveRepoIdFromPath,
+  resolveRepoKindFromPath
 } from './utils'
 
 interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -47,8 +51,8 @@ type SearchOption = {
 }
 
 const repositorySearch = graphql(/* GraphQL */ `
-  query RepositorySearch($repositoryName: String!, $pattern: String!) {
-    repositorySearch(repositoryName: $repositoryName, pattern: $pattern) {
+  query RepositorySearch($kind: RepositoryKind!, $id: ID!, $pattern: String!) {
+    repositorySearch(kind: $kind, id: $id, pattern: $pattern) {
       type
       path
       indices
@@ -66,10 +70,18 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     setActivePath,
     initialized,
     updateFileMap,
-    setExpandedKeys
+    setExpandedKeys,
+    fileMap
   } = useContext(SourceCodeBrowserContext)
   const { setProgress } = useTopbarProgress()
-  const curerntRepoName = resolveRepoNameFromPath(activePath)
+
+  const prefix = generatePathPrefixFromPath(activePath)
+  const repoKind = resolveRepoKindFromPath(activePath)
+  const repoId = resolveRepoIdFromPath(activePath)
+  const curerntRepoName = React.useMemo(() => {
+    if (!prefix || isEmpty(fileMap)) return undefined
+    return fileMap?.[prefix]?.name
+  }, [prefix, fileMap])
 
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [input, setInput] = React.useState<string>()
@@ -83,10 +95,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const [{ data: repositorySearchData }] = useQuery({
     query: repositorySearch,
     variables: {
-      repositoryName: curerntRepoName,
+      kind: key2RepositoryKind(repoKind),
+      id: repoId,
       pattern: repositorySearchPattern ?? ''
     },
-    pause: !curerntRepoName || !repositorySearchPattern
+    pause: !prefix || !repositorySearchPattern
   })
 
   React.useEffect(() => {
@@ -122,7 +135,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const path = value.path
     if (!path) return
 
-    const fullPath = `${curerntRepoName}/${path}`
+    const fullPath = `${prefix}/${path}`
     try {
       setProgress(true)
       const entries = await fetchEntriesFromPath(fullPath)
@@ -131,7 +144,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       const patchMap: TFileMap = {}
       // fetch dirs
       for (const entry of entries) {
-        const path = `${curerntRepoName}/${entry.basename}`
+        const path = `${prefix}/${entry.basename}`
         patchMap[path] = {
           file: entry,
           name: resolveFileNameFromPath(path),
@@ -140,7 +153,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
         }
       }
       const expandedKeys = initialExpandedDirs.map(dir =>
-        [curerntRepoName, dir].filter(Boolean).join('/')
+        [prefix, dir].filter(Boolean).join('/')
       )
       if (patchMap) {
         updateFileMap(patchMap)
@@ -191,10 +204,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     <div className={cn(className)} {...props}>
       <div className="py-4 font-bold leading-8">Files</div>
       <div className="space-y-3">
+        {/* todo */}
         <Select
           disabled={!initialized}
           onValueChange={onSelectRepo}
-          value={curerntRepoName}
+          value={prefix}
         >
           <SelectTrigger>
             <SelectValue>
@@ -217,7 +231,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
               <>
                 {fileTreeData?.map(repo => {
                   return (
-                    <SelectItem key={repo.fullPath} value={repo.name}>
+                    <SelectItem key={repo.fullPath} value={repo.fullPath}>
                       {repo.name}
                     </SelectItem>
                   )

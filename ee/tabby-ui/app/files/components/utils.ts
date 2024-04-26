@@ -1,7 +1,18 @@
 import { isNil } from 'lodash-es'
 
+import { RepositoryKind } from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
 import { ResolveEntriesResponse, TFile } from '@/lib/types'
+
+function resolveRepoKindFromPath(path: string | undefined) {
+  if (!path) return ''
+  return path.split('/')?.[0]
+}
+
+function resolveRepoIdFromPath(path: string | undefined) {
+  if (!path) return ''
+  return path.split('/')?.[1]
+}
 
 function resolveRepoNameFromPath(path: string | undefined) {
   if (!path) return ''
@@ -10,7 +21,7 @@ function resolveRepoNameFromPath(path: string | undefined) {
 
 function resolveBasenameFromPath(path?: string) {
   if (!path) return ''
-  return path.split('/').slice(1).join('/')
+  return path.split('/').slice(2).join('/')
 }
 
 function resolveFileNameFromPath(path: string) {
@@ -33,8 +44,10 @@ function getDirectoriesFromBasename(path: string, isDir?: boolean): string[] {
 }
 
 async function fetchEntriesFromPath(path: string | undefined) {
-  if (!path) return []
-  const repoName = resolveRepoNameFromPath(path)
+  const repoId = resolveRepoIdFromPath(path)
+  const repoKind = resolveRepoKindFromPath(path)
+  if (!path || !repoId || !repoKind) return []
+
   const basename = resolveBasenameFromPath(path)
   // array of dir basename that do not include the repo name.
   const directoryPaths = getDirectoriesFromBasename(basename)
@@ -42,7 +55,9 @@ async function fetchEntriesFromPath(path: string | undefined) {
   const requests: Array<() => Promise<ResolveEntriesResponse>> =
     directoryPaths.map(
       dir => () =>
-        fetcher(`/repositories/${repoName}/resolve/${dir}`).catch(e => [])
+        fetcher(
+          `/repositories/${repoKind.toLowerCase()}/${repoId}/resolve/${dir}`
+        ).catch(e => [])
     )
   const entries = await Promise.all(requests.map(fn => fn()))
   let result: TFile[] = []
@@ -54,10 +69,41 @@ async function fetchEntriesFromPath(path: string | undefined) {
   return result
 }
 
+function generatePathPrefixFromRepo(
+  repo: { kind: RepositoryKind | string; id: string } | undefined
+) {
+  if (repo?.kind && repo?.id) {
+    return `${repo.kind.toLowerCase()}/${repo.id}`
+  }
+
+  return undefined
+}
+
+function generatePathPrefixFromPath(path: string | undefined) {
+  if (!path) return ''
+  let pathSegments = path.split('/')
+  if (pathSegments.length < 2) return ''
+  return [pathSegments[0], pathSegments[1]].join('/')
+}
+
+function key2RepositoryKind(key: string) {
+  const map: Record<string, RepositoryKind> = {
+    git: RepositoryKind.Git,
+    github: RepositoryKind.Github,
+    gitlab: RepositoryKind.Gitlab
+  }
+  return map[key] || undefined
+}
+
 export {
   resolveRepoNameFromPath,
   resolveBasenameFromPath,
   resolveFileNameFromPath,
   getDirectoriesFromBasename,
-  fetchEntriesFromPath
+  fetchEntriesFromPath,
+  resolveRepoKindFromPath,
+  resolveRepoIdFromPath,
+  generatePathPrefixFromRepo,
+  generatePathPrefixFromPath,
+  key2RepositoryKind
 }

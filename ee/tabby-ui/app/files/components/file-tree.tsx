@@ -20,7 +20,11 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { TFileMap } from './source-code-browser'
-import { resolveFileNameFromPath, resolveRepoNameFromPath } from './utils'
+import {
+  generatePathPrefixFromPath,
+  resolveFileNameFromPath,
+  resolveRepoNameFromPath
+} from './utils'
 
 type TFileTreeNode = {
   name: string
@@ -316,7 +320,9 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 const FileTreeRenderer: React.FC = () => {
   const { initialized, activePath, fileMap, fileTreeData } =
     React.useContext(FileTreeContext)
-  const repoName = resolveRepoNameFromPath(activePath)
+  const repoPrefix = generatePathPrefixFromPath(activePath)
+  // todo fix no data
+  console.log(fileTreeData, '======filetreedata')
 
   if (!initialized) return <FileTreeSkeleton />
 
@@ -327,13 +333,13 @@ const FileTreeRenderer: React.FC = () => {
       </div>
     )
 
-  if (repoName && !fileTreeData?.length) {
+  if (repoPrefix && !fileTreeData?.length) {
     return (
       <div className="flex h-full items-center justify-center">No Data</div>
     )
   }
 
-  if (!repoName) {
+  if (!repoPrefix) {
     return null
   }
 
@@ -371,16 +377,16 @@ function mapToFileTree(fileMap: TFileMap | undefined): TFileTreeNode[] {
     const pathSegments = fileKey.split('/')
     let currentNode = tree
 
-    for (let i = 0; i < pathSegments.length; i++) {
-      const segment = pathSegments[i]
-      const existingNode = currentNode?.find(node => node.name === segment)
+    for (let i = 1; i < pathSegments.length; i++) {
+      const p = pathSegments.slice(0, i + 1).join('/')
+      const existingNode = currentNode?.find(node => node.fullPath === p)
 
       if (existingNode) {
         currentNode = existingNode.children || []
       } else {
         const newNode: TFileTreeNode = {
           file: file.file,
-          name: segment,
+          name: file.name,
           fullPath: fileKey,
           children: []
         }
