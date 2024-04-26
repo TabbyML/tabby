@@ -204,7 +204,6 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     <div className={cn(className)} {...props}>
       <div className="py-4 font-bold leading-8">Files</div>
       <div className="space-y-3">
-        {/* todo */}
         <Select
           disabled={!initialized}
           onValueChange={onSelectRepo}
