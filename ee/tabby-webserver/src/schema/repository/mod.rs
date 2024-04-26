@@ -1,21 +1,17 @@
 mod types;
 pub use types::*;
 
-mod git_repository;
-pub use git_repository::{CreateGitRepositoryInput, GitRepository, GitRepositoryService};
+mod git;
+pub use git::{CreateGitRepositoryInput, GitRepository, GitRepositoryService};
 
-mod github_repository;
-pub use github_repository::{
-    GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryService,
-};
+mod github;
+pub use github::{GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryService};
 
-mod gitlab_repository;
+mod gitlab;
 use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
-pub use gitlab_repository::{
-    GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService,
-};
+pub use gitlab::{GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};

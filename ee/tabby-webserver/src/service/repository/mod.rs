@@ -1,6 +1,6 @@
-mod git_repository;
-mod github_repository;
-mod gitlab_repository;
+mod git;
+mod github;
+mod gitlab;
 
 use std::sync::Arc;
 
@@ -26,8 +26,8 @@ struct RepositoryServiceImpl {
 pub fn create(db: DbConn) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(db.clone()),
-        github: Arc::new(github_repository::create(db.clone())),
-        gitlab: Arc::new(gitlab_repository::create(db.clone())),
+        github: Arc::new(github::create(db.clone())),
+        gitlab: Arc::new(gitlab::create(db.clone())),
     })
 }
 
