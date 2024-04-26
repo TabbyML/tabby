@@ -16,6 +16,7 @@ use crate::{
         gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProvider},
         job,
         setting::{NetworkSetting, SecuritySetting},
+        types::RepositoryProviderStatus,
         user_event::{EventKind, UserEvent},
         CoreError,
     },
@@ -130,7 +131,10 @@ impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
         Self {
             display_name: value.display_name,
             id: value.id.as_id(),
-            connected: value.access_token.is_some(),
+            status: RepositoryProviderStatus::get_status(
+                value.access_token.is_some(),
+                value.synced_at.is_some(),
+            ),
             access_token: value.access_token,
         }
     }
@@ -154,7 +158,10 @@ impl From<GitlabRepositoryProviderDAO> for GitlabRepositoryProvider {
         Self {
             display_name: value.display_name,
             id: value.id.as_id(),
-            connected: value.access_token.is_some(),
+            status: RepositoryProviderStatus::get_status(
+                value.access_token.is_some(),
+                value.synced_at.is_some(),
+            ),
             access_token: value.access_token,
         }
     }

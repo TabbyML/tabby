@@ -9,6 +9,7 @@ pub struct GithubRepositoryProviderDAO {
     pub id: i64,
     pub display_name: String,
     pub access_token: Option<String>,
+    pub synced_at: Option<DateTimeUtc>,
 }
 
 #[derive(FromRow)]
@@ -36,7 +37,7 @@ impl DbConn {
     pub async fn get_github_provider(&self, id: i64) -> Result<GithubRepositoryProviderDAO> {
         let provider = query_as!(
             GithubRepositoryProviderDAO,
-            "SELECT id, display_name, access_token FROM github_repository_provider WHERE id = ?;",
+            r#"SELECT id, display_name, access_token, synced_at AS "synced_at: DateTimeUtc" FROM github_repository_provider WHERE id = ?;"#,
             id
         )
         .fetch_one(&self.pool)
@@ -95,6 +96,18 @@ impl DbConn {
         Ok(())
     }
 
+    pub async fn update_github_provider_synced_at(&self, id: i64, success: bool) -> Result<()> {
+        let time = success.then_some(DateTimeUtc::now());
+        query!(
+            "UPDATE github_repository_provider SET synced_at = ? WHERE id = ?",
+            time,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     pub async fn list_github_repository_providers(
         &self,
         ids: Vec<i64>,
@@ -113,7 +126,7 @@ impl DbConn {
         let providers = query_paged_as!(
             GithubRepositoryProviderDAO,
             "github_repository_provider",
-            ["id", "display_name", "access_token"],
+            ["id", "display_name", "access_token", "synced_at" as "synced_at: DateTimeUtc"],
             limit,
             skip_id,
             backwards,

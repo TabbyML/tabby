@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 
-use super::{repository::RepositoryProvider, Context};
+use super::{repository::RepositoryProvider, types::RepositoryProviderStatus, Context};
 use crate::{juniper::relay::NodeType, schema::Result};
 
 #[derive(GraphQLObject, Debug, PartialEq)]
@@ -11,7 +11,7 @@ pub struct GithubRepositoryProvider {
     pub id: ID,
     pub display_name: String,
 
-    pub connected: bool,
+    pub status: RepositoryProviderStatus,
 
     #[graphql(skip)]
     pub access_token: Option<String>,
@@ -75,7 +75,11 @@ pub trait GithubRepositoryProviderService: Send + Sync + RepositoryProvider {
         display_name: String,
         access_token: String,
     ) -> Result<()>;
-    async fn reset_github_repository_provider_access_token(&self, id: ID) -> Result<()>;
+    async fn update_github_repository_provider_sync_status(
+        &self,
+        id: ID,
+        success: bool,
+    ) -> Result<()>;
 
     async fn list_github_repository_providers(
         &self,

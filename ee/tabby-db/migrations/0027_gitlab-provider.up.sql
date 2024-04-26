@@ -1,7 +1,8 @@
 CREATE TABLE gitlab_repository_provider(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     display_name TEXT NOT NULL,
-    access_token TEXT
+    access_token TEXT,
+    synced_at TIMESTAMP
 );
 
 CREATE TABLE gitlab_provided_repositories(

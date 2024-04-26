@@ -50,13 +50,6 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         Ok(())
     }
 
-    async fn reset_github_repository_provider_access_token(&self, id: ID) -> Result<()> {
-        self.db
-            .reset_github_provider_access_token(id.as_rowid()?)
-            .await?;
-        Ok(())
-    }
-
     async fn list_github_repository_providers(
         &self,
         ids: Vec<ID>,
@@ -183,6 +176,21 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
             .await?;
         Ok(())
     }
+
+    async fn update_github_repository_provider_sync_status(
+        &self,
+        id: ID,
+        success: bool,
+    ) -> Result<()> {
+        let id = id.as_rowid()?;
+        if !success {
+            self.db.reset_github_provider_access_token(id).await?;
+        }
+        self.db
+            .update_github_provider_synced_at(id, success)
+            .await?;
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -217,7 +225,7 @@ mod tests {
     use chrono::Duration;
 
     use super::*;
-    use crate::service::AsID;
+    use crate::{schema::types::RepositoryProviderStatus, service::AsID};
 
     #[tokio::test]
     async fn test_github_provided_repositories() {
@@ -318,7 +326,7 @@ mod tests {
                 id: id.clone(),
                 display_name: "id".into(),
                 access_token: Some("secret".into()),
-                connected: true,
+                status: RepositoryProviderStatus::Pending,
             }
         );
 
@@ -329,21 +337,6 @@ mod tests {
             .unwrap();
         assert_eq!(providers.len(), 1);
         assert_eq!(providers[0].access_token, Some("secret".into()));
-
-        // Test resetgithub provider tokens
-        service
-            .reset_github_repository_provider_access_token(id.clone())
-            .await
-            .unwrap();
-
-        assert_eq!(
-            service
-                .get_github_repository_provider(id.clone())
-                .await
-                .unwrap()
-                .access_token,
-            None
-        );
 
         // Test deleting github provider
         service
