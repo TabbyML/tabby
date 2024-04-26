@@ -96,11 +96,12 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_gitlab_provider_synced_at(&self, id: i64, success: bool) -> Result<()> {
+    pub async fn update_gitlab_provider_sync_status(&self, id: i64, success: bool) -> Result<()> {
         let time = success.then_some(DateTimeUtc::now());
         query!(
-            "UPDATE gitlab_repository_provider SET synced_at = ? WHERE id = ?",
+            "UPDATE gitlab_repository_provider SET synced_at = ?, access_token = IIF(?, access_token, NULL) WHERE id = ?",
             time,
+            success,
             id
         )
         .execute(&self.pool)

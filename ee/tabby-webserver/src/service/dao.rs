@@ -131,7 +131,7 @@ impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
         Self {
             display_name: value.display_name,
             id: value.id.as_id(),
-            status: RepositoryProviderStatus::get_status(
+            status: RepositoryProviderStatus::new(
                 value.access_token.is_some(),
                 value.synced_at.is_some(),
             ),
@@ -158,7 +158,7 @@ impl From<GitlabRepositoryProviderDAO> for GitlabRepositoryProvider {
         Self {
             display_name: value.display_name,
             id: value.id.as_id(),
-            status: RepositoryProviderStatus::get_status(
+            status: RepositoryProviderStatus::new(
                 value.access_token.is_some(),
                 value.synced_at.is_some(),
             ),

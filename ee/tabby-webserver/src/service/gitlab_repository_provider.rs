@@ -186,7 +186,7 @@ impl GitlabRepositoryProviderService for GitlabRepositoryProviderServiceImpl {
         success: bool,
     ) -> Result<()> {
         self.db
-            .update_gitlab_provider_synced_at(id.as_rowid()?, success)
+            .update_gitlab_provider_sync_status(id.as_rowid()?, success)
             .await?;
         Ok(())
     }
@@ -351,6 +351,37 @@ mod tests {
                 .unwrap()
                 .len()
         );
+    }
+
+    #[tokio::test]
+    async fn test_sync_status() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let provider_id = db
+            .create_gitlab_provider("provider1".into(), "token".into())
+            .await
+            .unwrap();
+
+        service
+            .update_gitlab_repository_provider_sync_status(provider_id.as_id(), true)
+            .await
+            .unwrap();
+
+        let provider = db.get_gitlab_provider(provider_id).await.unwrap();
+
+        assert!(provider.access_token.is_some());
+        assert!(provider.synced_at.is_some());
+
+        service
+            .update_gitlab_repository_provider_sync_status(provider_id.as_id(), false)
+            .await
+            .unwrap();
+
+        let provider = db.get_gitlab_provider(provider_id).await.unwrap();
+
+        assert!(provider.access_token.is_none());
+        assert!(provider.synced_at.is_none());
     }
 
     #[tokio::test]

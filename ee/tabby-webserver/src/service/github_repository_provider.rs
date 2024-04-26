@@ -182,12 +182,8 @@ impl GithubRepositoryProviderService for GithubRepositoryProviderServiceImpl {
         id: ID,
         success: bool,
     ) -> Result<()> {
-        let id = id.as_rowid()?;
-        if !success {
-            self.db.reset_github_provider_access_token(id).await?;
-        }
         self.db
-            .update_github_provider_synced_at(id, success)
+            .update_github_provider_sync_status(id.as_rowid()?, success)
             .await?;
         Ok(())
     }
@@ -383,6 +379,37 @@ mod tests {
             git_urls,
             ["https://token@github.com/TabbyML/tabby".to_string()]
         );
+    }
+
+    #[tokio::test]
+    async fn test_sync_status() {
+        let db = DbConn::new_in_memory().await.unwrap();
+        let service = create(db.clone());
+
+        let provider_id = db
+            .create_github_provider("provider1".into(), "token".into())
+            .await
+            .unwrap();
+
+        service
+            .update_github_repository_provider_sync_status(provider_id.as_id(), true)
+            .await
+            .unwrap();
+
+        let provider = db.get_github_provider(provider_id).await.unwrap();
+
+        assert!(provider.access_token.is_some());
+        assert!(provider.synced_at.is_some());
+
+        service
+            .update_github_repository_provider_sync_status(provider_id.as_id(), false)
+            .await
+            .unwrap();
+
+        let provider = db.get_github_provider(provider_id).await.unwrap();
+
+        assert!(provider.access_token.is_none());
+        assert!(provider.synced_at.is_none());
     }
 
     #[tokio::test]

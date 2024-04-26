@@ -32,7 +32,7 @@ pub enum RepositoryProviderStatus {
 }
 
 impl RepositoryProviderStatus {
-    pub fn get_status(access_token_set: bool, synced_at_set: bool) -> Self {
+    pub fn new(access_token_set: bool, synced_at_set: bool) -> Self {
         match (access_token_set, synced_at_set) {
             (true, true) => RepositoryProviderStatus::Ready,
             (true, false) => RepositoryProviderStatus::Pending,
