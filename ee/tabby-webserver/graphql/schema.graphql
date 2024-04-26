@@ -1,3 +1,15 @@
+input UpdateRepositoryProviderInput {
+  id: ID!
+  displayName: String!
+  accessToken: String!
+}
+
+type GitlabRepositoryProvider {
+  id: ID!
+  displayName: String!
+  connected: Boolean!
+}
+
 enum Language {
   RUST
   PYTHON
@@ -36,6 +48,11 @@ type JobRun {
   stderr: String!
 }
 
+type GitlabProvidedRepositoryEdge {
+  node: GitlabProvidedRepository!
+  cursor: String!
+}
+
 enum AuthMethod {
   NONE
   PLAIN
@@ -69,6 +86,11 @@ type LicenseInfo {
   seatsUsed: Int!
   issuedAt: DateTimeUtc
   expiresAt: DateTimeUtc
+}
+
+type GitlabRepositoryProviderEdge {
+  node: GitlabRepositoryProvider!
+  cursor: String!
 }
 
 type GithubRepositoryProviderConnection {
@@ -130,6 +152,11 @@ type Invitation {
   createdAt: DateTimeUtc!
 }
 
+type GitlabProvidedRepositoryConnection {
+  edges: [GitlabProvidedRepositoryEdge!]!
+  pageInfo: PageInfo!
+}
+
 type EmailSetting {
   smtpUsername: String!
   smtpServer: String!
@@ -139,15 +166,15 @@ type EmailSetting {
   authMethod: AuthMethod!
 }
 
-type TokenAuthResponse {
-  accessToken: String!
-  refreshToken: String!
-}
-
 type JobStats {
   success: Int!
   failed: Int!
   pending: Int!
+}
+
+type TokenAuthResponse {
+  accessToken: String!
+  refreshToken: String!
 }
 
 type NetworkSetting {
@@ -201,10 +228,14 @@ type Mutation {
   deleteEmailSetting: Boolean!
   uploadLicense(license: String!): Boolean!
   resetLicense: Boolean!
-  createGithubRepositoryProvider(input: CreateGithubRepositoryProviderInput!): ID!
+  createGithubRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
   deleteGithubRepositoryProvider(id: ID!): Boolean!
-  updateGithubRepositoryProvider(input: UpdateGithubRepositoryProviderInput!): Boolean!
+  updateGithubRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
   updateGithubProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
+  createGitlabRepositoryProvider(input: CreateRepositoryProviderInput!): ID!
+  deleteGitlabRepositoryProvider(id: ID!): Boolean!
+  updateGitlabRepositoryProvider(input: UpdateRepositoryProviderInput!): Boolean!
+  updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
 type UserEventEdge {
@@ -215,12 +246,6 @@ type UserEventEdge {
 type RepositoryEdge {
   node: GitRepository!
   cursor: String!
-}
-
-input UpdateGithubRepositoryProviderInput {
-  id: ID!
-  displayName: String!
-  accessToken: String!
 }
 
 "DateTime"
@@ -250,6 +275,8 @@ type Query {
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
   githubRepositories(providerIds: [ID!]!, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
+  gitlabRepositories(providerIds: [ID!]!, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting
@@ -299,6 +326,11 @@ type RefreshTokenResponse {
   refreshExpiresAt: DateTimeUtc!
 }
 
+type GitlabRepositoryProviderConnection {
+  edges: [GitlabRepositoryProviderEdge!]!
+  pageInfo: PageInfo!
+}
+
 type RepositoryConnection {
   edges: [RepositoryEdge!]!
   pageInfo: PageInfo!
@@ -318,6 +350,15 @@ enum LicenseType {
   COMMUNITY
   TEAM
   ENTERPRISE
+}
+
+type GitlabProvidedRepository {
+  id: ID!
+  vendorId: String!
+  gitlabRepositoryProviderId: ID!
+  name: String!
+  gitUrl: String!
+  active: Boolean!
 }
 
 type OAuthCredential {
@@ -347,7 +388,7 @@ input PasswordResetInput {
   password2: String!
 }
 
-input CreateGithubRepositoryProviderInput {
+input CreateRepositoryProviderInput {
   displayName: String!
   accessToken: String!
 }
@@ -363,10 +404,6 @@ type User {
   isPasswordSet: Boolean!
 }
 
-input RequestInvitationInput {
-  email: String!
-}
-
 type Worker {
   kind: WorkerKind!
   name: String!
@@ -378,14 +415,14 @@ type Worker {
   cudaDevices: [String!]!
 }
 
-enum OAuthProvider {
-  GITHUB
-  GOOGLE
-}
-
 type InvitationEdge {
   node: Invitation!
   cursor: String!
+}
+
+enum OAuthProvider {
+  GITHUB
+  GOOGLE
 }
 
 type PageInfo {
@@ -393,6 +430,10 @@ type PageInfo {
   hasNextPage: Boolean!
   startCursor: String
   endCursor: String
+}
+
+input RequestInvitationInput {
+  email: String!
 }
 
 type GithubProvidedRepositoryEdge {

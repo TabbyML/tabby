@@ -1,33 +1,9 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use juniper::{GraphQLInputObject, GraphQLObject, ID};
-use validator::Validate;
+use juniper::{GraphQLObject, ID};
 
 use super::Context;
 use crate::{juniper::relay::NodeType, schema::Result};
-
-#[derive(GraphQLInputObject, Validate)]
-pub struct CreateGithubRepositoryProviderInput {
-    #[validate(regex(
-        code = "displayName",
-        path = "crate::schema::constants::REPOSITORY_NAME_REGEX"
-    ))]
-    pub display_name: String,
-    #[validate(length(code = "access_token", min = 10))]
-    pub access_token: String,
-}
-
-#[derive(GraphQLInputObject, Validate)]
-pub struct UpdateGithubRepositoryProviderInput {
-    pub id: ID,
-    #[validate(regex(
-        code = "displayName",
-        path = "crate::schema::constants::REPOSITORY_NAME_REGEX"
-    ))]
-    pub display_name: String,
-    #[validate(length(code = "access_token", min = 10))]
-    pub access_token: String,
-}
 
 #[derive(GraphQLObject, Debug, PartialEq)]
 #[graphql(context = Context)]

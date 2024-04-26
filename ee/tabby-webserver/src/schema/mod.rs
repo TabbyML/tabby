@@ -9,6 +9,7 @@ pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
+pub mod types;
 pub mod user_event;
 pub mod worker;
 
@@ -38,10 +39,7 @@ use self::{
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
     git_repository::GitRepository,
-    github_repository_provider::{
-        CreateGithubRepositoryProviderInput, GithubProvidedRepository, GithubRepositoryProvider,
-        UpdateGithubRepositoryProviderInput,
-    },
+    github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::RepositoryService,
@@ -53,7 +51,11 @@ use self::{
 use crate::{
     axum::FromAuth,
     juniper::relay::{self, Connection},
-    schema::repository::FileEntrySearchResult,
+    schema::{
+        gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProvider},
+        repository::FileEntrySearchResult,
+        types::{CreateRepositoryProviderInput, UpdateRepositoryProviderInput},
+    },
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -274,6 +276,68 @@ impl Query {
                     .repository()
                     .github()
                     .list_github_provided_repositories_by_provider(
+                        provider_ids,
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn gitlab_repository_providers(
+        ctx: &Context,
+        ids: Option<Vec<ID>>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<GitlabRepositoryProvider>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .repository()
+                    .gitlab()
+                    .list_gitlab_repository_providers(
+                        ids.unwrap_or_default(),
+                        after,
+                        before,
+                        first,
+                        last,
+                    )
+                    .await
+            },
+        )
+        .await
+    }
+
+    async fn gitlab_repositories(
+        ctx: &Context,
+        provider_ids: Vec<ID>,
+        after: Option<String>,
+        before: Option<String>,
+        first: Option<i32>,
+        last: Option<i32>,
+    ) -> Result<Connection<GitlabProvidedRepository>> {
+        check_admin(ctx).await?;
+        relay::query_async(
+            after,
+            before,
+            first,
+            last,
+            |after, before, first, last| async move {
+                ctx.locator
+                    .repository()
+                    .gitlab()
+                    .list_gitlab_provided_repositories_by_provider(
                         provider_ids,
                         after,
                         before,
@@ -733,7 +797,7 @@ impl Mutation {
 
     async fn create_github_repository_provider(
         ctx: &Context,
-        input: CreateGithubRepositoryProviderInput,
+        input: CreateRepositoryProviderInput,
     ) -> Result<ID> {
         check_admin(ctx).await?;
         input.validate()?;
@@ -758,7 +822,7 @@ impl Mutation {
 
     async fn update_github_repository_provider(
         ctx: &Context,
-        input: UpdateGithubRepositoryProviderInput,
+        input: UpdateRepositoryProviderInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
@@ -779,6 +843,58 @@ impl Mutation {
             .repository()
             .github()
             .update_github_provided_repository_active(id, active)
+            .await?;
+        Ok(true)
+    }
+
+    async fn create_gitlab_repository_provider(
+        ctx: &Context,
+        input: CreateRepositoryProviderInput,
+    ) -> Result<ID> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        let id = ctx
+            .locator
+            .repository()
+            .gitlab()
+            .create_gitlab_repository_provider(input.display_name, input.access_token)
+            .await?;
+        Ok(id)
+    }
+
+    async fn delete_gitlab_repository_provider(ctx: &Context, id: ID) -> Result<bool> {
+        check_admin(ctx).await?;
+        ctx.locator
+            .repository()
+            .gitlab()
+            .delete_gitlab_repository_provider(id)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_gitlab_repository_provider(
+        ctx: &Context,
+        input: UpdateRepositoryProviderInput,
+    ) -> Result<bool> {
+        check_admin(ctx).await?;
+        input.validate()?;
+        ctx.locator
+            .repository()
+            .gitlab()
+            .update_gitlab_repository_provider(input.id, input.display_name, input.access_token)
+            .await?;
+        Ok(true)
+    }
+
+    async fn update_gitlab_provided_repository_active(
+        ctx: &Context,
+        id: ID,
+        active: bool,
+    ) -> Result<bool> {
+        ctx.locator
+            .repository()
+            .gitlab()
+            .update_gitlab_provided_repository_active(id, active)
             .await?;
         Ok(true)
     }
