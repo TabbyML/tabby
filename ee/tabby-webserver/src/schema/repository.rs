@@ -92,7 +92,7 @@ pub trait RepositoryProvider {
 #[async_trait]
 pub trait RepositoryService: Send + Sync + RepositoryAccess {
     async fn repository_list(&self) -> Result<Vec<Repository>>;
-    async fn get(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository>;
+    async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository>;
     async fn search_files(
         &self,
         kind: &RepositoryKind,

@@ -87,7 +87,7 @@ impl RepositoryService for RepositoryServiceImpl {
         Ok(all)
     }
 
-    async fn get(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
+    async fn resolve_repository(&self, kind: &RepositoryKind, id: &ID) -> Result<Repository> {
         match kind {
             RepositoryKind::Git => self.git().get_repository(id).await,
             RepositoryKind::Github => self.github().get_repository(id).await,
@@ -105,7 +105,7 @@ impl RepositoryService for RepositoryServiceImpl {
         if pattern.trim().is_empty() {
             return Ok(vec![]);
         }
-        let dir = self.get(kind, id).await?.dir;
+        let dir = self.resolve_repository(kind, id).await?.dir;
 
         let pattern = pattern.to_owned();
         let matching = tokio::task::spawn_blocking(move || async move {

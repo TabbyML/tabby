@@ -43,7 +43,7 @@ async fn resolve_path(
     Path(repo): Path<ResolveParams>,
 ) -> Result<Response, StatusCode> {
     let relpath = repo.os_path();
-    let Some(root) = rs.find_repository(&repo.kind, &repo.id).await else {
+    let Some(root) = rs.find_repository(&repo).await else {
         return Err(StatusCode::NOT_FOUND);
     };
     let full_path = root.join(relpath);

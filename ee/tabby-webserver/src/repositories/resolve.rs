@@ -125,8 +125,12 @@ impl ResolveState {
         Ok(resp.map(boxed))
     }
 
-    pub async fn find_repository(&self, kind: &RepositoryKind, id: &ID) -> Option<PathBuf> {
-        let repository = self.service.get(kind, id).await.ok()?;
+    pub async fn find_repository(&self, params: &ResolveParams) -> Option<PathBuf> {
+        let repository = self
+            .service
+            .resolve_repository(&params.kind, &params.id)
+            .await
+            .ok()?;
         Some(repository.dir)
     }
 }
