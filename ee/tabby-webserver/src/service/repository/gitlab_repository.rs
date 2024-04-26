@@ -141,10 +141,7 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
 
         let mut repos = self
             .list_repositories(vec![], None, None, None, None)
-            .await?
-            .into_iter()
-            .filter(|x| x.active)
-            .collect();
+            .await?;
 
         deduplicate_gitlab_repositories(&mut repos);
 
