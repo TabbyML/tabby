@@ -54,13 +54,15 @@ async fn refresh_repositories_for_provider(
     };
     for repo in repos {
         let id = repo.id.to_string();
+        let url = repo.http_url_to_repo;
+        let url = url.strip_suffix(".git").unwrap_or(&url);
 
         service
             .upsert_gitlab_provided_repository(
                 provider.id.clone(),
                 id,
-                repo.name,
-                repo.http_url_to_repo,
+                repo.name_with_namespace,
+                url.to_string(),
             )
             .await?;
     }
@@ -71,7 +73,7 @@ async fn refresh_repositories_for_provider(
 #[derive(Deserialize)]
 struct Repository {
     id: u128,
-    name: String,
+    name_with_namespace: String,
     http_url_to_repo: String,
 }
 
