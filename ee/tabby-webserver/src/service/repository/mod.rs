@@ -1,3 +1,7 @@
+mod git;
+mod github;
+mod gitlab;
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -5,25 +9,25 @@ use juniper::ID;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
 
-use super::{github_repository_provider, gitlab_repository_provider, Result};
 use crate::schema::{
-    git_repository::GitRepositoryService,
-    github_repository_provider::GithubRepositoryProviderService,
-    gitlab_repository_provider::GitlabRepositoryProviderService,
-    repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
+    repository::{
+        FileEntrySearchResult, GitRepositoryService, GithubRepositoryService,
+        GitlabRepositoryService, Repository, RepositoryKind, RepositoryService,
+    },
+    Result,
 };
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
-    github: Arc<dyn GithubRepositoryProviderService>,
-    gitlab: Arc<dyn GitlabRepositoryProviderService>,
+    github: Arc<dyn GithubRepositoryService>,
+    gitlab: Arc<dyn GitlabRepositoryService>,
 }
 
 pub fn create(db: DbConn) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(db.clone()),
-        github: Arc::new(github_repository_provider::create(db.clone())),
-        gitlab: Arc::new(gitlab_repository_provider::create(db.clone())),
+        github: Arc::new(github::create(db.clone())),
+        gitlab: Arc::new(gitlab::create(db.clone())),
     })
 }
 
@@ -40,7 +44,7 @@ impl RepositoryAccess for RepositoryServiceImpl {
 
         repos.extend(
             self.github
-                .list_provided_git_urls()
+                .list_active_git_urls()
                 .await
                 .unwrap_or_default()
                 .into_iter()
@@ -49,7 +53,7 @@ impl RepositoryAccess for RepositoryServiceImpl {
 
         repos.extend(
             self.gitlab
-                .list_provided_git_urls()
+                .list_active_git_urls()
                 .await
                 .unwrap_or_default()
                 .into_iter()
@@ -66,11 +70,11 @@ impl RepositoryService for RepositoryServiceImpl {
         self.git.clone()
     }
 
-    fn github(&self) -> Arc<dyn GithubRepositoryProviderService> {
+    fn github(&self) -> Arc<dyn GithubRepositoryService> {
         self.github.clone()
     }
 
-    fn gitlab(&self) -> Arc<dyn GitlabRepositoryProviderService> {
+    fn gitlab(&self) -> Arc<dyn GitlabRepositoryService> {
         self.gitlab.clone()
     }
 

@@ -1,17 +1,23 @@
+mod types;
+pub use types::*;
+
+mod git;
+pub use git::{CreateGitRepositoryInput, GitRepository, GitRepositoryService};
+
+mod github;
+pub use github::{GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryService};
+
+mod gitlab;
 use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
+pub use gitlab::{GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService};
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_search::FileSearch;
 
-use super::{
-    git_repository::{GitRepository, GitRepositoryService},
-    github_repository_provider::{GithubProvidedRepository, GithubRepositoryProviderService},
-    gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProviderService},
-    Result,
-};
+use super::Result;
 
 #[derive(GraphQLObject, Debug)]
 pub struct FileEntrySearchResult {
@@ -102,7 +108,7 @@ pub trait RepositoryService: Send + Sync + RepositoryAccess {
     ) -> Result<Vec<FileEntrySearchResult>>;
 
     fn git(&self) -> Arc<dyn GitRepositoryService>;
-    fn github(&self) -> Arc<dyn GithubRepositoryProviderService>;
-    fn gitlab(&self) -> Arc<dyn GitlabRepositoryProviderService>;
+    fn github(&self) -> Arc<dyn GithubRepositoryService>;
+    fn gitlab(&self) -> Arc<dyn GitlabRepositoryService>;
     fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess>;
 }

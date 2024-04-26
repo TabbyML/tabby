@@ -2,14 +2,10 @@ pub mod analytic;
 pub mod auth;
 pub mod constants;
 pub mod email;
-pub mod git_repository;
-pub mod github_repository_provider;
-pub mod gitlab_repository_provider;
 pub mod job;
 pub mod license;
 pub mod repository;
 pub mod setting;
-pub mod types;
 pub mod user_event;
 pub mod worker;
 
@@ -38,16 +34,12 @@ use self::{
         RequestInvitationInput, RequestPasswordResetEmailInput, UpdateOAuthCredentialInput,
     },
     email::{EmailService, EmailSetting, EmailSettingInput},
-    git_repository::GitRepository,
-    github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
-    gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProvider},
     job::JobStats,
     license::{IsLicenseValid, LicenseInfo, LicenseService, LicenseType},
     repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
     setting::{
         NetworkSetting, NetworkSettingInput, SecuritySetting, SecuritySettingInput, SettingService,
     },
-    types::{CreateRepositoryProviderInput, UpdateRepositoryProviderInput},
     user_event::{UserEvent, UserEventService},
 };
 use crate::{
@@ -230,7 +222,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GithubRepositoryProvider>> {
+    ) -> Result<Connection<repository::GithubRepositoryProvider>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -241,13 +233,7 @@ impl Query {
                 ctx.locator
                     .repository()
                     .github()
-                    .list_github_repository_providers(
-                        ids.unwrap_or_default(),
-                        after,
-                        before,
-                        first,
-                        last,
-                    )
+                    .list_providers(ids.unwrap_or_default(), after, before, first, last)
                     .await
             },
         )
@@ -261,7 +247,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GithubProvidedRepository>> {
+    ) -> Result<Connection<repository::GithubProvidedRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -272,13 +258,7 @@ impl Query {
                 ctx.locator
                     .repository()
                     .github()
-                    .list_github_provided_repositories_by_provider(
-                        provider_ids,
-                        after,
-                        before,
-                        first,
-                        last,
-                    )
+                    .list_repositories(provider_ids, after, before, first, last)
                     .await
             },
         )
@@ -292,7 +272,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GitlabRepositoryProvider>> {
+    ) -> Result<Connection<repository::GitlabRepositoryProvider>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -303,13 +283,7 @@ impl Query {
                 ctx.locator
                     .repository()
                     .gitlab()
-                    .list_gitlab_repository_providers(
-                        ids.unwrap_or_default(),
-                        after,
-                        before,
-                        first,
-                        last,
-                    )
+                    .list_providers(ids.unwrap_or_default(), after, before, first, last)
                     .await
             },
         )
@@ -323,7 +297,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GitlabProvidedRepository>> {
+    ) -> Result<Connection<repository::GitlabProvidedRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -334,13 +308,7 @@ impl Query {
                 ctx.locator
                     .repository()
                     .gitlab()
-                    .list_gitlab_provided_repositories_by_provider(
-                        provider_ids,
-                        after,
-                        before,
-                        first,
-                        last,
-                    )
+                    .list_repositories(provider_ids, after, before, first, last)
                     .await
             },
         )
@@ -398,7 +366,7 @@ impl Query {
         before: Option<String>,
         first: Option<i32>,
         last: Option<i32>,
-    ) -> Result<Connection<GitRepository>> {
+    ) -> Result<Connection<repository::GitRepository>> {
         check_admin(ctx).await?;
         relay::query_async(
             after,
@@ -706,7 +674,7 @@ impl Mutation {
 
     async fn create_git_repository(ctx: &Context, name: String, git_url: String) -> Result<ID> {
         check_admin(ctx).await?;
-        let input = git_repository::CreateGitRepositoryInput { name, git_url };
+        let input = repository::CreateGitRepositoryInput { name, git_url };
         input.validate()?;
         ctx.locator
             .repository()
@@ -798,7 +766,7 @@ impl Mutation {
 
     async fn create_github_repository_provider(
         ctx: &Context,
-        input: CreateRepositoryProviderInput,
+        input: repository::CreateRepositoryProviderInput,
     ) -> Result<ID> {
         check_admin(ctx).await?;
         input.validate()?;
@@ -806,7 +774,7 @@ impl Mutation {
             .locator
             .repository()
             .github()
-            .create_github_repository_provider(input.display_name, input.access_token)
+            .create_provider(input.display_name, input.access_token)
             .await?;
         Ok(id)
     }
@@ -816,21 +784,21 @@ impl Mutation {
         ctx.locator
             .repository()
             .github()
-            .delete_github_repository_provider(id)
+            .delete_provider(id)
             .await?;
         Ok(true)
     }
 
     async fn update_github_repository_provider(
         ctx: &Context,
-        input: UpdateRepositoryProviderInput,
+        input: repository::UpdateRepositoryProviderInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
             .repository()
             .github()
-            .update_github_repository_provider(input.id, input.display_name, input.access_token)
+            .update_provider(input.id, input.display_name, input.access_token)
             .await?;
         Ok(true)
     }
@@ -843,14 +811,14 @@ impl Mutation {
         ctx.locator
             .repository()
             .github()
-            .update_github_provided_repository_active(id, active)
+            .update_repository_active(id, active)
             .await?;
         Ok(true)
     }
 
     async fn create_gitlab_repository_provider(
         ctx: &Context,
-        input: CreateRepositoryProviderInput,
+        input: repository::CreateRepositoryProviderInput,
     ) -> Result<ID> {
         check_admin(ctx).await?;
         input.validate()?;
@@ -858,7 +826,7 @@ impl Mutation {
             .locator
             .repository()
             .gitlab()
-            .create_gitlab_repository_provider(input.display_name, input.access_token)
+            .create_provider(input.display_name, input.access_token)
             .await?;
         Ok(id)
     }
@@ -868,21 +836,21 @@ impl Mutation {
         ctx.locator
             .repository()
             .gitlab()
-            .delete_gitlab_repository_provider(id)
+            .delete_provider(id)
             .await?;
         Ok(true)
     }
 
     async fn update_gitlab_repository_provider(
         ctx: &Context,
-        input: UpdateRepositoryProviderInput,
+        input: repository::UpdateRepositoryProviderInput,
     ) -> Result<bool> {
         check_admin(ctx).await?;
         input.validate()?;
         ctx.locator
             .repository()
             .gitlab()
-            .update_gitlab_repository_provider(input.id, input.display_name, input.access_token)
+            .update_provider(input.id, input.display_name, input.access_token)
             .await?;
         Ok(true)
     }
@@ -895,7 +863,7 @@ impl Mutation {
         ctx.locator
             .repository()
             .gitlab()
-            .update_gitlab_provided_repository_active(id, active)
+            .update_repository_active(id, active)
             .await?;
         Ok(true)
     }

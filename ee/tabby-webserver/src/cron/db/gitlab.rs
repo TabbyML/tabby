@@ -10,36 +10,32 @@ use juniper::ID;
 use serde::Deserialize;
 use tracing::warn;
 
-use crate::schema::gitlab_repository_provider::{
-    GitlabRepositoryProvider, GitlabRepositoryProviderService,
-};
+use crate::schema::repository::{GitlabRepositoryProvider, GitlabRepositoryService};
 
-pub async fn refresh_all_repositories(
-    service: Arc<dyn GitlabRepositoryProviderService>,
-) -> Result<()> {
+pub async fn refresh_all_repositories(service: Arc<dyn GitlabRepositoryService>) -> Result<()> {
     for provider in service
-        .list_gitlab_repository_providers(vec![], None, None, None, None)
+        .list_providers(vec![], None, None, None, None)
         .await?
     {
         let start = Utc::now();
         refresh_repositories_for_provider(service.clone(), provider.id.clone()).await?;
         service
-            .delete_outdated_gitlab_provided_repositories(provider.id, start)
+            .delete_outdated_repositories(provider.id, start)
             .await?;
     }
     Ok(())
 }
 
 async fn refresh_repositories_for_provider(
-    service: Arc<dyn GitlabRepositoryProviderService>,
+    service: Arc<dyn GitlabRepositoryService>,
     provider_id: ID,
 ) -> Result<()> {
-    let provider = service.get_gitlab_repository_provider(provider_id).await?;
+    let provider = service.get_provider(provider_id).await?;
     let repos = match fetch_all_repos(&provider).await {
         Ok(repos) => repos,
         Err(e) if e.to_string().contains("401 Unauthorized") => {
             service
-                .update_gitlab_repository_provider_sync_status(provider.id.clone(), false)
+                .update_provider_status(provider.id.clone(), false)
                 .await?;
             warn!(
                 "GitLab credentials for provider {} are expired or invalid",
@@ -58,7 +54,7 @@ async fn refresh_repositories_for_provider(
         let url = url.strip_suffix(".git").unwrap_or(&url);
 
         service
-            .upsert_gitlab_provided_repository(
+            .upsert_repository(
                 provider.id.clone(),
                 id,
                 repo.name_with_namespace,
@@ -67,7 +63,7 @@ async fn refresh_repositories_for_provider(
             .await?;
     }
     service
-        .update_gitlab_repository_provider_sync_status(provider.id.clone(), true)
+        .update_provider_status(provider.id.clone(), true)
         .await?;
 
     Ok(())

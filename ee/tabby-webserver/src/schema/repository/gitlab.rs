@@ -2,8 +2,11 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 
-use super::{repository::RepositoryProvider, types::RepositoryProviderStatus, Context};
-use crate::{juniper::relay::NodeType, schema::Result};
+use super::{RepositoryProvider, RepositoryProviderStatus};
+use crate::{
+    juniper::relay::NodeType,
+    schema::{Context, Result},
+};
 
 #[derive(GraphQLObject, Debug, PartialEq)]
 #[graphql(context = Context)]
@@ -61,27 +64,19 @@ impl NodeType for GitlabProvidedRepository {
 }
 
 #[async_trait]
-pub trait GitlabRepositoryProviderService: Send + Sync + RepositoryProvider {
-    async fn create_gitlab_repository_provider(
-        &self,
-        display_name: String,
-        access_token: String,
-    ) -> Result<ID>;
-    async fn get_gitlab_repository_provider(&self, id: ID) -> Result<GitlabRepositoryProvider>;
-    async fn delete_gitlab_repository_provider(&self, id: ID) -> Result<()>;
-    async fn update_gitlab_repository_provider(
+pub trait GitlabRepositoryService: Send + Sync + RepositoryProvider {
+    async fn create_provider(&self, display_name: String, access_token: String) -> Result<ID>;
+    async fn get_provider(&self, id: ID) -> Result<GitlabRepositoryProvider>;
+    async fn delete_provider(&self, id: ID) -> Result<()>;
+    async fn update_provider(
         &self,
         id: ID,
         display_name: String,
         access_token: String,
     ) -> Result<()>;
-    async fn update_gitlab_repository_provider_sync_status(
-        &self,
-        id: ID,
-        success: bool,
-    ) -> Result<()>;
+    async fn update_provider_status(&self, id: ID, success: bool) -> Result<()>;
 
-    async fn list_gitlab_repository_providers(
+    async fn list_providers(
         &self,
         ids: Vec<ID>,
         after: Option<String>,
@@ -90,7 +85,7 @@ pub trait GitlabRepositoryProviderService: Send + Sync + RepositoryProvider {
         last: Option<usize>,
     ) -> Result<Vec<GitlabRepositoryProvider>>;
 
-    async fn list_gitlab_provided_repositories_by_provider(
+    async fn list_repositories(
         &self,
         provider: Vec<ID>,
         after: Option<String>,
@@ -99,16 +94,16 @@ pub trait GitlabRepositoryProviderService: Send + Sync + RepositoryProvider {
         last: Option<usize>,
     ) -> Result<Vec<GitlabProvidedRepository>>;
 
-    async fn upsert_gitlab_provided_repository(
+    async fn upsert_repository(
         &self,
         provider_id: ID,
         vendor_id: String,
         display_name: String,
         git_url: String,
     ) -> Result<()>;
-    async fn update_gitlab_provided_repository_active(&self, id: ID, active: bool) -> Result<()>;
-    async fn list_provided_git_urls(&self) -> Result<Vec<String>>;
-    async fn delete_outdated_gitlab_provided_repositories(
+    async fn update_repository_active(&self, id: ID, active: bool) -> Result<()>;
+    async fn list_active_git_urls(&self) -> Result<Vec<String>>;
+    async fn delete_outdated_repositories(
         &self,
         provider_id: ID,
         cutoff_timestamp: DateTime<Utc>,

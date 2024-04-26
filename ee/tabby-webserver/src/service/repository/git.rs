@@ -2,11 +2,12 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
 
-use super::{graphql_pagination_to_filter, AsID, AsRowid};
-use crate::schema::{
-    git_repository::{GitRepository, GitRepositoryService},
-    repository::{Repository, RepositoryProvider},
-    Result,
+use crate::{
+    schema::{
+        repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
+        Result,
+    },
+    service::{graphql_pagination_to_filter, AsID, AsRowid},
 };
 
 #[async_trait]
