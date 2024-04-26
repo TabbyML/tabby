@@ -142,7 +142,10 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
 
         let mut repos = self
             .list_repositories(vec![], None, None, None, None)
-            .await?;
+            .await?
+            .into_iter()
+            .filter(|x| x.active)
+            .collect();
 
         deduplicate_github_repositories(&mut repos);
 
