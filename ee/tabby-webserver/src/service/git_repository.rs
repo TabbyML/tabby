@@ -72,7 +72,7 @@ impl GitRepositoryService for DbConn {
 #[cfg(test)]
 mod tests {
     use tabby_db::DbConn;
-    use temp_testdir::TempDir;
+    
 
     use super::*;
 
