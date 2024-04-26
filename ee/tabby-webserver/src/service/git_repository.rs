@@ -72,7 +72,6 @@ impl GitRepositoryService for DbConn {
 #[cfg(test)]
 mod tests {
     use tabby_db::DbConn;
-    use temp_testdir::TempDir;
 
     use super::*;
 
@@ -156,76 +155,5 @@ mod tests {
                 .name,
             "Example2"
         );
-    }
-
-    #[tokio::test]
-    pub async fn test_search_files() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let service: &dyn GitRepositoryService = &db;
-
-        let dir = TempDir::default();
-        let repo_name = "test_repo".to_owned();
-        let test_repo_dir = dir.join(&repo_name);
-        service
-            .create(
-                repo_name.clone(),
-                format!("file://{}", test_repo_dir.display()),
-            )
-            .await
-            .unwrap();
-        tokio::fs::create_dir(&test_repo_dir).await.unwrap();
-        tokio::fs::write(test_repo_dir.join("file1.txt"), [])
-            .await
-            .unwrap();
-        tokio::fs::write(test_repo_dir.join("file2.txt"), [])
-            .await
-            .unwrap();
-        tokio::fs::write(test_repo_dir.join("file3.txt"), [])
-            .await
-            .unwrap();
-
-        let inner = test_repo_dir.join("inner");
-        tokio::fs::create_dir(&inner).await.unwrap();
-        tokio::fs::write(inner.join("main.rs"), []).await.unwrap();
-
-        let matches: Vec<_> = service
-            .search_files(&repo_name, "ex 1", 100)
-            .await
-            .unwrap()
-            .into_iter()
-            .map(|f| f.path)
-            .collect();
-
-        assert!(matches.iter().any(|p| p.contains("file1.txt")));
-        assert!(!matches.iter().any(|p| p.contains("file2.txt")));
-
-        let matches: Vec<_> = service
-            .search_files(&repo_name, "rs", 10)
-            .await
-            .unwrap()
-            .into_iter()
-            .map(|f| f.path)
-            .collect();
-
-        assert_eq!(matches.len(), 1);
-        assert!(matches.iter().any(|p| p.contains("main.rs")));
-
-        let matches: Vec<_> = service
-            .search_files(&repo_name, "inner", 10)
-            .await
-            .unwrap()
-            .into_iter()
-            .collect();
-
-        assert!(matches.iter().any(|f| f.r#type == "dir"));
-        assert_eq!(matches.len(), 2);
-
-        let matches: Vec<_> = service
-            .search_files(&repo_name, "", 10)
-            .await
-            .unwrap()
-            .into_iter()
-            .collect();
-        assert_eq!(matches.len(), 0);
     }
 }
