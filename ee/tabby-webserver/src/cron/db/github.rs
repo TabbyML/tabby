@@ -6,9 +6,7 @@ use juniper::ID;
 use octocrab::{models::Repository, GitHubError, Octocrab};
 use tracing::warn;
 
-use crate::schema::github_repository::{
-    GithubRepositoryProvider, GithubRepositoryService,
-};
+use crate::schema::github_repository::{GithubRepositoryProvider, GithubRepositoryService};
 
 pub async fn refresh_all_repositories(service: Arc<dyn GithubRepositoryService>) -> Result<()> {
     for provider in service

@@ -5,7 +5,7 @@ use juniper::ID;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
 
-use super::{github_repository_provider, gitlab_repository_provider, Result};
+use super::{github_repository, gitlab_repository, Result};
 use crate::schema::{
     git_repository::GitRepositoryService,
     github_repository::GithubRepositoryService,
@@ -22,8 +22,8 @@ struct RepositoryServiceImpl {
 pub fn create(db: DbConn) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(db.clone()),
-        github: Arc::new(github_repository_provider::create(db.clone())),
-        gitlab: Arc::new(gitlab_repository_provider::create(db.clone())),
+        github: Arc::new(github_repository::create(db.clone())),
+        gitlab: Arc::new(gitlab_repository::create(db.clone())),
     })
 }
 
