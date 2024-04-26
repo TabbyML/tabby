@@ -10,7 +10,6 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { BlobHeader } from './blob-header'
 import { TFileTreeNode } from './file-tree'
 import { SourceCodeBrowserContext, TFileMapItem } from './source-code-browser'
-import { resolveFileNameFromPath } from './utils'
 
 interface DirectoryViewProps extends React.HTMLAttributes<HTMLDivElement> {
   loading: boolean
@@ -87,7 +86,7 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
                           onClick={e => onClickFile(file)}
                           className="cursor-pointer px-1 py-2 hover:text-primary hover:underline"
                         >
-                          {resolveFileNameFromPath(file.fullPath)}
+                          {file.name}
                         </span>
                       </div>
                     </TableCell>
@@ -129,9 +128,9 @@ function getCurrentDirFromTree(
   } else {
     let pathSegments = path.split('/')
     let currentNodes: TFileTreeNode[] = treeData
-    while (pathSegments.length) {
-      let name = pathSegments.shift()
-      let node = find<TFileTreeNode>(currentNodes, t => t.name === name)
+    for (let i = 1; i < pathSegments.length; i++) {
+      const path = pathSegments.slice(0, i + 1).join('/')
+      let node = find<TFileTreeNode>(currentNodes, t => t.fullPath === path)
       if (node?.children) {
         currentNodes = node?.children
       } else {

@@ -103,7 +103,8 @@ const client = new Client({
       keys: {
         CompletionStats: () => null,
         ServerInfo: () => null,
-        RepositorySearch: () => null
+        RepositorySearch: () => null,
+        RepositoryList: () => null
       },
       resolvers: {
         Query: {
