@@ -65,7 +65,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
                       </>
                     }
                   >
-                    <SidebarButton href="/cluster">Cluster</SidebarButton>
+                    <SidebarButton href="/system">System</SidebarButton>
                     <SidebarButton href="/jobs">Jobs</SidebarButton>
                     <SidebarButton href="/reports">Reports</SidebarButton>
                     <SidebarButton href="/activities">Activities</SidebarButton>
