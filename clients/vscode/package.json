@@ -176,12 +176,7 @@
             "type": "boolean",
             "default": false,
             "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection)."
-          }
-        }
-      },
-      {
-        "title": "Tabby2",
-        "properties": {
+          },
           "tabby.experimental": {
             "default": {},
             "properties": {
