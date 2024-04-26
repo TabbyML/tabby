@@ -13,7 +13,7 @@ use crate::{
         email::{AuthMethod, EmailSetting, Encryption},
         git_repository::GitRepository,
         github_repository_provider::{GithubProvidedRepository, GithubRepositoryProvider},
-        gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProvider},
+        gitlab_repository::{GitlabProvidedRepository, GitlabRepositoryProvider},
         job,
         setting::{NetworkSetting, SecuritySetting},
         types::RepositoryProviderStatus,

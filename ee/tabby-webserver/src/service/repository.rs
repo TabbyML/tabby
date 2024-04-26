@@ -9,14 +9,14 @@ use super::{github_repository_provider, gitlab_repository_provider, Result};
 use crate::schema::{
     git_repository::GitRepositoryService,
     github_repository_provider::GithubRepositoryProviderService,
-    gitlab_repository_provider::GitlabRepositoryProviderService,
+    gitlab_repository::GitlabRepositoryService,
     repository::{FileEntrySearchResult, Repository, RepositoryKind, RepositoryService},
 };
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
     github: Arc<dyn GithubRepositoryProviderService>,
-    gitlab: Arc<dyn GitlabRepositoryProviderService>,
+    gitlab: Arc<dyn GitlabRepositoryService>,
 }
 
 pub fn create(db: DbConn) -> Arc<dyn RepositoryService> {
@@ -49,7 +49,7 @@ impl RepositoryAccess for RepositoryServiceImpl {
 
         repos.extend(
             self.gitlab
-                .list_provided_git_urls()
+                .list_active_git_urls()
                 .await
                 .unwrap_or_default()
                 .into_iter()
@@ -70,7 +70,7 @@ impl RepositoryService for RepositoryServiceImpl {
         self.github.clone()
     }
 
-    fn gitlab(&self) -> Arc<dyn GitlabRepositoryProviderService> {
+    fn gitlab(&self) -> Arc<dyn GitlabRepositoryService> {
         self.gitlab.clone()
     }
 

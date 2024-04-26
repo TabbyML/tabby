@@ -12,7 +12,7 @@ use tracing::{debug, error};
 
 use crate::schema::{
     auth::AuthenticationService, github_repository_provider::GithubRepositoryProviderService,
-    gitlab_repository_provider::GitlabRepositoryProviderService, job::JobService,
+    gitlab_repository::GitlabRepositoryService, job::JobService,
 };
 
 const EVERY_TWO_HOURS: &str = "0 0 1/2 * * * *";
@@ -79,7 +79,7 @@ pub async fn update_integrated_github_repositories_job(
 }
 
 pub async fn update_integrated_gitlab_repositories_job(
-    gitlab_repository_provider: Arc<dyn GitlabRepositoryProviderService>,
+    gitlab_repository_provider: Arc<dyn GitlabRepositoryService>,
 ) -> Result<Job> {
     service_job(
         "sync gitlab repositories",

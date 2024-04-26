@@ -9,7 +9,7 @@ use tabby_search::FileSearch;
 use super::{
     git_repository::{GitRepository, GitRepositoryService},
     github_repository_provider::{GithubProvidedRepository, GithubRepositoryProviderService},
-    gitlab_repository_provider::{GitlabProvidedRepository, GitlabRepositoryProviderService},
+    gitlab_repository::{GitlabProvidedRepository, GitlabRepositoryService},
     Result,
 };
 
@@ -103,6 +103,6 @@ pub trait RepositoryService: Send + Sync + RepositoryAccess {
 
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn github(&self) -> Arc<dyn GithubRepositoryProviderService>;
-    fn gitlab(&self) -> Arc<dyn GitlabRepositoryProviderService>;
+    fn gitlab(&self) -> Arc<dyn GitlabRepositoryService>;
     fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess>;
 }
