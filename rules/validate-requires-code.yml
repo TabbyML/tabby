@@ -1,16 +1,20 @@
 id: validate-requires-code
-message: Validations requires code being set for frontend error display
+message: Validations requires code / message being set for frontend error display
 severity: error
 language: rust
 files:
-- ./ee/tabby-webserver/src/**
+  - ./ee/tabby-webserver/src/**
 rule:
   all:
-    - pattern: '#[validate]'
+    - pattern: "#[validate]"
     - not:
-        has:
-          stopBy: end
-          pattern: code
+        all:
+          - has:
+              stopBy: end
+              pattern: code
+          - has:
+              stopBy: end
+              pattern: message
     - not:
         has:
           stopBy: end
