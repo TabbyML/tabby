@@ -3,7 +3,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[derive(Debug)]
 pub struct FileSearch {
     pub r#type: String,
     pub path: String,
