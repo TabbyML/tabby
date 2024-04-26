@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
+import { RepositoryProviderStatus } from '@/lib/gql/generates/graphql'
 import { QueryResponseData, QueryVariables, useMutation } from '@/lib/tabby/gql'
 import {
   listGithubRepositories,
@@ -36,7 +37,6 @@ import { ListSkeleton } from '@/components/skeleton'
 import { updateGithubProvidedRepositoryActiveMutation } from '../query'
 import LinkRepositoryForm from './new-repository-form'
 import { UpdateProviderForm } from './provider-detail-form'
-import { RepositoryProviderStatus } from '@/lib/gql/generates/graphql'
 
 type GithubRepositories = QueryResponseData<
   typeof listGithubRepositories

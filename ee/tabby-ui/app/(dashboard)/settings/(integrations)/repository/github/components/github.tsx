@@ -3,7 +3,10 @@
 import Link from 'next/link'
 import { useQuery } from 'urql'
 
-import { ListGithubRepositoryProvidersQuery, RepositoryProviderStatus } from '@/lib/gql/generates/graphql'
+import {
+  ListGithubRepositoryProvidersQuery,
+  RepositoryProviderStatus
+} from '@/lib/gql/generates/graphql'
 import { listGithubRepositoryProviders } from '@/lib/tabby/query'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -65,9 +68,7 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                 <span className="w-[30%] shrink-0 text-muted-foreground">
                   Status
                 </span>
-                <span>
-                  {toStatusMessage(item.node.status)}
-                </span>
+                <span>{toStatusMessage(item.node.status)}</span>
               </div>
             </CardContent>
           </Card>
@@ -80,11 +81,11 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
 function toStatusMessage(status: RepositoryProviderStatus) {
   switch (status) {
     case RepositoryProviderStatus.Ready:
-      return "Ready";
+      return 'Ready'
     case RepositoryProviderStatus.Error:
-      return "Processing error. Please check if the access token is still valid"
+      return 'Processing error. Please check if the access token is still valid'
     case RepositoryProviderStatus.Pending:
-      return "Awaiting the next data synchronization"
+      return 'Awaiting the next data synchronization'
   }
 }
 
