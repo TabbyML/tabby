@@ -68,6 +68,7 @@
     "lucide-react": "^0.365.0",
     "mitt": "^3.0.1",
     "moment": "^2.29.4",
+    "moment-timezone": "^0.5.45",
     "nanoid": "^4.0.2",
     "next": "^13.4.7",
     "next-themes": "^0.2.1",
