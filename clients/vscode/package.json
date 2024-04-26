@@ -143,7 +143,7 @@
       {
         "title": "Tabby",
         "properties": {
-          "tabby.API.endpoint": {
+          "tabby.api.endpoint": {
             "type": "string",
             "default": "",
             "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
