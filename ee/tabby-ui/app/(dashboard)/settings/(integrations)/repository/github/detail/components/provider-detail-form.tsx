@@ -1,27 +1,12 @@
 'use client'
 
 import React from 'react'
-import { isEmpty } from 'lodash-es'
 import { UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from '@/components/ui/alert-dialog'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { FormMessage } from '@/components/ui/form'
-import { IconSpinner } from '@/components/ui/icons'
 
 import {
   GithubProviderForm,
@@ -61,11 +46,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   const formRef = React.useRef<{
     form: UseFormReturn<UpdateGithubProviderFormValues>
   }>(null)
-  const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
-  const [isDeleting, setIsDeleting] = React.useState(false)
   const form = formRef.current?.form
-  const isSubmitting = form?.formState?.isSubmitting
-  const isDirty = !isEmpty(form?.formState?.dirtyFields)
 
   const deleteGithubRepositoryProvider = useMutation(
     deleteGithubRepositoryProviderMutation
@@ -94,24 +75,14 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     })
   }
 
-  const handleDeleteRepositoryProvider: React.MouseEventHandler<
-    HTMLButtonElement
-  > = async e => {
-    e.preventDefault()
-    setIsDeleting(true)
-    try {
-      const res = await deleteGithubRepositoryProvider({ id })
-      if (res?.data?.deleteGithubRepositoryProvider) {
-        onDelete?.()
-      } else {
-        toast.error(
-          res?.error?.message || 'Failed to delete GitHub repository provider'
-        )
-      }
-    } catch (error) {
-      toast.error('Failed to delete GitHub repository provider')
-    } finally {
-      setIsDeleting(false)
+  const handleDeleteRepositoryProvider = async () => {
+    const res = await deleteGithubRepositoryProvider({ id })
+    if (res?.data?.deleteGithubRepositoryProvider) {
+      onDelete?.()
+    } else {
+      toast.error(
+        res?.error?.message || 'Failed to delete GitHub repository provider'
+      )
     }
   }
 
@@ -119,50 +90,10 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     <GithubProviderForm
       ref={formRef}
       defaultValues={defaultValues}
-      footer={
-        <div className="flex justify-between">
-          <div>
-            <FormMessage />
-          </div>
-          <div className="items-cetner flex gap-4">
-            <AlertDialog
-              open={deleteAlertVisible}
-              onOpenChange={setDeleteAlertVisible}
-            >
-              <AlertDialogTrigger asChild>
-                <Button type="button" variant="hover-destructive">
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will delete the provider and remove any repositories
-                    that have already been added to the provider.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className={buttonVariants({ variant: 'destructive' })}
-                    onClick={handleDeleteRepositoryProvider}
-                    disabled={isDeleting}
-                  >
-                    {isDeleting && <IconSpinner className="mr-2" />}
-                    Yes, delete it
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button type="submit" disabled={!isDirty}>
-              {isSubmitting && <IconSpinner className="mr-2 " />}
-              Update
-            </Button>
-          </div>
-        </div>
-      }
       onSubmit={onSubmit}
+      onDelete={handleDeleteRepositoryProvider}
+      deletable
+      cancleable={false}
     />
   )
 }
