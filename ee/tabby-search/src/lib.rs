@@ -113,7 +113,9 @@ mod tests {
 
         let dir = root.join("interview-questions");
 
-        let result = FileSearch::search(dir.as_path(), "moonscript_lora", 1).unwrap();
+        let result = FileSearch::search(dir.as_path(), "moonscript_lora md", 5).unwrap();
         assert_eq!(result.len(), 1);
+        assert_eq!(result[0].r#type, "file");
+        assert_eq!(result[0].path, "201_lm_moonscript_lora/README.md");
     }
 }
