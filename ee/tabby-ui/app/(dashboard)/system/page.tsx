@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 import ClusterInfo from './components/cluster'
 
 export const metadata: Metadata = {
-  title: 'Cluster'
+  title: 'System'
 }
 
 export default function IndexPage() {
