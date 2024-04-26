@@ -93,19 +93,27 @@ pub fn bytes2path(b: &[u8]) -> &Path {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{path::PathBuf, process::Command};
+
+    use temp_testdir::TempDir;
 
     use crate::FileSearch;
 
     #[test]
-    #[ignore]
     fn it_search() {
-        let result = FileSearch::search(
-            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../"),
-            "website",
-            1,
-        )
-        .unwrap();
+        let root = TempDir::default();
+
+        Command::new("git")
+            .current_dir(&root)
+            .arg("clone")
+            .args(["--depth", "1"])
+            .arg("https://github.com/TabbyML/interview-questions")
+            .status()
+            .unwrap();
+
+        let dir = root.join("interview-questions");
+
+        let result = FileSearch::search(dir.as_path(), "moonscript_lora", 1).unwrap();
         assert_eq!(result.len(), 1);
     }
 }

@@ -5076,6 +5076,7 @@ dependencies = [
  "anyhow",
  "git2",
  "nucleo",
+ "temp_testdir",
 ]
 
 [[package]]
