@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use futures::Future;
 use tokio::io::AsyncBufReadExt;
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 
 use crate::schema::{job::JobService, worker::WorkerService};
 
