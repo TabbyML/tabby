@@ -1,17 +1,15 @@
 'use client'
 
 import React from 'react'
-import { UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
-import * as z from 'zod'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 
 import {
   GithubProviderForm,
-  UpdateGithubProviderFormValues,
-  updateGithubProviderSchema
+  RepositoryProviderFormValues,
+  useRepositoryProviderForm
 } from '../../components/github-form'
 
 const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
@@ -28,11 +26,9 @@ const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
   }
 `)
 
-type FormValues = z.infer<typeof updateGithubProviderSchema>
-
 interface UpdateProviderFormProps {
   id: string
-  defaultValues?: Partial<FormValues>
+  defaultValues?: Partial<RepositoryProviderFormValues>
   onSuccess?: () => void
   onDelete: () => void
 }
@@ -43,10 +39,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   onDelete,
   id
 }) => {
-  const formRef = React.useRef<{
-    form: UseFormReturn<UpdateGithubProviderFormValues>
-  }>(null)
-  const form = formRef.current?.form
+  const form = useRepositoryProviderForm(defaultValues)
 
   const deleteGithubRepositoryProvider = useMutation(
     deleteGithubRepositoryProviderMutation
@@ -66,7 +59,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     }
   )
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: RepositoryProviderFormValues) => {
     await updateGithubRepositoryProvider({
       input: {
         id,
@@ -88,12 +81,11 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
 
   return (
     <GithubProviderForm
-      ref={formRef}
-      defaultValues={defaultValues}
       onSubmit={onSubmit}
       onDelete={handleDeleteRepositoryProvider}
       deletable
       cancleable={false}
+      form={form}
     />
   )
 }
