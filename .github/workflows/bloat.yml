@@ -1,10 +1,20 @@
 on: # rebuild any PRs and main branch changes
   pull_request:
+    branches: ["main"]
+    paths:
+      - '.github/workflows/bloat.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
+      - 'ee/**'
+      - '!ee/tabby-ui/**'
   push:
     branches:
       - main
 
 name: bloat
+
+permissions: write-all
 
 concurrency:
   group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
