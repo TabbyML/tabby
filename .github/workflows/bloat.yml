@@ -14,6 +14,8 @@ on: # rebuild any PRs and main branch changes
 
 name: bloat
 
+permissions: write-all
+
 concurrency:
   group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
   
