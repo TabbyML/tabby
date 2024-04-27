@@ -263,6 +263,7 @@ function AccessTokenDescription() {
           token for managing a single project, or generate a group access token
           to manage all projects within the group.
         </div>
+        <div className="my-2 ml-4">• api</div>
         <div className="my-2 ml-4">• read repository</div>
       </>
     )

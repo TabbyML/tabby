@@ -202,7 +202,7 @@ const client = new Client({
             }
           },
           updateGitlabProvidedRepositoryActive(result, args, cache, info) {
-            if (result.updateGithubProvidedRepositoryActive) {
+            if (result.updateGitlabProvidedRepositoryActive) {
               cache
                 .inspectFields('Query')
                 .filter(field => field.fieldName === 'gitlabRepositories')
