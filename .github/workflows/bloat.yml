@@ -1,5 +1,13 @@
 on: # rebuild any PRs and main branch changes
   pull_request:
+    branches: ["main"]
+    paths:
+      - '.github/workflows/bloat.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
+      - 'ee/**'
+      - '!ee/tabby-ui/**'
   push:
     branches:
       - main
