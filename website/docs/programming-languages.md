@@ -36,7 +36,7 @@ For an actual example of an issue or pull request adding the above support, plea
 
 ## Languages Missing Certain Support
 
-| Language | Stop Words (time to contribute: <5 min) | Repository Context (time to contribute: <1 hr) |
+| Language | Stop Words (time to contribute: ~5 min) | Repository Context (time to contribute: ~1 hr) |
 | :------: | :-------------------------------------: | :--------------------------------------------: |
 |   CSS    |                    🚫                    |                       🚫                        |
 | Haskell  |                    🚫                    |                       🚫                        |
