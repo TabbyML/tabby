@@ -39,16 +39,16 @@ jobs:
           toolchain: nightly
           components: rustfmt, clippy
 
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+        with:
+          version: "v0.4.0"
+
       - name: Install cargo-machete
         uses: actions-rs/cargo@v1
         with:
           command: install
           args: cargo-machete
-
-      - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.3
-        with:
-          version: "v0.4.0"
 
       - name: Cargo registry cache
         uses: actions/cache@v3
