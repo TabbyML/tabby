@@ -6,7 +6,10 @@ import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { RepositoryProviderStatus } from '@/lib/gql/generates/graphql'
+import {
+  RepositoryKind,
+  RepositoryProviderStatus
+} from '@/lib/gql/generates/graphql'
 import { QueryResponseData, QueryVariables, useMutation } from '@/lib/tabby/gql'
 import {
   listGithubRepositories,
@@ -36,14 +39,14 @@ import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { updateGithubProvidedRepositoryActiveMutation } from '../query'
-import LinkRepositoryForm from './new-repository-form'
-import { UpdateProviderForm } from './provider-detail-form'
+import LinkRepositoryForm from './add-repository-form'
+import { UpdateProviderForm } from './update-github-provider-form'
 
 type GithubRepositories = QueryResponseData<
   typeof listGithubRepositories
 >['githubRepositories']['edges']
 
-const DetailPage: React.FC = () => {
+const GithubProviderDetail: React.FC = () => {
   const searchParams = useSearchParams()
   const router = useRouter()
   const id = searchParams.get('id')?.toString() ?? ''
@@ -99,7 +102,10 @@ const DetailPage: React.FC = () => {
 
       <div className="p-4">
         <LoadingWrapper loading={isGithubRepositoriesLoading}>
-          <LinkedRepoTable data={githubRepositories} />
+          <LinkedRepoTable
+            data={githubRepositories}
+            providerStatus={provider?.status}
+          />
         </LoadingWrapper>
       </div>
     </LoadingWrapper>
@@ -119,8 +125,9 @@ function toStatusBadge(status: RepositoryProviderStatus) {
 
 const LinkedRepoTable: React.FC<{
   data: GithubRepositories | undefined
+  providerStatus: RepositoryProviderStatus | undefined
   onDelete?: () => void
-}> = ({ data, onDelete }) => {
+}> = ({ data, onDelete, providerStatus }) => {
   const updateGithubProvidedRepositoryActive = useMutation(
     updateGithubProvidedRepositoryActiveMutation,
     {
@@ -175,6 +182,8 @@ const LinkedRepoTable: React.FC<{
                   onCancel={() => setOpen(false)}
                   onCreated={onCreated}
                   repositories={inactiveRepos}
+                  kind={RepositoryKind.Github}
+                  providerStatus={providerStatus}
                 />
               </DialogContent>
               <DialogTrigger asChild>
@@ -221,9 +230,7 @@ const LinkedRepoTable: React.FC<{
   )
 }
 
-export function useAllProvidedRepositories(
-  id: string
-): [GithubRepositories, boolean] {
+function useAllProvidedRepositories(id: string): [GithubRepositories, boolean] {
   const [queryVariables, setQueryVariables] = useState<
     QueryVariables<typeof listGithubRepositories>
   >({ providerIds: [id], first: DEFAULT_PAGE_SIZE })
@@ -256,4 +263,4 @@ export function useAllProvidedRepositories(
   return [data?.githubRepositories?.edges ?? [], !isAllLoaded]
 }
 
-export default DetailPage
+export default GithubProviderDetail

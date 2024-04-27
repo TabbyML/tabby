@@ -235,3 +235,72 @@ export const listGithubRepositories = graphql(/* GraphQL */ `
     }
   }
 `)
+
+export const listGitlabRepositoryProviders = graphql(/* GraphQL */ `
+  query ListGitlabRepositoryProviders(
+    $ids: [ID!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    gitlabRepositoryProviders(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          displayName
+          status
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGitlabRepositories = graphql(/* GraphQL */ `
+  query ListGitlabRepositories(
+    $providerIds: [ID!]!
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    gitlabRepositories(
+      providerIds: $providerIds
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          vendorId
+          gitlabRepositoryProviderId
+          name
+          gitUrl
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
