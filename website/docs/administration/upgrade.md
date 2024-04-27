@@ -5,7 +5,7 @@ sidebar_position: 1
 # Upgrade
 
 :::caution
-Before upgrade, make sure to [back up](./backup) the database.
+Before upgrade, make sure to [back up](../backup) the database.
 :::
 
 

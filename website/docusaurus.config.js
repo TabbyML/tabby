@@ -8,6 +8,7 @@ export default {
   title: 'Tabby',
   tagline: 'Opensource, self-hosted AI coding assistant',
   favicon: 'img/favicon.ico',
+  trailingSlash: true,
 
   // Set the production url of your site here
   url: 'https://tabby.tabbyml.com',
