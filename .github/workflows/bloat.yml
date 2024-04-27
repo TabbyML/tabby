@@ -1,18 +1,10 @@
-name: autofix.ci
-
-on:
+on: # rebuild any PRs and main branch changes
   pull_request:
-    branches: ["main" ]
-    paths:
-      - '.github/workflows/autofix-rust.yml'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'crates/**'
-      - 'ee/**'
-      - '!ee/tabby-ui/**'
+  push:
+    branches:
+      - main
 
-permissions:
-  contents: read
+name: bloat
 
 concurrency:
   group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
@@ -21,13 +13,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  autofix:
+  cargo_bloat:
     env:
       CARGO_TERM_COLOR: always
       SCCACHE_GHA_ENABLED: true
       RUSTC_WRAPPER: sccache
       CARGO_INCREMENTAL: 0
+
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -36,19 +30,12 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
-          components: rustfmt, clippy
+          toolchain: stable
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
         with:
           version: "v0.4.0"
-
-      - name: Install cargo-machete
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-machete
 
       - name: Cargo registry cache
         uses: actions/cache@v3
@@ -63,10 +50,8 @@ jobs:
 
       - run: bash ./ci/prepare_build_environment.sh
 
-      - run: make fix
-
-      - run: make update-graphql-schema
-
-      - run: make update-db-schema
-
-      - uses: autofix-ci/action@d3e591514b99d0fca6779455ff8338516663f7cc
+      - name: Run cargo bloat
+        uses: wsxiaoys/cargo-bloat-action@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          include_packages: tabby
