@@ -16,6 +16,22 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+        with:
+          version: "v0.4.0"
+
+      - name: Cargo registry cache
+        uses: actions/cache@v3
+        with:
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-${{ runner.os }}-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Run cargo bloat
