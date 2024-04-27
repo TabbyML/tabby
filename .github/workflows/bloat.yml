@@ -19,7 +19,9 @@ jobs:
       SCCACHE_GHA_ENABLED: true
       RUSTC_WRAPPER: sccache
       CARGO_INCREMENTAL: 0
+
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -49,6 +51,6 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Run cargo bloat
-        uses: wsxiaoys/cargo-bloat-action@
+        uses: wsxiaoys/cargo-bloat-action@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
