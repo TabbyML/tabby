@@ -48,10 +48,10 @@ jobs:
       - name: Cargo registry cache
         uses: actions/cache@v3
         with:
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          key: cargo-autofix-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
           restore-keys: |
-            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
-            cargo-${{ runner.os }}-
+            cargo-autofix-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-autofix-${{ runner.os }}-
           path: |
             ~/.cargo/registry
             ~/.cargo/git
