@@ -15,6 +15,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+
+      - run: bash ./ci/prepare_build_environment.sh
+
       - name: Run cargo bloat
         uses: orf/cargo-bloat-action@v1
         with:
