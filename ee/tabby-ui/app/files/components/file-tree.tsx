@@ -20,11 +20,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { TFileMap } from './source-code-browser'
-import {
-  generatePathPrefixFromPath,
-  resolveFileNameFromPath,
-  resolveRepoNameFromPath
-} from './utils'
+import { resolveFileNameFromPath, resolveRepoSpecifierFromPath } from './utils'
 
 type TFileTreeNode = {
   name: string
@@ -220,9 +216,10 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   } = React.useContext(FileTreeContext)
 
   const initialized = React.useRef(false)
-  const repositoryName = React.useMemo(() => {
-    return resolveRepoNameFromPath(node.fullPath)
-  }, [node.fullPath])
+  const repoSpecifier = React.useMemo(() => {
+    return resolveRepoSpecifierFromPath(activePath)
+  }, [activePath])
+
   const basename = root ? '' : node.file.basename
   const expanded = expandedKeys.has(node.fullPath)
   const shouldFetchChildren =
@@ -233,7 +230,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   const { data, isLoading }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
       shouldFetchChildren
-        ? `/repositories/${repositoryName}/resolve/${basename}`
+        ? `/repositories/${repoSpecifier}/resolve/${basename}`
         : null,
       fetcher,
       {
@@ -246,7 +243,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 
     if (data?.entries?.length) {
       const patchMap: TFileMap = data.entries.reduce((sum, cur) => {
-        const path = `${repositoryName}/${cur.basename}`
+        const path = `${repoSpecifier}/${cur.basename}`
         return {
           ...sum,
           [path]: {
@@ -320,7 +317,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 const FileTreeRenderer: React.FC = () => {
   const { initialized, activePath, fileMap, fileTreeData } =
     React.useContext(FileTreeContext)
-  const repoPrefix = generatePathPrefixFromPath(activePath)
+  const repoSpecifier = resolveRepoSpecifierFromPath(activePath)
 
   if (!initialized) return <FileTreeSkeleton />
 
@@ -331,13 +328,13 @@ const FileTreeRenderer: React.FC = () => {
       </div>
     )
 
-  if (repoPrefix && !fileTreeData?.length) {
+  if (repoSpecifier && !fileTreeData?.length) {
     return (
       <div className="flex h-full items-center justify-center">No Data</div>
     )
   }
 
-  if (!repoPrefix) {
+  if (!repoSpecifier) {
     return null
   }
 

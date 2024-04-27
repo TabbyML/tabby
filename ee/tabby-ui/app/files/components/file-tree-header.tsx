@@ -33,12 +33,12 @@ import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import {
   fetchEntriesFromPath,
-  generatePathPrefixFromPath,
   getDirectoriesFromBasename,
   key2RepositoryKind,
   resolveFileNameFromPath,
   resolveRepoIdFromPath,
-  resolveRepoKindFromPath
+  resolveRepoKindFromPath,
+  resolveRepoSpecifierFromPath
 } from './utils'
 
 interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -75,13 +75,13 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   } = useContext(SourceCodeBrowserContext)
   const { setProgress } = useTopbarProgress()
 
-  const prefix = generatePathPrefixFromPath(activePath)
+  const repoSpecifier = resolveRepoSpecifierFromPath(activePath)
   const repoKind = resolveRepoKindFromPath(activePath)
   const repoId = resolveRepoIdFromPath(activePath)
   const curerntRepoName = React.useMemo(() => {
-    if (!prefix || isEmpty(fileMap)) return undefined
-    return fileMap?.[prefix]?.name
-  }, [prefix, fileMap])
+    if (!repoSpecifier || isEmpty(fileMap)) return undefined
+    return fileMap?.[repoSpecifier]?.name
+  }, [repoSpecifier, fileMap])
 
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [input, setInput] = React.useState<string>()
@@ -99,7 +99,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       id: repoId,
       pattern: repositorySearchPattern ?? ''
     },
-    pause: !prefix || !repositorySearchPattern
+    pause: !repoSpecifier || !repositorySearchPattern
   })
 
   React.useEffect(() => {
@@ -135,7 +135,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const path = value.path
     if (!path) return
 
-    const fullPath = `${prefix}/${path}`
+    const fullPath = `${repoSpecifier}/${path}`
     try {
       setProgress(true)
       const entries = await fetchEntriesFromPath(fullPath)
@@ -144,7 +144,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
       const patchMap: TFileMap = {}
       // fetch dirs
       for (const entry of entries) {
-        const path = `${prefix}/${entry.basename}`
+        const path = `${repoSpecifier}/${entry.basename}`
         patchMap[path] = {
           file: entry,
           name: resolveFileNameFromPath(path),
@@ -153,7 +153,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
         }
       }
       const expandedKeys = initialExpandedDirs.map(dir =>
-        [prefix, dir].filter(Boolean).join('/')
+        [repoSpecifier, dir].filter(Boolean).join('/')
       )
       if (patchMap) {
         updateFileMap(patchMap)
@@ -207,7 +207,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
         <Select
           disabled={!initialized}
           onValueChange={onSelectRepo}
-          value={prefix}
+          value={repoSpecifier}
         >
           <SelectTrigger>
             <SelectValue>

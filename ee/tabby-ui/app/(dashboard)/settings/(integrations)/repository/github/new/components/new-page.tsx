@@ -4,7 +4,6 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { omit } from 'lodash-es'
 import { UseFormReturn } from 'react-hook-form'
-import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
@@ -36,10 +35,7 @@ export const NewProvider = () => {
           router.back()
         }
       },
-      onError(err) {
-        toast.error(err?.message)
-      },
-      form: formRef.current
+      form: formRef.current?.form
     }
   )
 
