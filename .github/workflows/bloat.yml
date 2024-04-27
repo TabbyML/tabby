@@ -21,7 +21,10 @@ jobs:
       CARGO_INCREMENTAL: 0
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -46,6 +49,6 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Run cargo bloat
-        uses: wsxiaoys/cargo-bloat-action@d84b3fdae2bc773cb57aac9e960e2b4c0adbd9df
+        uses: wsxiaoys/cargo-bloat-action@
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
