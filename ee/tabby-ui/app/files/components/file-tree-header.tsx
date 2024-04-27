@@ -42,7 +42,7 @@ import {
   resolveRepoSpecifierFromPath
 } from './utils'
 
-interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> { }
+interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 type SearchOption = {
   path: string
@@ -239,7 +239,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                 {fileTreeData?.map(repo => {
                   return (
                     <SelectItem key={repo.fullPath} value={repo.fullPath}>
-                      <div className='flex items-center gap-1'>
+                      <div className="flex items-center gap-1">
                         <RepositoryKindIcon
                           kind={repo?.repository?.kind}
                           fallback={<IconFolderGit />}
