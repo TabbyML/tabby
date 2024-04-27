@@ -196,6 +196,14 @@ const config = {
             to: '/blog/2024/02/05/create-tabby-extension-with-language-server-protocol',
             from: '/blog/running-tabby-as-a-language-server'
           },
+          {
+            to: '/docs/installation/docker',
+            from: '/docs/self-hosting/docker'
+          },
+          {
+            to: '/docs/extensions/installation/vscode',
+            from: '/docs/extensions/vscode'
+          },
         ]
       },
     ],
