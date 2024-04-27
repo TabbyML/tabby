@@ -46,6 +46,6 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Run cargo bloat
-        uses: wsxiaoys/cargo-bloat-action@d84b3fd
+        uses: wsxiaoys/cargo-bloat-action@d84b3fdae2bc773cb57aac9e960e2b4c0adbd9df
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
