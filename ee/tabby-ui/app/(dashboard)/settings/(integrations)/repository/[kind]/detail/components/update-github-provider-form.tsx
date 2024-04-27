@@ -7,13 +7,13 @@ import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 
 import {
-  GithubProviderForm,
+  CommonProviderForm,
   RepositoryProviderFormValues,
   useRepositoryProviderForm
-} from '../../components/github-form'
+} from '../../components/common-provider-form'
 
 const deleteGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
-  mutation DeleteRepositoryProvider($id: ID!) {
+  mutation DeleteGithubRepositoryProvider($id: ID!) {
     deleteGithubRepositoryProvider(id: $id)
   }
 `)
@@ -80,7 +80,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   }
 
   return (
-    <GithubProviderForm
+    <CommonProviderForm
       onSubmit={onSubmit}
       onDelete={handleDeleteRepositoryProvider}
       deletable

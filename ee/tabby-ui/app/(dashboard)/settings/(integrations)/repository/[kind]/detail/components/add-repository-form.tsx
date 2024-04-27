@@ -5,8 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
-import { QueryResponseData, useMutation } from '@/lib/tabby/gql'
-import { listGithubRepositories } from '@/lib/tabby/query'
+import {
+  RepositoryKind,
+  RepositoryProviderStatus
+} from '@/lib/gql/generates/graphql'
+import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,7 +34,10 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover'
 
-import { updateGithubProvidedRepositoryActiveMutation } from '../query'
+import {
+  updateGithubProvidedRepositoryActiveMutation,
+  updateGitlabProvidedRepositoryActiveMutation
+} from '../query'
 
 const formSchema = z.object({
   id: z.string()
@@ -39,25 +45,50 @@ const formSchema = z.object({
 
 type LinkRepositoryFormValues = z.infer<typeof formSchema>
 
-export default function LinkRepositoryForm({
-  onCreated,
-  onCancel,
-  repositories
-}: {
+interface LinkRepositoryFormProps {
+  kind: RepositoryKind
   onCreated?: () => void
   onCancel: () => void
+  providerStatus: RepositoryProviderStatus | undefined
   repositories:
-    | QueryResponseData<
-        typeof listGithubRepositories
-      >['githubRepositories']['edges']
+    | Array<{
+        cursor: string
+        node: {
+          id: string
+          vendorId: string
+          name: string
+          gitUrl: string
+          active: boolean
+        }
+      }>
     | undefined
-}) {
+}
+
+export default function LinkRepositoryForm({
+  kind,
+  onCreated,
+  onCancel,
+  repositories,
+  providerStatus
+}: LinkRepositoryFormProps) {
   const [open, setOpen] = React.useState(false)
   const form = useForm<LinkRepositoryFormValues>({
     resolver: zodResolver(formSchema)
   })
 
   const { isSubmitting } = form.formState
+
+  const emptyText = React.useMemo(() => {
+    switch (providerStatus) {
+      case RepositoryProviderStatus.Pending:
+        return 'Awaiting the next data synchronization'
+      case RepositoryProviderStatus.Error:
+        return 'Synchronizing error. Please check if the access token is still valid'
+      default:
+        return 'No repository found'
+    }
+  }, [providerStatus])
+
   const updateGithubProvidedRepositoryActive = useMutation(
     updateGithubProvidedRepositoryActiveMutation,
     {
@@ -71,11 +102,33 @@ export default function LinkRepositoryForm({
     }
   )
 
+  const updateGitlabProvidedRepositoryActive = useMutation(
+    updateGitlabProvidedRepositoryActiveMutation,
+    {
+      onCompleted(data) {
+        if (data?.updateGitlabProvidedRepositoryActive) {
+          form.reset({ id: undefined })
+          onCreated?.()
+        }
+      },
+      form
+    }
+  )
+
   const onSubmit = (values: LinkRepositoryFormValues) => {
-    return updateGithubProvidedRepositoryActive({
-      id: values.id,
-      active: true
-    })
+    if (kind === RepositoryKind.Github) {
+      return updateGithubProvidedRepositoryActive({
+        id: values.id,
+        active: true
+      })
+    }
+
+    if (kind === RepositoryKind.Gitlab) {
+      return updateGitlabProvidedRepositoryActive({
+        id: values.id,
+        active: true
+      })
+    }
   }
 
   return (
@@ -115,28 +168,29 @@ export default function LinkRepositoryForm({
                     <Command>
                       <CommandInput placeholder="Search repository..." />
                       <CommandList className="max-h-60">
-                        <CommandEmpty>No repository found.</CommandEmpty>
+                        <CommandEmpty>{emptyText}</CommandEmpty>
                         <CommandGroup>
-                          {repositories?.map(repo => (
-                            <CommandItem
-                              // value={repo.node.id}
-                              key={repo.node.id}
-                              onSelect={() => {
-                                form.setValue('id', repo.node.id)
-                                setOpen(false)
-                              }}
-                            >
-                              <IconCheck
-                                className={cn(
-                                  'mr-2',
-                                  repo.node.id === field.value
-                                    ? 'opacity-100'
-                                    : 'opacity-0'
-                                )}
-                              />
-                              {repo.node.gitUrl}
-                            </CommandItem>
-                          ))}
+                          {providerStatus !==
+                            RepositoryProviderStatus.Pending &&
+                            repositories?.map(repo => (
+                              <CommandItem
+                                key={repo.node.id}
+                                onSelect={() => {
+                                  form.setValue('id', repo.node.id)
+                                  setOpen(false)
+                                }}
+                              >
+                                <IconCheck
+                                  className={cn(
+                                    'mr-2',
+                                    repo.node.id === field.value
+                                      ? 'opacity-100'
+                                      : 'opacity-0'
+                                  )}
+                                />
+                                {repo.node.gitUrl}
+                              </CommandItem>
+                            ))}
                         </CommandGroup>
                       </CommandList>
                     </Command>

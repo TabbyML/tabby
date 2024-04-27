@@ -9,6 +9,7 @@ import { useForm, UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
+import { RepositoryKind } from '@/lib/gql/generates/graphql'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,8 @@ import {
 import { IconExternalLink, IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 
+import { useRepositoryKind } from '../hooks/use-repository-kind'
+
 export const repositoryProviderFormSchema = z.object({
   displayName: z.string(),
   accessToken: z.string()
@@ -51,7 +54,7 @@ interface GithubProviderFormProps {
   deletable?: boolean
 }
 
-export const GithubProviderForm: React.FC<GithubProviderFormProps> = ({
+export const CommonProviderForm: React.FC<GithubProviderFormProps> = ({
   isNew,
   form,
   onSubmit,
@@ -59,6 +62,7 @@ export const GithubProviderForm: React.FC<GithubProviderFormProps> = ({
   cancleable = true,
   deletable
 }) => {
+  const kind = useRepositoryKind()
   const router = useRouter()
 
   const [deleteAlertVisible, setDeleteAlertVisible] = React.useState(false)
@@ -83,6 +87,29 @@ export const GithubProviderForm: React.FC<GithubProviderFormProps> = ({
     }
   }
 
+  const displayNamePlaceholder = React.useMemo(() => {
+    switch (kind) {
+      case RepositoryKind.Github:
+        return 'e.g. GitHub'
+      case RepositoryKind.Gitlab:
+        return 'e.g. GitLab'
+      default:
+        return ''
+    }
+  }, [kind])
+
+  const accessTokenPlaceholder = React.useMemo(() => {
+    if (!isNew) return '*****'
+    switch (kind) {
+      case RepositoryKind.Github:
+        return 'e.g. github_pat_1ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234'
+      case RepositoryKind.Gitlab:
+        return 'e.g. glpat_1ABCD1234ABCD1234ABCD1234ABCD1234'
+      default:
+        return ''
+    }
+  }, [kind, isNew])
+
   return (
     <Form {...form}>
       <div className="grid gap-2">
@@ -98,7 +125,7 @@ export const GithubProviderForm: React.FC<GithubProviderFormProps> = ({
                 </FormDescription>
                 <FormControl>
                   <Input
-                    placeholder="e.g. GitHub"
+                    placeholder={displayNamePlaceholder}
                     autoCapitalize="none"
                     autoCorrect="off"
                     autoComplete="off"
@@ -116,23 +143,11 @@ export const GithubProviderForm: React.FC<GithubProviderFormProps> = ({
               <FormItem>
                 <FormLabel required>Personal Access Token</FormLabel>
                 <FormDescription>
-                  <div>
-                    Create a dedicated service user and generate a{' '}
-                    <ExternalLink href="https://github.com/settings/personal-access-tokens/new">
-                      fine-grained personal access
-                    </ExternalLink>{' '}
-                    token with the member role for the organization or all
-                    projects to be managed.
-                  </div>
-                  <div className="my-2 ml-4">• Contents (Read-only)</div>
+                  <AccessTokenDescription />
                 </FormDescription>
                 <FormControl>
                   <Input
-                    placeholder={
-                      isNew
-                        ? 'e.g. github_pat_1ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234'
-                        : '*****'
-                    }
+                    placeholder={accessTokenPlaceholder}
                     autoCapitalize="none"
                     autoCorrect="off"
                     autoComplete="off"
@@ -215,6 +230,46 @@ export function useRepositoryProviderForm(
     resolver: zodResolver(repositoryProviderFormSchema),
     defaultValues
   })
+}
+
+function AccessTokenDescription() {
+  const kind = useRepositoryKind()
+  if (kind === RepositoryKind.Github) {
+    return (
+      <>
+        <div>
+          Create a dedicated service user and generate a{' '}
+          <ExternalLink href="https://github.com/settings/personal-access-tokens/new">
+            fine-grained personal access
+          </ExternalLink>{' '}
+          token with the member role for the organization or all projects to be
+          managed.
+        </div>
+        <div className="my-2 ml-4">• Contents (Read-only)</div>
+      </>
+    )
+  }
+
+  if (kind === RepositoryKind.Gitlab) {
+    return (
+      <>
+        <div>
+          Create a dedicated service user and generate a{' '}
+          <ExternalLink href="https://gitlab.com/-/user_settings/personal_access_tokens">
+            personal access token
+          </ExternalLink>{' '}
+          with the maintainer role and at least following permissions for the
+          group or projects to be managed. You can generate a project access
+          token for managing a single project, or generate a group access token
+          to manage all projects within the group.
+        </div>
+        <div className="my-2 ml-4">• api</div>
+        <div className="my-2 ml-4">• read repository</div>
+      </>
+    )
+  }
+
+  return null
 }
 
 function ExternalLink({

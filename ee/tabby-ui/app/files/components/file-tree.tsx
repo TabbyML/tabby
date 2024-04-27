@@ -5,6 +5,7 @@ import { isEmpty } from 'lodash-es'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
+import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
@@ -27,6 +28,8 @@ type TFileTreeNode = {
   file: TFile
   fullPath: string
   children?: Array<TFileTreeNode>
+  isRepository?: boolean
+  repository?: RepositoryListQuery['repositoryList'][0] | undefined
 }
 
 interface FileTreeProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -383,7 +386,9 @@ function mapToFileTree(fileMap: TFileMap | undefined): TFileTreeNode[] {
           file: file.file,
           name: file.name,
           fullPath: fileKey,
-          children: []
+          children: [],
+          isRepository: file.isRepository,
+          repository: file.repository
         }
         currentNode.push(newNode)
         currentNode = newNode.children as TFileTreeNode[]

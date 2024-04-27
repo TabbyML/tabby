@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 
 import { BlobHeader } from './blob-header'
 import { TFileTreeNode } from './file-tree'
+import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext, TFileMapItem } from './source-code-browser'
 
 interface DirectoryViewProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -69,12 +70,23 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
             )}
             <>
               {files.map(file => {
+                const isRepository = file.isRepository
+                const repoKind = file.repository?.kind
                 return (
                   <TableRow key={file.fullPath}>
                     <TableCell className="p-1 px-4 text-base">
                       <div className="flex items-center gap-2">
                         <div className="shrink-0">
-                          {file.file.kind === 'dir' ? (
+                          {isRepository ? (
+                            <RepositoryKindIcon
+                              kind={repoKind}
+                              fallback={
+                                <IconDirectorySolid
+                                  style={{ color: 'rgb(84, 174, 255)' }}
+                                />
+                              }
+                            />
+                          ) : file.file.kind === 'dir' ? (
                             <IconDirectorySolid
                               style={{ color: 'rgb(84, 174, 255)' }}
                             />
