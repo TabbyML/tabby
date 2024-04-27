@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
@@ -120,7 +121,6 @@ const LinkedRepoTable: React.FC<{
   data: GithubRepositories | undefined
   onDelete?: () => void
 }> = ({ data, onDelete }) => {
-  // const [isDeleting, setIsDeleting] = useState(false)
   const updateGithubProvidedRepositoryActive = useMutation(
     updateGithubProvidedRepositoryActiveMutation,
     {
@@ -128,16 +128,14 @@ const LinkedRepoTable: React.FC<{
         if (data?.updateGithubProvidedRepositoryActive) {
           onDelete?.()
         }
-        // setIsDeleting(false)
       },
-      onError() {
-        // setIsDeleting(false)
+      onError(error) {
+        toast.error(error.message || 'Failed to delete')
       }
     }
   )
 
   const handleDelete = async (id: string) => {
-    // setIsDeleting(true)
     updateGithubProvidedRepositoryActive({
       id,
       active: false
@@ -150,11 +148,11 @@ const LinkedRepoTable: React.FC<{
     setOpen(false)
   }
 
-  const linkedRepos = useMemo(() => {
+  const activeRepos = useMemo(() => {
     return data?.filter(item => item.node.active)
   }, [data])
 
-  const unlinkedRepos = useMemo(() => {
+  const inactiveRepos = useMemo(() => {
     return data?.filter(item => !item.node.active)
   }, [data])
 
@@ -176,7 +174,7 @@ const LinkedRepoTable: React.FC<{
                 <LinkRepositoryForm
                   onCancel={() => setOpen(false)}
                   onCreated={onCreated}
-                  repositories={unlinkedRepos}
+                  repositories={inactiveRepos}
                 />
               </DialogContent>
               <DialogTrigger asChild>
@@ -189,9 +187,9 @@ const LinkedRepoTable: React.FC<{
         </TableRow>
       </TableHeader>
       <TableBody>
-        {linkedRepos?.length ? (
+        {activeRepos?.length ? (
           <>
-            {linkedRepos?.map(x => {
+            {activeRepos?.map(x => {
               return (
                 <TableRow key={x.node.id}>
                   <TableCell>{x.node.name}</TableCell>

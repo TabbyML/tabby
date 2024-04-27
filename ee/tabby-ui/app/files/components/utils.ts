@@ -14,11 +14,6 @@ function resolveRepoIdFromPath(path: string | undefined) {
   return path.split('/')?.[1]
 }
 
-function resolveRepoNameFromPath(path: string | undefined) {
-  if (!path) return ''
-  return path.split('/')?.[0]
-}
-
 function resolveBasenameFromPath(path?: string) {
   if (!path) return ''
   return path.split('/').slice(2).join('/')
@@ -69,7 +64,7 @@ async function fetchEntriesFromPath(path: string | undefined) {
   return result
 }
 
-function generatePathPrefixFromRepo(
+function resolveRepoSpecifierFromRepoInfo(
   repo: { kind: RepositoryKind | string; id: string } | undefined
 ) {
   if (repo?.kind && repo?.id) {
@@ -79,7 +74,7 @@ function generatePathPrefixFromRepo(
   return undefined
 }
 
-function generatePathPrefixFromPath(path: string | undefined) {
+function resolveRepoSpecifierFromPath(path: string | undefined) {
   if (!path) return ''
   let pathSegments = path.split('/')
   if (pathSegments.length < 2) return ''
@@ -96,14 +91,13 @@ function key2RepositoryKind(key: string) {
 }
 
 export {
-  resolveRepoNameFromPath,
+  resolveRepoKindFromPath,
+  resolveRepoIdFromPath,
+  resolveRepoSpecifierFromRepoInfo,
+  resolveRepoSpecifierFromPath,
   resolveBasenameFromPath,
   resolveFileNameFromPath,
   getDirectoriesFromBasename,
-  fetchEntriesFromPath,
-  resolveRepoKindFromPath,
-  resolveRepoIdFromPath,
-  generatePathPrefixFromRepo,
-  generatePathPrefixFromPath,
-  key2RepositoryKind
+  key2RepositoryKind,
+  fetchEntriesFromPath
 }

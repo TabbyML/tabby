@@ -2,17 +2,14 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { omit } from 'lodash-es'
-import { UseFormReturn } from 'react-hook-form'
-import { toast } from 'sonner'
 
 import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 
 import {
-  CreateGithubProviderFormValues,
   GithubProviderForm,
-  UpdateGithubProviderFormValues
+  RepositoryProviderFormValues,
+  useRepositoryProviderForm
 } from '../../components/github-form'
 
 const createGithubRepositoryProvider = graphql(/* GraphQL */ `
@@ -25,9 +22,7 @@ const createGithubRepositoryProvider = graphql(/* GraphQL */ `
 
 export const NewProvider = () => {
   const router = useRouter()
-  const formRef = React.useRef<{
-    form: UseFormReturn<UpdateGithubProviderFormValues>
-  }>(null)
+  const form = useRepositoryProviderForm()
   const createGithubRepositoryProviderMutation = useMutation(
     createGithubRepositoryProvider,
     {
@@ -36,22 +31,19 @@ export const NewProvider = () => {
           router.back()
         }
       },
-      onError(err) {
-        toast.error(err?.message)
-      },
-      form: formRef.current
+      form
     }
   )
 
-  const handleSubmit = async (values: CreateGithubProviderFormValues) => {
+  const handleSubmit = async (values: RepositoryProviderFormValues) => {
     return createGithubRepositoryProviderMutation({
-      input: omit(values, 'provider')
+      input: values
     })
   }
 
   return (
     <div className="ml-4">
-      <GithubProviderForm isNew ref={formRef} onSubmit={handleSubmit} />
+      <GithubProviderForm isNew form={form} onSubmit={handleSubmit} />
     </div>
   )
 }

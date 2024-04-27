@@ -34,13 +34,12 @@ import { RawFileView } from './raw-file-view'
 import { TextFileView } from './text-file-view'
 import {
   fetchEntriesFromPath,
-  generatePathPrefixFromRepo,
   getDirectoriesFromBasename,
   resolveBasenameFromPath,
   resolveFileNameFromPath,
   resolveRepoIdFromPath,
   resolveRepoKindFromPath,
-  resolveRepoNameFromPath
+  resolveRepoSpecifierFromRepoInfo
 } from './utils'
 
 /**
@@ -63,6 +62,8 @@ type TFileMapItem = {
   name: string
   fullPath: string
   treeExpanded?: boolean
+  isRepository?: boolean
+  repository?: RepositoryListQuery['repositoryList'][0] | undefined
 }
 type TFileMap = Record<string, TFileMapItem>
 
@@ -212,7 +213,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
   const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
 
-  const activeRepoPrefix = React.useMemo(() => {
+  const activeRepoSpecifier = React.useMemo(() => {
     const kind = resolveRepoKindFromPath(activePath)
     const id = resolveRepoIdFromPath(activePath)
     return `${kind}/${id}`
@@ -242,7 +243,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       contentLength?: number
     }>(
       isFileSelected
-        ? `/repositories/${activeRepoPrefix}/resolve/${activeBasename}`
+        ? `/repositories/${activeRepoSpecifier}/resolve/${activeBasename}`
         : null,
       (url: string) =>
         fetcher(url, {
@@ -284,7 +285,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     isLoading: fetchingSubTree
   }: SWRResponse<ResolveEntriesResponse> = useSWRImmutable(
     shouldFetchSubDir
-      ? `/repositories/${activeRepoPrefix}/resolve/${activeBasename}`
+      ? `/repositories/${activeRepoSpecifier}/resolve/${activeBasename}`
       : null,
     fetcher
   )
@@ -311,8 +312,8 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
       // By default, selecting the first repository if initialPath is empty
       if (repos?.length && !activePath) {
-        const prefix = generatePathPrefixFromRepo(repos?.[0])
-        setActivePath(prefix, true)
+        const repoSpecifier = resolveRepoSpecifierFromRepoInfo(repos?.[0])
+        setActivePath(repoSpecifier, true)
         initializing.current = false
         return
       }
@@ -332,7 +333,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       if (subTree?.entries?.length && activePath) {
         const repoKind = resolveRepoKindFromPath(activePath)
         const repoId = resolveRepoIdFromPath(activePath)
-        const repoName = resolveRepoNameFromPath(activePath)
         let patchMap: TFileMap = {}
         for (const entry of subTree.entries) {
           const path = `${repoKind}/${repoId}/${entry.basename}`
@@ -464,7 +464,6 @@ const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
 
 async function getInitialFileData(path?: string) {
   try {
-    // todo merge three utils
     const initialRepositoryKind = resolveRepoKindFromPath(path)
     const initialRepositoryId = resolveRepoIdFromPath(path)
     const initialBasename = resolveBasenameFromPath(path)
@@ -477,22 +476,21 @@ async function getInitialFileData(path?: string) {
 
     const patchMap: TFileMap = {}
     for (const repo of repos) {
-      const prefix = generatePathPrefixFromRepo(repo)
-      if (prefix) {
-        patchMap[prefix] = {
-          // todo merge
+      const repoSpecifier = resolveRepoSpecifierFromRepoInfo(repo)
+      if (repoSpecifier) {
+        patchMap[repoSpecifier] = {
           file: {
             kind: 'dir',
             basename: repo.name
           },
           name: repo.name,
-          fullPath: prefix,
+          fullPath: repoSpecifier,
           treeExpanded: repo.id === initialRepositoryId
         }
       }
     }
     for (const entry of initialEntries) {
-      const path = `${generatePathPrefixFromRepo({
+      const path = `${resolveRepoSpecifierFromRepoInfo({
         kind: initialRepositoryKind,
         id: initialRepositoryId
       })}/${entry.basename}`
@@ -504,7 +502,9 @@ async function getInitialFileData(path?: string) {
       }
     }
     const expandedKeys = initialExpandedDirs.map(dir =>
-      [generatePathPrefixFromRepo(initialRepo), dir].filter(Boolean).join('/')
+      [resolveRepoSpecifierFromRepoInfo(initialRepo), dir]
+        .filter(Boolean)
+        .join('/')
     )
 
     return { patchMap, expandedKeys, repos }
