@@ -7,7 +7,7 @@ import { graphql } from '@/lib/gql/generates'
 import { useMutation } from '@/lib/tabby/gql'
 
 import {
-  ProviderForm,
+  CommonProviderForm,
   RepositoryProviderFormValues,
   useRepositoryProviderForm
 } from '../../components/common-provider-form'
@@ -80,7 +80,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   }
 
   return (
-    <ProviderForm
+    <CommonProviderForm
       onSubmit={onSubmit}
       onDelete={handleDeleteRepositoryProvider}
       deletable

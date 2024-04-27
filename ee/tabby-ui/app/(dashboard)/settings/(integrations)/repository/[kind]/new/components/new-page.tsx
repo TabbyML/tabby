@@ -8,7 +8,7 @@ import { RepositoryKind } from '@/lib/gql/generates/graphql'
 import { useMutation } from '@/lib/tabby/gql'
 
 import {
-  ProviderForm,
+  CommonProviderForm,
   RepositoryProviderFormValues,
   useRepositoryProviderForm
 } from '../../components/common-provider-form'
@@ -75,7 +75,7 @@ export const NewProvider = () => {
 
   return (
     <div className="ml-4">
-      <ProviderForm isNew form={form} onSubmit={handleSubmit} />
+      <CommonProviderForm isNew form={form} onSubmit={handleSubmit} />
     </div>
   )
 }

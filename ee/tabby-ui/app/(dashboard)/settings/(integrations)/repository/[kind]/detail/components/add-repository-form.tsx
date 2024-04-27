@@ -81,11 +81,11 @@ export default function LinkRepositoryForm({
   const emptyText = React.useMemo(() => {
     switch (providerStatus) {
       case RepositoryProviderStatus.Pending:
-        return 'Synchronizing Repositories...'
+        return 'Awaiting the next data synchronization'
       case RepositoryProviderStatus.Error:
-        return 'Synchronization Error with Repositories'
+        return 'Synchronizing error. Please check if the access token is still valid'
       default:
-        return 'No repository found.'
+        return 'No repository found'
     }
   }, [providerStatus])
 

@@ -87,6 +87,7 @@ interface GitProvidersTableProps {
   data: RepositoryProvidersViewProps['providers']
 }
 const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
+  const kind = useRepositoryKind()
   return (
     <div className="space-y-8">
       {data?.map(item => {
@@ -100,7 +101,7 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
                   </div>
                 </CardTitle>
                 <Link
-                  href={`github/detail?id=${item.node.id}`}
+                  href={`${kind.toLocaleLowerCase()}/detail?id=${item.node.id}`}
                   className={buttonVariants({ variant: 'secondary' })}
                 >
                   View

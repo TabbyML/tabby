@@ -54,7 +54,7 @@ interface GithubProviderFormProps {
   deletable?: boolean
 }
 
-export const ProviderForm: React.FC<GithubProviderFormProps> = ({
+export const CommonProviderForm: React.FC<GithubProviderFormProps> = ({
   isNew,
   form,
   onSubmit,
