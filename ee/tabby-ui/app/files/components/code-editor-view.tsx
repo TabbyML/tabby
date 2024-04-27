@@ -31,8 +31,8 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const filePath = React.useMemo(() => {
     const repoSpecifier = resolveRepoSpecifierFromPath(activePath)
     const repoBasename = resolveBasenameFromPath(activePath)
-    const repoName = fileMap[repoSpecifier].name
-    return `${repoName}/${repoBasename}`
+    const repoName = fileMap[repoSpecifier]?.name
+    return repoName ? `${repoName}/${repoBasename}` : repoBasename
   }, [activePath, fileMap])
 
   const extensions = React.useMemo(() => {
