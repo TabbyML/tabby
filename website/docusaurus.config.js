@@ -1,11 +1,10 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const lightCodeTheme = require('prism-react-renderer/themes/palenight');
-const darkCodeTheme = require('prism-react-renderer/themes/dracula');
+import {themes as prismThemes} from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
-const config = {
+export default {
   title: 'Tabby',
   tagline: 'Opensource, self-hosted AI coding assistant',
   favicon: 'img/favicon.ico',
@@ -156,8 +155,8 @@ const config = {
         copyright: `Copyright © ${new Date().getFullYear()} TabbyML, Inc.`,
       },
       prism: {
-        theme: lightCodeTheme,
-        darkTheme: darkCodeTheme,
+        theme: prismThemes.palenight,
+        darkTheme: prismThemes.dracula,
         additionalLanguages: ['toml', 'rust', 'scheme'],
       },
       colorMode: {
@@ -208,5 +207,3 @@ const config = {
     ],
   ],
 };
-
-module.exports = config;
