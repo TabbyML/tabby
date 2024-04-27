@@ -8,6 +8,11 @@ name: bloat
 
 jobs:
   cargo_bloat:
+    env:
+      CARGO_TERM_COLOR: always
+      SCCACHE_GHA_ENABLED: true
+      RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: 0
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
