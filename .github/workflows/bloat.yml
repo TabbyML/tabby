@@ -6,6 +6,12 @@ on: # rebuild any PRs and main branch changes
 
 name: bloat
 
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.head_ref || github.ref_name }} 
+  
+  # If this is enabled it will cancel current running and start latest
+  cancel-in-progress: true
+
 jobs:
   cargo_bloat:
     env:
