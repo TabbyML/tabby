@@ -11,7 +11,7 @@ function useClient(iframeRef) {
 function useServer(api) {
   return useMemo(() => {
     return createServer(fromInsideIframe(), api);
-  }, [api]);
+  }, []);
 }
 
 export { useClient, useServer };

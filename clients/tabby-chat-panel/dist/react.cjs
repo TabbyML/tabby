@@ -13,7 +13,7 @@ function useClient(iframeRef) {
 function useServer(api) {
   return react.useMemo(() => {
     return index.createServer(rpc.fromInsideIframe(), api);
-  }, [api]);
+  }, []);
 }
 
 exports.useClient = useClient;
