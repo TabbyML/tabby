@@ -30,6 +30,7 @@ import {
 } from '@/components/searchable-select'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
+import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import {
   fetchEntriesFromPath,
@@ -41,7 +42,7 @@ import {
   resolveRepoSpecifierFromPath
 } from './utils'
 
-interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 type SearchOption = {
   path: string
@@ -78,7 +79,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const repoSpecifier = resolveRepoSpecifierFromPath(activePath)
   const repoKind = resolveRepoKindFromPath(activePath)
   const repoId = resolveRepoIdFromPath(activePath)
-  const curerntRepoName = React.useMemo(() => {
+  const currentRepoKind = React.useMemo(() => {
+    if (!repoSpecifier || isEmpty(fileMap)) return undefined
+    return fileMap?.[repoSpecifier]?.repository?.kind
+  }, [repoSpecifier, fileMap])
+  const currentRepoName = React.useMemo(() => {
     if (!repoSpecifier || isEmpty(fileMap)) return undefined
     return fileMap?.[repoSpecifier]?.name
   }, [repoSpecifier, fileMap])
@@ -212,11 +217,14 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
           <SelectTrigger>
             <SelectValue>
               <div className="flex items-center gap-2">
-                <IconFolderGit />
+                <RepositoryKindIcon
+                  kind={currentRepoKind}
+                  fallback={<IconFolderGit />}
+                />
                 <span
-                  className={curerntRepoName ? '' : 'text-muted-foreground'}
+                  className={currentRepoName ? '' : 'text-muted-foreground'}
                 >
-                  {curerntRepoName || 'Pick a repository'}
+                  {currentRepoName || 'Pick a repository'}
                 </span>
               </div>
             </SelectValue>
@@ -231,7 +239,13 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                 {fileTreeData?.map(repo => {
                   return (
                     <SelectItem key={repo.fullPath} value={repo.fullPath}>
-                      {repo.name}
+                      <div className='flex items-center gap-1'>
+                        <RepositoryKindIcon
+                          kind={repo?.repository?.kind}
+                          fallback={<IconFolderGit />}
+                        />
+                        {repo.name}
+                      </div>
                     </SelectItem>
                   )
                 })}
@@ -263,7 +277,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                       spellCheck={false}
                       value={input}
                       ref={inputRef}
-                      disabled={!curerntRepoName}
+                      disabled={!currentRepoName}
                       onClick={e => {
                         if (repositorySearchPattern && !optionsVisible) {
                           setOptionsVisible(true)

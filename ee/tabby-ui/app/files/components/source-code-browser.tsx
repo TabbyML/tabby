@@ -468,7 +468,14 @@ async function getInitialFileData(path?: string) {
     const initialRepositoryId = resolveRepoIdFromPath(path)
     const initialBasename = resolveBasenameFromPath(path)
     const repos = await fetchAllRepositories()
-    const initialRepo = find(repos, o => !!o.id && o.id === initialRepositoryId)
+    const initialRepo = find(
+      repos,
+      o =>
+        !!o.id &&
+        !!o.kind &&
+        o.id === initialRepositoryId &&
+        o.kind.toLowerCase() === initialRepositoryKind
+    )
     const initialEntries = path ? await fetchInitialEntries(repos, path) : []
     const initialExpandedDirs = path
       ? getDirectoriesFromBasename(initialBasename)
@@ -485,7 +492,11 @@ async function getInitialFileData(path?: string) {
           },
           name: repo.name,
           fullPath: repoSpecifier,
-          treeExpanded: repo.id === initialRepositoryId
+          treeExpanded:
+            repo.id === initialRepositoryId &&
+            repo.kind.toLowerCase() === initialRepositoryKind,
+          isRepository: true,
+          repository: repo
         }
       }
     }
@@ -532,8 +543,15 @@ async function getInitialFileData(path?: string) {
     let result: TFile[] = []
     try {
       if (repos?.length && path) {
+        const repoKind = resolveRepoKindFromPath(path)
         const repoId = resolveRepoIdFromPath(path)
-        const repositoryIdx = findIndex(repos, entry => entry.id === repoId)
+        const repositoryIdx = findIndex(
+          repos,
+          entry =>
+            !!entry.kind &&
+            entry.id === repoId &&
+            entry.kind.toLowerCase() === repoKind
+        )
         if (repositoryIdx < 0) return result
 
         const defaultEntries = await fetchEntriesFromPath(path)
