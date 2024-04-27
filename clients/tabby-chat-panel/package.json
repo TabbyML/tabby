@@ -1,0 +1,74 @@
+{
+  "name": "tabby-chat-panel",
+  "type": "module",
+  "version": "0.0.0",
+  "packageManager": "yarn@1.22.22",
+  "keywords": [],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.mjs",
+      "require": "./dist/react.cjs"
+    }
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./dist/index.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "fix": "eslint . -f mo --fix",
+    "lint": "eslint . -f mo",
+    "prepack": "nr build",
+    "preview": "node --watch bin/index.js",
+    "release": "bumpp && npm publish",
+    "start": "tsx src/index.ts",
+    "test": "vitest",
+    "test:once": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remote-ui/rpc": "^1.4.5",
+    "cac": "^6.7.14",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^2.16.0",
+    "@antfu/ni": "^0.21.12",
+    "@types/node": "^20.12.7",
+    "@types/react": "^18.3.1",
+    "bumpp": "^9.4.0",
+    "eslint": "^9.1.1",
+    "eslint-formatter-mo": "^1.2.0",
+    "lint-staged": "^15.2.2",
+    "rimraf": "^5.0.5",
+    "tsx": "^4.7.3",
+    "typescript": "^5.4.5",
+    "unbuild": "^2.0.0",
+    "vite": "^5.2.10",
+    "vitest": "^1.5.2"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
