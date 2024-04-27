@@ -54,4 +54,4 @@ jobs:
         uses: wsxiaoys/cargo-bloat-action@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          include_packages: "tabby"
+          include_packages: tabby
