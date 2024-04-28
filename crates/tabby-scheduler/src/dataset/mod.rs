@@ -36,6 +36,10 @@ impl RepositoryExt for RepositoryConfig {
 
         let mut code = CodeIntelligence::default();
         for entry in walk_dir {
+            if !entry.path().is_file() {
+                continue;
+            }
+
             let relative_path = entry
                 .path()
                 .strip_prefix(basedir.as_path())

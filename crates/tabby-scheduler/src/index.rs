@@ -7,7 +7,7 @@ use tabby_common::{
     path, SourceFile,
 };
 use tantivy::{directory::MmapDirectory, doc, Index};
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::{code::CodeIntelligence, utils::tqdm};
 
@@ -88,6 +88,8 @@ fn open_or_create_index(code: &CodeSearchSchema, path: &Path) -> Index {
                 path.display()
             );
             fs::remove_dir_all(path).expect("Failed to remove index directory");
+
+            debug!("Reopening index repositories...");
             open_or_create_index_impl(code, path).expect("Failed to open index")
         }
     }
