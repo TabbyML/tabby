@@ -8,7 +8,7 @@ use tabby_common::{
     terminal::{HeaderFormat, InfoMessage},
 };
 use tabby_download::download_model;
-use tabby_inference::{ChatCompletionStream, CompletionStream, TextGeneration};
+use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream};
 use tracing::info;
 
 use crate::{fatal, Device};
@@ -37,9 +37,9 @@ pub async fn load_text_generation(
     model_id: &str,
     device: &Device,
     parallelism: u8,
-) -> (Arc<TextGeneration>, PromptInfo) {
+) -> (Arc<CodeGeneration>, PromptInfo) {
     let (engine, prompt_info) = load_completion(model_id, device, parallelism).await;
-    (Arc::new(TextGeneration::new(engine)), prompt_info)
+    (Arc::new(CodeGeneration::new(engine)), prompt_info)
 }
 
 async fn load_completion(

@@ -49,6 +49,7 @@ impl ChatCompletionStream for OpenAIChatEngine {
 
         let request = CreateChatCompletionRequestArgs::default()
             .seed(options.seed as i64)
+            .max_tokens(options.max_decoding_tokens as u16)
             .model(&self.model_name)
             .temperature(options.sampling_temperature)
             .stream(true)

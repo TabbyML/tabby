@@ -11,6 +11,9 @@ pub struct ChatCompletionOptions {
 
     #[builder(default = "crate::default_seed()")]
     pub seed: u64,
+
+    #[builder(default = "1920")]
+    pub max_decoding_tokens: i32,
 }
 
 #[async_trait]

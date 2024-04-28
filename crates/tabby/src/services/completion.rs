@@ -2,8 +2,6 @@ mod completion_prompt;
 
 use std::sync::Arc;
 
-use async_stream::stream;
-use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tabby_common::{
     api,
@@ -13,7 +11,7 @@ use tabby_common::{
     },
     languages::get_language,
 };
-use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
+use tabby_inference::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
 use thiserror::Error;
 use utoipa::ToSchema;
 
@@ -228,14 +226,14 @@ pub struct DebugData {
 }
 
 pub struct CompletionService {
-    engine: Arc<TextGeneration>,
+    engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
 }
 
 impl CompletionService {
     fn new(
-        engine: Arc<TextGeneration>,
+        engine: Arc<CodeGeneration>,
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
@@ -264,8 +262,8 @@ impl CompletionService {
         language: &str,
         temperature: Option<f32>,
         seed: Option<u64>,
-    ) -> TextGenerationOptions {
-        let mut builder = TextGenerationOptionsBuilder::default();
+    ) -> CodeGenerationOptions {
+        let mut builder = CodeGenerationOptionsBuilder::default();
         builder
             .max_input_length(1024 + 512)
             .max_decoding_length(128)
@@ -308,7 +306,7 @@ impl CompletionService {
             return Err(CompletionError::EmptyPrompt);
         };
 
-        let text = generate_string(&self.engine, &prompt, options).await;
+        let text = self.engine.generate(&prompt, options).await;
         let segments = segments.cloned().map(|s| s.into());
 
         self.logger.log(
@@ -356,25 +354,4 @@ pub async fn create_completion_service(
     ) = model::load_text_generation(model, device, parallelism).await;
 
     CompletionService::new(engine.clone(), code, logger, prompt_template)
-}
-
-async fn generate_string(
-    engine: &TextGeneration,
-    prompt: &str,
-    options: TextGenerationOptions,
-) -> String {
-    let prompt = prompt.to_owned();
-    let s = stream! {
-        for await (streaming, text) in engine.generate_stream(&prompt, options).await {
-            if !streaming {
-                yield text;
-            }
-        }
-    };
-
-    if let Some(text) = Box::pin(s).into_future().await.0 {
-        text
-    } else {
-        String::new()
-    }
 }
