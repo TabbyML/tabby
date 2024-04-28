@@ -31,7 +31,7 @@ impl RepositoryExt for RepositoryConfig {
                 if code != 0 {
                     warn!(
                         "Failed to clone `{}`. Please check your repository configuration.",
-                        &self.git_url
+                        self.canonical_git_url()
                     );
                     fs::remove_dir_all(&dir).expect("Failed to remove directory");
                 }
