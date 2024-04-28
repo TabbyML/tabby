@@ -156,14 +156,10 @@ async fn main() {
             token: Some(token),
         }) => {
             let client = tabby_webserver::public::create_scheduler_client(&url, &token).await;
-            tabby_scheduler::scheduler(now, client)
-                .await
-                .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err))
+            tabby_scheduler::scheduler(now, client).await
         }
         Commands::Scheduler(SchedulerArgs { now, .. }) => {
-            tabby_scheduler::scheduler(now, ConfigRepositoryAccess)
-                .await
-                .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err))
+            tabby_scheduler::scheduler(now, ConfigRepositoryAccess).await
         }
         #[cfg(feature = "ee")]
         Commands::WorkerCompletion(ref args) => {
