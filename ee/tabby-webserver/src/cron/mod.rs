@@ -1,23 +1,15 @@
+mod controller;
 mod db;
 mod scheduler;
 
 use std::sync::Arc;
 
-use tokio_cron_scheduler::{Job, JobScheduler};
+use rand::Rng;
 
 use crate::schema::{
     auth::AuthenticationService, job::JobService, repository::RepositoryService,
     worker::WorkerService,
 };
-
-async fn new_job_scheduler(jobs: Vec<Job>) -> anyhow::Result<JobScheduler> {
-    let scheduler = JobScheduler::new().await?;
-    for job in jobs {
-        scheduler.add(job).await?;
-    }
-    scheduler.start().await?;
-    Ok(scheduler)
-}
 
 pub async fn run_cron(
     auth: Arc<dyn AuthenticationService>,
@@ -26,39 +18,30 @@ pub async fn run_cron(
     repository: Arc<dyn RepositoryService>,
     local_port: u16,
 ) {
-    let mut jobs = vec![];
+    let mut controller = controller::JobController::new(job).await;
+    db::register_jobs(
+        &mut controller,
+        auth,
+        repository.github(),
+        repository.gitlab(),
+    )
+    .await;
 
-    let job1 = db::refresh_token_job(auth.clone())
-        .await
-        .expect("failed to create refresh token cleanup job");
-    jobs.push(job1);
+    scheduler::register(&mut controller, worker, local_port).await;
 
-    let job2 = db::password_reset_job(auth)
-        .await
-        .expect("failed to create password reset token cleanup job");
-    jobs.push(job2);
+    controller.run().await
+}
 
-    let job3 = scheduler::scheduler_job(job.clone(), worker, local_port)
-        .await
-        .expect("failed to create scheduler job");
-    jobs.push(job3);
+fn every_two_hours() -> String {
+    let mut rng = rand::thread_rng();
+    format!(
+        "{} {} */2 * * *",
+        rng.gen_range(0..59),
+        rng.gen_range(0..59)
+    )
+}
 
-    let job4 = db::job_cleanup(job)
-        .await
-        .expect("failed to create stale job runs cleanup job");
-    jobs.push(job4);
-
-    let job5 = db::update_integrated_github_repositories_job(repository.github())
-        .await
-        .expect("Failed to create github repository refresh job");
-    jobs.push(job5);
-
-    let job6 = db::update_integrated_gitlab_repositories_job(repository.gitlab())
-        .await
-        .expect("Failed to create gitlab repository refresh job");
-    jobs.push(job6);
-
-    new_job_scheduler(jobs)
-        .await
-        .expect("failed to start job scheduler");
+fn every_ten_minutes() -> String {
+    let mut rng = rand::thread_rng();
+    format!("{} */10 * * * *", rng.gen_range(0..59))
 }
