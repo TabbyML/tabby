@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use async_stream::stream;
+use async_trait::async_trait;
 use futures::stream::BoxStream;
 use minijinja::{context, Environment};
 use tabby_common::api::chat::Message;
 use tabby_inference::{
     chat::{self, ChatCompletionStream},
-    TextGeneration, TextGenerationOptions,
+    TextGeneration, TextGenerationOptionsBuilder,
 };
 
 struct ChatPromptBuilder {
@@ -36,29 +38,40 @@ impl ChatPromptBuilder {
 }
 
 struct ChatCompletionImpl {
-    engine: Arc<dyn TextGeneration>,
+    engine: Arc<TextGeneration>,
     prompt_builder: ChatPromptBuilder,
 }
 
-impl chat::ChatPromptBuilder for ChatCompletionImpl {
-    fn build_chat_prompt(&self, messages: &[Message]) -> anyhow::Result<String> {
-        self.prompt_builder.build(messages)
-    }
-}
-
-#[async_trait::async_trait]
-impl TextGeneration for ChatCompletionImpl {
-    async fn generate_stream(
+#[async_trait]
+impl ChatCompletionStream for ChatCompletionImpl {
+    async fn chat_completion(
         &self,
-        prompt: &str,
-        options: TextGenerationOptions,
-    ) -> BoxStream<(bool, String)> {
-        self.engine.generate_stream(prompt, options).await
+        messages: &[Message],
+        options: chat::ChatCompletionOptions,
+    ) -> Result<BoxStream<String>> {
+        let options = TextGenerationOptionsBuilder::default()
+            .max_input_length(2048)
+            .max_decoding_length(1920)
+            .seed(options.seed)
+            .sampling_temperature(options.sampling_temperature)
+            .build()?;
+
+        let prompt = self.prompt_builder.build(messages)?;
+
+        let s = stream! {
+            for await (streaming, content) in self.engine.generate_stream(&prompt, options).await {
+                if streaming {
+                    yield content
+                }
+            }
+        };
+
+        Ok(Box::pin(s))
     }
 }
 
 pub fn make_chat_completion(
-    engine: Arc<dyn TextGeneration>,
+    engine: Arc<TextGeneration>,
     prompt_template: String,
 ) -> impl ChatCompletionStream {
     ChatCompletionImpl {

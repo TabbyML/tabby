@@ -1,13 +1,11 @@
 //! Lays out the abstract definition of a text generation model, and utilities for encodings.
-pub mod chat;
 mod decoding;
-mod imp;
-
+mod chat;
+mod generation;
 
 use async_trait::async_trait;
 use derive_builder::Builder;
-use futures::{stream::BoxStream, StreamExt};
-use imp::TextGenerationImpl;
+use futures::stream::BoxStream;
 use tabby_common::languages::Language;
 
 #[derive(Builder, Debug)]
@@ -42,15 +40,10 @@ pub trait TextGenerationStream: Sync + Send {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String>;
 }
 
-#[async_trait]
-pub trait TextGeneration: Sync + Send {
-    async fn generate_stream(
-        &self,
-        prompt: &str,
-        options: TextGenerationOptions,
-    ) -> BoxStream<(bool, String)>;
-}
+pub use chat::{
+    ChatCompletionStream,
+    ChatCompletionOptionsBuilder,
+    ChatCompletionOptions
+};
 
-pub fn make_text_generation(imp: impl TextGenerationStream) -> impl TextGeneration {
-    TextGenerationImpl::new(imp)
-}
+pub use generation::TextGeneration;

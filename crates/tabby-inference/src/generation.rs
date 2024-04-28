@@ -1,28 +1,24 @@
 use async_stream::stream;
-use async_trait::async_trait;
 use futures::stream::BoxStream;
 
-use crate::{
-    decoding::StopConditionFactory, TextGeneration, TextGenerationOptions, TextGenerationStream,
-};
+use crate::{decoding::StopConditionFactory, TextGenerationOptions, TextGenerationStream};
 
-pub struct TextGenerationImpl<T: TextGenerationStream> {
-    imp: T,
+pub struct TextGeneration {
+    imp: Box<dyn TextGenerationStream>,
     stop_condition_factory: StopConditionFactory,
 }
 
-impl<T: TextGenerationStream> TextGenerationImpl<T> {
-    pub fn new(imp: T) -> Self {
+impl TextGeneration {
+    pub fn new(imp: impl TextGenerationStream + 'static) -> Self {
         Self {
-            imp,
+            imp: Box::new(imp),
             stop_condition_factory: StopConditionFactory::default(),
         }
     }
 }
 
-#[async_trait]
-impl<T: TextGenerationStream> TextGeneration for TextGenerationImpl<T> {
-    async fn generate_stream(
+impl TextGeneration {
+    pub async fn generate_stream(
         &self,
         prompt: &str,
         options: TextGenerationOptions,

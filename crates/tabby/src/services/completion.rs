@@ -228,14 +228,14 @@ pub struct DebugData {
 }
 
 pub struct CompletionService {
-    engine: Arc<dyn TextGeneration>,
+    engine: Arc<TextGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
 }
 
 impl CompletionService {
     fn new(
-        engine: Arc<dyn TextGeneration>,
+        engine: Arc<TextGeneration>,
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
@@ -308,7 +308,7 @@ impl CompletionService {
             return Err(CompletionError::EmptyPrompt);
         };
 
-        let text = generate_string(&*self.engine, &prompt, options).await;
+        let text = generate_string(&self.engine, &prompt, options).await;
         let segments = segments.cloned().map(|s| s.into());
 
         self.logger.log(
@@ -359,7 +359,7 @@ pub async fn create_completion_service(
 }
 
 async fn generate_string(
-    engine: &dyn TextGeneration,
+    engine: &TextGeneration,
     prompt: &str,
     options: TextGenerationOptions,
 ) -> String {
