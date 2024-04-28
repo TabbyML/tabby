@@ -12,7 +12,7 @@ use kdam::BarExt;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
-    languages::get_language_info_by_ext,
+    languages::get_language_by_ext,
     path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
@@ -46,7 +46,7 @@ impl RepositoryExt for RepositoryConfig {
                 continue;
             };
 
-            let Some(language_info) = get_language_info_by_ext(ext) else {
+            let Some(language_info) = get_language_by_ext(ext) else {
                 debug!("Unknown language for {relative_path:?}");
                 continue;
             };
