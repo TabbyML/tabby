@@ -71,6 +71,10 @@ fn make_pagination_query_with_condition(
         .select(&field_names.join(", "))
         .order_by("id ASC");
 
+    if let Some(condition) = condition {
+        source = source.where_and(&condition)
+    }
+
     if backwards {
         source = source.order_by("id DESC");
         if let Some(skip_id) = skip_id {
@@ -89,10 +93,6 @@ fn make_pagination_query_with_condition(
     }
 
     select = select.from(&format!("({source})"));
-    if let Some(condition) = condition {
-        select = select.where_and(&condition)
-    }
-
     select.as_string()
 }
 
