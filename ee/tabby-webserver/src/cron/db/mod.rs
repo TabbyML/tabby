@@ -3,105 +3,52 @@
 mod github;
 mod gitlab;
 
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
-use anyhow::Result;
-use futures::Future;
-use tokio_cron_scheduler::Job;
-use tracing::{debug, error};
-
+use super::controller::JobController;
 use crate::schema::{
     auth::AuthenticationService,
-    job::JobService,
     repository::{GithubRepositoryService, GitlabRepositoryService},
 };
 
 const EVERY_TWO_HOURS: &str = "0 0 1/2 * * * *";
 const EVERY_TEN_MINUTES: &str = "0 1/10 * * * *";
 
-async fn service_job<F, S>(
-    name: &str,
-    frequency: &'static str,
-    service: Arc<S>,
-    job: fn(Arc<S>) -> F,
-) -> Result<Job>
-where
-    F: Future<Output = Result<()>> + 'static + Send,
-    S: Send + Sync + 'static + ?Sized,
-{
-    let name = name.to_owned();
-    let job = Job::new_async(frequency, move |_, _| {
-        let name = name.clone();
-        let auth = service.clone();
-        Box::pin(async move {
-            let res = job(auth.clone()).await;
-            if let Err(e) = res {
-                error!("Failed to run `{name}` job: {}", e);
-            }
+pub async fn register_jobs(
+    controller: &mut JobController,
+    auth: Arc<dyn AuthenticationService>,
+    github: Arc<dyn GithubRepositoryService>,
+    gitlab: Arc<dyn GitlabRepositoryService>,
+) {
+    let cloned_auth = auth.clone();
+    controller
+        .register("remove_staled_refresh_token", EVERY_TWO_HOURS, move || {
+            let auth = cloned_auth.clone();
+            Box::pin(async move { Ok(auth.delete_expired_token().await?) })
         })
-    })?;
+        .await;
 
-    Ok(job)
-}
-
-pub async fn refresh_token_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
-    service_job(
-        "cleanup staled refresh token",
-        EVERY_TWO_HOURS,
-        auth,
-        |auth| async move { Ok(auth.delete_expired_token().await?) },
-    )
-    .await
-}
-
-pub async fn password_reset_job(auth: Arc<dyn AuthenticationService>) -> Result<Job> {
-    service_job(
-        "cleanup staled password reset",
-        EVERY_TWO_HOURS,
-        auth,
-        |auth| async move { Ok(auth.delete_expired_password_resets().await?) },
-    )
-    .await
-}
-
-pub async fn update_integrated_github_repositories_job(
-    github_repository_provider: Arc<dyn GithubRepositoryService>,
-) -> Result<Job> {
-    service_job(
-        "sync github repositories",
-        EVERY_TEN_MINUTES,
-        github_repository_provider,
-        |github_repository_provider| async move {
-            debug!("Syncing github repositories...");
-            github::refresh_all_repositories(github_repository_provider).await
-        },
-    )
-    .await
-}
-
-pub async fn update_integrated_gitlab_repositories_job(
-    gitlab_repository_provider: Arc<dyn GitlabRepositoryService>,
-) -> Result<Job> {
-    service_job(
-        "sync gitlab repositories",
-        EVERY_TEN_MINUTES,
-        gitlab_repository_provider,
-        |gitlab_repository_provider| async move {
-            debug!("Syncing gitlab repositories...");
-            gitlab::refresh_all_repositories(gitlab_repository_provider).await
-        },
-    )
-    .await
-}
-
-pub async fn job_cleanup(jobs: Arc<dyn JobService>) -> Result<Job> {
-    let job_res = Job::new_one_shot_async(Duration::from_secs(0), move |_, _| {
-        let jobs = jobs.clone();
-        Box::pin(async move {
-            if let Err(e) = jobs.cleanup().await {
-                error!("failed to finalize stale job runs: {e}");
-            }
+    let cloned_auth = auth.clone();
+    controller
+        .register("remove_staled_password_reset", EVERY_TWO_HOURS, move || {
+            let auth = cloned_auth.clone();
+            Box::pin(async move { Ok(auth.delete_expired_password_resets().await?) })
         })
-    });
-    Ok(job_res?)
+        .await;
+
+    controller
+        .register_public("github_repositories", EVERY_TEN_MINUTES, move |context| {
+            let context = context.clone();
+            let github = github.clone();
+            Box::pin(async move { github::refresh_all_repositories(context, github).await })
+        })
+        .await;
+
+    controller
+        .register_public("gitlab_repositories", EVERY_TEN_MINUTES, move |context| {
+            let gitlab = gitlab.clone();
+            let context = context.clone();
+            Box::pin(async move { gitlab::refresh_all_repositories(context, gitlab).await })
+        })
+        .await;
 }

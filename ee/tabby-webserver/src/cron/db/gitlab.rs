@@ -8,25 +8,38 @@ use gitlab::{
 };
 use juniper::ID;
 use serde::Deserialize;
-use tracing::warn;
 
-use crate::schema::repository::{GitlabRepositoryProvider, GitlabRepositoryService};
+use crate::{
+    cron::controller::JobContext,
+    schema::repository::{GitlabRepositoryProvider, GitlabRepositoryService},
+};
 
-pub async fn refresh_all_repositories(service: Arc<dyn GitlabRepositoryService>) -> Result<()> {
+pub async fn refresh_all_repositories(
+    context: JobContext,
+    service: Arc<dyn GitlabRepositoryService>,
+) -> Result<i32> {
     for provider in service
         .list_providers(vec![], None, None, None, None)
         .await?
     {
         let start = Utc::now();
-        refresh_repositories_for_provider(service.clone(), provider.id.clone()).await?;
+        context
+            .stdout_writeline(format!(
+                "Refreshing repositories for provider: {}\n",
+                provider.display_name
+            ))
+            .await;
+        refresh_repositories_for_provider(context.clone(), service.clone(), provider.id.clone())
+            .await?;
         service
             .delete_outdated_repositories(provider.id, start)
             .await?;
     }
-    Ok(())
+    Ok(0)
 }
 
 async fn refresh_repositories_for_provider(
+    context: JobContext,
     service: Arc<dyn GitlabRepositoryService>,
     provider_id: ID,
 ) -> Result<()> {
@@ -37,18 +50,25 @@ async fn refresh_repositories_for_provider(
             service
                 .update_provider_status(provider.id.clone(), false)
                 .await?;
-            warn!(
-                "GitLab credentials for provider {} are expired or invalid",
-                provider.display_name
-            );
+            context
+                .stderr_writeline(format!(
+                    "GitLab credentials for provider {} are expired or invalid",
+                    provider.display_name
+                ))
+                .await;
             return Err(e);
         }
         Err(e) => {
-            warn!("Failed to fetch repositories from github: {e}");
+            context
+                .stderr_writeline(format!("Failed to fetch repositories from gitlab: {e}"))
+                .await;
             return Err(e);
         }
     };
     for repo in repos {
+        context
+            .stdout_writeline(format!("Importing: {}", &repo.name_with_namespace))
+            .await;
         let id = repo.id.to_string();
         let url = repo.http_url_to_repo;
         let url = url.strip_suffix(".git").unwrap_or(&url);

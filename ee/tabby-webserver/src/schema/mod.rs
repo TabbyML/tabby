@@ -423,8 +423,14 @@ impl Query {
         ctx.locator.license().read().await
     }
 
+    // FIXME(meng): This is a temporary solution to expose the list of jobs, we should consider switching to a enum based approach.
     async fn jobs() -> Result<Vec<String>> {
-        Ok(vec!["scheduler".into()])
+        Ok(
+            vec!["scheduler", "github_repositories", "gitlab_repositories"]
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 
     async fn daily_stats_in_past_year(
