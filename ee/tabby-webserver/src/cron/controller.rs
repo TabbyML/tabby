@@ -1,4 +1,4 @@
-use std::{pin::Pin, sync::Arc};
+use std::{pin::Pin, sync::Arc, time::Duration};
 
 use futures::Future;
 use juniper::ID;
@@ -10,6 +10,7 @@ use crate::schema::job::JobService;
 pub struct JobController {
     scheduler: JobScheduler,
     service: Arc<dyn JobService>,
+    is_oneshot: bool,
 }
 
 impl JobController {
@@ -18,7 +19,17 @@ impl JobController {
         let scheduler = JobScheduler::new()
             .await
             .expect("failed to create job scheduler");
-        Self { scheduler, service }
+        let is_oneshot = std::env::var("TABBY_WEBSERVER_CONTROLLER_ONESHOT").is_ok();
+        if is_oneshot {
+            warn!(
+            "Running controller job as oneshot, this should only be used for debugging purpose..."
+        );
+        }
+        Self {
+            scheduler,
+            service,
+            is_oneshot,
+        }
     }
 
     pub async fn run(&self) {
@@ -60,6 +71,47 @@ impl JobController {
     }
 
     async fn register_impl<T>(&mut self, is_public: bool, name: &str, schedule: &str, func: T)
+    where
+        T: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
+            + Send
+            + Sync
+            + Clone
+            + 'static,
+    {
+        if self.is_oneshot {
+            self.run_oneshot(is_public, name, func).await;
+        } else {
+            self.run_schedule(is_public, name, schedule, func).await;
+        };
+    }
+
+    async fn run_oneshot<T>(&self, is_public: bool, name: &str, mut func: T)
+    where
+        T: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
+            + Send
+            + Sync
+            + Clone
+            + 'static,
+    {
+        let name = name.to_owned();
+        let context = JobContext::new(is_public, &name, self.service.clone()).await;
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+
+            match func(&context).await {
+                Ok(exit_code) => {
+                    debug!("Job `{}` completed with exit code {}", &name, exit_code);
+                    context.complete(exit_code).await;
+                }
+                Err(e) => {
+                    warn!("Job `{}` failed: {}", &name, e);
+                    context.complete(-1).await;
+                }
+            }
+        });
+    }
+
+    async fn run_schedule<T>(&mut self, is_public: bool, name: &str, schedule: &str, func: T)
     where
         T: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
             + Send
