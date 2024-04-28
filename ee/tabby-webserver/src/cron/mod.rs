@@ -4,6 +4,8 @@ mod scheduler;
 
 use std::sync::Arc;
 
+use rand::Rng;
+
 use crate::schema::{
     auth::AuthenticationService, job::JobService, repository::RepositoryService,
     worker::WorkerService,
@@ -28,4 +30,14 @@ pub async fn run_cron(
     scheduler::register(&mut controller, worker, local_port).await;
 
     controller.run().await
+}
+
+fn every_two_hours() -> String {
+    let mut rng = rand::thread_rng();
+    format!("{} {} */2 * * * *", rng.gen_range(0..59), rng.gen_range(0..59))
+}
+
+fn every_ten_minutes() -> String {
+    let mut rng = rand::thread_rng();
+    format!("{} {} */10 * * * *", rng.gen_range(0..59), rng.gen_range(0..59))
 }

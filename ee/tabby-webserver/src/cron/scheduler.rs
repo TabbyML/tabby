@@ -4,7 +4,10 @@ use anyhow::{Context, Result};
 use tokio::io::AsyncBufReadExt;
 use tracing::debug;
 
-use super::controller::{JobContext, JobController};
+use super::{
+    controller::{JobContext, JobController},
+    every_ten_minutes,
+};
 use crate::schema::worker::WorkerService;
 
 pub async fn register(
@@ -13,7 +16,7 @@ pub async fn register(
     local_port: u16,
 ) {
     controller
-        .register_public("scheduler", "0 */10 * * * *", move |context| {
+        .register_public("scheduler", &every_ten_minutes(), move |context| {
             let context = context.clone();
             let worker = worker.clone();
             Box::pin(async move { run_scheduler_now(context, worker, local_port).await })

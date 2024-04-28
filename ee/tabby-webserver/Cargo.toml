@@ -53,6 +53,7 @@ tabby-search = { path = "../tabby-search" }
 octocrab = "0.38.0"
 fs_extra = "1.3.0"
 gitlab = "0.1610.0"
+rand = "0.8.5"
 
 [dev-dependencies]
 assert_matches = "1.5.0"

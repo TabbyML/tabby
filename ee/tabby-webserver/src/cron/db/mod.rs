@@ -5,14 +5,13 @@ mod gitlab;
 
 use std::sync::Arc;
 
-use super::controller::JobController;
+use rand::Rng;
+
+use super::{controller::JobController, every_ten_minutes, every_two_hours};
 use crate::schema::{
     auth::AuthenticationService,
     repository::{GithubRepositoryService, GitlabRepositoryService},
 };
-
-const EVERY_TWO_HOURS: &str = "0 0 */2 * * * *";
-const EVERY_TEN_MINUTES: &str = "0 */10 * * * *";
 
 pub async fn register_jobs(
     controller: &mut JobController,
@@ -22,7 +21,7 @@ pub async fn register_jobs(
 ) {
     let cloned_auth = auth.clone();
     controller
-        .register("remove_staled_refresh_token", EVERY_TWO_HOURS, move || {
+        .register("remove_staled_refresh_token", &every_two_hours(), move || {
             let auth = cloned_auth.clone();
             Box::pin(async move { Ok(auth.delete_expired_token().await?) })
         })
@@ -30,14 +29,14 @@ pub async fn register_jobs(
 
     let cloned_auth = auth.clone();
     controller
-        .register("remove_staled_password_reset", EVERY_TWO_HOURS, move || {
+        .register("remove_staled_password_reset", &every_two_hours(), move || {
             let auth = cloned_auth.clone();
             Box::pin(async move { Ok(auth.delete_expired_password_resets().await?) })
         })
         .await;
 
     controller
-        .register_public("github_repositories", EVERY_TEN_MINUTES, move |context| {
+        .register_public("github_repositories", &every_ten_minutes(), move |context| {
             let context = context.clone();
             let github = github.clone();
             Box::pin(async move { github::refresh_all_repositories(context, github).await })
@@ -45,7 +44,7 @@ pub async fn register_jobs(
         .await;
 
     controller
-        .register_public("gitlab_repositories", EVERY_TEN_MINUTES, move |context| {
+        .register_public("gitlab_repositories", &every_ten_minutes(), move |context| {
             let gitlab = gitlab.clone();
             let context = context.clone();
             Box::pin(async move { gitlab::refresh_all_repositories(context, gitlab).await })
