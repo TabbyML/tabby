@@ -2,6 +2,8 @@ mod completion_prompt;
 
 use std::sync::Arc;
 
+use async_stream::stream;
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tabby_common::{
     api,
@@ -306,7 +308,7 @@ impl CompletionService {
             return Err(CompletionError::EmptyPrompt);
         };
 
-        let text = self.engine.generate(&prompt, options).await;
+        let text = generate_string(&*self.engine, &prompt, options).await;
         let segments = segments.cloned().map(|s| s.into());
 
         self.logger.log(
@@ -354,4 +356,25 @@ pub async fn create_completion_service(
     ) = model::load_text_generation(model, device, parallelism).await;
 
     CompletionService::new(engine.clone(), code, logger, prompt_template)
+}
+
+async fn generate_string(
+    engine: &dyn TextGeneration,
+    prompt: &str,
+    options: TextGenerationOptions,
+) -> String {
+    let prompt = prompt.to_owned();
+    let s = stream! {
+        for await (streaming, text) in engine.generate_stream(&prompt, options).await {
+            if !streaming {
+                yield text;
+            }
+        }
+    };
+
+    if let Some(text) = Box::pin(s).into_future().await.0 {
+        text
+    } else {
+        String::new()
+    }
 }

@@ -3,7 +3,7 @@ pub mod chat;
 mod decoding;
 mod imp;
 
-use async_stream::stream;
+
 use async_trait::async_trait;
 use derive_builder::Builder;
 use futures::{stream::BoxStream, StreamExt};
@@ -44,23 +44,6 @@ pub trait TextGenerationStream: Sync + Send {
 
 #[async_trait]
 pub trait TextGeneration: Sync + Send {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        let prompt = prompt.to_owned();
-        let s = stream! {
-            for await (streaming, text) in self.generate_stream(&prompt, options).await {
-                if !streaming {
-                    yield text;
-                }
-            }
-        };
-
-        if let Some(text) = Box::pin(s).into_future().await.0 {
-            text
-        } else {
-            String::new()
-        }
-    }
-
     async fn generate_stream(
         &self,
         prompt: &str,
@@ -70,17 +53,4 @@ pub trait TextGeneration: Sync + Send {
 
 pub fn make_text_generation(imp: impl TextGenerationStream) -> impl TextGeneration {
     TextGenerationImpl::new(imp)
-}
-
-pub mod helpers {
-    use async_stream::stream;
-    use futures::stream::BoxStream;
-
-    pub async fn string_to_stream(s: String) -> BoxStream<'static, String> {
-        let stream = stream! {
-            yield s
-        };
-
-        Box::pin(stream)
-    }
 }
