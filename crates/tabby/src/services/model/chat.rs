@@ -7,7 +7,7 @@ use futures::stream::BoxStream;
 use minijinja::{context, Environment};
 use tabby_common::api::chat::Message;
 use tabby_inference::{
-    ChatCompletionOptions, ChatCompletionStream, TextGeneration, TextGenerationOptionsBuilder,
+    ChatCompletionOptions, ChatCompletionStream, CompletionOptionsBuilder, CompletionStream,
 };
 
 struct ChatPromptBuilder {
@@ -37,7 +37,7 @@ impl ChatPromptBuilder {
 }
 
 struct ChatCompletionImpl {
-    engine: Arc<TextGeneration>,
+    engine: Arc<dyn CompletionStream>,
     prompt_builder: ChatPromptBuilder,
 }
 
@@ -48,9 +48,8 @@ impl ChatCompletionStream for ChatCompletionImpl {
         messages: &[Message],
         options: ChatCompletionOptions,
     ) -> Result<BoxStream<String>> {
-        let options = TextGenerationOptionsBuilder::default()
+        let options = CompletionOptionsBuilder::default()
             .max_input_length(2048)
-            .max_decoding_length(1920)
             .seed(options.seed)
             .sampling_temperature(options.sampling_temperature)
             .build()?;
@@ -58,10 +57,8 @@ impl ChatCompletionStream for ChatCompletionImpl {
         let prompt = self.prompt_builder.build(messages)?;
 
         let s = stream! {
-            for await (streaming, content) in self.engine.generate_stream(&prompt, options).await {
-                if streaming {
-                    yield content
-                }
+            for await content in self.engine.generate(&prompt, options).await {
+                yield content;
             }
         };
 
@@ -70,7 +67,7 @@ impl ChatCompletionStream for ChatCompletionImpl {
 }
 
 pub fn make_chat_completion(
-    engine: Arc<TextGeneration>,
+    engine: Arc<dyn CompletionStream>,
     prompt_template: String,
 ) -> impl ChatCompletionStream {
     ChatCompletionImpl {

@@ -8,7 +8,7 @@ use tabby_common::{
     terminal::{HeaderFormat, InfoMessage},
 };
 use tabby_download::download_model;
-use tabby_inference::{ChatCompletionStream, TextGeneration};
+use tabby_inference::{ChatCompletionStream, CompletionStream, TextGeneration};
 use tracing::info;
 
 use crate::{fatal, Device};
@@ -24,7 +24,7 @@ pub async fn load_chat_completion(
     }
 
     let (engine, PromptInfo { chat_template, .. }) =
-        load_text_generation(model_id, device, parallelism).await;
+        load_completion(model_id, device, parallelism).await;
 
     let Some(chat_template) = chat_template else {
         fatal!("Chat model requires specifying prompt template");
@@ -38,11 +38,20 @@ pub async fn load_text_generation(
     device: &Device,
     parallelism: u8,
 ) -> (Arc<TextGeneration>, PromptInfo) {
+    let (engine, prompt_info) = load_completion(model_id, device, parallelism).await;
+    (Arc::new(TextGeneration::new(engine)), prompt_info)
+}
+
+async fn load_completion(
+    model_id: &str,
+    device: &Device,
+    parallelism: u8,
+) -> (Arc<dyn CompletionStream>, PromptInfo) {
     #[cfg(feature = "experimental-http")]
     if device == &Device::ExperimentalHttp {
         let (engine, prompt_template, chat_template) = http_api_bindings::create(model_id);
         return (
-            Arc::new(TextGeneration::new(engine)),
+            Arc::new(engine),
             PromptInfo {
                 prompt_template,
                 chat_template,
@@ -89,7 +98,7 @@ impl PromptInfo {
     }
 }
 
-fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> TextGeneration {
+fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> impl CompletionStream {
     if !device.ggml_use_gpu() {
         InfoMessage::new(
             "CPU Device",
@@ -107,7 +116,7 @@ fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> Tex
         .build()
         .expect("Failed to create llama text generation options");
 
-    TextGeneration::new(llama_cpp_bindings::LlamaTextGeneration::new(options))
+    llama_cpp_bindings::LlamaTextGeneration::new(options)
 }
 
 pub async fn download_model_if_needed(model: &str) {

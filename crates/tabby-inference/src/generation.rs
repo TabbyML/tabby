@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_stream::stream;
 use derive_builder::Builder;
 use futures::stream::BoxStream;
@@ -34,14 +36,14 @@ impl From<TextGenerationOptions> for CompletionOptions {
 }
 
 pub struct TextGeneration {
-    imp: Box<dyn CompletionStream>,
+    imp: Arc<dyn CompletionStream>,
     stop_condition_factory: StopConditionFactory,
 }
 
 impl TextGeneration {
-    pub fn new(imp: impl CompletionStream + 'static) -> Self {
+    pub fn new(imp: Arc<dyn CompletionStream>) -> Self {
         Self {
-            imp: Box::new(imp),
+            imp,
             stop_condition_factory: StopConditionFactory::default(),
         }
     }
