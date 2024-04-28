@@ -11,8 +11,8 @@ use crate::schema::{
     repository::{GithubRepositoryService, GitlabRepositoryService},
 };
 
-const EVERY_TWO_HOURS: &str = "0 0 1/2 * * * *";
-const EVERY_TEN_MINUTES: &str = "0 1/10 * * * *";
+const EVERY_TWO_HOURS: &str = "0 0 */2 * * * *";
+const EVERY_TEN_MINUTES: &str = "0 */10 * * * *";
 
 pub async fn register_jobs(
     controller: &mut JobController,

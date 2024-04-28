@@ -13,7 +13,7 @@ pub async fn register(
     local_port: u16,
 ) {
     controller
-        .register_public("scheduler", "0 1/10 * * * *", move |context| {
+        .register_public("scheduler", "0 */10 * * * *", move |context| {
             let context = context.clone();
             let worker = worker.clone();
             Box::pin(async move { run_scheduler_now(context, worker, local_port).await })
