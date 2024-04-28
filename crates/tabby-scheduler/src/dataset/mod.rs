@@ -46,7 +46,6 @@ impl RepositoryExt for RepositoryConfig {
                 .expect("Paths always begin with the prefix");
 
             let Some(ext) = relative_path.extension() else {
-                debug!("No extension for {relative_path:?}");
                 continue;
             };
 

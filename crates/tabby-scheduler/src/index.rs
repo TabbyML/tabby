@@ -18,9 +18,7 @@ static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 pub fn index_repositories(_config: &[RepositoryConfig]) {
     let code = CodeSearchSchema::new();
 
-    let index_dir = path::index_dir();
-    fs::create_dir_all(&index_dir).expect("Failed to create index directory");
-    let index = open_or_create_index(&code, &index_dir);
+    let index = open_or_create_index(&code, &path::index_dir());
     register_tokenizers(&index);
 
     // Initialize the search index writer with an initial arena size of 150 MB.
@@ -96,6 +94,7 @@ fn open_or_create_index(code: &CodeSearchSchema, path: &Path) -> Index {
 }
 
 fn open_or_create_index_impl(code: &CodeSearchSchema, path: &Path) -> tantivy::Result<Index> {
+    fs::create_dir_all(path).expect("Failed to create index directory");
     let directory = MmapDirectory::open(path).expect("Failed to open index directory");
     Index::open_or_create(directory, code.schema.clone())
 }
