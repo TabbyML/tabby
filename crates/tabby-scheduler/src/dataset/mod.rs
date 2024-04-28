@@ -5,33 +5,29 @@ use std::{
     io::{IsTerminal, Write},
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
-use ignore::{DirEntry, Walk};
+use ignore::Walk;
 use kdam::BarExt;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
-    languages::get_language_by_ext,
+    languages::get_language_info_by_ext,
     path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::{code::CodeIntelligence, utils::tqdm};
 
 trait RepositoryExt {
-    fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
+    fn create_dataset(&self, writer: &mut impl Write);
 }
 
 impl RepositoryExt for RepositoryConfig {
-    fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
+    fn create_dataset(&self, writer: &mut impl Write) {
         let basedir = self.dir();
-        let walk_dir_iter = || {
-            Walk::new(basedir.as_path())
-                .filter_map(Result::ok)
-                .filter(is_source_code)
-        };
+        let walk_dir_iter = || Walk::new(basedir.as_path()).filter_map(Result::ok);
 
         let mut pb = std::io::stdout()
             .is_terminal()
@@ -40,20 +36,27 @@ impl RepositoryExt for RepositoryConfig {
 
         let mut code = CodeIntelligence::default();
         for entry in walk_dir {
-            pb.as_mut().map(|b| b.update(1)).transpose()?;
-
             let relative_path = entry
                 .path()
                 .strip_prefix(basedir.as_path())
                 .expect("Paths always begin with the prefix");
-            let language = get_language_by_ext(
-                relative_path
-                    .extension()
-                    .ok_or_else(|| anyhow!("Unknown file extension for {relative_path:?}"))?,
-            )
-            .ok_or_else(|| anyhow!("Unknown language for {relative_path:?}"))?
-            .to_owned()
-            .language();
+
+            let Some(ext) = relative_path.extension() else {
+                debug!("No extension for {relative_path:?}");
+                continue;
+            };
+
+            let Some(language_info) = get_language_info_by_ext(ext) else {
+                debug!("Unknown language for {relative_path:?}");
+                continue;
+            };
+
+            pb.as_mut()
+                .map(|b| b.update(1))
+                .transpose()
+                .expect("Failed to update progress bar");
+
+            let language = language_info.language();
             match read_to_string(entry.path()) {
                 Ok(file_content) => {
                     let source_file = SourceFile {
@@ -66,7 +69,9 @@ impl RepositoryExt for RepositoryConfig {
                         tags: code.find_tags(language, &file_content),
                         language: language.into(),
                     };
-                    writer.write_json_lines([source_file.clone()])?;
+                    writer
+                        .write_json_lines([source_file.clone()])
+                        .expect("Failed to write dataset jsonl file");
                 }
                 Err(e) => {
                     error!(
@@ -77,26 +82,12 @@ impl RepositoryExt for RepositoryConfig {
                 }
             }
         }
-
-        Ok(())
     }
 }
 
-fn is_source_code(entry: &DirEntry) -> bool {
-    if entry.file_type().is_some_and(|x| x.is_file()) {
-        entry
-            .path()
-            .extension()
-            .and_then(get_language_by_ext)
-            .is_some()
-    } else {
-        false
-    }
-}
-
-pub fn create_dataset(config: &[RepositoryConfig]) -> Result<()> {
+pub fn create_dataset(config: &[RepositoryConfig]) {
     fs::remove_dir_all(dataset_dir()).ok();
-    fs::create_dir_all(dataset_dir())?;
+    fs::create_dir_all(dataset_dir()).expect("Failed to create dataset directory");
 
     let mut writer = FileRotate::new(
         SourceFile::files_jsonl(),
@@ -110,13 +101,13 @@ pub fn create_dataset(config: &[RepositoryConfig]) -> Result<()> {
     let mut deps = DependencyFile::default();
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
-        repository.create_dataset(&mut writer)?;
+        repository.create_dataset(&mut writer);
     }
 
-    serdeconv::to_json_file(&deps, dependency_file())?;
+    serdeconv::to_json_file(&deps, dependency_file())
+        .expect("Failed to write dependencies json file");
 
-    writer.flush()?;
-    Ok(())
+    writer.flush().expect("Failed to flush writer");
 }
 
 mod metrics {

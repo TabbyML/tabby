@@ -111,7 +111,7 @@ pub fn get_language(language: &str) -> &'static Language {
     }
 }
 
-pub fn get_language_by_ext(ext: &OsStr) -> Option<&'static Language> {
+pub fn get_language_info_by_ext(ext: &OsStr) -> Option<&'static Language> {
     let ext = ext.to_str()?;
     EXTS_LANGUAGE_MAPPING.get(ext).map(|x| get_language(x))
 }
