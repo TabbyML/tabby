@@ -7,8 +7,7 @@ use futures::stream::BoxStream;
 use minijinja::{context, Environment};
 use tabby_common::api::chat::Message;
 use tabby_inference::{
-    chat::{self, ChatCompletionStream},
-    TextGeneration, TextGenerationOptionsBuilder,
+    ChatCompletionOptions, ChatCompletionStream, TextGeneration, TextGenerationOptionsBuilder,
 };
 
 struct ChatPromptBuilder {
@@ -47,7 +46,7 @@ impl ChatCompletionStream for ChatCompletionImpl {
     async fn chat_completion(
         &self,
         messages: &[Message],
-        options: chat::ChatCompletionOptions,
+        options: ChatCompletionOptions,
     ) -> Result<BoxStream<String>> {
         let options = TextGenerationOptionsBuilder::default()
             .max_input_length(2048)

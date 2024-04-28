@@ -8,7 +8,7 @@ use tabby_common::{
     terminal::{HeaderFormat, InfoMessage},
 };
 use tabby_download::download_model;
-use tabby_inference::{chat::ChatCompletionStream, TextGeneration};
+use tabby_inference::{ChatCompletionStream, TextGeneration};
 use tracing::info;
 
 use crate::{fatal, Device};

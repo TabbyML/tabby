@@ -1,6 +1,6 @@
 //! Lays out the abstract definition of a text generation model, and utilities for encodings.
-mod decoding;
 mod chat;
+mod decoding;
 mod generation;
 
 use async_trait::async_trait;
@@ -40,10 +40,5 @@ pub trait TextGenerationStream: Sync + Send {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String>;
 }
 
-pub use chat::{
-    ChatCompletionStream,
-    ChatCompletionOptionsBuilder,
-    ChatCompletionOptions
-};
-
+pub use chat::{ChatCompletionOptions, ChatCompletionOptionsBuilder, ChatCompletionStream};
 pub use generation::TextGeneration;

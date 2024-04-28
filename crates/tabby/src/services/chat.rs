@@ -7,7 +7,7 @@ use tabby_common::api::{
     chat::Message,
     event::{Event, EventLogger},
 };
-use tabby_inference::chat::{ChatCompletionOptionsBuilder, ChatCompletionStream};
+use tabby_inference::{ChatCompletionOptionsBuilder, ChatCompletionStream};
 use tracing::warn;
 use utoipa::ToSchema;
 use uuid::Uuid;
