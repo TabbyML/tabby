@@ -48,7 +48,7 @@ impl JobController {
             let mut func = func.clone();
             Box::pin(async move {
                 let Ok(_guard) = job_mutex.try_lock() else {
-                    warn!("Scheduler job overlapped, skipping...");
+                    warn!("Job `{}` overlapped, skipping...", name);
                     return;
                 };
 
@@ -103,7 +103,7 @@ impl JobController {
             let mut func = func.clone();
             Box::pin(async move {
                 let Ok(_guard) = job_mutex.try_lock() else {
-                    warn!("Scheduler job overlapped, skipping...");
+                    warn!("Job `{}` overlapped, skipping...", name);
                     return;
                 };
 
