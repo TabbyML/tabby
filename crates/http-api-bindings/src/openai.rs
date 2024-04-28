@@ -2,7 +2,7 @@ use async_openai::{config::OpenAIConfig, error::OpenAIError, types::CreateComple
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
-use tabby_inference::{TextGenerationOptions, TextGenerationStream};
+use tabby_inference::{CompletionOptions, CompletionStream};
 use tracing::warn;
 
 pub struct OpenAIEngine {
@@ -26,11 +26,10 @@ impl OpenAIEngine {
 }
 
 #[async_trait]
-impl TextGenerationStream for OpenAIEngine {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
+impl CompletionStream for OpenAIEngine {
+    async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
         let request = CreateCompletionRequestArgs::default()
             .model(&self.model_name)
-            .max_tokens(options.max_decoding_length as u16)
             .temperature(options.sampling_temperature)
             .stream(true)
             .prompt(prompt)
