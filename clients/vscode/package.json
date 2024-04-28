@@ -72,7 +72,7 @@
       },
       {
         "command": "tabby.experimental.chat.explainCodeBlock",
-        "title": "Tabby: Explain Codes"
+        "title": "Tabby: Explain This"
       }
     ],
     "menus": {
