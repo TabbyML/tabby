@@ -89,7 +89,7 @@ export function DailyActivity({
     const selects = dailySelectMap[dateKey] || 0
     const pendings = views - selects
     return {
-      name: moment(date).format('D MMM'),
+      name: moment(date).format('MMMM D'),
       views,
       selects,
       pendings
