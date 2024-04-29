@@ -77,7 +77,7 @@ async fn refresh_repositories_for_provider(
             .upsert_repository(
                 provider.id.clone(),
                 id,
-                repo.name_with_namespace,
+                repo.name_with_namespace.replace(' ', ""),
                 url.to_string(),
             )
             .await?;
