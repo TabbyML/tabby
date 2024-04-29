@@ -3,9 +3,10 @@ mod deps;
 use std::{
     fs::{self, read_to_string},
     io::{IsTerminal, Write},
+    path::Path,
 };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use ignore::Walk;
 use kdam::BarExt;
@@ -20,72 +21,84 @@ use tracing::{debug, error};
 
 use crate::{code::CodeIntelligence, utils::tqdm};
 
-trait RepositoryExt {
-    fn create_dataset(&self, writer: &mut impl Write);
+pub trait RepositoryExt {
+    fn create_dataset(&self) -> impl Iterator<Item = Result<SourceFile>>;
 }
 
 impl RepositoryExt for RepositoryConfig {
-    fn create_dataset(&self, writer: &mut impl Write) {
+    fn create_dataset(&self) -> impl Iterator<Item = Result<SourceFile>> {
         let basedir = self.dir();
         let walk_dir_iter = || Walk::new(basedir.as_path()).filter_map(Result::ok);
 
-        let mut pb = std::io::stdout()
-            .is_terminal()
-            .then(|| tqdm(walk_dir_iter().count()));
         let walk_dir = walk_dir_iter();
 
         let mut code = CodeIntelligence::default();
-        for entry in walk_dir {
-            if !entry.path().is_file() {
-                continue;
+        walk_dir
+            .filter_map(move |entry| create_source_file(self, &entry.path(), &mut code).transpose())
+    }
+}
+
+pub fn dump_json_dataset(
+    dataset: impl Iterator<Item = Result<SourceFile>>,
+    writer: &mut impl Write,
+    item_count: Option<usize>,
+) {
+    let mut pb = item_count
+        .filter(|_| std::io::stdout().is_terminal())
+        .map(|count| tqdm(count));
+
+    for entry in dataset {
+        match entry {
+            Ok(source_file) => {
+                writer
+                    .write_json_lines([source_file.clone()])
+                    .expect("Failed to write dataset jsonl file");
             }
-
-            let relative_path = entry
-                .path()
-                .strip_prefix(basedir.as_path())
-                .expect("Paths always begin with the prefix");
-
-            let Some(ext) = relative_path.extension() else {
-                continue;
-            };
-
-            let Some(language_info) = get_language_by_ext(ext) else {
-                debug!("Unknown language for {relative_path:?}");
-                continue;
-            };
-
-            pb.as_mut()
-                .map(|b| b.update(1))
-                .transpose()
-                .expect("Failed to update progress bar");
-
-            let language = language_info.language();
-            match read_to_string(entry.path()) {
-                Ok(file_content) => {
-                    let source_file = SourceFile {
-                        git_url: self.canonical_git_url(),
-                        basedir: basedir.display().to_string(),
-                        filepath: relative_path.display().to_string(),
-                        max_line_length: metrics::max_line_length(&file_content),
-                        avg_line_length: metrics::avg_line_length(&file_content),
-                        alphanum_fraction: metrics::alphanum_fraction(&file_content),
-                        tags: code.find_tags(language, &file_content),
-                        language: language.into(),
-                    };
-                    writer
-                        .write_json_lines([source_file.clone()])
-                        .expect("Failed to write dataset jsonl file");
-                }
-                Err(e) => {
-                    error!(
-                        "Cannot read '{}/{}': '{e}'",
-                        basedir.display(),
-                        relative_path.display()
-                    );
-                }
+            Err(e) => {
+                error!("Failed to read file in dataset: {e}");
             }
         }
+        pb.as_mut()
+            .map(|b| b.update(1))
+            .transpose()
+            .expect("Failed to update progress bar");
     }
+}
+
+pub fn create_source_file(
+    config: &RepositoryConfig,
+    path: &Path,
+    code: &mut CodeIntelligence,
+) -> Result<Option<SourceFile>> {
+    if path.is_dir() {
+        return Ok(None);
+    }
+    let relative_path = path
+        .strip_prefix(&config.dir())
+        .expect("Paths always begin with the prefix");
+
+    let Some(ext) = relative_path.extension() else {
+        return Ok(None);
+    };
+
+    let Some(language_info) = get_language_by_ext(ext) else {
+        debug!("Unknown language for {relative_path:?}");
+        return Ok(None);
+    };
+
+    let language = language_info.language();
+    let contents = read_to_string(path).map_err(|e| anyhow!("Failed to read {path:?}: {e}"))?;
+    let source_file = SourceFile {
+        git_url: config.canonical_git_url(),
+        basedir: config.dir().display().to_string(),
+        filepath: relative_path.display().to_string(),
+        max_line_length: metrics::max_line_length(&contents),
+        avg_line_length: metrics::avg_line_length(&contents),
+        alphanum_fraction: metrics::alphanum_fraction(&contents),
+        tags: code.find_tags(language, &contents),
+        language: language.into(),
+    };
+    return Ok(Some(source_file));
 }
 
 pub fn create_dataset(config: &[RepositoryConfig]) {
@@ -104,7 +117,11 @@ pub fn create_dataset(config: &[RepositoryConfig]) {
     let mut deps = DependencyFile::default();
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
-        repository.create_dataset(&mut writer);
+        dump_json_dataset(
+            repository.create_dataset(),
+            &mut writer,
+            Some(Walk::new(repository.dir()).count()),
+        );
     }
 
     serdeconv::to_json_file(&deps, dependency_file())
