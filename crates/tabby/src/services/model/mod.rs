@@ -33,7 +33,7 @@ pub async fn load_chat_completion(
     Arc::new(chat::make_chat_completion(engine, chat_template))
 }
 
-pub async fn load_text_generation(
+pub async fn load_code_generation(
     model_id: &str,
     device: &Device,
     parallelism: u8,
