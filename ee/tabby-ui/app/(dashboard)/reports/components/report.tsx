@@ -75,7 +75,7 @@ function StatsSummary({
     <div className="flex w-full flex-col items-start justify-center space-y-3 md:flex-row md:items-center md:space-x-6 md:space-y-0 xl:justify-start">
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Accept Rate</CardTitle>
+          <CardTitle className="text-sm font-medium">Acceptance Rate</CardTitle>
           <IconActivity className="text-muted-foreground" />
         </CardHeader>
         <CardContent>
