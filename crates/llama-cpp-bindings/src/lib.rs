@@ -70,6 +70,7 @@ impl LlamaTextGeneration {
 #[async_trait]
 impl CompletionStream for LlamaTextGeneration {
     async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
+        let mut output_token_budget = options.max_decoding_tokens;
         let mut rx = self
             .service
             .add_request(
@@ -83,6 +84,10 @@ impl CompletionStream for LlamaTextGeneration {
         let s = stream! {
             while let Some(new_text) = rx.recv().await {
                 yield new_text;
+                output_token_budget -= 1;
+                if output_token_budget <= 0 {
+                    break;
+                }
             }
 
             rx.close();

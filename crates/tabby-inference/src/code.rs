@@ -5,7 +5,7 @@ use derive_builder::Builder;
 use futures::StreamExt;
 use tabby_common::languages::Language;
 
-use crate::{decoding::StopConditionFactory, CompletionOptions, CompletionStream};
+use crate::{decoding::StopConditionFactory, CompletionOptionsBuilder, CompletionStream};
 
 #[derive(Builder, Debug)]
 pub struct CodeGenerationOptions {
@@ -13,7 +13,7 @@ pub struct CodeGenerationOptions {
     pub max_input_length: usize,
 
     #[builder(default = "256")]
-    pub max_decoding_length: usize,
+    pub max_decoding_tokens: i32,
 
     #[builder(default = "0.1")]
     pub sampling_temperature: f32,
@@ -23,16 +23,6 @@ pub struct CodeGenerationOptions {
 
     #[builder(default = "None")]
     pub language: Option<&'static Language>,
-}
-
-impl From<CodeGenerationOptions> for CompletionOptions {
-    fn from(val: CodeGenerationOptions) -> Self {
-        CompletionOptions {
-            max_input_length: val.max_input_length,
-            sampling_temperature: val.sampling_temperature,
-            seed: val.seed,
-        }
-    }
 }
 
 pub struct CodeGeneration {
@@ -55,11 +45,18 @@ impl CodeGeneration {
             let mut text = String::new();
             let mut stop_condition = self.stop_condition_factory.create(
                 prompt,
-                options.max_decoding_length,
                 options.language,
             );
 
-            for await new_text in self.imp.generate(prompt, options.into()).await {
+            let options = CompletionOptionsBuilder::default()
+                .max_input_length(options.max_input_length)
+                .max_decoding_tokens(options.max_decoding_tokens)
+                .sampling_temperature(options.sampling_temperature)
+                .seed(options.seed)
+                .build()
+                .expect("Failed to build completion options");
+
+            for await new_text in self.imp.generate(prompt, options).await {
                 let (should_stop, stop_length) = stop_condition.should_stop(&new_text);
                 text += &new_text;
                 if should_stop {

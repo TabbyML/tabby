@@ -266,7 +266,7 @@ impl CompletionService {
         let mut builder = CodeGenerationOptionsBuilder::default();
         builder
             .max_input_length(1024 + 512)
-            .max_decoding_length(128)
+            .max_decoding_tokens(64)
             .language(Some(get_language(language)));
         temperature.inspect(|x| {
             builder.sampling_temperature(*x);

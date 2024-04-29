@@ -48,10 +48,10 @@ impl ChatCompletionStream for ChatCompletionImpl {
         messages: &[Message],
         options: ChatCompletionOptions,
     ) -> Result<BoxStream<String>> {
-        let mut output_token_budget = options.max_decoding_tokens;
         let options = CompletionOptionsBuilder::default()
             .max_input_length(2048)
             .seed(options.seed)
+            .max_decoding_tokens(options.max_decoding_tokens)
             .sampling_temperature(options.sampling_temperature)
             .build()?;
 
@@ -60,11 +60,6 @@ impl ChatCompletionStream for ChatCompletionImpl {
         let s = stream! {
             for await content in self.engine.generate(&prompt, options).await {
                 yield content;
-
-                output_token_budget -= 1;
-                if output_token_budget == 0 {
-                    break;
-                }
             }
         };
 

@@ -31,6 +31,7 @@ impl CompletionStream for OpenAIEngine {
         let request = CreateCompletionRequestArgs::default()
             .model(&self.model_name)
             .temperature(options.sampling_temperature)
+            .max_tokens(options.max_decoding_tokens as u16)
             .stream(true)
             .prompt(prompt)
             .build();

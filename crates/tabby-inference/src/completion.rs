@@ -6,6 +6,8 @@ use futures::stream::BoxStream;
 pub struct CompletionOptions {
     pub max_input_length: usize,
 
+    pub max_decoding_tokens: i32,
+
     pub sampling_temperature: f32,
 
     pub seed: u64,
