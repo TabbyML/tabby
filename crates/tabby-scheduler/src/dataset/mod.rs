@@ -34,7 +34,7 @@ impl RepositoryExt for RepositoryConfig {
 
         let mut code = CodeIntelligence::default();
         walk_dir
-            .filter_map(move |entry| create_source_file(self, &entry.path(), &mut code).transpose())
+            .filter_map(move |entry| create_source_file(self, entry.path(), &mut code).transpose())
     }
 }
 
@@ -45,7 +45,7 @@ pub fn dump_json_dataset(
 ) {
     let mut pb = item_count
         .filter(|_| std::io::stdout().is_terminal())
-        .map(|count| tqdm(count));
+        .map(tqdm);
 
     for entry in dataset {
         match entry {
@@ -98,7 +98,7 @@ pub fn create_source_file(
         tags: code.find_tags(language, &contents),
         language: language.into(),
     };
-    return Ok(Some(source_file));
+    Ok(Some(source_file))
 }
 
 pub fn create_dataset(config: &[RepositoryConfig]) {
