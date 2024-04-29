@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use chrono::Utc;
 use gitlab::{
-    api::{projects::Projects, AsyncQuery, Pagination},
+    api::{projects::Projects, ApiError, AsyncQuery, Pagination},
     GitlabBuilder,
 };
 use juniper::ID;
@@ -46,7 +46,7 @@ async fn refresh_repositories_for_provider(
     let provider = service.get_provider(provider_id).await?;
     let repos = match fetch_all_repos(&provider).await {
         Ok(repos) => repos,
-        Err(e) if e.to_string().contains("401 Unauthorized") => {
+        Err(e) if e.is_client_error() => {
             service
                 .update_provider_status(provider.id.clone(), false)
                 .await?;
@@ -56,13 +56,13 @@ async fn refresh_repositories_for_provider(
                     provider.display_name
                 ))
                 .await;
-            return Err(e);
+            return Err(e.into());
         }
         Err(e) => {
             context
                 .stderr_writeline(format!("Failed to fetch repositories from gitlab: {e}"))
                 .await;
-            return Err(e);
+            return Err(e.into());
         }
     };
     for repo in repos {
@@ -96,16 +96,44 @@ struct Repository {
     http_url_to_repo: String,
 }
 
+#[derive(thiserror::Error, Debug)]
+enum GitlabError {
+    #[error(transparent)]
+    Rest(#[from] gitlab::api::ApiError<gitlab::RestError>),
+    #[error(transparent)]
+    Gitlab(#[from] gitlab::GitlabError),
+    #[error(transparent)]
+    Projects(#[from] gitlab::api::projects::ProjectsBuilderError),
+}
+
+impl GitlabError {
+    fn is_client_error(&self) -> bool {
+        match self {
+            GitlabError::Rest(source)
+            | GitlabError::Gitlab(gitlab::GitlabError::Api { source }) => {
+                matches!(
+                    source,
+                    ApiError::Auth { .. }
+                        | ApiError::Client {
+                            source: gitlab::RestError::AuthError { .. }
+                        }
+                        | ApiError::Gitlab { .. }
+                )
+            }
+            _ => false,
+        }
+    }
+}
+
 async fn fetch_all_repos(
     provider: &GitlabRepositoryProvider,
-) -> Result<Vec<Repository>, anyhow::Error> {
+) -> Result<Vec<Repository>, GitlabError> {
     let Some(token) = &provider.access_token else {
         return Ok(vec![]);
     };
     let gitlab = GitlabBuilder::new("gitlab.com", token)
         .build_async()
         .await?;
-
     Ok(gitlab::api::paged(
         Projects::builder().membership(true).build()?,
         Pagination::All,
