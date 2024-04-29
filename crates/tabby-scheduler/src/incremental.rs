@@ -78,7 +78,7 @@ impl IncrementalRepositoryStore {
 
         let Some(old_version) = old_version else {
             for file in repository.create_dataset() {
-                self.update_source_file(file?)?;
+                self.update_source_file(file)?;
             }
             self.set_last_commit(dir_str.clone(), current_version)?;
             return Ok(());
@@ -87,8 +87,7 @@ impl IncrementalRepositoryStore {
         let files_diff = get_changed_files(&dir, old_version)?;
         let mut code = CodeIntelligence::default();
         for file in files_diff {
-            let Some(source_file) =
-                create_source_file(repository, &PathBuf::from(file), &mut code)?
+            let Some(source_file) = create_source_file(repository, &PathBuf::from(file), &mut code)
             else {
                 continue;
             };
@@ -105,12 +104,12 @@ impl IncrementalRepositoryStore {
         Ok(())
     }
 
-    pub fn cached_source_files(&self) -> Result<impl Iterator<Item = Result<SourceFile>>> {
+    pub fn cached_source_files(&self) -> Result<impl Iterator<Item = SourceFile>> {
         Ok(self.dataset_bucket()?.iter().map(|entry| {
             entry
                 .and_then(|item| item.value())
                 .map(|Json(source_file)| source_file)
-                .map_err(anyhow::Error::from)
+                .unwrap()
         }))
     }
 }

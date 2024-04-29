@@ -17,29 +17,28 @@ use tabby_common::{
     path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
-use tracing::{debug, error};
+use tracing::debug;
 
 use crate::{code::CodeIntelligence, utils::tqdm};
 
 pub trait RepositoryExt {
-    fn create_dataset(&self) -> impl Iterator<Item = Result<SourceFile>>;
+    fn create_dataset(&self) -> impl Iterator<Item = SourceFile>;
 }
 
 impl RepositoryExt for RepositoryConfig {
-    fn create_dataset(&self) -> impl Iterator<Item = Result<SourceFile>> {
+    fn create_dataset(&self) -> impl Iterator<Item = SourceFile> {
         let basedir = self.dir();
         let walk_dir_iter = || Walk::new(basedir.as_path()).filter_map(Result::ok);
 
         let walk_dir = walk_dir_iter();
 
         let mut code = CodeIntelligence::default();
-        walk_dir
-            .filter_map(move |entry| create_source_file(self, entry.path(), &mut code).transpose())
+        walk_dir.filter_map(move |entry| create_source_file(self, entry.path(), &mut code))
     }
 }
 
 pub fn dump_json_dataset(
-    dataset: impl Iterator<Item = Result<SourceFile>>,
+    dataset: impl Iterator<Item = SourceFile>,
     writer: &mut impl Write,
     item_count: Option<usize>,
 ) {
@@ -47,17 +46,10 @@ pub fn dump_json_dataset(
         .filter(|_| std::io::stdout().is_terminal())
         .map(tqdm);
 
-    for entry in dataset {
-        match entry {
-            Ok(source_file) => {
-                writer
-                    .write_json_lines([source_file.clone()])
-                    .expect("Failed to write dataset jsonl file");
-            }
-            Err(e) => {
-                error!("Failed to read file in dataset: {e}");
-            }
-        }
+    for source_file in dataset {
+        writer
+            .write_json_lines([source_file.clone()])
+            .expect("Failed to write dataset jsonl file");
         pb.as_mut()
             .map(|b| b.update(1))
             .transpose()
@@ -69,25 +61,27 @@ pub fn create_source_file(
     config: &RepositoryConfig,
     path: &Path,
     code: &mut CodeIntelligence,
-) -> Result<Option<SourceFile>> {
+) -> Option<SourceFile> {
     if path.is_dir() {
-        return Ok(None);
+        return None;
     }
     let relative_path = path
         .strip_prefix(&config.dir())
         .expect("Paths always begin with the prefix");
 
     let Some(ext) = relative_path.extension() else {
-        return Ok(None);
+        return None;
     };
 
     let Some(language_info) = get_language_by_ext(ext) else {
         debug!("Unknown language for {relative_path:?}");
-        return Ok(None);
+        return None;
     };
 
     let language = language_info.language();
-    let contents = read_to_string(path).map_err(|e| anyhow!("Failed to read {path:?}: {e}"))?;
+    let contents = read_to_string(path)
+        .map_err(|e| anyhow!("Failed to read {path:?}: {e}"))
+        .unwrap();
     let source_file = SourceFile {
         git_url: config.canonical_git_url(),
         basedir: config.dir().display().to_string(),
@@ -98,7 +92,7 @@ pub fn create_source_file(
         tags: code.find_tags(language, &contents),
         language: language.into(),
     };
-    Ok(Some(source_file))
+    Some(source_file)
 }
 
 pub fn create_dataset(config: &[RepositoryConfig]) {
