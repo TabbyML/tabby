@@ -182,10 +182,9 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
 impl RepositoryProvider for GithubRepositoryProviderServiceImpl {
     async fn repository_list(&self) -> Result<Vec<Repository>> {
         Ok(self
-            .list_repositories(vec![], None, None, None, None, None)
+            .list_repositories(vec![], Some(true), None, None, None, None)
             .await?
             .into_iter()
-            .filter(|x| x.active)
             .map(|x| x.into())
             .collect())
     }
