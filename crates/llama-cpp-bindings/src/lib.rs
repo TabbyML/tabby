@@ -8,7 +8,7 @@ use derive_builder::Builder;
 use ffi::create_engine;
 use futures::stream::BoxStream;
 use llama::{LlamaInitRequest, LlamaService};
-use tabby_inference::{TextGenerationOptions, TextGenerationStream};
+use tabby_inference::{CompletionOptions, CompletionStream};
 
 #[cxx::bridge(namespace = "llama")]
 mod ffi {
@@ -68,8 +68,9 @@ impl LlamaTextGeneration {
 }
 
 #[async_trait]
-impl TextGenerationStream for LlamaTextGeneration {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
+impl CompletionStream for LlamaTextGeneration {
+    async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
+        let mut output_token_budget = options.max_decoding_tokens;
         let mut rx = self
             .service
             .add_request(
@@ -83,6 +84,10 @@ impl TextGenerationStream for LlamaTextGeneration {
         let s = stream! {
             while let Some(new_text) = rx.recv().await {
                 yield new_text;
+                output_token_budget -= 1;
+                if output_token_budget <= 0 {
+                    break;
+                }
             }
 
             rx.close();
