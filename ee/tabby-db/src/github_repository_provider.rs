@@ -180,15 +180,27 @@ impl DbConn {
     pub async fn list_github_provided_repositories(
         &self,
         provider_ids: Vec<i64>,
+        active: Option<bool>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<GithubProvidedRepositoryDAO>> {
+        let mut conditions = vec![];
+
         let provider_ids = provider_ids
             .into_iter()
             .map(|id| id.to_string())
             .collect::<Vec<_>>()
             .join(", ");
+        if !provider_ids.is_empty() {
+            conditions.push(format!("github_repository_provider_id IN ({provider_ids})"));
+        }
+
+        let active_filter = active.map(|active| format!("active = {active}"));
+        conditions.extend(active_filter);
+
+        let condition = (!conditions.is_empty()).then(|| conditions.join(" AND "));
+
         let repos = query_paged_as!(
             GithubProvidedRepositoryDAO,
             "github_provided_repositories",
@@ -203,8 +215,7 @@ impl DbConn {
             limit,
             skip_id,
             backwards,
-            (!provider_ids.is_empty())
-                .then(|| format!("github_repository_provider_id IN ({provider_ids})"))
+            condition
         )
         .fetch_all(&self.pool)
         .await?;
