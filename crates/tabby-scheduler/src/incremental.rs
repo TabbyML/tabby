@@ -104,4 +104,13 @@ impl IncrementalRepositoryStore {
         self.dataset_bucket()?.set(&key, &Json(file))?;
         Ok(())
     }
+
+    pub fn cached_source_files(&self) -> Result<impl Iterator<Item = Result<SourceFile>>> {
+        Ok(self.dataset_bucket()?.iter().map(|entry| {
+            entry
+                .and_then(|item| item.value())
+                .map(|Json(source_file)| source_file)
+                .map_err(anyhow::Error::from)
+        }))
+    }
 }
