@@ -212,12 +212,12 @@ function Usage() {
             </p>
           </div>
           <div className="pt-3">
-            <p className="mb-1 text-sm  text-muted-foreground">
+            <p className="mb-1 text-sm text-muted-foreground">
               Storage utilization by Type
             </p>
-            <div className="flex">
+            <div className="flex flex-wrap gap-y-3">
               {usageData.map(usage => (
-                <div className="flex w-36 pt-1 text-sm" key={usage!.key}>
+                <div className="flex w-1/2 md:w-36 pt-1 text-sm" key={usage!.key}>
                   <div
                     className="mr-3 mt-1 h-2 w-2 rounded-full"
                     style={{ backgroundColor: usage!.color }}
