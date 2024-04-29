@@ -224,6 +224,28 @@ top_level_keywords = [
 ]
 
 [[config]]
+languages = ["dart"]
+exts = ["dart"]
+line_comment = "//"
+top_level_keywords = [
+    "abstract",
+    "class",
+    "late",
+    "var",
+    "final",
+    "const",
+    "export",
+    "interface",
+    "type",
+    "enum",
+    "int",
+    "String",
+    "double",
+    "DateTime",
+    "typedef",
+]
+
+[[config]]
 languages = ["css"]
 exts = ["css"]
 
