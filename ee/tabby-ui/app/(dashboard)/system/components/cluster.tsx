@@ -198,11 +198,6 @@ function Usage() {
       })
       .filter(usage => usage) as UsageItemWithSize[]
     totalUsage = sum(usageData.map(data => data.size))
-
-    usageData = usageData.map(usage => ({
-      ...usage,
-      value: Math.max(totalUsage / 50, usage.size)
-    }))
   }
 
   return (
