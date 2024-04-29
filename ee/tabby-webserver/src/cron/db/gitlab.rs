@@ -67,7 +67,7 @@ async fn refresh_repositories_for_provider(
     };
     for repo in repos {
         context
-            .stdout_writeline(format!("Importing: {}", &repo.name_with_namespace))
+            .stdout_writeline(format!("Importing: {}", &repo.path_with_namespace))
             .await;
         let id = repo.id.to_string();
         let url = repo.http_url_to_repo;
@@ -77,7 +77,7 @@ async fn refresh_repositories_for_provider(
             .upsert_repository(
                 provider.id.clone(),
                 id,
-                repo.name_with_namespace,
+                repo.path_with_namespace,
                 url.to_string(),
             )
             .await?;
@@ -92,7 +92,7 @@ async fn refresh_repositories_for_provider(
 #[derive(Deserialize)]
 struct Repository {
     id: u128,
-    name_with_namespace: String,
+    path_with_namespace: String,
     http_url_to_repo: String,
 }
 
