@@ -128,7 +128,7 @@ impl IncrementalRepositoryStore {
         let to_remove: Vec<_> = dataset_bucket
             .iter()
             .map(|item| item.unwrap().key::<String>().unwrap())
-            .filter(|key| !added_repositories.contains(parse_key_base_dir(&key)))
+            .filter(|key| !added_repositories.contains(parse_key_base_dir(key)))
             .collect();
 
         for key in to_remove {
