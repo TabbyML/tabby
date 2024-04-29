@@ -130,7 +130,7 @@ export function CompletionCharts({
     const views = dailyViewMap[dateKey] || 0
     const selects = dailySelectMap[dateKey] || 0
     return {
-      name: moment(date).format('D MMM'),
+      name: moment(date).format('MMMM D'),
       value: views === 0 ? 0 : parseFloat(((selects / views) * 100).toFixed(2)),
       selects,
       views
@@ -142,7 +142,7 @@ export function CompletionCharts({
     const selects = dailySelectMap[dateKey] || 0
     const pendings = views - selects
     return {
-      name: moment(date).format('D MMM'),
+      name: moment(date).format('MMMM D'),
       views,
       selects,
       pending: views === 0 ? 0.5 : pendings,
