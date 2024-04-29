@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -40,8 +41,12 @@ fn get_changed_files(path: &Path, since_commit: String) -> Result<Vec<String>> {
         .map(|s| s.lines().map(|line| line.to_owned()).collect())
 }
 
-fn repository_file_key(repo_name: &str, path: &str) -> String {
-    format!("{repo_name}:{path}")
+fn repository_file_key(base_dir: &str, path: &str) -> String {
+    format!("{base_dir}:{path}")
+}
+
+fn parse_key_base_dir(key: &str) -> &str {
+    key.split_once(':').unwrap().0
 }
 
 impl IncrementalRepositoryStore {
@@ -51,22 +56,22 @@ impl IncrementalRepositoryStore {
         })
     }
 
-    fn repository_versions_bucket(&self) -> Result<Bucket<String, String>> {
-        Ok(self.store.bucket(Some(VERSIONS_BUCKET))?)
+    fn repository_versions_bucket(&self) -> Bucket<String, String> {
+        self.store.bucket(Some(VERSIONS_BUCKET)).unwrap()
     }
 
-    fn dataset_bucket(&self) -> Result<Bucket<String, Json<SourceFile>>> {
-        Ok(self.store.bucket(Some(DATASET_BUCKET))?)
+    fn dataset_bucket(&self) -> Bucket<String, Json<SourceFile>> {
+        self.store.bucket(Some(DATASET_BUCKET)).unwrap()
     }
 
     fn set_last_commit(&self, repo_path: String, commit_hash: String) -> Result<()> {
-        self.repository_versions_bucket()?
+        self.repository_versions_bucket()
             .set(&repo_path, &commit_hash)?;
         Ok(())
     }
 
     fn get_last_commit(&self, repo_path: String) -> Result<Option<String>> {
-        Ok(self.repository_versions_bucket()?.get(&repo_path)?)
+        Ok(self.repository_versions_bucket().get(&repo_path)?)
     }
 
     pub fn update_repository(&self, repository: &RepositoryConfig) -> Result<()> {
@@ -100,16 +105,45 @@ impl IncrementalRepositoryStore {
 
     fn update_source_file(&self, file: SourceFile) -> Result<()> {
         let key = repository_file_key(&file.basedir, &file.filepath);
-        self.dataset_bucket()?.set(&key, &Json(file))?;
+        self.dataset_bucket().set(&key, &Json(file))?;
         Ok(())
     }
 
-    pub fn cached_source_files(&self) -> Result<impl Iterator<Item = SourceFile>> {
-        Ok(self.dataset_bucket()?.iter().map(|entry| {
+    pub fn cached_source_files(&self) -> impl Iterator<Item = SourceFile> {
+        self.dataset_bucket().iter().map(|entry| {
             entry
                 .and_then(|item| item.value())
                 .map(|Json(source_file)| source_file)
                 .unwrap()
-        }))
+        })
+    }
+
+    pub fn retain_from(&self, configs: &[RepositoryConfig]) {
+        let added_repositories: HashSet<_> = configs
+            .iter()
+            .map(|config| config.dir().to_string_lossy().to_string())
+            .collect();
+
+        let dataset_bucket = self.dataset_bucket();
+        let to_remove: Vec<_> = dataset_bucket
+            .iter()
+            .map(|item| item.unwrap().key::<String>().unwrap())
+            .filter(|key| !added_repositories.contains(parse_key_base_dir(&key)))
+            .collect();
+
+        for key in to_remove {
+            dataset_bucket.remove(&key).unwrap();
+        }
+
+        let versions_bucket = self.repository_versions_bucket();
+        let versions_to_remove: Vec<_> = versions_bucket
+            .iter()
+            .map(|item| item.unwrap().key::<String>().unwrap())
+            .filter(|key| !added_repositories.contains(key))
+            .collect();
+
+        for key in versions_to_remove {
+            versions_bucket.remove(&key).unwrap();
+        }
     }
 }
