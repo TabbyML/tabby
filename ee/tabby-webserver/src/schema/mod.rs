@@ -243,6 +243,7 @@ impl Query {
     async fn github_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
+        active: Option<bool>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -258,7 +259,7 @@ impl Query {
                 ctx.locator
                     .repository()
                     .github()
-                    .list_repositories(provider_ids, after, before, first, last)
+                    .list_repositories(provider_ids, active, after, before, first, last)
                     .await
             },
         )
@@ -293,6 +294,7 @@ impl Query {
     async fn gitlab_repositories(
         ctx: &Context,
         provider_ids: Vec<ID>,
+        active: Option<bool>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,
@@ -308,7 +310,7 @@ impl Query {
                 ctx.locator
                     .repository()
                     .gitlab()
-                    .list_repositories(provider_ids, after, before, first, last)
+                    .list_repositories(provider_ids, active, after, before, first, last)
                     .await
             },
         )

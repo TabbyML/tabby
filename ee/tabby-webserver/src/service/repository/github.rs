@@ -73,6 +73,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
     async fn list_repositories(
         &self,
         providers: Vec<ID>,
+        active: Option<bool>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -85,7 +86,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let repos = self
             .db
-            .list_github_provided_repositories(providers, limit, skip_id, backwards)
+            .list_github_provided_repositories(providers, active, limit, skip_id, backwards)
             .await?;
 
         Ok(repos
@@ -140,7 +141,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
             .collect();
 
         let mut repos = self
-            .list_repositories(vec![], None, None, None, None)
+            .list_repositories(vec![], Some(true), None, None, None, None)
             .await?;
 
         deduplicate_github_repositories(&mut repos);
@@ -148,9 +149,6 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         let urls = repos
             .into_iter()
             .filter_map(|repo| {
-                if !repo.active {
-                    return None;
-                }
                 let mut url = Url::parse(&repo.git_url).ok()?;
                 url.set_username(tokens.get(&repo.github_repository_provider_id.to_string())?)
                     .ok()?;
@@ -184,7 +182,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
 impl RepositoryProvider for GithubRepositoryProviderServiceImpl {
     async fn repository_list(&self) -> Result<Vec<Repository>> {
         Ok(self
-            .list_repositories(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None, None)
             .await?
             .into_iter()
             .filter(|x| x.active)
@@ -251,7 +249,7 @@ mod tests {
 
         // Test listing with no filter on providers
         let repos = service
-            .list_repositories(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None, None)
             .await
             .unwrap();
 
@@ -261,12 +259,27 @@ mod tests {
 
         // Test listing with a filter on providers
         let repos = service
-            .list_repositories(vec![provider_id1.as_id()], None, None, None, None)
+            .list_repositories(vec![provider_id1.as_id()], None, None, None, None, None)
             .await
             .unwrap();
 
         assert_eq!(repos.len(), 1);
         assert_eq!(repos[0].name, "test_repo1");
+
+        // Test listing with a filter on active status
+        let repos = service
+            .list_repositories(vec![], Some(true), None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(0, repos.len());
+
+        let repos = service
+            .list_repositories(vec![], Some(false), None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(2, repos.len());
 
         // Test deletion and toggling active status
         db.delete_github_provided_repository(repo_id1)
@@ -278,7 +291,7 @@ mod tests {
             .unwrap();
 
         let repos = service
-            .list_repositories(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None, None)
             .await
             .unwrap();
 
@@ -420,7 +433,7 @@ mod tests {
         assert_eq!(
             1,
             service
-                .list_repositories(vec![], None, None, None, None)
+                .list_repositories(vec![], None, None, None, None, None)
                 .await
                 .unwrap()
                 .len()
@@ -436,7 +449,7 @@ mod tests {
         assert_eq!(
             0,
             service
-                .list_repositories(vec![], None, None, None, None)
+                .list_repositories(vec![], None, None, None, None, None)
                 .await
                 .unwrap()
                 .len()

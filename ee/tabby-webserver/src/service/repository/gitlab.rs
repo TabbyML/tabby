@@ -73,6 +73,7 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
     async fn list_repositories(
         &self,
         providers: Vec<ID>,
+        active: Option<bool>,
         after: Option<String>,
         before: Option<String>,
         first: Option<usize>,
@@ -85,7 +86,7 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let repos = self
             .db
-            .list_gitlab_provided_repositories(providers, limit, skip_id, backwards)
+            .list_gitlab_provided_repositories(providers, active, limit, skip_id, backwards)
             .await?;
 
         Ok(repos
@@ -140,7 +141,7 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
             .collect();
 
         let mut repos = self
-            .list_repositories(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None, None)
             .await?;
 
         deduplicate_gitlab_repositories(&mut repos);
@@ -192,7 +193,7 @@ fn deduplicate_gitlab_repositories(repositories: &mut Vec<GitlabProvidedReposito
 impl RepositoryProvider for GitlabRepositoryProviderServiceImpl {
     async fn repository_list(&self) -> Result<Vec<Repository>> {
         Ok(self
-            .list_repositories(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None, None)
             .await?
             .into_iter()
             .filter(|x| x.active)
@@ -254,7 +255,7 @@ mod tests {
 
         // Test listing with no filter on providers
         let repos = service
-            .list_repositories(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None, None)
             .await
             .unwrap();
 
@@ -264,12 +265,27 @@ mod tests {
 
         // Test listing with a filter on providers
         let repos = service
-            .list_repositories(vec![provider_id1.as_id()], None, None, None, None)
+            .list_repositories(vec![provider_id1.as_id()], None, None, None, None, None)
             .await
             .unwrap();
 
         assert_eq!(repos.len(), 1);
         assert_eq!(repos[0].name, "test_repo1");
+
+        // Test listing with a filter on active status
+        let repos = service
+            .list_repositories(vec![], Some(true), None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(0, repos.len());
+
+        let repos = service
+            .list_repositories(vec![], Some(false), None, None, None, None)
+            .await
+            .unwrap();
+
+        assert_eq!(2, repos.len());
 
         // Test deletion and toggling active status
         db.delete_gitlab_provided_repository(repo_id1)
@@ -281,7 +297,7 @@ mod tests {
             .unwrap();
 
         let repos = service
-            .list_repositories(vec![], None, None, None, None)
+            .list_repositories(vec![], None, None, None, None, None)
             .await
             .unwrap();
 
@@ -423,7 +439,7 @@ mod tests {
         assert_eq!(
             1,
             service
-                .list_repositories(vec![], None, None, None, None)
+                .list_repositories(vec![], None, None, None, None, None)
                 .await
                 .unwrap()
                 .len()
@@ -439,7 +455,7 @@ mod tests {
         assert_eq!(
             0,
             service
-                .list_repositories(vec![], None, None, None, None)
+                .list_repositories(vec![], None, None, None, None, None)
                 .await
                 .unwrap()
                 .len()
