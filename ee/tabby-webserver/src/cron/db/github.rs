@@ -8,6 +8,7 @@ use octocrab::{models::Repository, GitHubError, Octocrab};
 use crate::{
     cron::controller::JobContext,
     schema::repository::{GithubRepositoryProvider, GithubRepositoryService},
+    warn_stderr,
 };
 
 pub async fn refresh_all_repositories(
@@ -49,18 +50,15 @@ async fn refresh_repositories_for_provider(
             service
                 .update_provider_status(provider.id.clone(), false)
                 .await?;
-            context
-                .stderr_writeline(format!(
-                    "GitHub credentials for provider {} are expired or invalid",
-                    provider.display_name
-                ))
-                .await;
+            warn_stderr!(
+                context,
+                "GitHub credentials for provider {} are expired or invalid",
+                provider.display_name
+            );
             return Err(source.into());
         }
         Err(e) => {
-            context
-                .stderr_writeline(format!("Failed to fetch repositories from github: {}", e))
-                .await;
+            warn_stderr!(context, "Failed to fetch repositories from github: {e}");
             return Err(e.into());
         }
     };

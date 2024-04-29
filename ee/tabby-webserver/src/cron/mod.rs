@@ -11,6 +11,14 @@ use crate::schema::{
     worker::WorkerService,
 };
 
+#[macro_export]
+macro_rules! warn_stderr {
+    ($ctx:expr, $($params:tt)+) => {
+        tracing::warn!($($params)+);
+        $ctx.stderr_writeline(format!($($params)+)).await;
+    }
+}
+
 pub async fn run_cron(
     auth: Arc<dyn AuthenticationService>,
     job: Arc<dyn JobService>,

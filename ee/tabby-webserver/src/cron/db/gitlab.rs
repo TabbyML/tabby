@@ -12,6 +12,7 @@ use serde::Deserialize;
 use crate::{
     cron::controller::JobContext,
     schema::repository::{GitlabRepositoryProvider, GitlabRepositoryService},
+    warn_stderr,
 };
 
 pub async fn refresh_all_repositories(
@@ -50,18 +51,15 @@ async fn refresh_repositories_for_provider(
             service
                 .update_provider_status(provider.id.clone(), false)
                 .await?;
-            context
-                .stderr_writeline(format!(
-                    "GitLab credentials for provider {} are expired or invalid",
-                    provider.display_name
-                ))
-                .await;
+            warn_stderr!(
+                context,
+                "GitLab credentials for provider {} are expired or invalid",
+                provider.display_name
+            );
             return Err(e.into());
         }
         Err(e) => {
-            context
-                .stderr_writeline(format!("Failed to fetch repositories from gitlab: {e}"))
-                .await;
+            warn_stderr!(context, "Failed to fetch repositories from gitlab: {e}");
             return Err(e.into());
         }
     };
