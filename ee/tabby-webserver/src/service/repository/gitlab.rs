@@ -141,7 +141,7 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
             .collect();
 
         let mut repos = self
-            .list_repositories(vec![], None, None, None, None, None)
+            .list_repositories(vec![], Some(true), None, None, None, None)
             .await?;
 
         deduplicate_gitlab_repositories(&mut repos);
@@ -149,9 +149,6 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
         let urls = repos
             .into_iter()
             .filter_map(|repo| {
-                if !repo.active {
-                    return None;
-                }
                 let mut url = Url::parse(&repo.git_url).ok()?;
                 url.set_username("oauth2").ok()?;
                 url.set_password(Some(
