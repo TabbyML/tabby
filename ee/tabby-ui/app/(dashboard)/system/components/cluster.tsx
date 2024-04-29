@@ -73,7 +73,7 @@ export default function Workers() {
         </a>
       </span>
       <Separator />
-      <Usage /> 
+      <Usage />
       <Separator />
       {!!registrationTokenRes?.registrationToken && (
         <div className="flex items-center gap-1 pt-2">
@@ -203,37 +203,36 @@ function Usage() {
   return (
     <LoadingWrapper loading={fetching} fallback={<></>}>
       <>
-      <div className="py-2 flex flex-col gap-y-1.5">
-        <p>Disk Usage</p>
-        <div>
-          <p className="mb-1 text-sm  text-muted-foreground">
-          Total Usage
-          </p>
-          <p className="mt-1 text-3xl font-bold leading-none">{toBytes(totalUsage)}</p>
-        </div>
-        <div className="pt-3">
-          <p className="mb-1 text-sm  text-muted-foreground">
-            Storage utilization by Type
-          </p>
-          <div className="flex">
-            {usageData.map(usage => (
-              <div
-              className="flex w-36 pt-1 text-sm"
-              key={usage!.key}
-            >
-              <div
-                className="mr-3 mt-1 h-2 w-2 rounded-full"
-                style={{ backgroundColor: usage!.color }}
-              />
-              <div>
-                <p className="mb-1 leading-none">{usage!.label}</p>
-                <p className="text-card-foreground/70">{toBytes(usage!.size)}</p>
-              </div>
+        <div className="flex flex-col gap-y-1.5 py-2">
+          <p>Disk Usage</p>
+          <div>
+            <p className="mb-1 text-sm  text-muted-foreground">Total Usage</p>
+            <p className="mt-1 text-3xl font-bold leading-none">
+              {toBytes(totalUsage)}
+            </p>
+          </div>
+          <div className="pt-3">
+            <p className="mb-1 text-sm  text-muted-foreground">
+              Storage utilization by Type
+            </p>
+            <div className="flex">
+              {usageData.map(usage => (
+                <div className="flex w-36 pt-1 text-sm" key={usage!.key}>
+                  <div
+                    className="mr-3 mt-1 h-2 w-2 rounded-full"
+                    style={{ backgroundColor: usage!.color }}
+                  />
+                  <div>
+                    <p className="mb-1 leading-none">{usage!.label}</p>
+                    <p className="text-card-foreground/70">
+                      {toBytes(usage!.size)}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
-            ))}
           </div>
         </div>
-      </div>
       </>
     </LoadingWrapper>
   )
