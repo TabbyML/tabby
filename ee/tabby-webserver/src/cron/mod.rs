@@ -20,14 +20,15 @@ macro_rules! warn_stderr {
 }
 
 pub async fn run_cron(
-    mut schedule_event_receiver: tokio::sync::mpsc::UnboundedReceiver<String>,
+    schedule_event_sender: tokio::sync::mpsc::UnboundedSender<String>,
+    schedule_event_receiver: tokio::sync::mpsc::UnboundedReceiver<String>,
     db: DbConn,
     auth: Arc<dyn AuthenticationService>,
     worker: Arc<dyn WorkerService>,
     repository: Arc<dyn RepositoryService>,
     local_port: u16,
 ) {
-    let mut controller = controller::JobController::new(db).await;
+    let mut controller = controller::JobController::new(db, schedule_event_sender).await;
     db::register_jobs(
         &mut controller,
         auth,
@@ -39,15 +40,8 @@ pub async fn run_cron(
     scheduler::register(&mut controller, worker, local_port).await;
 
     let controller = Arc::new(controller);
-
-    let cloned_controller = controller.clone();
-    tokio::spawn(async move {
-        while let Some(name) = schedule_event_receiver.recv().await {
-            cloned_controller.schedule(&name);
-        }
-    });
-
-    controller.run().await
+    controller.start_worker(schedule_event_receiver);
+    controller.start_cron().await
 }
 
 fn every_two_hours() -> String {
