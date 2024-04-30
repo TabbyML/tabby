@@ -325,6 +325,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
+        if demo_mode() {
+            bail!("Inviting users is disabled in demo mode");
+        }
         let license = self.license.read().await?;
         license.ensure_available_seats(1)?;
 
