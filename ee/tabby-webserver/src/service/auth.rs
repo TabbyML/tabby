@@ -486,7 +486,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         }
 
         if active && user.is_admin {
-            // Check there's sufficient seat if an admin being swtiched to active.
+            // Check there's sufficient seat if an admin being switched to active.
             let num_admins = self.db.count_active_admin_users().await?;
             license.ensure_admin_seats(num_admins + 1)?;
         }
