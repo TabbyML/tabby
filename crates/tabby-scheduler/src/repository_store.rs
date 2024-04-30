@@ -7,7 +7,7 @@ use tabby_common::{config::RepositoryConfig, path, SourceFile};
 
 use crate::{
     code::CodeIntelligence,
-    dataset::{create_source_file, RepositoryExt},
+    dataset::{build_repository_dataset, create_source_file},
 };
 
 const META_KEY: &str = "meta";
@@ -150,7 +150,7 @@ impl RepositoryStore {
         current_version: String,
         repository: &RepositoryConfig,
     ) {
-        for file in repository.create_dataset() {
+        for file in build_repository_dataset(repository) {
             repo_bucket
                 .set(&file.git_url.clone(), &Json(file))
                 .expect("Failed to update source file");

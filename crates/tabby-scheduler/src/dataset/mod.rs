@@ -21,18 +21,14 @@ use tracing::debug;
 
 use crate::{code::CodeIntelligence, repository_store::RepositoryStore, utils::tqdm};
 
-pub trait RepositoryExt {
-    fn create_dataset(&self) -> impl Iterator<Item = SourceFile>;
-}
+pub fn build_repository_dataset(
+    repository: &RepositoryConfig,
+) -> impl Iterator<Item = SourceFile> + '_ {
+    let basedir = repository.dir();
+    let walk_dir = Walk::new(basedir.as_path()).filter_map(Result::ok);
 
-impl RepositoryExt for RepositoryConfig {
-    fn create_dataset(&self) -> impl Iterator<Item = SourceFile> {
-        let basedir = self.dir();
-        let walk_dir = Walk::new(basedir.as_path()).filter_map(Result::ok);
-
-        let mut code = CodeIntelligence::default();
-        walk_dir.filter_map(move |entry| create_source_file(self, entry.path(), &mut code))
-    }
+    let mut code = CodeIntelligence::default();
+    walk_dir.filter_map(move |entry| create_source_file(repository, entry.path(), &mut code))
 }
 
 pub fn dump_json_dataset(
