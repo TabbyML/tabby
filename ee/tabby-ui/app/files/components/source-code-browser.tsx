@@ -432,7 +432,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       >
         <FileTreePanel />
       </ResizablePanel>
-      <ResizableHandle className="bg-border/40 hover:bg-border hidden w-1 active:bg-blue-500 lg:block" />
+      <ResizableHandle className="hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500 lg:block" />
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
           <FileDirectoryBreadcrumb className="py-4" />
@@ -460,7 +460,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       <>
         <ResizableHandle
           className={cn(
-            'bg-border/40 hover:bg-border hidden w-1 active:bg-blue-500',
+            'hidden w-1 bg-border/40 hover:bg-border active:bg-blue-500',
             chatSideBarVisible && 'block'
           )}
         />
