@@ -430,7 +430,7 @@ impl Query {
     // FIXME(meng): This is a temporary solution to expose the list of jobs, we should consider switching to a enum based approach.
     async fn jobs() -> Result<Vec<String>> {
         Ok(
-            vec!["scheduler", "github_repositories", "gitlab_repositories"]
+            vec!["scheduler", "import_github_repositories", "import_gitlab_repositories"]
                 .into_iter()
                 .map(Into::into)
                 .collect(),
@@ -787,7 +787,7 @@ impl Mutation {
             .github()
             .create_provider(input.display_name, input.access_token)
             .await?;
-        ctx.locator.job().schedule("github_repositories");
+        ctx.locator.job().schedule("import_github_repositories");
         Ok(id)
     }
 
@@ -812,7 +812,7 @@ impl Mutation {
             .github()
             .update_provider(input.id, input.display_name, input.access_token)
             .await?;
-        ctx.locator.job().schedule("github_repositories");
+        ctx.locator.job().schedule("import_github_repositories");
         Ok(true)
     }
 
@@ -841,7 +841,7 @@ impl Mutation {
             .gitlab()
             .create_provider(input.display_name, input.access_token)
             .await?;
-        ctx.locator.job().schedule("gitlab_repositories");
+        ctx.locator.job().schedule("import_gitlab_repositories");
         Ok(id)
     }
 
@@ -866,7 +866,7 @@ impl Mutation {
             .gitlab()
             .update_provider(input.id, input.display_name, input.access_token)
             .await?;
-        ctx.locator.job().schedule("gitlab_repositories");
+        ctx.locator.job().schedule("import_gitlab_repositories");
         Ok(true)
     }
 
