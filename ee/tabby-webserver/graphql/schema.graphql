@@ -143,6 +143,7 @@ type ServerInfo {
   isChatEnabled: Boolean!
   isEmailConfigured: Boolean!
   allowSelfSignup: Boolean!
+  isDemoMode: Boolean!
 }
 
 type GithubRepositoryProvider {
