@@ -1,37 +1,23 @@
 mod deps;
 
 use std::{
-    fs::{self, read_to_string},
+    fs::{self},
     io::{IsTerminal, Write},
-    path::Path,
 };
 
-use anyhow::{anyhow, Result};
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use ignore::Walk;
 use kdam::BarExt;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
-    languages::get_language_by_ext,
     path::{self, dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
-use tracing::debug;
 
-use crate::{code::CodeIntelligence, repository_store::RepositoryStore, utils::tqdm};
+use crate::{repository_store::RepositoryStore, utils::tqdm};
 
-pub fn build_repository_dataset(
-    repository: &RepositoryConfig,
-) -> impl Iterator<Item = SourceFile> + '_ {
-    let basedir = repository.dir();
-    let walk_dir = Walk::new(basedir.as_path()).filter_map(Result::ok);
-
-    let mut code = CodeIntelligence::default();
-    walk_dir.filter_map(move |entry| create_source_file(repository, entry.path(), &mut code))
-}
-
-pub fn dump_json_dataset(
+fn export_json_dataset(
     dataset: impl Iterator<Item = SourceFile>,
     writer: &mut impl Write,
     item_count: Option<usize>,
@@ -51,44 +37,6 @@ pub fn dump_json_dataset(
     }
 }
 
-pub fn create_source_file(
-    config: &RepositoryConfig,
-    path: &Path,
-    code: &mut CodeIntelligence,
-) -> Option<SourceFile> {
-    if path.is_dir() || !path.exists() {
-        return None;
-    }
-    let relative_path = path
-        .strip_prefix(&config.dir())
-        .expect("Paths always begin with the prefix");
-
-    let Some(ext) = relative_path.extension() else {
-        return None;
-    };
-
-    let Some(language_info) = get_language_by_ext(ext) else {
-        debug!("Unknown language for {relative_path:?}");
-        return None;
-    };
-
-    let language = language_info.language();
-    let contents = read_to_string(path)
-        .map_err(|e| anyhow!("Failed to read {path:?}: {e}"))
-        .unwrap();
-    let source_file = SourceFile {
-        git_url: config.canonical_git_url(),
-        basedir: config.dir().display().to_string(),
-        filepath: relative_path.display().to_string(),
-        max_line_length: metrics::max_line_length(&contents),
-        avg_line_length: metrics::avg_line_length(&contents),
-        alphanum_fraction: metrics::alphanum_fraction(&contents),
-        tags: code.find_tags(language, &contents),
-        language: language.into(),
-    };
-    Some(source_file)
-}
-
 pub fn create_dataset(config: &[RepositoryConfig]) {
     fs::remove_dir_all(dataset_dir()).ok();
     fs::create_dir_all(dataset_dir()).expect("Failed to create dataset directory");
@@ -103,14 +51,14 @@ pub fn create_dataset(config: &[RepositoryConfig]) {
     );
 
     let mut deps = DependencyFile::default();
-    let repository_store = RepositoryStore::new();
+    let repository_store = RepositoryStore::new(tabby_common::path::repository_store());
     repository_store.update_dataset(config);
 
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
     }
-    dump_json_dataset(
-        repository_store.cached_source_files(),
+    export_json_dataset(
+        repository_store.source_files(),
         &mut writer,
         Some(Walk::new(path::repositories_dir()).count()),
     );
@@ -121,7 +69,7 @@ pub fn create_dataset(config: &[RepositoryConfig]) {
     writer.flush().expect("Failed to flush writer");
 }
 
-mod metrics {
+pub(crate) mod metrics {
     use std::cmp::max;
 
     pub fn max_line_length(content: &str) -> usize {

@@ -1,14 +1,18 @@
-use std::{collections::HashSet, path::Path, process::Command};
+use std::{
+    collections::HashSet,
+    fs::read_to_string,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use ignore::Walk;
 use kv::{Bucket, Config, Json, Store, Transaction, TransactionError};
 use serde::{Deserialize, Serialize};
-use tabby_common::{config::RepositoryConfig, path, SourceFile};
+use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
+use tracing::debug;
 
-use crate::{
-    code::CodeIntelligence,
-    dataset::{build_repository_dataset, create_source_file},
-};
+use crate::{code::CodeIntelligence, dataset::metrics};
 
 const META_KEY: &str = "meta";
 const DATASET_BUCKET_PREFIX: &str = "dataset";
@@ -47,10 +51,9 @@ struct RepositoryMeta {
 }
 
 impl RepositoryStore {
-    pub fn new() -> Self {
+    pub fn new(path: PathBuf) -> Self {
         Self {
-            store: Store::new(Config::new(path::repository_store()))
-                .expect("Failed to create repository store"),
+            store: Store::new(Config::new(path)).expect("Failed to create repository store"),
         }
     }
 
@@ -158,7 +161,7 @@ impl RepositoryStore {
         self.set_last_sync_commit(meta_bucket, repository, current_version);
     }
 
-    pub fn cached_source_files(&self) -> impl Iterator<Item = SourceFile> + '_ {
+    pub fn source_files(&self) -> impl Iterator<Item = SourceFile> + '_ {
         self.store
             .buckets()
             .into_iter()
@@ -186,4 +189,52 @@ impl RepositoryStore {
             }
         }
     }
+}
+
+pub fn build_repository_dataset(
+    repository: &RepositoryConfig,
+) -> impl Iterator<Item = SourceFile> + '_ {
+    let basedir = repository.dir();
+    let walk_dir = Walk::new(basedir.as_path()).filter_map(Result::ok);
+
+    let mut code = CodeIntelligence::default();
+    walk_dir.filter_map(move |entry| create_source_file(repository, entry.path(), &mut code))
+}
+
+pub fn create_source_file(
+    config: &RepositoryConfig,
+    path: &Path,
+    code: &mut CodeIntelligence,
+) -> Option<SourceFile> {
+    if path.is_dir() || !path.exists() {
+        return None;
+    }
+    let relative_path = path
+        .strip_prefix(&config.dir())
+        .expect("Paths always begin with the prefix");
+
+    let Some(ext) = relative_path.extension() else {
+        return None;
+    };
+
+    let Some(language_info) = get_language_by_ext(ext) else {
+        debug!("Unknown language for {relative_path:?}");
+        return None;
+    };
+
+    let language = language_info.language();
+    let contents = read_to_string(path)
+        .map_err(|e| anyhow!("Failed to read {path:?}: {e}"))
+        .unwrap();
+    let source_file = SourceFile {
+        git_url: config.canonical_git_url(),
+        basedir: config.dir().display().to_string(),
+        filepath: relative_path.display().to_string(),
+        max_line_length: metrics::max_line_length(&contents),
+        avg_line_length: metrics::avg_line_length(&contents),
+        alphanum_fraction: metrics::alphanum_fraction(&contents),
+        tags: code.find_tags(language, &contents),
+        language: language.into(),
+    };
+    Some(source_file)
 }
