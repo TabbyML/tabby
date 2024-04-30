@@ -20,6 +20,7 @@ import {
 import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
 
+import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import {
   DailyStatsInPastYearQuery,
   DailyStatsQuery,
@@ -142,8 +143,9 @@ export default function Stats() {
   const [{ data }] = useMe()
   const { theme } = useTheme()
   const searchParams = useSearchParams()
+  const isDemoMode = useIsDemoMode()
 
-  const sample = searchParams.get('sample') === 'true'
+  const sample = isDemoMode || searchParams.get('sample') === 'true'
   const startDate = moment()
     .subtract(DATE_RANGE, 'day')
     .startOf('day')
@@ -171,7 +173,7 @@ export default function Stats() {
       const languages = [Language.Typescript, Language.Python, Language.Rust]
       const rng = seedrandom(moment(date).format('YYYY-MM-DD') + data?.me.id)
       const selects = Math.ceil(rng() * 20)
-      const completions = selects + Math.floor(rng() * 25)
+      const completions = Math.ceil((selects / 0.35))
       return {
         start: moment(date).utc().format(),
         end: moment(date).add(1, 'day').utc().format(),

@@ -19,6 +19,7 @@ import { useAllMembers } from '@/lib/hooks/use-all-members'
 import { getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
+import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Command,
@@ -114,14 +115,16 @@ function StatsSummary({
 
 export function Report() {
   const searchParams = useSearchParams()
-  const sample = searchParams.get('sample') === 'true'
   const [members] = useAllMembers()
+  const isDemoMode = useIsDemoMode()
   const [dateRange, setDateRange] = useState<DateRange>({
     from: moment().add(parseInt(DEFAULT_DATE_RANGE, 10), 'day').toDate(),
     to: moment().toDate()
   })
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
   const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
+
+  const sample = isDemoMode || searchParams.get('sample') === 'true'
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -144,7 +147,7 @@ export function Report() {
         moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
       )
       const selects = Math.ceil(rng() * 20)
-      const completions = selects + Math.floor(rng() * 10)
+      const completions = Math.ceil((selects / 0.35))
       return {
         start: moment(date).utc().format(),
         end: moment(date).add(1, 'day').utc().format(),
