@@ -43,7 +43,9 @@ use self::{
     user_event::{UserEvent, UserEventService},
 };
 use crate::{
-    axum::FromAuth, env, juniper::relay::{self, Connection}
+    axum::FromAuth,
+    env,
+    juniper::relay::{self, Connection},
 };
 
 pub trait ServiceLocator: Send + Sync {
@@ -417,7 +419,7 @@ impl Query {
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
             is_email_configured: ctx.locator.email().read_setting().await?.is_some(),
             allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
-            is_demo_mode: env::demo_mode()
+            is_demo_mode: env::demo_mode(),
         })
     }
 
