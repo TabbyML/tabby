@@ -204,10 +204,9 @@ function Usage() {
     <LoadingWrapper loading={fetching} fallback={<></>}>
       <>
         <div className="flex flex-col gap-y-1.5 py-2">
-          <p>Disk Usage</p>
           <div>
-            <p className="mb-1 text-sm  text-muted-foreground">Total Usage</p>
-            <p className="mt-1 text-3xl font-bold leading-none">
+            <p className="mb-1 text-sm  text-muted-foreground">Disk Usage</p>
+            <p className="text-3xl font-bold leading-none">
               {toBytes(totalUsage)}
             </p>
           </div>
