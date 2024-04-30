@@ -64,28 +64,28 @@ impl IncrementalRepositoryStore {
         self.store.bucket(Some(DATASET_BUCKET)).unwrap()
     }
 
-    fn set_last_commit(&self, repo_path: String, commit_hash: String) -> Result<()> {
+    fn set_last_commit(&self, canonical_git_url: String, commit_hash: String) -> Result<()> {
         self.repository_versions_bucket()
-            .set(&repo_path, &commit_hash)?;
+            .set(&canonical_git_url, &commit_hash)?;
         Ok(())
     }
 
-    fn get_last_commit(&self, repo_path: String) -> Result<Option<String>> {
-        Ok(self.repository_versions_bucket().get(&repo_path)?)
+    fn get_last_commit(&self, canonical_git_url: String) -> Result<Option<String>> {
+        Ok(self.repository_versions_bucket().get(&canonical_git_url)?)
     }
 
     pub fn update_repository(&self, repository: &RepositoryConfig) -> Result<()> {
         let dir = repository.dir();
-        let dir_str = dir.to_string_lossy().to_string();
+        let canonical_git_url = repository.canonical_git_url();
 
-        let old_version = self.get_last_commit(dir_str.clone())?;
+        let old_version = self.get_last_commit(canonical_git_url.clone())?;
         let current_version = get_git_commit(&dir)?;
 
         let Some(old_version) = old_version else {
             for file in repository.create_dataset() {
                 self.update_source_file(file)?;
             }
-            self.set_last_commit(dir_str.clone(), current_version)?;
+            self.set_last_commit(canonical_git_url.clone(), current_version)?;
             return Ok(());
         };
 
@@ -98,13 +98,14 @@ impl IncrementalRepositoryStore {
             };
             self.update_source_file(source_file)?;
         }
-        self.set_last_commit(dir_str.clone(), current_version)?;
+        self.set_last_commit(canonical_git_url.clone(), current_version)?;
 
         Ok(())
     }
 
     fn update_source_file(&self, file: SourceFile) -> Result<()> {
-        let key = repository_file_key(&file.basedir, &file.filepath);
+        // git_url is equal to canonical_git_url()
+        let key = repository_file_key(&file.git_url, &file.filepath);
         self.dataset_bucket().set(&key, &Json(file))?;
         Ok(())
     }
@@ -121,7 +122,7 @@ impl IncrementalRepositoryStore {
     pub fn retain_from(&self, configs: &[RepositoryConfig]) {
         let added_repositories: HashSet<_> = configs
             .iter()
-            .map(|config| config.dir().to_string_lossy().to_string())
+            .map(|config| config.canonical_git_url())
             .collect();
 
         let dataset_bucket = self.dataset_bucket();
