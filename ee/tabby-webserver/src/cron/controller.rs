@@ -1,10 +1,11 @@
-use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
+use std::{collections::HashMap, pin::Pin, sync::Arc};
 
+use chrono::Utc;
 use futures::Future;
-use rand::Rng;
 use tabby_db::DbConn;
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
 pub struct JobController {
     scheduler: JobScheduler,
@@ -13,10 +14,11 @@ pub struct JobController {
         &'static str,
         Arc<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync + 'static>,
     >,
+    event_sender: UnboundedSender<String>,
 }
 
 impl JobController {
-    pub async fn new(db: DbConn) -> Self {
+    pub async fn new(db: DbConn, event_sender: UnboundedSender<String>) -> Self {
         db.finalize_stale_job_runs()
             .await
             .expect("failed to cleanup stale jobs");
@@ -27,35 +29,63 @@ impl JobController {
             scheduler,
             db,
             job_registry: HashMap::default(),
+            event_sender,
         }
     }
 
-    pub fn schedule(&self, name: &str) {
+    fn run_job(&self, name: &str) -> tokio::task::JoinHandle<()> {
         let func = self
             .job_registry
             .get(name)
             .expect("failed to get job")
             .clone();
-        let mut rng = rand::thread_rng();
-        let delay = rng.gen_range(1..5);
-        let _ = tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_secs(5 + delay)).await;
+
+        // Spawn a new thread for panic isolation
+        tokio::task::spawn(async move {
             func().await;
+        })
+    }
+
+    /// Start the worker that listens for job events and runs the jobs.
+    ///
+    /// 1. Only one instance of the job will be run at a time.
+    /// 2. Jobs are deduplicated within a time window (120 seconds).
+    pub fn start_worker(self: &Arc<Self>, mut event_receiver: UnboundedReceiver<String>) {
+        const JOB_DEDUPE_WINDOW_SECS: i64 = 120;
+        let controller = self.clone();
+        tokio::spawn(async move {
+            // Sleep for 5 seconds to allow the webserver to start.
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+
+            let mut last_timestamps = HashMap::new();
+            loop {
+                while let Some(name) = event_receiver.recv().await {
+                    if let Some(last_timestamp) = last_timestamps.get(&name) {
+                        if Utc::now()
+                            .signed_duration_since(*last_timestamp)
+                            .num_seconds()
+                            < JOB_DEDUPE_WINDOW_SECS
+                        {
+                            info!("Job `{name}` last ran less than {JOB_DEDUPE_WINDOW_SECS} seconds ago (@{last_timestamp}), skipped");
+                            continue;
+                        }
+                    }
+
+                    last_timestamps.insert(name.clone(), Utc::now());
+                    let _ = controller.run_job(&name).await;
+                }
+            }
         });
     }
 
-    fn run_oneshot(&self) {
-        warn!(
+    pub async fn start_cron(&self) {
+        if std::env::var("TABBY_WEBSERVER_CONTROLLER_ONESHOT").is_ok() {
+            warn!(
             "Running controller job as oneshot, this should only be used for debugging purpose..."
         );
-        for name in self.job_registry.keys() {
-            self.schedule(name);
-        }
-    }
-
-    pub async fn run(&self) {
-        if std::env::var("TABBY_WEBSERVER_CONTROLLER_ONESHOT").is_ok() {
-            self.run_oneshot();
+            for name in self.job_registry.keys() {
+                let _ = self.event_sender.send(name.to_string());
+            }
         } else {
             self.scheduler
                 .start()
@@ -108,21 +138,14 @@ impl JobController {
             + Clone
             + 'static,
     {
-        let job_mutex = Arc::new(tokio::sync::Mutex::new(()));
         let db = self.db.clone();
         self.job_registry.insert(
             name,
             Arc::new(move || {
-                let job_mutex = job_mutex.clone();
                 let db = db.clone();
                 let mut func = func.clone();
 
                 Box::pin(async move {
-                    let Ok(_guard) = job_mutex.try_lock() else {
-                        warn!("Job `{}` overlapped, skipping...", name);
-                        return;
-                    };
-
                     debug!("Running job `{}`", name);
                     let context = JobContext::new(is_public, name, db.clone()).await;
                     match func(&context).await {
@@ -143,18 +166,16 @@ impl JobController {
     }
 
     async fn add_to_schedule(&mut self, name: &'static str, schedule: &str) {
-        let func = self
-            .job_registry
-            .get_mut(name)
-            .expect("failed to get job")
-            .clone();
-
+        let event_sender = self.event_sender.clone();
         let job = Job::new_async(schedule, move |uuid, mut scheduler| {
-            let func = func.clone();
+            let event_sender = event_sender.clone();
             Box::pin(async move {
-                debug!("Running job `{}`", name);
+                if let Err(err) = event_sender.send(name.to_owned()) {
+                    warn!("Failed to schedule job `{}`: {}", &name, err);
+                } else {
+                    debug!("Scheduling job `{}`", &name);
+                }
 
-                (*func)().await;
                 if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {
                     debug!(
                         "Next time for job `{}` is {:?}",

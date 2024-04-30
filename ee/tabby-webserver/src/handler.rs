@@ -84,10 +84,11 @@ impl WebserverHandle {
             self.repository.clone(),
             self.db.clone(),
             is_chat_enabled,
-            schedule_event_sender,
+            schedule_event_sender.clone(),
         )
         .await;
         cron::run_cron(
+            schedule_event_sender,
             schedule_event_receiver,
             self.db.clone(),
             ctx.auth(),
