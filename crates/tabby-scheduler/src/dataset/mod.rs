@@ -62,7 +62,7 @@ pub fn create_source_file(
     path: &Path,
     code: &mut CodeIntelligence,
 ) -> Option<SourceFile> {
-    if path.is_dir() {
+    if path.is_dir() || !path.exists() {
         return None;
     }
     let relative_path = path

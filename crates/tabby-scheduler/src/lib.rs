@@ -2,10 +2,9 @@
 //! Includes syncing respositories and updating indices.
 mod code;
 mod dataset;
-mod incremental;
 mod index;
-mod path;
 mod repository;
+mod repository_store;
 mod utils;
 
 use std::sync::Arc;
