@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { CopyButton } from '@/components/copy-button'
 
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveBasenameFromPath } from './utils'
+import { resolveRepositoryInfoFromPath } from './utils'
 
 interface FileDirectoryBreadcrumbProps
   extends React.HTMLAttributes<HTMLDivElement> {}
@@ -16,7 +16,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
     SourceCodeBrowserContext
   )
   const basename = React.useMemo(
-    () => resolveBasenameFromPath(activePath),
+    () => resolveRepositoryInfoFromPath(activePath)?.basename,
     [activePath]
   )
 
@@ -24,7 +24,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
     <div className={cn('flex flex-nowrap items-center gap-1', className)}>
       <div className="flex items-center gap-1 overflow-x-auto leading-8">
         <div
-          className="cursor-pointer font-medium text-primary hover:underline"
+          className="text-primary cursor-pointer font-medium hover:underline"
           onClick={e => setActivePath(undefined)}
         >
           Repositories
@@ -42,7 +42,7 @@ const FileDirectoryBreadcrumb: React.FC<FileDirectoryBreadcrumbProps> = ({
                   isRepo || isActiveFile ? 'font-bold' : 'font-medium',
                   isActiveFile
                     ? ''
-                    : 'cursor-pointer text-primary hover:underline',
+                    : 'text-primary cursor-pointer hover:underline',
                   isRepo ? 'hover:underline' : undefined
                 )}
                 onClick={e => setActivePath(route.fullPath)}
