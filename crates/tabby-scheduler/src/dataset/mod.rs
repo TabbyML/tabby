@@ -14,12 +14,12 @@ use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
     languages::get_language_by_ext,
-    path::{dataset_dir, dependency_file},
+    path::{self, dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
 use tracing::debug;
 
-use crate::{code::CodeIntelligence, utils::tqdm};
+use crate::{code::CodeIntelligence, repository_store::RepositoryStore, utils::tqdm};
 
 pub trait RepositoryExt {
     fn create_dataset(&self) -> impl Iterator<Item = SourceFile>;
@@ -109,14 +109,17 @@ pub fn create_dataset(config: &[RepositoryConfig]) {
     );
 
     let mut deps = DependencyFile::default();
+    let repository_store = RepositoryStore::new();
+    repository_store.update_dataset(config);
+
     for repository in config {
         deps::collect(repository.dir().as_path(), &mut deps);
-        dump_json_dataset(
-            repository.create_dataset(),
-            &mut writer,
-            Some(Walk::new(repository.dir()).count()),
-        );
     }
+    dump_json_dataset(
+        repository_store.cached_source_files(),
+        &mut writer,
+        Some(Walk::new(path::repositories_dir()).count()),
+    );
 
     serdeconv::to_json_file(&deps, dependency_file())
         .expect("Failed to write dependencies json file");

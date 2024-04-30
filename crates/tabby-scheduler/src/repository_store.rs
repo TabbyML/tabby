@@ -52,10 +52,11 @@ struct RepositoryMeta {
 }
 
 impl RepositoryStore {
-    pub fn new() -> Result<Self> {
-        Ok(Self {
-            store: Store::new(Config::new(path::repository_store()))?,
-        })
+    pub fn new() -> Self {
+        Self {
+            store: Store::new(Config::new(path::repository_store()))
+                .expect("Failed to create repository store"),
+        }
     }
 
     fn meta_bucket(&self) -> Bucket<String, Json<RepositoryMeta>> {
@@ -79,7 +80,8 @@ impl RepositoryStore {
         let mut meta = self.get_meta(transaction, repository);
         meta.last_sync_commit = Some(commit_hash);
         self.meta_bucket()
-            .set(&meta_key(repository.canonical_git_url()), &Json(meta));
+            .set(&meta_key(repository.canonical_git_url()), &Json(meta))
+            .expect("Failed to update synced version for repository");
     }
 
     fn get_meta(
