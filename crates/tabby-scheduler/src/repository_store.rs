@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
 use tracing::debug;
 
-use crate::{code::CodeIntelligence, dataset::metrics};
+use crate::code::CodeIntelligence;
 
 const META_KEY: &str = "meta";
 const DATASET_BUCKET_PREFIX: &str = "dataset";
@@ -236,4 +236,39 @@ fn create_source_file(
         language: language.into(),
     };
     Some(source_file)
+}
+
+mod metrics {
+    use std::cmp::max;
+
+    pub fn max_line_length(content: &str) -> usize {
+        content.lines().map(|x| x.len()).reduce(max).unwrap_or(0)
+    }
+
+    pub fn avg_line_length(content: &str) -> f32 {
+        let mut total = 0;
+        let mut len = 0;
+        for x in content.lines() {
+            len += 1;
+            total += x.len();
+        }
+
+        if len > 0 {
+            total as f32 / len as f32
+        } else {
+            0.0
+        }
+    }
+
+    pub fn alphanum_fraction(content: &str) -> f32 {
+        let num_alphanumn: f32 = content
+            .chars()
+            .map(|x| f32::from(u8::from(x.is_alphanumeric())))
+            .sum();
+        if !content.is_empty() {
+            num_alphanumn / content.len() as f32
+        } else {
+            0.0
+        }
+    }
 }
