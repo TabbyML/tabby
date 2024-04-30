@@ -1,8 +1,4 @@
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{collections::HashSet, path::Path, process::Command};
 
 use anyhow::Result;
 use kv::{Bucket, Config, Json, Store, Transaction, TransactionError};
@@ -41,6 +37,10 @@ fn meta_key(git_url: impl AsRef<str>) -> String {
     format!("{META_KEY}:{}", git_url.as_ref())
 }
 
+fn dataset_bucket_key(git_url: impl AsRef<str>) -> String {
+    format!("{DATASET_BUCKET}:{}", git_url.as_ref())
+}
+
 pub struct RepositoryStore {
     store: Store,
 }
@@ -59,16 +59,15 @@ impl RepositoryStore {
     }
 
     fn meta_bucket(&self) -> Bucket<String, Json<RepositoryMeta>> {
-        self.store.bucket(None).unwrap()
+        self.store
+            .bucket(None)
+            .expect("Could not access meta bucket")
     }
 
     fn dataset_bucket(&self, repository: &RepositoryConfig) -> Bucket<String, Json<SourceFile>> {
         self.store
-            .bucket(Some(&format!(
-                "{DATASET_BUCKET}:{}",
-                repository.canonical_git_url()
-            )))
-            .unwrap()
+            .bucket(Some(&dataset_bucket_key(repository.canonical_git_url())))
+            .expect("Could not access dataset bucket")
     }
 
     fn set_last_sync_commit(
@@ -76,44 +75,49 @@ impl RepositoryStore {
         transaction: &Transaction<String, Json<RepositoryMeta>>,
         repository: &RepositoryConfig,
         commit_hash: String,
-    ) -> Result<()> {
-        let mut meta = self.get_meta(transaction, repository)?;
+    ) {
+        let mut meta = self.get_meta(transaction, repository);
         meta.last_sync_commit = Some(commit_hash);
         self.meta_bucket()
-            .set(&meta_key(repository.canonical_git_url()), &Json(meta))?;
-        Ok(())
+            .set(&meta_key(repository.canonical_git_url()), &Json(meta));
     }
 
     fn get_meta(
         &self,
         transaction: &Transaction<String, Json<RepositoryMeta>>,
         repository: &RepositoryConfig,
-    ) -> Result<RepositoryMeta> {
-        Ok(transaction
-            .get(&meta_key(&repository.canonical_git_url()))?
+    ) -> RepositoryMeta {
+        transaction
+            .get(&meta_key(&repository.canonical_git_url()))
+            .expect("Failed to access repository meta")
             .map(|Json(meta)| meta)
-            .unwrap_or_default())
+            .unwrap_or_default()
     }
 
-    pub fn update_repository(&self, repository: &RepositoryConfig) {
+    pub fn update_dataset(&self, repositories: &[RepositoryConfig]) {
+        for repository in repositories {
+            self.sync_repository(repository);
+        }
+        self.retain_from(repositories);
+    }
+
+    fn sync_repository(&self, repository: &RepositoryConfig) {
         let dir = repository.dir();
 
         self.meta_bucket()
             .transaction2(
                 &self.dataset_bucket(repository),
                 |meta_bucket, repo_bucket| {
-                    let old_version = self
-                        .get_meta(&meta_bucket, repository)
-                        .unwrap()
-                        .last_sync_commit;
+                    let old_version = self.get_meta(&meta_bucket, repository).last_sync_commit;
                     let current_version = get_git_commit(&dir).unwrap();
 
                     let Some(old_version) = old_version else {
-                        for file in repository.create_dataset() {
-                            self.update_source_file(&repo_bucket, file).unwrap();
-                        }
-                        self.set_last_sync_commit(&meta_bucket, repository, current_version)
-                            .unwrap();
+                        self.sync_repository_from_scratch(
+                            &meta_bucket,
+                            &repo_bucket,
+                            current_version,
+                            repository,
+                        );
                         return Ok::<_, TransactionError<kv::Error>>(());
                     };
 
@@ -121,37 +125,40 @@ impl RepositoryStore {
                     let mut code = CodeIntelligence::default();
                     for file in files_diff {
                         let path = dir.join(&file);
-                        let Some(source_file) = create_source_file(repository, &path, &mut code)
-                        else {
-                            self.remove_source_file(&repo_bucket, file).unwrap();
-                            continue;
-                        };
-                        self.update_source_file(&repo_bucket, source_file).unwrap();
+
+                        if let Some(source_file) = create_source_file(repository, &path, &mut code)
+                        {
+                            // File exists and was either created or updated
+                            repo_bucket
+                                .set(&source_file.git_url.clone(), &Json(source_file))
+                                .expect("Failed to update source file");
+                        } else {
+                            // File has been removed
+                            repo_bucket
+                                .remove(&file)
+                                .expect("Failed to remove source file");
+                        }
                     }
-                    self.set_last_sync_commit(&meta_bucket, repository, current_version)
-                        .unwrap();
+                    self.set_last_sync_commit(&meta_bucket, repository, current_version);
                     Ok(())
                 },
             )
             .unwrap()
     }
 
-    fn update_source_file(
+    fn sync_repository_from_scratch(
         &self,
-        transaction: &Transaction<String, Json<SourceFile>>,
-        file: SourceFile,
-    ) -> Result<()> {
-        transaction.set(&file.git_url.clone(), &Json(file))?;
-        Ok(())
-    }
-
-    fn remove_source_file(
-        &self,
-        transaction: &Transaction<String, Json<SourceFile>>,
-        path: String,
-    ) -> Result<()> {
-        transaction.remove(&path)?;
-        Ok(())
+        meta_bucket: &Transaction<String, Json<RepositoryMeta>>,
+        repo_bucket: &Transaction<String, Json<SourceFile>>,
+        current_version: String,
+        repository: &RepositoryConfig,
+    ) {
+        for file in repository.create_dataset() {
+            repo_bucket
+                .set(&file.git_url.clone(), &Json(file))
+                .expect("Failed to update source file");
+        }
+        self.set_last_sync_commit(&meta_bucket, repository, current_version);
     }
 
     pub fn cached_source_files(&self) -> impl Iterator<Item = SourceFile> + '_ {
@@ -168,14 +175,14 @@ impl RepositoryStore {
             .map(|Json(source_file)| source_file)
     }
 
-    pub fn retain_from(&self, configs: &[RepositoryConfig]) {
+    fn retain_from(&self, configs: &[RepositoryConfig]) {
         let added_repositories: HashSet<_> = configs
             .iter()
-            .map(|config| config.canonical_git_url())
+            .map(|config| dataset_bucket_key(config.canonical_git_url()))
             .collect();
 
         for bucket in self.store.buckets() {
-            if !added_repositories.contains(&bucket) {
+            if bucket.starts_with(DATASET_BUCKET) && !added_repositories.contains(&bucket) {
                 self.store.drop_bucket(&bucket).unwrap();
                 self.meta_bucket().remove(&meta_key(&bucket)).unwrap();
             }
