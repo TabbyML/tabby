@@ -47,8 +47,9 @@ impl relay::NodeType for JobRun {
 
 #[async_trait]
 pub trait JobService: Send + Sync {
-    async fn start(&self, name: String) -> Result<ID>;
-    async fn complete(&self, id: &ID, exit_code: i32) -> Result<()>;
+    // Schedule one job immediately.
+    async fn schedule(&self, name: String);
+
     async fn list(
         &self,
         ids: Option<Vec<ID>>,
@@ -60,7 +61,4 @@ pub trait JobService: Send + Sync {
     ) -> Result<Vec<JobRun>>;
 
     async fn compute_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats>;
-    async fn update_stdout(&self, id: &ID, stdout: String) -> Result<()>;
-    async fn update_stderr(&self, id: &ID, stderr: String) -> Result<()>;
-    async fn cleanup(&self) -> Result<()>;
 }

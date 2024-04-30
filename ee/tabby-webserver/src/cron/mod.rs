@@ -5,10 +5,10 @@ mod scheduler;
 use std::sync::Arc;
 
 use rand::Rng;
+use tabby_db::DbConn;
 
 use crate::schema::{
-    auth::AuthenticationService, job::JobService, repository::RepositoryService,
-    worker::WorkerService,
+    auth::AuthenticationService, repository::RepositoryService, worker::WorkerService,
 };
 
 #[macro_export]
@@ -20,13 +20,13 @@ macro_rules! warn_stderr {
 }
 
 pub async fn run_cron(
+    db: DbConn,
     auth: Arc<dyn AuthenticationService>,
-    job: Arc<dyn JobService>,
     worker: Arc<dyn WorkerService>,
     repository: Arc<dyn RepositoryService>,
     local_port: u16,
 ) {
-    let mut controller = controller::JobController::new(job).await;
+    let mut controller = controller::JobController::new(db).await;
     db::register_jobs(
         &mut controller,
         auth,

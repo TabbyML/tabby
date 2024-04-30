@@ -1,8 +1,8 @@
 use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
 use futures::Future;
-use juniper::ID;
 use rand::Rng;
+use tabby_db::DbConn;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, warn};
 
@@ -10,7 +10,7 @@ use crate::schema::job::JobService;
 
 pub struct JobController {
     scheduler: JobScheduler,
-    service: Arc<dyn JobService>,
+    db: DbConn,
     job_registry: HashMap<
         String,
         Arc<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync + 'static>,
@@ -18,14 +18,16 @@ pub struct JobController {
 }
 
 impl JobController {
-    pub async fn new(service: Arc<dyn JobService>) -> Self {
-        service.cleanup().await.expect("failed to cleanup jobs");
+    pub async fn new(db: DbConn) -> Self {
+        db.finalize_stale_job_runs()
+            .await
+            .expect("failed to cleanup stale jobs");
         let scheduler = JobScheduler::new()
             .await
             .expect("failed to create job scheduler");
         Self {
             scheduler,
-            service,
+            db,
             job_registry: HashMap::default(),
         }
     }
@@ -105,12 +107,12 @@ impl JobController {
     {
         let cloned_name = name.to_owned();
         let job_mutex = Arc::new(tokio::sync::Mutex::new(()));
-        let service = self.service.clone();
+        let db = self.db.clone();
         self.job_registry.insert(
             cloned_name.clone(),
             Arc::new(move || {
                 let job_mutex = job_mutex.clone();
-                let service = service.clone();
+                let db = db.clone();
                 let name = cloned_name.clone();
                 let mut func = func.clone();
 
@@ -121,7 +123,7 @@ impl JobController {
                     };
 
                     debug!("Running job `{}`", name);
-                    let context = JobContext::new(is_public, &name, service.clone()).await;
+                    let context = JobContext::new(is_public, &name, db.clone()).await;
                     match func(&context).await {
                         Ok(exit_code) => {
                             debug!("Job `{}` completed with exit code {}", &name, exit_code);
@@ -170,25 +172,24 @@ impl JobController {
 
 #[derive(Clone)]
 pub struct JobContext {
-    id: ID,
-    service: Arc<dyn JobService>,
+    id: i64,
+    db: DbConn,
 }
 
 impl JobContext {
-    async fn new(public: bool, name: &str, service: Arc<dyn JobService>) -> Self {
+    async fn new(public: bool, name: &str, db: DbConn) -> Self {
         let id = if public {
-            service
-                .start(name.to_owned())
+            db.create_job_run(name.to_owned())
                 .await
                 .expect("failed to create job")
         } else {
-            ID::from("".to_owned())
+            -1
         };
-        Self { id, service }
+        Self { id: id as i64, db }
     }
 
     fn is_private(&self) -> bool {
-        self.id.is_empty()
+        self.id < 0
     }
 
     pub async fn stdout_writeline(&self, stdout: String) {
@@ -197,7 +198,7 @@ impl JobContext {
         }
 
         let stdout = stdout + "\n";
-        match self.service.update_stdout(&self.id, stdout).await {
+        match self.db.update_job_stdout(self.id, stdout).await {
             Ok(_) => (),
             Err(_) => {
                 warn!("Failed to write stdout to job `{}`", self.id);
@@ -211,7 +212,7 @@ impl JobContext {
         }
 
         let stderr = stderr + "\n";
-        match self.service.update_stderr(&self.id, stderr).await {
+        match self.db.update_job_stderr(self.id, stderr).await {
             Ok(_) => (),
             Err(_) => {
                 warn!("Failed to write stderr to job `{}`", self.id);
@@ -224,7 +225,7 @@ impl JobContext {
             return;
         }
 
-        match self.service.complete(&self.id, exit_code).await {
+        match self.db.update_job_status(self.id, exit_code).await {
             Ok(_) => (),
             Err(_) => {
                 warn!("Failed to complete job `{}`", self.id);

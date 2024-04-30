@@ -84,8 +84,8 @@ impl WebserverHandle {
         )
         .await;
         cron::run_cron(
+            self.db.clone(),
             ctx.auth(),
-            ctx.job(),
             ctx.worker(),
             ctx.repository(),
             local_port,
