@@ -56,6 +56,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
         invitation_code: Option<String>,
     ) -> Result<RegisterResponse> {
         let is_admin_initialized = self.is_admin_initialized().await?;
+        if is_admin_initialized && demo_mode() {
+            bail!("Registering new users is disabled in demo mode");
+        }
         let invitation =
             check_invitation(&self.db, is_admin_initialized, invitation_code, &email).await?;
 
@@ -157,7 +160,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         new_password: &str,
     ) -> Result<()> {
         if demo_mode() {
-            bail!("Demo mode is enabled, cannot change passwords");
+            bail!("Changing passwords is disabled in demo mode");
         }
 
         let user = self
@@ -322,6 +325,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
+        if demo_mode() {
+            bail!("Inviting users is disabled in demo mode");
+        }
         let license = self.license.read().await?;
         license.ensure_available_seats(1)?;
 
@@ -519,6 +525,9 @@ async fn get_or_create_oauth_user(
         .map_err(|x| OAuthError::Other(x.into()))?
         .can_register_without_invitation(email)
     {
+        if demo_mode() {
+            bail!("Registering new users is disabled in demo mode");
+        }
         // it's ok to set password to null here, because
         // 1. both `register` & `token_auth` mutation will do input validation, so empty password won't be accepted
         // 2. `password_verify` will always return false for empty password hash read from user table

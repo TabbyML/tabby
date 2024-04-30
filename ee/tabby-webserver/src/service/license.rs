@@ -148,7 +148,7 @@ impl LicenseService for LicenseServiceImpl {
 
     async fn update(&self, license: String) -> Result<()> {
         if demo_mode() {
-            bail!("Demo mode is enabled, cannot set license");
+            bail!("Modifying license is disabled in demo mode");
         }
 
         let raw = validate_license(&license).map_err(|_e| anyhow!("License is not valid"))?;
