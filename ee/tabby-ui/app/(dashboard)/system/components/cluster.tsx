@@ -1,7 +1,6 @@
 'use client'
 
 import { noop, sum } from 'lodash-es'
-import { useTheme } from 'next-themes'
 import prettyBytes from 'pretty-bytes'
 import { useQuery } from 'urql'
 
@@ -18,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CopyButton } from '@/components/copy-button'
 import LoadingWrapper from '@/components/loading-wrapper'
 
@@ -41,7 +41,7 @@ function toBadgeString(str: string) {
 
 export default function Workers() {
   const { data: healthInfo } = useHealth()
-  const workers = useWorkers()
+  const { data: workers, fetching } = useWorkers()
   const [{ data: registrationTokenRes }, reexecuteQuery] = useQuery({
     query: getRegistrationTokenDocument
   })
@@ -75,51 +75,58 @@ export default function Workers() {
       <Separator />
       <Usage />
       <Separator />
-      {!!registrationTokenRes?.registrationToken && (
-        <div className="flex items-center gap-1 pt-2">
-          Registration token:
-          <Input
-            className="max-w-[320px] font-mono"
-            value={registrationTokenRes.registrationToken}
-            onChange={noop}
-          />
-          <Button
-            title="Rotate"
-            size="icon"
-            variant="hover-destructive"
-            onClick={() => resetRegistrationToken()}
-          >
-            <IconRotate />
-          </Button>
-          <CopyButton value={registrationTokenRes.registrationToken} />
-        </div>
-      )}
-      <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-        {!!workers?.[WorkerKind.Completion] && (
-          <>
-            {workers[WorkerKind.Completion].map((worker, i) => {
-              return <WorkerCard key={i} {...worker} />
-            })}
-          </>
-        )}
-        {!!workers?.[WorkerKind.Chat] && (
-          <>
-            {workers[WorkerKind.Chat].map((worker, i) => {
-              return <WorkerCard key={i} {...worker} />
-            })}
-          </>
-        )}
-        <WorkerCard
-          addr="localhost"
-          name="Code Search Index"
-          kind="INDEX"
-          arch=""
-          device={healthInfo.device}
-          cudaDevices={healthInfo.cuda_devices}
-          cpuCount={healthInfo.cpu_count}
-          cpuInfo={healthInfo.cpu_info}
-        />
-      </div>
+      <LoadingWrapper
+        loading={fetching}
+        fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
+      >
+        <>
+          {!!registrationTokenRes?.registrationToken && (
+            <div className="flex items-center gap-1 pt-2">
+              Registration token:
+              <Input
+                className="max-w-[320px] font-mono"
+                value={registrationTokenRes.registrationToken}
+                onChange={noop}
+              />
+              <Button
+                title="Rotate"
+                size="icon"
+                variant="hover-destructive"
+                onClick={() => resetRegistrationToken()}
+              >
+                <IconRotate />
+              </Button>
+              <CopyButton value={registrationTokenRes.registrationToken} />
+            </div>
+          )}
+          <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
+            {!!workers?.[WorkerKind.Completion] && (
+              <>
+                {workers[WorkerKind.Completion].map((worker, i) => {
+                  return <WorkerCard key={i} {...worker} />
+                })}
+              </>
+            )}
+            {!!workers?.[WorkerKind.Chat] && (
+              <>
+                {workers[WorkerKind.Chat].map((worker, i) => {
+                  return <WorkerCard key={i} {...worker} />
+                })}
+              </>
+            )}
+            <WorkerCard
+              addr="localhost"
+              name="Code Search Index"
+              kind="INDEX"
+              arch=""
+              device={healthInfo.device}
+              cudaDevices={healthInfo.cuda_devices}
+              cpuCount={healthInfo.cpu_count}
+              cpuInfo={healthInfo.cpu_info}
+            />
+          </div>
+        </>
+      </LoadingWrapper>
     </div>
   )
 }
@@ -179,7 +186,6 @@ const usageList: UsageItem[] = [
 ]
 
 function Usage() {
-  const { theme } = useTheme()
   const [{ data, fetching }] = useQuery({
     query: getDiskUsageStats
   })
@@ -201,7 +207,10 @@ function Usage() {
   }
 
   return (
-    <LoadingWrapper loading={fetching} fallback={<></>}>
+    <LoadingWrapper
+      loading={fetching}
+      fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
+    >
       <>
         <div className="flex flex-col gap-y-1.5 py-2">
           <div>
