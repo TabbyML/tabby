@@ -3,7 +3,6 @@
 import bytes from 'bytes'
 import { noop, sum } from 'lodash-es'
 import { useTheme } from 'next-themes'
-import { Cell, Label, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -74,8 +73,10 @@ export default function Workers() {
         </a>
       </span>
       <Separator />
+      <Usage />
+      <Separator />
       {!!registrationTokenRes?.registrationToken && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 pt-2">
           Registration token:
           <Input
             className="max-w-[320px] font-mono"
@@ -93,8 +94,7 @@ export default function Workers() {
           <CopyButton value={registrationTokenRes.registrationToken} />
         </div>
       )}
-
-      <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
+      <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
         {!!workers?.[WorkerKind.Completion] && (
           <>
             {workers[WorkerKind.Completion].map((worker, i) => {
@@ -120,9 +120,6 @@ export default function Workers() {
           cpuInfo={healthInfo.cpu_info}
         />
       </div>
-
-      <Separator className="mt-6" />
-      <Usage />
     </div>
   )
 }
@@ -182,6 +179,7 @@ const usageList: UsageItem[] = [
 ]
 
 function Usage() {
+  const { theme } = useTheme()
   const [{ data, fetching }] = useQuery({
     query: getDiskUsageStats
   })
@@ -205,96 +203,40 @@ function Usage() {
   return (
     <LoadingWrapper loading={fetching} fallback={<></>}>
       <>
-        <div>
-          <p className="font-bold">Disk Usage</p>
-          <p className="text-sm text-muted-foreground">
-            Storage utilization by Type
-          </p>
-        </div>
-        <div className="flex flex-col items-center gap-x-3 md:flex-row">
-          <ResponsiveContainer width={230} height={220}>
-            <PieChart>
-              <Pie
-                data={usageData}
-                dataKey="size"
-                cx={110}
-                cy={100}
-                innerRadius={70}
-                outerRadius={90}
-                stroke="none"
-              >
-                {usageData.map(entry => (
-                  <Cell key={entry.key} fill={entry.color} />
-                ))}
-                <Label
-                  content={<CustomLabel totalUsage={totalUsage} />}
-                  position="center"
-                />
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-
-          <div className="flex w-full flex-col gap-y-2 md:ml-10 md:w-auto">
-            {usageData.map(usage => (
-              <div
-                className="flex cursor-default items-center justify-between text-xs"
-                key={usage!.key}
-              >
-                <div className="flex w-40 items-center">
+        <div className="flex flex-col gap-y-1.5 py-2">
+          <div>
+            <p className="mb-1 text-sm  text-muted-foreground">Disk Usage</p>
+            <p className="text-3xl font-bold leading-none">
+              {toBytes(totalUsage)}
+            </p>
+          </div>
+          <div className="pt-3">
+            <p className="mb-1 text-sm text-muted-foreground">
+              Storage utilization by Type
+            </p>
+            <div className="flex flex-wrap gap-y-3">
+              {usageData.map(usage => (
+                <div
+                  className="flex w-1/2 pt-1 text-sm md:w-36"
+                  key={usage!.key}
+                >
                   <div
-                    className="mr-1.5 h-3 w-3 rounded"
+                    className="mr-3 mt-1 h-2 w-2 rounded-full"
                     style={{ backgroundColor: usage!.color }}
                   />
-                  <p className="font-semibold">{usage!.label}</p>
+                  <div>
+                    <p className="mb-1 leading-none">{usage!.label}</p>
+                    <p className="text-card-foreground/70">
+                      {toBytes(usage!.size)}
+                    </p>
+                  </div>
                 </div>
-                <p>{toBytes(usage!.size)}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </>
     </LoadingWrapper>
-  )
-}
-
-function CustomLabel({
-  viewBox,
-  totalUsage
-}: {
-  viewBox?: {
-    cx: number
-    cy: number
-  }
-  totalUsage: number
-}) {
-  const { theme } = useTheme()
-  if (!viewBox) return
-  const { cx, cy } = viewBox
-  return (
-    <g>
-      <text
-        x={cx}
-        y={cy - 20}
-        textAnchor="middle"
-        dominantBaseline="central"
-        alignmentBaseline="middle"
-        fill={theme === 'dark' ? '#FDFDFD' : '#030302'}
-        className="text-sm"
-      >
-        Total Usage
-      </text>
-      <text
-        x={cx}
-        y={cy + 13}
-        textAnchor="middle"
-        dominantBaseline="central"
-        alignmentBaseline="middle"
-        fill={theme === 'dark' ? '#FDFDFD' : '#030302'}
-        className="text-lg font-semibold"
-      >
-        {toBytes(totalUsage)}
-      </text>
-    </g>
   )
 }
 
