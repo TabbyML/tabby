@@ -185,7 +185,7 @@ impl JobContext {
         } else {
             -1
         };
-        Self { id: id as i64, db }
+        Self { id, db }
     }
 
     fn is_private(&self) -> bool {
