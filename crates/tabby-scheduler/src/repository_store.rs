@@ -88,7 +88,7 @@ impl RepositoryStore {
         repository: &RepositoryConfig,
     ) -> RepositoryMeta {
         transaction
-            .get(&meta_key(&repository.canonical_git_url()))
+            .get(&meta_key(repository.canonical_git_url()))
             .expect("Failed to access repository meta")
             .map(|Json(meta)| meta)
             .unwrap_or_default()
@@ -158,7 +158,7 @@ impl RepositoryStore {
                 .set(&file.git_url.clone(), &Json(file))
                 .expect("Failed to update source file");
         }
-        self.set_last_sync_commit(&meta_bucket, repository, current_version);
+        self.set_last_sync_commit(meta_bucket, repository, current_version);
     }
 
     pub fn cached_source_files(&self) -> impl Iterator<Item = SourceFile> + '_ {
