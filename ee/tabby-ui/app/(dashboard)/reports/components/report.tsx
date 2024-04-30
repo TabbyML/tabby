@@ -16,10 +16,10 @@ import {
   Language
 } from '@/lib/gql/generates/graphql'
 import { useAllMembers } from '@/lib/hooks/use-all-members'
+import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
-import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Command,
@@ -147,7 +147,7 @@ export function Report() {
         moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
       )
       const selects = Math.ceil(rng() * 20)
-      const completions = Math.ceil((selects / 0.35))
+      const completions = Math.ceil(selects / 0.35)
       return {
         start: moment(date).utc().format(),
         end: moment(date).add(1, 'day').utc().format(),

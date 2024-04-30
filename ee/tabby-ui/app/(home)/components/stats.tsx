@@ -20,13 +20,13 @@ import {
 import seedrandom from 'seedrandom'
 import { useQuery } from 'urql'
 
-import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import {
   DailyStatsInPastYearQuery,
   DailyStatsQuery,
   Language
 } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
+import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { getLanguageColor, getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent } from '@/components/ui/card'
@@ -173,7 +173,7 @@ export default function Stats() {
       const languages = [Language.Typescript, Language.Python, Language.Rust]
       const rng = seedrandom(moment(date).format('YYYY-MM-DD') + data?.me.id)
       const selects = Math.ceil(rng() * 20)
-      const completions = Math.ceil((selects / 0.35))
+      const completions = Math.ceil(selects / 0.35)
       return {
         start: moment(date).utc().format(),
         end: moment(date).add(1, 'day').utc().format(),
