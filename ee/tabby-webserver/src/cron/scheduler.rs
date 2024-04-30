@@ -2,7 +2,6 @@ use std::{process::Stdio, sync::Arc};
 
 use anyhow::{Context, Result};
 use tokio::io::AsyncBufReadExt;
-use tracing::debug;
 
 use super::{
     controller::{JobContext, JobController},
@@ -29,7 +28,6 @@ async fn run_scheduler_now(
     worker: Arc<dyn WorkerService>,
     local_port: u16,
 ) -> Result<i32> {
-    debug!("Running scheduler job...");
     let exe = std::env::current_exe()?;
 
     let mut child = tokio::process::Command::new(exe)

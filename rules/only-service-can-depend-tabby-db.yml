@@ -6,6 +6,7 @@ files:
 - ./ee/tabby-webserver/src/**
 ignores:
 - ./ee/tabby-webserver/src/service/**
+- ./ee/tabby-webserver/src/cron/**
 - ./ee/tabby-webserver/src/handler.rs
 rule:
   pattern: tabby_db

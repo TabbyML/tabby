@@ -157,7 +157,7 @@ export function CompletionCharts({
         <Card className="flex flex-1 flex-col justify-between self-stretch bg-transparent pb-6 md:block">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-base font-normal tracking-tight">
-              Accept Rate
+              Acceptance Rate
             </CardTitle>
           </CardHeader>
           <CardContent>

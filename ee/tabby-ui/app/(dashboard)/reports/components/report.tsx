@@ -16,6 +16,7 @@ import {
   Language
 } from '@/lib/gql/generates/graphql'
 import { useAllMembers } from '@/lib/hooks/use-all-members'
+import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
@@ -75,7 +76,7 @@ function StatsSummary({
     <div className="flex w-full flex-col items-start justify-center space-y-3 md:flex-row md:items-center md:space-x-6 md:space-y-0 xl:justify-start">
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Accept Rate</CardTitle>
+          <CardTitle className="text-sm font-medium">Acceptance Rate</CardTitle>
           <IconActivity className="text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -114,14 +115,16 @@ function StatsSummary({
 
 export function Report() {
   const searchParams = useSearchParams()
-  const sample = searchParams.get('sample') === 'true'
   const [members] = useAllMembers()
+  const isDemoMode = useIsDemoMode()
   const [dateRange, setDateRange] = useState<DateRange>({
     from: moment().add(parseInt(DEFAULT_DATE_RANGE, 10), 'day').toDate(),
     to: moment().toDate()
   })
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
   const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
+
+  const sample = isDemoMode || searchParams.get('sample') === 'true'
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -144,7 +147,7 @@ export function Report() {
         moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
       )
       const selects = Math.ceil(rng() * 20)
-      const completions = selects + Math.floor(rng() * 10)
+      const completions = Math.ceil(selects / 0.35)
       return {
         start: moment(date).utc().format(),
         end: moment(date).add(1, 'day').utc().format(),

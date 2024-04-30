@@ -2497,11 +2497,6 @@
     lodash.merge "^4.6.2"
     postcss-selector-parser "6.0.10"
 
-"@types/bytes@^3.1.4":
-  version "3.1.4"
-  resolved "https://registry.yarnpkg.com/@types/bytes/-/bytes-3.1.4.tgz#8563f38ea6096df3f409c6500e8ac171790a7c1f"
-  integrity sha512-A0uYgOj3zNc4hNjHc5lYUfJQ/HVyBXiUMKdXd7ysclaE6k9oJdavQzODHuwjpUu2/boCP8afjQYi8z/GtvNCWA==
-
 "@types/chroma-js@^2.4.3":
   version "2.4.4"
   resolved "https://registry.yarnpkg.com/@types/chroma-js/-/chroma-js-2.4.4.tgz#254dddff54568ff8e5d0dcdb071871a458fdfd31"
@@ -3407,11 +3402,6 @@ busboy@1.6.0, busboy@^1.6.0:
   integrity sha512-8SFQbg/0hQ9xy3UNTB0YEnsNBbWfhf7RtnzpL7TkBiTBRfrQ9Fxcnz7VJsleJpyp6rVLvXiuORqjlHi5q+PYuA==
   dependencies:
     streamsearch "^1.1.0"
-
-bytes@^3.1.2:
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/bytes/-/bytes-3.1.2.tgz#8b0beeb98605adf1b128fa4386403c009e0221a5"
-  integrity sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==
 
 call-bind@^1.0.0, call-bind@^1.0.2:
   version "1.0.2"

@@ -1,46 +1,71 @@
-use std::{pin::Pin, sync::Arc, time::Duration};
+use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
 use futures::Future;
-use juniper::ID;
+use rand::Rng;
+use tabby_db::DbConn;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, warn};
 
-use crate::schema::job::JobService;
-
 pub struct JobController {
     scheduler: JobScheduler,
-    service: Arc<dyn JobService>,
-    is_oneshot: bool,
+    db: DbConn,
+    job_registry: HashMap<
+        &'static str,
+        Arc<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync + 'static>,
+    >,
 }
 
 impl JobController {
-    pub async fn new(service: Arc<dyn JobService>) -> Self {
-        service.cleanup().await.expect("failed to cleanup jobs");
+    pub async fn new(db: DbConn) -> Self {
+        db.finalize_stale_job_runs()
+            .await
+            .expect("failed to cleanup stale jobs");
         let scheduler = JobScheduler::new()
             .await
             .expect("failed to create job scheduler");
-        let is_oneshot = std::env::var("TABBY_WEBSERVER_CONTROLLER_ONESHOT").is_ok();
-        if is_oneshot {
-            warn!(
-            "Running controller job as oneshot, this should only be used for debugging purpose..."
-        );
-        }
         Self {
             scheduler,
-            service,
-            is_oneshot,
+            db,
+            job_registry: HashMap::default(),
+        }
+    }
+
+    pub fn schedule(&self, name: &str) {
+        let func = self
+            .job_registry
+            .get(name)
+            .expect("failed to get job")
+            .clone();
+        let mut rng = rand::thread_rng();
+        let delay = rng.gen_range(1..5);
+        let _ = tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(5 + delay)).await;
+            func().await;
+        });
+    }
+
+    fn run_oneshot(&self) {
+        warn!(
+            "Running controller job as oneshot, this should only be used for debugging purpose..."
+        );
+        for name in self.job_registry.keys() {
+            self.schedule(name);
         }
     }
 
     pub async fn run(&self) {
-        self.scheduler
-            .start()
-            .await
-            .expect("failed to start job scheduler")
+        if std::env::var("TABBY_WEBSERVER_CONTROLLER_ONESHOT").is_ok() {
+            self.run_oneshot();
+        } else {
+            self.scheduler
+                .start()
+                .await
+                .expect("failed to start job scheduler")
+        }
     }
 
     /// Register a new job with the scheduler, the job will be displayed in Jobs dashboard.
-    pub async fn register_public<T>(&mut self, name: &str, schedule: &str, func: T)
+    pub async fn register_public<T>(&mut self, name: &'static str, schedule: &str, func: T)
     where
         T: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
             + Send
@@ -52,7 +77,7 @@ impl JobController {
     }
 
     /// Register a new job with the scheduler, the job will NOT be displayed in Jobs dashboard.
-    pub async fn register<T>(&mut self, name: &str, schedule: &str, func: T)
+    pub async fn register<T>(&mut self, name: &'static str, schedule: &str, func: T)
     where
         T: FnMut() -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send>>
             + Send
@@ -70,84 +95,66 @@ impl JobController {
         .await;
     }
 
-    async fn register_impl<T>(&mut self, is_public: bool, name: &str, schedule: &str, func: T)
-    where
-        T: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
-            + Send
-            + Sync
-            + Clone
-            + 'static,
-    {
-        if self.is_oneshot {
-            self.run_oneshot(is_public, name, func).await;
-        } else {
-            self.run_schedule(is_public, name, schedule, func).await;
-        };
-    }
-
-    async fn run_oneshot<T>(&self, is_public: bool, name: &str, mut func: T)
-    where
-        T: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
-            + Send
-            + Sync
-            + Clone
-            + 'static,
-    {
-        let name = name.to_owned();
-        let context = JobContext::new(is_public, &name, self.service.clone()).await;
-        tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_secs(5)).await;
-
-            match func(&context).await {
-                Ok(exit_code) => {
-                    debug!("Job `{}` completed with exit code {}", &name, exit_code);
-                    context.complete(exit_code).await;
-                }
-                Err(e) => {
-                    warn!("Job `{}` failed: {}", &name, e);
-                    context.complete(-1).await;
-                }
-            }
-        });
-    }
-
-    async fn run_schedule<T>(&mut self, is_public: bool, name: &str, schedule: &str, func: T)
-    where
-        T: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
+    async fn register_impl<F>(
+        &mut self,
+        is_public: bool,
+        name: &'static str,
+        schedule: &str,
+        func: F,
+    ) where
+        F: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
             + Send
             + Sync
             + Clone
             + 'static,
     {
         let job_mutex = Arc::new(tokio::sync::Mutex::new(()));
-        let service = self.service.clone();
-        let name = name.to_owned();
-        let func = func.clone();
-        let job = Job::new_async(schedule, move |uuid, mut scheduler| {
-            let job_mutex = job_mutex.clone();
-            let service = service.clone();
-            let name = name.clone();
-            let mut func = func.clone();
-            Box::pin(async move {
-                let Ok(_guard) = job_mutex.try_lock() else {
-                    warn!("Job `{}` overlapped, skipping...", name);
-                    return;
-                };
+        let db = self.db.clone();
+        self.job_registry.insert(
+            name,
+            Arc::new(move || {
+                let job_mutex = job_mutex.clone();
+                let db = db.clone();
+                let mut func = func.clone();
 
+                Box::pin(async move {
+                    let Ok(_guard) = job_mutex.try_lock() else {
+                        warn!("Job `{}` overlapped, skipping...", name);
+                        return;
+                    };
+
+                    debug!("Running job `{}`", name);
+                    let context = JobContext::new(is_public, name, db.clone()).await;
+                    match func(&context).await {
+                        Ok(exit_code) => {
+                            debug!("Job `{}` completed with exit code {}", name, exit_code);
+                            context.complete(exit_code).await;
+                        }
+                        Err(e) => {
+                            warn!("Job `{}` failed: {}", name, e);
+                            context.complete(-1).await;
+                        }
+                    };
+                })
+            }),
+        );
+
+        self.add_to_schedule(name, schedule).await
+    }
+
+    async fn add_to_schedule(&mut self, name: &'static str, schedule: &str) {
+        let func = self
+            .job_registry
+            .get_mut(name)
+            .expect("failed to get job")
+            .clone();
+
+        let job = Job::new_async(schedule, move |uuid, mut scheduler| {
+            let func = func.clone();
+            Box::pin(async move {
                 debug!("Running job `{}`", name);
 
-                let context = JobContext::new(is_public, &name, service.clone()).await;
-                match func(&context).await {
-                    Ok(exit_code) => {
-                        debug!("Job `{}` completed with exit code {}", &name, exit_code);
-                        context.complete(exit_code).await;
-                    }
-                    Err(e) => {
-                        warn!("Job `{}` failed: {}", &name, e);
-                        context.complete(-1).await;
-                    }
-                }
-
+                (*func)().await;
                 if let Ok(Some(next_tick)) = scheduler.next_tick_for_job(uuid).await {
                     debug!(
                         "Next time for job `{}` is {:?}",
@@ -165,25 +172,24 @@ impl JobController {
 
 #[derive(Clone)]
 pub struct JobContext {
-    id: ID,
-    service: Arc<dyn JobService>,
+    id: i64,
+    db: DbConn,
 }
 
 impl JobContext {
-    async fn new(public: bool, name: &str, service: Arc<dyn JobService>) -> Self {
+    async fn new(public: bool, name: &'static str, db: DbConn) -> Self {
         let id = if public {
-            service
-                .start(name.to_owned())
+            db.create_job_run(name.to_owned())
                 .await
                 .expect("failed to create job")
         } else {
-            ID::from("".to_owned())
+            -1
         };
-        Self { id, service }
+        Self { id, db }
     }
 
     fn is_private(&self) -> bool {
-        self.id.is_empty()
+        self.id < 0
     }
 
     pub async fn stdout_writeline(&self, stdout: String) {
@@ -192,7 +198,7 @@ impl JobContext {
         }
 
         let stdout = stdout + "\n";
-        match self.service.update_stdout(&self.id, stdout).await {
+        match self.db.update_job_stdout(self.id, stdout).await {
             Ok(_) => (),
             Err(_) => {
                 warn!("Failed to write stdout to job `{}`", self.id);
@@ -206,7 +212,7 @@ impl JobContext {
         }
 
         let stderr = stderr + "\n";
-        match self.service.update_stderr(&self.id, stderr).await {
+        match self.db.update_job_stderr(self.id, stderr).await {
             Ok(_) => (),
             Err(_) => {
                 warn!("Failed to write stderr to job `{}`", self.id);
@@ -219,7 +225,7 @@ impl JobContext {
             return;
         }
 
-        match self.service.complete(&self.id, exit_code).await {
+        match self.db.update_job_status(self.id, exit_code).await {
             Ok(_) => (),
             Err(_) => {
                 warn!("Failed to complete job `{}`", self.id);

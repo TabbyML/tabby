@@ -30,13 +30,13 @@ pub struct JobStatsDAO {
 
 /// db read/write operations for `job_runs` table
 impl DbConn {
-    pub async fn create_job_run(&self, job: String) -> Result<i32> {
+    pub async fn create_job_run(&self, job: String) -> Result<i64> {
         let rowid = query!(
             r#"INSERT INTO job_runs (job, start_ts, stdout, stderr) VALUES (?, DATETIME('now'), '', '')"#,
             job,
         ).execute(&self.pool).await?.last_insert_rowid();
 
-        Ok(rowid as i32)
+        Ok(rowid)
     }
 
     pub async fn update_job_stdout(&self, job_id: i64, stdout: String) -> Result<()> {

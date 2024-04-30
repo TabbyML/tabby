@@ -143,6 +143,7 @@ type ServerInfo {
   isChatEnabled: Boolean!
   isEmailConfigured: Boolean!
   allowSelfSignup: Boolean!
+  isDemoMode: Boolean!
 }
 
 type GithubRepositoryProvider {
@@ -286,9 +287,9 @@ type Query {
   users(after: String, before: String, first: Int, last: Int): UserConnection!
   invitations(after: String, before: String, first: Int, last: Int): InvitationConnection!
   githubRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GithubRepositoryProviderConnection!
-  githubRepositories(providerIds: [ID!]!, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
+  githubRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GithubProvidedRepositoryConnection!
   gitlabRepositoryProviders(ids: [ID!], after: String, before: String, first: Int, last: Int): GitlabRepositoryProviderConnection!
-  gitlabRepositories(providerIds: [ID!]!, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
+  gitlabRepositories(providerIds: [ID!]!, active: Boolean, after: String, before: String, first: Int, last: Int): GitlabProvidedRepositoryConnection!
   jobRuns(ids: [ID!], jobs: [String!], after: String, before: String, first: Int, last: Int): JobRunConnection!
   jobRunStats(jobs: [String!]): JobStats!
   emailSetting: EmailSetting

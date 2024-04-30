@@ -5,20 +5,29 @@ mod scheduler;
 use std::sync::Arc;
 
 use rand::Rng;
+use tabby_db::DbConn;
 
 use crate::schema::{
-    auth::AuthenticationService, job::JobService, repository::RepositoryService,
-    worker::WorkerService,
+    auth::AuthenticationService, repository::RepositoryService, worker::WorkerService,
 };
 
+#[macro_export]
+macro_rules! warn_stderr {
+    ($ctx:expr, $($params:tt)+) => {
+        tracing::warn!($($params)+);
+        $ctx.stderr_writeline(format!($($params)+)).await;
+    }
+}
+
 pub async fn run_cron(
+    mut schedule_event_receiver: tokio::sync::mpsc::UnboundedReceiver<String>,
+    db: DbConn,
     auth: Arc<dyn AuthenticationService>,
-    job: Arc<dyn JobService>,
     worker: Arc<dyn WorkerService>,
     repository: Arc<dyn RepositoryService>,
     local_port: u16,
 ) {
-    let mut controller = controller::JobController::new(job).await;
+    let mut controller = controller::JobController::new(db).await;
     db::register_jobs(
         &mut controller,
         auth,
@@ -28,6 +37,15 @@ pub async fn run_cron(
     .await;
 
     scheduler::register(&mut controller, worker, local_port).await;
+
+    let controller = Arc::new(controller);
+
+    let cloned_controller = controller.clone();
+    tokio::spawn(async move {
+        while let Some(name) = schedule_event_receiver.recv().await {
+            cloned_controller.schedule(&name);
+        }
+    });
 
     controller.run().await
 }

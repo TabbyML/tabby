@@ -59,6 +59,7 @@ struct ServerContext {
     license: Arc<dyn LicenseService>,
     repository: Arc<dyn RepositoryService>,
     user_event: Arc<dyn UserEventService>,
+    job: Arc<dyn JobService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
@@ -73,6 +74,7 @@ impl ServerContext {
         repository: Arc<dyn RepositoryService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
+        schedule_event_sender: tokio::sync::mpsc::UnboundedSender<String>,
     ) -> Self {
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -85,6 +87,7 @@ impl ServerContext {
                 .expect("failed to initialize license service"),
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
+        let job = Arc::new(job::create(db_conn.clone(), schedule_event_sender));
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -98,6 +101,7 @@ impl ServerContext {
             license,
             repository,
             user_event,
+            job,
             db_conn,
             logger,
             code,
@@ -288,7 +292,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn job(&self) -> Arc<dyn JobService> {
-        Arc::new(self.db_conn.clone())
+        self.job.clone()
     }
 
     fn repository(&self) -> Arc<dyn RepositoryService> {
@@ -322,9 +326,18 @@ pub async fn create_service_locator(
     repository: Arc<dyn RepositoryService>,
     db: DbConn,
     is_chat_enabled: bool,
+    schedule_event_sender: tokio::sync::mpsc::UnboundedSender<String>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(Arc::new(
-        ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
+        ServerContext::new(
+            logger,
+            code,
+            repository,
+            db,
+            is_chat_enabled,
+            schedule_event_sender,
+        )
+        .await,
     ))
 }
 

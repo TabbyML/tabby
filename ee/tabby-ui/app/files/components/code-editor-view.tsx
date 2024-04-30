@@ -14,7 +14,7 @@ import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
 import { ActionBarWidgetExtension } from './action-bar-widget/action-bar-widget-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveBasenameFromPath, resolveRepoSpecifierFromPath } from './utils'
+import { resolveRepositoryInfoFromPath } from './utils'
 
 interface CodeEditorViewProps {
   value: string
@@ -25,15 +25,14 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { theme } = useTheme()
   const tags: TCodeTag[] = []
   const editorRef = React.useRef<CodeMirrorEditorRef>(null)
-  const { isChatEnabled, activePath, fileMap } = React.useContext(
+  const { isChatEnabled, activePath } = React.useContext(
     SourceCodeBrowserContext
   )
   const filePath = React.useMemo(() => {
-    const repoSpecifier = resolveRepoSpecifierFromPath(activePath)
-    const repoBasename = resolveBasenameFromPath(activePath)
-    const repoName = fileMap[repoSpecifier]?.name
-    return repoName ? `${repoName}/${repoBasename}` : repoBasename
-  }, [activePath, fileMap])
+    const { repositoryName, basename } =
+      resolveRepositoryInfoFromPath(activePath)
+    return `${repositoryName}/${basename}`
+  }, [activePath])
 
   const extensions = React.useMemo(() => {
     let result: Extension[] = [

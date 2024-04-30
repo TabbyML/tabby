@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useContext } from 'react'
-import { isEmpty } from 'lodash-es'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
+import { RepositoryKind } from '@/lib/gql/generates/graphql'
 import { useDebounceCallback } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -35,11 +35,8 @@ import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import {
   fetchEntriesFromPath,
   getDirectoriesFromBasename,
-  key2RepositoryKind,
   resolveFileNameFromPath,
-  resolveRepoIdFromPath,
-  resolveRepoKindFromPath,
-  resolveRepoSpecifierFromPath
+  resolveRepositoryInfoFromPath
 } from './utils'
 
 interface FileTreeHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -72,21 +69,14 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     initialized,
     updateFileMap,
     setExpandedKeys,
-    fileMap
+    repoMap,
+    activeRepo
   } = useContext(SourceCodeBrowserContext)
   const { setProgress } = useTopbarProgress()
 
-  const repoSpecifier = resolveRepoSpecifierFromPath(activePath)
-  const repoKind = resolveRepoKindFromPath(activePath)
-  const repoId = resolveRepoIdFromPath(activePath)
-  const currentRepoKind = React.useMemo(() => {
-    if (!repoSpecifier || isEmpty(fileMap)) return undefined
-    return fileMap?.[repoSpecifier]?.repository?.kind
-  }, [repoSpecifier, fileMap])
-  const currentRepoName = React.useMemo(() => {
-    if (!repoSpecifier || isEmpty(fileMap)) return undefined
-    return fileMap?.[repoSpecifier]?.name
-  }, [repoSpecifier, fileMap])
+  const { repositoryKind, repositoryName, repositorySpecifier } =
+    resolveRepositoryInfoFromPath(activePath)
+  const repoId = activeRepo?.id
 
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [input, setInput] = React.useState<string>()
@@ -100,11 +90,11 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
   const [{ data: repositorySearchData }] = useQuery({
     query: repositorySearch,
     variables: {
-      kind: key2RepositoryKind(repoKind),
-      id: repoId,
+      kind: repositoryKind as RepositoryKind,
+      id: repoId as string,
       pattern: repositorySearchPattern ?? ''
     },
-    pause: !repoSpecifier || !repositorySearchPattern
+    pause: !repoId || !repositoryKind || !repositorySearchPattern
   })
 
   React.useEffect(() => {
@@ -140,16 +130,19 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
     const path = value.path
     if (!path) return
 
-    const fullPath = `${repoSpecifier}/${path}`
+    const fullPath = `${repositorySpecifier}/${path}`
     try {
       setProgress(true)
-      const entries = await fetchEntriesFromPath(fullPath)
+      const entries = await fetchEntriesFromPath(
+        fullPath,
+        repositorySpecifier ? repoMap?.[repositorySpecifier] : undefined
+      )
       const initialExpandedDirs = getDirectoriesFromBasename(path)
 
       const patchMap: TFileMap = {}
       // fetch dirs
       for (const entry of entries) {
-        const path = `${repoSpecifier}/${entry.basename}`
+        const path = `${repositorySpecifier}/${entry.basename}`
         patchMap[path] = {
           file: entry,
           name: resolveFileNameFromPath(path),
@@ -158,7 +151,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
         }
       }
       const expandedKeys = initialExpandedDirs.map(dir =>
-        [repoSpecifier, dir].filter(Boolean).join('/')
+        [repositorySpecifier, dir].filter(Boolean).join('/')
       )
       if (patchMap) {
         updateFileMap(patchMap)
@@ -212,19 +205,17 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
         <Select
           disabled={!initialized}
           onValueChange={onSelectRepo}
-          value={repoSpecifier}
+          value={repositorySpecifier}
         >
           <SelectTrigger>
             <SelectValue>
               <div className="flex items-center gap-2">
                 <RepositoryKindIcon
-                  kind={currentRepoKind}
+                  kind={repositoryKind}
                   fallback={<IconFolderGit />}
                 />
-                <span
-                  className={currentRepoName ? '' : 'text-muted-foreground'}
-                >
-                  {currentRepoName || 'Pick a repository'}
+                <span className={repositoryName ? '' : 'text-muted-foreground'}>
+                  {repositoryName || 'Pick a repository'}
                 </span>
               </div>
             </SelectValue>
@@ -277,7 +268,7 @@ const FileTreeHeader: React.FC<FileTreeHeaderProps> = ({
                       spellCheck={false}
                       value={input}
                       ref={inputRef}
-                      disabled={!currentRepoName}
+                      disabled={!repositoryName}
                       onClick={e => {
                         if (repositorySearchPattern && !optionsVisible) {
                           setOptionsVisible(true)
