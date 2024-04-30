@@ -11,15 +11,14 @@ use crate::{
 };
 
 const META_KEY: &str = "meta";
-const DATASET_BUCKET: &str = "dataset";
+const DATASET_BUCKET_PREFIX: &str = "dataset";
 
 fn cmd_stdout(pwd: &Path, cmd: &str, args: &[&str]) -> Result<String> {
     Ok(String::from_utf8(
         Command::new(cmd)
             .current_dir(pwd)
             .args(args)
-            .spawn()?
-            .wait_with_output()?
+            .output()?
             .stdout,
     )?)
 }
@@ -38,7 +37,7 @@ fn meta_key(git_url: impl AsRef<str>) -> String {
 }
 
 fn dataset_bucket_key(git_url: impl AsRef<str>) -> String {
-    format!("{DATASET_BUCKET}:{}", git_url.as_ref())
+    format!("{DATASET_BUCKET_PREFIX}:{}", git_url.as_ref())
 }
 
 pub struct RepositoryStore {
@@ -79,7 +78,7 @@ impl RepositoryStore {
     ) {
         let mut meta = self.get_meta(transaction, repository);
         meta.last_sync_commit = Some(commit_hash);
-        self.meta_bucket()
+        transaction
             .set(&meta_key(repository.canonical_git_url()), &Json(meta))
             .expect("Failed to update synced version for repository");
     }
@@ -167,6 +166,7 @@ impl RepositoryStore {
         self.store
             .buckets()
             .into_iter()
+            .filter(|bucket_name| bucket_name.starts_with(DATASET_BUCKET_PREFIX))
             .flat_map(|bucket_name| {
                 self.store
                     .bucket::<String, Json<SourceFile>>(Some(&bucket_name))
@@ -184,7 +184,7 @@ impl RepositoryStore {
             .collect();
 
         for bucket in self.store.buckets() {
-            if bucket.starts_with(DATASET_BUCKET) && !added_repositories.contains(&bucket) {
+            if bucket.starts_with(DATASET_BUCKET_PREFIX) && !added_repositories.contains(&bucket) {
                 self.store.drop_bucket(&bucket).unwrap();
                 self.meta_bucket().remove(&meta_key(&bucket)).unwrap();
             }

@@ -28,9 +28,7 @@ pub trait RepositoryExt {
 impl RepositoryExt for RepositoryConfig {
     fn create_dataset(&self) -> impl Iterator<Item = SourceFile> {
         let basedir = self.dir();
-        let walk_dir_iter = || Walk::new(basedir.as_path()).filter_map(Result::ok);
-
-        let walk_dir = walk_dir_iter();
+        let walk_dir = Walk::new(basedir.as_path()).filter_map(Result::ok);
 
         let mut code = CodeIntelligence::default();
         walk_dir.filter_map(move |entry| create_source_file(self, entry.path(), &mut code))
