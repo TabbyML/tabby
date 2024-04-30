@@ -1,8 +1,8 @@
 'use client'
 
-import prettyBytes from 'pretty-bytes'
 import { noop, sum } from 'lodash-es'
 import { useTheme } from 'next-themes'
+import prettyBytes from 'pretty-bytes'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
