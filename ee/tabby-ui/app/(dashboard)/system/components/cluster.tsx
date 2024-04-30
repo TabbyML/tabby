@@ -17,9 +17,9 @@ import { Button } from '@/components/ui/button'
 import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CopyButton } from '@/components/copy-button'
 import LoadingWrapper from '@/components/loading-wrapper'
-import { Skeleton } from '@/components/ui/skeleton'
 
 import WorkerCard from './worker-card'
 
@@ -75,7 +75,10 @@ export default function Workers() {
       <Separator />
       <Usage />
       <Separator />
-      <LoadingWrapper loading={fetching}  fallback={<Skeleton className="w-full lg:w-2/3 h-32 mt-3" />}>
+      <LoadingWrapper
+        loading={fetching}
+        fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
+      >
         <>
           {!!registrationTokenRes?.registrationToken && (
             <div className="flex items-center gap-1 pt-2">
@@ -206,7 +209,8 @@ function Usage() {
   return (
     <LoadingWrapper
       loading={fetching}
-      fallback={<Skeleton className="w-full lg:w-2/3 h-32 mt-3" />}>
+      fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
+    >
       <>
         <div className="flex flex-col gap-y-1.5 py-2">
           <div>
