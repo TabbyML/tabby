@@ -1,8 +1,8 @@
 'use client'
 
-import bytes from 'bytes'
 import { noop, sum } from 'lodash-es'
 import { useTheme } from 'next-themes'
+import prettyBytes from 'pretty-bytes'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -241,5 +241,5 @@ function Usage() {
 }
 
 function toBytes(value: number) {
-  return bytes(value * 1024, { unitSeparator: ' ' })
+  return prettyBytes(value * 1024)
 }
