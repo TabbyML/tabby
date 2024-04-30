@@ -11,6 +11,7 @@ import { BlobHeader } from './blob-header'
 import { TFileTreeNode } from './file-tree'
 import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext, TFileMapItem } from './source-code-browser'
+import { resolveRepositoryInfoFromPath } from './utils'
 
 interface DirectoryViewProps extends React.HTMLAttributes<HTMLDivElement> {
   loading: boolean
@@ -138,9 +139,13 @@ function getCurrentDirFromTree(
     const repos = treeData.map(x => omit(x, 'children')) || []
     return repos
   } else {
-    let pathSegments = path.split('/')
+    let { repositorySpecifier = '', basename = '' } =
+      resolveRepositoryInfoFromPath(path)
+    let pathSegments = [repositorySpecifier, ...basename.split('/')].filter(
+      Boolean
+    )
     let currentNodes: TFileTreeNode[] = treeData
-    for (let i = 1; i < pathSegments.length; i++) {
+    for (let i = 0; i < pathSegments.length; i++) {
       const path = pathSegments.slice(0, i + 1).join('/')
       let node = find<TFileTreeNode>(currentNodes, t => t.fullPath === path)
       if (node?.children) {
