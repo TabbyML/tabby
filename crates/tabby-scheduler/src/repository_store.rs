@@ -47,7 +47,6 @@ pub struct RepositoryStore {
 #[derive(Serialize, Deserialize, Default)]
 struct RepositoryMeta {
     last_sync_commit: Option<String>,
-    last_index_commit: Option<String>,
 }
 
 impl RepositoryStore {
@@ -191,7 +190,7 @@ impl RepositoryStore {
     }
 }
 
-pub fn build_repository_dataset(
+fn build_repository_dataset(
     repository: &RepositoryConfig,
 ) -> impl Iterator<Item = SourceFile> + '_ {
     let basedir = repository.dir();
@@ -201,7 +200,7 @@ pub fn build_repository_dataset(
     walk_dir.filter_map(move |entry| create_source_file(repository, entry.path(), &mut code))
 }
 
-pub fn create_source_file(
+fn create_source_file(
     config: &RepositoryConfig,
     path: &Path,
     code: &mut CodeIntelligence,
