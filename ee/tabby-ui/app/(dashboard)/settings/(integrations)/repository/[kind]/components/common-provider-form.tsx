@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
+import { cn } from '@/lib/utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -99,7 +100,7 @@ export const CommonProviderForm: React.FC<GithubProviderFormProps> = ({
   }, [kind])
 
   const accessTokenPlaceholder = React.useMemo(() => {
-    if (!isNew) return '*****'
+    if (!isNew) return new Array(36).fill('*').join('')
     switch (kind) {
       case RepositoryKind.Github:
         return 'e.g. github_pat_1ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234'
@@ -148,6 +149,10 @@ export const CommonProviderForm: React.FC<GithubProviderFormProps> = ({
                 <FormControl>
                   <Input
                     placeholder={accessTokenPlaceholder}
+                    className={cn({
+                      'placeholder:translate-y-[10%] !placeholder-foreground':
+                        !isNew
+                    })}
                     autoCapitalize="none"
                     autoCorrect="off"
                     autoComplete="off"
@@ -245,7 +250,7 @@ function AccessTokenDescription() {
           token with the member role for the organization or all projects to be
           managed.
         </div>
-        <div className="my-2 ml-4">• Contents (Read-only)</div>
+        <div className="my-2 ml-3">• Contents (Read-only)</div>
       </>
     )
   }
@@ -263,8 +268,8 @@ function AccessTokenDescription() {
           token for managing a single project, or generate a group access token
           to manage all projects within the group.
         </div>
-        <div className="my-2 ml-4">• api</div>
-        <div className="my-2 ml-4">• read repository</div>
+        <div className="my-2 ml-3">• api</div>
+        <div className="my-2 ml-3">• read repository</div>
       </>
     )
   }
