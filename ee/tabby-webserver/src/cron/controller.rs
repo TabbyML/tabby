@@ -6,13 +6,11 @@ use tabby_db::DbConn;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{debug, warn};
 
-use crate::schema::job::JobService;
-
 pub struct JobController {
     scheduler: JobScheduler,
     db: DbConn,
     job_registry: HashMap<
-        String,
+        &'static str,
         Arc<dyn Fn() -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync + 'static>,
     >,
 }
@@ -67,7 +65,7 @@ impl JobController {
     }
 
     /// Register a new job with the scheduler, the job will be displayed in Jobs dashboard.
-    pub async fn register_public<T>(&mut self, name: &str, schedule: &str, func: T)
+    pub async fn register_public<T>(&mut self, name: &'static str, schedule: &str, func: T)
     where
         T: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
             + Send
@@ -79,7 +77,7 @@ impl JobController {
     }
 
     /// Register a new job with the scheduler, the job will NOT be displayed in Jobs dashboard.
-    pub async fn register<T>(&mut self, name: &str, schedule: &str, func: T)
+    pub async fn register<T>(&mut self, name: &'static str, schedule: &str, func: T)
     where
         T: FnMut() -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send>>
             + Send
@@ -97,23 +95,26 @@ impl JobController {
         .await;
     }
 
-    async fn register_impl<F>(&mut self, is_public: bool, name: &str, schedule: &str, func: F)
-    where
+    async fn register_impl<F>(
+        &mut self,
+        is_public: bool,
+        name: &'static str,
+        schedule: &str,
+        func: F,
+    ) where
         F: FnMut(&JobContext) -> Pin<Box<dyn Future<Output = anyhow::Result<i32>> + Send>>
             + Send
             + Sync
             + Clone
             + 'static,
     {
-        let cloned_name = name.to_owned();
         let job_mutex = Arc::new(tokio::sync::Mutex::new(()));
         let db = self.db.clone();
         self.job_registry.insert(
-            cloned_name.clone(),
+            name,
             Arc::new(move || {
                 let job_mutex = job_mutex.clone();
                 let db = db.clone();
-                let name = cloned_name.clone();
                 let mut func = func.clone();
 
                 Box::pin(async move {
@@ -123,14 +124,14 @@ impl JobController {
                     };
 
                     debug!("Running job `{}`", name);
-                    let context = JobContext::new(is_public, &name, db.clone()).await;
+                    let context = JobContext::new(is_public, name, db.clone()).await;
                     match func(&context).await {
                         Ok(exit_code) => {
-                            debug!("Job `{}` completed with exit code {}", &name, exit_code);
+                            debug!("Job `{}` completed with exit code {}", name, exit_code);
                             context.complete(exit_code).await;
                         }
                         Err(e) => {
-                            warn!("Job `{}` failed: {}", &name, e);
+                            warn!("Job `{}` failed: {}", name, e);
                             context.complete(-1).await;
                         }
                     };
@@ -138,18 +139,17 @@ impl JobController {
             }),
         );
 
-        self.run_schedule(name.to_owned(), schedule).await
+        self.add_to_schedule(name, schedule).await
     }
 
-    async fn run_schedule(&mut self, name: String, schedule: &str) {
+    async fn add_to_schedule(&mut self, name: &'static str, schedule: &str) {
         let func = self
             .job_registry
-            .get_mut(&name)
+            .get_mut(name)
             .expect("failed to get job")
             .clone();
 
         let job = Job::new_async(schedule, move |uuid, mut scheduler| {
-            let name = name.clone();
             let func = func.clone();
             Box::pin(async move {
                 debug!("Running job `{}`", name);
@@ -177,7 +177,7 @@ pub struct JobContext {
 }
 
 impl JobContext {
-    async fn new(public: bool, name: &str, db: DbConn) -> Self {
+    async fn new(public: bool, name: &'static str, db: DbConn) -> Self {
         let id = if public {
             db.create_job_run(name.to_owned())
                 .await

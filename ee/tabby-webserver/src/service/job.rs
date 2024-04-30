@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
+use tracing::error;
 
 use super::{graphql_pagination_to_filter, AsRowid};
 use crate::schema::{
@@ -8,9 +9,22 @@ use crate::schema::{
     Result,
 };
 
+struct JobControllerImpl {
+    db: DbConn,
+    sender: tokio::sync::mpsc::UnboundedSender<String>,
+}
+
+pub fn create(db: DbConn, sender: tokio::sync::mpsc::UnboundedSender<String>) -> impl JobService {
+    JobControllerImpl { db, sender }
+}
+
 #[async_trait]
-impl JobService for DbConn {
-    async fn schedule(&self, _name: String) {}
+impl JobService for JobControllerImpl {
+    fn schedule(&self, name: &str) {
+        if let Err(e) = self.sender.send(name.to_owned()) {
+            error!("failed to send job to scheduler: {}", e);
+        }
+    }
 
     async fn list(
         &self,
@@ -28,6 +42,7 @@ impl JobService for DbConn {
                 .collect()
         });
         Ok(self
+            .db
             .list_job_runs_with_filter(rowids, jobs, limit, skip_id, backwards)
             .await?
             .into_iter()
@@ -36,7 +51,7 @@ impl JobService for DbConn {
     }
 
     async fn compute_stats(&self, jobs: Option<Vec<String>>) -> Result<JobStats> {
-        let stats = (self as &DbConn).compute_job_stats(jobs).await?;
+        let stats = self.db.compute_job_stats(jobs).await?;
         Ok(JobStats {
             success: stats.success,
             failed: stats.failed,
