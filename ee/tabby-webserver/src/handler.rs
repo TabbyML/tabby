@@ -75,17 +75,22 @@ impl WebserverHandle {
         is_chat_enabled: bool,
         local_port: u16,
     ) -> (Router, Router) {
+        let (schedule_event_sender, schedule_event_receiver) =
+            tokio::sync::mpsc::unbounded_channel();
+
         let ctx = create_service_locator(
             self.logger(),
             code,
             self.repository.clone(),
             self.db.clone(),
             is_chat_enabled,
+            schedule_event_sender,
         )
         .await;
         cron::run_cron(
+            schedule_event_receiver,
+            self.db.clone(),
             ctx.auth(),
-            ctx.job(),
             ctx.worker(),
             ctx.repository(),
             local_port,
