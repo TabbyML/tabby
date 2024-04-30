@@ -14,13 +14,9 @@ const META_KEY: &str = "meta";
 const DATASET_BUCKET_PREFIX: &str = "dataset";
 
 fn cmd_stdout(pwd: &Path, cmd: &str, args: &[&str]) -> Result<String> {
-    Ok(String::from_utf8(
-        Command::new(cmd)
-            .current_dir(pwd)
-            .args(args)
-            .output()?
-            .stdout,
-    )?)
+    let output = Command::new(cmd).current_dir(pwd).args(args).output()?;
+
+    Ok(String::from_utf8(output.stdout)?.trim().to_string())
 }
 
 fn get_git_commit(path: &Path) -> Result<String> {
