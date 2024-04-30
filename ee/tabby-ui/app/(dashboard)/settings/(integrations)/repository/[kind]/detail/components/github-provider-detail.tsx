@@ -74,7 +74,7 @@ const GithubProviderDetail: React.FC = () => {
   return (
     <LoadingWrapper loading={fetching}>
       <CardTitle className="flex items-center gap-4">
-        <div className="-ml-1 flex items-center">
+        <div className="-ml-2.5 flex items-center">
           <Button
             onClick={() => router.back()}
             variant={'ghost'}
@@ -82,7 +82,7 @@ const GithubProviderDetail: React.FC = () => {
           >
             <IconChevronLeft className="h-5 w-5" />
           </Button>
-          <span className="ml-2">{provider?.displayName}</span>
+          <span className="ml-1">{provider?.displayName}</span>
         </div>
         <div className="flex items-center gap-2 text-base">
           <div className="ml-1">
