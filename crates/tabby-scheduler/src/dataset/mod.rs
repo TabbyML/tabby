@@ -15,6 +15,7 @@ use tabby_common::{
     DependencyFile, SourceFile,
 };
 
+
 use crate::{repository_store::RepositoryStore, utils::tqdm};
 
 fn export_json_dataset(
@@ -51,7 +52,7 @@ pub fn create_dataset(config: &[RepositoryConfig]) {
     );
 
     let mut deps = DependencyFile::default();
-    let repository_store = RepositoryStore::new(tabby_common::path::repository_store());
+    let repository_store = RepositoryStore::new(tabby_common::path::cache_dir());
     repository_store.update_dataset(config);
 
     for repository in config {

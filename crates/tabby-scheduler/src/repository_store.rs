@@ -95,6 +95,7 @@ impl RepositoryStore {
 
     pub fn update_dataset(&self, repositories: &[RepositoryConfig]) {
         for repository in repositories {
+            debug!("Syncing repository: {}", repository.canonical_git_url());
             self.sync_repository(repository);
         }
         self.retain_from(repositories);
@@ -107,10 +108,10 @@ impl RepositoryStore {
             .transaction2(
                 &self.dataset_bucket(repository),
                 |meta_bucket, repo_bucket| {
-                    let old_version = self.get_meta(&meta_bucket, repository).last_sync_commit;
+                    let last_sync_commit = self.get_meta(&meta_bucket, repository).last_sync_commit;
                     let current_version = get_git_commit(&dir).unwrap();
 
-                    let Some(old_version) = old_version else {
+                    let Some(old_version) = last_sync_commit else {
                         self.sync_repository_from_scratch(
                             &meta_bucket,
                             &repo_bucket,
@@ -129,7 +130,7 @@ impl RepositoryStore {
                         {
                             // File exists and was either created or updated
                             repo_bucket
-                                .set(&source_file.git_url.clone(), &Json(source_file))
+                                .set(&file, &Json(source_file))
                                 .expect("Failed to update source file");
                         } else {
                             // File has been removed
@@ -154,7 +155,7 @@ impl RepositoryStore {
     ) {
         for file in build_repository_dataset(repository) {
             repo_bucket
-                .set(&file.git_url.clone(), &Json(file))
+                .set(&file.filepath.clone(), &Json(file))
                 .expect("Failed to update source file");
         }
         self.set_last_sync_commit(meta_bucket, repository, current_version);
