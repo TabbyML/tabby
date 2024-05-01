@@ -224,7 +224,19 @@ class Agent : ProcessAdapter() {
     val text: String,
     val position: Int,
     val manually: Boolean?,
-  )
+    val workspace: String?,
+    val git: GitContext?
+  ) {
+    data class GitContext(
+      val root: String,
+      val remotes: List<GitRemote>
+    ) {
+      data class GitRemote(
+        val name: String,
+        val url: String,
+      )
+    }
+  }
 
   data class CompletionResponse(
     val id: String,

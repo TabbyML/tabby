@@ -28,6 +28,8 @@
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends optional="true" config-file="git4idea-features.xml">Git4Idea</depends>
+
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
@@ -50,6 +52,8 @@
                            displayType="STICKY_BALLOON"
                            bundle="strings"
                            key="tabby.warning"/>
+        <applicationService serviceInterface="com.tabbyml.intellijtabby.git.GitContextProvider"
+                            serviceImplementation="com.tabbyml.intellijtabby.git.DefaultGitContextProvider" />
     </extensions>
 
     <actions>

@@ -7,7 +7,6 @@ import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationInfo
@@ -23,8 +22,10 @@ import com.intellij.openapi.keymap.Keymap
 import com.intellij.openapi.keymap.KeymapManagerListener
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.tabbyml.intellijtabby.git.GitContextProvider
 import com.tabbyml.intellijtabby.settings.ApplicationConfigurable
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import com.tabbyml.intellijtabby.settings.KeymapSettings
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.*
 class AgentService : Disposable {
   private val logger = Logger.getInstance(AgentService::class.java)
   private var agent: Agent = Agent()
+  private var gitContextProvider: GitContextProvider = service<GitContextProvider>()
   val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
   private var initFailedNotification: Notification? = null
@@ -267,11 +269,11 @@ class AgentService : Disposable {
 
   suspend fun provideCompletion(editor: Editor, offset: Int, manually: Boolean = false): Agent.CompletionResponse? {
     waitForInitialized()
-    return ReadAction.compute<PsiFile, Throwable> {
-      editor.project?.let { project ->
+    val project = editor.project ?: return null
+
+    return ReadAction.compute<PsiFile?, Throwable> {
         PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
-      }
-    }?.let { file ->
+      }?.let { file ->
       agent.provideCompletions(
         Agent.CompletionRequest(
           file.virtualFile.path,
@@ -279,9 +281,15 @@ class AgentService : Disposable {
           editor.document.text,
           offset,
           manually,
+          project.basePath,
+          getRemotesForProjectGit(project, file)
         )
       )
     }
+  }
+
+  private fun getRemotesForProjectGit(project: Project, file: PsiFile): Agent.CompletionRequest.GitContext? {
+    return gitContextProvider.getGitContextForFile(project, file.virtualFile)
   }
 
   suspend fun postEvent(event: Agent.LogEventRequest) {
