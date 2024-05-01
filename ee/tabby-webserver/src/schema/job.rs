@@ -47,9 +47,6 @@ impl relay::NodeType for JobRun {
 
 #[async_trait]
 pub trait JobService: Send + Sync {
-    // Schedule one job immediately.
-    fn schedule(&self, name: &str);
-
     async fn list(
         &self,
         ids: Option<Vec<ID>>,

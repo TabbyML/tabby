@@ -1,7 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use juniper::ID;
 use tabby_db::DbConn;
 use url::Url;
@@ -14,15 +16,16 @@ use crate::{
         },
         Result,
     },
-    service::{graphql_pagination_to_filter, AsID, AsRowid},
+    service::{background_job::BackgroundJob, graphql_pagination_to_filter, AsID, AsRowid},
 };
 
 struct GithubRepositoryProviderServiceImpl {
     db: DbConn,
+    background: Arc<dyn BackgroundJob>,
 }
 
-pub fn create(db: DbConn) -> impl GithubRepositoryService {
-    GithubRepositoryProviderServiceImpl { db }
+pub fn create(db: DbConn, background: Arc<dyn BackgroundJob>) -> impl GithubRepositoryService {
+    GithubRepositoryProviderServiceImpl { db, background }
 }
 
 #[async_trait]
@@ -32,12 +35,8 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
             .db
             .create_github_provider(display_name, access_token)
             .await?;
+        self.background.trigger_sync_github(id).await;
         Ok(id.as_id())
-    }
-
-    async fn get_provider(&self, id: ID) -> Result<GithubRepositoryProvider> {
-        let provider = self.db.get_github_provider(id.as_rowid()?).await?;
-        Ok(provider.into())
     }
 
     async fn delete_provider(&self, id: ID) -> Result<()> {
@@ -95,24 +94,6 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
             .collect())
     }
 
-    async fn upsert_repository(
-        &self,
-        provider_id: ID,
-        vendor_id: String,
-        display_name: String,
-        git_url: String,
-    ) -> Result<()> {
-        self.db
-            .upsert_github_provided_repository(
-                provider_id.as_rowid()?,
-                vendor_id,
-                display_name,
-                git_url,
-            )
-            .await?;
-        Ok(())
-    }
-
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()> {
         self.db
             .update_github_provided_repository_active(id.as_rowid()?, active)
@@ -126,9 +107,11 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         display_name: String,
         access_token: String,
     ) -> Result<()> {
+        let id = id.as_rowid()?;
         self.db
-            .update_github_provider(id.as_rowid()?, display_name, access_token)
+            .update_github_provider(id, display_name, access_token)
             .await?;
+        self.background.trigger_sync_github(id).await;
         Ok(())
     }
 
@@ -157,24 +140,6 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
             .collect();
 
         Ok(urls)
-    }
-
-    async fn delete_outdated_repositories(
-        &self,
-        provider_id: ID,
-        cutoff_timestamp: DateTime<Utc>,
-    ) -> Result<()> {
-        self.db
-            .delete_outdated_github_repositories(provider_id.as_rowid()?, cutoff_timestamp.into())
-            .await?;
-        Ok(())
-    }
-
-    async fn update_provider_status(&self, id: ID, success: bool) -> Result<()> {
-        self.db
-            .update_github_provider_sync_status(id.as_rowid()?, success)
-            .await?;
-        Ok(())
     }
 }
 
@@ -206,15 +171,14 @@ fn deduplicate_github_repositories(repositories: &mut Vec<GithubProvidedReposito
 
 #[cfg(test)]
 mod tests {
-    use chrono::Duration;
 
     use super::*;
-    use crate::{schema::repository::RepositoryProviderStatus, service::AsID};
+    use crate::{background_job::create_fake, service::AsID};
 
     #[tokio::test]
     async fn test_github_provided_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone());
+        let service = create(db.clone(), create_fake());
 
         let provider_id1 = db
             .create_github_provider("test_id1".into(), "test_secret".into())
@@ -301,24 +265,12 @@ mod tests {
     #[tokio::test]
     async fn test_github_repository_provider_crud() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = super::create(db.clone());
+        let service = create(db.clone(), create_fake());
 
         let id = service
             .create_provider("id".into(), "secret".into())
             .await
             .unwrap();
-
-        // Test retrieving github provider by ID
-        let provider1 = service.get_provider(id.clone()).await.unwrap();
-        assert_eq!(
-            provider1,
-            GithubRepositoryProvider {
-                id: id.clone(),
-                display_name: "id".into(),
-                access_token: Some("secret".into()),
-                status: RepositoryProviderStatus::Pending,
-            }
-        );
 
         // Test listing github providers
         let providers = service
@@ -344,7 +296,7 @@ mod tests {
     #[tokio::test]
     async fn test_provided_git_urls() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone());
+        let service = create(db.clone(), create_fake());
 
         let provider_id = db
             .create_github_provider("provider1".into(), "token".into())
@@ -369,89 +321,6 @@ mod tests {
         assert_eq!(
             git_urls,
             ["https://token@github.com/TabbyML/tabby".to_string()]
-        );
-    }
-
-    #[tokio::test]
-    async fn test_sync_status() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone());
-
-        let provider_id = db
-            .create_github_provider("provider1".into(), "token".into())
-            .await
-            .unwrap();
-
-        service
-            .update_provider_status(provider_id.as_id(), true)
-            .await
-            .unwrap();
-
-        let provider = db.get_github_provider(provider_id).await.unwrap();
-
-        assert!(provider.access_token.is_some());
-        assert!(provider.synced_at.is_some());
-
-        service
-            .update_provider_status(provider_id.as_id(), false)
-            .await
-            .unwrap();
-
-        let provider = db.get_github_provider(provider_id).await.unwrap();
-
-        assert!(provider.access_token.is_none());
-        assert!(provider.synced_at.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_delete_outdated_repos() {
-        let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone());
-        let time = Utc::now();
-
-        let provider_id = db
-            .create_github_provider("provider1".into(), "secret1".into())
-            .await
-            .unwrap();
-
-        let _repo_id = db
-            .upsert_github_provided_repository(
-                provider_id,
-                "vendor_id1".into(),
-                "test_repo".into(),
-                "https://github.com/TabbyML/tabby".into(),
-            )
-            .await
-            .unwrap();
-
-        service
-            .delete_outdated_repositories(provider_id.as_id(), time)
-            .await
-            .unwrap();
-
-        assert_eq!(
-            1,
-            service
-                .list_repositories(vec![], None, None, None, None, None)
-                .await
-                .unwrap()
-                .len()
-        );
-
-        let time = time + Duration::minutes(1);
-
-        service
-            .delete_outdated_repositories(provider_id.as_id(), time)
-            .await
-            .unwrap();
-
-        assert_eq!(
-            0,
-            service
-                .list_repositories(vec![], None, None, None, None, None)
-                .await
-                .unwrap()
-                .len()
         );
     }
 }

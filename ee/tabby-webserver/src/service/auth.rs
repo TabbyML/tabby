@@ -265,16 +265,6 @@ impl AuthenticationService for AuthenticationServiceImpl {
         Ok(resp)
     }
 
-    async fn delete_expired_token(&self) -> Result<()> {
-        self.db.delete_expired_token().await?;
-        Ok(())
-    }
-
-    async fn delete_expired_password_resets(&self) -> Result<()> {
-        self.db.delete_expired_password_resets().await?;
-        Ok(())
-    }
-
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload> {
         let claims = validate_jwt(access_token).map_err(anyhow::Error::new)?;
         Ok(claims)
@@ -1114,19 +1104,6 @@ mod tests {
             .password_reset(&reset.code, "newpass")
             .await
             .is_err());
-
-        service
-            .db
-            .mark_password_reset_expired(&reset.code)
-            .await
-            .unwrap();
-        service.delete_expired_password_resets().await.unwrap();
-        assert!(service
-            .db
-            .get_password_reset_by_code(&reset.code)
-            .await
-            .unwrap()
-            .is_none());
     }
 
     #[tokio::test]

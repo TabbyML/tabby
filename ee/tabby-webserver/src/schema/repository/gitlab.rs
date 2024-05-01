@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use juniper::{GraphQLObject, ID};
 
 use super::{RepositoryProvider, RepositoryProviderStatus};
@@ -66,7 +65,6 @@ impl NodeType for GitlabProvidedRepository {
 #[async_trait]
 pub trait GitlabRepositoryService: Send + Sync + RepositoryProvider {
     async fn create_provider(&self, display_name: String, access_token: String) -> Result<ID>;
-    async fn get_provider(&self, id: ID) -> Result<GitlabRepositoryProvider>;
     async fn delete_provider(&self, id: ID) -> Result<()>;
     async fn update_provider(
         &self,
@@ -74,7 +72,6 @@ pub trait GitlabRepositoryService: Send + Sync + RepositoryProvider {
         display_name: String,
         access_token: String,
     ) -> Result<()>;
-    async fn update_provider_status(&self, id: ID, success: bool) -> Result<()>;
 
     async fn list_providers(
         &self,
@@ -95,18 +92,6 @@ pub trait GitlabRepositoryService: Send + Sync + RepositoryProvider {
         last: Option<usize>,
     ) -> Result<Vec<GitlabProvidedRepository>>;
 
-    async fn upsert_repository(
-        &self,
-        provider_id: ID,
-        vendor_id: String,
-        display_name: String,
-        git_url: String,
-    ) -> Result<()>;
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()>;
     async fn list_active_git_urls(&self) -> Result<Vec<String>>;
-    async fn delete_outdated_repositories(
-        &self,
-        provider_id: ID,
-        cutoff_timestamp: DateTime<Utc>,
-    ) -> Result<()>;
 }

@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
-use tracing::{debug, error};
 
 use super::{graphql_pagination_to_filter, AsRowid};
 use crate::schema::{
@@ -11,22 +10,14 @@ use crate::schema::{
 
 struct JobControllerImpl {
     db: DbConn,
-    sender: tokio::sync::mpsc::UnboundedSender<String>,
 }
 
-pub fn create(db: DbConn, sender: tokio::sync::mpsc::UnboundedSender<String>) -> impl JobService {
-    JobControllerImpl { db, sender }
+pub async fn create(db: DbConn) -> impl JobService {
+    JobControllerImpl { db }
 }
 
 #[async_trait]
 impl JobService for JobControllerImpl {
-    fn schedule(&self, name: &str) {
-        debug!("scheduling job: {}", name);
-        if let Err(e) = self.sender.send(name.to_owned()) {
-            error!("failed to send job to scheduler: {}", e);
-        }
-    }
-
     async fn list(
         &self,
         ids: Option<Vec<ID>>,

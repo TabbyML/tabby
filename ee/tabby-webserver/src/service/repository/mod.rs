@@ -9,6 +9,7 @@ use juniper::ID;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
 
+use super::background_job::BackgroundJob;
 use crate::schema::{
     repository::{
         FileEntrySearchResult, GitRepositoryService, GithubRepositoryService,
@@ -23,11 +24,11 @@ struct RepositoryServiceImpl {
     gitlab: Arc<dyn GitlabRepositoryService>,
 }
 
-pub fn create(db: DbConn) -> Arc<dyn RepositoryService> {
+pub fn create(db: DbConn, background: Arc<dyn BackgroundJob>) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(db.clone()),
-        github: Arc::new(github::create(db.clone())),
-        gitlab: Arc::new(gitlab::create(db.clone())),
+        github: Arc::new(github::create(db.clone(), background.clone())),
+        gitlab: Arc::new(gitlab::create(db, background)),
     })
 }
 
@@ -129,11 +130,12 @@ mod tests {
     use tabby_db::DbConn;
 
     use super::*;
+    use crate::background_job::create_fake;
 
     #[tokio::test]
     async fn test_list_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone());
+        let service = create(db.clone(), create_fake());
         service
             .git()
             .create("test_git_repo".into(), "http://test_git_repo".into())

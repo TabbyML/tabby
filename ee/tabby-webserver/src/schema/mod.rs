@@ -789,7 +789,6 @@ impl Mutation {
             .github()
             .create_provider(input.display_name, input.access_token)
             .await?;
-        ctx.locator.job().schedule("import_github_repositories");
         Ok(id)
     }
 
@@ -814,7 +813,6 @@ impl Mutation {
             .github()
             .update_provider(input.id, input.display_name, input.access_token)
             .await?;
-        ctx.locator.job().schedule("import_github_repositories");
         Ok(true)
     }
 
@@ -843,7 +841,6 @@ impl Mutation {
             .gitlab()
             .create_provider(input.display_name, input.access_token)
             .await?;
-        ctx.locator.job().schedule("import_gitlab_repositories");
         Ok(id)
     }
 
@@ -868,7 +865,6 @@ impl Mutation {
             .gitlab()
             .update_provider(input.id, input.display_name, input.access_token)
             .await?;
-        ctx.locator.job().schedule("import_gitlab_repositories");
         Ok(true)
     }
 
