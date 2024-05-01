@@ -38,9 +38,8 @@ tabby-db = { path = "../../ee/tabby-db" }
 tarpc = { version = "0.33.0", features = ["serde-transport"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "process"] }
-tokio-cron-scheduler = { workspace = true }
 tokio-tungstenite = "0.20.1"
-tower = { version = "0.4", features = ["util"] }
+tower = { version = "0.4", features = ["util", "limit"] }
 tower-http = { version = "0.4.0", features = ["fs", "trace"] }
 tracing.workspace = true
 unicase = "2.7.0"
@@ -53,7 +52,7 @@ tabby-search = { path = "../tabby-search" }
 octocrab = "0.38.0"
 fs_extra = "1.3.0"
 gitlab = "0.1610.0"
-rand = "0.8.5"
+apalis = { version = "0.5.1", features = ["sqlite", "cron" ] }
 
 [dev-dependencies]
 assert_matches = "1.5.0"

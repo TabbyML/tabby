@@ -1,5 +1,6 @@
 mod analytic;
 mod auth;
+pub mod background_job;
 mod dao;
 mod email;
 pub mod event_logger;
@@ -74,7 +75,6 @@ impl ServerContext {
         repository: Arc<dyn RepositoryService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
-        schedule_event_sender: tokio::sync::mpsc::UnboundedSender<String>,
     ) -> Self {
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -87,7 +87,7 @@ impl ServerContext {
                 .expect("failed to initialize license service"),
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
-        let job = Arc::new(job::create(db_conn.clone(), schedule_event_sender));
+        let job = Arc::new(job::create(db_conn.clone()).await);
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
@@ -326,18 +326,9 @@ pub async fn create_service_locator(
     repository: Arc<dyn RepositoryService>,
     db: DbConn,
     is_chat_enabled: bool,
-    schedule_event_sender: tokio::sync::mpsc::UnboundedSender<String>,
 ) -> Arc<dyn ServiceLocator> {
     Arc::new(Arc::new(
-        ServerContext::new(
-            logger,
-            code,
-            repository,
-            db,
-            is_chat_enabled,
-            schedule_event_sender,
-        )
-        .await,
+        ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
     ))
 }
 

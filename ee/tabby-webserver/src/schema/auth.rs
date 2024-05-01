@@ -401,8 +401,6 @@ pub trait AuthenticationService: Send + Sync {
     async fn token_auth(&self, email: String, password: String) -> Result<TokenAuthResponse>;
 
     async fn refresh_token(&self, refresh_token: String) -> Result<RefreshTokenResponse>;
-    async fn delete_expired_token(&self) -> Result<()>;
-    async fn delete_expired_password_resets(&self) -> Result<()>;
     async fn verify_access_token(&self, access_token: &str) -> Result<JWTPayload>;
     async fn is_admin_initialized(&self) -> Result<bool>;
     async fn get_user_by_email(&self, email: &str) -> Result<User>;

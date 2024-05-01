@@ -1,7 +1,6 @@
 //! Defines behavior for the tabby webserver which allows users to interact with enterprise features.
 //! Using the web interface (e.g chat playground) requires using this module with the `--webserver` flag on the command line.
 mod axum;
-mod cron;
 mod env;
 mod handler;
 mod hub;
@@ -41,4 +40,12 @@ macro_rules! bail {
     ($fmt:expr, $($arg:tt)*) => {
         return std::result::Result::Err(anyhow::anyhow!($fmt, $($arg)*).into())
     };
+}
+
+#[macro_export]
+macro_rules! warn_stderr {
+    ($ctx:expr, $($params:tt)+) => {
+        tracing::warn!($($params)+);
+        $ctx.stderr_writeline(format!($($params)+)).await;
+    }
 }
