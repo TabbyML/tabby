@@ -326,7 +326,7 @@ type UserEdge {
 
 type DiskUsage {
   filePaths: [String!]!
-  size: Float!
+  sizeKb: Float!
 }
 
 type JobRunConnection {
