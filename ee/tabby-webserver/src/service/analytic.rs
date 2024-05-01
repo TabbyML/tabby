@@ -98,7 +98,7 @@ async fn dir_size(path: PathBuf) -> Result<DiskUsage, anyhow::Error> {
 
     Ok(DiskUsage {
         file_paths: vec![path_str],
-        size_kb: size as f64 / 1024.0,
+        size: size as f64 / 1024.0,
     })
 }
 
@@ -351,9 +351,9 @@ mod tests {
 
         let disk_usage = service.disk_usage_stats().await.unwrap();
 
-        assert_eq!(disk_usage.events.size_kb, 0.0);
-        assert_eq!(disk_usage.indexed_repositories.size_kb, 0.0);
-        assert_eq!(disk_usage.database.size_kb, 0.0);
-        assert_eq!(disk_usage.models.size_kb, 1.0);
+        assert_eq!(disk_usage.events.size, 0.0);
+        assert_eq!(disk_usage.indexed_repositories.size, 0.0);
+        assert_eq!(disk_usage.database.size, 0.0);
+        assert_eq!(disk_usage.models.size, 1.0);
     }
 }
