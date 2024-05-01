@@ -1,5 +1,5 @@
 ---
-title: 'Tabby with Vulkan: LLMs for Everyone'
+title: 'Vulkan Support: LLMs for Everyone'
 authors: [boxbeam]
 tags: [deployment]
 ---
