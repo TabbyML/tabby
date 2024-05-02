@@ -13,7 +13,6 @@ base64 = "0.22.0"
 chrono = { workspace = true, features = ["serde"] }
 futures.workspace = true
 hyper = { workspace = true, features = ["client"] }
-jsonwebtoken = "9.1.0"
 juniper.workspace = true
 lazy_static.workspace = true
 serde.workspace = true
@@ -23,7 +22,6 @@ tabby-common = { path = "../../crates/tabby-common" }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "process"] }
 tracing.workspace = true
-uuid.workspace = true
 validator = { version = "0.16.1", features = ["derive"] }
 regex.workspace = true
 hash-ids.workspace = true

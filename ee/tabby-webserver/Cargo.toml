@@ -48,6 +48,7 @@ octocrab = "0.38.0"
 fs_extra = "1.3.0"
 gitlab = "0.1610.0"
 apalis = { version = "0.5.1", features = ["sqlite", "cron" ] }
+uuid.workspace = true
 
 [dev-dependencies]
 assert_matches = "1.5.0"

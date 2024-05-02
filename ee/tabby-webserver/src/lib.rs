@@ -3,6 +3,7 @@
 mod axum;
 mod handler;
 mod hub;
+mod jwt;
 mod oauth;
 mod path;
 mod repositories;

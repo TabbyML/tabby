@@ -20,16 +20,15 @@ use tabby_common::{
 };
 use tabby_db::DbConn;
 use tabby_schema::{
-    auth::{validate_jwt, AuthenticationService},
-    create_schema,
-    repository::RepositoryService,
-    Schema, ServiceLocator,
+    auth::AuthenticationService, create_schema, repository::RepositoryService, Schema,
+    ServiceLocator,
 };
 use tracing::{error, warn};
 
 use crate::{
     axum::{extract::AuthBearer, graphql, FromAuth},
     hub::{self, HubState},
+    jwt::validate_jwt,
     oauth,
     path::db_file,
     repositories,
