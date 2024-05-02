@@ -116,9 +116,9 @@ function toStatusBadge(status: RepositoryProviderStatus) {
   switch (status) {
     case RepositoryProviderStatus.Ready:
       return <Badge variant="successful">Ready</Badge>
-    case RepositoryProviderStatus.Error:
+    case RepositoryProviderStatus.Failed:
       return <Badge variant="destructive">Error</Badge>
-    case RepositoryProviderStatus.Error:
+    case RepositoryProviderStatus.Pending:
       return <Badge>Pending</Badge>
   }
 }
