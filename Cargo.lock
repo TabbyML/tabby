@@ -5322,6 +5322,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabby-schema"
+version = "0.11.0-dev.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "base64 0.22.0",
+ "chrono",
+ "futures",
+ "hash-ids",
+ "hyper 0.14.27",
+ "jsonwebtoken",
+ "juniper",
+ "lazy_static",
+ "regex",
+ "serde",
+ "strum",
+ "tabby-common",
+ "tabby-db",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid 1.6.1",
+ "validator",
+]
+
+[[package]]
 name = "tabby-search"
 version = "0.11.0-dev.0"
 dependencies = [
@@ -5341,13 +5368,11 @@ dependencies = [
  "assert_matches",
  "async-trait",
  "axum",
- "base64 0.22.0",
  "bincode",
  "chrono",
  "fs_extra",
  "futures",
  "gitlab",
- "hash-ids",
  "hyper 0.14.27",
  "jsonwebtoken",
  "juniper",
@@ -5359,15 +5384,14 @@ dependencies = [
  "octocrab",
  "pin-project",
  "querystring",
- "regex",
  "reqwest",
  "rust-embed 8.0.0",
  "serde",
  "serde_json",
  "serial_test 3.0.0",
- "strum",
  "tabby-common",
  "tabby-db",
+ "tabby-schema",
  "tabby-search",
  "tarpc",
  "temp_testdir",
@@ -5380,8 +5404,6 @@ dependencies = [
  "unicase",
  "url",
  "urlencoding",
- "uuid 1.6.1",
- "validator",
 ]
 
 [[package]]

@@ -17,11 +17,12 @@ use tabby_common::{
     api::{code::SearchResponse, event::LogEntry},
     config::{RepositoryAccess, RepositoryConfig},
 };
+use tabby_schema::ServiceLocator;
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
 use websocket::WebSocketTransport;
 
-use crate::{axum::extract::AuthBearer, schema::ServiceLocator};
+use crate::axum::extract::AuthBearer;
 
 pub(crate) struct HubState {
     locator: Arc<dyn ServiceLocator>,

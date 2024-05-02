@@ -9,12 +9,10 @@ use axum::{
     routing, Json, Router,
 };
 use serde::Deserialize;
+use tabby_schema::auth::{AuthenticationService, OAuthError, OAuthProvider, OAuthResponse};
 use tracing::error;
 
-use crate::{
-    oauth::{github::GithubClient, google::GoogleClient},
-    schema::auth::{AuthenticationService, OAuthError, OAuthProvider, OAuthResponse},
-};
+use crate::oauth::{github::GithubClient, google::GoogleClient};
 
 pub mod github;
 pub mod google;

@@ -19,18 +19,20 @@ use tabby_common::{
     config::RepositoryAccess,
 };
 use tabby_db::DbConn;
+use tabby_schema::{
+    auth::{validate_jwt, AuthenticationService},
+    create_schema,
+    repository::RepositoryService,
+    Schema, ServiceLocator,
+};
 use tracing::{error, warn};
 
 use crate::{
-    axum::{extract::AuthBearer, graphql},
+    axum::{extract::AuthBearer, graphql, FromAuth},
     hub::{self, HubState},
     oauth,
     path::db_file,
     repositories,
-    schema::{
-        auth::AuthenticationService, create_schema, repository::RepositoryService, Schema,
-        ServiceLocator,
-    },
     service::{
         background_job, create_service_locator, event_logger::create_event_logger, repository,
     },
@@ -196,4 +198,11 @@ async fn avatar(
         .headers_mut()
         .insert(CONTENT_TYPE, "image/*".parse().unwrap());
     Ok(response)
+}
+
+impl FromAuth<Arc<dyn ServiceLocator>> for tabby_schema::Context {
+    fn build(locator: Arc<dyn ServiceLocator>, bearer: Option<String>) -> Self {
+        let claims = bearer.and_then(|token| validate_jwt(&token).ok());
+        Self { claims, locator }
+    }
 }

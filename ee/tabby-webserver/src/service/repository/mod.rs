@@ -8,15 +8,15 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
-
-use super::background_job::BackgroundJob;
-use crate::schema::{
+use tabby_schema::{
     repository::{
         FileEntrySearchResult, GitRepositoryService, GithubRepositoryService,
         GitlabRepositoryService, Repository, RepositoryKind, RepositoryService,
     },
     Result,
 };
+
+use super::background_job::BackgroundJob;
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
@@ -114,8 +114,15 @@ impl RepositoryService for RepositoryServiceImpl {
 
         let pattern = pattern.to_owned();
         let matching = tokio::task::spawn_blocking(move || async move {
-            tabby_search::FileSearch::search(&dir, &pattern, top_n)
-                .map(|x| x.into_iter().map(|f| f.into()).collect())
+            tabby_search::FileSearch::search(&dir, &pattern, top_n).map(|x| {
+                x.into_iter()
+                    .map(|f| FileEntrySearchResult {
+                        r#type: f.r#type,
+                        path: f.path,
+                        indices: f.indices,
+                    })
+                    .collect()
+            })
         })
         .await
         .map_err(anyhow::Error::from)?

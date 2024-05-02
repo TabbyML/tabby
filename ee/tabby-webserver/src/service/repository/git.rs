@@ -3,14 +3,12 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
-
-use crate::{
-    schema::{
-        repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
-        Result,
-    },
-    service::{background_job::BackgroundJob, graphql_pagination_to_filter, AsID, AsRowid},
+use tabby_schema::{
+    repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
+    AsID, AsRowid, Result,
 };
+
+use crate::service::{background_job::BackgroundJob, graphql_pagination_to_filter};
 
 struct GitRepositoryServiceImpl {
     db: DbConn,

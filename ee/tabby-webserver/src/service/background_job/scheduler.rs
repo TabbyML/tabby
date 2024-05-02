@@ -80,14 +80,14 @@ impl SchedulerJob {
         logger: Data<JobLogger>,
         db: Data<DbConn>,
         local_port: Data<u16>,
-    ) -> crate::schema::Result<i32> {
+    ) -> tabby_schema::Result<i32> {
         Ok(self.run_impl(logger, db, local_port).await?)
     }
 
     async fn cron(
         _now: DateTime<Utc>,
         storage: Data<SqliteStorage<SchedulerJob>>,
-    ) -> crate::schema::Result<()> {
+    ) -> tabby_schema::Result<()> {
         let mut storage = (*storage).clone();
         storage
             .push(SchedulerJob {})

@@ -18,7 +18,7 @@ impl Job for DbMaintainanceJob {
 }
 
 impl DbMaintainanceJob {
-    async fn cron(_now: DateTime<Utc>, db: Data<DbConn>) -> crate::schema::Result<()> {
+    async fn cron(_now: DateTime<Utc>, db: Data<DbConn>) -> tabby_schema::Result<()> {
         debug!("Running db maintainance job");
         db.delete_expired_token().await?;
         db.delete_expired_password_resets().await?;

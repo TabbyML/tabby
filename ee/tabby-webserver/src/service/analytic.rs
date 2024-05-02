@@ -4,13 +4,13 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::ID;
 use tabby_db::DbConn;
-use tracing::warn;
-
-use super::AsRowid;
-use crate::schema::{
+use tabby_schema::{
     analytic::{AnalyticService, CompletionStats, DiskUsage, DiskUsageStats, Language},
     Result,
 };
+use tracing::warn;
+
+use super::AsRowid;
 
 struct AnalyticServiceImpl {
     db: DbConn,

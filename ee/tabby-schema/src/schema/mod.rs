@@ -12,8 +12,8 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::{
-    validate_jwt, AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
-    TokenAuthResponse, User,
+    AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
+    User,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
@@ -43,7 +43,6 @@ use self::{
     user_event::{UserEvent, UserEventService},
 };
 use crate::{
-    axum::FromAuth,
     env,
     juniper::relay::{self, Connection},
 };
@@ -63,15 +62,8 @@ pub trait ServiceLocator: Send + Sync {
 }
 
 pub struct Context {
-    claims: Option<auth::JWTPayload>,
-    locator: Arc<dyn ServiceLocator>,
-}
-
-impl FromAuth<Arc<dyn ServiceLocator>> for Context {
-    fn build(locator: Arc<dyn ServiceLocator>, bearer: Option<String>) -> Self {
-        let claims = bearer.and_then(|token| validate_jwt(&token).ok());
-        Self { claims, locator }
-    }
+    pub claims: Option<auth::JWTPayload>,
+    pub locator: Arc<dyn ServiceLocator>,
 }
 
 pub type Result<T, E = CoreError> = std::result::Result<T, E>;

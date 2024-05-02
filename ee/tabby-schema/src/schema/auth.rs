@@ -356,7 +356,6 @@ impl relay::NodeType for Invitation {
 
 #[derive(GraphQLEnum, Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "lowercase")]
-#[non_exhaustive]
 pub enum OAuthProvider {
     Github,
     Google,

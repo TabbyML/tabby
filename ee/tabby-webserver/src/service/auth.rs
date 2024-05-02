@@ -10,41 +10,44 @@ use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
+use tabby_schema::{
+    auth::{
+        generate_jwt, validate_jwt, AuthenticationService, Invitation, JWTPayload, OAuthCredential,
+        OAuthError, OAuthProvider, OAuthResponse, RefreshTokenResponse, RegisterResponse,
+        RequestInvitationInput, TokenAuthResponse, UpdateOAuthCredentialInput, User,
+    },
+    demo_mode,
+    email::EmailService,
+    license::{LicenseInfo, LicenseService},
+    setting::SettingService,
+    AsID, AsRowid, CoreError, DbEnum, Result,
+};
 use tokio::task::JoinHandle;
 use tracing::warn;
 
-use super::{dao::DbEnum, graphql_pagination_to_filter, AsID, AsRowid};
-use crate::{
-    bail,
-    env::demo_mode,
-    oauth,
-    schema::{
-        auth::{
-            generate_jwt, validate_jwt, AuthenticationService, Invitation, JWTPayload,
-            OAuthCredential, OAuthError, OAuthProvider, OAuthResponse, RefreshTokenResponse,
-            RegisterResponse, RequestInvitationInput, TokenAuthResponse,
-            UpdateOAuthCredentialInput, User,
-        },
-        email::EmailService,
-        license::{LicenseInfo, LicenseService},
-        setting::SettingService,
-        CoreError, Result,
-    },
-};
+use super::graphql_pagination_to_filter;
+use crate::{bail, oauth};
 
 #[derive(Clone)]
 struct AuthenticationServiceImpl {
     db: DbConn,
     mail: Arc<dyn EmailService>,
     license: Arc<dyn LicenseService>,
+    setting: Arc<dyn SettingService>,
 }
 
-pub fn new_authentication_service(
+pub fn create(
     db: DbConn,
     mail: Arc<dyn EmailService>,
     license: Arc<dyn LicenseService>,
+    setting: Arc<dyn SettingService>,
 ) -> impl AuthenticationService {
-    AuthenticationServiceImpl { db, mail, license }
+    AuthenticationServiceImpl {
+        db,
+        mail,
+        license,
+        setting,
+    }
 }
 
 #[async_trait]
@@ -102,7 +105,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn allow_self_signup(&self) -> Result<bool> {
         let domain_list = self
-            .db
+            .setting
             .read_security_setting()
             .await?
             .allowed_register_domain_list;
@@ -337,7 +340,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
     async fn request_invitation_email(&self, input: RequestInvitationInput) -> Result<Invitation> {
         if !self
-            .db
+            .setting
             .read_security_setting()
             .await?
             .can_register_without_invitation(&input.email)
@@ -407,7 +410,8 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .read()
             .await
             .context("Failed to read license info")?;
-        let user_id = get_or_create_oauth_user(&license, &self.db, &self.mail, &email).await?;
+        let user_id =
+            get_or_create_oauth_user(&license, &self.db, &self.setting, &self.mail, &email).await?;
 
         let refresh_token = self.db.create_refresh_token(user_id).await?;
 
@@ -436,7 +440,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn oauth_callback_url(&self, provider: OAuthProvider) -> Result<String> {
-        let external_url = self.db.read_network_setting().await?.external_url;
+        let external_url = self.setting.read_network_setting().await?.external_url;
         let url = match provider {
             OAuthProvider::Github => external_url + "/oauth/callback/github",
             OAuthProvider::Google => external_url + "/oauth/callback/google",
@@ -494,6 +498,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 async fn get_or_create_oauth_user(
     license: &LicenseInfo,
     db: &DbConn,
+    setting: &Arc<dyn SettingService>,
     mail: &Arc<dyn EmailService>,
     email: &str,
 ) -> Result<i64, OAuthError> {
@@ -509,7 +514,7 @@ async fn get_or_create_oauth_user(
         return Err(OAuthError::InsufficientSeats);
     }
 
-    if db
+    if setting
         .read_security_setting()
         .await
         .map_err(|x| OAuthError::Other(x.into()))?
@@ -623,7 +628,7 @@ mod tests {
     impl LicenseService for MockLicenseService {
         async fn read(&self) -> Result<LicenseInfo> {
             Ok(LicenseInfo {
-                r#type: crate::schema::license::LicenseType::Team,
+                r#type: tabby_schema::license::LicenseType::Team,
                 status: self.status.clone(),
                 seats: self.seats,
                 seats_used: self.seats_used,
@@ -647,6 +652,7 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         AuthenticationServiceImpl {
             db: db.clone(),
+            setting: Arc::new(crate::service::setting::create(db.clone())),
             mail: Arc::new(new_email_service(db).await.unwrap()),
             license,
         }
@@ -666,21 +672,22 @@ mod tests {
         let smtp = TestEmailServer::start().await;
         let service = AuthenticationServiceImpl {
             db: db.clone(),
-            mail: Arc::new(smtp.create_test_email_service(db).await),
+            mail: Arc::new(smtp.create_test_email_service(db.clone()).await),
             license: Arc::new(MockLicenseService::team()),
+            setting: Arc::new(crate::service::setting::create(db)),
         };
         (service, smtp)
     }
 
     use assert_matches::assert_matches;
     use serial_test::serial;
+    use tabby_schema::{
+        juniper::relay::{self, Connection},
+        license::{LicenseInfo, LicenseStatus},
+    };
 
     use super::*;
-    use crate::{
-        juniper::relay::{self, Connection},
-        schema::license::{LicenseInfo, LicenseStatus},
-        service::email::{new_email_service, testutils::TestEmailServer},
-    };
+    use crate::service::email::{new_email_service, testutils::TestEmailServer};
 
     #[test]
     fn test_password_hash() {
@@ -905,12 +912,17 @@ mod tests {
             .await
             .unwrap();
         service.db.update_user_active(id, false).await.unwrap();
+        let setting = service.setting;
 
-        assert!(
-            get_or_create_oauth_user(&license, &service.db, &service.mail, "test@example.com")
-                .await
-                .is_err()
-        );
+        assert!(get_or_create_oauth_user(
+            &license,
+            &service.db,
+            &setting,
+            &service.mail,
+            "test@example.com"
+        )
+        .await
+        .is_err());
 
         service
             .db
@@ -921,6 +933,7 @@ mod tests {
         assert!(get_or_create_oauth_user(
             &license,
             &service.db,
+            &setting,
             &service.mail,
             "example@example.com"
         )
@@ -934,6 +947,7 @@ mod tests {
         assert!(get_or_create_oauth_user(
             &license,
             &service.db,
+            &setting,
             &service.mail,
             "example@gmail.com"
         )

@@ -13,7 +13,7 @@ members = [
     "ee/tabby-webserver",
     "ee/tabby-db",
     "ee/tabby-db-macros",
-    "ee/tabby-search",
+    "ee/tabby-search", "ee/tabby-schema",
 ]
 
 [workspace.package]

@@ -12,12 +12,12 @@ use tabby_common::{
     },
     config::{RepositoryAccess, RepositoryConfig},
 };
+use tabby_schema::worker::Worker;
+pub use tabby_schema::worker::WorkerKind;
 use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
 
 use super::websocket::WebSocketTransport;
-use crate::schema::worker::Worker;
-pub use crate::schema::worker::WorkerKind;
 
 #[tarpc::service]
 pub trait Hub {
