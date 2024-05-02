@@ -302,7 +302,7 @@ dependencies = [
  "futures",
  "rand",
  "reqwest 0.12.4",
- "reqwest-eventsource 0.6.0",
+ "reqwest-eventsource",
  "secrecy",
  "serde",
  "serde_json",
@@ -3821,12 +3821,10 @@ dependencies = [
  "system-configuration",
  "tokio",
  "tokio-rustls 0.24.1",
- "tokio-util",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams 0.3.0",
  "web-sys",
  "webpki-roots",
  "winreg 0.50.0",
@@ -3877,25 +3875,9 @@ dependencies = [
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams 0.4.0",
+ "wasm-streams",
  "web-sys",
  "winreg 0.52.0",
-]
-
-[[package]]
-name = "reqwest-eventsource"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f529a5ff327743addc322af460761dff5b50e0c826b9e6ac44c3195c50bb2026"
-dependencies = [
- "eventsource-stream",
- "futures-core",
- "futures-timer",
- "mime",
- "nom",
- "pin-project-lite",
- "reqwest 0.11.22",
- "thiserror",
 ]
 
 [[package]]
@@ -4988,7 +4970,7 @@ dependencies = [
  "parse-git-url",
  "regex",
  "reqwest 0.12.4",
- "reqwest-eventsource 0.5.0",
+ "reqwest-eventsource",
  "serde",
  "serde-jsonlines 0.5.0",
  "serde_json",
@@ -6452,19 +6434,6 @@ name = "wasm-bindgen-shared"
 version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
-
-[[package]]
-name = "wasm-streams"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4609d447824375f43e1ffbc051b50ad8f4b3ae8219680c94452ea05eb240ac7"
-dependencies = [
- "futures-util",
- "js-sys",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
 
 [[package]]
 name = "wasm-streams"
