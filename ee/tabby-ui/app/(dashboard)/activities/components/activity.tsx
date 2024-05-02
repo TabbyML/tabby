@@ -59,8 +59,8 @@ export const listUserEvents = graphql(/* GraphQL */ `
     $before: String
     $first: Int
     $last: Int
-    $start: DateTimeUtc!
-    $end: DateTimeUtc!
+    $start: DateTime!
+    $end: DateTime!
     $users: [ID!]
   ) {
     userEvents(

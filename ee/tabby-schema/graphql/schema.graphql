@@ -1,19 +1,25 @@
-type Repository {
-  id: ID!
-  name: String!
-  kind: RepositoryKind!
+schema {
+  query: Query
+  mutation: Mutation
 }
 
-input UpdateRepositoryProviderInput {
-  id: ID!
-  displayName: String!
-  accessToken: String!
+enum AuthMethod {
+  NONE
+  PLAIN
+  LOGIN
 }
 
-type GitlabRepositoryProvider {
-  id: ID!
-  displayName: String!
-  status: RepositoryProviderStatus!
+enum Encryption {
+  START_TLS
+  SSL_TLS
+  NONE
+}
+
+enum EventKind {
+  COMPLETION
+  SELECT
+  VIEW
+  DISMISS
 }
 
 enum Language {
@@ -32,124 +38,57 @@ enum Language {
   OTHER
 }
 
-type GithubRepositoryProviderEdge {
-  node: GithubRepositoryProvider!
-  cursor: String!
-}
-
-type GitRepository {
-  id: ID!
-  name: String!
-  gitUrl: String!
-}
-
-type JobRun {
-  id: ID!
-  job: String!
-  createdAt: DateTimeUtc!
-  updatedAt: DateTimeUtc!
-  finishedAt: DateTimeUtc
-  exitCode: Int
-  stdout: String!
-  stderr: String!
-}
-
-type GitlabProvidedRepositoryEdge {
-  node: GitlabProvidedRepository!
-  cursor: String!
-}
-
-enum AuthMethod {
-  NONE
-  PLAIN
-  LOGIN
-}
-
-type GithubProvidedRepositoryConnection {
-  edges: [GithubProvidedRepositoryEdge!]!
-  pageInfo: PageInfo!
-}
-
-type RegisterResponse {
-  accessToken: String!
-  refreshToken: String!
-}
-
 enum LicenseStatus {
   OK
   EXPIRED
   SEATS_EXCEEDED
 }
 
-input RequestPasswordResetEmailInput {
-  email: String!
+enum LicenseType {
+  COMMUNITY
+  TEAM
+  ENTERPRISE
 }
 
-type LicenseInfo {
-  type: LicenseType!
-  status: LicenseStatus!
-  seats: Int!
-  seatsUsed: Int!
-  issuedAt: DateTimeUtc
-  expiresAt: DateTimeUtc
+enum OAuthProvider {
+  GITHUB
+  GOOGLE
 }
 
-type GitlabRepositoryProviderEdge {
-  node: GitlabRepositoryProvider!
-  cursor: String!
-}
-
-type GithubRepositoryProviderConnection {
-  edges: [GithubRepositoryProviderEdge!]!
-  pageInfo: PageInfo!
-}
-
-input SecuritySettingInput {
-  allowedRegisterDomainList: [String!]!
-  disableClientSideTelemetry: Boolean!
-}
-
-type SecuritySetting {
-  allowedRegisterDomainList: [String!]!
-  disableClientSideTelemetry: Boolean!
-}
-
-type UserConnection {
-  edges: [UserEdge!]!
-  pageInfo: PageInfo!
+enum RepositoryKind {
+  GIT
+  GITHUB
+  GITLAB
 }
 
 enum RepositoryProviderStatus {
   READY
   PENDING
-  ERROR
+  FAILED
 }
 
-type DiskUsageStats {
-  events: DiskUsage!
-  indexedRepositories: DiskUsage!
-  database: DiskUsage!
-  models: DiskUsage!
+enum WorkerKind {
+  COMPLETION
+  CHAT
 }
 
-input UpdateOAuthCredentialInput {
-  provider: OAuthProvider!
-  clientId: String!
-  clientSecret: String
-}
-
-type ServerInfo {
-  isAdminInitialized: Boolean!
-  isChatEnabled: Boolean!
-  isEmailConfigured: Boolean!
-  allowSelfSignup: Boolean!
-  isDemoMode: Boolean!
-}
-
-type GithubRepositoryProvider {
-  id: ID!
+input CreateRepositoryProviderInput {
   displayName: String!
-  status: RepositoryProviderStatus!
+  accessToken: String!
+}
+
+input EmailSettingInput {
+  smtpUsername: String!
+  fromAddress: String!
+  smtpServer: String!
+  smtpPort: Int!
+  encryption: Encryption!
+  authMethod: AuthMethod!
+  smtpPassword: String
+}
+
+input NetworkSettingInput {
+  externalUrl: String!
 }
 
 input PasswordChangeInput {
@@ -158,16 +97,73 @@ input PasswordChangeInput {
   newPassword2: String!
 }
 
-type Invitation {
-  id: ID!
-  email: String!
+input PasswordResetInput {
   code: String!
-  createdAt: DateTimeUtc!
+  password1: String!
+  password2: String!
 }
 
-type GitlabProvidedRepositoryConnection {
-  edges: [GitlabProvidedRepositoryEdge!]!
-  pageInfo: PageInfo!
+input RequestInvitationInput {
+  email: String!
+}
+
+input RequestPasswordResetEmailInput {
+  email: String!
+}
+
+input SecuritySettingInput {
+  allowedRegisterDomainList: [String!]!
+  disableClientSideTelemetry: Boolean!
+}
+
+input UpdateOAuthCredentialInput {
+  provider: OAuthProvider!
+  clientId: String!
+  clientSecret: String
+}
+
+input UpdateRepositoryProviderInput {
+  id: ID!
+  displayName: String!
+  accessToken: String!
+}
+
+"""
+  Combined date and time (with time zone) in [RFC 3339][0] format.
+
+  Represents a description of an exact instant on the time-line (such as the
+  instant that a user account was created).
+
+  [`DateTime` scalar][1] compliant.
+
+  See also [`chrono::DateTime`][2] for details.
+
+  [0]: https://datatracker.ietf.org/doc/html/rfc3339#section-5
+  [1]: https://graphql-scalars.dev/docs/scalars/date-time
+  [2]: https://docs.rs/chrono/latest/chrono/struct.DateTime.html
+"""
+scalar DateTime
+
+type CompletionStats {
+  start: DateTime!
+  end: DateTime!
+  language: Language!
+  completions: Int!
+  views: Int!
+  selects: Int!
+}
+
+type DiskUsage {
+  filepath: [String!]!
+  "Size in kilobytes."
+  sizeKb: Float!
+}
+
+type DiskUsageStats {
+  events: DiskUsage!
+  indexedRepositories: DiskUsage!
+  database: DiskUsage!
+  models: DiskUsage!
 }
 
 type EmailSetting {
@@ -179,19 +175,120 @@ type EmailSetting {
   authMethod: AuthMethod!
 }
 
-type JobStats {
-  success: Int!
-  failed: Int!
-  pending: Int!
+type FileEntrySearchResult {
+  type: String!
+  path: String!
+  "matched indices for fuzzy search query."
+  indices: [Int!]!
 }
 
-type TokenAuthResponse {
-  accessToken: String!
-  refreshToken: String!
+type GitRepository {
+  id: ID!
+  name: String!
+  gitUrl: String!
 }
 
-type NetworkSetting {
-  externalUrl: String!
+type GithubProvidedRepository {
+  id: ID!
+  vendorId: String!
+  githubRepositoryProviderId: ID!
+  name: String!
+  gitUrl: String!
+  active: Boolean!
+}
+
+type GithubProvidedRepositoryConnection {
+  edges: [GithubProvidedRepositoryEdge!]!
+  pageInfo: PageInfo!
+}
+
+type GithubProvidedRepositoryEdge {
+  node: GithubProvidedRepository!
+  cursor: String!
+}
+
+type GithubRepositoryProvider {
+  id: ID!
+  displayName: String!
+  status: RepositoryProviderStatus!
+}
+
+type GithubRepositoryProviderConnection {
+  edges: [GithubRepositoryProviderEdge!]!
+  pageInfo: PageInfo!
+}
+
+type GithubRepositoryProviderEdge {
+  node: GithubRepositoryProvider!
+  cursor: String!
+}
+
+type GitlabProvidedRepository {
+  id: ID!
+  vendorId: String!
+  gitlabRepositoryProviderId: ID!
+  name: String!
+  gitUrl: String!
+  active: Boolean!
+}
+
+type GitlabProvidedRepositoryConnection {
+  edges: [GitlabProvidedRepositoryEdge!]!
+  pageInfo: PageInfo!
+}
+
+type GitlabProvidedRepositoryEdge {
+  node: GitlabProvidedRepository!
+  cursor: String!
+}
+
+type GitlabRepositoryProvider {
+  id: ID!
+  displayName: String!
+  status: RepositoryProviderStatus!
+}
+
+type GitlabRepositoryProviderConnection {
+  edges: [GitlabRepositoryProviderEdge!]!
+  pageInfo: PageInfo!
+}
+
+type GitlabRepositoryProviderEdge {
+  node: GitlabRepositoryProvider!
+  cursor: String!
+}
+
+type Invitation {
+  id: ID!
+  email: String!
+  code: String!
+  createdAt: DateTime!
+}
+
+type InvitationConnection {
+  edges: [InvitationEdge!]!
+  pageInfo: PageInfo!
+}
+
+type InvitationEdge {
+  node: Invitation!
+  cursor: String!
+}
+
+type JobRun {
+  id: ID!
+  job: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  finishedAt: DateTime
+  exitCode: Int
+  stdout: String!
+  stderr: String!
+}
+
+type JobRunConnection {
+  edges: [JobRunEdge!]!
+  pageInfo: PageInfo!
 }
 
 type JobRunEdge {
@@ -199,17 +296,19 @@ type JobRunEdge {
   cursor: String!
 }
 
-type UserEvent {
-  id: ID!
-  userId: ID!
-  kind: EventKind!
-  createdAt: DateTimeUtc!
-  payload: String!
+type JobStats {
+  success: Int!
+  failed: Int!
+  pending: Int!
 }
 
-enum WorkerKind {
-  COMPLETION
-  CHAT
+type LicenseInfo {
+  type: LicenseType!
+  status: LicenseStatus!
+  seats: Int!
+  seatsUsed: Int!
+  issuedAt: DateTime
+  expiresAt: DateTime
 }
 
 type Mutation {
@@ -251,33 +350,22 @@ type Mutation {
   updateGitlabProvidedRepositoryActive(id: ID!, active: Boolean!): Boolean!
 }
 
-type UserEventEdge {
-  node: UserEvent!
-  cursor: String!
+type NetworkSetting {
+  externalUrl: String!
 }
 
-type RepositoryEdge {
-  node: GitRepository!
-  cursor: String!
+type OAuthCredential {
+  provider: OAuthProvider!
+  clientId: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
-"DateTime"
-scalar DateTimeUtc
-
-type FileEntrySearchResult {
-  type: String!
-  path: String!
-  "matched indices for fuzzy search query."
-  indices: [Int!]!
-}
-
-type GithubProvidedRepository {
-  id: ID!
-  vendorId: String!
-  githubRepositoryProviderId: ID!
-  name: String!
-  gitUrl: String!
-  active: Boolean!
+type PageInfo {
+  hasPreviousPage: Boolean!
+  hasNextPage: Boolean!
+  startCursor: String
+  endCursor: String
 }
 
 type Query {
@@ -303,47 +391,27 @@ type Query {
   license: LicenseInfo!
   jobs: [String!]!
   dailyStatsInPastYear(users: [ID!]): [CompletionStats!]!
-  dailyStats(start: DateTimeUtc!, end: DateTimeUtc!, users: [ID!], languages: [Language!]): [CompletionStats!]!
-  userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTimeUtc!, end: DateTimeUtc!): UserEventConnection!
+  dailyStats(start: DateTime!, end: DateTime!, users: [ID!], languages: [Language!]): [CompletionStats!]!
+  userEvents(after: String, before: String, first: Int, last: Int, users: [ID!], start: DateTime!, end: DateTime!): UserEventConnection!
   diskUsageStats: DiskUsageStats!
   repositoryList: [Repository!]!
-}
-
-input NetworkSettingInput {
-  externalUrl: String!
-}
-
-enum Encryption {
-  START_TLS
-  SSL_TLS
-  NONE
-}
-
-type UserEdge {
-  node: User!
-  cursor: String!
-}
-
-type DiskUsage {
-  filepath: [String!]!
-  "Size in kilobytes."
-  sizeKb: Float!
-}
-
-type JobRunConnection {
-  edges: [JobRunEdge!]!
-  pageInfo: PageInfo!
 }
 
 type RefreshTokenResponse {
   accessToken: String!
   refreshToken: String!
-  refreshExpiresAt: DateTimeUtc!
+  refreshExpiresAt: DateTime!
 }
 
-type GitlabRepositoryProviderConnection {
-  edges: [GitlabRepositoryProviderEdge!]!
-  pageInfo: PageInfo!
+type RegisterResponse {
+  accessToken: String!
+  refreshToken: String!
+}
+
+type Repository {
+  id: ID!
+  name: String!
+  kind: RepositoryKind!
 }
 
 type RepositoryConnection {
@@ -351,67 +419,27 @@ type RepositoryConnection {
   pageInfo: PageInfo!
 }
 
-enum RepositoryKind {
-  GIT
-  GITHUB
-  GITLAB
+type RepositoryEdge {
+  node: GitRepository!
+  cursor: String!
 }
 
-input EmailSettingInput {
-  smtpUsername: String!
-  fromAddress: String!
-  smtpServer: String!
-  smtpPort: Int!
-  encryption: Encryption!
-  authMethod: AuthMethod!
-  smtpPassword: String
+type SecuritySetting {
+  allowedRegisterDomainList: [String!]!
+  disableClientSideTelemetry: Boolean!
 }
 
-enum LicenseType {
-  COMMUNITY
-  TEAM
-  ENTERPRISE
+type ServerInfo {
+  isAdminInitialized: Boolean!
+  isChatEnabled: Boolean!
+  isEmailConfigured: Boolean!
+  allowSelfSignup: Boolean!
+  isDemoMode: Boolean!
 }
 
-type GitlabProvidedRepository {
-  id: ID!
-  vendorId: String!
-  gitlabRepositoryProviderId: ID!
-  name: String!
-  gitUrl: String!
-  active: Boolean!
-}
-
-type OAuthCredential {
-  provider: OAuthProvider!
-  clientId: String!
-  createdAt: DateTimeUtc!
-  updatedAt: DateTimeUtc!
-}
-
-type CompletionStats {
-  start: DateTimeUtc!
-  end: DateTimeUtc!
-  language: Language!
-  completions: Int!
-  views: Int!
-  selects: Int!
-}
-
-type UserEventConnection {
-  edges: [UserEventEdge!]!
-  pageInfo: PageInfo!
-}
-
-input PasswordResetInput {
-  code: String!
-  password1: String!
-  password2: String!
-}
-
-input CreateRepositoryProviderInput {
-  displayName: String!
+type TokenAuthResponse {
   accessToken: String!
+  refreshToken: String!
 }
 
 type User {
@@ -420,9 +448,37 @@ type User {
   isAdmin: Boolean!
   isOwner: Boolean!
   authToken: String!
-  createdAt: DateTimeUtc!
+  createdAt: DateTime!
   active: Boolean!
   isPasswordSet: Boolean!
+}
+
+type UserConnection {
+  edges: [UserEdge!]!
+  pageInfo: PageInfo!
+}
+
+type UserEdge {
+  node: User!
+  cursor: String!
+}
+
+type UserEvent {
+  id: ID!
+  userId: ID!
+  kind: EventKind!
+  createdAt: DateTime!
+  payload: String!
+}
+
+type UserEventConnection {
+  edges: [UserEventEdge!]!
+  pageInfo: PageInfo!
+}
+
+type UserEventEdge {
+  node: UserEvent!
+  cursor: String!
 }
 
 type Worker {
@@ -434,47 +490,4 @@ type Worker {
   cpuInfo: String!
   cpuCount: Int!
   cudaDevices: [String!]!
-}
-
-type InvitationEdge {
-  node: Invitation!
-  cursor: String!
-}
-
-enum OAuthProvider {
-  GITHUB
-  GOOGLE
-}
-
-type PageInfo {
-  hasPreviousPage: Boolean!
-  hasNextPage: Boolean!
-  startCursor: String
-  endCursor: String
-}
-
-input RequestInvitationInput {
-  email: String!
-}
-
-type GithubProvidedRepositoryEdge {
-  node: GithubProvidedRepository!
-  cursor: String!
-}
-
-enum EventKind {
-  COMPLETION
-  SELECT
-  VIEW
-  DISMISS
-}
-
-type InvitationConnection {
-  edges: [InvitationEdge!]!
-  pageInfo: PageInfo!
-}
-
-schema {
-  query: Query
-  mutation: Mutation
 }

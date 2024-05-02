@@ -15,11 +15,16 @@ use std::{net::SocketAddr, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
-    http::{HeaderName, HeaderValue, Request},
+    body::Body,
+    http::{HeaderName, HeaderValue, Request, StatusCode},
     middleware::Next,
     response::IntoResponse,
 };
-use hyper::{client::HttpConnector, Body, Client, StatusCode};
+use hyper::{HeaderMap, Uri};
+use hyper_util::{
+    client::legacy::{connect::HttpConnector, Client},
+    rt,
+};
 use juniper::ID;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
@@ -45,7 +50,7 @@ use self::{
     analytic::new_analytic_service, email::new_email_service, license::new_license_service,
 };
 struct ServerContext {
-    client: Client<HttpConnector>,
+    client: Client<HttpConnector, Body>,
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
     db_conn: DbConn,
@@ -86,7 +91,7 @@ impl ServerContext {
         let job = Arc::new(job::create(db_conn.clone()).await);
         let setting = Arc::new(setting::create(db_conn.clone()));
         Self {
-            client: Client::default(),
+            client: Client::builder(rt::TokioExecutor::new()).build(HttpConnector::new()),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             mail: mail.clone(),
@@ -109,8 +114,8 @@ impl ServerContext {
     }
 
     /// Returns whether a request is authorized to access the content, and the user ID if authentication was used.
-    async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<ID>) {
-        let path = request.uri().path();
+    async fn authorize_request(&self, uri: &Uri, headers: &HeaderMap) -> (bool, Option<ID>) {
+        let path = uri.path();
         if demo_mode()
             && (path.starts_with("/v1/completions")
                 || path.starts_with("/v1/chat/completions")
@@ -121,8 +126,7 @@ impl ServerContext {
         if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
             return (true, None);
         }
-        let authorization = request
-            .headers()
+        let authorization = headers
             .get("authorization")
             .map(HeaderValue::to_str)
             .and_then(Result::ok);
@@ -215,9 +219,11 @@ impl WorkerService for ServerContext {
     async fn dispatch_request(
         &self,
         mut request: Request<Body>,
-        next: Next<Body>,
+        next: Next,
     ) -> axum::response::Response {
-        let (auth, user) = self.authorize_request(&request).await;
+        let (auth, user) = self
+            .authorize_request(request.uri(), request.headers())
+            .await;
         if !auth {
             return axum::response::Response::builder()
                 .status(StatusCode::UNAUTHORIZED)

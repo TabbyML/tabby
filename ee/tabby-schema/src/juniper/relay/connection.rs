@@ -1,6 +1,9 @@
 use juniper::{
-    marker::IsOutputType, meta::MetaType, Arguments, ExecutionResult, Executor, GraphQLType,
-    GraphQLValue, GraphQLValueAsync, Registry, ScalarValue,
+    macros::reflect::{BaseSubTypes, BaseType, Type, Types, WrappedType, WrappedValue},
+    marker::IsOutputType,
+    meta::MetaType,
+    Arguments, ExecutionResult, Executor, GraphQLType, GraphQLValue, GraphQLValueAsync, Registry,
+    ScalarValue,
 };
 
 use super::{edge::Edge, page_info::PageInfo, NodeType};
@@ -12,6 +15,18 @@ pub struct Connection<Node> {
     /// All edges of the current page.
     pub edges: Vec<Edge<Node>>,
     pub page_info: PageInfo,
+}
+
+impl<S, T: WrappedType<S>> WrappedType<S> for Connection<T> {
+    const VALUE: WrappedValue = T::VALUE * 10 + 3;
+}
+
+impl<S, T: BaseType<S>> BaseType<S> for Connection<T> {
+    const NAME: Type = T::NAME;
+}
+
+impl<S, T: BaseSubTypes<S>> BaseSubTypes<S> for Connection<T> {
+    const NAMES: Types = T::NAMES;
 }
 
 impl<Node> Connection<Node>
@@ -165,7 +180,8 @@ where
 
 impl<Node, S> IsOutputType<S> for Connection<Node>
 where
-    Node: GraphQLType<S>,
+    Node: GraphQLType<S> + NodeType,
+    Node::Context: juniper::Context,
     S: ScalarValue,
 {
 }

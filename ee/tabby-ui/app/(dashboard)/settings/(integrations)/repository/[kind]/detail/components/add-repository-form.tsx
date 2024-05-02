@@ -82,7 +82,7 @@ export default function LinkRepositoryForm({
     switch (providerStatus) {
       case RepositoryProviderStatus.Pending:
         return 'Awaiting the next data synchronization'
-      case RepositoryProviderStatus.Error:
+      case RepositoryProviderStatus.Failed:
         return 'Synchronizing error. Please check if the access token is still valid'
       default:
         return 'No repository found'

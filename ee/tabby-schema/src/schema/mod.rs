@@ -66,6 +66,9 @@ pub struct Context {
     pub locator: Arc<dyn ServiceLocator>,
 }
 
+// To make our context usable by Juniper, we have to implement a marker trait.
+impl juniper::Context for Context {}
+
 pub type Result<T, E = CoreError> = std::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
@@ -104,9 +107,6 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
         }
     }
 }
-
-// To make our context usable by Juniper, we have to implement a marker trait.
-impl juniper::Context for Context {}
 
 fn check_claims(ctx: &Context) -> Result<&JWTPayload, CoreError> {
     ctx.claims
@@ -149,7 +149,7 @@ impl Query {
     async fn workers(ctx: &Context) -> Result<Vec<Worker>> {
         check_admin(ctx).await?;
         let workers = ctx.locator.worker().list().await;
-        return Ok(workers);
+        Ok(workers)
     }
 
     async fn registration_token(ctx: &Context) -> Result<String> {
@@ -170,7 +170,7 @@ impl Query {
         last: Option<i32>,
     ) -> Result<Connection<User>> {
         check_admin(ctx).await?;
-        return relay::query_async(
+        relay::query_async(
             after,
             before,
             first,
@@ -182,7 +182,7 @@ impl Query {
                     .await
             },
         )
-        .await;
+        .await
     }
 
     async fn invitations(

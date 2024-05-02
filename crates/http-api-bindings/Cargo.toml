@@ -7,7 +7,7 @@ homepage.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-async-openai = "0.18.3"
+async-openai = "0.20"
 async-stream.workspace = true
 async-trait.workspace = true
 futures.workspace = true
