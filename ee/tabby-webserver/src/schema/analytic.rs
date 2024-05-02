@@ -18,19 +18,17 @@ pub struct DiskUsageStats {
 
 #[derive(GraphQLObject)]
 pub struct DiskUsage {
-    pub file_paths: Vec<String>,
-    pub size: f64,
+    pub filepath: Vec<String>,
+
+    /// Size in kilobytes.
+    pub size_kb: f64,
 }
 
 impl DiskUsage {
     pub fn combine(self, other: Self) -> Self {
         DiskUsage {
-            size: self.size + other.size,
-            file_paths: self
-                .file_paths
-                .into_iter()
-                .chain(other.file_paths)
-                .collect(),
+            size_kb: self.size_kb + other.size_kb,
+            filepath: self.filepath.into_iter().chain(other.filepath).collect(),
         }
     }
 }
