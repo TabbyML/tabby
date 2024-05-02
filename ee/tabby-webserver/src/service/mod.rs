@@ -281,17 +281,9 @@ impl ArcServerContext {
     }
 }
 
-impl Deref for ArcServerContext {
-    type Target = Arc<ServerContext>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 impl ServiceLocator for ArcServerContext {
     fn auth(&self) -> Arc<dyn AuthenticationService> {
-        self.auth.clone()
+        self.0.auth.clone()
     }
 
     fn worker(&self) -> Arc<dyn WorkerService> {
@@ -299,39 +291,39 @@ impl ServiceLocator for ArcServerContext {
     }
 
     fn code(&self) -> Arc<dyn CodeSearch> {
-        self.code.clone()
+        self.0.code.clone()
     }
 
     fn logger(&self) -> Arc<dyn EventLogger> {
-        self.logger.clone()
+        self.0.logger.clone()
     }
 
     fn job(&self) -> Arc<dyn JobService> {
-        self.job.clone()
+        self.0.job.clone()
     }
 
     fn repository(&self) -> Arc<dyn RepositoryService> {
-        self.repository.clone()
+        self.0.repository.clone()
     }
 
     fn email(&self) -> Arc<dyn EmailService> {
-        self.mail.clone()
+        self.0.mail.clone()
     }
 
     fn setting(&self) -> Arc<dyn SettingService> {
-        self.setting.clone()
+        self.0.setting.clone()
     }
 
     fn license(&self) -> Arc<dyn LicenseService> {
-        self.license.clone()
+        self.0.license.clone()
     }
 
     fn analytic(&self) -> Arc<dyn AnalyticService> {
-        new_analytic_service(self.db_conn.clone())
+        new_analytic_service(self.0.db_conn.clone())
     }
 
     fn user_event(&self) -> Arc<dyn UserEventService> {
-        self.user_event.clone()
+        self.0.user_event.clone()
     }
 }
 
