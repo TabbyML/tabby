@@ -1,25 +1,27 @@
 //! Responsible for scheduling all of the background jobs for tabby.
 //! Includes syncing respositories and updating indices.
+mod cache;
 mod code;
 mod dataset;
 mod index;
 mod repository;
-mod repository_store;
 mod utils;
 
 use std::sync::Arc;
 
+use cache::CacheStore;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{info, warn};
 
 pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
     if now {
+        let cache = cache::CacheStore::new(tabby_common::path::cache_dir());
         let repositories = access
             .list_repositories()
             .await
             .expect("Must be able to retrieve repositories for sync");
-        job_sync(&repositories);
+        job_sync(&cache, &repositories);
         job_index(&repositories);
     } else {
         let access = Arc::new(access);
@@ -40,12 +42,14 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
                             return;
                         };
 
+                        let cache = cache::CacheStore::new(tabby_common::path::cache_dir());
+
                         let repositories = access
                             .list_repositories()
                             .await
                             .expect("Must be able to retrieve repositories for sync");
 
-                        job_sync(&repositories);
+                        job_sync(&cache, &repositories);
                         job_index(&repositories);
                     })
                 })
@@ -67,10 +71,13 @@ fn job_index(repositories: &[RepositoryConfig]) {
     index::index_repositories(repositories);
 }
 
-fn job_sync(repositories: &[RepositoryConfig]) {
+fn job_sync(cache: &CacheStore, repositories: &[RepositoryConfig]) {
     println!("Syncing {} repositories...", repositories.len());
     repository::sync_repositories(repositories);
 
-    println!("Building dataset...");
-    dataset::create_dataset(repositories);
+    println!("Updating source files...");
+    cache.update_source_files(repositories);
+
+    println!("Exporting dataset...");
+    dataset::create_dataset(cache, repositories);
 }
