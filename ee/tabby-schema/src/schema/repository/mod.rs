@@ -15,7 +15,6 @@ pub use gitlab::{GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepos
 use juniper::{GraphQLEnum, GraphQLObject, ID};
 use serde::Deserialize;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
-use tabby_search::FileSearch;
 
 use super::Result;
 
@@ -26,16 +25,6 @@ pub struct FileEntrySearchResult {
 
     /// matched indices for fuzzy search query.
     pub indices: Vec<i32>,
-}
-
-impl From<FileSearch> for FileEntrySearchResult {
-    fn from(value: FileSearch) -> Self {
-        Self {
-            r#type: value.r#type,
-            path: value.path,
-            indices: value.indices,
-        }
-    }
 }
 
 #[derive(GraphQLEnum, Debug, Deserialize)]

@@ -5,9 +5,6 @@ edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
 
-[features]
-prod-db = []
-
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
@@ -29,13 +26,4 @@ tracing.workspace = true
 uuid.workspace = true
 validator = { version = "0.16.1", features = ["derive"] }
 regex.workspace = true
-tabby-search = { path = "../tabby-search" }
-gitlab = "0.1610.0"
 hash-ids.workspace = true
-
-[dev-dependencies]
-assert_matches = "1.5.0"
-tokio = { workspace = true, features = ["macros"] }
-tabby-common = { path = "../../crates/tabby-common", features = [ "testutils" ] }
-serial_test = { workspace = true }
-temp_testdir = { workspace = true }
