@@ -10,11 +10,11 @@ use axum::{
     response::Response,
     routing, Router,
 };
+use resolve::{ResolveParams, ResolveState};
 use tabby_schema::{auth::AuthenticationService, repository::RepositoryService};
 use tracing::{instrument, warn};
 
-use self::resolve::ResolveState;
-use crate::{handler::require_login_middleware, repositories::resolve::ResolveParams};
+use super::require_login_middleware;
 
 pub fn routes(
     repository: Arc<dyn RepositoryService>,

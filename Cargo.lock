@@ -5333,7 +5333,6 @@ dependencies = [
  "futures",
  "hash-ids",
  "hyper 0.14.27",
- "jsonwebtoken",
  "juniper",
  "lazy_static",
  "regex",
@@ -5344,7 +5343,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "uuid 1.6.1",
  "validator",
 ]
 
@@ -5404,6 +5402,7 @@ dependencies = [
  "unicase",
  "url",
  "urlencoding",
+ "uuid 1.6.1",
 ]
 
 [[package]]

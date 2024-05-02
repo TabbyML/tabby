@@ -12,9 +12,9 @@ use juniper::ID;
 use tabby_db::{DbConn, InvitationDAO};
 use tabby_schema::{
     auth::{
-        generate_jwt, validate_jwt, AuthenticationService, Invitation, JWTPayload, OAuthCredential,
-        OAuthError, OAuthProvider, OAuthResponse, RefreshTokenResponse, RegisterResponse,
-        RequestInvitationInput, TokenAuthResponse, UpdateOAuthCredentialInput, User,
+        AuthenticationService, Invitation, JWTPayload, OAuthCredential, OAuthError, OAuthProvider,
+        OAuthResponse, RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
+        TokenAuthResponse, UpdateOAuthCredentialInput, User,
     },
     demo_mode,
     email::EmailService,
@@ -26,7 +26,11 @@ use tokio::task::JoinHandle;
 use tracing::warn;
 
 use super::graphql_pagination_to_filter;
-use crate::{bail, oauth};
+use crate::{
+    bail,
+    jwt::{generate_jwt, validate_jwt},
+    oauth,
+};
 
 #[derive(Clone)]
 struct AuthenticationServiceImpl {
@@ -91,7 +95,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let refresh_token = self.db.create_refresh_token(id).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(id.as_id())) else {
+        let Ok(access_token) = generate_jwt(id.as_id()) else {
             bail!("Unknown error");
         };
 
@@ -230,7 +234,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let refresh_token = self.db.create_refresh_token(user.id).await?;
 
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id())) else {
+        let Ok(access_token) = generate_jwt(user.id.as_id()) else {
             bail!("Unknown error");
         };
 
@@ -259,7 +263,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
             .await?;
 
         // refresh token update is done, generate new access token based on user info
-        let Ok(access_token) = generate_jwt(JWTPayload::new(user.id.as_id())) else {
+        let Ok(access_token) = generate_jwt(user.id.as_id()) else {
             bail!("Unknown error");
         };
 
@@ -415,8 +419,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
 
         let refresh_token = self.db.create_refresh_token(user_id).await?;
 
-        let access_token =
-            generate_jwt(JWTPayload::new(user_id.as_id())).map_err(|_| OAuthError::Unknown)?;
+        let access_token = generate_jwt(user_id.as_id()).map_err(|_| OAuthError::Unknown)?;
 
         let resp = OAuthResponse {
             access_token,

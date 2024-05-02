@@ -17,7 +17,7 @@ pub use tabby_schema::worker::WorkerKind;
 use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
 
-use super::websocket::WebSocketTransport;
+use crate::axum::websocket::WebSocketTransport;
 
 #[tarpc::service]
 pub trait Hub {

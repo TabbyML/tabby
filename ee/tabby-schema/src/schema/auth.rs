@@ -2,62 +2,17 @@ use std::{borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use jsonwebtoken as jwt;
 use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject, ID};
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use tabby_common::terminal::{HeaderFormat, InfoMessage};
 use thiserror::Error;
 use tokio::task::JoinHandle;
-use tracing::{error, warn};
-use uuid::Uuid;
+use tracing::error;
 use validator::Validate;
 
 use crate::{
     juniper::relay,
     schema::{Context, Result},
 };
-
-lazy_static! {
-    static ref JWT_TOKEN_SECRET: String  = jwt_token_secret();
-
-    static ref JWT_ENCODING_KEY: jwt::EncodingKey = jwt::EncodingKey::from_secret(
-        JWT_TOKEN_SECRET.as_bytes()
-    );
-    static ref JWT_DECODING_KEY: jwt::DecodingKey = jwt::DecodingKey::from_secret(
-        JWT_TOKEN_SECRET.as_bytes()
-    );
-    static ref JWT_DEFAULT_EXP: u64 = 30 * 60; // 30 minutes
-}
-
-pub fn generate_jwt(claims: JWTPayload) -> jwt::errors::Result<String> {
-    let header = jwt::Header::default();
-    let token = jwt::encode(&header, &claims, &JWT_ENCODING_KEY)?;
-    Ok(token)
-}
-
-pub fn validate_jwt(token: &str) -> jwt::errors::Result<JWTPayload> {
-    let validation = jwt::Validation::default();
-    let data = jwt::decode::<JWTPayload>(token, &JWT_DECODING_KEY, &validation)?;
-    Ok(data.claims)
-}
-
-fn jwt_token_secret() -> String {
-    let jwt_secret = std::env::var("TABBY_WEBSERVER_JWT_TOKEN_SECRET").unwrap_or_else(|_| {
-        InfoMessage::new("JWT secret is not set", HeaderFormat::BoldYellow, &[
-            "Tabby server will generate a one-time (non-persisted) JWT secret for the current process.",
-            &format!("Please set the {} environment variable for production usage.", HeaderFormat::Blue.format("TABBY_WEBSERVER_JWT_TOKEN_SECRET")),
-        ]).print();
-        Uuid::new_v4().to_string()
-    });
-
-    if Uuid::parse_str(&jwt_secret).is_err() {
-        warn!("JWT token secret needs to be in standard uuid format to ensure its security, you might generate one at https://www.uuidgenerator.net");
-        std::process::exit(1)
-    }
-
-    jwt_secret
-}
 
 #[derive(Debug, GraphQLObject)]
 pub struct RegisterResponse {
@@ -210,13 +165,8 @@ pub struct JWTPayload {
 }
 
 impl JWTPayload {
-    pub fn new(id: ID) -> Self {
-        let now = jwt::get_current_timestamp();
-        Self {
-            iat: now as i64,
-            exp: (now + *JWT_DEFAULT_EXP) as i64,
-            sub: id,
-        }
+    pub fn new(id: ID, iat: i64, exp: i64) -> Self {
+        Self { sub: id, iat, exp }
     }
 }
 
@@ -499,24 +449,4 @@ fn validate_password_impl(
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn test_generate_jwt() {
-        let claims = JWTPayload::new(ID::from("test".to_owned()));
-        let token = generate_jwt(claims).unwrap();
-
-        assert!(!token.is_empty())
-    }
-
-    #[test]
-    fn test_validate_jwt() {
-        let claims = JWTPayload::new(ID::from("test".to_owned()));
-        let token = generate_jwt(claims).unwrap();
-        let claims = validate_jwt(&token).unwrap();
-        assert_eq!(claims.sub.to_string(), "test");
-    }
 }

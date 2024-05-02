@@ -1,12 +1,8 @@
-pub mod api;
-mod websocket;
-
 use std::{
     net::{IpAddr, SocketAddr},
     sync::Arc,
 };
 
-use api::{ConnectHubRequest, Hub};
 use axum::{
     extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
     response::IntoResponse,
@@ -20,9 +16,11 @@ use tabby_common::{
 use tabby_schema::ServiceLocator;
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
-use websocket::WebSocketTransport;
 
-use crate::axum::extract::AuthBearer;
+use crate::{
+    axum::{extract::AuthBearer, websocket::WebSocketTransport},
+    hub::{ConnectHubRequest, Hub},
+};
 
 pub(crate) struct HubState {
     locator: Arc<dyn ServiceLocator>,
