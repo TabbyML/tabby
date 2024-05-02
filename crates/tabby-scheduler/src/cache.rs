@@ -95,7 +95,10 @@ impl CacheStore {
 
     pub fn update_source_files(&self, repositories: &[RepositoryConfig]) {
         for repository in repositories {
-            debug!("Refreshing source files for {}", repository.canonical_git_url());
+            debug!(
+                "Refreshing source files for {}",
+                repository.canonical_git_url()
+            );
             self.refresh_source_files(repository);
         }
         self.retain_from(repositories);

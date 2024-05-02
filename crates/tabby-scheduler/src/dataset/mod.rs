@@ -6,21 +6,21 @@ use std::{
 };
 
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
-use ignore::Walk;
+
 use kdam::BarExt;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
-    path::{self, dataset_dir, dependency_file},
+    path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
 
 use crate::{cache::CacheStore, utils::tqdm};
 
 fn export_json_dataset(
-    dataset: impl Iterator<Item = SourceFile>,
-    writer: &mut impl Write,
-    item_count: Option<usize>,
+    _dataset: impl Iterator<Item = SourceFile>,
+    _writer: &mut impl Write,
+    _item_count: Option<usize>,
 ) {
 }
 
