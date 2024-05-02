@@ -1,6 +1,6 @@
 mod analytic;
 mod auth;
-mod dao;
+pub mod background_job;
 mod email;
 pub mod event_logger;
 mod job;
@@ -15,42 +15,42 @@ use std::{net::SocketAddr, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
-    http::{HeaderName, HeaderValue, Request},
+    body::Body,
+    http::{HeaderName, HeaderValue, Request, StatusCode},
     middleware::Next,
     response::IntoResponse,
 };
-pub(in crate::service) use dao::{AsID, AsRowid};
-use hyper::{client::HttpConnector, Body, Client, StatusCode};
+use hyper::{HeaderMap, Uri};
+use hyper_util::{
+    client::legacy::{connect::HttpConnector, Client},
+    rt,
+};
 use juniper::ID;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::DbConn;
+use tabby_schema::{
+    analytic::AnalyticService,
+    auth::AuthenticationService,
+    demo_mode,
+    email::EmailService,
+    job::JobService,
+    license::{IsLicenseValid, LicenseService},
+    repository::RepositoryService,
+    setting::SettingService,
+    user_event::UserEventService,
+    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+    AsID, AsRowid, CoreError, Result, ServiceLocator,
+};
 use tracing::{info, warn};
 
 use self::{
-    analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service,
-    license::new_license_service,
+    analytic::new_analytic_service, email::new_email_service, license::new_license_service,
 };
-use crate::{
-    env::demo_mode,
-    schema::{
-        analytic::AnalyticService,
-        auth::AuthenticationService,
-        email::EmailService,
-        job::JobService,
-        license::{IsLicenseValid, LicenseService},
-        repository::RepositoryService,
-        setting::SettingService,
-        user_event::UserEventService,
-        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-        CoreError, Result, ServiceLocator,
-    },
-};
-
 struct ServerContext {
-    client: Client<HttpConnector>,
+    client: Client<HttpConnector, Body>,
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
     db_conn: DbConn,
@@ -64,6 +64,8 @@ struct ServerContext {
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
 
+    setting: Arc<dyn SettingService>,
+
     is_chat_enabled_locally: bool,
 }
 
@@ -74,7 +76,6 @@ impl ServerContext {
         repository: Arc<dyn RepositoryService>,
         db_conn: DbConn,
         is_chat_enabled_locally: bool,
-        schedule_event_sender: tokio::sync::mpsc::UnboundedSender<String>,
     ) -> Self {
         let mail = Arc::new(
             new_email_service(db_conn.clone())
@@ -87,31 +88,34 @@ impl ServerContext {
                 .expect("failed to initialize license service"),
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
-        let job = Arc::new(job::create(db_conn.clone(), schedule_event_sender));
+        let job = Arc::new(job::create(db_conn.clone()).await);
+        let setting = Arc::new(setting::create(db_conn.clone()));
         Self {
-            client: Client::default(),
+            client: Client::builder(rt::TokioExecutor::new()).build(HttpConnector::new()),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             mail: mail.clone(),
-            auth: Arc::new(new_authentication_service(
+            auth: Arc::new(auth::create(
                 db_conn.clone(),
                 mail,
                 license.clone(),
+                setting.clone(),
             )),
             license,
             repository,
             user_event,
             job,
-            db_conn,
             logger,
             code,
+            setting,
+            db_conn,
             is_chat_enabled_locally,
         }
     }
 
     /// Returns whether a request is authorized to access the content, and the user ID if authentication was used.
-    async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<ID>) {
-        let path = request.uri().path();
+    async fn authorize_request(&self, uri: &Uri, headers: &HeaderMap) -> (bool, Option<ID>) {
+        let path = uri.path();
         if demo_mode()
             && (path.starts_with("/v1/completions")
                 || path.starts_with("/v1/chat/completions")
@@ -122,8 +126,7 @@ impl ServerContext {
         if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
             return (true, None);
         }
-        let authorization = request
-            .headers()
+        let authorization = headers
             .get("authorization")
             .map(HeaderValue::to_str)
             .and_then(Result::ok);
@@ -216,9 +219,11 @@ impl WorkerService for ServerContext {
     async fn dispatch_request(
         &self,
         mut request: Request<Body>,
-        next: Next<Body>,
+        next: Next,
     ) -> axum::response::Response {
-        let (auth, user) = self.authorize_request(&request).await;
+        let (auth, user) = self
+            .authorize_request(request.uri(), request.headers())
+            .await;
         if !auth {
             return axum::response::Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
@@ -274,49 +279,57 @@ impl WorkerService for ServerContext {
     }
 }
 
-impl ServiceLocator for Arc<ServerContext> {
+struct ArcServerContext(Arc<ServerContext>);
+
+impl ArcServerContext {
+    pub fn new(server_context: ServerContext) -> Self {
+        Self(Arc::new(server_context))
+    }
+}
+
+impl ServiceLocator for ArcServerContext {
     fn auth(&self) -> Arc<dyn AuthenticationService> {
-        self.auth.clone()
+        self.0.auth.clone()
     }
 
     fn worker(&self) -> Arc<dyn WorkerService> {
-        self.clone()
+        self.0.clone()
     }
 
     fn code(&self) -> Arc<dyn CodeSearch> {
-        self.code.clone()
+        self.0.code.clone()
     }
 
     fn logger(&self) -> Arc<dyn EventLogger> {
-        self.logger.clone()
+        self.0.logger.clone()
     }
 
     fn job(&self) -> Arc<dyn JobService> {
-        self.job.clone()
+        self.0.job.clone()
     }
 
     fn repository(&self) -> Arc<dyn RepositoryService> {
-        self.repository.clone()
+        self.0.repository.clone()
     }
 
     fn email(&self) -> Arc<dyn EmailService> {
-        self.mail.clone()
+        self.0.mail.clone()
     }
 
     fn setting(&self) -> Arc<dyn SettingService> {
-        Arc::new(self.db_conn.clone())
+        self.0.setting.clone()
     }
 
     fn license(&self) -> Arc<dyn LicenseService> {
-        self.license.clone()
+        self.0.license.clone()
     }
 
     fn analytic(&self) -> Arc<dyn AnalyticService> {
-        new_analytic_service(self.db_conn.clone())
+        new_analytic_service(self.0.db_conn.clone())
     }
 
     fn user_event(&self) -> Arc<dyn UserEventService> {
-        self.user_event.clone()
+        self.0.user_event.clone()
     }
 }
 
@@ -326,18 +339,9 @@ pub async fn create_service_locator(
     repository: Arc<dyn RepositoryService>,
     db: DbConn,
     is_chat_enabled: bool,
-    schedule_event_sender: tokio::sync::mpsc::UnboundedSender<String>,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(Arc::new(
-        ServerContext::new(
-            logger,
-            code,
-            repository,
-            db,
-            is_chat_enabled,
-            schedule_event_sender,
-        )
-        .await,
+    Arc::new(ArcServerContext::new(
+        ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
     ))
 }
 

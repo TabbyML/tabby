@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use axum::{extract::State, Json, TypedHeader};
+use axum::{extract::State, Json};
+use axum_extra::TypedHeader;
 use hyper::StatusCode;
 use tracing::{instrument, warn};
 

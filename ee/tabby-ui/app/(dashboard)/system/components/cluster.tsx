@@ -135,20 +135,20 @@ export const getDiskUsageStats = graphql(/* GraphQL */ `
   query GetDiskUsageStats {
     diskUsageStats {
       events {
-        filePaths
-        size
+        filepath
+        sizeKb
       }
       indexedRepositories {
-        filePaths
-        size
+        filepath
+        sizeKb
       }
       database {
-        filePaths
-        size
+        filepath
+        sizeKb
       }
       models {
-        filePaths
-        size
+        filepath
+        sizeKb
       }
     }
   }
@@ -160,7 +160,7 @@ type UsageItem = {
   color: string
 }
 
-type UsageItemWithSize = UsageItem & { size: number }
+type UsageItemWithSize = UsageItem & { sizeKb: number }
 
 const usageList: UsageItem[] = [
   {
@@ -199,11 +199,11 @@ function Usage() {
         const diskUsage = data.diskUsageStats[usage.key] as DiskUsage
         return {
           ...usage,
-          size: diskUsage.size
+          sizeKb: diskUsage.sizeKb
         }
       })
       .filter(usage => usage) as UsageItemWithSize[]
-    totalUsage = sum(usageData.map(data => data.size))
+    totalUsage = sum(usageData.map(data => data.sizeKb))
   }
 
   return (
@@ -236,7 +236,7 @@ function Usage() {
                   <div>
                     <p className="mb-1 leading-none">{usage!.label}</p>
                     <p className="text-card-foreground/70">
-                      {toBytes(usage!.size)}
+                      {toBytes(usage!.sizeKb)}
                     </p>
                   </div>
                 </div>
@@ -250,5 +250,5 @@ function Usage() {
 }
 
 function toBytes(value: number) {
-  return prettyBytes(value * 1024)
+  return prettyBytes(value * 1000)
 }

@@ -24,24 +24,21 @@ tabby-scheduler = { path = "../tabby-scheduler" }
 tabby-download = { path = "../tabby-download" }
 tabby-inference = { path = "../tabby-inference" }
 axum.workspace = true
+axum-extra = {workspace = true, features = ["typed-header"]}
 hyper = { workspace = true }
 tokio = { workspace = true }
 utoipa = { workspace = true, features = ["axum_extras", "preserve_order"] }
-utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
+utoipa-swagger-ui = { version = "6", features = ["axum"] }
 serde = { workspace = true }
 serdeconv = { workspace = true }
 serde_json = { workspace = true }
-tower-http = { version = "0.4.0", features = ["cors", "timeout"] }
+tower-http = { workspace = true, features = ["cors", "timeout"] }
 clap = { version = "4.3.0", features = ["derive"] }
 lazy_static = { workspace = true }
 strum = { workspace = true }
 strfmt = "0.2.4"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
-opentelemetry-otlp = "0.11.0"
-axum-tracing-opentelemetry = "0.10.0"
-tracing-opentelemetry = "0.18.0"
 tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
@@ -57,7 +54,7 @@ async-trait.workspace = true
 tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
 thiserror.workspace = true
 chrono.workspace = true
-axum-prometheus = "0.4.0"
+axum-prometheus = "0.6"
 uuid.workspace = true
 cached = { workspace = true, features = ["async"] }
 parse-git-url = "0.5.1"

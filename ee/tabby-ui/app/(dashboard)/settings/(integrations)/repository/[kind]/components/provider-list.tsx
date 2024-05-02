@@ -141,7 +141,7 @@ function toStatusMessage(status: RepositoryProviderStatus) {
   switch (status) {
     case RepositoryProviderStatus.Ready:
       return 'Ready'
-    case RepositoryProviderStatus.Error:
+    case RepositoryProviderStatus.Failed:
       return 'Processing error. Please check if the access token is still valid'
     case RepositoryProviderStatus.Pending:
       return 'Awaiting the next data synchronization'

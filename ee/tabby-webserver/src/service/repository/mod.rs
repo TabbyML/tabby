@@ -8,8 +8,7 @@ use async_trait::async_trait;
 use juniper::ID;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
-
-use crate::schema::{
+use tabby_schema::{
     repository::{
         FileEntrySearchResult, GitRepositoryService, GithubRepositoryService,
         GitlabRepositoryService, Repository, RepositoryKind, RepositoryService,
@@ -17,17 +16,19 @@ use crate::schema::{
     Result,
 };
 
+use super::background_job::BackgroundJob;
+
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
     github: Arc<dyn GithubRepositoryService>,
     gitlab: Arc<dyn GitlabRepositoryService>,
 }
 
-pub fn create(db: DbConn) -> Arc<dyn RepositoryService> {
+pub fn create(db: DbConn, background: Arc<dyn BackgroundJob>) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
-        git: Arc::new(db.clone()),
-        github: Arc::new(github::create(db.clone())),
-        gitlab: Arc::new(gitlab::create(db.clone())),
+        git: Arc::new(git::create(db.clone(), background.clone())),
+        github: Arc::new(github::create(db.clone(), background.clone())),
+        gitlab: Arc::new(gitlab::create(db, background)),
     })
 }
 
@@ -113,8 +114,15 @@ impl RepositoryService for RepositoryServiceImpl {
 
         let pattern = pattern.to_owned();
         let matching = tokio::task::spawn_blocking(move || async move {
-            tabby_search::FileSearch::search(&dir, &pattern, top_n)
-                .map(|x| x.into_iter().map(|f| f.into()).collect())
+            tabby_search::FileSearch::search(&dir, &pattern, top_n).map(|x| {
+                x.into_iter()
+                    .map(|f| FileEntrySearchResult {
+                        r#type: f.r#type,
+                        path: f.path,
+                        indices: f.indices,
+                    })
+                    .collect()
+            })
         })
         .await
         .map_err(anyhow::Error::from)?
@@ -129,11 +137,12 @@ mod tests {
     use tabby_db::DbConn;
 
     use super::*;
+    use crate::background_job::create_fake;
 
     #[tokio::test]
     async fn test_list_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone());
+        let service = create(db.clone(), create_fake());
         service
             .git()
             .create("test_git_repo".into(), "http://test_git_repo".into())

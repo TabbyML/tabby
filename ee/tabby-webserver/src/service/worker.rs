@@ -1,8 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use tabby_schema::worker::Worker;
 use tokio::sync::RwLock;
-
-use crate::schema::worker::Worker;
 
 #[derive(Default)]
 pub struct WorkerGroup {
@@ -55,8 +54,9 @@ fn random_index(size: usize) -> usize {
 #[cfg(test)]
 mod tests {
 
+    use tabby_schema::worker::WorkerKind;
+
     use super::*;
-    use crate::schema::worker::WorkerKind;
 
     #[tokio::test]
     async fn test_worker_group() {

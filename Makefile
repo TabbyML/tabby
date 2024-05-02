@@ -45,4 +45,4 @@ update-openapi-doc:
 			    > website/static/openapi.json
 
 update-graphql-schema:
-	cargo run --package tabby-webserver --example update-schema
+	cargo run --package tabby-schema --example update-schema --features=schema-language

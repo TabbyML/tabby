@@ -9,11 +9,11 @@ members = [
     "crates/llama-cpp-bindings",
     "crates/http-api-bindings",
     "crates/aim-downloader",
-    "crates/juniper-axum",
     "ee/tabby-webserver",
     "ee/tabby-db",
     "ee/tabby-db-macros",
     "ee/tabby-search",
+    "ee/tabby-schema",
 ]
 
 [workspace.package]
@@ -36,19 +36,20 @@ anyhow = "1.0.71"
 serde-jsonlines = "0.4.0"
 tantivy = "0.21.0"
 async-trait = "0.1.72"
-reqwest = { version = "0.11.18" }
+reqwest = { version = "0.12" }
 derive_builder = "0.12.0"
 futures = "0.3.28"
 async-stream = "0.3.5"
 regex = "1.10.0"
 strum = { version = "0.24", features = ["derive"] }
 thiserror = "1.0.49"
-utoipa = "3.3"
-axum = "0.6"
-hyper = "0.14"
-juniper = "0.15"
+utoipa = "4.2"
+axum = "0.7"
+axum-extra = "0.9"
+hyper = "1.1"
+juniper = "0.16"
 chrono = "0.4"
-reqwest-eventsource = "0.5.0"
+reqwest-eventsource = "0.6"
 serial_test = "3.0.0"
 hash-ids = "0.2.1"
 ignore = "0.4.20"
@@ -56,6 +57,7 @@ nucleo = "0.5.0"
 url = "2.5.0"
 temp_testdir = "0.2"
 git2 = "0.18.3"
+tower-http = "0.5"
 
 [workspace.dependencies.uuid]
 version = "1.3.3"
