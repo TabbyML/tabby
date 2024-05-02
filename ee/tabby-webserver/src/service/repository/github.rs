@@ -6,18 +6,16 @@ use std::{
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
+use tabby_schema::{
+    repository::{
+        GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryService, Repository,
+        RepositoryProvider,
+    },
+    AsID, AsRowid, Result,
+};
 use url::Url;
 
-use crate::{
-    schema::{
-        repository::{
-            GithubProvidedRepository, GithubRepositoryProvider, GithubRepositoryService,
-            Repository, RepositoryProvider,
-        },
-        Result,
-    },
-    service::{background_job::BackgroundJob, graphql_pagination_to_filter, AsID, AsRowid},
-};
+use crate::service::{background_job::BackgroundJob, graphql_pagination_to_filter};
 
 struct GithubRepositoryProviderServiceImpl {
     db: DbConn,
@@ -175,8 +173,10 @@ fn deduplicate_github_repositories(repositories: &mut Vec<GithubProvidedReposito
 #[cfg(test)]
 mod tests {
 
+    use tabby_schema::AsID;
+
     use super::*;
-    use crate::{background_job::create_fake, service::AsID};
+    use crate::background_job::create_fake;
 
     #[tokio::test]
     async fn test_github_provided_repositories() {

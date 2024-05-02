@@ -6,18 +6,16 @@ use std::{
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
+use tabby_schema::{
+    repository::{
+        GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService, Repository,
+        RepositoryProvider,
+    },
+    AsID, AsRowid, Result,
+};
 use url::Url;
 
-use crate::{
-    schema::{
-        repository::{
-            GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService,
-            Repository, RepositoryProvider,
-        },
-        Result,
-    },
-    service::{background_job::BackgroundJob, graphql_pagination_to_filter, AsID, AsRowid},
-};
+use crate::service::{background_job::BackgroundJob, graphql_pagination_to_filter};
 
 struct GitlabRepositoryProviderServiceImpl {
     db: DbConn,
@@ -178,8 +176,10 @@ impl RepositoryProvider for GitlabRepositoryProviderServiceImpl {
 #[cfg(test)]
 mod tests {
 
+    use tabby_schema::AsID;
+
     use super::*;
-    use crate::{background_job::create_fake, service::AsID};
+    use crate::background_job::create_fake;
 
     #[tokio::test]
     async fn test_gitlab_provided_repositories() {

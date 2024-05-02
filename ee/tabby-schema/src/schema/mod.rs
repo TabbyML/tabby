@@ -12,8 +12,8 @@ pub mod worker;
 use std::sync::Arc;
 
 use auth::{
-    AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse,
-    TokenAuthResponse, User,
+    AuthenticationService, Invitation, RefreshTokenResponse, RegisterResponse, TokenAuthResponse,
+    User,
 };
 use base64::Engine;
 use chrono::{DateTime, Utc};
@@ -62,8 +62,8 @@ pub trait ServiceLocator: Send + Sync {
 }
 
 pub struct Context {
-    claims: Option<auth::JWTPayload>,
-    locator: Arc<dyn ServiceLocator>,
+    pub claims: Option<auth::JWTPayload>,
+    pub locator: Arc<dyn ServiceLocator>,
 }
 
 pub type Result<T, E = CoreError> = std::result::Result<T, E>;

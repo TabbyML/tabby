@@ -1,3 +1,4 @@
+use anyhow::bail;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use tabby_db::{
@@ -6,20 +7,17 @@ use tabby_db::{
     OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
 };
 
-use crate::{
-    bail,
-    schema::{
-        auth::{self, OAuthCredential, OAuthProvider},
-        email::{AuthMethod, EmailSetting, Encryption},
-        job,
-        repository::{
-            GitRepository, GithubProvidedRepository, GithubRepositoryProvider,
-            GitlabProvidedRepository, GitlabRepositoryProvider, RepositoryProviderStatus,
-        },
-        setting::{NetworkSetting, SecuritySetting},
-        user_event::{EventKind, UserEvent},
-        CoreError,
+use crate::schema::{
+    auth::{self, OAuthCredential, OAuthProvider},
+    email::{AuthMethod, EmailSetting, Encryption},
+    job,
+    repository::{
+        GitRepository, GithubProvidedRepository, GithubRepositoryProvider,
+        GitlabProvidedRepository, GitlabRepositoryProvider, RepositoryProviderStatus,
     },
+    setting::{NetworkSetting, SecuritySetting},
+    user_event::{EventKind, UserEvent},
+    CoreError,
 };
 
 impl From<InvitationDAO> for auth::Invitation {

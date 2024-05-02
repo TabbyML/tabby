@@ -1,12 +1,12 @@
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
-
-use super::{graphql_pagination_to_filter, AsRowid};
-use crate::schema::{
+use tabby_schema::{
     job::{JobRun, JobService, JobStats},
-    Result,
+    AsRowid, Result,
 };
+
+use super::graphql_pagination_to_filter;
 
 struct JobControllerImpl {
     db: DbConn,

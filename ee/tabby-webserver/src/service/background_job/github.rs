@@ -33,7 +33,7 @@ impl Job for SyncGithubJob {
 }
 
 impl SyncGithubJob {
-    async fn run(self, logger: Data<JobLogger>, db: Data<DbConn>) -> crate::schema::Result<()> {
+    async fn run(self, logger: Data<JobLogger>, db: Data<DbConn>) -> tabby_schema::Result<()> {
         refresh_repositories_for_provider((*logger).clone(), (*db).clone(), self.provider_id)
             .await?;
         Ok(())
@@ -43,7 +43,7 @@ impl SyncGithubJob {
         _now: DateTime<Utc>,
         storage: Data<SqliteStorage<SyncGithubJob>>,
         db: Data<DbConn>,
-    ) -> crate::schema::Result<()> {
+    ) -> tabby_schema::Result<()> {
         debug!("Syncing all github providers");
 
         let mut storage = (*storage).clone();

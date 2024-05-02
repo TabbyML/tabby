@@ -1,7 +1,6 @@
 mod analytic;
 mod auth;
 pub mod background_job;
-mod dao;
 mod email;
 pub mod event_logger;
 mod job;
@@ -12,7 +11,7 @@ mod setting;
 mod user_event;
 mod worker;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, ops::Deref, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
@@ -20,7 +19,6 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-pub(in crate::service) use dao::{AsID, AsRowid};
 use hyper::{client::HttpConnector, Body, Client, StatusCode};
 use juniper::ID;
 use tabby_common::{
@@ -28,28 +26,24 @@ use tabby_common::{
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::DbConn;
+use tabby_schema::{
+    analytic::AnalyticService,
+    auth::AuthenticationService,
+    demo_mode,
+    email::EmailService,
+    job::JobService,
+    license::{IsLicenseValid, LicenseService},
+    repository::RepositoryService,
+    setting::SettingService,
+    user_event::UserEventService,
+    worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
+    AsID, AsRowid, CoreError, Result, ServiceLocator,
+};
 use tracing::{info, warn};
 
 use self::{
-    analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service,
-    license::new_license_service,
+    analytic::new_analytic_service, email::new_email_service, license::new_license_service,
 };
-use crate::{
-    env::demo_mode,
-    schema::{
-        analytic::AnalyticService,
-        auth::AuthenticationService,
-        email::EmailService,
-        job::JobService,
-        license::{IsLicenseValid, LicenseService},
-        repository::RepositoryService,
-        setting::SettingService,
-        user_event::UserEventService,
-        worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-        CoreError, Result, ServiceLocator,
-    },
-};
-
 struct ServerContext {
     client: Client<HttpConnector>,
     completion: worker::WorkerGroup,
@@ -64,6 +58,8 @@ struct ServerContext {
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+
+    setting: Arc<dyn SettingService>,
 
     is_chat_enabled_locally: bool,
 }
@@ -88,23 +84,26 @@ impl ServerContext {
         );
         let user_event = Arc::new(user_event::create(db_conn.clone()));
         let job = Arc::new(job::create(db_conn.clone()).await);
+        let setting = Arc::new(setting::create(db_conn.clone()));
         Self {
             client: Client::default(),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             mail: mail.clone(),
-            auth: Arc::new(new_authentication_service(
+            auth: Arc::new(auth::create(
                 db_conn.clone(),
                 mail,
                 license.clone(),
+                setting.clone(),
             )),
             license,
             repository,
             user_event,
             job,
-            db_conn,
             logger,
             code,
+            setting,
+            db_conn,
             is_chat_enabled_locally,
         }
     }
@@ -274,13 +273,29 @@ impl WorkerService for ServerContext {
     }
 }
 
-impl ServiceLocator for Arc<ServerContext> {
+struct ArcServerContext(Arc<ServerContext>);
+
+impl ArcServerContext {
+    pub fn new(server_context: ServerContext) -> Self {
+        Self(Arc::new(server_context))
+    }
+}
+
+impl Deref for ArcServerContext {
+    type Target = Arc<ServerContext>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl ServiceLocator for ArcServerContext {
     fn auth(&self) -> Arc<dyn AuthenticationService> {
         self.auth.clone()
     }
 
     fn worker(&self) -> Arc<dyn WorkerService> {
-        self.clone()
+        self.0.clone()
     }
 
     fn code(&self) -> Arc<dyn CodeSearch> {
@@ -304,7 +319,7 @@ impl ServiceLocator for Arc<ServerContext> {
     }
 
     fn setting(&self) -> Arc<dyn SettingService> {
-        Arc::new(self.db_conn.clone())
+        self.setting.clone()
     }
 
     fn license(&self) -> Arc<dyn LicenseService> {
@@ -327,7 +342,7 @@ pub async fn create_service_locator(
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(Arc::new(
+    Arc::new(ArcServerContext::new(
         ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
     ))
 }

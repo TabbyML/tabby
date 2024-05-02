@@ -10,10 +10,9 @@ use axum::{
 use hyper::Body;
 use juniper::ID;
 use serde::{Deserialize, Serialize};
+use tabby_schema::repository::{RepositoryKind, RepositoryService};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-
-use crate::schema::repository::{RepositoryKind, RepositoryService};
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 

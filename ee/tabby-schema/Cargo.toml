@@ -21,6 +21,7 @@ juniper.workspace = true
 lazy_static.workspace = true
 serde.workspace = true
 strum.workspace = true
+tabby-db = { path = "../../ee/tabby-db" }
 tabby-common = { path = "../../crates/tabby-common" }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "process"] }
@@ -30,6 +31,7 @@ validator = { version = "0.16.1", features = ["derive"] }
 regex.workspace = true
 tabby-search = { path = "../tabby-search" }
 gitlab = "0.1610.0"
+hash-ids.workspace = true
 
 [dev-dependencies]
 assert_matches = "1.5.0"
