@@ -40,23 +40,23 @@ fn dataset_bucket_key(git_url: impl AsRef<str>) -> String {
     format!("{DATASET_BUCKET_PREFIX}:{}", git_url.as_ref())
 }
 
-pub struct RepositoryStore {
+pub struct CacheStore {
     store: Store,
 }
 
 #[derive(Serialize, Deserialize, Default)]
-struct RepositoryMeta {
+struct Meta {
     last_sync_commit: Option<String>,
 }
 
-impl RepositoryStore {
+impl CacheStore {
     pub fn new(path: PathBuf) -> Self {
         Self {
             store: Store::new(Config::new(path)).expect("Failed to create repository store"),
         }
     }
 
-    fn meta_bucket(&self) -> Bucket<String, Json<RepositoryMeta>> {
+    fn meta_bucket(&self) -> Bucket<String, Json<Meta>> {
         self.store
             .bucket(None)
             .expect("Could not access meta bucket")
@@ -70,7 +70,7 @@ impl RepositoryStore {
 
     fn set_last_sync_commit(
         &self,
-        transaction: &Transaction<String, Json<RepositoryMeta>>,
+        transaction: &Transaction<String, Json<Meta>>,
         repository: &RepositoryConfig,
         commit_hash: String,
     ) {
@@ -83,9 +83,9 @@ impl RepositoryStore {
 
     fn get_meta(
         &self,
-        transaction: &Transaction<String, Json<RepositoryMeta>>,
+        transaction: &Transaction<String, Json<Meta>>,
         repository: &RepositoryConfig,
-    ) -> RepositoryMeta {
+    ) -> Meta {
         transaction
             .get(&meta_key(repository.canonical_git_url()))
             .expect("Failed to access repository meta")
@@ -93,7 +93,7 @@ impl RepositoryStore {
             .unwrap_or_default()
     }
 
-    pub fn update_dataset(&self, repositories: &[RepositoryConfig]) {
+    pub fn update_source_files(&self, repositories: &[RepositoryConfig]) {
         for repository in repositories {
             debug!("Syncing repository: {}", repository.canonical_git_url());
             self.sync_repository(repository);
@@ -148,7 +148,7 @@ impl RepositoryStore {
 
     fn sync_repository_from_scratch(
         &self,
-        meta_bucket: &Transaction<String, Json<RepositoryMeta>>,
+        meta_bucket: &Transaction<String, Json<Meta>>,
         repo_bucket: &Transaction<String, Json<SourceFile>>,
         current_version: String,
         repository: &RepositoryConfig,
