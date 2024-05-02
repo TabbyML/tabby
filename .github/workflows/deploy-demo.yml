@@ -35,4 +35,4 @@ jobs:
 
       - name: Deploy job
         run: |
-          cd experimental/demo modal deploy app.py
+          cd experimental/demo && modal deploy app.py
