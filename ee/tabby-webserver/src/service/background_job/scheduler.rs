@@ -3,13 +3,15 @@ use std::{process::Stdio, str::FromStr};
 use anyhow::Context;
 use apalis::{
     cron::{CronStream, Schedule},
-    prelude::{Data, Job, Monitor, WorkerBuilder, WorkerFactoryFn},
+    prelude::{Data, Job, Monitor, Storage, WorkerBuilder, WorkerFactoryFn},
+    sqlite::{SqlitePool, SqliteStorage},
     utils::TokioExecutor,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
 use tokio::io::AsyncBufReadExt;
+use tower::limit::ConcurrencyLimitLayer;
 
 use super::logger::{JobLogLayer, JobLogger};
 
@@ -73,29 +75,51 @@ impl SchedulerJob {
         }
     }
 
-    async fn cron(
-        _now: DateTime<Utc>,
+    async fn run(
+        self,
         logger: Data<JobLogger>,
         db: Data<DbConn>,
         local_port: Data<u16>,
     ) -> crate::schema::Result<i32> {
-        let job = SchedulerJob {};
-        Ok(job.run_impl(logger, db, local_port).await?)
+        Ok(self.run_impl(logger, db, local_port).await?)
+    }
+
+    async fn cron(
+        _now: DateTime<Utc>,
+        storage: Data<SqliteStorage<SchedulerJob>>,
+    ) -> crate::schema::Result<()> {
+        let mut storage = (*storage).clone();
+        storage
+            .push(SchedulerJob {})
+            .await
+            .expect("unable to push job");
+        Ok(())
     }
 
     pub fn register(
         monitor: Monitor<TokioExecutor>,
+        pool: SqlitePool,
         db: DbConn,
         local_port: u16,
-    ) -> Monitor<TokioExecutor> {
-        let schedule = Schedule::from_str("0 */10 * * * *").expect("unable to parse cron schedule");
-        monitor.register(
-            WorkerBuilder::new(SchedulerJob::NAME)
-                .stream(CronStream::new(schedule).into_stream())
-                .layer(JobLogLayer::new(db.clone(), SchedulerJob::NAME))
-                .data(db)
-                .data(local_port)
-                .build_fn(SchedulerJob::cron),
-        )
+    ) -> (SqliteStorage<SchedulerJob>, Monitor<TokioExecutor>) {
+        let storage = SqliteStorage::new(pool);
+        let schedule = Schedule::from_str("@hourly").expect("unable to parse cron schedule");
+        let monitor = monitor
+            .register(
+                WorkerBuilder::new(Self::NAME)
+                    .with_storage(storage.clone())
+                    .layer(ConcurrencyLimitLayer::new(1))
+                    .layer(JobLogLayer::new(db.clone(), Self::NAME))
+                    .data(db.clone())
+                    .data(local_port)
+                    .build_fn(Self::run),
+            )
+            .register(
+                WorkerBuilder::new(SchedulerJob::NAME)
+                    .stream(CronStream::new(schedule).into_stream())
+                    .data(storage.clone())
+                    .build_fn(SchedulerJob::cron),
+            );
+        (storage, monitor)
     }
 }

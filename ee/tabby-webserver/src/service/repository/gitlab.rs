@@ -98,6 +98,9 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
         self.db
             .update_gitlab_provided_repository_active(id.as_rowid()?, active)
             .await?;
+        if active {
+            self.background_job.trigger_scheduler().await;
+        }
         Ok(())
     }
 

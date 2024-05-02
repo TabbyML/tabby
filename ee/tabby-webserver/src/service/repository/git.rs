@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use juniper::ID;
 use tabby_db::DbConn;
@@ -7,11 +9,20 @@ use crate::{
         repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
         Result,
     },
-    service::{graphql_pagination_to_filter, AsID, AsRowid},
+    service::{background_job::BackgroundJob, graphql_pagination_to_filter, AsID, AsRowid},
 };
 
+struct GitRepositoryServiceImpl {
+    db: DbConn,
+    background_job: Arc<dyn BackgroundJob>,
+}
+
+pub fn create(db: DbConn, background_job: Arc<dyn BackgroundJob>) -> impl GitRepositoryService {
+    GitRepositoryServiceImpl { db, background_job }
+}
+
 #[async_trait]
-impl GitRepositoryService for DbConn {
+impl GitRepositoryService for GitRepositoryServiceImpl {
     async fn list(
         &self,
         after: Option<String>,
@@ -21,28 +32,33 @@ impl GitRepositoryService for DbConn {
     ) -> Result<Vec<GitRepository>> {
         let (limit, skip_id, backwards) = graphql_pagination_to_filter(after, before, first, last)?;
         let repositories = self
+            .db
             .list_repositories_with_filter(limit, skip_id, backwards)
             .await?;
         Ok(repositories.into_iter().map(Into::into).collect())
     }
 
     async fn create(&self, name: String, git_url: String) -> Result<ID> {
-        Ok(self.create_repository(name, git_url).await?.as_id())
+        let id = self.db.create_repository(name, git_url).await?.as_id();
+        self.background_job.trigger_scheduler().await;
+        Ok(id)
     }
 
     async fn delete(&self, id: &ID) -> Result<bool> {
-        Ok(self.delete_repository(id.as_rowid()?).await?)
+        Ok(self.db.delete_repository(id.as_rowid()?).await?)
     }
 
     async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
-        self.update_repository(id.as_rowid()?, name, git_url)
+        self.db
+            .update_repository(id.as_rowid()?, name, git_url)
             .await?;
+        self.background_job.trigger_scheduler().await;
         Ok(true)
     }
 }
 
 #[async_trait]
-impl RepositoryProvider for DbConn {
+impl RepositoryProvider for GitRepositoryServiceImpl {
     async fn repository_list(&self) -> Result<Vec<Repository>> {
         Ok(self
             .list(None, None, None, None)
@@ -53,10 +69,7 @@ impl RepositoryProvider for DbConn {
     }
 
     async fn get_repository(&self, id: &ID) -> Result<Repository> {
-        let git_repo: GitRepository = (self as &DbConn)
-            .get_repository(id.as_rowid()?)
-            .await?
-            .into();
+        let git_repo: GitRepository = self.db.get_repository(id.as_rowid()?).await?.into();
         Ok(git_repo.into())
     }
 }
@@ -66,13 +79,15 @@ mod tests {
     use tabby_db::DbConn;
 
     use super::*;
+    use crate::background_job::create_fake;
 
     #[tokio::test]
     pub async fn test_duplicate_repository_error() {
         let db = DbConn::new_in_memory().await.unwrap();
+        let svc = create(db.clone(), create_fake());
 
         GitRepositoryService::create(
-            &db,
+            &svc,
             "example".into(),
             "https://github.com/example/example".into(),
         )
@@ -80,7 +95,7 @@ mod tests {
         .unwrap();
 
         let err = GitRepositoryService::create(
-            &db,
+            &svc,
             "example".into(),
             "https://github.com/example/example".into(),
         )
@@ -96,7 +111,7 @@ mod tests {
     #[tokio::test]
     pub async fn test_repository_mutations() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service: &dyn GitRepositoryService = &db;
+        let service = create(db.clone(), create_fake());
 
         let id_1 = service
             .create(

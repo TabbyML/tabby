@@ -20,11 +20,13 @@ use crate::path::job_queue;
 
 #[async_trait]
 pub trait BackgroundJob: Send + Sync {
+    async fn trigger_scheduler(&self);
     async fn trigger_sync_github(&self, provider_id: i64);
     async fn trigger_sync_gitlab(&self, provider_id: i64);
 }
 
 struct BackgroundJobImpl {
+    scheduler: SqliteStorage<SchedulerJob>,
     gitlab: SqliteStorage<SyncGitlabJob>,
     github: SqliteStorage<SyncGithubJob>,
 }
@@ -40,7 +42,8 @@ pub async fn create(db: DbConn, local_port: u16) -> Arc<dyn BackgroundJob> {
 
     let monitor = Monitor::new();
     let monitor = DbMaintainanceJob::register(monitor, db.clone());
-    let monitor = SchedulerJob::register(monitor, db.clone(), local_port);
+    let (scheduler, monitor) =
+        SchedulerJob::register(monitor, pool.clone(), db.clone(), local_port);
     let (gitlab, monitor) = SyncGitlabJob::register(monitor, pool.clone(), db.clone());
     let (github, monitor) = SyncGithubJob::register(monitor, pool.clone(), db.clone());
 
@@ -48,13 +51,18 @@ pub async fn create(db: DbConn, local_port: u16) -> Arc<dyn BackgroundJob> {
         monitor.run().await.expect("failed to start worker");
     });
 
-    Arc::new(BackgroundJobImpl { gitlab, github })
+    Arc::new(BackgroundJobImpl {
+        scheduler,
+        gitlab,
+        github,
+    })
 }
 
 struct FakeBackgroundJob;
 
 #[async_trait]
 impl BackgroundJob for FakeBackgroundJob {
+    async fn trigger_scheduler(&self) {}
     async fn trigger_sync_github(&self, _provider_id: i64) {}
     async fn trigger_sync_gitlab(&self, _provider_id: i64) {}
 }
@@ -66,6 +74,14 @@ pub fn create_fake() -> Arc<dyn BackgroundJob> {
 
 #[async_trait]
 impl BackgroundJob for BackgroundJobImpl {
+    async fn trigger_scheduler(&self) {
+        self.scheduler
+            .clone()
+            .push(SchedulerJob {})
+            .await
+            .expect("unable to push job");
+    }
+
     async fn trigger_sync_github(&self, provider_id: i64) {
         self.github
             .clone()

@@ -26,7 +26,7 @@ struct RepositoryServiceImpl {
 
 pub fn create(db: DbConn, background: Arc<dyn BackgroundJob>) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
-        git: Arc::new(db.clone()),
+        git: Arc::new(git::create(db.clone(), background.clone())),
         github: Arc::new(github::create(db.clone(), background.clone())),
         gitlab: Arc::new(gitlab::create(db, background)),
     })

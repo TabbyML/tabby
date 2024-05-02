@@ -21,11 +21,11 @@ use crate::{
 
 struct GithubRepositoryProviderServiceImpl {
     db: DbConn,
-    background: Arc<dyn BackgroundJob>,
+    background_job: Arc<dyn BackgroundJob>,
 }
 
-pub fn create(db: DbConn, background: Arc<dyn BackgroundJob>) -> impl GithubRepositoryService {
-    GithubRepositoryProviderServiceImpl { db, background }
+pub fn create(db: DbConn, background_job: Arc<dyn BackgroundJob>) -> impl GithubRepositoryService {
+    GithubRepositoryProviderServiceImpl { db, background_job }
 }
 
 #[async_trait]
@@ -35,7 +35,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
             .db
             .create_github_provider(display_name, access_token)
             .await?;
-        self.background.trigger_sync_github(id).await;
+        self.background_job.trigger_sync_github(id).await;
         Ok(id.as_id())
     }
 
@@ -98,6 +98,9 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         self.db
             .update_github_provided_repository_active(id.as_rowid()?, active)
             .await?;
+        if active {
+            self.background_job.trigger_scheduler().await;
+        }
         Ok(())
     }
 
@@ -111,7 +114,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         self.db
             .update_github_provider(id, display_name, access_token)
             .await?;
-        self.background.trigger_sync_github(id).await;
+        self.background_job.trigger_sync_github(id).await;
         Ok(())
     }
 

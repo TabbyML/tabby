@@ -48,6 +48,9 @@ impl WebserverHandle {
         let db = DbConn::new(db_file().as_path())
             .await
             .expect("Must be able to initialize db");
+        db.finalize_stale_job_runs()
+            .await
+            .expect("Must be able to finalize stale job runs");
 
         let background_job = background_job::create(db.clone(), local_port).await;
         let repository = repository::create(db.clone(), background_job);
