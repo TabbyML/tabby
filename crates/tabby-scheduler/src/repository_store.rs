@@ -184,6 +184,7 @@ impl RepositoryStore {
 
         for bucket in self.store.buckets() {
             if bucket.starts_with(DATASET_BUCKET_PREFIX) && !added_repositories.contains(&bucket) {
+                debug!("Dropping bucket: {}", bucket);
                 self.store.drop_bucket(&bucket).unwrap();
                 self.meta_bucket().remove(&meta_key(&bucket)).unwrap();
             }
