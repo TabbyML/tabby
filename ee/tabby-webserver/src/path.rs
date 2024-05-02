@@ -16,7 +16,3 @@ pub fn db_file() -> PathBuf {
         tabby_ee_root().join("dev-db.sqlite")
     }
 }
-
-pub fn job_queue() -> PathBuf {
-    tabby_ee_root().join("job_queue.sqlite")
-}
