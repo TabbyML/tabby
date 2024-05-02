@@ -17,13 +17,6 @@ use tabby_common::{
 
 use crate::{cache::CacheStore, utils::tqdm};
 
-fn export_json_dataset(
-    _dataset: impl Iterator<Item = SourceFile>,
-    _writer: &mut impl Write,
-    _item_count: Option<usize>,
-) {
-}
-
 pub fn create_dataset(cache: &CacheStore, config: &[RepositoryConfig]) {
     fs::remove_dir_all(dataset_dir()).ok();
     fs::create_dir_all(dataset_dir()).expect("Failed to create dataset directory");
