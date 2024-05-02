@@ -1,3 +1,4 @@
+pub mod websocket;
 pub mod extract;
 
 use axum::{

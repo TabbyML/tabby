@@ -1,3 +1,4 @@
+mod hub;
 mod oauth;
 mod repositories;
 
@@ -19,10 +20,11 @@ use tracing::{error, warn};
 
 use crate::{
     axum::{extract::AuthBearer, graphql, FromAuth},
-    hub::{self, HubState},
     jwt::validate_jwt,
     ui,
 };
+
+use self::hub::HubState;
 
 pub fn create(
     ctx: Arc<dyn ServiceLocator>,

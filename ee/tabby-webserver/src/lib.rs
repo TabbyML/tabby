@@ -18,7 +18,7 @@ pub mod public {
     pub use super::{
         handler::WebserverHandle,
         /* used by tabby workers (consumer of /hub api) */
-        hub::api::{
+        hub::{
             create_scheduler_client, create_worker_client, RegisterWorkerRequest, SchedulerClient,
             WorkerClient, WorkerKind,
         },
