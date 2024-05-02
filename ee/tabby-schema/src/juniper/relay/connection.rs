@@ -5,6 +5,8 @@ use juniper::{
 
 use super::{edge::Edge, page_info::PageInfo, NodeType};
 
+use juniper::macros::reflect::{BaseType, BaseSubTypes, Type, Types, WrappedType, WrappedValue};
+
 /// Connection type
 ///
 /// Connection is the result of a query for `relay::query` or `relay::query_async`
@@ -12,6 +14,18 @@ pub struct Connection<Node> {
     /// All edges of the current page.
     pub edges: Vec<Edge<Node>>,
     pub page_info: PageInfo,
+}
+
+impl<S, T: WrappedType<S>> WrappedType<S> for Connection<T> {
+    const VALUE: WrappedValue = T::VALUE * 10 + 3;
+}
+
+impl<S, T: BaseType<S>> BaseType<S> for Connection<T> {
+    const NAME: Type = T::NAME;
+}
+
+impl<S, T: BaseSubTypes<S>> BaseSubTypes<S> for Connection<T> {
+    const NAMES: Types = T::NAMES;
 }
 
 impl<Node> Connection<Node>

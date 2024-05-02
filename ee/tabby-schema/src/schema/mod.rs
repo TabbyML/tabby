@@ -66,6 +66,9 @@ pub struct Context {
     pub locator: Arc<dyn ServiceLocator>,
 }
 
+// To make our context usable by Juniper, we have to implement a marker trait.
+impl juniper::Context for Context {}
+
 pub type Result<T, E = CoreError> = std::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
@@ -104,9 +107,6 @@ impl<S: ScalarValue> IntoFieldError<S> for CoreError {
         }
     }
 }
-
-// To make our context usable by Juniper, we have to implement a marker trait.
-impl juniper::Context for Context {}
 
 fn check_claims(ctx: &Context) -> Result<&JWTPayload, CoreError> {
     ctx.claims
