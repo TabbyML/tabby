@@ -21,7 +21,8 @@ volume = Volume.from_name("tabby-demo-server-volume", create_if_missing=True)
     container_idle_timeout=600*2,
     timeout=600,
     volumes = {"/data": volume},
-    _allow_background_volume_commits=True
+    _allow_background_volume_commits=True,
+    secrets=[modal.Secret.from_name("deepseek-openapi-key")]
 )
 @asgi_app()
 def entry():
