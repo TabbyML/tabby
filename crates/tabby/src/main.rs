@@ -23,7 +23,7 @@ struct Cli {
     command: Commands,
 
     /// Open Telemetry endpoint.
-    #[clap(hide=true, long)]
+    #[clap(hide = true, long)]
     otlp_endpoint: Option<String>,
 }
 
