@@ -6,9 +6,14 @@ mod ui;
 use std::sync::Arc;
 
 use axum::{
-    body::Body, extract::{Path, State}, http::{Request, StatusCode}, middleware::{from_fn_with_state, Next}, response::{IntoResponse, Response}, routing, Extension, Json, Router
+    body::Body,
+    extract::{Path, State},
+    http::{Request, StatusCode},
+    middleware::{from_fn_with_state, Next},
+    response::{IntoResponse, Response},
+    routing, Extension, Json, Router,
 };
-use juniper::{graphql_object, EmptyMutation, EmptySubscription, RootNode, ID};
+use juniper::ID;
 use juniper_axum::{graphiql, playground};
 use tabby_common::{api::server_setting::ServerSetting, config::RepositoryAccess};
 use tabby_schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator};

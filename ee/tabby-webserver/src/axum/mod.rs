@@ -1,9 +1,7 @@
 pub mod extract;
 pub mod websocket;
 
-use axum::{
-    extract::{Extension, State},
-};
+use axum::extract::{Extension, State};
 use extract::AuthBearer;
 use juniper_axum::{extract::JuniperRequest, response::JuniperResponse};
 use juniper_graphql_ws::Schema;

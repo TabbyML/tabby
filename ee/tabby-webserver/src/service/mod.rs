@@ -221,7 +221,9 @@ impl WorkerService for ServerContext {
         mut request: Request<Body>,
         next: Next,
     ) -> axum::response::Response {
-        let (auth, user) = self.authorize_request(request.uri(), request.headers()).await;
+        let (auth, user) = self
+            .authorize_request(request.uri(), request.headers())
+            .await;
         if !auth {
             return axum::response::Response::builder()
                 .status(StatusCode::UNAUTHORIZED)

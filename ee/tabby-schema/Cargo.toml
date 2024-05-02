@@ -15,7 +15,6 @@ axum = { workspace = true }
 base64 = "0.22.0"
 chrono = { workspace = true, features = ["serde"] }
 futures.workspace = true
-hyper = { workspace = true, features = ["client"] }
 juniper = { workspace = true, features = ["chrono"] }
 lazy_static.workspace = true
 serde.workspace = true

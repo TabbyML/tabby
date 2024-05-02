@@ -1,11 +1,12 @@
 use juniper::{
-    marker::IsOutputType, meta::MetaType, Arguments, ExecutionResult, Executor, GraphQLType,
-    GraphQLValue, GraphQLValueAsync, Registry, ScalarValue,
+    macros::reflect::{BaseSubTypes, BaseType, Type, Types, WrappedType, WrappedValue},
+    marker::IsOutputType,
+    meta::MetaType,
+    Arguments, ExecutionResult, Executor, GraphQLType, GraphQLValue, GraphQLValueAsync, Registry,
+    ScalarValue,
 };
 
 use super::{edge::Edge, page_info::PageInfo, NodeType};
-
-use juniper::macros::reflect::{BaseType, BaseSubTypes, Type, Types, WrappedType, WrappedValue};
 
 /// Connection type
 ///

@@ -4,7 +4,10 @@ use std::{
 };
 
 use axum::{
-    body::Body, extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade}, http::StatusCode, response::IntoResponse
+    body::Body,
+    extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
+    http::StatusCode,
+    response::IntoResponse,
 };
 use axum_extra::TypedHeader;
 use tabby_common::{

@@ -8,7 +8,7 @@ use std::{
 use axum::{http::HeaderName, routing, Router};
 use axum_extra::headers::Header;
 use axum_prometheus::PrometheusMetricLayer;
-use axum_tracing_opentelemetry::{middleware::OtelAxumLayer, };
+use axum_tracing_opentelemetry::middleware::OtelAxumLayer;
 use tabby_common::constants::USER_HEADER_FIELD_NAME;
 use tower_http::cors::CorsLayer;
 use tracing::info;
@@ -36,9 +36,12 @@ pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
     info!("Listening at {}", address);
     let listener = tokio::net::TcpListener::bind(address).await.unwrap();
 
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
 #[derive(Debug)]

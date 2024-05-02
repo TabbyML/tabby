@@ -1,15 +1,11 @@
-use std::{convert::Infallible, sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use axum::{
     extract::State,
-    http::HeaderValue,
-    response::{
-        sse::{Event, KeepAlive, Sse},
-        IntoResponse, Response,
-    },
+    response::sse::{Event, KeepAlive, Sse},
     Json,
 };
-use futures::{stream, Stream, StreamExt};
+use futures::{Stream, StreamExt};
 use tracing::instrument;
 
 use crate::services::chat::{ChatCompletionRequest, ChatService};

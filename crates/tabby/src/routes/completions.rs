@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use axum::{extract::State, Json};
+use axum_extra::TypedHeader;
 use hyper::StatusCode;
 use tracing::{instrument, warn};
-use axum_extra::TypedHeader;
 
 use super::MaybeUser;
 use crate::services::completion::{CompletionRequest, CompletionResponse, CompletionService};

@@ -2,7 +2,10 @@ use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use axum::{
-    body::Body, http::{header, Request, Uri}, response::{IntoResponse, Response}, Json
+    body::Body,
+    http::{header, Request, Uri},
+    response::{IntoResponse, Response},
+    Json,
 };
 use juniper::ID;
 use serde::{Deserialize, Serialize};
