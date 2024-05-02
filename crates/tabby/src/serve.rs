@@ -143,7 +143,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     let ws = if !args.no_webserver {
-        Some(tabby_webserver::public::WebserverHandle::new(create_event_logger(), args.port).await)
+        Some(tabby_webserver::public::Webserver::new(create_event_logger(), args.port).await)
     } else {
         None
     };
@@ -165,9 +165,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     #[cfg(feature = "ee")]
     if let Some(ws) = &ws {
-        let (new_api, new_ui) = ws
-            .attach_webserver(api, ui, code, args.chat_model.is_some())
-            .await;
+        let (new_api, new_ui) = ws.attach(api, ui, code, args.chat_model.is_some()).await;
         api = new_api;
         ui = new_ui;
     };

@@ -9,7 +9,7 @@ use tabby_common::{
     config::RepositoryAccess,
 };
 use tabby_db::DbConn;
-use tabby_schema::{repository::RepositoryService, ServiceLocator};
+use tabby_schema::repository::RepositoryService;
 
 use crate::{
     path::db_file,
@@ -19,13 +19,13 @@ use crate::{
     },
 };
 
-pub struct WebserverHandle {
+pub struct Webserver {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
     repository: Arc<dyn RepositoryService>,
 }
 
-impl WebserverHandle {
+impl Webserver {
     pub async fn new(logger1: impl EventLogger + 'static, local_port: u16) -> Self {
         let db = DbConn::new(db_file().as_path())
             .await
@@ -39,7 +39,7 @@ impl WebserverHandle {
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));
-        WebserverHandle {
+        Webserver {
             db,
             logger,
             repository,
@@ -54,7 +54,7 @@ impl WebserverHandle {
         self.repository.clone().access()
     }
 
-    pub async fn attach_webserver(
+    pub async fn attach(
         &self,
         api: Router,
         ui: Router,
