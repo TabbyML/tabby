@@ -103,7 +103,8 @@ where
 
 impl<Node, S> IsOutputType<S> for Edge<Node>
 where
-    Node: GraphQLType<S>,
+    Node: GraphQLType<S> + NodeType,
+    Node::Context: juniper::Context,
     S: ScalarValue,
 {
 }

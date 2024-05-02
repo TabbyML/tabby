@@ -165,7 +165,8 @@ where
 
 impl<Node, S> IsOutputType<S> for Connection<Node>
 where
-    Node: GraphQLType<S>,
+    Node: GraphQLType<S> + NodeType,
+    Node::Context: juniper::Context,
     S: ScalarValue,
 {
 }

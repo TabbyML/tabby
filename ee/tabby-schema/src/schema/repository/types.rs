@@ -30,7 +30,7 @@ pub struct UpdateRepositoryProviderInput {
 pub enum RepositoryProviderStatus {
     Ready,
     Pending,
-    Error,
+    Failed,
 }
 
 impl RepositoryProviderStatus {
@@ -38,7 +38,7 @@ impl RepositoryProviderStatus {
         match (access_token_set, synced_at_set) {
             (true, true) => RepositoryProviderStatus::Ready,
             (true, false) => RepositoryProviderStatus::Pending,
-            _ => RepositoryProviderStatus::Error,
+            _ => RepositoryProviderStatus::Failed,
         }
     }
 }
