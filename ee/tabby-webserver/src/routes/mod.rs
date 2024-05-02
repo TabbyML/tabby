@@ -1,6 +1,7 @@
 mod hub;
 mod oauth;
 mod repositories;
+mod ui;
 
 use std::sync::Arc;
 
@@ -18,13 +19,11 @@ use tabby_common::{api::server_setting::ServerSetting, config::RepositoryAccess}
 use tabby_schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator};
 use tracing::{error, warn};
 
+use self::hub::HubState;
 use crate::{
     axum::{extract::AuthBearer, graphql, FromAuth},
     jwt::validate_jwt,
-    ui,
 };
-
-use self::hub::HubState;
 
 pub fn create(
     ctx: Arc<dyn ServiceLocator>,

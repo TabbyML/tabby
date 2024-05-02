@@ -1,5 +1,5 @@
-pub mod websocket;
 pub mod extract;
+pub mod websocket;
 
 use axum::{
     extract::{Extension, State},

@@ -5,12 +5,9 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
-
 use github::GithubClient;
 use google::GoogleClient;
-
 use tabby_schema::auth::{AuthenticationService, OAuthProvider};
-
 
 #[async_trait]
 pub trait OAuthClient: Send + Sync {

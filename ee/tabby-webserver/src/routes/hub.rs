@@ -17,7 +17,10 @@ use tabby_schema::ServiceLocator;
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
 
-use crate::{axum::{extract::AuthBearer, websocket::WebSocketTransport}, hub::{ConnectHubRequest, Hub}};
+use crate::{
+    axum::{extract::AuthBearer, websocket::WebSocketTransport},
+    hub::{ConnectHubRequest, Hub},
+};
 
 pub(crate) struct HubState {
     locator: Arc<dyn ServiceLocator>,

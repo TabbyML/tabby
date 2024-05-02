@@ -8,7 +8,6 @@ mod oauth;
 mod path;
 mod routes;
 mod service;
-mod ui;
 
 #[cfg(test)]
 pub use service::*;
