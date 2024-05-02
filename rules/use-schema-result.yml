@@ -3,7 +3,10 @@ message: Use schema::Result as API interface
 severity: error
 language: rust
 files:
-- ./ee/tabby-webserver/src/schema/**
+- ./ee/tabby-schema/src/**
+ignores:
+- ./ee/tabby-schema/src/lib.rs
+- ./ee/tabby-schema/src/dao.rs
 rule:
   any:
     - pattern: anyhow
