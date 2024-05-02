@@ -151,8 +151,8 @@ export const queryDailyStatsInPastYear = graphql(/* GraphQL */ `
 
 export const queryDailyStats = graphql(/* GraphQL */ `
   query DailyStats(
-    $start: DateTimeUtc!
-    $end: DateTimeUtc!
+    $start: DateTime!
+    $end: DateTime!
     $users: [ID!]
     $languages: [Language!]
   ) {
