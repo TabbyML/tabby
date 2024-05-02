@@ -1,5 +1,5 @@
 import os
-from modal import Image, Stub, gpu, asgi_app, Volume
+from modal import Image, Stub, gpu, asgi_app, Volume, Secret
 
 IMAGE_NAME = os.environ.get("TABBY_IMAGE", "tabbyml/tabby")
 
@@ -22,7 +22,7 @@ volume = Volume.from_name("tabby-demo-server-volume", create_if_missing=True)
     timeout=600,
     volumes = {"/data": volume},
     _allow_background_volume_commits=True,
-    secrets=[modal.Secret.from_name("deepseek-openapi-key")]
+    secrets=[Secret.from_name("deepseek-openapi-key")]
 )
 @asgi_app()
 def entry():
