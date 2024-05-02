@@ -340,7 +340,7 @@ mod tests {
 
         tokio::fs::write(
             tabby_common::path::models_dir().join("testfile"),
-            "0".repeat(1024).as_bytes(),
+            "0".repeat(1000).as_bytes(),
         )
         .await
         .unwrap();
