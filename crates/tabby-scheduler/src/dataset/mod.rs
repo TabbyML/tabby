@@ -15,7 +15,6 @@ use tabby_common::{
     DependencyFile, SourceFile,
 };
 
-
 use crate::{repository_store::RepositoryStore, utils::tqdm};
 
 fn export_json_dataset(
