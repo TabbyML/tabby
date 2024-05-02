@@ -6,7 +6,7 @@ mod hub;
 mod jwt;
 mod oauth;
 mod path;
-mod repositories;
+mod routes;
 mod service;
 mod ui;
 
