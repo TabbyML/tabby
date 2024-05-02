@@ -1,16 +1,9 @@
-
-
-
-
 use jsonwebtoken as jwt;
-use juniper::{ID};
+use juniper::ID;
 use lazy_static::lazy_static;
-
 use tabby_common::terminal::{HeaderFormat, InfoMessage};
 use tabby_schema::auth::JWTPayload;
-
-
-use tracing::{warn};
+use tracing::warn;
 use uuid::Uuid;
 
 lazy_static! {
