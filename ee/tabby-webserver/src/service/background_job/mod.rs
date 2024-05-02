@@ -16,7 +16,6 @@ use tabby_db::DbConn;
 use self::{
     db::DbMaintainanceJob, github::SyncGithubJob, gitlab::SyncGitlabJob, scheduler::SchedulerJob,
 };
-use crate::path::job_queue;
 
 #[async_trait]
 pub trait BackgroundJob: Send + Sync {
@@ -32,8 +31,7 @@ struct BackgroundJobImpl {
 }
 
 pub async fn create(db: DbConn, local_port: u16) -> Arc<dyn BackgroundJob> {
-    let path = format!("sqlite://{}?mode=rwc", job_queue().display());
-    let pool = SqlitePool::connect(&path)
+    let pool = SqlitePool::connect("sqlite::memory:")
         .await
         .expect("unable to create sqlite pool");
     SqliteStorage::setup(&pool)
