@@ -95,13 +95,13 @@ impl CacheStore {
 
     pub fn update_source_files(&self, repositories: &[RepositoryConfig]) {
         for repository in repositories {
-            debug!("Syncing repository: {}", repository.canonical_git_url());
-            self.sync_repository(repository);
+            debug!("Refreshing source files for {}", repository.canonical_git_url());
+            self.refresh_source_files(repository);
         }
         self.retain_from(repositories);
     }
 
-    fn sync_repository(&self, repository: &RepositoryConfig) {
+    fn refresh_source_files(&self, repository: &RepositoryConfig) {
         let dir = repository.dir();
 
         self.meta_bucket()
