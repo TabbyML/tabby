@@ -73,18 +73,19 @@ impl AnalyticService for AnalyticServiceImpl {
 
     async fn disk_usage_stats(&self) -> Result<DiskUsageStats> {
         Ok(DiskUsageStats {
-            events: recursive_dir_size(tabby_common::path::events_dir()).await?,
-            indexed_repositories: recursive_dir_size(tabby_common::path::dataset_dir())
+            events: dir_size(tabby_common::path::events_dir()).await?,
+            indexed_repositories: dir_size(tabby_common::path::dataset_dir())
                 .await?
-                .combine(recursive_dir_size(tabby_common::path::index_dir()).await?),
-            database: recursive_dir_size(crate::path::tabby_ee_root()).await?,
-            models: recursive_dir_size(tabby_common::path::models_dir()).await?,
+                .combine(dir_size(tabby_common::path::index_dir()).await?)
+                .combine(dir_size(tabby_common::path::cache_dir()).await?),
+            database: dir_size(crate::path::tabby_ee_root()).await?,
+            models: dir_size(tabby_common::path::models_dir()).await?,
         })
     }
 }
 
 /// Calculate the size of a directory in kilobytes recursively
-async fn recursive_dir_size(path: PathBuf) -> Result<DiskUsage, anyhow::Error> {
+async fn dir_size(path: PathBuf) -> Result<DiskUsage, anyhow::Error> {
     let path_str = path.to_string_lossy().to_string();
 
     let size = if path.exists() {

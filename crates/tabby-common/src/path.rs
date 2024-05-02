@@ -61,8 +61,8 @@ pub fn events_dir() -> PathBuf {
     tabby_root().join("events")
 }
 
-pub fn repository_store() -> PathBuf {
-    tabby_root().join("repository.kv")
+pub fn cache_dir() -> PathBuf {
+    tabby_root().join("cache")
 }
 
 mod registry {}
