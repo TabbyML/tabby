@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use axum::middleware::Next;
-use hyper::{Body, Request};
+use axum::{body::Body, extract::Request, middleware::Next};
 use juniper::{GraphQLEnum, GraphQLObject};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -49,7 +48,7 @@ pub trait WorkerService: Send + Sync {
     async fn dispatch_request(
         &self,
         request: Request<Body>,
-        next: Next<Body>,
+        next: Next,
     ) -> axum::response::Response;
     async fn is_chat_enabled(&self) -> Result<bool>;
 }

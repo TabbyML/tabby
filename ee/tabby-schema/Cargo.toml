@@ -8,7 +8,7 @@ homepage.workspace = true
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
-axum = { workspace = true, features = ["ws", "headers"] }
+axum = { workspace = true }
 base64 = "0.22.0"
 chrono = { workspace = true, features = ["serde"] }
 futures.workspace = true

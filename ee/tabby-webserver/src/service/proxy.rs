@@ -2,7 +2,7 @@ use std::{net::IpAddr, str::FromStr};
 
 use anyhow::Result;
 use hyper::{
-    client::HttpConnector,
+    client::connect::HttpConnector,
     header::{HeaderMap, HeaderValue},
     Body, Client, Request, Response, Uri,
 };

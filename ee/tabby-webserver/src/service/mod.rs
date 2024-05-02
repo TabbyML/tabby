@@ -15,11 +15,9 @@ use std::{net::SocketAddr, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
-    http::{HeaderName, HeaderValue, Request},
-    middleware::Next,
-    response::IntoResponse,
+    body::Body, http::{HeaderName, HeaderValue, Request, StatusCode}, middleware::Next, response::IntoResponse
 };
-use hyper::{client::HttpConnector, Body, Client, StatusCode};
+use hyper::{client::HttpConnector, Client};
 use juniper::ID;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
@@ -215,7 +213,7 @@ impl WorkerService for ServerContext {
     async fn dispatch_request(
         &self,
         mut request: Request<Body>,
-        next: Next<Body>,
+        next: Next,
     ) -> axum::response::Response {
         let (auth, user) = self.authorize_request(&request).await;
         if !auth {

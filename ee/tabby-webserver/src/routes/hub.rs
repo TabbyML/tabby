@@ -4,11 +4,9 @@ use std::{
 };
 
 use axum::{
-    extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade},
-    response::IntoResponse,
-    TypedHeader,
+    body::Body, extract::{ws::WebSocket, ConnectInfo, State, WebSocketUpgrade}, http::StatusCode, response::IntoResponse
 };
-use hyper::{Body, StatusCode};
+use axum_extra::TypedHeader;
 use tabby_common::{
     api::{code::SearchResponse, event::LogEntry},
     config::{RepositoryAccess, RepositoryConfig},

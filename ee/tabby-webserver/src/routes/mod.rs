@@ -6,14 +6,9 @@ mod ui;
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, State},
-    http::Request,
-    middleware::{from_fn_with_state, Next},
-    response::{IntoResponse, Response},
-    routing, Extension, Json, Router,
+    body::Body, extract::{Path, State}, http::{Request, StatusCode}, middleware::{from_fn_with_state, Next}, response::{IntoResponse, Response}, routing, Extension, Json, Router
 };
-use hyper::{header::CONTENT_TYPE, Body, StatusCode};
-use juniper::ID;
+use juniper::{graphql_object, EmptyMutation, EmptySubscription, RootNode, ID};
 use juniper_axum::{graphiql, playground};
 use tabby_common::{api::server_setting::ServerSetting, config::RepositoryAccess};
 use tabby_schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator};
@@ -76,7 +71,7 @@ pub(crate) async fn require_login_middleware(
     State(auth): State<Arc<dyn AuthenticationService>>,
     AuthBearer(token): AuthBearer,
     request: Request<Body>,
-    next: Next<Body>,
+    next: Next,
 ) -> axum::response::Response {
     let unauthorized = axum::response::Response::builder()
         .status(StatusCode::UNAUTHORIZED)
@@ -98,7 +93,7 @@ pub(crate) async fn require_login_middleware(
 async fn distributed_tabby_layer(
     State(ws): State<Arc<dyn ServiceLocator>>,
     request: Request<Body>,
-    next: Next<Body>,
+    next: Next,
 ) -> axum::response::Response {
     ws.worker().dispatch_request(request, next).await
 }

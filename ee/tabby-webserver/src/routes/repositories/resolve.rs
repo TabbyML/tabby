@@ -2,7 +2,6 @@ use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use axum::{
-    body::boxed,
     http::{header, Request, Uri},
     response::{IntoResponse, Response},
     Json,

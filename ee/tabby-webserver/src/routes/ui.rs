@@ -1,5 +1,5 @@
 use axum::{
-    body::{boxed, Full},
+    body::Body,
     http::{header, StatusCode, Uri},
     response::{IntoResponse, Response},
 };
@@ -18,7 +18,7 @@ where
         let make_404_response = || {
             Response::builder()
                 .status(StatusCode::NOT_FOUND)
-                .body(boxed(Full::from(WebAssets::get("404.html").unwrap().data)))
+                .body(Body::from(WebAssets::get("404.html").unwrap().data))
                 .unwrap_or_else(|_| panic!("Invalid response"))
         };
 
@@ -29,7 +29,7 @@ where
 
         match WebAssets::get(decoded_path.as_ref()) {
             Some(content) => {
-                let body = boxed(Full::from(content.data));
+                let body = Body::from(content.data);
                 let mime = mime_guess::from_path(path).first_or_octet_stream();
                 Response::builder()
                     .header(header::CONTENT_TYPE, mime.as_ref())

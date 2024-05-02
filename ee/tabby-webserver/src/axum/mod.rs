@@ -3,7 +3,6 @@ pub mod websocket;
 
 use axum::{
     extract::{Extension, State},
-    response::IntoResponse,
 };
 use extract::AuthBearer;
 use juniper_axum::{extract::JuniperRequest, response::JuniperResponse};
@@ -19,11 +18,11 @@ pub async fn graphql<S, C>(
     Extension(schema): Extension<S>,
     AuthBearer(bearer): AuthBearer,
     JuniperRequest(req): JuniperRequest<S::ScalarValue>,
-) -> impl IntoResponse
+) -> JuniperResponse<S::ScalarValue>
 where
     S: Schema, // TODO: Refactor in the way we don't depend on `juniper_graphql_ws::Schema` here.
     S::Context: FromAuth<C>,
 {
     let ctx = S::Context::build(state, bearer);
-    JuniperResponse(req.execute(schema.root_node(), &ctx).await).into_response()
+    JuniperResponse(req.execute(schema.root_node(), &ctx).await)
 }
