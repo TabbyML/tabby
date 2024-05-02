@@ -224,6 +224,12 @@ top_level_keywords = [
 ]
 
 [[config]]
+languages = ["r"]
+exts = ["R", "r"]
+line_comment = "#"
+top_level_keywords = ["function", "library", "install.packages"]
+
+[[config]]
 languages = ["css"]
 exts = ["css"]
 
