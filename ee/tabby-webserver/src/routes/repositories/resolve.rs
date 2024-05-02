@@ -2,11 +2,8 @@ use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use axum::{
-    http::{header, Request, Uri},
-    response::{IntoResponse, Response},
-    Json,
+    body::Body, http::{header, Request, Uri}, response::{IntoResponse, Response}, Json
 };
-use hyper::Body;
 use juniper::ID;
 use serde::{Deserialize, Serialize};
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
@@ -117,10 +114,10 @@ impl ResolveState {
             Uri::from_str(repo.path_str())?
         };
 
-        let req = Request::builder().uri(uri).body(Body::empty()).unwrap();
+        let req = Request::builder().uri(uri).body(Body::empty())?;
         let resp = ServeDir::new(root).oneshot(req).await?;
 
-        Ok(resp.map(boxed))
+        Ok(resp.into_response())
     }
 
     pub async fn find_repository(&self, params: &ResolveParams) -> Option<PathBuf> {

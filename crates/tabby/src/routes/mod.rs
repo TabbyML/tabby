@@ -5,10 +5,10 @@ use std::{
     sync::Arc,
 };
 
-use axum::{headers::Header, http::HeaderName, routing, Router};
+use axum::{http::HeaderName, routing, Router};
+use axum_extra::headers::Header;
 use axum_prometheus::PrometheusMetricLayer;
-use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
-use hyper::Server;
+use axum_tracing_opentelemetry::{middleware::OtelAxumLayer, };
 use tabby_common::constants::USER_HEADER_FIELD_NAME;
 use tower_http::cors::CorsLayer;
 use tracing::info;
@@ -19,7 +19,7 @@ pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
     let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
     let app = api
         .layer(CorsLayer::permissive())
-        .layer(opentelemetry_tracing_layer())
+        .layer(OtelAxumLayer::default())
         .layer(prometheus_layer)
         .route(
             "/metrics",
@@ -34,8 +34,9 @@ pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
 
     let address = SocketAddr::from((host, port));
     info!("Listening at {}", address);
-    Server::bind(&address)
-        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+    let listener = tokio::net::TcpListener::bind(address).await.unwrap();
+
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
@@ -50,7 +51,7 @@ impl Header for MaybeUser {
         &USER_HEADER
     }
 
-    fn decode<'i, I>(values: &mut I) -> Result<Self, axum::headers::Error>
+    fn decode<'i, I>(values: &mut I) -> Result<Self, axum_extra::headers::Error>
     where
         Self: Sized,
         I: Iterator<Item = &'i axum::http::HeaderValue>,

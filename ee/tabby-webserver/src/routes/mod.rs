@@ -129,7 +129,7 @@ async fn avatar(
     let mut response = Response::new(Body::from(avatar.into_vec()));
     response
         .headers_mut()
-        .insert(CONTENT_TYPE, "image/*".parse().unwrap());
+        .insert("Content-Type", "image/*".parse().unwrap());
     Ok(response)
 }
 

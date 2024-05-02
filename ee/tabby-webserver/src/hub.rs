@@ -3,8 +3,7 @@ use std::net::IpAddr;
 use anyhow::Result;
 use async_trait::async_trait;
 use axum_extra::{headers::Header};
-use axum::http::HeaderName;
-use hyper::Request;
+use axum::{extract::Request, http::HeaderName};
 use serde::{Deserialize, Serialize};
 use tabby_common::{
     api::{

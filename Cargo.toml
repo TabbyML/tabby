@@ -43,8 +43,9 @@ async-stream = "0.3.5"
 regex = "1.10.0"
 strum = { version = "0.24", features = ["derive"] }
 thiserror = "1.0.49"
-utoipa = "3.3"
+utoipa = "4.2"
 axum = "0.7"
+axum-extra = "0.9"
 hyper = "1.1"
 juniper = "0.16"
 chrono = "0.4"
@@ -56,6 +57,7 @@ nucleo = "0.5.0"
 url = "2.5.0"
 temp_testdir = "0.2"
 git2 = "0.18.3"
+tower-http = "0.5"
 
 [workspace.dependencies.uuid]
 version = "1.3.3"

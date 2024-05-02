@@ -5,6 +5,9 @@ edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
 
+[features]
+schema-language = ["juniper/schema-language"]
+
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
@@ -25,3 +28,8 @@ tracing.workspace = true
 validator = { version = "0.16.1", features = ["derive"] }
 regex.workspace = true
 hash-ids.workspace = true
+
+[[example]]
+name = "update-schema"
+path = "examples/update-schema.rs"
+required-features = ["schema-language"]
