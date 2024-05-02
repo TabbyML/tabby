@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use serde::Deserialize;
 use tabby_db::DbConn;
+use tabby_schema::email::{AuthMethod, EmailService, EmailSettingInput, Encryption};
 use tokio::process::{Child, Command};
 
 use super::new_email_service;
-use crate::schema::email::{AuthMethod, EmailService, EmailSettingInput, Encryption};
 
 #[derive(Deserialize, Debug)]
 pub struct Mail {

@@ -74,7 +74,7 @@ function RepositoryProvidersView({
       {providers?.length ? (
         <>
           <GitProvidersList data={providers} />
-          <CreateRepositoryProvider />·
+          <CreateRepositoryProvider />
         </>
       ) : (
         <GitProvidersPlaceholder />
@@ -93,7 +93,7 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
       {data?.map(item => {
         return (
           <Card key={item.node.id}>
-            <CardHeader className="border-b p-4">
+            <CardHeader className="border-b px-6 py-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl">
                   <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ const GitProvidersList: React.FC<GitProvidersTableProps> = ({ data }) => {
               </div>
             </CardHeader>
             <CardContent className="p-0 text-sm">
-              <div className="flex px-8 py-4">
+              <div className="flex px-6 py-4">
                 <span className="w-[30%] shrink-0 text-muted-foreground">
                   Status
                 </span>
@@ -141,7 +141,7 @@ function toStatusMessage(status: RepositoryProviderStatus) {
   switch (status) {
     case RepositoryProviderStatus.Ready:
       return 'Ready'
-    case RepositoryProviderStatus.Error:
+    case RepositoryProviderStatus.Failed:
       return 'Processing error. Please check if the access token is still valid'
     case RepositoryProviderStatus.Pending:
       return 'Awaiting the next data synchronization'

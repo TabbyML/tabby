@@ -4,6 +4,7 @@ severity: error
 language: rust
 files:
   - ./ee/tabby-webserver/src/**
+  - ./ee/tabby-schema/src/**
 rule:
   all:
     - pattern: "#[validate]"

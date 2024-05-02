@@ -7,7 +7,7 @@ import { useScrollTop } from '@/lib/hooks/use-scroll-top'
 import { FileTree, TFileTreeNode } from './file-tree'
 import { FileTreeHeader } from './file-tree-header'
 import { SourceCodeBrowserContext } from './source-code-browser'
-import { resolveRepoSpecifierFromPath } from './utils'
+import { resolveRepositoryInfoFromPath } from './utils'
 
 interface FileTreePanelProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -29,9 +29,9 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = () => {
   }
 
   const currentFileTreeData = React.useMemo(() => {
-    const repoSpecifier = resolveRepoSpecifierFromPath(activePath)
+    const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
     const repo = fileTreeData.find(
-      treeNode => treeNode.fullPath === repoSpecifier
+      treeNode => treeNode.fullPath === repositorySpecifier
     )
     return repo?.children ?? []
   }, [activePath, fileTreeData])

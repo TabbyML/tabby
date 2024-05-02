@@ -2,7 +2,7 @@
 
 import React, { PropsWithChildren } from 'react'
 import { createRequest } from '@urql/core'
-import { compact, find, findIndex, toNumber } from 'lodash-es'
+import { compact, isEmpty, toNumber } from 'lodash-es'
 import { ImperativePanelHandle } from 'react-resizable-panels'
 import { toast } from 'sonner'
 import { SWRResponse } from 'swr'
@@ -35,10 +35,9 @@ import { TextFileView } from './text-file-view'
 import {
   fetchEntriesFromPath,
   getDirectoriesFromBasename,
-  resolveBasenameFromPath,
+  repositoryList2Map,
   resolveFileNameFromPath,
-  resolveRepoIdFromPath,
-  resolveRepoKindFromPath,
+  resolveRepositoryInfoFromPath,
   resolveRepoSpecifierFromRepoInfo
 } from './utils'
 
@@ -63,9 +62,10 @@ type TFileMapItem = {
   fullPath: string
   treeExpanded?: boolean
   isRepository?: boolean
-  repository?: RepositoryListQuery['repositoryList'][0] | undefined
+  repository?: RepositoryItem | undefined
 }
 type TFileMap = Record<string, TFileMapItem>
+type RepositoryItem = RepositoryListQuery['repositoryList'][0]
 
 const repositoryListQuery = graphql(/* GraphQL */ `
   query RepositoryList {
@@ -80,6 +80,8 @@ const repositoryListQuery = graphql(/* GraphQL */ `
 type SourceCodeBrowserContextValue = {
   activePath: string | undefined
   setActivePath: (path: string | undefined, replace?: boolean) => void
+  repoMap: Record<string, RepositoryItem>
+  setRepoMap: (map: Record<string, RepositoryItem>) => void
   fileMap: TFileMap
   updateFileMap: (map: TFileMap) => void
   expandedKeys: Set<string>
@@ -94,6 +96,7 @@ type SourceCodeBrowserContextValue = {
   pendingEvent: QuickActionEventPayload | undefined
   setPendingEvent: (d: QuickActionEventPayload | undefined) => void
   isChatEnabled: boolean | undefined
+  activeRepo: RepositoryItem | undefined
 }
 
 const SourceCodeBrowserContext =
@@ -120,6 +123,9 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
 
   const [initialized, setInitialized] = React.useState(false)
   const [fileMap, setFileMap] = React.useState<TFileMap>({})
+  const [repoMap, setRepoMap] = React.useState<
+    SourceCodeBrowserContextValue['repoMap']
+  >({})
   const [expandedKeys, setExpandedKeys] = React.useState<Set<string>>(new Set())
   const [chatSideBarVisible, setChatSideBarVisible] = React.useState(false)
   const [pendingEvent, setPendingEvent] = React.useState<
@@ -161,6 +167,13 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
     return sortFileTree(mapToFileTree(fileMap))
   }, [fileMap])
 
+  const activeRepo = React.useMemo(() => {
+    const { repositoryKind, repositoryName, repositorySpecifier } =
+      resolveRepositoryInfoFromPath(activePath)
+    if (!repositoryKind || !repositoryName) return undefined
+    return repositorySpecifier ? repoMap[repositorySpecifier] : undefined
+  }, [activePath, repoMap])
+
   return (
     <SourceCodeBrowserContext.Provider
       value={{
@@ -179,7 +192,10 @@ const SourceCodeBrowserContextProvider: React.FC<PropsWithChildren> = ({
         setChatSideBarVisible,
         pendingEvent,
         setPendingEvent,
-        isChatEnabled
+        isChatEnabled,
+        repoMap,
+        setRepoMap,
+        activeRepo
       }}
     >
       {children}
@@ -206,21 +222,27 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     setExpandedKeys,
     chatSideBarVisible,
     setChatSideBarVisible,
-    setPendingEvent
+    setPendingEvent,
+    fileTreeData,
+    repoMap,
+    setRepoMap,
+    activeRepo
   } = React.useContext(SourceCodeBrowserContext)
+
   const initializing = React.useRef(false)
   const { setProgress } = useTopbarProgress()
   const chatSideBarPanelRef = React.useRef<ImperativePanelHandle>(null)
   const [chatSideBarPanelSize, setChatSideBarPanelSize] = React.useState(35)
 
-  const activeRepoSpecifier = React.useMemo(() => {
-    const kind = resolveRepoKindFromPath(activePath)
-    const id = resolveRepoIdFromPath(activePath)
-    return `${kind}/${id}`
-  }, [activePath])
+  const activeRepoIdentity = React.useMemo(() => {
+    const repoId = activeRepo?.id
+    const kind = activeRepo?.kind
+    if (!repoId || !kind) return ''
+    return `${activeRepo.kind?.toLowerCase()}/${repoId}`
+  }, [activeRepo])
 
   const activeBasename = React.useMemo(() => {
-    return resolveBasenameFromPath(activePath)
+    return resolveRepositoryInfoFromPath(activePath)?.basename
   }, [activePath])
 
   const [fileViewType, setFileViewType] = React.useState<FileDisplayType>()
@@ -243,7 +265,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       contentLength?: number
     }>(
       isFileSelected
-        ? `/repositories/${activeRepoSpecifier}/resolve/${activeBasename}`
+        ? `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
         : null,
       (url: string) =>
         fetcher(url, {
@@ -285,7 +307,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     isLoading: fetchingSubTree
   }: SWRResponse<ResolveEntriesResponse> = useSWRImmutable(
     shouldFetchSubDir
-      ? `/repositories/${activeRepoSpecifier}/resolve/${activeBasename}`
+      ? `/repositories/${activeRepoIdentity}/resolve/${activeBasename}`
       : null,
     fetcher
   )
@@ -301,6 +323,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
     }
   }
 
+  // todo check if params is valid
   React.useEffect(() => {
     const init = async () => {
       if (initializing.current) return
@@ -318,6 +341,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         return
       }
 
+      if (repos) setRepoMap(repositoryList2Map(repos))
       if (patchMap) updateFileMap(patchMap)
       if (expandedKeys?.length) setExpandedKeys(new Set(expandedKeys))
       setInitialized(true)
@@ -331,11 +355,11 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   React.useEffect(() => {
     const onFetchSubTree = () => {
       if (subTree?.entries?.length && activePath) {
-        const repoKind = resolveRepoKindFromPath(activePath)
-        const repoId = resolveRepoIdFromPath(activePath)
+        const { repositorySpecifier } =
+          resolveRepositoryInfoFromPath(activePath)
         let patchMap: TFileMap = {}
         for (const entry of subTree.entries) {
-          const path = `${repoKind}/${repoId}/${entry.basename}`
+          const path = `${repositorySpecifier}/${entry.basename}`
           patchMap[path] = {
             file: entry,
             name: resolveFileNameFromPath(path),
@@ -464,19 +488,19 @@ const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
 
 async function getInitialFileData(path?: string) {
   try {
-    const initialRepositoryKind = resolveRepoKindFromPath(path)
-    const initialRepositoryId = resolveRepoIdFromPath(path)
-    const initialBasename = resolveBasenameFromPath(path)
+    const {
+      repositoryKind: initialRepositoryKind,
+      repositoryName: initialRepositoryName,
+      basename: initialBasename,
+      repositorySpecifier
+    } = resolveRepositoryInfoFromPath(path)
     const repos = await fetchAllRepositories()
-    const initialRepo = find(
-      repos,
-      o =>
-        !!o.id &&
-        !!o.kind &&
-        o.id === initialRepositoryId &&
-        o.kind.toLowerCase() === initialRepositoryKind
-    )
-    const initialEntries = path ? await fetchInitialEntries(repos, path) : []
+    const repoMap = repositoryList2Map(repos)
+    const initialRepo = repositorySpecifier
+      ? repoMap?.[repositorySpecifier]
+      : undefined
+    const initialEntries =
+      path && initialRepo ? await fetchInitialEntries(path, repoMap) : []
     const initialExpandedDirs = path
       ? getDirectoriesFromBasename(initialBasename)
       : []
@@ -493,8 +517,8 @@ async function getInitialFileData(path?: string) {
           name: repo.name,
           fullPath: repoSpecifier,
           treeExpanded:
-            repo.id === initialRepositoryId &&
-            repo.kind.toLowerCase() === initialRepositoryKind,
+            repo.name === initialRepositoryName &&
+            repo.kind === initialRepositoryKind,
           isRepository: true,
           repository: repo
         }
@@ -503,7 +527,7 @@ async function getInitialFileData(path?: string) {
     for (const entry of initialEntries) {
       const path = `${resolveRepoSpecifierFromRepoInfo({
         kind: initialRepositoryKind,
-        id: initialRepositoryId
+        name: initialRepositoryName
       })}/${entry.basename}`
       patchMap[path] = {
         file: entry,
@@ -537,24 +561,19 @@ async function getInitialFileData(path?: string) {
   }
 
   async function fetchInitialEntries(
-    repos: RepositoryListQuery['repositoryList'],
-    path: string
+    path: string,
+    repoMap: Record<string, RepositoryItem>
   ) {
     let result: TFile[] = []
     try {
-      if (repos?.length && path) {
-        const repoKind = resolveRepoKindFromPath(path)
-        const repoId = resolveRepoIdFromPath(path)
-        const repositoryIdx = findIndex(
-          repos,
-          entry =>
-            !!entry.kind &&
-            entry.id === repoId &&
-            entry.kind.toLowerCase() === repoKind
-        )
-        if (repositoryIdx < 0) return result
+      const { repositorySpecifier } = resolveRepositoryInfoFromPath(path)
+      if (!isEmpty(repoMap) && repositorySpecifier) {
+        const repo = repoMap[repositorySpecifier]
+        if (!repo) {
+          return result
+        }
 
-        const defaultEntries = await fetchEntriesFromPath(path)
+        const defaultEntries = await fetchEntriesFromPath(path, repo)
         result = defaultEntries ?? []
       }
     } catch (e) {

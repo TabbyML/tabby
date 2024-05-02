@@ -3,12 +3,10 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_trait::async_trait;
 use serde::Deserialize;
+use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 use super::OAuthClient;
-use crate::{
-    bail,
-    schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider},
-};
+use crate::bail;
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]

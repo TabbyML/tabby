@@ -45,7 +45,7 @@ export const getAllWorkersDocument = graphql(/* GraphQL */ `
 
 function useWorkers() {
   const { data: healthInfo } = useHealth()
-  const [{ data }] = useQuery({ query: getAllWorkersDocument })
+  const [{ data, fetching }] = useQuery({ query: getAllWorkersDocument })
   let workers = data?.workers
 
   const groupedWorkers = React.useMemo(() => {
@@ -66,7 +66,7 @@ function useWorkers() {
     return groupBy(_workers, 'kind')
   }, [healthInfo, workers])
 
-  return groupedWorkers
+  return { data: groupedWorkers, fetching }
 }
 
 export { useWorkers }

@@ -1,9 +1,7 @@
 'use client'
 
-import bytes from 'bytes'
 import { noop, sum } from 'lodash-es'
-import { useTheme } from 'next-themes'
-import { Cell, Label, Pie, PieChart, ResponsiveContainer } from 'recharts'
+import prettyBytes from 'pretty-bytes'
 import { useQuery } from 'urql'
 
 import { graphql } from '@/lib/gql/generates'
@@ -19,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { IconRotate } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CopyButton } from '@/components/copy-button'
 import LoadingWrapper from '@/components/loading-wrapper'
 
@@ -42,7 +41,7 @@ function toBadgeString(str: string) {
 
 export default function Workers() {
   const { data: healthInfo } = useHealth()
-  const workers = useWorkers()
+  const { data: workers, fetching } = useWorkers()
   const [{ data: registrationTokenRes }, reexecuteQuery] = useQuery({
     query: getRegistrationTokenDocument
   })
@@ -74,55 +73,60 @@ export default function Workers() {
         </a>
       </span>
       <Separator />
-      {!!registrationTokenRes?.registrationToken && (
-        <div className="flex items-center gap-1">
-          Registration token:
-          <Input
-            className="max-w-[320px] font-mono"
-            value={registrationTokenRes.registrationToken}
-            onChange={noop}
-          />
-          <Button
-            title="Rotate"
-            size="icon"
-            variant="hover-destructive"
-            onClick={() => resetRegistrationToken()}
-          >
-            <IconRotate />
-          </Button>
-          <CopyButton value={registrationTokenRes.registrationToken} />
-        </div>
-      )}
-
-      <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-        {!!workers?.[WorkerKind.Completion] && (
-          <>
-            {workers[WorkerKind.Completion].map((worker, i) => {
-              return <WorkerCard key={i} {...worker} />
-            })}
-          </>
-        )}
-        {!!workers?.[WorkerKind.Chat] && (
-          <>
-            {workers[WorkerKind.Chat].map((worker, i) => {
-              return <WorkerCard key={i} {...worker} />
-            })}
-          </>
-        )}
-        <WorkerCard
-          addr="localhost"
-          name="Code Search Index"
-          kind="INDEX"
-          arch=""
-          device={healthInfo.device}
-          cudaDevices={healthInfo.cuda_devices}
-          cpuCount={healthInfo.cpu_count}
-          cpuInfo={healthInfo.cpu_info}
-        />
-      </div>
-
-      <Separator className="mt-6" />
       <Usage />
+      <Separator />
+      <LoadingWrapper
+        loading={fetching}
+        fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
+      >
+        <>
+          {!!registrationTokenRes?.registrationToken && (
+            <div className="flex items-center gap-1 pt-2">
+              Registration token:
+              <Input
+                className="max-w-[320px] font-mono"
+                value={registrationTokenRes.registrationToken}
+                onChange={noop}
+              />
+              <Button
+                title="Rotate"
+                size="icon"
+                variant="hover-destructive"
+                onClick={() => resetRegistrationToken()}
+              >
+                <IconRotate />
+              </Button>
+              <CopyButton value={registrationTokenRes.registrationToken} />
+            </div>
+          )}
+          <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
+            {!!workers?.[WorkerKind.Completion] && (
+              <>
+                {workers[WorkerKind.Completion].map((worker, i) => {
+                  return <WorkerCard key={i} {...worker} />
+                })}
+              </>
+            )}
+            {!!workers?.[WorkerKind.Chat] && (
+              <>
+                {workers[WorkerKind.Chat].map((worker, i) => {
+                  return <WorkerCard key={i} {...worker} />
+                })}
+              </>
+            )}
+            <WorkerCard
+              addr="localhost"
+              name="Code Search Index"
+              kind="INDEX"
+              arch=""
+              device={healthInfo.device}
+              cudaDevices={healthInfo.cuda_devices}
+              cpuCount={healthInfo.cpu_count}
+              cpuInfo={healthInfo.cpu_info}
+            />
+          </div>
+        </>
+      </LoadingWrapper>
     </div>
   )
 }
@@ -131,20 +135,20 @@ export const getDiskUsageStats = graphql(/* GraphQL */ `
   query GetDiskUsageStats {
     diskUsageStats {
       events {
-        filePaths
-        size
+        filepath
+        sizeKb
       }
       indexedRepositories {
-        filePaths
-        size
+        filepath
+        sizeKb
       }
       database {
-        filePaths
-        size
+        filepath
+        sizeKb
       }
       models {
-        filePaths
-        size
+        filepath
+        sizeKb
       }
     }
   }
@@ -156,7 +160,7 @@ type UsageItem = {
   color: string
 }
 
-type UsageItemWithSize = UsageItem & { size: number }
+type UsageItemWithSize = UsageItem & { sizeKb: number }
 
 const usageList: UsageItem[] = [
   {
@@ -195,61 +199,49 @@ function Usage() {
         const diskUsage = data.diskUsageStats[usage.key] as DiskUsage
         return {
           ...usage,
-          size: diskUsage.size
+          sizeKb: diskUsage.sizeKb
         }
       })
       .filter(usage => usage) as UsageItemWithSize[]
-    totalUsage = sum(usageData.map(data => data.size))
+    totalUsage = sum(usageData.map(data => data.sizeKb))
   }
 
   return (
-    <LoadingWrapper loading={fetching} fallback={<></>}>
+    <LoadingWrapper
+      loading={fetching}
+      fallback={<Skeleton className="mt-3 h-32 w-full lg:w-2/3" />}
+    >
       <>
-        <div>
-          <p className="font-bold">Disk Usage</p>
-          <p className="text-sm text-muted-foreground">
-            Storage utilization by Type
-          </p>
-        </div>
-        <div className="flex flex-col items-center gap-x-3 md:flex-row">
-          <ResponsiveContainer width={230} height={220}>
-            <PieChart>
-              <Pie
-                data={usageData}
-                dataKey="size"
-                cx={110}
-                cy={100}
-                innerRadius={70}
-                outerRadius={90}
-                stroke="none"
-              >
-                {usageData.map(entry => (
-                  <Cell key={entry.key} fill={entry.color} />
-                ))}
-                <Label
-                  content={<CustomLabel totalUsage={totalUsage} />}
-                  position="center"
-                />
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-
-          <div className="flex w-full flex-col gap-y-2 md:ml-10 md:w-auto">
-            {usageData.map(usage => (
-              <div
-                className="flex cursor-default items-center justify-between text-xs"
-                key={usage!.key}
-              >
-                <div className="flex w-40 items-center">
+        <div className="flex flex-col gap-y-1.5 py-2">
+          <div>
+            <p className="mb-1 text-sm  text-muted-foreground">Disk Usage</p>
+            <p className="text-3xl font-bold leading-none">
+              {toBytes(totalUsage)}
+            </p>
+          </div>
+          <div className="pt-3">
+            <p className="mb-1 text-sm text-muted-foreground">
+              Storage utilization by Type
+            </p>
+            <div className="flex flex-wrap gap-y-3">
+              {usageData.map(usage => (
+                <div
+                  className="flex w-1/2 pt-1 text-sm md:w-36"
+                  key={usage!.key}
+                >
                   <div
-                    className="mr-1.5 h-3 w-3 rounded"
+                    className="mr-3 mt-1 h-2 w-2 rounded-full"
                     style={{ backgroundColor: usage!.color }}
                   />
-                  <p className="font-semibold">{usage!.label}</p>
+                  <div>
+                    <p className="mb-1 leading-none">{usage!.label}</p>
+                    <p className="text-card-foreground/70">
+                      {toBytes(usage!.sizeKb)}
+                    </p>
+                  </div>
                 </div>
-                <p>{toBytes(usage!.size)}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </>
@@ -257,47 +249,6 @@ function Usage() {
   )
 }
 
-function CustomLabel({
-  viewBox,
-  totalUsage
-}: {
-  viewBox?: {
-    cx: number
-    cy: number
-  }
-  totalUsage: number
-}) {
-  const { theme } = useTheme()
-  if (!viewBox) return
-  const { cx, cy } = viewBox
-  return (
-    <g>
-      <text
-        x={cx}
-        y={cy - 20}
-        textAnchor="middle"
-        dominantBaseline="central"
-        alignmentBaseline="middle"
-        fill={theme === 'dark' ? '#FDFDFD' : '#030302'}
-        className="text-sm"
-      >
-        Total Usage
-      </text>
-      <text
-        x={cx}
-        y={cy + 13}
-        textAnchor="middle"
-        dominantBaseline="central"
-        alignmentBaseline="middle"
-        fill={theme === 'dark' ? '#FDFDFD' : '#030302'}
-        className="text-lg font-semibold"
-      >
-        {toBytes(totalUsage)}
-      </text>
-    </g>
-  )
-}
-
 function toBytes(value: number) {
-  return bytes(value * 1024, { unitSeparator: ' ' })
+  return prettyBytes(value * 1000)
 }

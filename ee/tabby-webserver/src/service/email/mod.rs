@@ -18,15 +18,17 @@ mod templates;
 #[cfg(test)]
 pub mod testutils;
 
-use super::dao::DbEnum;
-use crate::schema::{
+use tabby_schema::{
     email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
     setting::SettingService,
-    CoreError, Result,
+    CoreError, DbEnum, Result,
 };
+
+use super::setting;
 
 struct EmailServiceImpl {
     db: DbConn,
+    setting: Arc<dyn SettingService>,
     smtp_server: Arc<RwLock<Option<AsyncSmtpTransport<Tokio1Executor>>>>,
     from: RwLock<String>,
 }
@@ -62,9 +64,10 @@ fn make_smtp_builder(
 }
 
 impl EmailServiceImpl {
-    fn new(db: DbConn) -> Self {
+    fn new(db: DbConn, setting: Arc<dyn SettingService>) -> Self {
         Self {
             db,
+            setting,
             smtp_server: Default::default(),
             from: Default::default(),
         }
@@ -139,7 +142,7 @@ impl EmailServiceImpl {
 
 pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
     let setting = db.read_email_setting().await?;
-    let service = EmailServiceImpl::new(db);
+    let service = EmailServiceImpl::new(db.clone(), Arc::new(setting::create(db)));
 
     // Optionally initialize the SMTP connection when the service is created
     if let Some(setting) = setting {
@@ -220,7 +223,7 @@ impl EmailService for EmailServiceImpl {
     }
 
     async fn send_invitation(&self, email: String, code: String) -> Result<JoinHandle<()>> {
-        let network_setting = self.db.read_network_setting().await?;
+        let network_setting = self.setting.read_network_setting().await?;
         let external_url = network_setting.external_url;
         let body = templates::invitation(&external_url, &code, &email);
         self.send_email_in_background(
@@ -232,7 +235,7 @@ impl EmailService for EmailServiceImpl {
     }
 
     async fn send_signup(&self, email: String) -> Result<JoinHandle<()>> {
-        let external_url = self.db.read_network_setting().await?.external_url;
+        let external_url = self.setting.read_network_setting().await?.external_url;
 
         let body = templates::signup_success(&external_url, &email);
         self.send_email_in_background(email, "Welcome to Tabby!".into(), body)
@@ -240,7 +243,7 @@ impl EmailService for EmailServiceImpl {
     }
 
     async fn send_password_reset(&self, email: String, code: String) -> Result<JoinHandle<()>> {
-        let external_url = self.db.read_network_setting().await?.external_url;
+        let external_url = self.setting.read_network_setting().await?.external_url;
         let body = templates::password_reset(&external_url, &email, &code);
         self.send_email_in_background(email, "Reset your Tabby account password".into(), body)
             .await
@@ -269,7 +272,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_email_with_service() {
         let db: DbConn = DbConn::new_in_memory().await.unwrap();
-        let service = EmailServiceImpl::new(db);
+        let service = EmailServiceImpl::new(db.clone(), Arc::new(setting::create(db)));
 
         let update_input = EmailSettingInput {
             smtp_username: "test@example.com".into(),

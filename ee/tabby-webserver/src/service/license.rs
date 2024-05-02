@@ -5,15 +5,13 @@ use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
-
-use crate::{
-    bail,
-    env::demo_mode,
-    schema::{
-        license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
-        Result,
-    },
+use tabby_schema::{
+    demo_mode,
+    license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
+    Result,
 };
+
+use crate::bail;
 
 lazy_static! {
     static ref LICENSE_DECODING_KEY: jwt::DecodingKey =
@@ -148,7 +146,7 @@ impl LicenseService for LicenseServiceImpl {
 
     async fn update(&self, license: String) -> Result<()> {
         if demo_mode() {
-            bail!("Demo mode is enabled, cannot set license");
+            bail!("Modifying license is disabled in demo mode");
         }
 
         let raw = validate_license(&license).map_err(|_e| anyhow!("License is not valid"))?;

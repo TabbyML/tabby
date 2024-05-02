@@ -3,10 +3,8 @@ use std::fmt::Display;
 use juniper::ID;
 use tabby_common::api::event::{Event, EventLogger, LogEntry};
 use tabby_db::DbConn;
+use tabby_schema::{user_event::EventKind, AsRowid, DbEnum};
 use tracing::warn;
-
-use super::dao::{AsRowid, DbEnum};
-use crate::schema::user_event::EventKind;
 
 struct DbEventLogger {
     db: DbConn,
@@ -140,8 +138,9 @@ mod tests {
 
     use tabby_common::api::event::{Event, EventLogger, Message};
     use tabby_db::DbConn;
+    use tabby_schema::AsID;
 
-    use crate::service::{dao::AsID, event_logger::create_event_logger};
+    use crate::service::event_logger::create_event_logger;
 
     async fn sleep_50() {
         tokio::time::sleep(Duration::from_millis(500)).await;

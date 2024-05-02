@@ -1,11 +1,12 @@
 use std::{net::IpAddr, str::FromStr};
 
 use anyhow::Result;
+use axum::{body::Body, response::IntoResponse};
 use hyper::{
-    client::HttpConnector,
     header::{HeaderMap, HeaderValue},
-    Body, Client, Request, Response, Uri,
+    Request, Response, Uri,
 };
+use hyper_util::client::legacy::{connect::HttpConnector, Client};
 use lazy_static::lazy_static;
 
 fn is_hop_header(name: &str) -> bool {
@@ -83,13 +84,13 @@ fn create_proxied_request<B>(
 }
 
 pub async fn call(
-    client: Client<HttpConnector>,
+    client: Client<HttpConnector, Body>,
     client_ip: IpAddr,
     forward_uri: &str,
     request: Request<Body>,
 ) -> Result<Response<Body>> {
     let proxied_request = create_proxied_request(client_ip, forward_uri, request)?;
-    let response = client.request(proxied_request).await?;
+    let response = client.request(proxied_request).await?.into_response();
     let proxied_response = create_proxied_response(response);
     Ok(proxied_response)
 }

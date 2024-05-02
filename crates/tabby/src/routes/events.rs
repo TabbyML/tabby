@@ -2,8 +2,9 @@ use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::{Query, State},
-    Json, TypedHeader,
+    Json,
 };
+use axum_extra::TypedHeader;
 use hyper::StatusCode;
 use tabby_common::api::event::{Event, EventLogger, LogEventRequest, SelectKind};
 
