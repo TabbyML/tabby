@@ -127,6 +127,9 @@ impl Device {
 
 #[tokio::main]
 async fn main() {
+    #[cfg(debug_assertions)]
+    color_eyre::install().expect("Must be able to install color_eyre");
+
     let cli = Cli::parse();
     init_logging();
 

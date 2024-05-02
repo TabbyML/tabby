@@ -59,6 +59,9 @@ uuid.workspace = true
 cached = { workspace = true, features = ["async"] }
 parse-git-url = "0.5.1"
 
+[target.'cfg(debug_assertions)'.dependencies]
+color-eyre = { version = "0.6.3" }
+
 [dependencies.openssl]
 optional = true
 version = "*"
@@ -66,7 +69,6 @@ version = "*"
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["build", "git", "gitcl"] }
 
-[dev-dependencies]
 assert-json-diff = "2.0.2"
 insta = { version = "1.34.0", features = ["yaml", "redactions"] }
 reqwest.workspace = true
