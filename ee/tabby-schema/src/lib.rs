@@ -6,7 +6,7 @@ mod schema;
 
 pub mod juniper;
 pub use dao::*;
-pub use env::demo_mode;
+pub use env::is_demo_mode;
 pub use schema::*;
 
 #[macro_export]

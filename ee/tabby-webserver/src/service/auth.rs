@@ -16,7 +16,7 @@ use tabby_schema::{
         OAuthResponse, RefreshTokenResponse, RegisterResponse, RequestInvitationInput,
         TokenAuthResponse, UpdateOAuthCredentialInput, User,
     },
-    demo_mode,
+    is_demo_mode,
     email::EmailService,
     license::{LicenseInfo, LicenseService},
     setting::SettingService,
@@ -63,7 +63,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         invitation_code: Option<String>,
     ) -> Result<RegisterResponse> {
         let is_admin_initialized = self.is_admin_initialized().await?;
-        if is_admin_initialized && demo_mode() {
+        if is_admin_initialized && is_demo_mode() {
             bail!("Registering new users is disabled in demo mode");
         }
         let invitation =
@@ -166,7 +166,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
         old_password: Option<&str>,
         new_password: &str,
     ) -> Result<()> {
-        if demo_mode() {
+        if is_demo_mode() {
             bail!("Changing passwords is disabled in demo mode");
         }
 
@@ -322,7 +322,7 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn create_invitation(&self, email: String) -> Result<Invitation> {
-        if demo_mode() {
+        if is_demo_mode() {
             bail!("Inviting users is disabled in demo mode");
         }
         let license = self.license.read().await?;
@@ -523,7 +523,7 @@ async fn get_or_create_oauth_user(
         .map_err(|x| OAuthError::Other(x.into()))?
         .can_register_without_invitation(email)
     {
-        if demo_mode() {
+        if is_demo_mode() {
             bail!("Registering new users is disabled in demo mode");
         }
         // it's ok to set password to null here, because

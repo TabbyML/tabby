@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
 use tabby_schema::{
-    demo_mode,
+    is_demo_mode,
     license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
     Result,
 };
@@ -129,7 +129,7 @@ fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<Li
 #[async_trait]
 impl LicenseService for LicenseServiceImpl {
     async fn read(&self) -> Result<LicenseInfo> {
-        if demo_mode() {
+        if is_demo_mode() {
             return self.make_demo_license().await;
         }
 
@@ -145,7 +145,7 @@ impl LicenseService for LicenseServiceImpl {
     }
 
     async fn update(&self, license: String) -> Result<()> {
-        if demo_mode() {
+        if is_demo_mode() {
             bail!("Modifying license is disabled in demo mode");
         }
 
