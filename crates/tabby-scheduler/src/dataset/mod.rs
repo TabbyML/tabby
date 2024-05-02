@@ -6,7 +6,6 @@ use std::{
 };
 
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
-
 use kdam::BarExt;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
