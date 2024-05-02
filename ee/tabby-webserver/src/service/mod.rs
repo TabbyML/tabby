@@ -11,7 +11,7 @@ mod setting;
 mod user_event;
 mod worker;
 
-use std::{net::SocketAddr, ops::Deref, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
