@@ -6,11 +6,19 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["ee", "experimental-http"]
+default = ["ee", "experimental-http", "avx", "avx2", "fma", "f16c"]
 ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
 rocm = ["llama-cpp-bindings/rocm"]
 vulkan = ["llama-cpp-bindings/vulkan"]
+native = ["llama-cpp-bindings/native"]
+avx = ["llama-cpp-bindings/avx"]
+avx2 = ["llama-cpp-bindings/avx2"]
+avx512 = ["llama-cpp-bindings/avx512"]
+avx512_vbmi = ["llama-cpp-bindings/avx512_vbmi"]
+avx512_vnni = ["llama-cpp-bindings/avx512_vnni"]
+fma = ["llama-cpp-bindings/fma"]
+f16c = ["llama-cpp-bindings/f16c"]
 experimental-http = ["dep:http-api-bindings"]
 # If compiling on a system without OpenSSL installed, or cross-compiling for a different
 # architecture, enable this feature to compile OpenSSL as part of the build.
@@ -48,7 +56,7 @@ async-stream = { workspace = true }
 minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
 regex.workspace = true
-llama-cpp-bindings = { path = "../llama-cpp-bindings" }
+llama-cpp-bindings = { path = "../llama-cpp-bindings", default-features = false }
 futures.workspace = true
 async-trait.workspace = true
 tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }

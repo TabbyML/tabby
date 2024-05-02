@@ -6,9 +6,18 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
+default = ["avx", "avx2", "fma", "f16c"]
 cuda = []
 rocm = []
 vulkan = []
+native = []
+avx = []
+avx2 = []
+avx512 = []
+avx512_vbmi = []
+avx512_vnni = []
+fma = []
+f16c = []
 
 [build-dependencies]
 cxx-build = "1.0"
