@@ -11,12 +11,6 @@ mod worker;
 use std::os::unix::fs::PermissionsExt;
 
 use clap::{Parser, Subcommand};
-use opentelemetry::{
-    global,
-    sdk::{propagation::TraceContextPropagator, trace, trace::Sampler, Resource},
-    KeyValue,
-};
-use opentelemetry_otlp::WithExportConfig;
 use tabby_common::config::{Config, ConfigRepositoryAccess};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
@@ -29,7 +23,7 @@ struct Cli {
     command: Commands,
 
     /// Open Telemetry endpoint.
-    #[clap(long)]
+    #[clap(hide=true, long)]
     otlp_endpoint: Option<String>,
 }
 
@@ -134,7 +128,7 @@ impl Device {
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
-    init_logging(cli.otlp_endpoint);
+    init_logging();
 
     let config = Config::load().unwrap_or_default();
     let root = tabby_common::path::tabby_root();
@@ -170,8 +164,6 @@ async fn main() {
             worker::main(tabby_webserver::public::WorkerKind::Chat, args).await
         }
     }
-
-    opentelemetry::global::shutdown_tracer_provider();
 }
 
 #[macro_export]
@@ -191,7 +183,7 @@ macro_rules! fatal {
     };
 }
 
-fn init_logging(otlp_endpoint: Option<String>) {
+fn init_logging() {
     let mut layers = Vec::new();
 
     let fmt_layer = tracing_subscriber::fmt::layer()
@@ -201,36 +193,10 @@ fn init_logging(otlp_endpoint: Option<String>) {
 
     layers.push(fmt_layer);
 
-    if let Some(otlp_endpoint) = &otlp_endpoint {
-        global::set_text_map_propagator(TraceContextPropagator::new());
-
-        let tracer = opentelemetry_otlp::new_pipeline()
-            .tracing()
-            .with_exporter(
-                opentelemetry_otlp::new_exporter()
-                    .tonic()
-                    .with_endpoint(otlp_endpoint),
-            )
-            .with_trace_config(
-                trace::config()
-                    .with_resource(Resource::new(vec![KeyValue::new(
-                        "service.name",
-                        "tabby.server",
-                    )]))
-                    .with_sampler(Sampler::AlwaysOn),
-            )
-            .install_batch(opentelemetry::runtime::Tokio);
-
-        if let Ok(tracer) = tracer {
-            layers.push(tracing_opentelemetry::layer().with_tracer(tracer).boxed());
-            init_tracing_opentelemetry::init_propagator().expect("Initializing telemetry");
-        };
-    }
-
     let mut dirs = if cfg!(feature = "prod") {
-        "tabby=info,axum_tracing_opentelemetry=info,otel=debug".into()
+        "tabby=info,otel=debug".into()
     } else {
-        "tabby=debug,axum_tracing_opentelemetry=info,otel=debug".into()
+        "tabby=debug,otel=debug".into()
     };
 
     if let Ok(env) = std::env::var(EnvFilter::DEFAULT_ENV) {

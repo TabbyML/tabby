@@ -8,7 +8,6 @@ use std::{
 use axum::{http::HeaderName, routing, Router};
 use axum_extra::headers::Header;
 use axum_prometheus::PrometheusMetricLayer;
-use axum_tracing_opentelemetry::middleware::OtelAxumLayer;
 use tabby_common::constants::USER_HEADER_FIELD_NAME;
 use tower_http::cors::CorsLayer;
 use tracing::info;
@@ -19,7 +18,6 @@ pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
     let (prometheus_layer, prometheus_handle) = PrometheusMetricLayer::pair();
     let app = api
         .layer(CorsLayer::permissive())
-        .layer(OtelAxumLayer::default())
         .layer(prometheus_layer)
         .route(
             "/metrics",

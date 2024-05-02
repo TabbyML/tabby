@@ -39,10 +39,6 @@ strum = { workspace = true }
 strfmt = "0.2.4"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
-opentelemetry-otlp = "0.11.0"
-axum-tracing-opentelemetry = "0.18"
-tracing-opentelemetry = "0.18.0"
 tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
@@ -62,7 +58,6 @@ axum-prometheus = "0.6"
 uuid.workspace = true
 cached = { workspace = true, features = ["async"] }
 parse-git-url = "0.5.1"
-init-tracing-opentelemetry = "0.18.1"
 
 [dependencies.openssl]
 optional = true
