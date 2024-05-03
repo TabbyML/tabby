@@ -256,13 +256,14 @@ function useAuthenticatedSession() {
     if (status === 'authenticated') return
     if (isAdminInitialized === undefined) return
 
-    if (!isAdminInitialized) {
+    const isAdminSignup =
+      pathName === '/auth/signup' && searchParams.get('isAdmin') === 'true'
+
+    if (!isAdminSignup && !isAdminInitialized) {
       return router.replace('/auth/signup?isAdmin=true')
     }
 
-    const isAdminSignup =
-      pathName === '/auth/signup' && searchParams.get('isAdmin') === 'true'
-    if (!redirectWhitelist.includes(pathName) || isAdminSignup) {
+    if (!redirectWhitelist.includes(pathName)) {
       router.replace('/auth/signin')
     }
   }, [isAdminInitialized, status])
