@@ -34,8 +34,8 @@ use tabby_db::DbConn;
 use tabby_schema::{
     analytic::AnalyticService,
     auth::AuthenticationService,
-    demo_mode,
     email::EmailService,
+    is_demo_mode,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
     repository::RepositoryService,
@@ -116,13 +116,6 @@ impl ServerContext {
     /// Returns whether a request is authorized to access the content, and the user ID if authentication was used.
     async fn authorize_request(&self, uri: &Uri, headers: &HeaderMap) -> (bool, Option<ID>) {
         let path = uri.path();
-        if demo_mode()
-            && (path.starts_with("/v1/completions")
-                || path.starts_with("/v1/chat/completions")
-                || path.starts_with("/v1beta/chat/completions"))
-        {
-            return (false, None);
-        }
         if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
             return (true, None);
         }
@@ -146,12 +139,10 @@ impl ServerContext {
         }
 
         let is_license_valid = self.license.read().await.ensure_valid_license().is_ok();
+        let requires_owner = !is_license_valid || is_demo_mode();
+
         // If there's no valid license, only allows owner access.
-        match self
-            .db_conn
-            .verify_auth_token(token, !is_license_valid)
-            .await
-        {
+        match self.db_conn.verify_auth_token(token, requires_owner).await {
             Ok(id) => (true, Some(id.as_id())),
             Err(_) => (false, None),
         }

@@ -1,5 +1,5 @@
 import os
-from modal import Image, Stub, gpu, asgi_app, Volume
+from modal import Image, Stub, gpu, asgi_app, Volume, Secret
 
 IMAGE_NAME = os.environ.get("TABBY_IMAGE", "tabbyml/tabby")
 
@@ -21,10 +21,12 @@ volume = Volume.from_name("tabby-demo-server-volume", create_if_missing=True)
     container_idle_timeout=600*2,
     timeout=600,
     volumes = {"/data": volume},
-    _allow_background_volume_commits=True
+    _allow_background_volume_commits=True,
+    secrets=[Secret.from_name("deepseek-openapi-key")]
 )
 @asgi_app()
 def entry():
+    import json
     import socket
     import subprocess
     import time
@@ -34,12 +36,24 @@ def entry():
     env = os.environ.copy()
     env["TABBY_DISABLE_USAGE_COLLECTION"] = "1"
     env["TABBY_WEBSERVER_DEMO_MODE"] = "1"
+
+    chat_model = dict(
+        kind="openai-chat",
+        model_name="deepseek-coder",
+        api_endpoint="https://api.deepseek.com/v1",
+        api_key=env.get("OPENAI_API_KEY", ""),
+    )
+
     launcher = subprocess.Popen(
         [
             "/opt/tabby/bin/tabby-cpu",
             "serve",
             "--port",
             "8000",
+            "--chat-device",
+            "experimental-http"
+            "--chat-model",
+            json.dumps(chat_model),
         ],
         env=env
     )

@@ -411,7 +411,7 @@ impl Query {
             is_chat_enabled: ctx.locator.worker().is_chat_enabled().await?,
             is_email_configured: ctx.locator.email().read_setting().await?.is_some(),
             allow_self_signup: ctx.locator.auth().allow_self_signup().await?,
-            is_demo_mode: env::demo_mode(),
+            is_demo_mode: env::is_demo_mode(),
         })
     }
 

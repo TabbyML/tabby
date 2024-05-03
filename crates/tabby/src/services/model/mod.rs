@@ -18,7 +18,6 @@ pub async fn load_chat_completion(
     device: &Device,
     parallelism: u8,
 ) -> Arc<dyn ChatCompletionStream> {
-    #[cfg(feature = "experimental-http")]
     if device == &Device::ExperimentalHttp {
         return http_api_bindings::create_chat(model_id);
     }
@@ -47,7 +46,6 @@ async fn load_completion(
     device: &Device,
     parallelism: u8,
 ) -> (Arc<dyn CompletionStream>, PromptInfo) {
-    #[cfg(feature = "experimental-http")]
     if device == &Device::ExperimentalHttp {
         let (engine, prompt_template, chat_template) = http_api_bindings::create(model_id);
         return (

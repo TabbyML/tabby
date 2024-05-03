@@ -6,12 +6,11 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["ee", "experimental-http"]
+default = ["ee"]
 ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-bindings/cuda"]
 rocm = ["llama-cpp-bindings/rocm"]
 vulkan = ["llama-cpp-bindings/vulkan"]
-experimental-http = ["dep:http-api-bindings"]
 # If compiling on a system without OpenSSL installed, or cross-compiling for a different
 # architecture, enable this feature to compile OpenSSL as part of the build.
 # See https://docs.rs/openssl/#vendored for more.
@@ -43,7 +42,7 @@ tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
-http-api-bindings = { path = "../http-api-bindings", optional = true }      # included when build with `experimental-http` feature
+http-api-bindings = { path = "../http-api-bindings" }
 async-stream = { workspace = true }
 minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
