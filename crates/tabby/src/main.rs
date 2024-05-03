@@ -87,7 +87,6 @@ pub enum Device {
     #[strum(serialize = "vulkan")]
     Vulkan,
 
-    #[cfg(feature = "experimental-http")]
     #[strum(serialize = "experimental_http")]
     #[clap(hide = true)]
     ExperimentalHttp,
