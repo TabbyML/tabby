@@ -50,10 +50,10 @@ def entry():
             "serve",
             "--port",
             "8000",
-            "--chat-device",
-            "experimental-http"
             "--chat-model",
             json.dumps(chat_model),
+            "--chat-device",
+            "experimental-http"
         ],
         env=env
     )
