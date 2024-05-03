@@ -58,9 +58,6 @@ uuid.workspace = true
 cached = { workspace = true, features = ["async"] }
 parse-git-url = "0.5.1"
 
-[target.'cfg(debug_assertions)'.dependencies]
-color-eyre = { version = "0.6.3" }
-
 [dependencies.openssl]
 optional = true
 version = "*"
