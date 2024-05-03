@@ -51,6 +51,7 @@ FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
+    curl \
     openssh-client \
     ca-certificates \
     libssl3 \
