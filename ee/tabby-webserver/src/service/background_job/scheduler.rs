@@ -13,7 +13,7 @@ use tabby_db::DbConn;
 use tokio::io::AsyncBufReadExt;
 use tower::limit::ConcurrencyLimitLayer;
 
-use super::logger::{JobLogLayer, JobLogger};
+use super::layer::{JobLogLayer, JobLogger};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SchedulerJob {}

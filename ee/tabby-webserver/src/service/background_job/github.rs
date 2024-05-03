@@ -14,7 +14,7 @@ use tabby_db::{DbConn, GithubRepositoryProviderDAO};
 use tower::limit::ConcurrencyLimitLayer;
 use tracing::debug;
 
-use super::logger::{JobLogLayer, JobLogger};
+use super::layer::{JobLogLayer, JobLogger};
 use crate::warn_stderr;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
