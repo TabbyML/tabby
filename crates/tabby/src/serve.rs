@@ -116,13 +116,6 @@ pub struct ServeArgs {
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
-    #[cfg(feature = "experimental-http")]
-    if args.device == Device::ExperimentalHttp {
-        tracing::warn!("HTTP device is unstable and does not comply with semver expectations.");
-    } else {
-        load_model(args).await;
-    }
-    #[cfg(not(feature = "experimental-http"))]
     load_model(args).await;
 
     info!("Starting server, this might take a few minutes...");
@@ -175,12 +168,17 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn load_model(args: &ServeArgs) {
-    if let Some(model) = &args.model {
-        download_model_if_needed(model).await;
+    if args.device != Device::ExperimentalHttp {
+        if let Some(model) = &args.model {
+            download_model_if_needed(model).await;
+        }
     }
 
-    if let Some(chat_model) = &args.chat_model {
-        download_model_if_needed(chat_model).await
+    let chat_device = args.chat_device.as_ref().unwrap_or(&args.device);
+    if chat_device != &Device::ExperimentalHttp {
+        if let Some(chat_model) = &args.chat_model {
+            download_model_if_needed(chat_model).await
+        }
     }
 }
 
