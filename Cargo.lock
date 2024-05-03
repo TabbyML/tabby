@@ -148,8 +148,7 @@ checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
 [[package]]
 name = "apalis"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3661d27ed090fb120a887a8416f648343a8e6e864791b36f6175a72b2ab3df39"
+source = "git+https://github.com/wsxiaoys/apalis?rev=91526e8#91526e811607ec72ab83583547c0e8005c24d394"
 dependencies = [
  "apalis-core",
  "apalis-cron",
@@ -168,16 +167,15 @@ dependencies = [
 [[package]]
 name = "apalis-core"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d82227972a1bb6f5f5c4444b8228aaed79e28d6ad411e5f88ad46dc04cf066bb"
+source = "git+https://github.com/wsxiaoys/apalis?rev=91526e8#91526e811607ec72ab83583547c0e8005c24d394"
 dependencies = [
  "async-oneshot",
- "async-timer",
  "futures",
  "pin-project-lite",
  "serde",
  "serde_json",
  "thiserror",
+ "tokio",
  "tower",
  "ulid",
 ]
@@ -185,8 +183,7 @@ dependencies = [
 [[package]]
 name = "apalis-cron"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d11c4150f1088c1237cfde2d5cd3b045c17b3ed605c52bb3346641e18f2e1f77"
+source = "git+https://github.com/wsxiaoys/apalis?rev=91526e8#91526e811607ec72ab83583547c0e8005c24d394"
 dependencies = [
  "apalis-core",
  "async-stream",
@@ -199,8 +196,7 @@ dependencies = [
 [[package]]
 name = "apalis-redis"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd6f0968397ad66d4628a3c8022e201d3edc58eb44a522b5c76b5efd334b9fdd"
+source = "git+https://github.com/wsxiaoys/apalis?rev=91526e8#91526e811607ec72ab83583547c0e8005c24d394"
 dependencies = [
  "apalis-core",
  "async-stream",
@@ -216,8 +212,7 @@ dependencies = [
 [[package]]
 name = "apalis-sql"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99eaea6cf256a5d0fce59c68608ba16e3ea9f01cb4a45e5c7fa5709ea44dacd1"
+source = "git+https://github.com/wsxiaoys/apalis?rev=91526e8#91526e811607ec72ab83583547c0e8005c24d394"
 dependencies = [
  "apalis-core",
  "async-stream",
@@ -333,17 +328,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.52",
-]
-
-[[package]]
-name = "async-timer"
-version = "1.0.0-beta.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54a18932baa05100f01c9980d03e330f95a8f2dee1a7576969fa507bdce3b568"
-dependencies = [
- "error-code",
- "libc",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1340,12 +1324,6 @@ dependencies = [
  "cc",
  "libc",
 ]
-
-[[package]]
-name = "error-code"
-version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0474425d51df81997e2f90a21591180b38eccf27292d755f3e30750225c175b"
 
 [[package]]
 name = "etcetera"
