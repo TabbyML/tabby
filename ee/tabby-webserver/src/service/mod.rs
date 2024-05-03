@@ -34,8 +34,8 @@ use tabby_db::DbConn;
 use tabby_schema::{
     analytic::AnalyticService,
     auth::AuthenticationService,
-    is_demo_mode,
     email::EmailService,
+    is_demo_mode,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
     repository::RepositoryService,
@@ -142,11 +142,7 @@ impl ServerContext {
         let requires_owner = !is_license_valid || is_demo_mode();
 
         // If there's no valid license, only allows owner access.
-        match self
-            .db_conn
-            .verify_auth_token(token, requires_owner)
-            .await
-        {
+        match self.db_conn.verify_auth_token(token, requires_owner).await {
             Ok(id) => (true, Some(id.as_id())),
             Err(_) => (false, None),
         }
