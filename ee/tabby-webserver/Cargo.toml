@@ -48,7 +48,7 @@ tabby-search = { path = "../tabby-search" }
 octocrab = "0.38.0"
 fs_extra = "1.3.0"
 gitlab = "0.1610.0"
-apalis = { version = "0.5.1", features = ["sqlite", "cron" ] }
+apalis = { git = "https://github.com/wsxiaoys/apalis", rev = "91526e8", features = ["sqlite", "cron" ] }
 uuid.workspace = true
 hyper-util = { version = "0.1.3", features = ["client-legacy"] }
 
