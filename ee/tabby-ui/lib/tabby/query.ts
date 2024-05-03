@@ -203,6 +203,7 @@ export const listGithubRepositoryProviders = graphql(/* GraphQL */ `
 export const listGithubRepositories = graphql(/* GraphQL */ `
   query ListGithubRepositories(
     $providerIds: [ID!]!
+    $active: Boolean
     $after: String
     $before: String
     $first: Int
@@ -210,6 +211,7 @@ export const listGithubRepositories = graphql(/* GraphQL */ `
   ) {
     githubRepositories(
       providerIds: $providerIds
+      active: $active
       after: $after
       before: $before
       first: $first
@@ -272,6 +274,7 @@ export const listGitlabRepositoryProviders = graphql(/* GraphQL */ `
 export const listGitlabRepositories = graphql(/* GraphQL */ `
   query ListGitlabRepositories(
     $providerIds: [ID!]!
+    $active: Boolean
     $after: String
     $before: String
     $first: Int
@@ -279,6 +282,7 @@ export const listGitlabRepositories = graphql(/* GraphQL */ `
   ) {
     gitlabRepositories(
       providerIds: $providerIds
+      active: $active
       after: $after
       before: $before
       first: $first

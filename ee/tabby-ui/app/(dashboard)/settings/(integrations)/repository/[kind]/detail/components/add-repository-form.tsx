@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { CommandLoading } from 'cmdk'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
@@ -27,7 +28,11 @@ import {
   FormItem,
   FormMessage
 } from '@/components/ui/form'
-import { IconCheck, IconChevronUpDown } from '@/components/ui/icons'
+import {
+  IconCheck,
+  IconChevronUpDown,
+  IconSpinner
+} from '@/components/ui/icons'
 import {
   Popover,
   PopoverContent,
@@ -43,11 +48,11 @@ const formSchema = z.object({
   id: z.string()
 })
 
-type LinkRepositoryFormValues = z.infer<typeof formSchema>
+type ActivateRepositoryFormValues = z.infer<typeof formSchema>
 
-interface LinkRepositoryFormProps {
+interface ActivateRepositoryFormProps {
   kind: RepositoryKind
-  onCreated?: () => void
+  onCreated?: (id: string) => void
   onCancel: () => void
   providerStatus: RepositoryProviderStatus | undefined
   repositories:
@@ -62,17 +67,19 @@ interface LinkRepositoryFormProps {
         }
       }>
     | undefined
+  fetchingRepos: boolean
 }
 
-export default function LinkRepositoryForm({
+export default function AddRepositoryForm({
   kind,
   onCreated,
   onCancel,
   repositories,
-  providerStatus
-}: LinkRepositoryFormProps) {
+  providerStatus,
+  fetchingRepos
+}: ActivateRepositoryFormProps) {
   const [open, setOpen] = React.useState(false)
-  const form = useForm<LinkRepositoryFormValues>({
+  const form = useForm<ActivateRepositoryFormValues>({
     resolver: zodResolver(formSchema)
   })
   const [searchValue, setSearchValue] = React.useState<string>()
@@ -94,12 +101,6 @@ export default function LinkRepositoryForm({
   const updateGithubProvidedRepositoryActive = useMutation(
     updateGithubProvidedRepositoryActiveMutation,
     {
-      onCompleted(data) {
-        if (data?.updateGithubProvidedRepositoryActive) {
-          form.reset({ id: undefined })
-          onCreated?.()
-        }
-      },
       form
     }
   )
@@ -107,21 +108,22 @@ export default function LinkRepositoryForm({
   const updateGitlabProvidedRepositoryActive = useMutation(
     updateGitlabProvidedRepositoryActiveMutation,
     {
-      onCompleted(data) {
-        if (data?.updateGitlabProvidedRepositoryActive) {
-          form.reset({ id: undefined })
-          onCreated?.()
-        }
-      },
       form
     }
   )
 
-  const onSubmit = (values: LinkRepositoryFormValues) => {
+  const onSubmit = (values: ActivateRepositoryFormValues) => {
+    const id = values.id
+
     if (kind === RepositoryKind.Github) {
       return updateGithubProvidedRepositoryActive({
         id: values.id,
         active: true
+      }).then(res => {
+        if (res?.data?.updateGithubProvidedRepositoryActive) {
+          form.reset({ id: undefined })
+          onCreated?.(id)
+        }
       })
     }
 
@@ -129,6 +131,11 @@ export default function LinkRepositoryForm({
       return updateGitlabProvidedRepositoryActive({
         id: values.id,
         active: true
+      }).then(res => {
+        if (res?.data?.updateGitlabProvidedRepositoryActive) {
+          form.reset({ id: undefined })
+          onCreated?.(id)
+        }
       })
     }
   }
@@ -188,6 +195,11 @@ export default function LinkRepositoryForm({
                         className="max-h-[30vh]"
                         ref={commandListRef}
                       >
+                        {fetchingRepos && (
+                          <CommandLoading>
+                            <IconSpinner />
+                          </CommandLoading>
+                        )}
                         <CommandEmpty>{emptyText}</CommandEmpty>
                         <CommandGroup>
                           {providerStatus !==

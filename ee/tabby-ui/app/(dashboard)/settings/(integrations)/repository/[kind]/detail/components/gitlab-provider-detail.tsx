@@ -1,22 +1,29 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { useQuery } from 'urql'
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import {
+  ListGitlabRepositoriesQuery,
   RepositoryKind,
   RepositoryProviderStatus
 } from '@/lib/gql/generates/graphql'
-import { QueryResponseData, QueryVariables, useMutation } from '@/lib/tabby/gql'
+import { useDebounceCallback } from '@/lib/hooks/use-debounce'
+import {
+  client,
+  QueryResponseData,
+  QueryVariables,
+  useMutation
+} from '@/lib/tabby/gql'
 import {
   listGitlabRepositories,
   listGitlabRepositoryProviders
 } from '@/lib/tabby/query'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { CardContent, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
@@ -26,7 +33,13 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import { IconChevronLeft, IconPlus, IconTrash } from '@/components/ui/icons'
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconPlus,
+  IconSpinner,
+  IconTrash
+} from '@/components/ui/icons'
 import {
   Table,
   TableBody,
@@ -39,7 +52,7 @@ import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { updateGitlabProvidedRepositoryActiveMutation } from '../query'
-import LinkRepositoryForm from './add-repository-form'
+import AddRepositoryForm from './add-repository-form'
 import { UpdateProviderForm } from './update-gitlab-provider-form'
 
 type GitlabRepositories = QueryResponseData<
@@ -56,8 +69,6 @@ const GitlabProviderDetail: React.FC = () => {
     pause: !id
   })
   const provider = data?.gitlabRepositoryProviders?.edges?.[0]?.node
-  const [gitlabRepositories, isGitlabRepositoriesLoading] =
-    useAllProvidedRepositories(id)
 
   const onDeleteProvider = () => {
     router.back()
@@ -101,12 +112,7 @@ const GitlabProviderDetail: React.FC = () => {
       </CardContent>
 
       <div className="p-4">
-        <LoadingWrapper loading={isGitlabRepositoriesLoading}>
-          <LinkedRepoTable
-            data={gitlabRepositories}
-            providerStatus={provider?.status}
-          />
-        </LoadingWrapper>
+        <ActiveRepoTable providerId={id} providerStatus={provider?.status} />
       </div>
     </LoadingWrapper>
   )
@@ -123,118 +129,239 @@ function toStatusBadge(status: RepositoryProviderStatus) {
   }
 }
 
-const LinkedRepoTable: React.FC<{
-  data: GitlabRepositories | undefined
+const ActiveRepoTable: React.FC<{
+  providerId: string
   providerStatus: RepositoryProviderStatus | undefined
   onDelete?: () => void
-}> = ({ data, onDelete, providerStatus }) => {
+}> = ({ onDelete, providerStatus, providerId }) => {
+  const [page, setPage] = React.useState(1)
+  const {
+    repositories: inactiveRepositories,
+    setRepositories: setInactiveRepositories,
+    isAllLoaded: isInactiveRepositoriesLoaded
+  } = useAllInactiveRepositories(providerId)
+
+  const doFetchRepositories = (
+    variables: QueryVariables<typeof listGitlabRepositories>
+  ) => {
+    return client.query(listGitlabRepositories, variables).toPromise()
+  }
+
+  const fetchRepositoriesSequentially = async (
+    page: number,
+    cursor?: string
+  ): Promise<ListGitlabRepositoriesQuery | undefined> => {
+    const res = await doFetchRepositories({
+      providerIds: [providerId],
+      first: DEFAULT_PAGE_SIZE,
+      after: cursor,
+      active: true
+    })
+    const _pageInfo = res?.data?.gitlabRepositories?.pageInfo
+    if (page - 1 > 0 && _pageInfo?.hasNextPage && _pageInfo?.endCursor) {
+      return fetchRepositoriesSequentially(page - 1, _pageInfo.endCursor)
+    } else {
+      return res?.data
+    }
+  }
+
+  const [activeRepositoriesResult, setActiveRepositoriesResult] =
+    React.useState<QueryResponseData<typeof listGitlabRepositories>>()
+  const [fetching, setFetching] = React.useState(true)
+  const [recentlyActivatedRepositories, setRecentlyActivatedRepositories] =
+    React.useState<GitlabRepositories>([])
+  const activeRepos = activeRepositoriesResult?.gitlabRepositories?.edges
+  const pageInfo = activeRepositoriesResult?.gitlabRepositories?.pageInfo
+
   const updateGitlabProvidedRepositoryActive = useMutation(
     updateGitlabProvidedRepositoryActiveMutation,
     {
-      onCompleted(data) {
-        if (data?.updateGitlabProvidedRepositoryActive) {
-          onDelete?.()
-        }
-      },
       onError(error) {
         toast.error(error.message || 'Failed to delete')
       }
     }
   )
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (
+    repo: GitlabRepositories[0],
+    isLastItem?: boolean
+  ) => {
     updateGitlabProvidedRepositoryActive({
-      id,
+      id: repo.node.id,
       active: false
+    }).then(res => {
+      if (res?.data?.updateGitlabProvidedRepositoryActive) {
+        setInactiveRepositories([...inactiveRepositories, repo])
+        const nextPage = isLastItem ? page - 1 : page
+        doLoadPage(nextPage || 1)
+      }
     })
   }
 
+  const doLoadPage = async (pageNo: number) => {
+    try {
+      setFetching(true)
+      const res = await fetchRepositoriesSequentially(pageNo)
+      setActiveRepositoriesResult(res)
+      setPage(pageNo)
+    } catch (e) {
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  const clearRecentlyActivated = useDebounceCallback((page: number) => {
+    setRecentlyActivatedRepositories([])
+    doLoadPage(page)
+  }, 3000)
+
   const [open, setOpen] = React.useState(false)
 
-  const onCreated = () => {
+  const onCreated = (id: string) => {
+    const activedRepo = inactiveRepositories?.find(o => o?.node?.id === id)
+    if (activedRepo) {
+      setRecentlyActivatedRepositories([
+        activedRepo,
+        ...recentlyActivatedRepositories
+      ])
+      clearRecentlyActivated.run(page)
+    }
     setOpen(false)
   }
 
-  const activeRepos = useMemo(() => {
-    return data?.filter(item => item.node.active)
-  }, [data])
+  const handleLoadPage = (page: number) => {
+    clearRecentlyActivated.cancel()
+    setRecentlyActivatedRepositories([])
+    doLoadPage(page)
+  }
 
-  const inactiveRepos = useMemo(() => {
-    return data?.filter(item => !item.node.active)
-  }, [data])
+  React.useEffect(() => {
+    doLoadPage(1)
+  }, [])
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[25%]">Name</TableHead>
-          <TableHead className="w-[45%]">URL</TableHead>
-          <TableHead className="text-right">
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogContent>
-                <DialogHeader className="gap-3">
-                  <DialogTitle>Add new repository</DialogTitle>
-                  <DialogDescription>
-                    Add new GitLab repository from this provider
-                  </DialogDescription>
-                </DialogHeader>
-                <LinkRepositoryForm
-                  onCancel={() => setOpen(false)}
-                  onCreated={onCreated}
-                  repositories={inactiveRepos}
-                  kind={RepositoryKind.Gitlab}
-                  providerStatus={providerStatus}
-                />
-              </DialogContent>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <IconPlus />
-                </Button>
-              </DialogTrigger>
-            </Dialog>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {activeRepos?.length ? (
-          <>
-            {activeRepos?.map(x => {
-              return (
-                <TableRow key={x.node.id}>
-                  <TableCell>{x.node.name}</TableCell>
-                  <TableCell>{x.node.gitUrl}</TableCell>
-                  <TableCell className="flex justify-end">
-                    <div className="flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="hover-destructive"
-                        onClick={e => handleDelete(x.node.id)}
-                      >
-                        <IconTrash />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </>
-        ) : (
+    <LoadingWrapper loading={fetching}>
+      <Table>
+        <TableHeader>
           <TableRow>
-            <TableCell colSpan={3} className="h-[100px] text-center">
-              No repositories yet.
-            </TableCell>
+            <TableHead className="w-[25%]">Name</TableHead>
+            <TableHead className="w-[45%]">URL</TableHead>
+            <TableHead className="text-right">
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent>
+                  <DialogHeader className="gap-3">
+                    <DialogTitle>Add new repository</DialogTitle>
+                    <DialogDescription>
+                      Add new GitLab repository from this provider
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AddRepositoryForm
+                    onCancel={() => setOpen(false)}
+                    onCreated={onCreated}
+                    repositories={inactiveRepositories}
+                    kind={RepositoryKind.Gitlab}
+                    providerStatus={providerStatus}
+                    fetchingRepos={!isInactiveRepositoriesLoaded}
+                  />
+                </DialogContent>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <IconPlus />
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+            </TableHead>
           </TableRow>
-        )}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {activeRepos?.length || recentlyActivatedRepositories?.length ? (
+            <>
+              {recentlyActivatedRepositories?.map(x => {
+                return (
+                  <TableRow key={x.node.id} className="!bg-muted/80">
+                    <TableCell>{x.node.name}</TableCell>
+                    <TableCell>{x.node.gitUrl}</TableCell>
+                    <TableCell className="flex justify-end">
+                      <div
+                        className={buttonVariants({
+                          variant: 'ghost',
+                          size: 'icon'
+                        })}
+                      >
+                        <IconSpinner />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+              {activeRepos?.map(x => {
+                return (
+                  <TableRow key={x.node.id}>
+                    <TableCell>{x.node.name}</TableCell>
+                    <TableCell>{x.node.gitUrl}</TableCell>
+                    <TableCell className="flex justify-end">
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="hover-destructive"
+                          onClick={e => handleDelete(x)}
+                        >
+                          <IconTrash />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </>
+          ) : (
+            <TableRow>
+              <TableCell colSpan={3} className="h-[100px] text-center">
+                No repositories yet.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+      {(page > 1 || pageInfo?.hasNextPage) && (
+        <div className="mt-2 flex justify-end">
+          <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+            {' '}
+            Page {page}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              className="h-8 w-8 p-0"
+              disabled={fetching || page === 1}
+              onClick={e => {
+                handleLoadPage(page - 1)
+              }}
+            >
+              <IconChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className="h-8 w-8 p-0"
+              disabled={fetching || !pageInfo?.hasNextPage}
+              onClick={e => {
+                handleLoadPage(page + 1)
+              }}
+            >
+              <IconChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </LoadingWrapper>
   )
 }
 
-function useAllProvidedRepositories(id: string): [GitlabRepositories, boolean] {
+function useAllInactiveRepositories(id: string) {
   const [queryVariables, setQueryVariables] = useState<
     QueryVariables<typeof listGitlabRepositories>
-  >({ providerIds: [id], first: DEFAULT_PAGE_SIZE })
-
+  >({ providerIds: [id], first: DEFAULT_PAGE_SIZE, active: false })
+  const [repositories, setRepositories] = useState<GitlabRepositories>([])
   const [isAllLoaded, setIsAllLoaded] = useState(!id)
 
   const [{ data, fetching }] = useQuery({
@@ -252,7 +379,8 @@ function useAllProvidedRepositories(id: string): [GitlabRepositories, boolean] {
         setQueryVariables({
           providerIds: [id],
           first: DEFAULT_PAGE_SIZE,
-          after: pageInfo.endCursor
+          after: pageInfo.endCursor,
+          active: false
         })
       } else {
         setIsAllLoaded(true)
@@ -260,7 +388,11 @@ function useAllProvidedRepositories(id: string): [GitlabRepositories, boolean] {
     }
   }, [fetching, data])
 
-  return [data?.gitlabRepositories?.edges ?? [], !isAllLoaded]
+  return {
+    repositories,
+    setRepositories,
+    isAllLoaded
+  }
 }
 
 export default GitlabProviderDetail
