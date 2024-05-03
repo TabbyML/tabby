@@ -5,7 +5,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::{Result};
+use anyhow::Result;
 use ignore::Walk;
 use kv::{Bucket, Config, Json, Store, Transaction, TransactionError};
 use serde::{Deserialize, Serialize};
