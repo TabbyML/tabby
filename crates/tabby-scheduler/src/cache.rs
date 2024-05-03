@@ -5,12 +5,12 @@ use std::{
     process::Command,
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use ignore::Walk;
 use kv::{Bucket, Config, Json, Store, Transaction, TransactionError};
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::code::CodeIntelligence;
 
@@ -227,9 +227,13 @@ fn create_source_file(
     };
 
     let language = language_info.language();
-    let contents = read_to_string(path)
-        .map_err(|e| anyhow!("Failed to read {path:?}: {e}"))
-        .unwrap();
+    let contents = match read_to_string(path) {
+        Ok(x) => x,
+        Err(_) => {
+            warn!("Failed to read {path:?}, skipping...");
+            return None;
+        }
+    };
     let source_file = SourceFile {
         git_url: config.canonical_git_url(),
         basedir: config.dir().display().to_string(),
