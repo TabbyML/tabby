@@ -33,7 +33,7 @@ impl RepositoryExt for RepositoryConfig {
             .then(|| tqdm(walk_dir_iter().count()));
 
         for entry in walk_dir_iter() {
-            let Some(source_file) = cache.get_or_create_source_file(self, entry.path()) else {
+            let Some(source_file) = cache.get_source_file(self, entry.path()) else {
                 continue;
             };
             writer

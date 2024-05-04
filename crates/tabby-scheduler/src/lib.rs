@@ -78,6 +78,6 @@ fn job_sync(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
     println!("Syncing {} repositories...", repositories.len());
     repository::sync_repositories(repositories);
 
-    println!("Exporting dataset...");
+    println!("Creating dataset...");
     dataset::create_dataset(cache, repositories);
 }

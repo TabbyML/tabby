@@ -4,25 +4,19 @@ use std::{
     process::Command,
 };
 
-use anyhow::Result;
-
-use kv::{Batch, Bucket, Config, Json, Store};
-
+use anyhow::{bail, Result};
+use kv::{Batch, Bucket, Config, Item, Json, Store};
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
 use tracing::{debug, warn};
 
 use crate::code::CodeIntelligence;
 
-const DATASET_BUCKET_PREFIX: &str = "dataset";
+const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
 
 fn get_git_hash(path: &Path) -> Result<String> {
     let path = path.display().to_string();
-    let output = Command::new("git").args(["hash-files", &path]).output()?;
+    let output = Command::new("git").args(["hash-object", &path]).output()?;
     Ok(String::from_utf8(output.stdout)?.trim().to_string())
-}
-
-fn dataset_bucket_key(git_url: impl AsRef<str>) -> String {
-    format!("{DATASET_BUCKET_PREFIX}:{}", git_url.as_ref())
 }
 
 pub struct CacheStore {
@@ -38,83 +32,72 @@ impl CacheStore {
         }
     }
 
-    pub fn get_or_create_source_file(
+    pub fn get_source_file(
         &mut self,
         config: &RepositoryConfig,
         path: &Path,
     ) -> Option<SourceFile> {
         let git_hash = get_git_hash(path).expect("Failed to get git hash");
-        let dataset_bucket: Bucket<String, Json<SourceFile>> = self
+        let dataset_bucket: Bucket<String, Json<Option<SourceFile>>> = self
             .store
-            .bucket(Some(&dataset_bucket_key(config.canonical_git_url())))
+            .bucket(Some(SOURCE_FILE_BUCKET_KEY))
             .expect("Could not access dataset bucket");
 
         if let Some(source_file) = dataset_bucket
-            .get(&path.display().to_string())
+            .get(&git_hash)
             .expect("Failed to read key from dataset bucket")
             .map(|Json(file)| file)
-            .filter(|file| file.git_hash == git_hash)
         {
-            Some(source_file)
+            source_file
         } else {
-            if let Some(source_file) = create_source_file(config, path, &mut self.code) {
-                let json = Json(source_file);
-                dataset_bucket
-                    .set(&json.0.filepath, &json)
-                    .expect("Failed to write source file to dataset bucket");
-                Some(json.0)
-            } else {
-                None
-            }
+            let source_file = create_source_file(config, path, &mut self.code);
+            let json = Json(source_file);
+            dataset_bucket
+                .set(&git_hash, &json)
+                .expect("Failed to write source file to dataset bucket");
+            json.0
         }
     }
 
     pub fn garbage_collection(&self) {
-        self.store
-            .buckets()
-            .into_iter()
-            .filter_map(|name| {
-                if name.starts_with(DATASET_BUCKET_PREFIX) {
-                    self.store
-                        .bucket(Some(&name))
-                        .ok()
-                        .map(|bucket| (name, bucket))
-                } else {
-                    None
-                }
-            })
-            .map(|(name, bucket)| {
-                self.remove_staled_files(&bucket);
-                name
-            })
-            .for_each(|name| {
-                self.store
-                    .drop_bucket(name)
-                    .expect("Failed to remove bucket")
-            });
-    }
+        debug!("Running garbage collection");
+        let bucket = self
+            .store
+            .bucket(Some(SOURCE_FILE_BUCKET_KEY))
+            .expect("Could not access dataset bucket");
 
-    fn remove_staled_files(&self, bucket: &Bucket<String, Json<SourceFile>>) {
         let mut batch = Batch::new();
+        let mut num_removed = 0;
 
         bucket
             .iter()
             .filter_map(|item| {
-                let item = item.ok()?;
-                let key: String = item.key().ok()?;
-                let Json(file) = item.value().ok()?;
-                let filepath = PathBuf::from(file.basedir).join(file.filepath);
-                let git_hash = get_git_hash(filepath.as_path()).ok()?;
-                if filepath.exists() && git_hash == file.git_hash {
-                    Some(key)
+                let item = item.expect("Failed to read item");
+                if verify_git_hash(&item).is_err() {
+                    num_removed += 1;
+                    Some(item.key().expect("Failed to get key"))
                 } else {
                     None
                 }
             })
             .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
 
+        debug!("Removed {} staled keys", num_removed);
         bucket.batch(batch).expect("to batch remove staled files");
     }
+}
+
+fn verify_git_hash(item: &Item<String, Json<SourceFile>>) -> Result<()> {
+    let key_git_hash: String = item.key()?;
+    let Json(file) = item.value()?;
+    let filepath = PathBuf::from(file.basedir).join(file.filepath);
+    let git_hash = get_git_hash(filepath.as_path())?;
+
+    if git_hash != key_git_hash {
+        bail!("Git hash mismatch for {}", filepath.display());
+    }
+
+    Ok(())
 }
 
 fn create_source_file(
@@ -134,12 +117,11 @@ fn create_source_file(
     };
 
     let Some(language_info) = get_language_by_ext(ext) else {
-        debug!("Unknown language for {relative_path:?}");
+        // Ignore unknown languages
         return None;
     };
 
     let language = language_info.language();
-    let git_hash = get_git_hash(path).ok()?;
     let contents = match read_to_string(path) {
         Ok(x) => x,
         Err(_) => {
@@ -156,7 +138,6 @@ fn create_source_file(
         alphanum_fraction: metrics::alphanum_fraction(&contents),
         tags: code.find_tags(language, &contents),
         language: language.into(),
-        git_hash,
     };
     Some(source_file)
 }
