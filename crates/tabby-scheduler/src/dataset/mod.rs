@@ -2,13 +2,12 @@ mod deps;
 
 use std::{
     fs::{self},
-    io::{Write},
+    io::Write,
 };
 
 use anyhow::Result;
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use ignore::Walk;
-
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
@@ -16,7 +15,7 @@ use tabby_common::{
     DependencyFile, SourceFile,
 };
 
-use crate::{cache::CacheStore};
+use crate::cache::CacheStore;
 
 trait RepositoryExt {
     fn create_dataset(&self, cache: &mut CacheStore, writer: &mut impl Write) -> Result<()>;

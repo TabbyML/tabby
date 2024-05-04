@@ -4,9 +4,13 @@ use std::{
     process::Command,
 };
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use kv::{Batch, Bucket, Config, Item, Json, Store};
-use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
+use tabby_common::{
+    config::RepositoryConfig,
+    languages::{get_language, get_language_by_ext, Language},
+    SourceFile,
+};
 use tracing::{debug, warn};
 
 use crate::code::CodeIntelligence;
@@ -17,6 +21,19 @@ fn get_git_hash(path: &Path) -> Result<String> {
     let path = path.display().to_string();
     let output = Command::new("git").args(["hash-object", &path]).output()?;
     Ok(String::from_utf8(output.stdout)?.trim().to_string())
+}
+
+fn compute_source_file_key(path: &Path) -> Result<String> {
+    if !path.is_file() {
+        bail!("Path is not a file");
+    }
+
+    let git_hash = get_git_hash(path)?;
+    let ext = path.extension().context("Failed to get extension")?;
+    let Some(lang) = get_language_by_ext(ext) else {
+        bail!("Unknown language for extension {:?}", ext);
+    };
+    Ok(format!("{}-{}", lang.language(), git_hash))
 }
 
 pub struct CacheStore {
@@ -37,14 +54,15 @@ impl CacheStore {
         config: &RepositoryConfig,
         path: &Path,
     ) -> Option<SourceFile> {
-        let git_hash = get_git_hash(path).expect("Failed to get git hash");
+        let key = compute_source_file_key(path).ok()?;
+
         let dataset_bucket: Bucket<String, Json<Option<SourceFile>>> = self
             .store
             .bucket(Some(SOURCE_FILE_BUCKET_KEY))
             .expect("Could not access dataset bucket");
 
         if let Some(source_file) = dataset_bucket
-            .get(&git_hash)
+            .get(&key)
             .expect("Failed to read key from dataset bucket")
             .map(|Json(file)| file)
         {
@@ -53,7 +71,7 @@ impl CacheStore {
             let source_file = create_source_file(config, path, &mut self.code);
             let json = Json(source_file);
             dataset_bucket
-                .set(&git_hash, &json)
+                .set(&key, &json)
                 .expect("Failed to write source file to dataset bucket");
             json.0
         }
@@ -67,37 +85,46 @@ impl CacheStore {
             .expect("Could not access dataset bucket");
 
         let mut batch = Batch::new();
+        let mut num_keep = 0;
         let mut num_removed = 0;
 
         bucket
             .iter()
             .filter_map(|item| {
                 let item = item.expect("Failed to read item");
-                if verify_git_hash(&item).is_err() {
+                if is_item_key_matched(&item) {
+                    num_keep += 1;
+                    None
+                } else {
                     num_removed += 1;
                     Some(item.key().expect("Failed to get key"))
-                } else {
-                    None
                 }
             })
             .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
 
-        debug!("Removed {} staled keys", num_removed);
+        debug!(
+            "Finished garbage collection: {} items kept, {} items removed",
+            num_keep, num_removed
+        );
         bucket.batch(batch).expect("to batch remove staled files");
     }
 }
 
-fn verify_git_hash(item: &Item<String, Json<SourceFile>>) -> Result<()> {
-    let key_git_hash: String = item.key()?;
-    let Json(file) = item.value()?;
+fn is_item_key_matched(item: &Item<String, Json<SourceFile>>) -> bool {
+    let Ok(item_key) = item.key::<String>() else {
+        return false;
+    };
+
+    let Ok(Json(file)) = item.value() else {
+        return false;
+    };
+
     let filepath = PathBuf::from(file.basedir).join(file.filepath);
-    let git_hash = get_git_hash(filepath.as_path())?;
+    let Ok(file_key) = compute_source_file_key(&filepath) else {
+        return false;
+    };
 
-    if git_hash != key_git_hash {
-        bail!("Git hash mismatch for {}", filepath.display());
-    }
-
-    Ok(())
+    return file_key == item_key;
 }
 
 fn create_source_file(
@@ -117,7 +144,7 @@ fn create_source_file(
     };
 
     let Some(language_info) = get_language_by_ext(ext) else {
-        // Ignore unknown languages
+        warn!("Unknown language for extension {:?}", ext);
         return None;
     };
 
