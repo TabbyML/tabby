@@ -1,6 +1,6 @@
 use std::{process::Stdio, str::FromStr};
 
-use anyhow::{Context};
+use anyhow::Context;
 use apalis::{
     cron::{CronStream, Schedule},
     prelude::{Data, Job, Monitor, Storage, WorkerBuilder, WorkerFactoryFn},

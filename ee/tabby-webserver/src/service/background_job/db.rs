@@ -10,6 +10,11 @@ use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
 use tracing::debug;
 
+use super::{
+    cinfo,
+    layer::{JobLogLayer, JobLogger},
+};
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DbMaintainanceJob;
 
@@ -18,8 +23,12 @@ impl Job for DbMaintainanceJob {
 }
 
 impl DbMaintainanceJob {
-    async fn cron(_now: DateTime<Utc>, db: Data<DbConn>) -> tabby_schema::Result<()> {
-        debug!("Running db maintainance job");
+    async fn cron(
+        _now: DateTime<Utc>,
+        logger: Data<JobLogger>,
+        db: Data<DbConn>,
+    ) -> tabby_schema::Result<()> {
+        cinfo!(logger, "Running db maintainance job");
         db.delete_expired_token().await?;
         db.delete_expired_password_resets().await?;
         Ok(())
@@ -31,6 +40,7 @@ impl DbMaintainanceJob {
         monitor.register(
             WorkerBuilder::new(DbMaintainanceJob::NAME)
                 .stream(CronStream::new(schedule).into_stream())
+                .layer(JobLogLayer::new(db.clone(), DbMaintainanceJob::NAME))
                 .data(db)
                 .build_fn(DbMaintainanceJob::cron),
         )
