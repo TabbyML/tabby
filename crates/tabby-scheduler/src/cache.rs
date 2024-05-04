@@ -11,7 +11,7 @@ use tabby_common::{
     languages::{get_language, get_language_by_ext, Language},
     SourceFile,
 };
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
 use crate::code::CodeIntelligence;
 
@@ -78,7 +78,7 @@ impl CacheStore {
     }
 
     pub fn garbage_collection(&self) {
-        debug!("Running garbage collection");
+        info!("Running garbage collection");
         let bucket = self
             .store
             .bucket(Some(SOURCE_FILE_BUCKET_KEY))
@@ -102,7 +102,7 @@ impl CacheStore {
             })
             .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
 
-        debug!(
+        info!(
             "Finished garbage collection: {} items kept, {} items removed",
             num_keep, num_removed
         );
