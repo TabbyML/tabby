@@ -8,10 +8,10 @@ use anyhow::{bail, Context, Result};
 use kv::{Batch, Bucket, Config, Item, Json, Store};
 use tabby_common::{
     config::RepositoryConfig,
-    languages::{get_language, get_language_by_ext, Language},
+    languages::{get_language_by_ext},
     SourceFile,
 };
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 use crate::code::CodeIntelligence;
 
@@ -124,7 +124,7 @@ fn is_item_key_matched(item: &Item<String, Json<SourceFile>>) -> bool {
         return false;
     };
 
-    return file_key == item_key;
+    file_key == item_key
 }
 
 fn create_source_file(
