@@ -61,10 +61,7 @@ pub struct JobLogLayer {
 
 impl JobLogLayer {
     pub fn new(db: DbConn, name: &'static str) -> Self {
-        Self {
-            db,
-            name,
-        }
+        Self { db, name }
     }
 }
 
@@ -110,7 +107,7 @@ where
         let mut service = self.service.clone();
         let name = self.name;
         let fut_with_log = async move {
-            let mut logger = JobLogger::new(&name, db).await;
+            let mut logger = JobLogger::new(name, db).await;
             request.insert(logger.clone());
             match service.call(request).await {
                 Ok(_) => {
