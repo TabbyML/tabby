@@ -7,7 +7,7 @@ use apalis::{
 use chrono::{DateTime, Utc};
 use octocrab::{models::Repository, GitHubError, Octocrab};
 use serde::{Deserialize, Serialize};
-use tabby_db::{DbConn};
+use tabby_db::DbConn;
 use tracing::debug;
 
 use super::{

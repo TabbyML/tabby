@@ -10,7 +10,7 @@ use gitlab::{
     GitlabBuilder,
 };
 use serde::{Deserialize, Serialize};
-use tabby_db::{DbConn};
+use tabby_db::DbConn;
 use tracing::debug;
 
 use super::{
