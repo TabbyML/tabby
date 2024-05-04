@@ -423,8 +423,6 @@ impl Query {
     async fn jobs() -> Result<Vec<String>> {
         Ok(vec![
             "scheduler",
-            "import_github_repositories",
-            "import_gitlab_repositories",
         ]
         .into_iter()
         .map(Into::into)
