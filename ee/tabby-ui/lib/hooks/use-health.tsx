@@ -8,6 +8,7 @@ export interface HealthInfo {
   device: 'metal' | 'cpu' | 'cuda'
   model?: string
   chat_model?: string
+  chat_device?: string
   cpu_info: string
   cpu_count: number
   cuda_devices: string[]

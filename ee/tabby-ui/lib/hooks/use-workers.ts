@@ -7,22 +7,30 @@ import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 
 import { useHealth, type HealthInfo } from './use-health'
 
-const modelNameMap: Record<WorkerKind, 'chat_model' | 'model'> = {
-  [WorkerKind.Chat]: 'chat_model',
-  [WorkerKind.Completion]: 'model'
-}
 
-function transformHealthInfoToWorker(
+function transformHealthInfoToCompletionWorker(
   healthInfo: HealthInfo,
-  kind: WorkerKind
 ): Worker {
   return {
-    kind,
+    kind: WorkerKind.Completion,
     device: healthInfo.device,
     addr: 'localhost',
     arch: '',
     cpuInfo: healthInfo.cpu_info,
-    name: healthInfo?.[modelNameMap[kind]] ?? '',
+    name: healthInfo.model!,
+    cpuCount: healthInfo.cpu_count,
+    cudaDevices: healthInfo.cuda_devices
+  }
+}
+
+function transformHealthInfoToChatWorker(healthInfo: HealthInfo): Worker {
+  return {
+    kind: WorkerKind.Chat,
+    device: healthInfo.chat_device!,
+    addr: 'localhost',
+    arch: '',
+    cpuInfo: healthInfo.cpu_info,
+    name: healthInfo.chat_model!,
     cpuCount: healthInfo.cpu_count,
     cudaDevices: healthInfo.cuda_devices
   }
@@ -57,11 +65,11 @@ function useWorkers() {
 
     if (!haveRemoteCompletionWorkers && healthInfo?.model) {
       _workers.push(
-        transformHealthInfoToWorker(healthInfo, WorkerKind.Completion)
+        transformHealthInfoToCompletionWorker(healthInfo)
       )
     }
     if (!haveRemoteChatWorkers && healthInfo?.chat_model) {
-      _workers.push(transformHealthInfoToWorker(healthInfo, WorkerKind.Chat))
+      _workers.push(transformHealthInfoToChatWorker(healthInfo))
     }
     return groupBy(_workers, 'kind')
   }, [healthInfo, workers])

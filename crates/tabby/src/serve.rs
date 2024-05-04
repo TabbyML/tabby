@@ -222,8 +222,11 @@ async fn api_router(
 
     let health_state = Arc::new(health::HealthState::new(
         args.model.as_deref(),
-        args.chat_model.as_deref(),
         &args.device,
+        args.chat_model.as_deref(),
+        args.chat_model
+            .as_deref()
+            .map(|_| args.chat_device.as_ref().unwrap_or(&args.device)),
         webserver,
     ));
 
@@ -322,8 +325,11 @@ async fn api_router(
 fn start_heartbeat(args: &ServeArgs, webserver: Option<bool>) {
     let state = health::HealthState::new(
         args.model.as_deref(),
-        args.chat_model.as_deref(),
         &args.device,
+        args.chat_model.as_deref(),
+        args.chat_model
+            .as_deref()
+            .map(|_| args.chat_device.as_ref().unwrap_or(&args.device)),
         webserver,
     );
     tokio::spawn(async move {
