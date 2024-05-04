@@ -7,10 +7,7 @@ import { Worker, WorkerKind } from '@/lib/gql/generates/graphql'
 
 import { useHealth, type HealthInfo } from './use-health'
 
-
-function transformHealthInfoToCompletionWorker(
-  healthInfo: HealthInfo,
-): Worker {
+function transformHealthInfoToCompletionWorker(healthInfo: HealthInfo): Worker {
   return {
     kind: WorkerKind.Completion,
     device: healthInfo.device,
@@ -64,9 +61,7 @@ function useWorkers() {
       findIndex(_workers, { kind: WorkerKind.Chat }) > -1
 
     if (!haveRemoteCompletionWorkers && healthInfo?.model) {
-      _workers.push(
-        transformHealthInfoToCompletionWorker(healthInfo)
-      )
+      _workers.push(transformHealthInfoToCompletionWorker(healthInfo))
     }
     if (!haveRemoteChatWorkers && healthInfo?.chat_model) {
       _workers.push(transformHealthInfoToChatWorker(healthInfo))
