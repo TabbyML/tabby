@@ -36,11 +36,3 @@ macro_rules! bail {
         return std::result::Result::Err(anyhow::anyhow!($fmt, $($arg)*).into())
     };
 }
-
-#[macro_export]
-macro_rules! warn_stderr {
-    ($ctx:expr, $($params:tt)+) => {
-        tracing::warn!($($params)+);
-        $ctx.stderr_writeline(format!($($params)+)).await;
-    }
-}
