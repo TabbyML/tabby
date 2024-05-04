@@ -1,25 +1,31 @@
-use std::{process::Stdio, str::FromStr};
+use std::process::Stdio;
 
 use anyhow::Context;
 use apalis::{
-    cron::{CronStream, Schedule},
-    prelude::{Data, Job, Monitor, Storage, WorkerBuilder, WorkerFactoryFn},
+    prelude::{Data, Job, Monitor, Storage, WorkerFactoryFn},
     sqlite::{SqlitePool, SqliteStorage},
     utils::TokioExecutor,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
+use tabby_schema::bail;
 use tokio::io::AsyncBufReadExt;
-use tower::limit::ConcurrencyLimitLayer;
 
-use super::logger::{JobLogLayer, JobLogger};
+use super::{
+    ceprintln, cprintln,
+    helper::{BasicJob, CronJob, JobLogger},
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SchedulerJob {}
+pub struct SchedulerJob;
 
 impl Job for SchedulerJob {
     const NAME: &'static str = "scheduler";
+}
+
+impl CronJob for SchedulerJob {
+    const SCHEDULE: &'static str = "@hourly";
 }
 
 impl SchedulerJob {
@@ -28,7 +34,7 @@ impl SchedulerJob {
         job_logger: Data<JobLogger>,
         db: Data<DbConn>,
         local_port: Data<u16>,
-    ) -> anyhow::Result<i32> {
+    ) -> anyhow::Result<()> {
         let local_port = *local_port;
         let exe = std::env::current_exe()?;
 
@@ -51,7 +57,7 @@ impl SchedulerJob {
                 let stdout = tokio::io::BufReader::new(stdout);
                 let mut stdout = stdout.lines();
                 while let Ok(Some(line)) = stdout.next_line().await {
-                    let _ = logger.stdout_writeline(line).await;
+                    cprintln!(logger, "{line}");
                 }
             });
         }
@@ -64,15 +70,17 @@ impl SchedulerJob {
                 let stderr = tokio::io::BufReader::new(stderr);
                 let mut stdout = stderr.lines();
                 while let Ok(Some(line)) = stdout.next_line().await {
-                    let _ = logger.stderr_writeline(line).await;
+                    ceprintln!(logger, "{line}");
                 }
             });
         }
         if let Some(exit_code) = child.wait().await.ok().and_then(|s| s.code()) {
-            Ok(exit_code)
-        } else {
-            Ok(-1)
+            if exit_code != 0 {
+                bail!("scheduler exited with code {exit_code}")
+            }
         }
+
+        Ok(())
     }
 
     async fn run(
@@ -80,7 +88,7 @@ impl SchedulerJob {
         logger: Data<JobLogger>,
         db: Data<DbConn>,
         local_port: Data<u16>,
-    ) -> tabby_schema::Result<i32> {
+    ) -> tabby_schema::Result<()> {
         Ok(self.run_impl(logger, db, local_port).await?)
     }
 
@@ -90,7 +98,7 @@ impl SchedulerJob {
     ) -> tabby_schema::Result<()> {
         let mut storage = (*storage).clone();
         storage
-            .push(SchedulerJob {})
+            .push(SchedulerJob)
             .await
             .expect("unable to push job");
         Ok(())
@@ -103,20 +111,14 @@ impl SchedulerJob {
         local_port: u16,
     ) -> (SqliteStorage<SchedulerJob>, Monitor<TokioExecutor>) {
         let storage = SqliteStorage::new(pool);
-        let schedule = Schedule::from_str("@hourly").expect("unable to parse cron schedule");
         let monitor = monitor
             .register(
-                WorkerBuilder::new(Self::NAME)
-                    .with_storage(storage.clone())
-                    .layer(ConcurrencyLimitLayer::new(1))
-                    .layer(JobLogLayer::new(db.clone(), Self::NAME))
-                    .data(db.clone())
+                Self::basic_worker(storage.clone(), db.clone())
                     .data(local_port)
                     .build_fn(Self::run),
             )
             .register(
-                WorkerBuilder::new(SchedulerJob::NAME)
-                    .stream(CronStream::new(schedule).into_stream())
+                Self::cron_worker(db.clone())
                     .data(storage.clone())
                     .build_fn(SchedulerJob::cron),
             );
