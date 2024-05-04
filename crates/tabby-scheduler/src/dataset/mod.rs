@@ -2,13 +2,13 @@ mod deps;
 
 use std::{
     fs::{self},
-    io::{IsTerminal, Write},
+    io::{Write},
 };
 
 use anyhow::Result;
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use ignore::Walk;
-use kdam::BarExt;
+
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
@@ -16,7 +16,7 @@ use tabby_common::{
     DependencyFile, SourceFile,
 };
 
-use crate::{cache::CacheStore, utils::tqdm};
+use crate::{cache::CacheStore};
 
 trait RepositoryExt {
     fn create_dataset(&self, cache: &mut CacheStore, writer: &mut impl Write) -> Result<()>;
@@ -28,10 +28,6 @@ impl RepositoryExt for RepositoryConfig {
 
         let walk_dir_iter = || Walk::new(dir.as_path()).filter_map(Result::ok);
 
-        let mut pb = std::io::stdout()
-            .is_terminal()
-            .then(|| tqdm(walk_dir_iter().count()));
-
         for entry in walk_dir_iter() {
             let Some(source_file) = cache.get_source_file(self, entry.path()) else {
                 continue;
@@ -39,10 +35,6 @@ impl RepositoryExt for RepositoryConfig {
             writer
                 .write_json_lines([source_file.clone()])
                 .expect("Failed to write dataset jsonl file");
-            pb.as_mut()
-                .map(|b| b.update(1))
-                .transpose()
-                .expect("Failed to update progress bar");
         }
 
         Ok(())
