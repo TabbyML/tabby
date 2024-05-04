@@ -154,13 +154,13 @@ impl DbConn {
         &self,
         github_provider_id: i64,
         cutoff_timestamp: DateTimeUtc,
-    ) -> Result<()> {
-        query!(
+    ) -> Result<usize> {
+        let res = query!(
             "DELETE FROM github_provided_repositories WHERE github_repository_provider_id = ? AND updated_at < ?;",
             github_provider_id,
             cutoff_timestamp
         ).execute(&self.pool).await?;
-        Ok(())
+        Ok(res.rows_affected() as usize)
     }
 
     pub async fn get_github_provided_repository(

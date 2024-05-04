@@ -10,7 +10,7 @@ use gitlab::{
     GitlabBuilder,
 };
 use serde::{Deserialize, Serialize};
-use tabby_db::{DbConn, GitlabRepositoryProviderDAO};
+use tabby_db::{DbConn};
 use tracing::debug;
 
 use super::{
@@ -83,7 +83,11 @@ impl SyncGitlabJob {
     }
 }
 
-async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, provider_id: i64) -> Result<()> {
+async fn refresh_repositories_for_provider(
+    logger: JobLogger,
+    db: DbConn,
+    provider_id: i64,
+) -> Result<()> {
     let provider = db.get_gitlab_provider(provider_id).await?;
     cprintln!(
         logger,
@@ -92,13 +96,17 @@ async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, provid
     );
 
     let Some(access_token) = provider.access_token else {
-        bail!("GitLab provider {} does not have an access token", provider.display_name);
+        bail!(
+            "GitLab provider {} does not have an access token",
+            provider.display_name
+        );
     };
     let start = Utc::now();
     let repos = match fetch_all_repos(&access_token).await {
         Ok(repos) => repos,
         Err(e) if e.is_client_error() => {
-            db.update_gitlab_provider_sync_status(provider_id, false).await?;
+            db.update_gitlab_provider_sync_status(provider_id, false)
+                .await?;
             ceprintln!(
                 logger,
                 "GitLab credentials for provider {} are expired or invalid",
@@ -128,8 +136,10 @@ async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, provid
 
     db.update_gitlab_provider_sync_status(provider_id, true)
         .await?;
-    db.delete_outdated_gitlab_repositories(provider_id, start.into())
+    let num_removed = db
+        .delete_outdated_gitlab_repositories(provider_id, start.into())
         .await?;
+    cprintln!(logger, "Removed {} outdated repositories", num_removed);
     Ok(())
 }
 
@@ -169,9 +179,7 @@ impl GitlabError {
     }
 }
 
-async fn fetch_all_repos(
-    access_token: &str
-) -> Result<Vec<Repository>, GitlabError> {
+async fn fetch_all_repos(access_token: &str) -> Result<Vec<Repository>, GitlabError> {
     let gitlab = GitlabBuilder::new("gitlab.com", access_token)
         .build_async()
         .await?;

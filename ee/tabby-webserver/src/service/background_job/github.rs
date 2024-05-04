@@ -7,7 +7,7 @@ use apalis::{
 use chrono::{DateTime, Utc};
 use octocrab::{models::Repository, GitHubError, Octocrab};
 use serde::{Deserialize, Serialize};
-use tabby_db::{DbConn, GithubRepositoryProviderDAO};
+use tabby_db::{DbConn};
 use tracing::debug;
 
 use super::{
@@ -80,7 +80,11 @@ impl SyncGithubJob {
     }
 }
 
-async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, provider_id: i64) -> Result<()> {
+async fn refresh_repositories_for_provider(
+    logger: JobLogger,
+    db: DbConn,
+    provider_id: i64,
+) -> Result<()> {
     let provider = db.get_github_provider(provider_id).await?;
     cprintln!(
         logger,
@@ -89,7 +93,10 @@ async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, provid
     );
 
     let Some(access_token) = provider.access_token else {
-        bail!("Github provider {} does not have an access token", provider.display_name);
+        bail!(
+            "Github provider {} does not have an access token",
+            provider.display_name
+        );
     };
     let start = Utc::now();
     let repos = match fetch_all_repos(&access_token).await {
@@ -141,15 +148,15 @@ async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, provid
 
     db.update_github_provider_sync_status(provider_id, true)
         .await?;
-    db.delete_outdated_github_repositories(provider_id, start.into())
+    let num_removed = db
+        .delete_outdated_github_repositories(provider_id, start.into())
         .await?;
+    cprintln!(logger, "Removed {} outdated repositories", num_removed);
     Ok(())
 }
 
 // FIXME(wsxiaoys): Convert to async stream
-async fn fetch_all_repos(
-    access_token: &str
-) -> Result<Vec<Repository>, octocrab::Error> {
+async fn fetch_all_repos(access_token: &str) -> Result<Vec<Repository>, octocrab::Error> {
     let octocrab = Octocrab::builder()
         .user_access_token(access_token.to_string())
         .build()?;
