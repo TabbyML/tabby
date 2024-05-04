@@ -154,13 +154,13 @@ impl DbConn {
         &self,
         gitlab_provider_id: i64,
         cutoff_timestamp: DateTimeUtc,
-    ) -> Result<()> {
-        query!(
+    ) -> Result<usize> {
+        let res = query!(
             "DELETE FROM gitlab_provided_repositories WHERE gitlab_repository_provider_id = ? AND updated_at < ?;",
             gitlab_provider_id,
             cutoff_timestamp
         ).execute(&self.pool).await?;
-        Ok(())
+        Ok(res.rows_affected() as usize)
     }
 
     pub async fn get_gitlab_provided_repository(

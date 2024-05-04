@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use apalis::{
     prelude::{Data, Job, Monitor, Storage, WorkerFactoryFn},
     sqlite::{SqlitePool, SqliteStorage},
@@ -7,7 +7,7 @@ use apalis::{
 use chrono::{DateTime, Utc};
 use octocrab::{models::Repository, GitHubError, Octocrab};
 use serde::{Deserialize, Serialize};
-use tabby_db::{DbConn, GithubRepositoryProviderDAO};
+use tabby_db::DbConn;
 use tracing::debug;
 
 use super::{
@@ -81,12 +81,25 @@ impl SyncGithubJob {
 }
 
 async fn refresh_repositories_for_provider(
-    context: JobLogger,
+    logger: JobLogger,
     db: DbConn,
     provider_id: i64,
 ) -> Result<()> {
     let provider = db.get_github_provider(provider_id).await?;
-    let repos = match fetch_all_repos(&provider).await {
+    cprintln!(
+        logger,
+        "Refreshing repositories for provider: {}",
+        provider.display_name
+    );
+
+    let Some(access_token) = provider.access_token else {
+        bail!(
+            "Github provider {} does not have an access token",
+            provider.display_name
+        );
+    };
+    let start = Utc::now();
+    let repos = match fetch_all_repos(&access_token).await {
         Ok(repos) => repos,
         Err(octocrab::Error::GitHub {
             source: source @ GitHubError { .. },
@@ -95,20 +108,20 @@ async fn refresh_repositories_for_provider(
             db.update_github_provider_sync_status(provider_id, false)
                 .await?;
             ceprintln!(
-                context,
+                logger,
                 "GitHub credentials for provider {} are expired or invalid",
                 provider.display_name
             );
             return Err(source.into());
         }
         Err(e) => {
-            ceprintln!(context, "Failed to fetch repositories from github: {e}");
+            ceprintln!(logger, "Failed to fetch repositories from github: {e}");
             return Err(e.into());
         }
     };
     for repo in repos {
         cprintln!(
-            context,
+            logger,
             "importing: {}",
             repo.full_name.as_deref().unwrap_or(&repo.name)
         );
@@ -132,21 +145,20 @@ async fn refresh_repositories_for_provider(
         )
         .await?;
     }
+
     db.update_github_provider_sync_status(provider_id, true)
         .await?;
-
+    let num_removed = db
+        .delete_outdated_github_repositories(provider_id, start.into())
+        .await?;
+    cprintln!(logger, "Removed {} outdated repositories", num_removed);
     Ok(())
 }
 
 // FIXME(wsxiaoys): Convert to async stream
-async fn fetch_all_repos(
-    provider: &GithubRepositoryProviderDAO,
-) -> Result<Vec<Repository>, octocrab::Error> {
-    let Some(token) = &provider.access_token else {
-        return Ok(vec![]);
-    };
+async fn fetch_all_repos(access_token: &str) -> Result<Vec<Repository>, octocrab::Error> {
     let octocrab = Octocrab::builder()
-        .user_access_token(token.to_string())
+        .user_access_token(access_token.to_string())
         .build()?;
 
     let mut page = 1;

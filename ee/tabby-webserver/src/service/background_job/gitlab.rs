@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use apalis::{
     prelude::{Data, Job, Monitor, Storage, WorkerFactoryFn},
     sqlite::{SqlitePool, SqliteStorage},
@@ -10,7 +10,7 @@ use gitlab::{
     GitlabBuilder,
 };
 use serde::{Deserialize, Serialize};
-use tabby_db::{DbConn, GitlabRepositoryProviderDAO};
+use tabby_db::DbConn;
 use tracing::debug;
 
 use super::{
@@ -83,18 +83,30 @@ impl SyncGitlabJob {
     }
 }
 
-async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, id: i64) -> Result<()> {
-    let provider = db.get_gitlab_provider(id).await?;
+async fn refresh_repositories_for_provider(
+    logger: JobLogger,
+    db: DbConn,
+    provider_id: i64,
+) -> Result<()> {
+    let provider = db.get_gitlab_provider(provider_id).await?;
     cprintln!(
         logger,
         "Refreshing repositories for provider: {}",
         provider.display_name
     );
+
+    let Some(access_token) = provider.access_token else {
+        bail!(
+            "GitLab provider {} does not have an access token",
+            provider.display_name
+        );
+    };
     let start = Utc::now();
-    let repos = match fetch_all_repos(&provider).await {
+    let repos = match fetch_all_repos(&access_token).await {
         Ok(repos) => repos,
         Err(e) if e.is_client_error() => {
-            db.update_gitlab_provider_sync_status(id, false).await?;
+            db.update_gitlab_provider_sync_status(provider_id, false)
+                .await?;
             ceprintln!(
                 logger,
                 "GitLab credentials for provider {} are expired or invalid",
@@ -122,10 +134,12 @@ async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, id: i6
         .await?;
     }
 
-    db.update_gitlab_provided_repository_active(id, true)
+    db.update_gitlab_provider_sync_status(provider_id, true)
         .await?;
-    db.delete_outdated_gitlab_repositories(id, start.into())
+    let num_removed = db
+        .delete_outdated_gitlab_repositories(provider_id, start.into())
         .await?;
+    cprintln!(logger, "Removed {} outdated repositories", num_removed);
     Ok(())
 }
 
@@ -165,13 +179,8 @@ impl GitlabError {
     }
 }
 
-async fn fetch_all_repos(
-    provider: &GitlabRepositoryProviderDAO,
-) -> Result<Vec<Repository>, GitlabError> {
-    let Some(token) = &provider.access_token else {
-        return Ok(vec![]);
-    };
-    let gitlab = GitlabBuilder::new("gitlab.com", token)
+async fn fetch_all_repos(access_token: &str) -> Result<Vec<Repository>, GitlabError> {
+    let gitlab = GitlabBuilder::new("gitlab.com", access_token)
         .build_async()
         .await?;
     Ok(gitlab::api::paged(
