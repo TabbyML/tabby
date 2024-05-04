@@ -41,7 +41,7 @@ dependencies = [
 
 [[package]]
 name = "aim-downloader"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "async-stream",
  "clap",
@@ -1980,7 +1980,7 @@ dependencies = [
 
 [[package]]
 name = "http-api-bindings"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "anyhow",
  "async-openai",
@@ -2639,7 +2639,7 @@ checksum = "da2479e8c062e40bf0066ffa0bc823de0a9368974af99c9f6df941d2c231e03f"
 
 [[package]]
 name = "llama-cpp-bindings"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -4924,7 +4924,7 @@ dependencies = [
 
 [[package]]
 name = "tabby"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "anyhow",
  "assert-json-diff",
@@ -4977,7 +4977,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-common"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5000,7 +5000,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-db"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5017,7 +5017,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-db-macros"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "quote",
  "syn 2.0.52",
@@ -5025,7 +5025,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-download"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "aim-downloader",
  "anyhow",
@@ -5037,7 +5037,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-inference"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -5051,7 +5051,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-scheduler"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5093,7 +5093,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-schema"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5117,7 +5117,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-search"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "anyhow",
  "git2",
@@ -5127,7 +5127,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-webserver"
-version = "0.11.0-rc.4"
+version = "0.11.0-rc.5"
 dependencies = [
  "anyhow",
  "apalis",
