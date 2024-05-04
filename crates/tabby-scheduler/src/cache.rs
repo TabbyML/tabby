@@ -112,7 +112,10 @@ impl CacheStore {
                 &self.dataset_bucket(repository),
                 |meta_bucket, repo_bucket| {
                     let last_sync_commit = self.get_meta(&meta_bucket, repository).last_sync_commit;
-                    let current_version = get_git_commit(&dir).unwrap();
+                    let Ok(current_version) = get_git_commit(&dir) else {
+                        warn!("Failed to get current version for {dir:?}, skipping...");
+                        return Ok(());
+                    };
 
                     let Some(old_version) = last_sync_commit else {
                         self.sync_repository_from_scratch(
