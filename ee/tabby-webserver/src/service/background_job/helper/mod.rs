@@ -81,7 +81,7 @@ const fn buf_and_len_to_str(buf_len: &'static ([u8; 60], usize)) -> &'static str
 }
 
 const fn concat_buf(left: &'static str, right: &'static str) -> ([u8; 60], usize) {
-    let mut buf = [b'7'; 32];
+    let mut buf = [b'7'; 60];
     let mut i = 0;
     while i < left.len() {
         buf[i] = left.as_bytes()[i];
