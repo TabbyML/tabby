@@ -114,7 +114,7 @@ impl CacheStore {
                     let last_sync_commit = self.get_meta(&meta_bucket, repository).last_sync_commit;
                     let Ok(current_version) = get_git_commit(&dir) else {
                         warn!("Failed to get current version for {dir:?}, skipping...");
-                        return Ok(())
+                        return Ok(());
                     };
 
                     let Some(old_version) = last_sync_commit else {
