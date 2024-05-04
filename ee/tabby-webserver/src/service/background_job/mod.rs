@@ -102,7 +102,7 @@ impl BackgroundJob for BackgroundJobImpl {
 macro_rules! ceprintln {
     ($ctx:expr, $($params:tt)+) => {
         {
-            tracing::warn!($($params)+);
+            tracing::debug!($($params)+);
             $ctx.r#internal_eprintln(format!($($params)+)).await;
         }
     }
