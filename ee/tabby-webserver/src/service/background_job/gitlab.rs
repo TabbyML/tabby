@@ -17,8 +17,10 @@ use tabby_db::{DbConn, GitlabRepositoryProviderDAO};
 use tower::limit::ConcurrencyLimitLayer;
 use tracing::debug;
 
-use super::layer::{JobLogLayer, JobLogger};
-use crate::warn_stderr;
+use super::{
+    cinfo, cwarn,
+    layer::{JobLogLayer, JobLogger},
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SyncGitlabJob {
@@ -93,18 +95,17 @@ impl SyncGitlabJob {
 
 async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, id: i64) -> Result<()> {
     let provider = db.get_gitlab_provider(id).await?;
-    logger
-        .stdout_writeline(format!(
-            "Refreshing repositories for provider: {}\n",
-            provider.display_name
-        ))
-        .await;
+    cinfo!(
+        logger,
+        "Refreshing repositories for provider: {}",
+        provider.display_name
+    );
     let start = Utc::now();
     let repos = match fetch_all_repos(&provider).await {
         Ok(repos) => repos,
         Err(e) if e.is_client_error() => {
             db.update_gitlab_provider_sync_status(id, false).await?;
-            warn_stderr!(
+            cwarn!(
                 logger,
                 "GitLab credentials for provider {} are expired or invalid",
                 provider.display_name
@@ -112,14 +113,12 @@ async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, id: i6
             return Err(e.into());
         }
         Err(e) => {
-            warn_stderr!(logger, "Failed to fetch repositories from gitlab: {e}");
+            cwarn!(logger, "Failed to fetch repositories from gitlab: {e}");
             return Err(e.into());
         }
     };
     for repo in repos {
-        logger
-            .stdout_writeline(format!("importing: {}", &repo.path_with_namespace))
-            .await;
+        cinfo!(logger, "importing: {}", &repo.path_with_namespace);
         let id = repo.id.to_string();
         let url = repo.http_url_to_repo;
         let url = url.strip_suffix(".git").unwrap_or(&url);

@@ -14,8 +14,10 @@ use tabby_db::{DbConn, GithubRepositoryProviderDAO};
 use tower::limit::ConcurrencyLimitLayer;
 use tracing::debug;
 
-use super::layer::{JobLogLayer, JobLogger};
-use crate::warn_stderr;
+use super::{
+    cinfo, cwarn,
+    layer::{JobLogLayer, JobLogger},
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SyncGithubJob {
@@ -102,7 +104,7 @@ async fn refresh_repositories_for_provider(
         }) if source.status_code.is_client_error() => {
             db.update_github_provider_sync_status(provider_id, false)
                 .await?;
-            warn_stderr!(
+            cwarn!(
                 context,
                 "GitHub credentials for provider {} are expired or invalid",
                 provider.display_name
@@ -110,17 +112,16 @@ async fn refresh_repositories_for_provider(
             return Err(source.into());
         }
         Err(e) => {
-            warn_stderr!(context, "Failed to fetch repositories from github: {e}");
+            cwarn!(context, "Failed to fetch repositories from github: {e}");
             return Err(e.into());
         }
     };
     for repo in repos {
-        context
-            .stdout_writeline(format!(
-                "importing: {}",
-                repo.full_name.as_deref().unwrap_or(&repo.name)
-            ))
-            .await;
+        cinfo!(
+            context,
+            "importing: {}",
+            repo.full_name.as_deref().unwrap_or(&repo.name)
+        );
 
         let id = repo.id.to_string();
         let Some(url) = repo.git_url else {

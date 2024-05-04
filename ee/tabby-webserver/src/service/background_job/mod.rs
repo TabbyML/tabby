@@ -98,3 +98,24 @@ impl BackgroundJob for BackgroundJobImpl {
             .expect("unable to push job");
     }
 }
+
+macro_rules! cwarn {
+    ($ctx:expr, $($params:tt)+) => {
+        {
+            tracing::warn!($($params)+);
+            $ctx.r#internal_eprintln(format!($($params)+)).await;
+        }
+    }
+}
+
+macro_rules! cinfo {
+    ($ctx:expr, $($params:tt)+) => {
+        {
+            tracing::info!($($params)+);
+            $ctx.r#internal_println(format!($($params)+)).await;
+        }
+    }
+}
+
+use cinfo;
+use cwarn;

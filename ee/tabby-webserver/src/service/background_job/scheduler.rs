@@ -1,6 +1,6 @@
 use std::{process::Stdio, str::FromStr};
 
-use anyhow::Context;
+use anyhow::{Context};
 use apalis::{
     cron::{CronStream, Schedule},
     prelude::{Data, Job, Monitor, Storage, WorkerBuilder, WorkerFactoryFn},
@@ -10,10 +10,14 @@ use apalis::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_db::DbConn;
+use tabby_schema::bail;
 use tokio::io::AsyncBufReadExt;
 use tower::limit::ConcurrencyLimitLayer;
 
-use super::layer::{JobLogLayer, JobLogger};
+use super::{
+    cinfo, cwarn,
+    layer::{JobLogLayer, JobLogger},
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SchedulerJob {}
@@ -28,7 +32,7 @@ impl SchedulerJob {
         job_logger: Data<JobLogger>,
         db: Data<DbConn>,
         local_port: Data<u16>,
-    ) -> anyhow::Result<i32> {
+    ) -> anyhow::Result<()> {
         let local_port = *local_port;
         let exe = std::env::current_exe()?;
 
@@ -51,7 +55,7 @@ impl SchedulerJob {
                 let stdout = tokio::io::BufReader::new(stdout);
                 let mut stdout = stdout.lines();
                 while let Ok(Some(line)) = stdout.next_line().await {
-                    let _ = logger.stdout_writeline(line).await;
+                    cinfo!(logger, "{line}");
                 }
             });
         }
@@ -64,15 +68,17 @@ impl SchedulerJob {
                 let stderr = tokio::io::BufReader::new(stderr);
                 let mut stdout = stderr.lines();
                 while let Ok(Some(line)) = stdout.next_line().await {
-                    let _ = logger.stderr_writeline(line).await;
+                    cwarn!(logger, "{line}");
                 }
             });
         }
         if let Some(exit_code) = child.wait().await.ok().and_then(|s| s.code()) {
-            Ok(exit_code)
-        } else {
-            Ok(-1)
+            if exit_code != 0 {
+                bail!("scheduler exited with code {exit_code}")
+            }
         }
+
+        Ok(())
     }
 
     async fn run(
@@ -80,7 +86,7 @@ impl SchedulerJob {
         logger: Data<JobLogger>,
         db: Data<DbConn>,
         local_port: Data<u16>,
-    ) -> tabby_schema::Result<i32> {
+    ) -> tabby_schema::Result<()> {
         Ok(self.run_impl(logger, db, local_port).await?)
     }
 

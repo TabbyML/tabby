@@ -24,7 +24,7 @@ impl JobLogger {
         Self { id, db }
     }
 
-    pub async fn stdout_writeline(&self, stdout: String) {
+    pub async fn r#internal_println(&self, stdout: String) {
         let stdout = stdout + "\n";
         match self.db.update_job_stdout(self.id, stdout).await {
             Ok(_) => (),
@@ -34,7 +34,7 @@ impl JobLogger {
         }
     }
 
-    pub async fn stderr_writeline(&self, stderr: String) {
+    pub async fn r#internal_eprintln(&self, stderr: String) {
         let stderr = stderr + "\n";
         match self.db.update_job_stderr(self.id, stderr).await {
             Ok(_) => (),
@@ -84,29 +84,13 @@ pub struct JobLogService<S> {
     service: S,
 }
 
-pub trait ExitCode {
-    fn into_exit_code(self) -> i32;
-}
-
-impl ExitCode for i32 {
-    fn into_exit_code(self) -> i32 {
-        self
-    }
-}
-
-impl ExitCode for () {
-    fn into_exit_code(self) -> i32 {
-        0
-    }
-}
-
 impl<S, Req> Service<Request<Req>> for JobLogService<S>
 where
     S: Service<Request<Req>> + Clone,
     Request<Req>: Send + 'static,
     S: Send + 'static,
     S::Future: Send + 'static,
-    S::Response: Send + ExitCode + 'static,
+    S::Response: Send + 'static,
     S::Error: Send + Debug + 'static,
 {
     type Response = ();
@@ -126,9 +110,9 @@ where
             let mut logger = JobLogger::new(name, db).await;
             request.insert(logger.clone());
             match service.call(request).await {
-                Ok(res) => {
+                Ok(_) => {
                     debug!("Job `{}` completed", name);
-                    logger.complete(res.into_exit_code()).await;
+                    logger.complete(0).await;
                     Ok(())
                 }
                 Err(e) => {
