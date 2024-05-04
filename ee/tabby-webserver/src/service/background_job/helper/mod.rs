@@ -37,6 +37,7 @@ pub trait BasicJob: Job + Sized {
 impl<T: Job> BasicJob for T {}
 
 pub trait CronJob: Job {
+    const CRON_NAME: &'static str = buf_and_len_to_str(&concat_buf(Self::NAME, "-cron"));
     const SCHEDULE: &'static str;
 
     fn cron_worker<Serv>(
@@ -59,11 +60,56 @@ pub trait CronJob: Job {
     > {
         let schedule = Schedule::from_str(Self::SCHEDULE).expect("invalid cron schedule");
         let stream = CronStream::new(schedule).into_stream();
-        let name = format!("{}-cron", Self::NAME);
-        WorkerBuilder::new(&name)
+        WorkerBuilder::new(Self::CRON_NAME)
             .data(db.clone())
             .stream(stream)
             .layer(ConcurrencyLimitLayer::new(1))
-            .layer(JobLogLayer::new(db, &name))
+            .layer(JobLogLayer::new(db, Self::CRON_NAME))
+    }
+}
+
+const fn buf_and_len_to_str(buf_len: &'static ([u8; 60], usize)) -> &'static str {
+    let buf = &buf_len.0;
+    let len = buf_len.1;
+    assert!(len < buf.len(), "buf is too long");
+    // I didn't find a way to slice an array in const fn
+    let buf = unsafe { core::slice::from_raw_parts(buf.as_ptr(), len) };
+    match core::str::from_utf8(buf) {
+        Ok(s) => s,
+        Err(_) => panic!(),
+    }
+}
+
+const fn concat_buf(left: &'static str, right: &'static str) -> ([u8; 60], usize) {
+    let mut buf = [b'7'; 60];
+    let mut i = 0;
+    while i < left.len() {
+        buf[i] = left.as_bytes()[i];
+        i += 1;
+    }
+    while i - left.len() < right.len() {
+        buf[i] = right.as_bytes()[i - left.len()];
+        i += 1;
+    }
+
+    (buf, i)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test() {
+        struct DummyJob;
+        impl Job for DummyJob {
+            const NAME: &'static str = "dummy";
+        }
+
+        impl CronJob for DummyJob {
+            const SCHEDULE: &'static str = "* * * * * *";
+        }
+
+        assert_eq!(DummyJob::CRON_NAME, "dummy-cron");
     }
 }
