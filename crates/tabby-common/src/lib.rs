@@ -26,6 +26,7 @@ pub struct SourceFile {
     pub git_url: String,
     pub basedir: String,
     pub filepath: String,
+    pub git_hash: String,
     pub language: String,
     pub max_line_length: usize,
     pub avg_line_length: f32,

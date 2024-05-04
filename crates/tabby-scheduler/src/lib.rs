@@ -16,13 +16,15 @@ use tracing::{info, warn};
 
 pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
     if now {
-        let cache = cache::CacheStore::new(tabby_common::path::cache_dir());
+        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
         let repositories = access
             .list_repositories()
             .await
             .expect("Must be able to retrieve repositories for sync");
-        job_sync(&cache, &repositories);
+        job_sync(&mut cache, &repositories);
         job_index(&repositories);
+
+        cache.garbage_collection();
     } else {
         let access = Arc::new(access);
         let scheduler = JobScheduler::new()
@@ -42,15 +44,16 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
                             return;
                         };
 
-                        let cache = cache::CacheStore::new(tabby_common::path::cache_dir());
+                        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
 
                         let repositories = access
                             .list_repositories()
                             .await
                             .expect("Must be able to retrieve repositories for sync");
 
-                        job_sync(&cache, &repositories);
+                        job_sync(&mut cache, &repositories);
                         job_index(&repositories);
+                        cache.garbage_collection();
                     })
                 })
                 .expect("Failed to create job"),
@@ -71,12 +74,9 @@ fn job_index(repositories: &[RepositoryConfig]) {
     index::index_repositories(repositories);
 }
 
-fn job_sync(cache: &CacheStore, repositories: &[RepositoryConfig]) {
+fn job_sync(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
     println!("Syncing {} repositories...", repositories.len());
     repository::sync_repositories(repositories);
-
-    println!("Updating source files...");
-    cache.update_source_files(repositories);
 
     println!("Exporting dataset...");
     dataset::create_dataset(cache, repositories);
