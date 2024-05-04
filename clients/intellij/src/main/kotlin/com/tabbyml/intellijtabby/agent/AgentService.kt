@@ -25,6 +25,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.intellij.psi.codeStyle.CodeStyleSettingsManager
 import com.tabbyml.intellijtabby.git.GitContextProvider
 import com.tabbyml.intellijtabby.settings.ApplicationConfigurable
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
@@ -279,6 +280,7 @@ class AgentService : Disposable {
           file.virtualFile.path,
           file.getLanguageId(),
           editor.document.text,
+          getIndention(project, file),
           offset,
           manually,
           project.basePath,
@@ -286,6 +288,18 @@ class AgentService : Disposable {
         )
       )
     }
+  }
+
+  private fun getIndention(project: Project, file: PsiFile): String? {
+    val codeStyleSettingsManager = CodeStyleSettingsManager.getInstance(project)
+    val projectSettings = codeStyleSettingsManager.mainProjectCodeStyle ?: return null
+    val indentionOptions = projectSettings.getCommonSettings(file.language).indentOptions ?: return null
+
+    if (indentionOptions.USE_TAB_CHARACTER) {
+      return "\t"
+    }
+
+    return " ".repeat(indentionOptions.INDENT_SIZE)
   }
 
   private fun getRemotesForProjectGit(project: Project, file: PsiFile): Agent.CompletionRequest.GitContext? {

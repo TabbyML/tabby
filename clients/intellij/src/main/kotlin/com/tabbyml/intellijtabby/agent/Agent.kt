@@ -222,6 +222,7 @@ class Agent : ProcessAdapter() {
     val filepath: String,
     val language: String,
     val text: String,
+    val indentation: String?,
     val position: Int,
     val manually: Boolean?,
     val workspace: String?,
