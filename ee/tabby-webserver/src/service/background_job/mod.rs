@@ -1,7 +1,7 @@
 mod db;
 mod github;
 mod gitlab;
-mod layer;
+mod helper;
 mod scheduler;
 
 use std::sync::Arc;
@@ -77,7 +77,7 @@ impl BackgroundJob for BackgroundJobImpl {
     async fn trigger_scheduler(&self) {
         self.scheduler
             .clone()
-            .push(SchedulerJob {})
+            .push(SchedulerJob)
             .await
             .expect("unable to push job");
     }
@@ -99,7 +99,7 @@ impl BackgroundJob for BackgroundJobImpl {
     }
 }
 
-macro_rules! cwarn {
+macro_rules! ceprintln {
     ($ctx:expr, $($params:tt)+) => {
         {
             tracing::warn!($($params)+);
@@ -108,14 +108,14 @@ macro_rules! cwarn {
     }
 }
 
-macro_rules! cinfo {
+macro_rules! cprintln {
     ($ctx:expr, $($params:tt)+) => {
         {
-            tracing::info!($($params)+);
+            tracing::debug!($($params)+);
             $ctx.r#internal_println(format!($($params)+)).await;
         }
     }
 }
 
-use cinfo;
-use cwarn;
+use ceprintln;
+use cprintln;

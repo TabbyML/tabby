@@ -1,9 +1,6 @@
-use std::str::FromStr;
-
 use anyhow::Result;
 use apalis::{
-    cron::{CronStream, Schedule},
-    prelude::{Data, Job, Monitor, Storage, WorkerBuilder, WorkerFactoryFn},
+    prelude::{Data, Job, Monitor, Storage, WorkerFactoryFn},
     sqlite::{SqlitePool, SqliteStorage},
     utils::TokioExecutor,
 };
@@ -11,12 +8,11 @@ use chrono::{DateTime, Utc};
 use octocrab::{models::Repository, GitHubError, Octocrab};
 use serde::{Deserialize, Serialize};
 use tabby_db::{DbConn, GithubRepositoryProviderDAO};
-use tower::limit::ConcurrencyLimitLayer;
 use tracing::debug;
 
 use super::{
-    cinfo, cwarn,
-    layer::{JobLogLayer, JobLogger},
+    ceprintln, cprintln,
+    helper::{BasicJob, CronJob, JobLogger},
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -32,6 +28,10 @@ impl SyncGithubJob {
 
 impl Job for SyncGithubJob {
     const NAME: &'static str = "import_github_repositories";
+}
+
+impl CronJob for SyncGithubJob {
+    const SCHEDULE: &'static str = "@hourly";
 }
 
 impl SyncGithubJob {
@@ -68,21 +68,11 @@ impl SyncGithubJob {
         db: DbConn,
     ) -> (SqliteStorage<SyncGithubJob>, Monitor<TokioExecutor>) {
         let storage = SqliteStorage::new(pool);
-        let schedule = Schedule::from_str("@hourly").expect("unable to parse cron schedule");
         let monitor = monitor
+            .register(Self::basic_worker(storage.clone(), db.clone()).build_fn(Self::run))
             .register(
-                WorkerBuilder::new(Self::NAME)
-                    .with_storage(storage.clone())
-                    .layer(ConcurrencyLimitLayer::new(1))
-                    .layer(JobLogLayer::new(db.clone(), Self::NAME))
-                    .data(db.clone())
-                    .build_fn(Self::run),
-            )
-            .register(
-                WorkerBuilder::new(format!("{}-cron", Self::NAME))
-                    .stream(CronStream::new(schedule).into_stream())
+                Self::cron_worker(db.clone())
                     .data(storage.clone())
-                    .data(db.clone())
                     .build_fn(Self::cron),
             );
 
@@ -104,7 +94,7 @@ async fn refresh_repositories_for_provider(
         }) if source.status_code.is_client_error() => {
             db.update_github_provider_sync_status(provider_id, false)
                 .await?;
-            cwarn!(
+            ceprintln!(
                 context,
                 "GitHub credentials for provider {} are expired or invalid",
                 provider.display_name
@@ -112,12 +102,12 @@ async fn refresh_repositories_for_provider(
             return Err(source.into());
         }
         Err(e) => {
-            cwarn!(context, "Failed to fetch repositories from github: {e}");
+            ceprintln!(context, "Failed to fetch repositories from github: {e}");
             return Err(e.into());
         }
     };
     for repo in repos {
-        cinfo!(
+        cprintln!(
             context,
             "importing: {}",
             repo.full_name.as_deref().unwrap_or(&repo.name)

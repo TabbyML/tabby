@@ -16,7 +16,7 @@ pub struct JobLogger {
 }
 
 impl JobLogger {
-    async fn new(name: &'static str, db: DbConn) -> Self {
+    async fn new(name: &str, db: DbConn) -> Self {
         let id = db
             .create_job_run(name.to_owned())
             .await
@@ -56,12 +56,15 @@ impl JobLogger {
 
 pub struct JobLogLayer {
     db: DbConn,
-    name: &'static str,
+    name: String,
 }
 
 impl JobLogLayer {
-    pub fn new(db: DbConn, name: &'static str) -> Self {
-        Self { db, name }
+    pub fn new(db: DbConn, name: &str) -> Self {
+        Self {
+            db,
+            name: name.to_owned(),
+        }
     }
 }
 
@@ -71,7 +74,7 @@ impl<S> Layer<S> for JobLogLayer {
     fn layer(&self, service: S) -> Self::Service {
         JobLogService {
             db: self.db.clone(),
-            name: self.name,
+            name: self.name.clone(),
             service,
         }
     }
@@ -80,7 +83,7 @@ impl<S> Layer<S> for JobLogLayer {
 #[derive(Clone)]
 pub struct JobLogService<S> {
     db: DbConn,
-    name: &'static str,
+    name: String,
     service: S,
 }
 
@@ -103,11 +106,11 @@ where
 
     fn call(&mut self, mut request: Request<Req>) -> Self::Future {
         debug!("Starting job `{}`", self.name);
-        let name = self.name;
         let db = self.db.clone();
         let mut service = self.service.clone();
+        let name = self.name.clone();
         let fut_with_log = async move {
-            let mut logger = JobLogger::new(name, db).await;
+            let mut logger = JobLogger::new(&name, db).await;
             request.insert(logger.clone());
             match service.call(request).await {
                 Ok(_) => {

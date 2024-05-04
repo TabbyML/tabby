@@ -1,9 +1,6 @@
-use std::str::FromStr;
-
 use anyhow::Result;
 use apalis::{
-    cron::{CronStream, Schedule},
-    prelude::{Data, Job, Monitor, Storage, WorkerBuilder, WorkerFactoryFn},
+    prelude::{Data, Job, Monitor, Storage, WorkerFactoryFn},
     sqlite::{SqlitePool, SqliteStorage},
     utils::TokioExecutor,
 };
@@ -14,12 +11,11 @@ use gitlab::{
 };
 use serde::{Deserialize, Serialize};
 use tabby_db::{DbConn, GitlabRepositoryProviderDAO};
-use tower::limit::ConcurrencyLimitLayer;
 use tracing::debug;
 
 use super::{
-    cinfo, cwarn,
-    layer::{JobLogLayer, JobLogger},
+    ceprintln, cprintln,
+    helper::{BasicJob, CronJob, JobLogger},
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -35,6 +31,10 @@ impl SyncGitlabJob {
 
 impl Job for SyncGitlabJob {
     const NAME: &'static str = "import_gitlab_repositories";
+}
+
+impl CronJob for SyncGitlabJob {
+    const SCHEDULE: &'static str = "@hourly";
 }
 
 impl SyncGitlabJob {
@@ -71,21 +71,11 @@ impl SyncGitlabJob {
         db: DbConn,
     ) -> (SqliteStorage<SyncGitlabJob>, Monitor<TokioExecutor>) {
         let storage = SqliteStorage::new(pool);
-        let schedule = Schedule::from_str("@hourly").expect("unable to parse cron schedule");
         let monitor = monitor
+            .register(Self::basic_worker(storage.clone(), db.clone()).build_fn(Self::run))
             .register(
-                WorkerBuilder::new(Self::NAME)
-                    .with_storage(storage.clone())
-                    .layer(ConcurrencyLimitLayer::new(1))
-                    .layer(JobLogLayer::new(db.clone(), Self::NAME))
-                    .data(db.clone())
-                    .build_fn(Self::run),
-            )
-            .register(
-                WorkerBuilder::new(format!("{}-cron", Self::NAME))
-                    .stream(CronStream::new(schedule).into_stream())
+                Self::cron_worker(db.clone())
                     .data(storage.clone())
-                    .data(db.clone())
                     .build_fn(Self::cron),
             );
 
@@ -95,7 +85,7 @@ impl SyncGitlabJob {
 
 async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, id: i64) -> Result<()> {
     let provider = db.get_gitlab_provider(id).await?;
-    cinfo!(
+    cprintln!(
         logger,
         "Refreshing repositories for provider: {}",
         provider.display_name
@@ -105,7 +95,7 @@ async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, id: i6
         Ok(repos) => repos,
         Err(e) if e.is_client_error() => {
             db.update_gitlab_provider_sync_status(id, false).await?;
-            cwarn!(
+            ceprintln!(
                 logger,
                 "GitLab credentials for provider {} are expired or invalid",
                 provider.display_name
@@ -113,12 +103,12 @@ async fn refresh_repositories_for_provider(logger: JobLogger, db: DbConn, id: i6
             return Err(e.into());
         }
         Err(e) => {
-            cwarn!(logger, "Failed to fetch repositories from gitlab: {e}");
+            ceprintln!(logger, "Failed to fetch repositories from gitlab: {e}");
             return Err(e.into());
         }
     };
     for repo in repos {
-        cinfo!(logger, "importing: {}", &repo.path_with_namespace);
+        cprintln!(logger, "importing: {}", &repo.path_with_namespace);
         let id = repo.id.to_string();
         let url = repo.http_url_to_repo;
         let url = url.strip_suffix(".git").unwrap_or(&url);
