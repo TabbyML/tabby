@@ -56,14 +56,14 @@ impl JobLogger {
 
 pub struct JobLogLayer {
     db: DbConn,
-    name: String,
+    name: &'static str,
 }
 
 impl JobLogLayer {
-    pub fn new(db: DbConn, name: &str) -> Self {
+    pub fn new(db: DbConn, name: &'static str) -> Self {
         Self {
             db,
-            name: name.to_owned(),
+            name,
         }
     }
 }
@@ -74,7 +74,7 @@ impl<S> Layer<S> for JobLogLayer {
     fn layer(&self, service: S) -> Self::Service {
         JobLogService {
             db: self.db.clone(),
-            name: self.name.clone(),
+            name: self.name,
             service,
         }
     }
@@ -83,7 +83,7 @@ impl<S> Layer<S> for JobLogLayer {
 #[derive(Clone)]
 pub struct JobLogService<S> {
     db: DbConn,
-    name: String,
+    name: &'static str,
     service: S,
 }
 
@@ -108,7 +108,7 @@ where
         debug!("Starting job `{}`", self.name);
         let db = self.db.clone();
         let mut service = self.service.clone();
-        let name = self.name.clone();
+        let name = self.name;
         let fut_with_log = async move {
             let mut logger = JobLogger::new(&name, db).await;
             request.insert(logger.clone());
