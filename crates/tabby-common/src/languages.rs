@@ -20,6 +20,23 @@ lazy_static! {
         "\n\n\t\t\t\t\t",
         "\n\n\t\t\t\t\t\t",
         "\n\n\t\t\t\t\t\t\t",
+
+        // FIXME: Hack for codellama / codegemma to simplify tabby's implementation.
+
+        // CodeLlama
+        " <EOT>",
+
+        // CodeGemma
+        "<|fim_prefix|>",
+        "<|fim_suffix|>",
+        "<|fim_middle|>",
+        "<|file_separator|>",
+
+        // chat_ml
+        "<|system|>",
+        "<|user|>",
+        "<|end|>",
+        "<|assistant|>",
     ];
 }
 
