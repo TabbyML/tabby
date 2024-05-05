@@ -68,6 +68,7 @@ pub struct SchedulerArgs {
 
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
 pub enum Device {
+    #[cfg(feature = "llama-cpp")]
     #[strum(serialize = "cpu")]
     Cpu,
 
@@ -79,7 +80,7 @@ pub enum Device {
     #[strum(serialize = "rocm")]
     Rocm,
 
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[cfg(all(feature = "llama-cpp", target_os = "macos", target_arch = "aarch64"))]
     #[strum(serialize = "metal")]
     Metal,
 
@@ -87,13 +88,13 @@ pub enum Device {
     #[strum(serialize = "vulkan")]
     Vulkan,
 
-    #[strum(serialize = "experimental_http")]
+    #[strum(serialize = "http")]
     #[clap(hide = true)]
-    ExperimentalHttp,
+    Http,
 }
 
 impl Device {
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[cfg(all(feature = "llama-cpp", target_os = "macos", target_arch = "aarch64"))]
     pub fn ggml_use_gpu(&self) -> bool {
         *self == Device::Metal
     }

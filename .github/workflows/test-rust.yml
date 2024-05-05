@@ -68,7 +68,7 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Run unit tests on community build
-        run: cargo test --bin tabby --no-default-features
+        run: cargo test --bin tabby --no-default-features --features llama-cpp
 
       - name: Run unit tests
         run: cargo test --bin tabby --lib

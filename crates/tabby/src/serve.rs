@@ -93,7 +93,7 @@ pub struct ServeArgs {
     port: u16,
 
     /// Device to run model inference.
-    #[clap(long, default_value_t=Device::Cpu)]
+    #[clap(long, default_value_t=Device::Http)]
     device: Device,
 
     /// Device to run chat model [default equals --device arg]
@@ -168,14 +168,14 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 async fn load_model(args: &ServeArgs) {
-    if args.device != Device::ExperimentalHttp {
+    if args.device != Device::Http {
         if let Some(model) = &args.model {
             download_model_if_needed(model).await;
         }
     }
 
     let chat_device = args.chat_device.as_ref().unwrap_or(&args.device);
-    if chat_device != &Device::ExperimentalHttp {
+    if chat_device != &Device::Http {
         if let Some(chat_model) = &args.chat_model {
             download_model_if_needed(chat_model).await
         }

@@ -41,14 +41,14 @@ impl HealthState {
         };
 
         let http_model_name = Some("Remote");
-        let is_model_http = device == &Device::ExperimentalHttp;
+        let is_model_http = device == &Device::Http;
         let model = if is_model_http {
             http_model_name
         } else {
             model
         };
 
-        let is_chat_model_http = chat_device == Some(&Device::ExperimentalHttp);
+        let is_chat_model_http = chat_device == Some(&Device::Http);
         let chat_model = if is_chat_model_http {
             http_model_name
         } else {

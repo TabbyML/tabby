@@ -6,16 +6,17 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["ee"]
+default = ["ee", "llama-cpp"]
 ee = ["dep:tabby-webserver"]
-cuda = ["llama-cpp-bindings/cuda"]
-rocm = ["llama-cpp-bindings/rocm"]
-vulkan = ["llama-cpp-bindings/vulkan"]
+llama-cpp = ["dep:llama-cpp-bindings"]
+cuda = ["llama-cpp", "llama-cpp-bindings/cuda"]
+rocm = ["llama-cpp", "llama-cpp-bindings/rocm"]
+vulkan = ["llama-cpp", "llama-cpp-bindings/vulkan"]
 # If compiling on a system without OpenSSL installed, or cross-compiling for a different
 # architecture, enable this feature to compile OpenSSL as part of the build.
 # See https://docs.rs/openssl/#vendored for more.
 static-ssl = ['openssl/vendored']
-prod = ['tabby-webserver/prod-db']
+prod = ['tabby-webserver/prod-db', "llama-cpp"]
 
 [dependencies]
 tabby-common = { path = "../tabby-common" }
@@ -47,7 +48,7 @@ async-stream = { workspace = true }
 minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
 regex.workspace = true
-llama-cpp-bindings = { path = "../llama-cpp-bindings" }
+llama-cpp-bindings = { path = "../llama-cpp-bindings", optional = true}
 futures.workspace = true
 async-trait.workspace = true
 tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }

@@ -3,10 +3,6 @@ mod chat;
 use std::{fs, path::PathBuf, sync::Arc};
 
 use serde::Deserialize;
-use tabby_common::{
-    registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
-    terminal::{HeaderFormat, InfoMessage},
-};
 use tabby_download::download_model;
 use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream};
 use tracing::info;
@@ -18,7 +14,7 @@ pub async fn load_chat_completion(
     device: &Device,
     parallelism: u8,
 ) -> Arc<dyn ChatCompletionStream> {
-    if device == &Device::ExperimentalHttp {
+    if device == &Device::Http {
         return http_api_bindings::create_chat(model_id);
     }
 
@@ -44,9 +40,9 @@ pub async fn load_code_generation(
 async fn load_completion(
     model_id: &str,
     device: &Device,
-    parallelism: u8,
+    #[allow(unused_variables)] parallelism: u8,
 ) -> (Arc<dyn CompletionStream>, PromptInfo) {
-    if device == &Device::ExperimentalHttp {
+    if device == &Device::Http {
         let (engine, prompt_template, chat_template) = http_api_bindings::create(model_id);
         return (
             engine,
@@ -57,30 +53,37 @@ async fn load_completion(
         );
     }
 
-    if fs::metadata(model_id).is_ok() {
-        let path = PathBuf::from(model_id);
-        let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
-        let engine = create_ggml_engine(
-            device,
-            model_path.display().to_string().as_str(),
-            parallelism,
-        );
-        let engine_info = PromptInfo::read(path.join("tabby.json"));
-        (Arc::new(engine), engine_info)
-    } else {
-        let (registry, name) = parse_model_id(model_id);
-        let registry = ModelRegistry::new(registry).await;
-        let model_path = registry.get_model_path(name).display().to_string();
-        let model_info = registry.get_model_info(name);
-        let engine = create_ggml_engine(device, &model_path, parallelism);
-        (
-            Arc::new(engine),
-            PromptInfo {
-                prompt_template: model_info.prompt_template.clone(),
-                chat_template: model_info.chat_template.clone(),
-            },
-        )
+    #[cfg(feature = "llama-cpp")]
+    {
+        use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
+
+        if fs::metadata(model_id).is_ok() {
+            let path = PathBuf::from(model_id);
+            let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
+            let engine = create_ggml_engine(
+                device,
+                model_path.display().to_string().as_str(),
+                parallelism,
+            );
+            let engine_info = PromptInfo::read(path.join("tabby.json"));
+            (Arc::new(engine), engine_info)
+        } else {
+            let (registry, name) = parse_model_id(model_id);
+            let registry = ModelRegistry::new(registry).await;
+            let model_path = registry.get_model_path(name).display().to_string();
+            let model_info = registry.get_model_info(name);
+            let engine = create_ggml_engine(device, &model_path, parallelism);
+            (
+                Arc::new(engine),
+                PromptInfo {
+                    prompt_template: model_info.prompt_template.clone(),
+                    chat_template: model_info.chat_template.clone(),
+                },
+            )
+        }
     }
+    #[cfg(not(feature = "llama-cpp"))]
+    panic!("Unsupported device");
 }
 
 #[derive(Deserialize)]
@@ -96,7 +99,10 @@ impl PromptInfo {
     }
 }
 
+#[cfg(feature = "llama-cpp")]
 fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> impl CompletionStream {
+    use tabby_common::terminal::{HeaderFormat, InfoMessage};
+
     if !device.ggml_use_gpu() {
         InfoMessage::new(
             "CPU Device",

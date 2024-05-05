@@ -38,7 +38,7 @@ pub struct WorkerArgs {
     model: String,
 
     /// Device to run model inference.
-    #[clap(long, default_value_t=Device::Cpu, help_heading=Some("Model Options"))]
+    #[clap(long, default_value_t=Device::Http, help_heading=Some("Model Options"))]
     device: Device,
 
     /// Parallelism for model serving - increasing this number will have a significant impact on the
