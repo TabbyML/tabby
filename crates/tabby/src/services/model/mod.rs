@@ -49,7 +49,7 @@ async fn load_completion(
     if device == &Device::ExperimentalHttp {
         let (engine, prompt_template, chat_template) = http_api_bindings::create(model_id);
         return (
-            Arc::new(engine),
+            engine,
             PromptInfo {
                 prompt_template,
                 chat_template,
