@@ -1,211 +1,126 @@
 use std::{
-    collections::HashSet,
     fs::read_to_string,
     path::{Path, PathBuf},
     process::Command,
 };
 
-use anyhow::Result;
-use ignore::Walk;
-use kv::{Bucket, Config, Json, Store, Transaction, TransactionError};
-use serde::{Deserialize, Serialize};
+use anyhow::{bail, Context, Result};
+use kv::{Batch, Bucket, Config, Item, Json, Store};
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
-use tracing::{debug, warn};
+use tracing::{info, warn};
 
 use crate::code::CodeIntelligence;
 
-const META_KEY: &str = "meta";
-const DATASET_BUCKET_PREFIX: &str = "dataset";
+const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
 
-fn cmd_stdout(pwd: &Path, cmd: &str, args: &[&str]) -> Result<String> {
-    let output = Command::new(cmd).current_dir(pwd).args(args).output()?;
-
+fn get_git_hash(path: &Path) -> Result<String> {
+    let path = path.display().to_string();
+    let output = Command::new("git").args(["hash-object", &path]).output()?;
     Ok(String::from_utf8(output.stdout)?.trim().to_string())
 }
 
-fn get_git_commit(path: &Path) -> Result<String> {
-    cmd_stdout(path, "git", &["rev-parse", "HEAD"])
-}
+fn compute_source_file_key(path: &Path) -> Result<String> {
+    if !path.is_file() {
+        bail!("Path is not a file");
+    }
 
-fn get_changed_files(path: &Path, since_commit: String) -> Result<Vec<String>> {
-    cmd_stdout(path, "git", &["diff", "--name-only", &since_commit])
-        .map(|s| s.lines().map(|line| line.to_owned()).collect())
-}
-
-fn meta_key(git_url: impl AsRef<str>) -> String {
-    format!("{META_KEY}:{}", git_url.as_ref())
-}
-
-fn dataset_bucket_key(git_url: impl AsRef<str>) -> String {
-    format!("{DATASET_BUCKET_PREFIX}:{}", git_url.as_ref())
+    let git_hash = get_git_hash(path)?;
+    let ext = path.extension().context("Failed to get extension")?;
+    let Some(lang) = get_language_by_ext(ext) else {
+        bail!("Unknown language for extension {:?}", ext);
+    };
+    Ok(format!("{}-{}", lang.language(), git_hash))
 }
 
 pub struct CacheStore {
     store: Store,
-}
-
-#[derive(Serialize, Deserialize, Default)]
-struct Meta {
-    last_sync_commit: Option<String>,
+    code: CodeIntelligence,
 }
 
 impl CacheStore {
     pub fn new(path: PathBuf) -> Self {
         Self {
             store: Store::new(Config::new(path)).expect("Failed to create repository store"),
+            code: CodeIntelligence::default(),
         }
     }
 
-    fn meta_bucket(&self) -> Bucket<String, Json<Meta>> {
-        self.store
-            .bucket(None)
-            .expect("Could not access meta bucket")
-    }
+    pub fn get_source_file(
+        &mut self,
+        config: &RepositoryConfig,
+        path: &Path,
+    ) -> Option<SourceFile> {
+        let key = compute_source_file_key(path).ok()?;
 
-    fn dataset_bucket(&self, repository: &RepositoryConfig) -> Bucket<String, Json<SourceFile>> {
-        self.store
-            .bucket(Some(&dataset_bucket_key(repository.canonical_git_url())))
-            .expect("Could not access dataset bucket")
-    }
+        let dataset_bucket: Bucket<String, Json<Option<SourceFile>>> = self
+            .store
+            .bucket(Some(SOURCE_FILE_BUCKET_KEY))
+            .expect("Could not access dataset bucket");
 
-    fn set_last_sync_commit(
-        &self,
-        transaction: &Transaction<String, Json<Meta>>,
-        repository: &RepositoryConfig,
-        commit_hash: String,
-    ) {
-        let mut meta = self.get_meta(transaction, repository);
-        meta.last_sync_commit = Some(commit_hash);
-        transaction
-            .set(&meta_key(repository.canonical_git_url()), &Json(meta))
-            .expect("Failed to update synced version for repository");
-    }
-
-    fn get_meta(
-        &self,
-        transaction: &Transaction<String, Json<Meta>>,
-        repository: &RepositoryConfig,
-    ) -> Meta {
-        transaction
-            .get(&meta_key(repository.canonical_git_url()))
-            .expect("Failed to access repository meta")
-            .map(|Json(meta)| meta)
-            .unwrap_or_default()
-    }
-
-    pub fn update_source_files(&self, repositories: &[RepositoryConfig]) {
-        for repository in repositories {
-            debug!(
-                "Refreshing source files for {}",
-                repository.canonical_git_url()
-            );
-            self.refresh_source_files(repository);
+        if let Some(source_file) = dataset_bucket
+            .get(&key)
+            .expect("Failed to read key from dataset bucket")
+            .map(|Json(file)| file)
+        {
+            source_file
+        } else {
+            let source_file = create_source_file(config, path, &mut self.code);
+            let json = Json(source_file);
+            dataset_bucket
+                .set(&key, &json)
+                .expect("Failed to write source file to dataset bucket");
+            json.0
         }
-        self.retain_from(repositories);
     }
 
-    fn refresh_source_files(&self, repository: &RepositoryConfig) {
-        let dir = repository.dir();
+    pub fn garbage_collection(&self) {
+        info!("Running garbage collection");
+        let bucket = self
+            .store
+            .bucket(Some(SOURCE_FILE_BUCKET_KEY))
+            .expect("Could not access dataset bucket");
 
-        self.meta_bucket()
-            .transaction2(
-                &self.dataset_bucket(repository),
-                |meta_bucket, repo_bucket| {
-                    let last_sync_commit = self.get_meta(&meta_bucket, repository).last_sync_commit;
-                    let Ok(current_version) = get_git_commit(&dir) else {
-                        warn!("Failed to get current version for {dir:?}, skipping...");
-                        return Ok(());
-                    };
+        let mut batch = Batch::new();
+        let mut num_keep = 0;
+        let mut num_removed = 0;
 
-                    let Some(old_version) = last_sync_commit else {
-                        self.sync_repository_from_scratch(
-                            &meta_bucket,
-                            &repo_bucket,
-                            current_version,
-                            repository,
-                        );
-                        return Ok::<_, TransactionError<kv::Error>>(());
-                    };
-
-                    let files_diff = get_changed_files(&dir, old_version).unwrap();
-                    let mut code = CodeIntelligence::default();
-                    for file in files_diff {
-                        let path = dir.join(&file);
-
-                        if let Some(source_file) = create_source_file(repository, &path, &mut code)
-                        {
-                            // File exists and was either created or updated
-                            repo_bucket
-                                .set(&file, &Json(source_file))
-                                .expect("Failed to update source file");
-                        } else {
-                            // File has been removed
-                            repo_bucket
-                                .remove(&file)
-                                .expect("Failed to remove source file");
-                        }
-                    }
-                    self.set_last_sync_commit(&meta_bucket, repository, current_version);
-                    Ok(())
-                },
-            )
-            .unwrap()
-    }
-
-    fn sync_repository_from_scratch(
-        &self,
-        meta_bucket: &Transaction<String, Json<Meta>>,
-        repo_bucket: &Transaction<String, Json<SourceFile>>,
-        current_version: String,
-        repository: &RepositoryConfig,
-    ) {
-        for file in build_repository_dataset(repository) {
-            repo_bucket
-                .set(&file.filepath.clone(), &Json(file))
-                .expect("Failed to update source file");
-        }
-        self.set_last_sync_commit(meta_bucket, repository, current_version);
-    }
-
-    pub fn source_files(&self) -> impl Iterator<Item = SourceFile> + '_ {
-        self.store
-            .buckets()
-            .into_iter()
-            .filter(|bucket_name| bucket_name.starts_with(DATASET_BUCKET_PREFIX))
-            .flat_map(|bucket_name| {
-                self.store
-                    .bucket::<String, Json<SourceFile>>(Some(&bucket_name))
-                    .unwrap()
-                    .iter()
-            })
-            .map(|item| item.unwrap().value().unwrap())
-            .map(|Json(source_file)| source_file)
-    }
-
-    fn retain_from(&self, configs: &[RepositoryConfig]) {
-        let added_repositories: HashSet<_> = configs
+        bucket
             .iter()
-            .map(|config| dataset_bucket_key(config.canonical_git_url()))
-            .collect();
+            .filter_map(|item| {
+                let item = item.expect("Failed to read item");
+                if is_item_key_matched(&item) {
+                    num_keep += 1;
+                    None
+                } else {
+                    num_removed += 1;
+                    Some(item.key().expect("Failed to get key"))
+                }
+            })
+            .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
 
-        for bucket in self.store.buckets() {
-            if bucket.starts_with(DATASET_BUCKET_PREFIX) && !added_repositories.contains(&bucket) {
-                debug!("Dropping bucket: {}", bucket);
-                self.store.drop_bucket(&bucket).unwrap();
-                self.meta_bucket().remove(&meta_key(&bucket)).unwrap();
-            }
-        }
+        info!(
+            "Finished garbage collection: {} items kept, {} items removed",
+            num_keep, num_removed
+        );
+        bucket.batch(batch).expect("to batch remove staled files");
     }
 }
 
-fn build_repository_dataset(
-    repository: &RepositoryConfig,
-) -> impl Iterator<Item = SourceFile> + '_ {
-    let basedir = repository.dir();
-    let walk_dir = Walk::new(basedir.as_path()).filter_map(Result::ok);
+fn is_item_key_matched(item: &Item<String, Json<SourceFile>>) -> bool {
+    let Ok(item_key) = item.key::<String>() else {
+        return false;
+    };
 
-    let mut code = CodeIntelligence::default();
-    walk_dir.filter_map(move |entry| create_source_file(repository, entry.path(), &mut code))
+    let Ok(Json(file)) = item.value() else {
+        return false;
+    };
+
+    let filepath = PathBuf::from(file.basedir).join(file.filepath);
+    let Ok(file_key) = compute_source_file_key(&filepath) else {
+        return false;
+    };
+
+    file_key == item_key
 }
 
 fn create_source_file(
@@ -225,7 +140,7 @@ fn create_source_file(
     };
 
     let Some(language_info) = get_language_by_ext(ext) else {
-        debug!("Unknown language for {relative_path:?}");
+        warn!("Unknown language for extension {:?}", ext);
         return None;
     };
 
