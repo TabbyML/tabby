@@ -33,7 +33,7 @@ where
                 let mime = mime_guess::from_path(&path).first_or_octet_stream();
                 let mut builder =
                     Response::builder().header(header::CACHE_CONTROL, "public, max-age=604800");
-                if path.ends_with(".html") {
+                if !path.ends_with(".html") {
                     builder = builder.header(header::CONTENT_TYPE, mime.as_ref())
                 };
                 builder
