@@ -6,11 +6,7 @@ use std::{
 
 use anyhow::{bail, Context, Result};
 use kv::{Batch, Bucket, Config, Item, Json, Store};
-use tabby_common::{
-    config::RepositoryConfig,
-    languages::{get_language_by_ext},
-    SourceFile,
-};
+use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
 use tracing::{info, warn};
 
 use crate::code::CodeIntelligence;
