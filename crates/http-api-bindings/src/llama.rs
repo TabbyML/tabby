@@ -5,7 +5,6 @@ use reqwest_eventsource::{Event, EventSource};
 use serde::{Deserialize, Serialize};
 use tabby_inference::{CompletionOptions, CompletionStream};
 
-
 pub struct LlamaCppEngine {
     client: reqwest::Client,
     api_endpoint: String,
