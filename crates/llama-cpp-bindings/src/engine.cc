@@ -384,7 +384,18 @@ std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model
   static BackendInitializer initializer;
 
   llama_model_params model_params = llama_model_default_params();
-  model_params.n_gpu_layers = use_gpu ? 9999 : 0;
+  // set the number of model layers to offload to the GPU
+  int n_gpu_layers = 0;
+  if (use_gpu) {
+    if (const char* n_gpu_layers_str = std::getenv("LLAMA_CPP_N_GPU_LAYERS")) {
+      n_gpu_layers = std::stoi(n_gpu_layers_str);
+    } else {
+      // by default, set a high number to offload all layers to GPU
+      n_gpu_layers = 9999;
+    }
+  }
+  model_params.n_gpu_layers = n_gpu_layers;
+
   llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), model_params);
 
   if (!model) {
