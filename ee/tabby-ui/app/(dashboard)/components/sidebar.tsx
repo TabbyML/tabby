@@ -35,7 +35,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
     <div
       className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
     >
-      <div className="fixed inset-y-0 left-0 hidden w-[280px] border-r pt-4 md:block">
+      <div className="hidden w-[280px] border-r pt-4 md:block">
         <nav className="flex h-full flex-col overflow-hidden text-sm font-medium">
           <Link href="/" className="flex justify-center pb-4">
             <Image
