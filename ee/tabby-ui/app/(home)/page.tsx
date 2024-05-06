@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { noop } from 'lodash-es'
 import { useRouter } from 'next/navigation'
+import { noop } from 'lodash-es'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
@@ -172,13 +172,13 @@ function MenuLink({
   target,
   onClick
 }: {
-  children: React.ReactNode,
-  icon: React.ReactNode,
-  href?: string,
-  target?: string,
+  children: React.ReactNode
+  icon: React.ReactNode
+  href?: string
+  target?: string
   onClick?: () => void
 }) {
-  const router = useRouter();
+  const router = useRouter()
 
   const onClickMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.stopPropagation()
@@ -191,12 +191,11 @@ function MenuLink({
 
   return (
     <div className="flex items-center gap-2">
-      <div className="text-muted-foreground">
-        {icon}
-      </div>
+      <div className="text-muted-foreground">{icon}</div>
       <div
         className="flex cursor-pointer items-center gap-1 text-sm transition-opacity hover:opacity-50"
-        onClick={onClickMenu}>
+        onClick={onClickMenu}
+      >
         {children}
       </div>
     </div>
