@@ -11,7 +11,7 @@ use tabby_common::{
 };
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
@@ -118,7 +118,7 @@ pub struct ServeArgs {
 pub async fn main(config: &Config, args: &ServeArgs) {
     load_model(args).await;
 
-    info!("Starting server, this might take a few minutes...");
+    debug!("Starting server, this might take a few minutes...");
 
     #[cfg(feature = "ee")]
     #[allow(deprecated)]
