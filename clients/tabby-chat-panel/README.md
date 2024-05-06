@@ -1,0 +1,1 @@
+# tabby-chat-panel

@@ -31,10 +31,9 @@ where
             Some(content) => {
                 let body = Body::from(content.data);
                 let mime = mime_guess::from_path(&path).first_or_octet_stream();
-                let mut builder =
-                    Response::builder().header(header::CACHE_CONTROL, "public, max-age=604800");
-                if path.ends_with(".html") {
-                    builder = builder.header(header::CONTENT_TYPE, mime.as_ref())
+                let mut builder = Response::builder().header(header::CONTENT_TYPE, mime.as_ref());
+                if !path.ends_with(".html") {
+                    builder = builder.header(header::CACHE_CONTROL, "public, max-age=604800");
                 };
                 builder
                     .body(body)

@@ -171,7 +171,7 @@ const LinkedRepoTable: React.FC<{
           <TableHead className="w-[45%]">URL</TableHead>
           <TableHead className="text-right">
             <Dialog open={open} onOpenChange={setOpen}>
-              <DialogContent>
+              <DialogContent className="top-[20vh]">
                 <DialogHeader className="gap-3">
                   <DialogTitle>Add new repository</DialogTitle>
                   <DialogDescription>

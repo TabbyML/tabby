@@ -75,6 +75,8 @@ export default function LinkRepositoryForm({
   const form = useForm<LinkRepositoryFormValues>({
     resolver: zodResolver(formSchema)
   })
+  const [searchValue, setSearchValue] = React.useState<string>()
+  const commandListRef = React.useRef<HTMLDivElement>(null)
 
   const { isSubmitting } = form.formState
 
@@ -131,6 +133,18 @@ export default function LinkRepositoryForm({
     }
   }
 
+  const scrollCommandListToTop = () => {
+    requestAnimationFrame(() => {
+      if (commandListRef.current) {
+        commandListRef.current.scrollTop = 0
+      }
+    })
+  }
+
+  const onSearchChange = () => {
+    scrollCommandListToTop()
+  }
+
   return (
     <Form {...form}>
       <div className="grid gap-2">
@@ -165,9 +179,15 @@ export default function LinkRepositoryForm({
                     align="start"
                     side="bottom"
                   >
-                    <Command>
-                      <CommandInput placeholder="Search repository..." />
-                      <CommandList className="max-h-60">
+                    <Command className="transition-all">
+                      <CommandInput
+                        placeholder="Search repository..."
+                        onValueChange={onSearchChange}
+                      />
+                      <CommandList
+                        className="max-h-[30vh]"
+                        ref={commandListRef}
+                      >
                         <CommandEmpty>{emptyText}</CommandEmpty>
                         <CommandGroup>
                           {providerStatus !==
