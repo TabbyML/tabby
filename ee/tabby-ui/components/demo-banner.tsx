@@ -11,7 +11,6 @@ import {
   IconClose,
   IconGitFork,
   IconGithub,
-  IconSlack,
   IconStar
 } from '@/components/ui/icons'
 
