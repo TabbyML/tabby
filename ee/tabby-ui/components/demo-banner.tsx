@@ -58,24 +58,13 @@ export function DemoBanner() {
       <a
         href="https://links.tabbyml.com/schedule-a-demo"
         target="_blank"
-        className="flex items-center gap-x-2 text-xs font-semibold hover:underline md:text-sm"
+        className="flex items-center gap-x-2 text-xs font-semibold underline md:text-sm"
       >
         <span>📆</span>
-        <span>Book a 30-minute product demo</span>
+        <span>Book a 30-minute product demo.</span>
       </a>
 
       <div className="flex items-center gap-x-4 md:gap-x-8">
-        <a
-          href="https://links.tabbyml.com/join-slack"
-          target="_blank"
-          className="flex items-center transition-all hover:opacity-70"
-        >
-          <IconSlack className="h-7 w-7" fill={slackIconFill} />
-          <span className="hidden text-xs font-semibold md:block">
-            Join Slack
-          </span>
-        </a>
-
         <a
           href="https://github.com/TabbyML/tabby"
           target="_blank"
