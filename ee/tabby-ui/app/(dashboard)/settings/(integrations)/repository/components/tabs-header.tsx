@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
-import { IconFolderGit, IconGitHub, IconGitLab } from '@/components/ui/icons'
+import { IconGitHub, IconGitLab } from '@/components/ui/icons'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function GitTabsHeader() {
