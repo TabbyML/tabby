@@ -1,9 +1,11 @@
+import { jwtDecode } from 'jwt-decode'
+import { isNil } from 'lodash-es'
+
 import { isClientSide } from '../utils'
 import { AuthData } from './auth'
 
 export const AUTH_TOKEN_KEY = '_tabby_auth'
 export const AUTH_LOCK_KEY = '_tabby_auth_lock'
-export const AUTH_LOCK_TIMEOUT = 1000 * 10
 
 const getAuthToken = (): AuthData | undefined => {
   if (isClientSide()) {
@@ -36,127 +38,56 @@ const clearAuthToken = () => {
   )
 }
 
-const isTokenExpired = (exp: number) => {
-  return Date.now() > exp * 1000
+const isTokenExpired = (exp: number | undefined): boolean => {
+  return isNil(exp) ? true : Date.now() > exp * 1000
+}
+
+// Checks if the JWT token's issued-at time (iat) is within the last minute.
+const isTokenRecentlyIssued = (iat: number | undefined): boolean => {
+  return isNil(iat) ? false : Date.now() - iat * 1000 < 60 * 1000
 }
 
 class TokenManager {
-  private retryQueue: Array<(success: boolean, error?: Error) => void>
-  private broadcastChannel: BroadcastChannel | null
-  refreshPromise: Promise<AuthData | undefined> | null
-
-  constructor() {
-    this.refreshPromise = null
-    this.retryQueue = []
-    this.broadcastChannel =
-      typeof window !== 'undefined' ? new BroadcastChannel(AUTH_LOCK_KEY) : null
-
-    this.broadcastChannel?.addEventListener('message', e =>
-      this.onRefreshCompleteReceived(e)
-    )
-  }
-
-  private notifyRefreshComplete(error?: any) {
-    this.broadcastChannel?.postMessage({
-      success: !error,
-      error
-    })
-  }
-
-  onRefreshCompleteReceived = (event: MessageEvent<any>) => {
-    if (event.data?.success) {
-      this.processQueue()
-    } else {
-      this.rejectQueue(event.data?.error)
-    }
-  }
-
-  enqueueRetryRequest() {
-    return new Promise<void>((resolve, reject) => {
-      this.retryQueue.push((success: boolean, error?: Error) => {
-        if (!success || error) {
-          reject(error ?? 'Failed to refresh token')
-        } else {
-          resolve()
-        }
-      })
-    })
-  }
-
-  processQueue() {
-    this.refreshPromise = null
-    if (this.retryQueue.length) {
-      this.retryQueue.forEach(retryCallback => retryCallback(true))
-    }
-    this.retryQueue = []
-  }
-
-  rejectQueue(error?: Error) {
-    this.refreshPromise = null
-    if (this.retryQueue?.length) {
-      this.retryQueue.forEach(retryCallback => retryCallback(false, error))
-    }
-    this.retryQueue = []
-  }
-
-  async tryGetRefreshLock() {
-    try {
-      const locks = await navigator.locks.query()
-      const refreshLock = locks.held?.some(lock => lock.name === AUTH_LOCK_KEY)
-      return !!refreshLock
-    } catch (e) {
-      return false
-    }
-  }
-
   async refreshToken(doRefreshToken: () => Promise<AuthData | undefined>) {
-    // if refreshing, enquqeRetryRequest
-    if (this.refreshPromise) {
-      return this.enqueueRetryRequest()
-    }
-
-    // if it's refreshing token in other processes, enquqeRetryRequest
-    if (await this.tryGetRefreshLock()) {
-      return this.enqueueRetryRequest()
-    }
-
-    const abortController = new AbortController()
-    let timeoutId = window.setTimeout(() => {
-      abortController.abort()
-    }, AUTH_LOCK_TIMEOUT)
-
     try {
-      this.refreshPromise = navigator.locks.request(
-        AUTH_LOCK_KEY,
-        { signal: abortController.signal },
-        async () => {
-          const token = await doRefreshToken()
-          if (token) {
-            saveAuthToken(token)
-            this.processQueue()
+      if (typeof navigator?.locks === 'undefined') {
+        console.error(
+          'The Web Locks API is not supported in your browser. Please upgrade to a newer browser version.'
+        )
+        throw new Error()
+      }
+
+      await navigator.locks.request(AUTH_LOCK_KEY, async () => {
+        const authToken = getAuthToken()
+        const accessToken = getAuthToken()?.accessToken
+
+        let newAuthToken: AuthData | undefined
+
+        if (accessToken) {
+          const { iat } = jwtDecode(accessToken)
+          if (isTokenRecentlyIssued(iat)) {
+            newAuthToken = authToken
           } else {
-            clearAuthToken()
-            this.rejectQueue()
+            newAuthToken = await doRefreshToken()
           }
         }
-      )
-      await this.refreshPromise
 
-      this.notifyRefreshComplete()
+        if (newAuthToken) {
+          saveAuthToken(newAuthToken)
+        } else {
+          clearAuthToken()
+        }
+      })
     } catch (e) {
       clearAuthToken()
-      this.rejectQueue()
-      this.notifyRefreshComplete(e)
-    } finally {
-      clearTimeout(timeoutId)
     }
   }
 }
 
-const tokenManagerInstance = new TokenManager()
+const tokenManager = new TokenManager()
 
 export {
-  tokenManagerInstance,
+  tokenManager,
   getAuthToken,
   saveAuthToken,
   clearAuthToken,

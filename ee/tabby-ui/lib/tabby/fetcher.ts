@@ -2,11 +2,7 @@ import { Client, createRequest, fetchExchange } from '@urql/core'
 import { jwtDecode } from 'jwt-decode'
 
 import { refreshTokenMutation } from './auth'
-import {
-  getAuthToken,
-  isTokenExpired,
-  tokenManagerInstance
-} from './token-management'
+import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
 
 interface FetcherOptions extends RequestInit {
   responseFormat?: 'json' | 'blob'
@@ -24,14 +20,8 @@ export default async function authEnhancedFetch(
 ): Promise<any> {
   const currentFetcher = options?.customFetch ?? window.fetch
 
-  if (tokenManagerInstance.refreshPromise) {
-    return tokenManagerInstance.enqueueRetryRequest().then(() => {
-      return requestWithAuth(url, options)
-    })
-  }
-
   if (willAuthError(url)) {
-    return tokenManagerInstance.refreshToken(doRefreshToken).then(res => {
+    return tokenManager.refreshToken(doRefreshToken).then(res => {
       return requestWithAuth(url, options)
     })
   }
@@ -42,7 +32,7 @@ export default async function authEnhancedFetch(
   )
 
   if (response.status === 401) {
-    return tokenManagerInstance.refreshToken(doRefreshToken).then(res => {
+    return tokenManager.refreshToken(doRefreshToken).then(res => {
       return requestWithAuth(url, options)
     })
   } else {
@@ -59,7 +49,7 @@ function willAuthError(url: string) {
     // Check whether `token` JWT is expired
     try {
       const { exp } = jwtDecode(accessToken)
-      return exp ? isTokenExpired(exp) : true
+      return isTokenExpired(exp)
     } catch (e) {
       return true
     }

@@ -28,12 +28,7 @@ import {
   listInvitations,
   listRepositories
 } from './query'
-import {
-  clearAuthToken,
-  getAuthToken,
-  isTokenExpired,
-  tokenManagerInstance
-} from './token-management'
+import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
 
 interface ValidationError {
   path: string
@@ -265,11 +260,6 @@ const client = new Client({
           accessToken = authData?.accessToken
           refreshToken = authData?.refreshToken
 
-          // authToken refreshing
-          if (tokenManagerInstance.refreshPromise) {
-            return true
-          }
-
           if (
             operation.kind === 'query' &&
             operation.query.definitions.some(definition => {
@@ -310,10 +300,10 @@ const client = new Client({
           }
 
           if (accessToken) {
-            // Check whether `token` JWT is expired
             try {
               const { exp } = jwtDecode(accessToken)
-              return exp ? isTokenExpired(exp) : true
+              // Check whether `token` JWT is expired
+              return isTokenExpired(exp)
             } catch (e) {
               return true
             }
@@ -322,22 +312,16 @@ const client = new Client({
           }
         },
         async refreshAuth() {
-          if (refreshToken) {
-            return tokenManagerInstance.refreshToken(() => {
-              const authData = getAuthToken()
-              accessToken = authData?.accessToken
-              refreshToken = authData?.refreshToken
+          return tokenManager.refreshToken(async () => {
+            const refreshToken = getAuthToken()?.refreshToken
+            if (!refreshToken) return undefined
 
-              return utils
-                .mutate(refreshTokenMutation, {
-                  refreshToken: refreshToken ?? ''
-                })
-                .then(res => res?.data?.refreshToken)
-            })
-          } else {
-            // This is where auth has gone wrong and we need to clean up and redirect to a login page
-            clearAuthToken()
-          }
+            return utils
+              .mutate(refreshTokenMutation, {
+                refreshToken
+              })
+              .then(res => res?.data?.refreshToken)
+          })
         }
       }
     }),
