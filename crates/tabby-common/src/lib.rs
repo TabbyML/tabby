@@ -33,10 +33,6 @@ pub struct SourceFile {
 }
 
 impl SourceFile {
-    pub fn create_file_id(git_url: &str, filepath: &str) -> String {
-        format!("{}:{}", git_url, filepath)
-    }
-
     pub fn files_jsonl() -> PathBuf {
         dataset_dir().join("files.jsonl")
     }

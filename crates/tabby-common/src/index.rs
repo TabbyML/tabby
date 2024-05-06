@@ -19,6 +19,7 @@ pub struct CodeSearchSchema {
     pub schema: Schema,
     pub field_git_url: Field,
     pub field_filepath: Field,
+    /// Indexed field uniquely identifying a file in a repository, format is `git_url:filepath`
     pub field_file_id: Field,
     pub field_language: Field,
     pub field_body: Field,

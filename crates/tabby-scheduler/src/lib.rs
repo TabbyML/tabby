@@ -22,7 +22,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
             .await
             .expect("Must be able to retrieve repositories for sync");
         job_sync(&mut cache, &repositories);
-        job_index(&repositories);
+        job_index(&mut cache, &repositories);
 
         cache.garbage_collection();
     } else {
@@ -52,7 +52,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
                             .expect("Must be able to retrieve repositories for sync");
 
                         job_sync(&mut cache, &repositories);
-                        job_index(&repositories);
+                        job_index(&mut cache, &repositories);
                         cache.garbage_collection();
                     })
                 })
@@ -69,9 +69,9 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
     }
 }
 
-fn job_index(repositories: &[RepositoryConfig]) {
+fn job_index(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
     println!("Indexing repositories...");
-    index::index_repositories(repositories);
+    index::index_repositories(cache, repositories);
 }
 
 fn job_sync(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {

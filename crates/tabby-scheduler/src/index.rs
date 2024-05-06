@@ -21,9 +21,8 @@ use crate::{
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
-pub fn index_repositories(config: &[RepositoryConfig]) {
+pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
     let code = CodeSearchSchema::new();
-    let mut cache = CacheStore::new(tabby_common::path::cache_dir());
 
     let index = open_or_create_index(&code, &path::index_dir());
     register_tokenizers(&index);
@@ -41,14 +40,15 @@ pub fn index_repositories(config: &[RepositoryConfig]) {
 
     for repository in config {
         let Some(commit) = cache.get_last_index_commit(repository) else {
-            index_repository_from_scratch(repository, &writer, &code, &intelligence, &mut cache);
+            index_repository_from_scratch(repository, &writer, &code, &intelligence, cache);
             continue;
         };
         let dir = repository.dir();
         let changed_files = get_changed_files(&dir, &commit).expect("Failed read file diff");
         for file in changed_files {
             let path = dir.join(&file);
-            delete_indexed_source_file(&writer, &code, &repository.git_url, &file);
+            let file_id = create_file_id(&repository.git_url, &file);
+            delete_document(&writer, &code, file_id.clone());
             if !path.exists() {
                 continue;
             }
@@ -58,7 +58,14 @@ pub fn index_repositories(config: &[RepositoryConfig]) {
             if !is_valid_file(&source_file) {
                 continue;
             }
-            add_indexed_source_file(&writer, repository, &source_file, &code, &intelligence);
+            add_document(
+                &writer,
+                repository,
+                &source_file,
+                file_id,
+                &code,
+                &intelligence,
+            );
         }
         cache.set_last_index_commit(
             repository,
@@ -69,7 +76,7 @@ pub fn index_repositories(config: &[RepositoryConfig]) {
     for indexed_repository in cache.list_indexed_repositories() {
         if !indexed_repository.dir().exists() {
             cache.set_last_index_commit(&indexed_repository, None);
-            delete_all_indexed_files(&writer, &code, &indexed_repository.canonical_git_url());
+            delete_all_documents(&writer, &code, &indexed_repository.canonical_git_url());
         }
     }
 
@@ -107,7 +114,15 @@ fn index_repository_from_scratch(
         if !is_valid_file(&source_file) {
             continue;
         }
-        add_indexed_source_file(writer, repository, &source_file, code, intelligence);
+        let file_id = create_file_id(&repository.git_url, &source_file.filepath);
+        add_document(
+            writer,
+            repository,
+            &source_file,
+            file_id,
+            code,
+            intelligence,
+        );
         pb.as_mut().map(|pb| {
             pb.update(source_file.read_file_size())
                 .expect("Failed to update progress bar")
@@ -132,26 +147,21 @@ fn is_valid_file(source_file: &SourceFile) -> bool {
         && source_file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
 }
 
-pub fn delete_indexed_source_file(
-    writer: &IndexWriter,
-    code: &CodeSearchSchema,
-    git_url: &str,
-    filepath: &str,
-) {
-    let file_id = SourceFile::create_file_id(git_url, filepath);
+pub fn delete_document(writer: &IndexWriter, code: &CodeSearchSchema, file_id: String) {
     let term = Term::from_field_text(code.field_file_id.clone(), &file_id);
     writer.delete_term(term);
 }
 
-pub fn delete_all_indexed_files(writer: &IndexWriter, code: &CodeSearchSchema, git_url: &str) {
+pub fn delete_all_documents(writer: &IndexWriter, code: &CodeSearchSchema, git_url: &str) {
     let term = Term::from_field_text(code.field_git_url, git_url);
     writer.delete_term(term);
 }
 
-pub fn add_indexed_source_file(
+pub fn add_document(
     writer: &IndexWriter,
     repository: &RepositoryConfig,
     file: &SourceFile,
+    file_id: String,
     code: &CodeSearchSchema,
     intelligence: &CodeIntelligence,
 ) -> usize {
@@ -167,7 +177,7 @@ pub fn add_indexed_source_file(
             .add_document(doc!(
                     code.field_git_url => repository.canonical_git_url(),
                     code.field_filepath => file.filepath.clone(),
-                    code.field_file_id => SourceFile::create_file_id(&repository.git_url, &file.filepath),
+                    code.field_file_id => file_id.clone(),
                     code.field_language => file.language.clone(),
                     code.field_body => body,
             ))
@@ -197,4 +207,8 @@ fn open_or_create_index_impl(code: &CodeSearchSchema, path: &Path) -> tantivy::R
     fs::create_dir_all(path).expect("Failed to create index directory");
     let directory = MmapDirectory::open(path).expect("Failed to open index directory");
     Index::open_or_create(directory, code.schema.clone())
+}
+
+pub fn create_file_id(git_url: &str, filepath: &str) -> String {
+    format!("{}:{}", git_url, filepath)
 }
