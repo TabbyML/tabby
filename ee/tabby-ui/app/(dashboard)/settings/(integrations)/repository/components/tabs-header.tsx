@@ -17,7 +17,6 @@ export default function GitTabsHeader() {
         <TabsList className="grid grid-cols-3">
           <TabsTrigger value="git" asChild>
             <Link href="/settings/repository/git">
-              <IconFolderGit />
               <span className="ml-2">Git</span>
             </Link>
           </TabsTrigger>
