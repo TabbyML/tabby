@@ -1,5 +1,9 @@
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
-import { IconGit, IconGitHub, IconGitLab } from '@/components/ui/icons'
+import {
+  IconDirectorySolid,
+  IconGitHub,
+  IconGitLab
+} from '@/components/ui/icons'
 
 export function RepositoryKindIcon({
   kind,
@@ -10,7 +14,7 @@ export function RepositoryKindIcon({
 }) {
   switch (kind) {
     case RepositoryKind.Git:
-      return <IconGit />
+      return <IconDirectorySolid style={{ color: 'rgb(84, 174, 255)' }} />
     case RepositoryKind.Github:
       return <IconGitHub />
     case RepositoryKind.Gitlab:
