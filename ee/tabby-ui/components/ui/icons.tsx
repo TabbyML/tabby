@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
-import { BookOpenText, ChevronsDownUp, Mail } from 'lucide-react'
+import { BookOpenText, ChevronsDownUp, GitFork, Mail, Star } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -561,44 +561,44 @@ function IconSlack({ className, ...props }: React.ComponentProps<'svg'>) {
       <g>
         <g>
           <path
-            style={{ fill: '#E01E5A' }}
+            style={{ fill: props.fill || '#E01E5A' }}
             d="M99.4,151.2c0,7.1-5.8,12.9-12.9,12.9c-7.1,0-12.9-5.8-12.9-12.9c0-7.1,5.8-12.9,12.9-12.9h12.9V151.2z"
           />
           <path
-            style={{ fill: '#E01E5A' }}
+            style={{ fill: props.fill || '#E01E5A' }}
             d="M105.9,151.2c0-7.1,5.8-12.9,12.9-12.9s12.9,5.8,12.9,12.9v32.3c0,7.1-5.8,12.9-12.9,12.9
         s-12.9-5.8-12.9-12.9V151.2z"
           />
         </g>
         <g>
           <path
-            style={{ fill: '#36C5F0' }}
+            style={{ fill: props.fill || '#36C5F0' }}
             d="M118.8,99.4c-7.1,0-12.9-5.8-12.9-12.9c0-7.1,5.8-12.9,12.9-12.9s12.9,5.8,12.9,12.9v12.9H118.8z"
           />
           <path
-            style={{ fill: '#36C5F0' }}
+            style={{ fill: props.fill || '#36C5F0' }}
             d="M118.8,105.9c7.1,0,12.9,5.8,12.9,12.9s-5.8,12.9-12.9,12.9H86.5c-7.1,0-12.9-5.8-12.9-12.9
         s5.8-12.9,12.9-12.9H118.8z"
           />
         </g>
         <g>
           <path
-            style={{ fill: '#2EB67D' }}
+            style={{ fill: props.fill || '#2EB67D' }}
             d="M170.6,118.8c0-7.1,5.8-12.9,12.9-12.9c7.1,0,12.9,5.8,12.9,12.9s-5.8,12.9-12.9,12.9h-12.9V118.8z"
           />
           <path
-            style={{ fill: '#2EB67D' }}
+            style={{ fill: props.fill || '#2EB67D' }}
             d="M164.1,118.8c0,7.1-5.8,12.9-12.9,12.9c-7.1,0-12.9-5.8-12.9-12.9V86.5c0-7.1,5.8-12.9,12.9-12.9
         c7.1,0,12.9,5.8,12.9,12.9V118.8z"
           />
         </g>
         <g>
           <path
-            style={{ fill: '#ECB22E' }}
+            style={{ fill: props.fill || '#ECB22E' }}
             d="M151.2,170.6c7.1,0,12.9,5.8,12.9,12.9c0,7.1-5.8,12.9-12.9,12.9c-7.1,0-12.9-5.8-12.9-12.9v-12.9H151.2z"
           />
           <path
-            style={{ fill: '#ECB22E' }}
+            style={{ fill: props.fill || '#ECB22E' }}
             d="M151.2,164.1c-7.1,0-12.9-5.8-12.9-12.9c0-7.1,5.8-12.9,12.9-12.9h32.3c7.1,0,12.9,5.8,12.9,12.9
         c0,7.1-5.8,12.9-12.9,12.9H151.2z"
           />
@@ -1400,6 +1400,20 @@ function IconChevronsDownUp({
   )
 }
 
+const IconStar = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof Star>) => (
+  <Star className={cn('h4 w-4', className)} {...props} />
+)
+
+const IconGitFork = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof GitFork>) => (
+  <GitFork className={cn('h4 w-4', className)} {...props} />
+)
+
 export {
   IconEdit,
   IconNextChat,
@@ -1471,5 +1485,7 @@ export {
   IconActivity,
   IconBookOpenText,
   IconMail,
-  IconChevronsDownUp
+  IconChevronsDownUp,
+  IconStar,
+  IconGitFork
 }
