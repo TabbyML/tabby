@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { noop } from 'lodash-es'
+import { useRouter } from 'next/navigation'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
@@ -139,18 +139,18 @@ function MainPanel() {
           <Configuration />
 
           <div className="mt-auto flex flex-col gap-1 lg:mb-[28px]">
-            <MenuLink href="/profile" Icon={IconGear}>
+            <MenuLink href="/profile" icon={<IconGear />}>
               Settings
             </MenuLink>
             {isChatEnabled && (
-              <MenuLink href="/playground" Icon={IconChat} target="_blank">
+              <MenuLink href="/playground" icon={<IconChat />} target="_blank">
                 Chat Playground
               </MenuLink>
             )}
-            <MenuLink href="/files" Icon={IconCode} target="_blank">
+            <MenuLink href="/files" icon={<IconCode />} target="_blank">
               Code Browser
             </MenuLink>
-            <MenuLink Icon={IconLogout} href="/" onClick={handleSignOut}>
+            <MenuLink icon={<IconLogout />} onClick={handleSignOut}>
               <span>Sign out</span>
               {signOutLoading && <IconSpinner className="ml-1" />}
             </MenuLink>
@@ -167,20 +167,38 @@ function MainPanel() {
 
 function MenuLink({
   children,
-  Icon,
-  ...props
-}: { Icon: React.ComponentType<{ className: string }> } & React.ComponentProps<
-  typeof Link
->) {
+  icon,
+  href,
+  target,
+  onClick
+}: {
+  children: React.ReactNode,
+  icon: React.ReactNode,
+  href?: string,
+  target?: string,
+  onClick?: () => void
+}) {
+  const router = useRouter();
+
+  const onClickMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    e.stopPropagation()
+    if (onClick) return onClick()
+    if (href) {
+      if (target === '_blank') return window.open(href)
+      router.push(href)
+    }
+  }
+
   return (
     <div className="flex items-center gap-2">
-      <Icon className="text-muted-foreground" />
-      <Link
-        className="flex items-center gap-1 text-sm transition-opacity hover:opacity-50"
-        {...props}
-      >
+      <div className="text-muted-foreground">
+        {icon}
+      </div>
+      <div
+        className="flex cursor-pointer items-center gap-1 text-sm transition-opacity hover:opacity-50"
+        onClick={onClickMenu}>
         {children}
-      </Link>
+      </div>
     </div>
   )
 }
