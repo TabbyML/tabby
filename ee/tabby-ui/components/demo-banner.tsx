@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes'
 
 import { cn } from '@/lib/utils'
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
-import { IconClose, IconSlack, IconStar, IconGitFork, IconGithub } from './ui/icons'
+import { IconClose, IconSlack, IconStar, IconGitFork, IconGithub } from '@/components/ui/icons'
 
 export const BANNER_HEIGHT = '3.5rem'
 
@@ -26,11 +26,17 @@ export function useShowDemoBanner (): [boolean, (isShow: boolean) => void] {
 
 export function DemoBanner () {
   const [isShow, setIsShow] = useShowDemoBanner()
+  const [slackIconFill, setSlackIconFill] = useState('')
   const { theme } = useTheme()
   const { data } = useSWRImmutable(
     "https://api.github.com/repos/TabbyML/tabby",
     (url: string) => fetch(url).then(res => res.json())
   )
+  
+  useEffect(() => {
+    setSlackIconFill(theme === 'dark' ? '#171615' : '#ECECEC')
+  }, [isShow, theme])
+
   const style = isShow
     ? { height: BANNER_HEIGHT }
     : { height: 0 }
@@ -55,7 +61,7 @@ export function DemoBanner () {
           href="https://links.tabbyml.com/join-slack"
           target="_blank"
           className="flex items-center transition-all hover:opacity-70">
-          <IconSlack className="h-7 w-7" fill={theme === 'dark' ? '#171615' : '#ECECEC'}/>
+          <IconSlack className="h-7 w-7" fill={slackIconFill} />
           <span className="hidden text-xs font-semibold md:block">Join Slack</span>
         </a>
         

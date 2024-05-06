@@ -7,6 +7,9 @@ import { usePathname } from 'next/navigation'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 import { cva } from 'class-variance-authority'
+import { ScrollArea } from '@/components/ui/scroll-area'
+
+import { useShowDemoBanner, BANNER_HEIGHT } from '@/components/demo-banner'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { cn } from '@/lib/utils'
@@ -30,10 +33,15 @@ export interface SidebarProps {
 
 export default function Sidebar({ children, className }: SidebarProps) {
   const [{ data }] = useMe()
+  const [isShowDemoBanner] = useShowDemoBanner()
   const isAdmin = data?.me.isAdmin
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
   return (
-    <div
+    <ScrollArea
       className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
+      style={style}
     >
       <div className="hidden w-[280px] border-r pt-4 md:block">
         <nav className="flex h-full flex-col overflow-hidden text-sm font-medium">
@@ -108,7 +116,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
           </div>
         </nav>
       </div>
-    </div>
+    </ScrollArea>
   )
 }
 
