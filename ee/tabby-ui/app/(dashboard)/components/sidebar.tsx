@@ -7,9 +7,6 @@ import { usePathname } from 'next/navigation'
 import logoDarkUrl from '@/assets/logo-dark.png'
 import logoUrl from '@/assets/logo.png'
 import { cva } from 'class-variance-authority'
-import { ScrollArea } from '@/components/ui/scroll-area'
-
-import { useShowDemoBanner, BANNER_HEIGHT } from '@/components/demo-banner'
 
 import { useMe } from '@/lib/hooks/use-me'
 import { cn } from '@/lib/utils'
@@ -25,6 +22,8 @@ import {
   IconLightingBolt,
   IconUser
 } from '@/components/ui/icons'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 
 export interface SidebarProps {
   children?: React.ReactNode

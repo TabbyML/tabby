@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
-import Sidebar from './components/sidebar'
 import MainContent from './components/main-content'
+import Sidebar from './components/sidebar'
 
 export const metadata: Metadata = {
   title: {
@@ -10,7 +10,11 @@ export const metadata: Metadata = {
   }
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children
+}: {
+  children: React.ReactNode
+}) {
   return (
     <main className="flex flex-1">
       <Sidebar />

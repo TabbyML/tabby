@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
-import { BookOpenText, ChevronsDownUp, Mail, Star, GitFork } from 'lucide-react'
+import { BookOpenText, ChevronsDownUp, GitFork, Mail, Star } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
