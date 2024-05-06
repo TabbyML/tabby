@@ -58,7 +58,7 @@ pub fn index_repositories(config: &[RepositoryConfig]) {
             if !is_valid_file(&source_file) {
                 continue;
             }
-            add_indexed_source_file(&writer, &source_file, &code, &intelligence);
+            add_indexed_source_file(&writer, repository, &source_file, &code, &intelligence);
         }
         cache.set_last_index_commit(
             repository,
@@ -107,7 +107,7 @@ fn index_repository_from_scratch(
         if !is_valid_file(&source_file) {
             continue;
         }
-        add_indexed_source_file(writer, &source_file, code, intelligence);
+        add_indexed_source_file(writer, repository, &source_file, code, intelligence);
         pb.as_mut().map(|pb| {
             pb.update(source_file.read_file_size())
                 .expect("Failed to update progress bar")
@@ -150,6 +150,7 @@ pub fn delete_all_indexed_files(writer: &IndexWriter, code: &CodeSearchSchema, g
 
 pub fn add_indexed_source_file(
     writer: &IndexWriter,
+    repository: &RepositoryConfig,
     file: &SourceFile,
     code: &CodeSearchSchema,
     intelligence: &CodeIntelligence,
@@ -164,9 +165,9 @@ pub fn add_indexed_source_file(
     for body in intelligence.chunks(&text) {
         writer
             .add_document(doc!(
-                    code.field_git_url => file.git_url.clone(),
+                    code.field_git_url => repository.canonical_git_url(),
                     code.field_filepath => file.filepath.clone(),
-                    code.field_file_id => file.file_id(),
+                    code.field_file_id => SourceFile::create_file_id(&repository.git_url, &file.filepath),
                     code.field_language => file.language.clone(),
                     code.field_body => body,
             ))

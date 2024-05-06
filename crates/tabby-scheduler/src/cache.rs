@@ -244,7 +244,6 @@ fn create_source_file(
         }
     };
     let source_file = SourceFile {
-        git_url: config.canonical_git_url(),
         basedir: config.dir().display().to_string(),
         filepath: relative_path.display().to_string(),
         max_line_length: metrics::max_line_length(&contents),
