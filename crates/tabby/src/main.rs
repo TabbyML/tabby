@@ -126,7 +126,7 @@ impl Device {
 
 #[tokio::main]
 async fn main() {
-    #[cfg(not(feature = "prod"))]
+    #[cfg(feature = "dep:color-eyre")]
     color_eyre::install().expect("Must be able to install color_eyre");
 
     let cli = Cli::parse();
