@@ -11,7 +11,7 @@ use tabby_common::{
 };
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,

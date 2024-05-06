@@ -18,7 +18,7 @@ use tantivy::{
     DocAddress, Document, Index, IndexReader,
 };
 use tokio::{sync::Mutex, time::sleep};
-use tracing::{debug, log::info};
+use tracing::debug;
 
 struct CodeSearchImpl {
     reader: IndexReader,

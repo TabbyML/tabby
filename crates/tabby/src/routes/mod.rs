@@ -10,7 +10,6 @@ use axum_extra::headers::Header;
 use axum_prometheus::PrometheusMetricLayer;
 use tabby_common::constants::USER_HEADER_FIELD_NAME;
 use tower_http::cors::CorsLayer;
-use tracing::info;
 
 use crate::fatal;
 
