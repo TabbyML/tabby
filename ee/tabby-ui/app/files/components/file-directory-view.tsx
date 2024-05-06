@@ -133,7 +133,6 @@ function getCurrentDirFromTree(
   treeData: TFileTreeNode[],
   path: string | undefined
 ): TFileTreeNode[] {
-  // const regx = new RegExp(`${path}\/[\\w\.\-]+$`)
   if (!treeData?.length) return []
   if (!path) {
     const repos = treeData.map(x => omit(x, 'children')) || []

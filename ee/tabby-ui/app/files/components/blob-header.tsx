@@ -3,7 +3,6 @@
 import React from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
-import { isNil } from 'lodash-es'
 import prettyBytes from 'pretty-bytes'
 import { toast } from 'sonner'
 
@@ -54,9 +53,7 @@ export const BlobHeader: React.FC<BlobHeaderProps> = ({
     enableCodeBrowserQuickActionBar.value &&
     !chatSideBarVisible
 
-  const contentLengthText = !isNil(contentLength)
-    ? prettyBytes(contentLength)
-    : ''
+  const contentLengthText = contentLength ? prettyBytes(contentLength) : ''
 
   const onCopy: React.MouseEventHandler<HTMLButtonElement> = async () => {
     if (isCopied || !blob) return

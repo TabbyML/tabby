@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 import { RepositoryKind } from '@/lib/gql/generates/graphql'
-import { IconGit, IconGitHub, IconGitLab } from '@/components/ui/icons'
+import { IconFolderGit, IconGitHub, IconGitLab } from '@/components/ui/icons'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function GitTabsHeader() {
@@ -17,7 +17,7 @@ export default function GitTabsHeader() {
         <TabsList className="grid grid-cols-3">
           <TabsTrigger value="git" asChild>
             <Link href="/settings/repository/git">
-              <IconGit />
+              <IconFolderGit />
               <span className="ml-2">Git</span>
             </Link>
           </TabsTrigger>
