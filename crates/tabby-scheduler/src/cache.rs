@@ -13,11 +13,41 @@ use tracing::{info, warn};
 use crate::code::CodeIntelligence;
 
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
+const META_BUCKET_KEY: &str = "meta";
+
+struct RepositoryMeta {
+    last_sync_commit: Option<String>,
+}
+
+fn cmd_stdout(path: &Path, cmd: &str, args: &[&str]) -> Result<String> {
+    Ok(String::from_utf8(
+        Command::new(cmd)
+            .current_dir(path)
+            .args(args)
+            .output()?
+            .stdout,
+    )?
+    .trim()
+    .to_string())
+}
 
 fn get_git_hash(path: &Path) -> Result<String> {
-    let path = path.display().to_string();
-    let output = Command::new("git").args(["hash-object", &path]).output()?;
-    Ok(String::from_utf8(output.stdout)?.trim().to_string())
+    Ok(cmd_stdout(
+        path,
+        "git",
+        &["hash-object", &path.display().to_string()],
+    )?)
+}
+
+fn get_changed_files(path: &Path, since_commit: &str) -> Result<Vec<String>> {
+    Ok(cmd_stdout(
+        path,
+        "git",
+        &["diff", "--no-renames", "--name-only", since_commit],
+    )?
+    .lines()
+    .map(|line| line.to_owned())
+    .collect())
 }
 
 #[derive(Deserialize, Serialize)]
