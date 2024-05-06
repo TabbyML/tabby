@@ -13,11 +13,7 @@ use tracing::{info, warn};
 use crate::code::CodeIntelligence;
 
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
-const META_BUCKET_KEY: &str = "meta";
-
-struct RepositoryMeta {
-    last_sync_commit: Option<String>,
-}
+const LAST_INDEX_COMMIT_BUCKET: &str = "last_index_commit";
 
 fn cmd_stdout(path: &Path, cmd: &str, args: &[&str]) -> Result<String> {
     Ok(String::from_utf8(
@@ -39,7 +35,11 @@ fn get_git_hash(path: &Path) -> Result<String> {
     )?)
 }
 
-fn get_changed_files(path: &Path, since_commit: &str) -> Result<Vec<String>> {
+pub fn get_current_commit_hash(path: &Path) -> Result<String> {
+    cmd_stdout(path, "git", &["rev-parse", "HEAD"])
+}
+
+pub fn get_changed_files(path: &Path, since_commit: &str) -> Result<Vec<String>> {
     Ok(cmd_stdout(
         path,
         "git",
@@ -103,6 +103,40 @@ impl CacheStore {
             store: Store::new(Config::new(path)).expect("Failed to create repository store"),
             code: CodeIntelligence::default(),
         }
+    }
+
+    pub fn get_last_index_commit(&self, repository: &RepositoryConfig) -> Option<String> {
+        self.store
+            .bucket(Some(LAST_INDEX_COMMIT_BUCKET))
+            .expect("Failed to access meta bucket")
+            .get(&repository.canonical_git_url())
+            .expect("Failed to read last index commit")
+    }
+
+    pub fn set_last_index_commit(&self, repository: &RepositoryConfig, commit: Option<String>) {
+        let bucket = self
+            .store
+            .bucket(Some(LAST_INDEX_COMMIT_BUCKET))
+            .expect("Failed to access meta bucket");
+        if let Some(commit) = commit {
+            bucket
+                .set(&repository.canonical_git_url(), &commit)
+                .expect("Failed to write last index commit");
+        } else {
+            bucket
+                .remove(&repository.git_url)
+                .expect("Failed to remove last index commit");
+        }
+    }
+
+    pub fn list_indexed_repositories(&self) -> Vec<RepositoryConfig> {
+        self.store
+            .bucket::<String, String>(Some(LAST_INDEX_COMMIT_BUCKET))
+            .expect("Failed to read meta bucket")
+            .iter()
+            .map(|item| item.unwrap().key().unwrap())
+            .map(|git_url| RepositoryConfig::new(git_url))
+            .collect()
     }
 
     pub fn get_source_file(
