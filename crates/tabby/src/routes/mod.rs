@@ -10,7 +10,6 @@ use axum_extra::headers::Header;
 use axum_prometheus::PrometheusMetricLayer;
 use tabby_common::constants::USER_HEADER_FIELD_NAME;
 use tower_http::cors::CorsLayer;
-use tracing::info;
 
 use crate::fatal;
 
@@ -31,7 +30,20 @@ pub async fn run_app(api: Router, ui: Option<Router>, host: IpAddr, port: u16) {
     };
 
     let address = SocketAddr::from((host, port));
-    info!("Listening at {}", address);
+    let version = env!("CARGO_PKG_VERSION");
+    println!(
+        r#"
+████████╗ █████╗ ██████╗ ██████╗ ██╗   ██╗
+╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝
+   ██║   ███████║██████╔╝██████╔╝ ╚████╔╝ 
+   ██║   ██╔══██║██╔══██╗██╔══██╗  ╚██╔╝  
+   ██║   ██║  ██║██████╔╝██████╔╝   ██║   
+   ╚═╝   ╚═╝  ╚═╝╚═════╝ ╚═════╝    ╚═╝   
+
+📄 Version {version}
+🚀 Listening at {address}
+"#
+    );
     let listener = tokio::net::TcpListener::bind(address).await.unwrap();
 
     axum::serve(

@@ -18,7 +18,7 @@ use tantivy::{
     DocAddress, Document, Index, IndexReader,
 };
 use tokio::{sync::Mutex, time::sleep};
-use tracing::{debug, log::info};
+use tracing::debug;
 
 struct CodeSearchImpl {
     reader: IndexReader,
@@ -57,7 +57,7 @@ impl CodeSearchImpl {
         loop {
             match CodeSearchImpl::load(repository_access.clone()) {
                 Ok(code) => {
-                    info!("Index is ready, enabling server...");
+                    debug!("Index is ready, enabling code search...");
                     return code;
                 }
                 Err(err) => {
