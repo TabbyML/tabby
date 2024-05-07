@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
-import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
+import { PLACEHOLDER_EMAIL_FORM, SESSION_STORAGE_KEY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
 import {
   useIsDemoMode,
@@ -26,7 +26,6 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
-import { SESSION_STORAGE_KEY } from '@/lib/constants'
 
 export const tokenAuth = graphql(/* GraphQL */ `
   mutation tokenAuth($email: String!, $password: String!) {
