@@ -25,10 +25,7 @@ fn cmd_stdout(cmd: &str, args: &[&str]) -> Result<String> {
 }
 
 fn get_git_hash(path: &Path) -> Result<String> {
-    cmd_stdout(
-        "git",
-        &["hash-object", &path.display().to_string()],
-    )
+    cmd_stdout("git", &["hash-object", &path.display().to_string()])
 }
 
 #[derive(Deserialize, Serialize, Debug)]
