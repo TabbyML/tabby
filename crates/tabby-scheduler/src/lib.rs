@@ -24,7 +24,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
         job_sync(&mut cache, &repositories);
         job_index(&mut cache, &repositories);
 
-        cache.garbage_collection();
+        cache.cleanup_old_source_files();
     } else {
         let access = Arc::new(access);
         let scheduler = JobScheduler::new()
@@ -53,7 +53,7 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
 
                         job_sync(&mut cache, &repositories);
                         job_index(&mut cache, &repositories);
-                        cache.garbage_collection();
+                        cache.cleanup_old_source_files();
                     })
                 })
                 .expect("Failed to create job"),

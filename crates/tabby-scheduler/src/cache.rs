@@ -2,6 +2,7 @@ use std::{
     fs::read_to_string,
     path::{Path, PathBuf},
     process::Command,
+    str::FromStr,
 };
 
 use anyhow::{bail, Context, Result};
@@ -13,54 +14,34 @@ use tracing::{info, warn};
 use crate::code::CodeIntelligence;
 
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
-const LAST_INDEX_COMMIT_BUCKET: &str = "last_index_commit";
+const INDEX_BUCKET_KEY: &str = "indexed_files";
 
-fn cmd_stdout(path: &Path, cmd: &str, args: &[&str]) -> Result<String> {
-    Ok(String::from_utf8(
-        Command::new(cmd)
-            .current_dir(path)
-            .args(args)
-            .output()?
-            .stdout,
-    )?
-    .trim()
-    .to_string())
+fn cmd_stdout(cmd: &str, args: &[&str]) -> Result<String> {
+    Ok(
+        String::from_utf8(Command::new(cmd).args(args).output()?.stdout)?
+            .trim()
+            .to_string(),
+    )
 }
 
 fn get_git_hash(path: &Path) -> Result<String> {
     Ok(cmd_stdout(
-        path,
         "git",
         &["hash-object", &path.display().to_string()],
     )?)
 }
 
-pub fn get_current_commit_hash(path: &Path) -> Result<String> {
-    cmd_stdout(path, "git", &["rev-parse", "HEAD"])
-}
-
-pub fn get_changed_files(path: &Path, since_commit: &str) -> Result<Vec<String>> {
-    Ok(cmd_stdout(
-        path,
-        "git",
-        &["diff", "--no-renames", "--name-only", since_commit],
-    )?
-    .lines()
-    .map(|line| line.to_owned())
-    .collect())
-}
-
-#[derive(Deserialize, Serialize)]
-struct SourceFileKey {
+#[derive(Deserialize, Serialize, Debug)]
+pub(crate) struct SourceFileKey {
     path: PathBuf,
     language: String,
     git_hash: String,
 }
 
-impl TryFrom<&str> for SourceFileKey {
-    type Error = serde_json::Error;
+impl FromStr for SourceFileKey {
+    type Err = serde_json::Error;
 
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         serde_json::from_str(s)
     }
 }
@@ -105,38 +86,56 @@ impl CacheStore {
         }
     }
 
-    pub fn get_last_index_commit(&self, repository: &RepositoryConfig) -> Option<String> {
+    fn index_bucket(&self) -> Bucket<String, String> {
         self.store
-            .bucket(Some(LAST_INDEX_COMMIT_BUCKET))
-            .expect("Failed to access meta bucket")
-            .get(&repository.canonical_git_url())
-            .expect("Failed to read last index commit")
+            .bucket(Some(INDEX_BUCKET_KEY))
+            .expect("Failed to access indexed files bucket")
     }
 
-    pub fn set_last_index_commit(&self, repository: &RepositoryConfig, commit: Option<String>) {
-        let bucket = self
-            .store
-            .bucket(Some(LAST_INDEX_COMMIT_BUCKET))
-            .expect("Failed to access meta bucket");
-        if let Some(commit) = commit {
-            bucket
-                .set(&repository.canonical_git_url(), &commit)
-                .expect("Failed to write last index commit");
-        } else {
-            bucket
-                .remove(&repository.git_url)
-                .expect("Failed to remove last index commit");
-        }
+    pub fn is_indexed(&self, key: &SourceFileKey) -> bool {
+        self.index_bucket()
+            .contains(&key.to_string())
+            .expect("Failed to read index bucket")
     }
 
-    pub fn list_indexed_repositories(&self) -> Vec<RepositoryConfig> {
-        self.store
-            .bucket::<String, String>(Some(LAST_INDEX_COMMIT_BUCKET))
-            .expect("Failed to read meta bucket")
+    pub fn set_indexed(&self, key: &SourceFileKey) {
+        self.index_bucket()
+            .set(&key.to_string(), &String::new())
+            .expect("Failed to write to index bucket");
+    }
+
+    pub fn cleanup_old_indexed_files(&self, key_remover: impl Fn(&String)) {
+        info!("Cleaning up indexed file cache");
+        let bucket = self.index_bucket();
+        let mut batch = Batch::new();
+
+        let mut num_keep = 0;
+        let mut num_removed = 0;
+
+        bucket
             .iter()
-            .map(|item| item.unwrap().key().unwrap())
-            .map(|git_url| RepositoryConfig::new(git_url))
-            .collect()
+            .filter_map(|item| {
+                let item = item.expect("Failed to read item");
+                let item_key: String = item.key().expect("Failed to get key");
+                if is_item_key_matched(&item_key) {
+                    num_keep += 1;
+                    None
+                } else {
+                    num_removed += 1;
+                    Some(item_key)
+                }
+            })
+            .inspect(key_remover)
+            .for_each(|key| {
+                batch
+                    .remove(&key)
+                    .expect("Failed to remove indexed source file")
+            });
+
+        info!("Finished cleaning up indexed files: {num_keep} items kept, {num_removed} items removed");
+        bucket
+            .batch(batch)
+            .expect("Failed to execute batched delete");
     }
 
     pub fn get_source_file(
@@ -167,8 +166,8 @@ impl CacheStore {
         }
     }
 
-    pub fn garbage_collection(&self) {
-        info!("Running garbage collection");
+    pub fn cleanup_old_source_files(&self) {
+        info!("Cleaning up synced file cache");
         let bucket: Bucket<String, Json<SourceFile>> = self
             .store
             .bucket(Some(SOURCE_FILE_BUCKET_KEY))
@@ -188,7 +187,7 @@ impl CacheStore {
                     None
                 } else {
                     num_removed += 1;
-                    Some(item.key().expect("Failed to get key"))
+                    Some(item_key)
                 }
             })
             .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
@@ -202,7 +201,7 @@ impl CacheStore {
 }
 
 fn is_item_key_matched(item_key: &str) -> bool {
-    let Ok(key) = SourceFileKey::try_from(item_key) else {
+    let Ok(key) = item_key.parse::<SourceFileKey>() else {
         return false;
     };
 
@@ -244,6 +243,7 @@ fn create_source_file(
         }
     };
     let source_file = SourceFile {
+        git_url: config.canonical_git_url(),
         basedir: config.dir().display().to_string(),
         filepath: relative_path.display().to_string(),
         max_line_length: metrics::max_line_length(&contents),

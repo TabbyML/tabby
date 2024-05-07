@@ -5,14 +5,13 @@ use kdam::BarExt;
 use tabby_common::{
     config::RepositoryConfig,
     index::{register_tokenizers, CodeSearchSchema},
-    languages::get_language_by_ext,
     path, SourceFile,
 };
-use tantivy::{directory::MmapDirectory, doc, Index, IndexWriter, Term};
+use tantivy::{directory::MmapDirectory, doc, Index, Term};
 use tracing::{debug, warn};
 
 use crate::{
-    cache::{get_changed_files, get_current_commit_hash, CacheStore},
+    cache::{CacheStore, SourceFileKey},
     code::CodeIntelligence,
     utils::tqdm,
 };
@@ -32,53 +31,71 @@ pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
         .writer(150_000_000)
         .expect("Failed to create index writer");
 
+    let total_file_size: usize = SourceFile::all()
+        .filter(is_valid_file)
+        .map(|x| x.read_file_size())
+        .sum();
+
+    let mut pb = std::io::stdout()
+        .is_terminal()
+        .then(|| tqdm(total_file_size));
+
     let intelligence = CodeIntelligence::default();
-
-    writer
-        .delete_all_documents()
-        .expect("Failed to delete all documents");
-
     for repository in config {
-        let Some(commit) = cache.get_last_index_commit(repository) else {
-            index_repository_from_scratch(repository, &writer, &code, &intelligence, cache);
-            continue;
-        };
-        let dir = repository.dir();
-        let changed_files = get_changed_files(&dir, &commit).expect("Failed read file diff");
-        for file in changed_files {
-            let path = dir.join(&file);
-            let file_id = create_file_id(&repository.git_url, &file);
-            delete_document(&writer, &code, file_id.clone());
-            if !path.exists() {
-                continue;
-            }
-            let Some(source_file) = cache.get_source_file(repository, &path) else {
+        for file in Walk::new(repository.dir()) {
+            let file = match file {
+                Ok(file) => file,
+                Err(e) => {
+                    warn!("Failed to walk file tree for indexing: {e}");
+                    continue;
+                }
+            };
+            let Some(source_file) = cache.get_source_file(repository, file.path()) else {
                 continue;
             };
             if !is_valid_file(&source_file) {
                 continue;
             }
-            add_document(
-                &writer,
-                repository,
-                &source_file,
-                file_id,
-                &code,
-                &intelligence,
-            );
+            let file_id =
+                SourceFileKey::try_from(file.path()).expect("Failed to create source file key");
+
+            if cache.is_indexed(&file_id) {
+                continue;
+            }
+            let text = match source_file.read_content() {
+                Ok(content) => content,
+                Err(e) => {
+                    warn!(
+                        "Failed to read content of '{}': {}",
+                        source_file.filepath, e
+                    );
+                    continue;
+                }
+            };
+
+            for body in intelligence.chunks(&text) {
+                pb.as_mut()
+                    .map(|b| b.update(body.len()))
+                    .transpose()
+                    .expect("Failed to update progress bar");
+
+                writer
+                    .add_document(doc! {
+                                code.field_git_url => source_file.git_url.clone(),
+                                code.field_file_id => file_id.to_string(),
+                                code.field_filepath => source_file.filepath.clone(),
+                                code.field_language => source_file.language.clone(),
+                                code.field_body => body,
+                    })
+                    .expect("Failed to add document");
+            }
+            cache.set_indexed(&file_id);
         }
-        cache.set_last_index_commit(
-            repository,
-            Some(get_current_commit_hash(&dir).expect("Failed to read current commit hash")),
-        );
     }
 
-    for indexed_repository in cache.list_indexed_repositories() {
-        if !indexed_repository.dir().exists() {
-            cache.set_last_index_commit(&indexed_repository, None);
-            delete_all_documents(&writer, &code, &indexed_repository.canonical_git_url());
-        }
-    }
+    cache.cleanup_old_indexed_files(|key| {
+        writer.delete_term(Term::from_field_text(code.field_file_id, key));
+    });
 
     writer.commit().expect("Failed to commit index");
     writer
@@ -86,104 +103,9 @@ pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
         .expect("Failed to wait for merging threads");
 }
 
-fn index_repository_from_scratch(
-    repository: &RepositoryConfig,
-    writer: &IndexWriter,
-    code: &CodeSearchSchema,
-    intelligence: &CodeIntelligence,
-    cache: &mut CacheStore,
-) {
-    let mut pb = std::io::stdout().is_terminal().then(|| {
-        let total_file_size: usize = Walk::new(repository.dir())
-            .filter_map(|f| f.ok())
-            .map(|f| f.path().to_owned())
-            .filter(|f| {
-                f.extension()
-                    .is_some_and(|ext| get_language_by_ext(ext).is_some())
-            })
-            .map(|f| read_file_size(&f))
-            .sum();
-        tqdm(total_file_size)
-    });
-
-    for file in Walk::new(repository.dir()) {
-        let file = file.expect("Failed to read file listing");
-        let Some(source_file) = cache.get_source_file(repository, file.path()) else {
-            continue;
-        };
-        if !is_valid_file(&source_file) {
-            continue;
-        }
-        let file_id = create_file_id(&repository.git_url, &source_file.filepath);
-        add_document(
-            writer,
-            repository,
-            &source_file,
-            file_id,
-            code,
-            intelligence,
-        );
-        pb.as_mut().map(|pb| {
-            pb.update(source_file.read_file_size())
-                .expect("Failed to update progress bar")
-        });
-    }
-    cache.set_last_index_commit(
-        repository,
-        Some(
-            get_current_commit_hash(&repository.dir()).expect("Failed to read current commit hash"),
-        ),
-    );
-}
-
-fn read_file_size(path: &Path) -> usize {
-    std::fs::metadata(path)
-        .map(|meta| meta.len())
-        .unwrap_or_default() as usize
-}
-
-fn is_valid_file(source_file: &SourceFile) -> bool {
-    source_file.max_line_length <= MAX_LINE_LENGTH_THRESHOLD
-        && source_file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
-}
-
-pub fn delete_document(writer: &IndexWriter, code: &CodeSearchSchema, file_id: String) {
-    let term = Term::from_field_text(code.field_file_id.clone(), &file_id);
-    writer.delete_term(term);
-}
-
-pub fn delete_all_documents(writer: &IndexWriter, code: &CodeSearchSchema, git_url: &str) {
-    let term = Term::from_field_text(code.field_git_url, git_url);
-    writer.delete_term(term);
-}
-
-pub fn add_document(
-    writer: &IndexWriter,
-    repository: &RepositoryConfig,
-    file: &SourceFile,
-    file_id: String,
-    code: &CodeSearchSchema,
-    intelligence: &CodeIntelligence,
-) -> usize {
-    let text = match file.read_content() {
-        Ok(content) => content,
-        Err(e) => {
-            warn!("Failed to read content of '{}': {}", file.filepath, e);
-            return 0;
-        }
-    };
-    for body in intelligence.chunks(&text) {
-        writer
-            .add_document(doc!(
-                    code.field_git_url => repository.canonical_git_url(),
-                    code.field_filepath => file.filepath.clone(),
-                    code.field_file_id => file_id.clone(),
-                    code.field_language => file.language.clone(),
-                    code.field_body => body,
-            ))
-            .expect("Failed to add document");
-    }
-    text.len()
+fn is_valid_file(file: &SourceFile) -> bool {
+    file.max_line_length <= MAX_LINE_LENGTH_THRESHOLD
+        && file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
 }
 
 fn open_or_create_index(code: &CodeSearchSchema, path: &Path) -> Index {
@@ -207,8 +129,4 @@ fn open_or_create_index_impl(code: &CodeSearchSchema, path: &Path) -> tantivy::R
     fs::create_dir_all(path).expect("Failed to create index directory");
     let directory = MmapDirectory::open(path).expect("Failed to open index directory");
     Index::open_or_create(directory, code.schema.clone())
-}
-
-pub fn create_file_id(git_url: &str, filepath: &str) -> String {
-    format!("{}:{}", git_url, filepath)
 }
