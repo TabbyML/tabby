@@ -100,14 +100,14 @@ impl CacheStore {
         (key, indexed)
     }
 
-    pub fn set_indexed(&self, batch: Batch<String, String>) {
+    pub fn apply_indexed(&self, batch: Batch<String, String>) {
         self.index_bucket()
             .batch(batch)
             .expect("Failed to commit batched index update")
     }
 
     #[must_use]
-    pub fn garbage_collection_for_indexed_files(
+    pub fn prepare_garbage_collection_for_indexed_files(
         &self,
         key_remover: impl Fn(&String),
     ) -> impl FnOnce() + '_ {

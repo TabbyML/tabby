@@ -108,7 +108,7 @@ fn add_changed_documents(
         .expect("Failed to wait for merging threads");
 
     // Mark all indexed documents as indexed
-    cache.set_indexed(indexed_files_batch);
+    cache.apply_indexed(indexed_files_batch);
 }
 
 pub fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, index: &Index) {
@@ -117,7 +117,7 @@ pub fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, 
         .writer(150_000_000)
         .expect("Failed to create index writer");
 
-    let gc_commit = cache.garbage_collection_for_indexed_files(|key| {
+    let gc_commit = cache.prepare_garbage_collection_for_indexed_files(|key| {
         writer.delete_term(Term::from_field_text(code.field_source_file_key, key));
     });
 
