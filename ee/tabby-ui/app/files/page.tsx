@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex flex-col">
       <SourceCodeBrowser className="flex-1 overflow-hidden" />
     </div>
   )
