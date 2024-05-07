@@ -5,7 +5,8 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use kv::{Batch, Bucket, Config, Item, Json, Store};
+use kv::{Batch, Bucket, Config, Json, Store};
+use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
 use tracing::{info, warn};
 
@@ -19,17 +20,46 @@ fn get_git_hash(path: &Path) -> Result<String> {
     Ok(String::from_utf8(output.stdout)?.trim().to_string())
 }
 
-fn compute_source_file_key(path: &Path) -> Result<String> {
-    if !path.is_file() {
-        bail!("Path is not a file");
-    }
+#[derive(Deserialize, Serialize)]
+struct SourceFileKey {
+    path: PathBuf,
+    language: String,
+    git_hash: String,
+}
 
-    let git_hash = get_git_hash(path)?;
-    let ext = path.extension().context("Failed to get extension")?;
-    let Some(lang) = get_language_by_ext(ext) else {
-        bail!("Unknown language for extension {:?}", ext);
-    };
-    Ok(format!("{}-{}", lang.language(), git_hash))
+impl TryFrom<&str> for SourceFileKey {
+    type Error = serde_json::Error;
+
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        serde_json::from_str(s)
+    }
+}
+
+impl TryFrom<&Path> for SourceFileKey {
+    type Error = anyhow::Error;
+
+    fn try_from(path: &Path) -> Result<Self> {
+        if !path.is_file() {
+            bail!("Path is not a file");
+        }
+
+        let git_hash = get_git_hash(path)?;
+        let ext = path.extension().context("Failed to get extension")?;
+        let Some(lang) = get_language_by_ext(ext) else {
+            bail!("Unknown language for extension {:?}", ext);
+        };
+        Ok(Self {
+            path: path.to_owned(),
+            language: lang.language().to_string(),
+            git_hash: git_hash.to_string(),
+        })
+    }
+}
+
+impl ToString for SourceFileKey {
+    fn to_string(&self) -> String {
+        serde_json::to_string(&self).expect("Failed to serialize SourceFileKey")
+    }
 }
 
 pub struct CacheStore {
@@ -50,7 +80,7 @@ impl CacheStore {
         config: &RepositoryConfig,
         path: &Path,
     ) -> Option<SourceFile> {
-        let key = compute_source_file_key(path).ok()?;
+        let key: String = SourceFileKey::try_from(path).ok()?.to_string();
 
         let dataset_bucket: Bucket<String, Json<Option<SourceFile>>> = self
             .store
@@ -75,7 +105,7 @@ impl CacheStore {
 
     pub fn garbage_collection(&self) {
         info!("Running garbage collection");
-        let bucket = self
+        let bucket: Bucket<String, Json<SourceFile>> = self
             .store
             .bucket(Some(SOURCE_FILE_BUCKET_KEY))
             .expect("Could not access dataset bucket");
@@ -88,7 +118,8 @@ impl CacheStore {
             .iter()
             .filter_map(|item| {
                 let item = item.expect("Failed to read item");
-                if is_item_key_matched(&item) {
+                let item_key: String = item.key().expect("Failed to get key");
+                if is_item_key_matched(&item_key) {
                     num_keep += 1;
                     None
                 } else {
@@ -106,21 +137,17 @@ impl CacheStore {
     }
 }
 
-fn is_item_key_matched(item: &Item<String, Json<SourceFile>>) -> bool {
-    let Ok(item_key) = item.key::<String>() else {
+fn is_item_key_matched(item_key: &str) -> bool {
+    let Ok(key) = SourceFileKey::try_from(item_key) else {
         return false;
     };
 
-    let Ok(Json(file)) = item.value() else {
+    let Ok(file_key) = SourceFileKey::try_from(key.path.as_path()) else {
         return false;
     };
 
-    let filepath = PathBuf::from(file.basedir).join(file.filepath);
-    let Ok(file_key) = compute_source_file_key(&filepath) else {
-        return false;
-    };
-
-    file_key == item_key
+    // If key doesn't match, means file has been removed / modified.
+    file_key.to_string() == item_key
 }
 
 fn create_source_file(
