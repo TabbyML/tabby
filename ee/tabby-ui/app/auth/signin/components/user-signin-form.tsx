@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/form'
 import { IconSpinner } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
+import { STORAGE_KEY } from '@/lib/constants'
 
 export const tokenAuth = graphql(/* GraphQL */ `
   mutation tokenAuth($email: String!, $password: String!) {
@@ -63,7 +64,7 @@ export default function UserSignInForm({
   const formRef = React.useRef<HTMLFormElement | null>(null)
 
   React.useEffect(() => {
-    const storageKey = 'isAutoLoggedIn'
+    const storageKey = STORAGE_KEY.DEMO_AUTO_LOGIN
     if (isDemoMode) {
       form.setValue('email', DEMO_PROFILE.EMAIL)
       form.setValue('password', DEMO_PROFILE.PASSWORD)
