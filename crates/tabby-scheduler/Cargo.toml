@@ -37,11 +37,20 @@ npm-package-json = "0.1.3"
 yarn-lock-parser = "0.7.0"
 text-splitter = "0.10.0"
 kv = { version = "0.24.0", features = ["json-value"] }
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+futures.workspace = true
+async-stream.workspace = true
+mdka = "1.2.4"
+readable-readability = "0.4.0"
+url.workspace = true
+voca_rs = "1.15.2"
 
 [dev-dependencies]
 temp_testdir = { workspace = true }
 tabby-common = { path = "../tabby-common", features = [ "testutils" ] }
 tracing-test = "0.1"
-tokio = { workspace = true, features = ["rt", "macros"] }
+tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread"] }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
