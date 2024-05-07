@@ -63,24 +63,31 @@ async fn to_crawl_document(data: KatanaRequestResponse) -> Option<CrawledDocumen
         return None;
     }
 
-    let (node, metadata) = Readability::new()
-        .base_url(Url::parse(&data.request.endpoint).ok()?)
-        .parse(&data.response.body);
+    // Cleanup the HTML with Readability
+    let (html, metadata) = {
+        let (node, metadata) = Readability::new()
+            .base_url(Url::parse(&data.request.endpoint).ok()?)
+            .parse(&data.response.body);
 
-    let mut html_bytes = vec![];
-    node.serialize(&mut html_bytes).ok()?;
-    let html = String::from_utf8(html_bytes).ok()?;
+        let mut html_bytes = vec![];
+        node.serialize(&mut html_bytes).ok()?;
+        (String::from_utf8(html_bytes).ok()?, metadata)
+    };
 
+    // Convert the HTML to Markdown
     let md = mdka::from_html(&html);
-    let md = voca_rs::strip::strip_tags(&md);
 
+    // Remove any HTML tags that might have been left behind
+    let md = voca_rs::strip::strip_tags(&md).trim().to_owned();
+
+    // Skip if the document is empty
     if md.is_empty() {
         return None;
     }
 
     Some(CrawledDocument::new(
         data.request.endpoint,
-        md.trim().into(),
+        md.into(),
         metadata.into(),
     ))
 }
