@@ -2,6 +2,7 @@ use std::{
     fs::read_to_string,
     path::{Path, PathBuf},
     process::Command,
+    str::FromStr,
 };
 
 use anyhow::{bail, Context, Result};
@@ -13,24 +14,31 @@ use tracing::{info, warn};
 use crate::code::CodeIntelligence;
 
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
+const INDEX_BUCKET_KEY: &str = "indexed_files";
 
-fn get_git_hash(path: &Path) -> Result<String> {
-    let path = path.display().to_string();
-    let output = Command::new("git").args(["hash-object", &path]).output()?;
-    Ok(String::from_utf8(output.stdout)?.trim().to_string())
+fn cmd_stdout(cmd: &str, args: &[&str]) -> Result<String> {
+    Ok(
+        String::from_utf8(Command::new(cmd).args(args).output()?.stdout)?
+            .trim()
+            .to_string(),
+    )
 }
 
-#[derive(Deserialize, Serialize)]
+fn get_git_hash(path: &Path) -> Result<String> {
+    cmd_stdout("git", &["hash-object", &path.display().to_string()])
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 struct SourceFileKey {
     path: PathBuf,
     language: String,
     git_hash: String,
 }
 
-impl TryFrom<&str> for SourceFileKey {
-    type Error = serde_json::Error;
+impl FromStr for SourceFileKey {
+    type Err = serde_json::Error;
 
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         serde_json::from_str(s)
     }
 }
@@ -75,6 +83,65 @@ impl CacheStore {
         }
     }
 
+    fn index_bucket(&self) -> Bucket<String, String> {
+        self.store
+            .bucket(Some(INDEX_BUCKET_KEY))
+            .expect("Failed to access indexed files bucket")
+    }
+
+    pub fn check_indexed(&self, path: &Path) -> (String, bool) {
+        let key = SourceFileKey::try_from(path)
+            .expect("Failed to create source file key")
+            .to_string();
+        let indexed = self
+            .index_bucket()
+            .contains(&key)
+            .expect("Failed to read index bucket");
+        (key, indexed)
+    }
+
+    pub fn apply_indexed(&self, batch: Batch<String, String>) {
+        self.index_bucket()
+            .batch(batch)
+            .expect("Failed to commit batched index update")
+    }
+
+    #[must_use]
+    pub fn prepare_garbage_collection_for_indexed_files(
+        &self,
+        key_remover: impl Fn(&String),
+    ) -> impl FnOnce() + '_ {
+        info!("Started cleaning up 'indexed_files' bucket");
+        let bucket = self.index_bucket();
+        let mut batch = Batch::new();
+
+        let mut num_keep = 0;
+        let mut num_removed = 0;
+
+        bucket
+            .iter()
+            .filter_map(|item| {
+                let item = item.expect("Failed to read item");
+                let item_key: String = item.key().expect("Failed to get key");
+                if is_item_key_matched(&item_key) {
+                    num_keep += 1;
+                    None
+                } else {
+                    num_removed += 1;
+                    Some(item_key)
+                }
+            })
+            .inspect(key_remover)
+            .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
+
+        info!("Finished garbage collection for 'indexed_files': {num_keep} items kept, {num_removed} items removed");
+        move || {
+            bucket
+                .batch(batch)
+                .expect("Failed to execute batched delete")
+        }
+    }
+
     pub fn get_source_file(
         &mut self,
         config: &RepositoryConfig,
@@ -103,8 +170,8 @@ impl CacheStore {
         }
     }
 
-    pub fn garbage_collection(&self) {
-        info!("Running garbage collection");
+    pub fn garbage_collection_for_source_files(&self) {
+        info!("Started cleaning up 'source_files' bucket");
         let bucket: Bucket<String, Json<SourceFile>> = self
             .store
             .bucket(Some(SOURCE_FILE_BUCKET_KEY))
@@ -124,13 +191,13 @@ impl CacheStore {
                     None
                 } else {
                     num_removed += 1;
-                    Some(item.key().expect("Failed to get key"))
+                    Some(item_key)
                 }
             })
             .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
 
         info!(
-            "Finished garbage collection: {} items kept, {} items removed",
+            "Finished garbage collection for 'source_files': {} items kept, {} items removed",
             num_keep, num_removed
         );
         bucket.batch(batch).expect("to batch remove staled files");
@@ -138,7 +205,7 @@ impl CacheStore {
 }
 
 fn is_item_key_matched(item_key: &str) -> bool {
-    let Ok(key) = SourceFileKey::try_from(item_key) else {
+    let Ok(key) = item_key.parse::<SourceFileKey>() else {
         return false;
     };
 
