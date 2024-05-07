@@ -22,6 +22,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup
 } from '@/components/ui/resizable'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
@@ -479,9 +480,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 }
 
 const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
+  const [isShowDemoBanner] = useShowDemoBanner()
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
   return (
     <SourceCodeBrowserContextProvider>
-      <SourceCodeBrowserRenderer className="source-code-browser" {...props} />
+      <div className="transition-all" style={style}>
+        <SourceCodeBrowserRenderer className="source-code-browser" {...props} />
+      </div>
     </SourceCodeBrowserContextProvider>
   )
 }
