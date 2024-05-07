@@ -106,7 +106,11 @@ impl CacheStore {
             .expect("Failed to commit batched index update")
     }
 
-    pub fn garbage_collection_for_indexed_files(&self, key_remover: impl Fn(&String)) {
+    #[must_use]
+    pub fn garbage_collection_for_indexed_files(
+        &self,
+        key_remover: impl Fn(&String),
+    ) -> impl FnOnce() + '_ {
         info!("Started cleaning up 'indexed_files' bucket");
         let bucket = self.index_bucket();
         let mut batch = Batch::new();
@@ -131,9 +135,11 @@ impl CacheStore {
             .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
 
         info!("Finished garbage collection for 'indexed_files': {num_keep} items kept, {num_removed} items removed");
-        bucket
-            .batch(batch)
-            .expect("Failed to execute batched delete");
+        move || {
+            bucket
+                .batch(batch)
+                .expect("Failed to execute batched delete")
+        }
     }
 
     pub fn get_source_file(

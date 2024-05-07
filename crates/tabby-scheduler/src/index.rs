@@ -18,10 +18,19 @@ static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
 pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
-    let code = CodeSearchSchema::new();
-
+    let code = CodeSearchSchema::default();
     let index = open_or_create_index(&code, &path::index_dir());
-    register_tokenizers(&index);
+    add_changed_documents(cache, &code, config, &index);
+    remove_staled_documents(cache, &code, &index);
+}
+
+fn add_changed_documents(
+    cache: &mut CacheStore,
+    code: &CodeSearchSchema,
+    config: &[RepositoryConfig],
+    index: &Index,
+) {
+    register_tokenizers(index);
 
     // Initialize the search index writer with an initial arena size of 150 MB.
     let mut writer = index
@@ -100,13 +109,15 @@ pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
 
     // Mark all indexed documents as indexed
     cache.set_indexed(indexed_files_batch);
+}
 
+pub fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, index: &Index) {
     // Create a new writer to commit deletion of removed indexed files
     let mut writer = index
         .writer(150_000_000)
         .expect("Failed to create index writer");
 
-    cache.garbage_collection_for_indexed_files(|key| {
+    let gc_commit = cache.garbage_collection_for_indexed_files(|key| {
         writer.delete_term(Term::from_field_text(code.field_source_file_key, key));
     });
 
@@ -114,6 +125,8 @@ pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
     writer
         .commit()
         .expect("Failed to commit garbage collection");
+
+    gc_commit();
 
     writer
         .wait_merging_threads()
