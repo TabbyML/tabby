@@ -12,7 +12,7 @@ async fn main() {
             println!("Description: {:?}", doc.metadata.description);
             println!("URL: {}\n", doc.url);
             println!("Markdown: {}", doc.markdown);
-            cnt = cnt - 1;
+            cnt -= 1;
             if cnt <= 0 {
                 break;
             }

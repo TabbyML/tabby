@@ -5556,7 +5556,6 @@ dependencies = [
  "async-stream",
  "async-trait",
  "cargo-lock",
- "chrono",
  "file-rotate",
  "futures",
  "ignore",

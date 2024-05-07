@@ -1,23 +1,15 @@
 mod types;
 
-use std::collections::HashMap;
 use std::process::Stdio;
 
-use anyhow::Context;
 use async_stream::stream;
-use chrono::DateTime;
-use chrono::Utc;
-use futures::Stream;
-use futures::StreamExt;
+use futures::{Stream, StreamExt};
 use readable_readability::Readability;
-use serde::Deserialize;
-use tokio::io::AsyncBufRead;
 use tokio::io::AsyncBufReadExt;
 use tracing::warn;
 use url::Url;
 
-use self::types::CrawledDocument;
-use self::types::KatanaRequestResponse;
+use self::types::{CrawledDocument, KatanaRequestResponse};
 
 async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse> {
     let mut child = tokio::process::Command::new("katana")

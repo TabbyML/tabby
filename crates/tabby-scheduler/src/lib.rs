@@ -82,5 +82,4 @@ fn job_sync(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
     dataset::create_dataset(cache, repositories);
 }
 
-
 pub mod crawl;
