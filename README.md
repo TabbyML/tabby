@@ -1,6 +1,8 @@
 <div align="center">
-
+  
 # 🐾 Tabby
+
+[📚 Docs](https://tabby.tabbyml.com) • [💬 Slack](https://links.tabbyml.com/join-slack) • [✨ Live Demo](https://demo.tabbyml.com/)
 
 [![latest release](https://shields.io/github/v/release/TabbyML/tabby?sort=semver)](https://github.com/TabbyML/tabby/releases/latest)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
