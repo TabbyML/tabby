@@ -126,11 +126,11 @@ pub fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, 
         .commit()
         .expect("Failed to commit garbage collection");
 
-    gc_commit();
-
     writer
         .wait_merging_threads()
         .expect("Failed to wait for merging threads on garbage collection");
+
+    gc_commit();
 }
 
 fn is_valid_file(file: &SourceFile) -> bool {
