@@ -33,7 +33,7 @@ export const ShowDemoBannerProvider = ({
   const [isShowDemoBanner, setIsShowDemoBanner] = React.useState(false)
 
   React.useEffect(() => {
-    const isInIframe = window.self !== window.top;
+    const isInIframe = window.self !== window.top
     if (isInIframe) return
 
     if (!isNil(isDemoMode)) {
