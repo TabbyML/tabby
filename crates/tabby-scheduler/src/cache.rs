@@ -29,7 +29,7 @@ fn get_git_hash(path: &Path) -> Result<String> {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub(crate) struct SourceFileKey {
+struct SourceFileKey {
     path: PathBuf,
     language: String,
     git_hash: String,
@@ -89,20 +89,25 @@ impl CacheStore {
             .expect("Failed to access indexed files bucket")
     }
 
-    pub fn is_indexed(&self, key: &SourceFileKey) -> bool {
-        self.index_bucket()
-            .contains(&key.to_string())
-            .expect("Failed to read index bucket")
+    pub fn check_indexed(&self, path: &Path) -> (String, bool) {
+        let key = SourceFileKey::try_from(path)
+            .expect("Failed to create source file key")
+            .to_string();
+        let indexed = self
+            .index_bucket()
+            .contains(&key)
+            .expect("Failed to read index bucket");
+        (key, indexed)
     }
 
-    pub fn set_indexed(&self, key: &SourceFileKey) {
+    pub fn set_indexed(&self, batch: Batch<String, String>) {
         self.index_bucket()
-            .set(&key.to_string(), &String::new())
-            .expect("Failed to write to index bucket");
+            .batch(batch)
+            .expect("Failed to commit batched index update")
     }
 
-    pub fn cleanup_old_indexed_files(&self, key_remover: impl Fn(&String)) {
-        info!("Cleaning up indexed file cache");
+    pub fn garbage_collection_for_indexed_files(&self, key_remover: impl Fn(&String)) {
+        info!("Started cleaning up 'indexed_files' bucket");
         let bucket = self.index_bucket();
         let mut batch = Batch::new();
 
@@ -123,13 +128,9 @@ impl CacheStore {
                 }
             })
             .inspect(key_remover)
-            .for_each(|key| {
-                batch
-                    .remove(&key)
-                    .expect("Failed to remove indexed source file")
-            });
+            .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
 
-        info!("Finished cleaning up indexed files: {num_keep} items kept, {num_removed} items removed");
+        info!("Finished garbage collection for 'indexed_files': {num_keep} items kept, {num_removed} items removed");
         bucket
             .batch(batch)
             .expect("Failed to execute batched delete");
@@ -163,8 +164,8 @@ impl CacheStore {
         }
     }
 
-    pub fn cleanup_old_source_files(&self) {
-        info!("Cleaning up synced file cache");
+    pub fn garbage_collection_for_source_files(&self) {
+        info!("Started cleaning up 'source_files' bucket");
         let bucket: Bucket<String, Json<SourceFile>> = self
             .store
             .bucket(Some(SOURCE_FILE_BUCKET_KEY))
@@ -190,7 +191,7 @@ impl CacheStore {
             .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
 
         info!(
-            "Finished garbage collection: {} items kept, {} items removed",
+            "Finished garbage collection for 'source_files': {} items kept, {} items removed",
             num_keep, num_removed
         );
         bucket.batch(batch).expect("to batch remove staled files");

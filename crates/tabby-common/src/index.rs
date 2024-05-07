@@ -20,7 +20,7 @@ pub struct CodeSearchSchema {
     pub field_git_url: Field,
     pub field_filepath: Field,
     /// Indexed field uniquely identifying a file in a repository, stringified SourceFileKey
-    pub field_file_id: Field,
+    pub field_source_file_key: Field,
     pub field_language: Field,
     pub field_body: Field,
 }
@@ -38,7 +38,7 @@ impl CodeSearchSchema {
 
         let field_git_url = builder.add_text_field("git_url", STRING | STORED);
         let field_filepath = builder.add_text_field("filepath", STRING | STORED);
-        let field_file_id = builder.add_text_field("file_id", STRING | STORED);
+        let field_source_file_key = builder.add_text_field("file_id", STRING | STORED);
         let field_language = builder.add_text_field("language", STRING | STORED);
         let field_body = builder.add_text_field("body", code_options);
         let schema = builder.build();
@@ -47,7 +47,7 @@ impl CodeSearchSchema {
             schema,
             field_git_url,
             field_filepath,
-            field_file_id,
+            field_source_file_key,
             field_language,
             field_body,
         }

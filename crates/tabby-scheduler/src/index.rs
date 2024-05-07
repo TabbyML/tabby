@@ -2,6 +2,7 @@ use std::{fs, io::IsTerminal, path::Path};
 
 use ignore::Walk;
 use kdam::BarExt;
+use kv::Batch;
 use tabby_common::{
     config::RepositoryConfig,
     index::{register_tokenizers, CodeSearchSchema},
@@ -10,11 +11,7 @@ use tabby_common::{
 use tantivy::{directory::MmapDirectory, doc, Index, Term};
 use tracing::{debug, warn};
 
-use crate::{
-    cache::{CacheStore, SourceFileKey},
-    code::CodeIntelligence,
-    utils::tqdm,
-};
+use crate::{cache::CacheStore, code::CodeIntelligence, utils::tqdm};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -41,6 +38,7 @@ pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
         .then(|| tqdm(total_file_size));
 
     let intelligence = CodeIntelligence::default();
+    let mut indexed_files_batch = Batch::new();
     for repository in config {
         for file in Walk::new(repository.dir()) {
             let file = match file {
@@ -56,10 +54,9 @@ pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
             if !is_valid_file(&source_file) {
                 continue;
             }
-            let file_id =
-                SourceFileKey::try_from(file.path()).expect("Failed to create source file key");
+            let (file_id, indexed) = cache.check_indexed(file.path());
 
-            if cache.is_indexed(&file_id) {
+            if indexed {
                 continue;
             }
             let text = match source_file.read_content() {
@@ -82,25 +79,45 @@ pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
                 writer
                     .add_document(doc! {
                                 code.field_git_url => source_file.git_url.clone(),
-                                code.field_file_id => file_id.to_string(),
+                                code.field_source_file_key => file_id.to_string(),
                                 code.field_filepath => source_file.filepath.clone(),
                                 code.field_language => source_file.language.clone(),
                                 code.field_body => body,
                     })
                     .expect("Failed to add document");
             }
-            cache.set_indexed(&file_id);
+            indexed_files_batch
+                .set(&file_id, &String::new())
+                .expect("Failed to mark file as indexed");
         }
     }
 
-    cache.cleanup_old_indexed_files(|key| {
-        writer.delete_term(Term::from_field_text(code.field_file_id, key));
-    });
-
+    // Commit updating indexed documents
     writer.commit().expect("Failed to commit index");
     writer
         .wait_merging_threads()
         .expect("Failed to wait for merging threads");
+
+    // Mark all indexed documents as indexed
+    cache.set_indexed(indexed_files_batch);
+
+    // Create a new writer to commit deletion of removed indexed files
+    let mut writer = index
+        .writer(150_000_000)
+        .expect("Failed to create index writer");
+
+    cache.garbage_collection_for_indexed_files(|key| {
+        writer.delete_term(Term::from_field_text(code.field_source_file_key, key));
+    });
+
+    // Commit garbage collection
+    writer
+        .commit()
+        .expect("Failed to commit garbage collection");
+
+    writer
+        .wait_merging_threads()
+        .expect("Failed to wait for merging threads on garbage collection");
 }
 
 fn is_valid_file(file: &SourceFile) -> bool {
