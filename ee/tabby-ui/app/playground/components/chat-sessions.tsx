@@ -19,8 +19,8 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { ListSkeleton } from '@/components/skeleton'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import { ListSkeleton } from '@/components/skeleton'
 
 import { ClearChatsButton } from './clear-chats-button'
 import { EditChatTitleDialog } from './edit-chat-title-dialog'
@@ -55,7 +55,7 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
     : { height: '100vh' }
   return (
     <>
-      <div className={cn("transition-all", className)} style={style}>
+      <div className={cn('transition-all', className)} style={style}>
         <div className="flex w-[279px] flex-col gap-2">
           <div className="shrink-0 pb-0 pl-3 pt-2">
             <Button

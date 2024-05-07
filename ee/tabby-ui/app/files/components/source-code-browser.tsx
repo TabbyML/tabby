@@ -22,8 +22,8 @@ import {
   ResizablePanel,
   ResizablePanelGroup
 } from '@/components/ui/resizable'
-import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
 import { ChatSideBar } from './chat-side-bar'

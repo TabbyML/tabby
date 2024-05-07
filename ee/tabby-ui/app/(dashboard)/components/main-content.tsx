@@ -10,14 +10,17 @@ export default function MainContent({
   children: React.ReactNode
 }) {
   const [isShowDemoBanner] = useShowDemoBanner()
-  
+
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
   return (
     <>
       {/* Wraps right hand side into ScrollArea, making scroll bar consistent across all browsers */}
-      <ScrollArea className={'flex flex-1 flex-col transition-all'} style={style}>
+      <ScrollArea
+        className={'flex flex-1 flex-col transition-all'}
+        style={style}
+      >
         <Header />
         <div className="flex-1 p-4 lg:p-10">{children}</div>
       </ScrollArea>

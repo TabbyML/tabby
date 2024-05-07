@@ -47,8 +47,13 @@ export const ShowDemoBannerProvider = ({
   )
 }
 
-export function useShowDemoBanner(): [boolean, React.Dispatch<React.SetStateAction<boolean>>] {
-  const { isShowDemoBanner, setIsShowDemoBanner } = React.useContext(ShowDemoBannerContext)
+export function useShowDemoBanner(): [
+  boolean,
+  React.Dispatch<React.SetStateAction<boolean>>
+] {
+  const { isShowDemoBanner, setIsShowDemoBanner } = React.useContext(
+    ShowDemoBannerContext
+  )
   return [isShowDemoBanner, setIsShowDemoBanner]
 }
 

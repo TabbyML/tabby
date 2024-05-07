@@ -41,7 +41,10 @@ export default function Sidebar({ children, className }: SidebarProps) {
     <ScrollArea
       className={cn('grid overflow-hidden md:grid-cols-[280px_1fr]', className)}
     >
-      <div className="hidden w-[280px] border-r pt-4 transition-all md:block" style={style}>
+      <div
+        className="hidden w-[280px] border-r pt-4 transition-all md:block"
+        style={style}
+      >
         <nav className="flex h-full flex-col overflow-hidden text-sm font-medium">
           <Link href="/" className="flex justify-center pb-4">
             <Image
