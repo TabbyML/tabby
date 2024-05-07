@@ -6,9 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
-import { PLACEHOLDER_EMAIL_FORM } from '@/lib/constants'
+import { PLACEHOLDER_EMAIL_FORM, SESSION_STORAGE_KEY } from '@/lib/constants'
 import { graphql } from '@/lib/gql/generates'
-import { useIsEmailConfigured } from '@/lib/hooks/use-server-info'
+import {
+  useIsDemoMode,
+  useIsEmailConfigured
+} from '@/lib/hooks/use-server-info'
 import { useSignIn } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
 import { cn } from '@/lib/utils'
@@ -42,15 +45,37 @@ interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   invitationCode?: string
 }
 
+const DEMO_PROFILE = {
+  EMAIL: 'demo@tabbyml.com',
+  PASSWORD: '0$TabbyDemo'
+}
+
 export default function UserSignInForm({
   className,
   invitationCode,
   ...props
 }: UserAuthFormProps) {
   const isEmailConfigured = useIsEmailConfigured()
+  const isDemoMode = useIsDemoMode()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema)
   })
+  const formRef = React.useRef<HTMLFormElement | null>(null)
+
+  React.useEffect(() => {
+    const storageKey = SESSION_STORAGE_KEY.DEMO_AUTO_LOGIN
+    if (isDemoMode) {
+      form.setValue('email', DEMO_PROFILE.EMAIL)
+      form.setValue('password', DEMO_PROFILE.PASSWORD)
+
+      if (sessionStorage.getItem(storageKey) === 'true') return
+      if (formRef.current) {
+        const event = new Event('submit', { bubbles: true, cancelable: true })
+        formRef.current.dispatchEvent(event)
+        sessionStorage.setItem(storageKey, 'true')
+      }
+    }
+  }, [isDemoMode])
 
   const signIn = useSignIn()
   const { isSubmitting } = form.formState
@@ -64,7 +89,11 @@ export default function UserSignInForm({
   return (
     <Form {...form}>
       <div className={cn('grid gap-2', className)} {...props}>
-        <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+        <form
+          ref={formRef}
+          className="grid gap-4"
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
           <FormField
             control={form.control}
             name="email"
