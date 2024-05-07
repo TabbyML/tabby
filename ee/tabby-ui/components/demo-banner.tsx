@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React from 'react'
 import { isNil } from 'lodash-es'
-import { useTheme } from 'next-themes'
 import useSWRImmutable from 'swr/immutable'
 
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
@@ -16,40 +15,57 @@ import {
 
 export const BANNER_HEIGHT = '3.5rem'
 
-export function useShowDemoBanner(): [boolean, (isShow: boolean) => void] {
-  const isDemoMode = useIsDemoMode()
-  const [isShow, setIsShow] = useState(false)
+interface ShowDemoBannerContextValue {
+  isShowDemoBanner: boolean
+  setIsShowDemoBanner: React.Dispatch<React.SetStateAction<boolean>>
+}
 
-  useEffect(() => {
+const ShowDemoBannerContext = React.createContext<ShowDemoBannerContextValue>(
+  {} as ShowDemoBannerContextValue
+)
+
+export const ShowDemoBannerProvider = ({
+  children
+}: {
+  children: React.ReactNode
+}) => {
+  const isDemoMode = useIsDemoMode()
+  const [isShowDemoBanner, setIsShowDemoBanner] = React.useState(false)
+
+  React.useEffect(() => {
     if (!isNil(isDemoMode)) {
-      setIsShow(isDemoMode)
+      setIsShowDemoBanner(isDemoMode)
     }
   }, [isDemoMode])
 
-  return [isShow, setIsShow]
+  return (
+    <ShowDemoBannerContext.Provider
+      value={{ isShowDemoBanner, setIsShowDemoBanner }}
+    >
+      {children}
+    </ShowDemoBannerContext.Provider>
+  )
+}
+
+export function useShowDemoBanner(): [boolean, React.Dispatch<React.SetStateAction<boolean>>] {
+  const { isShowDemoBanner, setIsShowDemoBanner } = React.useContext(ShowDemoBannerContext)
+  return [isShowDemoBanner, setIsShowDemoBanner]
 }
 
 export function DemoBanner() {
-  const [isShow, setIsShow] = useShowDemoBanner()
-  const [slackIconFill, setSlackIconFill] = useState('')
-  const { theme } = useTheme()
+  const [isShowDemoBanner, setIsShowDemoBanner] = useShowDemoBanner()
   const { data } = useSWRImmutable(
     'https://api.github.com/repos/TabbyML/tabby',
     (url: string) => fetch(url).then(res => res.json())
   )
-
-  useEffect(() => {
-    setSlackIconFill(theme === 'dark' ? '#171615' : '#ECECEC')
-  }, [isShow, theme])
-
-  const style = isShow ? { height: BANNER_HEIGHT } : { height: 0 }
+  const style = isShowDemoBanner ? { height: BANNER_HEIGHT } : { height: 0 }
   return (
     <div
       className={cn(
         'flex items-center justify-between bg-primary px-4 text-primary-foreground transition-all md:px-5',
         {
-          'opacity-100 pointer-events-auto': isShow,
-          'opacity-0 pointer-events-none': !isShow
+          'opacity-100 pointer-events-auto': isShowDemoBanner,
+          'opacity-0 pointer-events-none': !isShowDemoBanner
         }
       )}
       style={style}
@@ -88,7 +104,7 @@ export function DemoBanner() {
 
         <IconClose
           className="cursor-pointer transition-all hover:opacity-70"
-          onClick={() => setIsShow(false)}
+          onClick={() => setIsShowDemoBanner(false)}
         />
       </div>
     </div>

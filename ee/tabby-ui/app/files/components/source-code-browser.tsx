@@ -23,6 +23,7 @@ import {
   ResizablePanelGroup
 } from '@/components/ui/resizable'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
 import { ChatSideBar } from './chat-side-bar'
@@ -479,9 +480,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 }
 
 const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
+  const [isShowDemoBanner] = useShowDemoBanner()
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
   return (
     <SourceCodeBrowserContextProvider>
-      <SourceCodeBrowserRenderer className="source-code-browser" {...props} />
+      <div className="transition-all" style={style}>
+        <SourceCodeBrowserRenderer className="source-code-browser" {...props} />
+      </div>
     </SourceCodeBrowserContextProvider>
   )
 }

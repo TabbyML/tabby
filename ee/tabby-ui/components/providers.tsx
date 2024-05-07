@@ -10,6 +10,7 @@ import { client } from '@/lib/tabby/gql'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import { TopbarProgressProvider } from './topbar-progress-indicator'
+import { ShowDemoBannerProvider } from '@/components/demo-banner'
 
 export function Providers({ children, ...props }: ThemeProviderProps) {
   return (
@@ -18,8 +19,10 @@ export function Providers({ children, ...props }: ThemeProviderProps) {
         <TooltipProvider>
           <AuthProvider>
             <TopbarProgressProvider>
-              <EnsureSignin />
-              {children}
+              <ShowDemoBannerProvider>
+                <EnsureSignin />
+                {children}
+              </ShowDemoBannerProvider>
             </TopbarProgressProvider>
           </AuthProvider>
         </TooltipProvider>
