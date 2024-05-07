@@ -148,7 +148,7 @@
             "default": "",
             "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
             "patternErrorMessage": "Please enter a validate http or https URL.",
-            "markdownDescription": "**Specify API Endpoint of Tabby**  \nIf leave empty, server endpoint in [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used.  \n\n**Set Up Authentication Credentials**  \nTo access the API endpoint, please [Set Credentials](command:tabby.setApiToken)."
+            "markdownDescription": "Specify the API endpoint for the Tabby server.  \nIf authentication is required, please [Set Credentials](command:tabby.setApiToken).  \nIf left empty, the server endpoint specified in the [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
           },
           "tabby.inlineCompletion.triggerMode": {
             "type": "string",
