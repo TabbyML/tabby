@@ -47,7 +47,7 @@ async fn crawl_url(start_url: &str) -> impl Stream<Item = KatanaRequestResponse>
     }
 }
 
-async fn to_crawl_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
+async fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
     // Skip if the status code is not 200
     if data.response.status_code != 200 {
         return None;
@@ -93,5 +93,5 @@ async fn to_crawl_document(data: KatanaRequestResponse) -> Option<CrawledDocumen
 }
 
 pub async fn crawl_pipeline(start_url: &str) -> impl Stream<Item = CrawledDocument> {
-    crawl_url(start_url).await.filter_map(to_crawl_document)
+    crawl_url(start_url).await.filter_map(to_document)
 }
