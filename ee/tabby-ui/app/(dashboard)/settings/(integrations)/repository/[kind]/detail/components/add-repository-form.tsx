@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CommandLoading } from 'cmdk'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
@@ -82,7 +81,6 @@ export default function AddRepositoryForm({
   const form = useForm<ActivateRepositoryFormValues>({
     resolver: zodResolver(formSchema)
   })
-  const [searchValue, setSearchValue] = React.useState<string>()
   const commandListRef = React.useRef<HTMLDivElement>(null)
 
   const { isSubmitting } = form.formState
@@ -195,12 +193,15 @@ export default function AddRepositoryForm({
                         className="max-h-[30vh]"
                         ref={commandListRef}
                       >
-                        {fetchingRepos && (
-                          <CommandLoading>
-                            <IconSpinner />
-                          </CommandLoading>
-                        )}
-                        <CommandEmpty>{emptyText}</CommandEmpty>
+                        <CommandEmpty>
+                          {fetchingRepos ? (
+                            <div className="flex justify-center">
+                              <IconSpinner className="h-6 w-6" />
+                            </div>
+                          ) : (
+                            emptyText
+                          )}
+                        </CommandEmpty>
                         <CommandGroup>
                           {providerStatus !==
                             RepositoryProviderStatus.Pending &&
