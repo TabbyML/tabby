@@ -6,7 +6,7 @@ import type { paths as CloudApi } from "./types/cloudApi";
 import type { AbortSignalOption } from "./Agent";
 import { HttpError, abortSignalFromAnyOf } from "./utils";
 import { DataStore } from "./dataStore";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 
 export type StorageData = {
   auth: { [endpoint: string]: { jwt: string } };
@@ -46,7 +46,7 @@ export class Auth extends EventEmitter {
     },
   };
 
-  private readonly logger = logger("Auth");
+  private readonly logger = getLogger("Auth");
   private dataStore?: DataStore;
   private authApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
   private jwt?: JWT;
@@ -86,7 +86,7 @@ export class Auth extends EventEmitter {
       await this.dataStore.load();
       const storedJwt = this.dataStore.data.auth?.[this.endpoint]?.jwt;
       if (typeof storedJwt === "string" && this.jwt?.token !== storedJwt) {
-        this.logger.debug({ storedJwt }, "Load jwt from data store.");
+        this.logger.debug("Loaded auth data from data store.");
         const jwt: JWT = {
           token: storedJwt,
           payload: decodeJwt(storedJwt),
@@ -100,7 +100,7 @@ export class Auth extends EventEmitter {
         }
       }
     } catch (error) {
-      this.logger.debug({ error }, "Error when loading auth");
+      this.logger.debug("Failed to load auth data from data store.");
     }
   }
 
@@ -121,9 +121,9 @@ export class Auth extends EventEmitter {
         delete this.dataStore.data.auth[this.endpoint];
       }
       await this.dataStore.save();
-      this.logger.debug("Save changes to data store.");
+      this.logger.debug("Saved auth data to data store.");
     } catch (error) {
-      this.logger.error({ error }, "Error when saving auth");
+      this.logger.error("Failed to save auth data to data store.", error);
     }
   }
 
@@ -140,7 +140,7 @@ export class Auth extends EventEmitter {
       if (options?.signal.aborted) {
         throw options.signal.reason;
       }
-      this.logger.debug("Start to request device token");
+      this.logger.debug("Requesting device token...");
       const response = await this.authApi.POST("/device-token", {
         body: { auth_url: this.endpoint },
         signal: options?.signal,
@@ -149,12 +149,11 @@ export class Auth extends EventEmitter {
         throw new HttpError(response.response);
       }
       const deviceToken = response.data;
-      this.logger.debug({ deviceToken }, "Request device token response");
       const authUrl = new URL(Auth.authPageUrl);
       authUrl.searchParams.append("code", deviceToken.data.code);
       return { authUrl: authUrl.toString(), code: deviceToken.data.code };
     } catch (error) {
-      this.logger.error({ error }, "Error when requesting token");
+      this.logger.error("Failed to request device token", error);
       throw error;
     }
   }
@@ -164,12 +163,12 @@ export class Auth extends EventEmitter {
       const signal = abortSignalFromAnyOf([AbortSignal.timeout(Auth.tokenStrategy.polling.timeout), options?.signal]);
       const timer = setInterval(async () => {
         try {
+          this.logger.debug("Polling auth token...");
           const response = await this.authApi.POST("/device-token/accept", { params: { query: { code } }, signal });
           if (response.error || !response.response.ok) {
             throw new HttpError(response.response);
           }
           const result = response.data;
-          this.logger.debug({ result }, "Poll jwt response");
           this.jwt = {
             token: result.data.jwt,
             payload: decodeJwt(result.data.jwt),
@@ -179,11 +178,9 @@ export class Auth extends EventEmitter {
           clearInterval(timer);
           resolve(true);
         } catch (error) {
-          if (error instanceof HttpError && [400, 401, 403, 405].includes(error.status)) {
-            this.logger.debug({ error }, "Expected error when polling jwt");
-          } else {
+          if (error! instanceof HttpError && [400, 401, 403, 405].includes(error.status)) {
             // unknown error but still keep polling
-            this.logger.error({ error }, "Error when polling jwt");
+            this.logger.error("Failed due to unknown error when polling auth token", error);
           }
         }
       }, Auth.tokenStrategy.polling.interval);
@@ -201,7 +198,7 @@ export class Auth extends EventEmitter {
 
   private async refreshToken(jwt: JWT, options = { maxTry: 1, retryDelay: 1000 }, retry = 0): Promise<JWT> {
     try {
-      this.logger.debug({ retry }, "Start to refresh token");
+      this.logger.debug("Refreshing auth token...");
       const response = await this.authApi.POST("/device-token/refresh", {
         headers: { Authorization: `Bearer ${jwt.token}` },
       });
@@ -209,19 +206,16 @@ export class Auth extends EventEmitter {
         throw new HttpError(response.response);
       }
       const refreshedJwt = response.data;
-      this.logger.debug({ refreshedJwt }, "Refresh token response");
       return {
         token: refreshedJwt.data.jwt,
         payload: decodeJwt(refreshedJwt.data.jwt),
       };
     } catch (error) {
-      if (error instanceof HttpError && [400, 401, 403, 405].includes(error.status)) {
-        this.logger.debug({ error }, "Error when refreshing jwt");
-      } else {
+      if (error! instanceof HttpError && [400, 401, 403, 405].includes(error.status)) {
         // unknown error, retry a few times
-        this.logger.error({ error }, "Unknown error when refreshing jwt");
+        this.logger.error("Failed due to unknown error when refreshing auth token.", error);
         if (retry < options.maxTry) {
-          this.logger.debug(`Retry refreshing jwt after ${options.retryDelay}ms`);
+          this.logger.debug(`Retry refreshing auth token after ${options.retryDelay}ms`);
           await new Promise((resolve) => setTimeout(resolve, options.retryDelay));
           return this.refreshToken(jwt, options, retry + 1);
         }
@@ -235,16 +229,17 @@ export class Auth extends EventEmitter {
       if (!this.jwt) {
         return;
       }
+      this.logger.debug("Checking auth token...");
       if (this.jwt.payload.exp * 1000 - Date.now() < Auth.tokenStrategy.refresh.beforeExpire) {
         try {
           this.jwt = await this.refreshToken(this.jwt, Auth.tokenStrategy.refresh.whenScheduled);
           super.emit("updated", this.jwt);
           await this.save();
         } catch (error) {
-          this.logger.error({ error }, "Error when refreshing jwt");
+          this.logger.error("Failed to refresh auth token.", error);
         }
       } else {
-        this.logger.debug("Check token, still valid");
+        this.logger.debug("Auth token is still valid.");
       }
     }, Auth.tokenStrategy.refresh.interval);
   }

@@ -55,7 +55,8 @@ export type AgentConfig = {
     calculateReplaceRange: any;
   };
   logs: {
-    level: "debug" | "error" | "silent";
+    // Controls the level of the logger written to the `~/.tabby-client/agent/logs/`
+    level: "silent" | "error" | "info" | "debug" | "trace";
   };
   tls: {
     // `bundled`, `system`, or a string point to cert file

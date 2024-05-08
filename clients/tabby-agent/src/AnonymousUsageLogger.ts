@@ -5,12 +5,12 @@ import { v4 as uuid } from "uuid";
 import type { paths as CloudApi } from "./types/cloudApi";
 import { name as agentName, version as agentVersion } from "../package.json";
 import { isBrowser } from "./env";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 import { DataStore } from "./dataStore";
 
 export class AnonymousUsageLogger {
   private anonymousUsageTrackingApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
-  private logger = logger("AnonymousUsage");
+  private logger = getLogger("AnonymousUsage");
   private systemData = {
     agent: `${agentName}, ${agentVersion}`,
     browser: isBrowser ? navigator?.userAgent || "browser" : undefined,
@@ -35,7 +35,7 @@ export class AnonymousUsageLogger {
         try {
           await this.dataStore.save();
         } catch (error) {
-          this.logger.debug({ error }, "Error when saving anonymousId");
+          this.logger.error("Failed to save anonymous Id.", error);
         }
       }
     } else {
@@ -90,7 +90,7 @@ export class AnonymousUsageLogger {
         },
       });
     } catch (error) {
-      this.logger.error({ error }, "Error when sending anonymous usage data");
+      this.logger.error("Failed to send anonymous usage data.", error);
     }
   }
 }

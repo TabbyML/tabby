@@ -1,5 +1,5 @@
 import { CompletionResponse, CompletionResponseChoice, CompletionContext } from "../CompletionContext";
-import { logger as getLogger } from "../logger";
+import { getLogger } from "../logger";
 import "../ArrayExt";
 
 type PostprocessFilterBase<T extends string | CompletionResponseChoice> = (

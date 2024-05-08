@@ -6,7 +6,7 @@ import * as macCa from "mac-ca";
 import type { AgentConfig } from "./AgentConfig";
 import { isBrowser } from "./env";
 import "./ArrayExt";
-import { logger as getLogger } from "./logger";
+import { getLogger } from "./logger";
 
 type Cert = string | winCa.Certificate;
 

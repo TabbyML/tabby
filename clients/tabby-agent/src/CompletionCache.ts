@@ -1,13 +1,13 @@
 import { LRUCache } from "lru-cache";
 import { CompletionContext, CompletionResponse } from "./CompletionContext";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 import { splitLines, autoClosingPairs, findUnpairedAutoClosingChars } from "./utils";
 
 type CompletionCacheKey = CompletionContext;
 type CompletionCacheValue = CompletionResponse;
 
 export class CompletionCache {
-  private readonly logger = logger("CompletionCache");
+  private readonly logger = getLogger("CompletionCache");
   private options = {
     maxCount: 10000,
     prebuildCache: {
@@ -33,12 +33,13 @@ export class CompletionCache {
   }
 
   buildCache(key: CompletionCacheKey, value: CompletionCacheValue): void {
-    this.logger.debug({ key, value }, "Starting to build cache");
+    this.logger.debug("Updating completion cache...");
+    this.logger.trace("Building cache with:", { key, value });
     const entries = this.createCacheEntries(key, value);
     entries.forEach((entry) => {
       this.cache.set(entry.key.hash, { value: entry.value, rebuildFlag: entry.rebuildFlag });
     });
-    this.logger.debug({ newEntries: entries.length, cacheSize: this.cache.size }, "Cache updated");
+    this.logger.debug(`Completion cache updated, cache size: ${this.cache.size}`);
   }
 
   get(key: CompletionCacheKey): CompletionCacheValue | undefined {
@@ -58,7 +59,6 @@ export class CompletionCache {
       for (const choice of value.choices) {
         const completionText = choice.text.slice(key.position - choice.replaceRange.start);
         const perLinePositions = this.getPerLinePositions(completionText);
-        this.logger.trace({ completionText, perLinePositions }, "Calculate per-line cache positions");
         for (const position of perLinePositions) {
           const completionTextPrefix = completionText.slice(0, position);
           const completionTextPrefixWithAutoClosedChars = this.generateAutoClosedPrefixes(completionTextPrefix);
@@ -84,12 +84,10 @@ export class CompletionCache {
               },
               rebuildFlag: true,
             };
-            this.logger.trace({ prefix, entry }, "Build per-line cache entry");
             list.push(entry);
           }
         }
         const perCharacterPositions = this.getPerCharacterPositions(completionText);
-        this.logger.trace({ completionText, perCharacterPositions }, "Calculate per-character cache positions");
         for (const position of perCharacterPositions) {
           let lineStart = position;
           while (lineStart > 0 && completionText[lineStart - 1] !== "\n") {
@@ -119,7 +117,6 @@ export class CompletionCache {
               },
               rebuildFlag: false,
             };
-            this.logger.trace({ prefix, entry }, "Build per-character cache entry");
             list.push(entry);
           }
         }

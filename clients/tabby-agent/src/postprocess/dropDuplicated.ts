@@ -30,10 +30,7 @@ export function dropDuplicated(): PostprocessFilter {
     const threshold = Math.max(1, 0.05 * inputToCompare.length, 0.05 * suffixToCompare.length);
     const distance = calcDistance(inputToCompare, suffixToCompare);
     if (distance <= threshold) {
-      logger.debug(
-        { inputLines, suffixLines, inputToCompare, suffixToCompare, distance, threshold },
-        "Drop completion due to duplicated.",
-      );
+      logger.trace("Drop completion due to duplicated.", { inputToCompare, suffixToCompare, distance, threshold });
       return null;
     }
     return input;

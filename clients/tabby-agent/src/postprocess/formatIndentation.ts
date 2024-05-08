@@ -94,7 +94,7 @@ export function formatIndentation(): PostprocessFilter {
         return indentation.repeat(level) + rest;
       }
     });
-    logger.debug({ prefixLines, suffixLines, inputLines, formatted }, "Format indentation.");
+    logger.trace("Format indentation.", { inputLines, formatted });
     return formatted.join("");
   };
 }

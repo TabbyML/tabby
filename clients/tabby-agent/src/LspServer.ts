@@ -15,14 +15,14 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { name as agentName, version as agentVersion } from "../package.json";
 import { Agent, StatusChangedEvent, CompletionRequest, CompletionResponse } from "./Agent";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 import { splitLines, isCanceledError } from "./utils";
 
 export class LspServer {
   private readonly connection = createConnection();
   private readonly documents = new TextDocuments(TextDocument);
 
-  private readonly logger = logger("LspServer");
+  private readonly logger = getLogger("LSP");
 
   private agent?: Agent;
 
@@ -62,7 +62,8 @@ export class LspServer {
   // LSP interface methods
 
   async initialize(params: InitializeParams): Promise<InitializeResult> {
-    this.logger.debug({ params }, "LSP: initialize: request");
+    this.logger.debug("[-->] Initialize Request");
+    this.logger.trace("Initialize params:", params);
     if (!this.agent) {
       throw new Error(`Agent not bound.\n`);
     }
@@ -102,52 +103,58 @@ export class LspServer {
         version: agentVersion,
       },
     };
+    this.logger.debug("[<--] Initialize Response");
+    this.logger.trace("Initialize result:", result);
     return result;
   }
 
   async shutdown() {
-    this.logger.debug("LSP: shutdown: request");
+    this.logger.debug("[-->] shutdown");
     if (!this.agent) {
       throw new Error(`Agent not bound.\n`);
     }
 
     await this.agent.finalize();
+    this.logger.debug("[<--] shutdown");
   }
 
   exit() {
-    this.logger.debug("LSP: exit: request");
+    this.logger.debug("[-->] exit");
     return process.exit(0);
   }
 
   async showMessage(params: ShowMessageParams) {
-    this.logger.debug({ params }, "LSP server notification: window/showMessage");
+    this.logger.debug("[<--] window/showMessage");
+    this.logger.trace("ShowMessage params:", params);
     await this.connection.sendNotification("window/showMessage", params);
   }
 
   async completion(params: CompletionParams): Promise<CompletionList> {
-    this.logger.debug({ params }, "LSP: textDocument/completion: request");
+    this.logger.debug("[-->] textDocument/completion");
+    this.logger.trace("Completion params:", params);
     if (!this.agent) {
       throw new Error(`Agent not bound.\n`);
     }
 
-    try {
-      const request = this.buildCompletionRequest(params);
-      const response = await this.agent.provideCompletions(request);
-      const completionList = this.toCompletionList(response, params);
-      this.logger.debug({ completionList }, "LSP: textDocument/completion: response");
-      return completionList;
-    } catch (error) {
-      if (isCanceledError(error)) {
-        this.logger.debug({ error }, "LSP: textDocument/completion: canceled");
-      } else {
-        this.logger.error({ error }, "LSP: textDocument/completion: error");
-      }
-    }
-
-    return {
+    let completionList: CompletionList = {
       isIncomplete: true,
       items: [],
     };
+    try {
+      const request = this.buildCompletionRequest(params);
+      const response = await this.agent.provideCompletions(request);
+      completionList = this.toCompletionList(response, params);
+    } catch (error) {
+      if (isCanceledError(error)) {
+        this.logger.debug("Completion request canceled.");
+      } else {
+        this.logger.error("Completion request failed.", error);
+      }
+    }
+
+    this.logger.debug("[<--] textDocument/completion");
+    this.logger.trace("Completion result:", completionList);
+    return completionList;
   }
 
   private buildCompletionRequest(

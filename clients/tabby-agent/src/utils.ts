@@ -233,6 +233,10 @@ export function isCanceledError(error: any) {
   return error instanceof Error && error.name === "AbortError";
 }
 
+export function isUnauthorizedError(error: any) {
+  return error instanceof HttpError && [401, 403].includes(error.status);
+}
+
 export function errorToString(error: Error & { cause?: Error }) {
   let message = error.message || error.toString();
   if (error.cause) {

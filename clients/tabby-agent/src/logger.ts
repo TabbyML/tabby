@@ -1,126 +1,167 @@
 import path from "path";
 import os from "os";
+import EventEmitter from "events";
 import pino from "pino";
 import * as FileStreamRotator from "file-stream-rotator";
-import { isBrowser, isTest, testLogDebug } from "./env";
-
-export interface LogFn {
-  (msg: string, ...args: any[]): void;
-}
+import { isBrowser, isTest } from "./env";
 
 export interface Logger {
-  error: LogFn;
-  warn: LogFn;
-  info: LogFn;
-  debug: LogFn;
-  trace: LogFn;
-}
-
-export type ObjLogFn = {
-  <T extends object>(obj: T, msg?: string, ...args: any[]): void;
-  (obj: unknown, msg?: string, ...args: any[]): void;
-  (msg: string, ...args: any[]): void;
-};
-
-export interface ObjLogger {
-  error: ObjLogFn;
-  warn: ObjLogFn;
-  info: ObjLogFn;
-  debug: ObjLogFn;
-  trace: ObjLogFn;
+  error: (msg: string, error: any) => void;
+  warn: (msg: string) => void;
+  info: (msg: string) => void;
+  debug: (msg: string) => void;
+  trace: (msg: string, verbose?: any) => void;
 }
 
 class LogFileStream implements pino.DestinationStream {
-  private streamOptions = {
-    // Rotating file locate at `~/.tabby-client/agent/logs/`.
-    filename: path.join(os.homedir(), ".tabby-client", "agent", "logs", "%DATE%"),
-    frequency: "daily",
-    size: "10M",
-    max_logs: "30d",
-    extension: ".log",
-    create_symlink: true,
-  };
   private stream?: pino.DestinationStream;
 
   write(data: string): void {
     if (!this.stream) {
-      this.stream = FileStreamRotator.getStream(this.streamOptions);
+      this.stream = FileStreamRotator.getStream({
+        // Rotating file locate at `~/.tabby-client/agent/logs/`.
+        filename: path.join(os.homedir(), ".tabby-client", "agent", "logs", "%DATE%"),
+        frequency: "daily",
+        size: "10M",
+        max_logs: "30d",
+        extension: ".log",
+        create_symlink: true,
+      });
     }
     this.stream.write(data);
   }
 }
 
-// LogFileStream not available in browser, will use default browser console output instead.
-const logFileStream = isBrowser || isTest ? undefined : new LogFileStream();
-const pinoOptions = { serializers: { error: pino.stdSerializers.err } };
-const rootBasicLogger = logFileStream ? pino(pinoOptions, logFileStream) : pino(pinoOptions);
-if (isTest && testLogDebug) {
-  rootBasicLogger.level = "debug";
-} else {
-  rootBasicLogger.level = "silent";
-}
-export const allBasicLoggers = [rootBasicLogger];
-rootBasicLogger.onChild = (child: pino.Logger) => {
-  allBasicLoggers.push(child);
-};
+class TaggedLogger implements Logger {
+  constructor(
+    private baseLogger: Logger,
+    private tag: string,
+  ) {}
 
-function toObjLogFn(logFn: LogFn): ObjLogFn {
-  return (...args: any[]) => {
-    const arg0 = args.shift();
-    if (typeof arg0 === "string") {
-      logFn(arg0, ...args);
-    } else {
-      const arg1 = args.shift();
-      if (typeof arg1 === "string") {
-        logFn(arg1, ...args, arg0);
-      } else {
-        logFn(arg0, arg1, ...args);
-      }
+  private tagMsg(msg: string): string {
+    return `[${this.tag}] ${msg}`;
+  }
+
+  error(msg: string, error: any): void {
+    this.baseLogger.error(this.tagMsg(msg), error);
+  }
+  warn(msg: string): void {
+    this.baseLogger.warn(this.tagMsg(msg));
+  }
+  info(msg: string): void {
+    this.baseLogger.info(this.tagMsg(msg));
+  }
+  debug(msg: string): void {
+    this.baseLogger.debug(this.tagMsg(msg));
+  }
+  trace(msg: string, verbose?: any): void {
+    this.baseLogger.trace(this.tagMsg(msg), verbose);
+  }
+}
+
+class JsonLineLogger implements Logger {
+  private childLoggers: pino.Logger[] = [];
+
+  constructor(private baseLogger: pino.Logger) {
+    this.baseLogger.onChild = (child: pino.Logger) => {
+      this.childLoggers.push(child);
+    };
+  }
+
+  get level(): string {
+    return this.baseLogger.level;
+  }
+
+  set level(level: string) {
+    this.baseLogger.level = level;
+    this.childLoggers.forEach((child) => {
+      child.level = level;
+    });
+  }
+
+  child(tag: string): Logger {
+    return new JsonLineLogger(this.baseLogger.child({ tag }));
+  }
+
+  error(msg: string, error: any) {
+    this.baseLogger.error({ error }, msg);
+  }
+  warn(msg: string) {
+    this.baseLogger.warn(msg);
+  }
+  info(msg: string) {
+    this.baseLogger.info(msg);
+  }
+  debug(msg: string) {
+    this.baseLogger.debug(msg);
+  }
+  trace(msg: string, verbose?: any) {
+    this.baseLogger.trace(verbose, msg);
+  }
+}
+
+class Destinations extends EventEmitter {
+  constructor(public readonly destinations: Logger[] = []) {
+    super();
+  }
+
+  attach(...destinations: Logger[]) {
+    this.destinations.push(...destinations);
+    this.emit("newAttached", destinations);
+  }
+}
+
+class MultiDestinationLogger implements Logger {
+  private loggers: Logger[] = [];
+
+  constructor(
+    public destinations: Destinations,
+    private readonly tag?: string,
+  ) {
+    this.loggers.push(...destinations.destinations.map((destination) => this.createTaggedLogger(destination)));
+    destinations.on("newAttached", (destinations: Logger[]) => {
+      this.loggers.push(...destinations.map((destination) => this.createTaggedLogger(destination)));
+    });
+  }
+
+  private createTaggedLogger(destination: Logger): Logger {
+    if (!this.tag) {
+      return destination;
     }
-  };
+    if (destination instanceof JsonLineLogger) {
+      return destination.child(this.tag);
+    }
+    return new TaggedLogger(destination, this.tag);
+  }
+
+  error(msg: string, error: any) {
+    this.loggers.forEach((logger) => logger.error(msg, error));
+  }
+  warn(msg: string) {
+    this.loggers.forEach((logger) => logger.warn(msg));
+  }
+  info(msg: string) {
+    this.loggers.forEach((logger) => logger.info(msg));
+  }
+  debug(msg: string) {
+    this.loggers.forEach((logger) => logger.debug(msg));
+  }
+  trace(msg: string, verbose?: any) {
+    this.loggers.forEach((logger) => logger.trace(msg, verbose));
+  }
 }
 
-function withComponent(logFn: LogFn, component: string): LogFn {
-  return (msg: string, ...args: any[]) => {
-    logFn(`[${component}] ${msg ?? ""}`, ...args);
-  };
+export const logDestinations = new Destinations();
+
+export const fileLogger =
+  isBrowser || isTest
+    ? undefined
+    : new JsonLineLogger(pino({ serializers: { error: pino.stdSerializers.err } }, new LogFileStream()));
+
+if (fileLogger) {
+  logDestinations.attach(fileLogger);
 }
 
-export const extraLogger = {
-  loggers: [] as Logger[],
-  child(component: string): ObjLogger {
-    const buildLogFn = (level: keyof Logger) => {
-      const logFn = (...args: any[]) => {
-        const arg0 = args.shift();
-        this.loggers.forEach((logger) => logger[level](arg0, ...args));
-      };
-      return toObjLogFn(withComponent(logFn, component));
-    };
-    return {
-      error: buildLogFn("error"),
-      warn: buildLogFn("warn"),
-      info: buildLogFn("info"),
-      debug: buildLogFn("debug"),
-      trace: buildLogFn("trace"),
-    };
-  },
-};
-
-export function logger(component: string): ObjLogger {
-  const basic = rootBasicLogger.child({ component });
-  const extra = extraLogger.child(component);
-  const all = [basic, extra];
-  const buildLogFn = (level: keyof ObjLogger) => {
-    return (...args: any[]) => {
-      const arg0 = args.shift();
-      all.forEach((logger) => logger[level](arg0, ...args));
-    };
-  };
-  return {
-    error: buildLogFn("error"),
-    warn: buildLogFn("warn"),
-    info: buildLogFn("info"),
-    debug: buildLogFn("debug"),
-    trace: buildLogFn("trace"),
-  };
+export function getLogger(tag: string): Logger {
+  return new MultiDestinationLogger(logDestinations, tag);
 }

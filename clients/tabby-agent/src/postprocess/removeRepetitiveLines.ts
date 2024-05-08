@@ -31,13 +31,10 @@ export function removeRepetitiveLines(): PostprocessFilter {
       }
     }
     if (repetitionCount >= repetitionThreshold) {
-      logger.debug(
-        {
-          inputLines,
-          repetitionCount,
-        },
-        "Remove repetitive lines.",
-      );
+      logger.trace("Remove repetitive lines.", {
+        inputLines,
+        repetitionCount,
+      });
       return inputLines
         .slice(0, index + 1)
         .join("")

@@ -39,13 +39,10 @@ export function removeRepetitiveBlocks(): PostprocessFilter {
       }
     }
     if (repetitionCount >= repetitionThreshold) {
-      logger.debug(
-        {
-          inputBlocks,
-          repetitionCount,
-        },
-        "Remove repetitive blocks.",
-      );
+      logger.trace("Remove repetitive blocks.", {
+        inputBlocks,
+        repetitionCount,
+      });
       return inputBlocks
         .slice(0, index + 1)
         .join("")
