@@ -245,6 +245,10 @@ const ActiveRepoTable: React.FC<{
 
   React.useEffect(() => {
     loadPage(1)
+
+    return () => {
+      clearRecentlyActivated.cancel()
+    }
   }, [])
 
   return (
