@@ -192,7 +192,7 @@ const ActiveRepoTable: React.FC<{
       active: false
     }).then(res => {
       if (res?.data?.updateGithubProvidedRepositoryActive) {
-        setInactiveRepositories([...inactiveRepositories, repo])
+        setInactiveRepositories(sortRepos([...inactiveRepositories, repo]))
         const nextPage = isLastItem ? page - 1 : page
         loadPage(nextPage || 1)
       }
@@ -218,6 +218,11 @@ const ActiveRepoTable: React.FC<{
 
   const [open, setOpen] = React.useState(false)
 
+  const sortRepos = (repos: GithubRepositories) => {
+    if (!repos?.length) return repos
+    return repos.sort((a, b) => a.node.name?.localeCompare(b.node.name))
+  }
+
   const onCreated = (id: string) => {
     const activedRepo = inactiveRepositories?.find(o => o?.node?.id === id)
     if (activedRepo) {
@@ -225,6 +230,9 @@ const ActiveRepoTable: React.FC<{
         activedRepo,
         ...recentlyActivatedRepositories
       ])
+      setInactiveRepositories(repos =>
+        sortRepos(repos.filter(o => o.node.id !== id))
+      )
       clearRecentlyActivated.run(page)
     }
     setOpen(false)
