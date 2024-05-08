@@ -142,7 +142,7 @@ const ActiveRepoTable: React.FC<{
     isAllLoaded: isInactiveRepositoriesLoaded
   } = useAllInactiveRepositories(providerId)
 
-  const doFetchRepositories = (
+  const fetchRepositories = (
     variables: QueryVariables<typeof listGithubRepositories>
   ) => {
     return client.query(listGithubRepositories, variables).toPromise()
@@ -152,7 +152,7 @@ const ActiveRepoTable: React.FC<{
     page: number,
     cursor?: string
   ): Promise<ListGithubRepositoriesQuery | undefined> => {
-    const res = await doFetchRepositories({
+    const res = await fetchRepositories({
       providerIds: [providerId],
       first: PAGE_SIZE,
       after: cursor,
@@ -194,12 +194,12 @@ const ActiveRepoTable: React.FC<{
       if (res?.data?.updateGithubProvidedRepositoryActive) {
         setInactiveRepositories([...inactiveRepositories, repo])
         const nextPage = isLastItem ? page - 1 : page
-        doLoadPage(nextPage || 1)
+        loadPage(nextPage || 1)
       }
     })
   }
 
-  const doLoadPage = async (pageNo: number) => {
+  const loadPage = async (pageNo: number) => {
     try {
       setFetching(true)
       const res = await fetchRepositoriesSequentially(pageNo)
@@ -213,7 +213,7 @@ const ActiveRepoTable: React.FC<{
 
   const clearRecentlyActivated = useDebounceCallback((page: number) => {
     setRecentlyActivatedRepositories([])
-    doLoadPage(page)
+    loadPage(page)
   }, 3000)
 
   const [open, setOpen] = React.useState(false)
@@ -233,11 +233,11 @@ const ActiveRepoTable: React.FC<{
   const handleLoadPage = (page: number) => {
     clearRecentlyActivated.cancel()
     setRecentlyActivatedRepositories([])
-    doLoadPage(page)
+    loadPage(page)
   }
 
   React.useEffect(() => {
-    doLoadPage(1)
+    loadPage(1)
   }, [])
 
   return (
