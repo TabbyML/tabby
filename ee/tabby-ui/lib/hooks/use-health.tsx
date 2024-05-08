@@ -1,6 +1,7 @@
 'use client'
 
-import useSWR, { SWRResponse } from 'swr'
+import { SWRResponse } from 'swr'
+import useSWRImmutable from 'swr/immutable'
 
 import fetcher from '@/lib/tabby/fetcher'
 
@@ -19,5 +20,13 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-  return useSWR('/v1/health', fetcher)
+  return useSWRImmutable('/v1/health', (url: string) => {
+    return fetcher(url, {
+      errorHandler: () => {
+        throw new Error('Unhealth')
+      }
+    })
+  }, {
+    shouldRetryOnError: false
+  })
 }
