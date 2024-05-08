@@ -1,7 +1,6 @@
 'use client'
 
-import { SWRResponse } from 'swr'
-import useSWRImmutable from 'swr/immutable'
+import useSWR, { SWRResponse } from 'swr'
 
 import fetcher from '@/lib/tabby/fetcher'
 
@@ -20,7 +19,7 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-  return useSWRImmutable(
+  return useSWR(
     '/v1/health',
     (url: string) => {
       return fetcher(url, {
