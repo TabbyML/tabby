@@ -30,6 +30,7 @@ pub mod cache;
 mod email_setting;
 mod github_repository_provider;
 mod gitlab_repository_provider;
+mod integration_provider;
 mod invitations;
 mod job_runs;
 mod oauth_credential;
