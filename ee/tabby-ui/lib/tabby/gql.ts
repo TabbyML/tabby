@@ -17,17 +17,10 @@ import {
 
 import {
   GitRepositoriesQueryVariables,
-  ListGithubRepositoriesQueryVariables,
-  ListGitlabRepositoriesQueryVariables,
   ListInvitationsQueryVariables
 } from '../gql/generates/graphql'
 import { refreshTokenMutation } from './auth'
-import {
-  listGithubRepositories,
-  listGitlabRepositories,
-  listInvitations,
-  listRepositories
-} from './query'
+import { listInvitations, listRepositories } from './query'
 import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
 
 interface ValidationError {
@@ -106,9 +99,7 @@ const client = new Client({
       resolvers: {
         Query: {
           invitations: relayPagination(),
-          repositories: relayPagination(),
-          githubRepositories: relayPagination(),
-          gitlabRepositories: relayPagination()
+          repositories: relayPagination()
         }
       },
       updates: {
@@ -155,74 +146,6 @@ const client = new Client({
                           data.gitRepositories.edges.filter(
                             e => e.node.id !== args.id
                           )
-                      }
-                      return data
-                    }
-                  )
-                })
-            }
-          },
-          updateGithubProvidedRepositoryActive(result, args, cache, info) {
-            if (result.updateGithubProvidedRepositoryActive) {
-              cache
-                .inspectFields('Query')
-                .filter(field => field.fieldName === 'githubRepositories')
-                .forEach(field => {
-                  cache.updateQuery(
-                    {
-                      query: listGithubRepositories,
-                      variables:
-                        field.arguments as ListGithubRepositoriesQueryVariables
-                    },
-                    data => {
-                      if (data?.githubRepositories?.edges?.length) {
-                        data.githubRepositories.edges =
-                          data.githubRepositories.edges.map(edge => {
-                            if (edge.node.id === args.id) {
-                              return {
-                                ...edge,
-                                node: {
-                                  ...edge.node,
-                                  active: args.active as boolean
-                                }
-                              }
-                            }
-                            return edge
-                          })
-                      }
-                      return data
-                    }
-                  )
-                })
-            }
-          },
-          updateGitlabProvidedRepositoryActive(result, args, cache, info) {
-            if (result.updateGitlabProvidedRepositoryActive) {
-              cache
-                .inspectFields('Query')
-                .filter(field => field.fieldName === 'gitlabRepositories')
-                .forEach(field => {
-                  cache.updateQuery(
-                    {
-                      query: listGitlabRepositories,
-                      variables:
-                        field.arguments as ListGitlabRepositoriesQueryVariables
-                    },
-                    data => {
-                      if (data?.gitlabRepositories?.edges?.length) {
-                        data.gitlabRepositories.edges =
-                          data.gitlabRepositories.edges.map(edge => {
-                            if (edge.node.id === args.id) {
-                              return {
-                                ...edge,
-                                node: {
-                                  ...edge.node,
-                                  active: args.active as boolean
-                                }
-                              }
-                            }
-                            return edge
-                          })
                       }
                       return data
                     }
