@@ -10,9 +10,19 @@ import {
   lineNumbers,
   rectangularSelection
 } from '@codemirror/view'
+import { breakpointGutter } from './line-menu-extension/line-menu-extension'
 
 export const basicSetup: Extension = (() => [
-  lineNumbers(),
+  breakpointGutter,
+  lineNumbers({
+    domEventHandlers: {
+      mousedown(view, line) {
+        // todo set searchParams, and setSelectedLine with React.useEffect
+        alert('hahaha')
+        return false
+      }
+    }
+  }),
   highlightSpecialChars(),
   highlightSelectionMatches(),
   EditorState.allowMultipleSelections.of(true),

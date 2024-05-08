@@ -44,7 +44,6 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
           padding: '0px 16px'
         },
         '.cm-gutters': {
-          paddingLeft: '32px',
           backgroundColor: 'transparent',
           borderRight: 'none'
         }
@@ -65,6 +64,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
         highlightTagExtension(tags)
       )
     }
+
     return result
   }, [value, tags, language, editorRef.current])
 
