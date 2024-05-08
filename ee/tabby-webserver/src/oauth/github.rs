@@ -123,15 +123,30 @@ impl OAuthClient for GithubClient {
 
     async fn get_authorization_url(&self) -> Result<String> {
         let credentials = self.read_credential().await?;
-        let mut url = reqwest::Url::parse("https://github.com/login/oauth/authorize")?;
-        let params = vec![
-            ("client_id", credentials.client_id.as_str()),
-            ("response_type", "code"),
-            ("scope", "read:user user:email"),
-        ];
-        for (k, v) in params {
-            url.query_pairs_mut().append_pair(k, v);
-        }
-        Ok(url.to_string())
+        create_authorization_url(&credentials.client_id)
+    }
+}
+
+fn create_authorization_url(client_id: &str) -> Result<String> {
+    let mut url = reqwest::Url::parse("https://github.com/login/oauth/authorize")?;
+    let params = vec![
+        ("client_id", client_id),
+        ("response_type", "code"),
+        ("scope", "read:user user:email"),
+    ];
+    for (k, v) in params {
+        url.query_pairs_mut().append_pair(k, v);
+    }
+    Ok(url.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::create_authorization_url;
+
+    #[test]
+    fn test_create_authorization_url() {
+        let url = create_authorization_url("client_id").unwrap();
+        assert_eq!(url, "https://github.com/login/oauth/authorize?client_id=client_id&response_type=code&scope=read%3Auser+user%3Aemail");
     }
 }
