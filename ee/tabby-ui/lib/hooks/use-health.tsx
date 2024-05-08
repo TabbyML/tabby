@@ -20,13 +20,17 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-  return useSWRImmutable('/v1/health', (url: string) => {
-    return fetcher(url, {
-      errorHandler: () => {
-        throw new Error('Unhealth')
-      }
-    })
-  }, {
-    shouldRetryOnError: false
-  })
+  return useSWRImmutable(
+    '/v1/health',
+    (url: string) => {
+      return fetcher(url, {
+        errorHandler: () => {
+          throw new Error('Unhealth')
+        }
+      })
+    },
+    {
+      shouldRetryOnError: false
+    }
+  )
 }
