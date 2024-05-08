@@ -19,5 +19,17 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-  return useSWR('/v1/health', fetcher)
+  return useSWR(
+    '/v1/health',
+    (url: string) => {
+      return fetcher(url, {
+        errorHandler: () => {
+          throw new Error('Unhealth')
+        }
+      })
+    },
+    {
+      shouldRetryOnError: false
+    }
+  )
 }
