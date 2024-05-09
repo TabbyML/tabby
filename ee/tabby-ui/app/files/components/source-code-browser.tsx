@@ -355,7 +355,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 
   React.useEffect(() => {
     const onFetchSubTree = () => {
-      if (subTree?.entries?.length && activePath) {
+      if (Array.isArray(subTree?.entries) && activePath) {
         const { repositorySpecifier } =
           resolveRepositoryInfoFromPath(activePath)
         let patchMap: TFileMap = {}

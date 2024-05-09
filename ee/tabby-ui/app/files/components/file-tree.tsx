@@ -19,6 +19,7 @@ import {
   IconSpinner
 } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ListSkeleton } from '@/components/skeleton'
 
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import { resolveFileNameFromPath, resolveRepositoryInfoFromPath } from './utils'
@@ -275,7 +276,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     onSelectTreeNode?.(node)
   }
 
-  const [loading] = useDebounceValue(isLoading, 300)
+  const [loading] = useDebounceValue(isLoading, 100)
 
   const existingChildren = !!node?.children?.length
 
@@ -340,6 +341,10 @@ const FileTreeRenderer: React.FC = () => {
     )
 
   if (repositorySpecifier && !fileTreeData?.length) {
+    if (activePath && !fileMap?.[activePath]?.treeExpanded) {
+      return <ListSkeleton />
+    }
+
     return (
       <div className="flex h-full items-center justify-center">No Data</div>
     )
