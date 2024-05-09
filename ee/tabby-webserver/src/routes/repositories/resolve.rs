@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
+use url::Url;
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
@@ -110,12 +111,15 @@ impl ResolveState {
 
     /// Resolve a file
     pub async fn resolve_file(&self, root: PathBuf, repo: &ResolveParams) -> Result<Response> {
-        let uri = if !repo.path_str().starts_with('/') {
-            let path = format!("/{}", repo.path_str());
-            Uri::from_str(path.as_str())?
+        let path = if !repo.path_str().starts_with('/') {
+            format!("/{}", repo.path_str())
         } else {
-            Uri::from_str(repo.path_str())?
+            repo.path_str().to_string()
         };
+
+        let encoded_path = urlencoding::encode(&path);
+
+        let uri = Uri::from_str(&encoded_path)?;
 
         let req = Request::builder().uri(uri).body(Body::empty())?;
         let resp = ServeDir::new(root).oneshot(req).await?;
