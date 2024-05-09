@@ -15,9 +15,14 @@ function HomepageHeader() {
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
 
-        <div className={styles.buttons}>
+        <div className="flex justify-center items-center gap-4 max-w-md mx-auto">
           <Link
-            className="button button--secondary button--lg"
+            className="button button--secondary button--md flex-1"
+            to="https://links.tabbyml.com/live-demo">
+              View Live Demo 🚀
+          </Link>
+          <Link
+            className="button button--primary border-neutral-800 bg-neutral-800 flex-1 hover:opacity-[0.85]"
             to="/docs/getting-started">
             Tutorial - 5min ⏱️
           </Link>
