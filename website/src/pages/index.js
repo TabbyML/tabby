@@ -15,7 +15,7 @@ function HomepageHeader() {
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
 
-        <div className="flex justify-center items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-center items-center gap-4">
           <Link
             className="button button--secondary button--lg"
             to="https://links.tabbyml.com/live-demo">
