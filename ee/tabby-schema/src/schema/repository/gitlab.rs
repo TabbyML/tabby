@@ -70,7 +70,7 @@ pub trait GitlabRepositoryService: Send + Sync + RepositoryProvider {
         &self,
         id: ID,
         display_name: String,
-        access_token: String,
+        access_token: Option<String>,
     ) -> Result<()>;
 
     async fn list_providers(
