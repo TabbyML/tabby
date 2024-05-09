@@ -340,7 +340,11 @@ const FileTreeRenderer: React.FC = () => {
     )
 
   if (repositorySpecifier && !fileTreeData?.length) {
-    if (activePath && !fileMap?.[activePath]?.treeExpanded) {
+    if (
+      activePath &&
+      fileMap?.[activePath]?.isRepository &&
+      !fileMap?.[activePath]?.treeExpanded
+    ) {
       return <FileTreeSkeleton />
     }
 

@@ -260,7 +260,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath, fileMap, initialized])
 
   // fetch raw file
-  const { data: rawFileResponse, isLoading: isRawFileLoading } =
+  const { data: rawFileResponse, isLoading: fetchingRawFile } =
     useSWRImmutable<{
       blob?: Blob
       contentLength?: number
@@ -290,14 +290,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         }
       }
     )
-
-  React.useEffect(() => {
-    if (isRawFileLoading) {
-      setProgress(true)
-    } else {
-      setProgress(false)
-    }
-  }, [isRawFileLoading])
 
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
@@ -354,18 +346,35 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath])
 
   React.useEffect(() => {
+    if (!initialized) return
+    if (fetchingSubTree || fetchingRawFile) {
+      setProgress(true)
+    } else if (!fetchingSubTree && !fetchingRawFile) {
+      setProgress(false)
+    }
+  }, [fetchingSubTree, fetchingRawFile])
+
+  React.useEffect(() => {
     const onFetchSubTree = () => {
       if (Array.isArray(subTree?.entries) && activePath) {
         const { repositorySpecifier } =
           resolveRepositoryInfoFromPath(activePath)
         let patchMap: TFileMap = {}
-        for (const entry of subTree.entries) {
-          const path = `${repositorySpecifier}/${entry.basename}`
-          patchMap[path] = {
-            file: entry,
-            name: resolveFileNameFromPath(path),
-            fullPath: path,
-            treeExpanded: false
+        if (fileMap?.[activePath]) {
+          patchMap[activePath] = {
+            ...fileMap[activePath],
+            treeExpanded: true
+          }
+        }
+        if (subTree?.entries?.length) {
+          for (const entry of subTree.entries) {
+            const path = `${repositorySpecifier}/${entry.basename}`
+            patchMap[path] = {
+              file: entry,
+              name: resolveFileNameFromPath(path),
+              fullPath: path,
+              treeExpanded: false
+            }
           }
         }
         updateFileMap(patchMap)
