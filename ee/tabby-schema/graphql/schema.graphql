@@ -125,7 +125,7 @@ input UpdateOAuthCredentialInput {
 input UpdateRepositoryProviderInput {
   id: ID!
   displayName: String!
-  accessToken: String!
+  accessToken: String
 }
 
 """
