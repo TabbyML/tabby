@@ -42,7 +42,7 @@ export const repositoryProviderFormSchema = z.object({
   accessToken: z.string()
 })
 
-const repositoryProviderFormUpdateSchema = repositoryProviderFormSchema.extend({
+export const repositoryProviderFormUpdateSchema = repositoryProviderFormSchema.extend({
   accessToken: z.string().optional()
 });
 
@@ -50,9 +50,13 @@ export type RepositoryProviderFormValues = z.infer<
   typeof repositoryProviderFormSchema
 >
 
+export type RepositoryProviderFormUpdateValues = z.infer<
+  typeof repositoryProviderFormUpdateSchema
+>
+
 interface GithubProviderFormProps {
   isNew?: boolean
-  form: UseFormReturn<RepositoryProviderFormValues>
+  form: UseFormReturn<RepositoryProviderFormValues | RepositoryProviderFormUpdateValues>
   onSubmit: (values: any) => Promise<any>
   onDelete?: () => Promise<any>
   cancleable?: boolean
