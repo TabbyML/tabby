@@ -8,6 +8,7 @@ use crate::{DateTimeUtc, DbConn};
 pub struct IntegrationAccessTokenDAO {
     pub id: i64,
     pub kind: String,
+    pub valid: bool,
     pub display_name: String,
     pub access_token: Option<String>,
     pub created_at: DateTimeUtc,
@@ -38,6 +39,7 @@ impl DbConn {
             r#"SELECT
                 id,
                 kind,
+                valid,
                 display_name,
                 access_token,
                 created_at AS "created_at: DateTimeUtc",
@@ -84,16 +86,10 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_integration_access_token_sync_status(
-        &self,
-        id: i64,
-        success: bool,
-    ) -> Result<()> {
-        let time = success.then_some(DateTimeUtc::now());
+    pub async fn update_integration_access_token_valid(&self, id: i64, valid: bool) -> Result<()> {
         query!(
-            "UPDATE integration_access_tokens SET updated_at = ?, access_token = IIF(?, access_token, NULL) WHERE id = ?",
-            time,
-            success,
+            "UPDATE integration_access_tokens SET updated_at = DATETIME('now'), valid = ? WHERE id = ?",
+            valid,
             id
         )
         .execute(&self.pool)
@@ -104,11 +100,14 @@ impl DbConn {
     pub async fn list_integration_access_tokens(
         &self,
         ids: Vec<i64>,
+        kind: Option<String>,
         limit: Option<usize>,
         skip_id: Option<i32>,
         backwards: bool,
     ) -> Result<Vec<IntegrationAccessTokenDAO>> {
-        let condition = (!ids.is_empty()).then(|| {
+        let mut conditions = vec![];
+
+        let id_condition = (!ids.is_empty()).then(|| {
             let ids = ids
                 .into_iter()
                 .map(|id| id.to_string())
@@ -116,12 +115,20 @@ impl DbConn {
                 .join(", ");
             format!("id in ({ids})")
         });
+        conditions.extend(id_condition);
+
+        let kind_condition = kind.map(|kind| format!("kind = {kind}"));
+        conditions.extend(kind_condition);
+
+        let condition = (!conditions.is_empty()).then(|| conditions.join(" AND "));
+
         let providers = query_paged_as!(
             IntegrationAccessTokenDAO,
             "integration_access_tokens",
             [
                 "id",
                 "kind",
+                "valid",
                 "display_name",
                 "access_token",
                 "created_at" as "created_at: DateTimeUtc",

@@ -3,6 +3,7 @@ CREATE TABLE integration_access_tokens(
     kind TEXT NOT NULL,
     display_name TEXT NOT NULL,
     access_token TEXT,
+    valid BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     updated_at TIMESTAMP NOT NULL DEFAULT (DATETIME('now'))
 );
