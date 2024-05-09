@@ -23,7 +23,7 @@ pub struct UpdateRepositoryProviderInput {
     ))]
     pub display_name: String,
     #[validate(length(code = "accessToken", min = 10, message = "Invalid access token"))]
-    pub access_token: String,
+    pub access_token: Option<String>,
 }
 
 #[derive(GraphQLEnum, Debug, PartialEq)]

@@ -59,8 +59,13 @@ impl DbConn {
         &self,
         id: i64,
         display_name: String,
-        access_token: String,
+        access_token: Option<String>,
     ) -> Result<()> {
+        let access_token = match access_token {
+            Some(access_token) => Some(access_token),
+            None => self.get_github_provider(id).await?.access_token,
+        };
+
         let res = query!(
             "UPDATE github_repository_provider SET display_name = ?, access_token=? WHERE id = ?;",
             display_name,

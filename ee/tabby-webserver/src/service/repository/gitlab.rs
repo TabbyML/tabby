@@ -106,7 +106,7 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
         &self,
         id: ID,
         display_name: String,
-        access_token: String,
+        access_token: Option<String>,
     ) -> Result<()> {
         let id = id.as_rowid()?;
         self.db
