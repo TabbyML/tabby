@@ -66,8 +66,13 @@ impl DbConn {
         &self,
         id: i64,
         display_name: String,
-        access_token: String,
+        access_token: Option<String>,
     ) -> Result<()> {
+        let access_token = match access_token {
+            Some(access_token) => Some(access_token),
+            None => self.get_integration_access_token(id).await?.access_token,
+        };
+
         let res = query!(
             "UPDATE integration_access_tokens SET display_name = ?, access_token=? WHERE id = ?;",
             display_name,
