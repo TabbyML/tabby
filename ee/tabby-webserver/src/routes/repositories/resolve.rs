@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use tabby_schema::repository::{RepositoryKind, RepositoryService};
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
-use url::Url;
 
 const DIRECTORY_MIME_TYPE: &str = "application/vnd.directory+json";
 
@@ -143,8 +142,6 @@ fn encode_path(path: &str) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use super::encode_path;
 
     #[test]
