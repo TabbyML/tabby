@@ -63,7 +63,7 @@ impl DbConn {
     ) -> Result<()> {
         let access_token = match access_token {
             Some(access_token) => Some(access_token),
-            None => self.get_github_provider(id).await?.access_token,
+            None => self.get_gitlab_provider(id).await?.access_token,
         };
 
         let res = query!(
