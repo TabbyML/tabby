@@ -19,7 +19,6 @@ import {
   IconSpinner
 } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ListSkeleton } from '@/components/skeleton'
 
 import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
 import { resolveFileNameFromPath, resolveRepositoryInfoFromPath } from './utils'
@@ -342,7 +341,7 @@ const FileTreeRenderer: React.FC = () => {
 
   if (repositorySpecifier && !fileTreeData?.length) {
     if (activePath && !fileMap?.[activePath]?.treeExpanded) {
-      return <ListSkeleton />
+      return <FileTreeSkeleton />
     }
 
     return (
