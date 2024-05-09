@@ -42,6 +42,10 @@ export const repositoryProviderFormSchema = z.object({
   accessToken: z.string()
 })
 
+const repositoryProviderFormUpdateSchema = repositoryProviderFormSchema.extend({
+  accessToken: z.string().optional()
+});
+
 export type RepositoryProviderFormValues = z.infer<
   typeof repositoryProviderFormSchema
 >
@@ -231,8 +235,8 @@ export const CommonProviderForm: React.FC<GithubProviderFormProps> = ({
 export function useRepositoryProviderForm(
   defaultValues?: Partial<RepositoryProviderFormValues>
 ) {
-  return useForm<z.infer<typeof repositoryProviderFormSchema>>({
-    resolver: zodResolver(repositoryProviderFormSchema),
+  return useForm<z.infer<typeof repositoryProviderFormUpdateSchema>>({
+    resolver: zodResolver(repositoryProviderFormUpdateSchema),
     defaultValues
   })
 }
