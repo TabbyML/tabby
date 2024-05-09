@@ -118,7 +118,7 @@ impl ResolveState {
         };
 
         let encoded_path = encode_path(&path)?;
-        let uri = Uri::from_str(&path)?;
+        let uri = Uri::from_str(&encoded_path)?;
 
         let req = Request::builder().uri(uri).body(Body::empty())?;
         let resp = ServeDir::new(root).oneshot(req).await?;
@@ -141,14 +141,17 @@ fn encode_path(path: &str) -> Result<String> {
     Ok(url.path().to_string())
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
+
     use super::encode_path;
 
     #[test]
     fn test_encode_path() {
-        assert_eq!(encode_path("/foo/c dbar/a & c").unwrap(), "/foo/c%20dbar/a%20&%20c");
+        assert_eq!(
+            encode_path("/foo/c dbar/a & c").unwrap(),
+            "/foo/c%20dbar/a%20&%20c"
+        );
     }
 }
