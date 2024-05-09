@@ -8,7 +8,7 @@ use crate::{DateTimeUtc, DbConn};
 pub struct IntegrationAccessTokenDAO {
     pub id: i64,
     pub kind: String,
-    pub error: Option<String>,
+    pub valid: bool,
     pub display_name: String,
     pub access_token: Option<String>,
     pub created_at: DateTimeUtc,
@@ -39,7 +39,7 @@ impl DbConn {
             r#"SELECT
                 id,
                 kind,
-                error,
+                valid,
                 display_name,
                 access_token,
                 created_at AS "created_at: DateTimeUtc",
@@ -86,14 +86,10 @@ impl DbConn {
         Ok(())
     }
 
-    pub async fn update_integration_access_token_error(
-        &self,
-        id: i64,
-        error: Option<String>,
-    ) -> Result<()> {
+    pub async fn update_integration_access_token_valid(&self, id: i64, valid: bool) -> Result<()> {
         query!(
-            "UPDATE integration_access_tokens SET updated_at = DATETIME('now'), error = ? WHERE id = ?",
-            error,
+            "UPDATE integration_access_tokens SET updated_at = DATETIME('now'), valid = ? WHERE id = ?",
+            valid,
             id
         )
         .execute(&self.pool)
@@ -132,7 +128,7 @@ impl DbConn {
             [
                 "id",
                 "kind",
-                "error",
+                "valid",
                 "display_name",
                 "access_token",
                 "created_at" as "created_at: DateTimeUtc",
