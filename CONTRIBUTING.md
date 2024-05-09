@@ -29,11 +29,7 @@ apt-get install protobuf-compiler libopenblas-dev
 choco install protoc
 ```
 
-Some of the tests require mailtutan SMTP server which you can install with:
-
-```bash
-cargo install mailtutan
-```
+Some of the tests require mailpit SMTP server which you can install following this [instruction](https://github.com/axllent/mailpit?tab=readme-ov-file#installation)
 
 Before proceeding, ensure that all tests are passing locally:
 
