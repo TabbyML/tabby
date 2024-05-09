@@ -17,6 +17,7 @@ function HomepageHeader() {
 
         <div className="flex flex-col md:flex-row justify-center items-center gap-4">
           <Link
+            rel="noopener"
             className="button button--secondary button--lg"
             to="https://links.tabbyml.com/live-demo">
             View Live Demo 🚀
