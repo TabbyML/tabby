@@ -225,11 +225,15 @@
 <polygon fill="none" stroke="black" points="367.5,-822.5 367.5,-843.5 434.5,-843.5 434.5,-822.5 367.5,-822.5"/>
 <text text-anchor="start" x="398.5" y="-829.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="434.5,-822.5 434.5,-843.5 581.5,-843.5 581.5,-822.5 434.5,-822.5"/>
-<text text-anchor="start" x="470" y="-829.3" font-family="Times,serif" font-size="14.00">created_at</text>
+<text text-anchor="start" x="490.5" y="-829.3" font-family="Times,serif" font-size="14.00">valid</text>
 <polygon fill="none" stroke="black" points="367.5,-801.5 367.5,-822.5 434.5,-822.5 434.5,-801.5 367.5,-801.5"/>
 <text text-anchor="start" x="398.5" y="-808.3" font-family="Times,serif" font-size="14.00"> </text>
 <polygon fill="none" stroke="black" points="434.5,-801.5 434.5,-822.5 581.5,-822.5 581.5,-801.5 434.5,-801.5"/>
-<text text-anchor="start" x="468" y="-808.3" font-family="Times,serif" font-size="14.00">updated_at</text>
+<text text-anchor="start" x="470" y="-808.3" font-family="Times,serif" font-size="14.00">created_at</text>
+<polygon fill="none" stroke="black" points="367.5,-780.5 367.5,-801.5 434.5,-801.5 434.5,-780.5 367.5,-780.5"/>
+<text text-anchor="start" x="398.5" y="-787.3" font-family="Times,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="434.5,-780.5 434.5,-801.5 581.5,-801.5 581.5,-780.5 434.5,-780.5"/>
+<text text-anchor="start" x="468" y="-787.3" font-family="Times,serif" font-size="14.00">updated_at</text>
 </g>
 <!-- invitations -->
 <g id="node8" class="node">
