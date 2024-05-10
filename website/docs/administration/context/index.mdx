@@ -1,0 +1,42 @@
+---
+sidebar_position: 10
+---
+
+import RepositoryProvidersUrl from "./repository-providers.png";
+import GitUrl from "./git.png";
+import GitHubGitLabUrl from "./github-gitlab.png";
+import SelectRepoUrl from "./select-repo.png";
+import CodeBrowserUrl from "./code-browser.png";
+
+# Repository Context
+
+The repository context is used to connect Tabby with a source code repository from Git, GitHub, GitLab, etc. Tabby fetches the source code from the repository, parses it into an AST, and stores it in the index. During LLM inference, this context is utilized for code completion, as well as chat and search functionalities.
+
+## Adding a Repository Provider
+
+1. Navigate to the **Integrations > Repository Providers** page.
+
+<img src={RepositoryProvidersUrl} alt="Repository Providers" />
+
+2. Click **Create** to begin the process of adding a repository provider.
+
+  - For Git, you only need to fill in the name and the URL of the repository.
+
+    <img src={GitUrl} alt="Git" width="700" />
+
+  - For GitHub / GitLab, a personal access token is required to access private repositories.
+    * Check the instructions in the corresponding tab to create a token. 
+
+    <img src={GitHubGitLabUrl} alt="GitHub or GitLab" width="700" />
+
+    * Once the token is set, you can add the repository by selecting it from the dropdown list.
+
+    <img src={SelectRepoUrl} alt="select-repo" width="700" />
+
+## Verifying the Repository Provider
+
+Once connected, the indexing job will start automatically. You can check the status of the indexing job on the **Information > Jobs** page.
+
+Additionally, you can also visit the **Code Browser** page to view the connected repository.
+
+<img src={CodeBrowserUrl} alt="code browser" width="800" />
