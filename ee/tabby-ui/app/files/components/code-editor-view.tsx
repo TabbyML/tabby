@@ -7,15 +7,15 @@ import { useTheme } from 'next-themes'
 import { EXP_enable_code_browser_quick_action_bar } from '@/lib/experiment-flags'
 import { TCodeTag } from '@/lib/types'
 import CodeEditor from '@/components/codemirror/codemirror'
-import {
-  selectLinesGutter,
-  setSelectedLines
-} from '@/components/codemirror/line-menu-extension/line-menu-extension'
 import { markTagNameExtension } from '@/components/codemirror/name-tag-extension'
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
 
 import { ActionBarWidgetExtension } from './action-bar-widget/action-bar-widget-extension'
+import {
+  selectLinesGutter,
+  setSelectedLines
+} from './line-menu-extension/line-menu-extension'
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
 
