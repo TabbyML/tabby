@@ -11,15 +11,12 @@ pub mod terminal;
 pub mod usage;
 
 use std::{
-    fs::File,
-    io::BufReader,
     ops::Range,
     path::{Path, PathBuf},
 };
 
 use path::dataset_dir;
 use serde::{Deserialize, Serialize};
-use serde_jsonlines::JsonLinesReader;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SourceFile {
@@ -36,16 +33,6 @@ pub struct SourceFile {
 impl SourceFile {
     pub fn files_jsonl() -> PathBuf {
         dataset_dir().join("files.jsonl")
-    }
-
-    pub fn all() -> impl Iterator<Item = Self> {
-        let files = glob::glob(format!("{}*", Self::files_jsonl().display()).as_str()).unwrap();
-
-        files.filter_map(|x| x.ok()).flat_map(|path| {
-            let fp = BufReader::new(File::open(path).unwrap());
-            let reader = JsonLinesReader::new(fp);
-            reader.read_all::<SourceFile>().filter_map(|x| x.ok())
-        })
     }
 
     pub fn read_content(&self) -> std::io::Result<String> {

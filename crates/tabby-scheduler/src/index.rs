@@ -6,6 +6,7 @@ use kv::Batch;
 use tabby_common::{
     config::RepositoryConfig,
     index::{register_tokenizers, CodeSearchSchema},
+    languages::get_language_by_ext,
     path, SourceFile,
 };
 use tantivy::{directory::MmapDirectory, doc, Index, Term};
@@ -37,14 +38,24 @@ fn add_changed_documents(
         .writer(150_000_000)
         .expect("Failed to create index writer");
 
-    let total_file_size: usize = SourceFile::all()
-        .filter(is_valid_file)
-        .map(|x| x.read_file_size())
-        .sum();
-
-    let mut pb = std::io::stdout()
-        .is_terminal()
-        .then(|| tqdm(total_file_size));
+    let mut pb = std::io::stdout().is_terminal().then(|| {
+        let total_file_size = Walk::new(tabby_common::path::repositories_dir())
+            .filter_map(|entry| entry.ok())
+            .filter_map(|entry| {
+                let path = entry.path();
+                if !path.is_file() {
+                    return None;
+                }
+                get_language_by_ext(path.extension()?)?;
+                if cache.check_indexed(path).1 {
+                    None
+                } else {
+                    Some(())
+                }
+            })
+            .count();
+        tqdm(total_file_size)
+    });
 
     let intelligence = CodeIntelligence::default();
     let mut indexed_files_batch = Batch::new();
@@ -80,11 +91,6 @@ fn add_changed_documents(
             };
 
             for body in intelligence.chunks(&text) {
-                pb.as_mut()
-                    .map(|b| b.update(body.len()))
-                    .transpose()
-                    .expect("Failed to update progress bar");
-
                 writer
                     .add_document(doc! {
                                 code.field_git_url => source_file.git_url.clone(),
@@ -95,6 +101,12 @@ fn add_changed_documents(
                     })
                     .expect("Failed to add document");
             }
+
+            pb.as_mut()
+                .map(|b| b.update(1))
+                .transpose()
+                .expect("Failed to update progress bar");
+
             indexed_files_batch
                 .set(&file_id, &String::new())
                 .expect("Failed to mark file as indexed");
