@@ -9,6 +9,7 @@ Get file or directory content from local repositories
 **URL:** `/repositories/{kind}/{id}/resolve/{path}`
 
 **Method:** `GET`
+**Authorization:** Auth token used for GraphQL queries
 
 **Request examples:**
 
