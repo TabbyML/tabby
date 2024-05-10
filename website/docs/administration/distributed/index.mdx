@@ -9,12 +9,12 @@ This feature is available in the **Team** and **Enterprise** Plans.
 
 Tabby provides built-in distributed support for multi-node setups. This allows you to scale your Tabby deployment horizontally and distribute the workload across multiple GPU workers.
 
-## Start the Webserver
+## Start Tabby
 
-Start the web server using the following command:
+Start the web UI using the following command:
 
 ```bash
-tabby serve --webserver
+tabby serve
 ```
 
 By doing so, the web server will operate without a model attached to it. If you send a POST request to `/v1/completions`, you will receive a `501 Not Implemented` error.
