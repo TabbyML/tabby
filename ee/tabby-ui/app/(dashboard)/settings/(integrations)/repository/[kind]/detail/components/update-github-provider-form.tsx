@@ -70,10 +70,6 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     })
     if (res?.data?.updateGithubRepositoryProvider) {
       onUpdate?.()
-    } else {
-      toast.error(
-        res?.error?.message || 'Failed to update GitHub repository provider'
-      )
     }
   }
 
