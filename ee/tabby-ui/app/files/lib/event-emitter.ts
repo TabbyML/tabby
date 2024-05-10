@@ -14,7 +14,6 @@ type QuickActionEventPayload = {
 
 type LineMenuActionEventPayload = {
   action: LineMenuAction
-  // lineFrom: number
 }
 
 type CodeBrowserQuickActionEvents = {
