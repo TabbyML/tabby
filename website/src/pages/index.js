@@ -30,7 +30,7 @@ function HomepageHeader() {
           </Link>
         </div>
 
-        <img className="m-5" src="img/demo.gif" />
+        <img className="mt-5" src="img/demo.gif" />
       </div>
     </header>
   );
