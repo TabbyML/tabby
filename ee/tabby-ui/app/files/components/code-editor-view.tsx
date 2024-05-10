@@ -6,10 +6,11 @@ import { useTheme } from 'next-themes'
 
 import { EXP_enable_code_browser_quick_action_bar } from '@/lib/experiment-flags'
 import { TCodeTag } from '@/lib/types'
-import CodeEditor, {
-  CodeMirrorEditorRef
-} from '@/components/codemirror/codemirror'
-import { selectLinesGutter } from '@/components/codemirror/line-menu-extension/line-menu-extension'
+import CodeEditor from '@/components/codemirror/codemirror'
+import {
+  selectLinesGutter,
+  setSelectedLines
+} from '@/components/codemirror/line-menu-extension/line-menu-extension'
 import { markTagNameExtension } from '@/components/codemirror/name-tag-extension'
 import { highlightTagExtension } from '@/components/codemirror/tag-range-highlight-extension'
 import { codeTagHoverTooltip } from '@/components/codemirror/tooltip-extesion'
@@ -20,6 +21,13 @@ import { resolveRepositoryInfoFromPath } from './utils'
 
 import '@/components/codemirror/line-menu-extension/line-menu.css'
 
+import { isNaN } from 'lodash-es'
+
+import { useCopyToClipboard } from '@/lib/hooks/use-copy-to-clipboard'
+import useRouterStuff from '@/lib/hooks/use-router-stuff'
+
+import { emitter, LineMenuActionEventPayload } from '../lib/event-emitter'
+
 interface CodeEditorViewProps {
   value: string
   language: string
@@ -27,8 +35,15 @@ interface CodeEditorViewProps {
 
 const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
   const { theme } = useTheme()
-  const tags: TCodeTag[] = []
-  const editorRef = React.useRef<CodeMirrorEditorRef>(null)
+  const { updateSearchParams, searchParams } = useRouterStuff()
+  const tags: TCodeTag[] = React.useMemo(() => {
+    return []
+  }, [])
+  const initialized = React.useRef(false)
+  const { copyToClipboard } = useCopyToClipboard({})
+  const line = searchParams.get('line')?.toString()
+  const [editorView, setEditorView] = React.useState<EditorView | null>(null)
+
   const { isChatEnabled, activePath } = React.useContext(
     SourceCodeBrowserContext
   )
@@ -49,7 +64,12 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
           borderRight: 'none'
         }
       }),
-      selectLinesGutter,
+      selectLinesGutter({
+        onSelectLine: v => {
+          if (v === -1 || isNaN(v)) return
+          updateSearchParams({ set: { line: String(v) } })
+        }
+      }),
       foldGutter({
         markerDOM(open) {
           const dom = document.createElement('div')
@@ -61,7 +81,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
             dom.innerHTML =
               '<svg aria-hidden="true" focusable="false" role="img" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" style="display: inline-block; user-select: none; vertical-align: text-bottom; overflow: visible;"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg>'
           }
-          dom.style.padding = '0 8px'
+          // dom.style.padding = '0 8px'
 
           return dom
         }
@@ -84,7 +104,44 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
     }
 
     return result
-  }, [value, tags, language, editorRef.current])
+  }, [value, tags, language])
+
+  React.useEffect(() => {
+    const onClickLineMenu = (data: LineMenuActionEventPayload) => {
+      if (!line) return
+      if (data.action === 'copy_permalink') {
+        copyToClipboard(window.location.href)
+        return
+      }
+      if (data.action === 'copy_line') {
+        const lineNumber = parseInt(line)
+        const lineObject = editorView?.state?.doc?.line(lineNumber)
+        if (lineObject) {
+          copyToClipboard(lineObject.text)
+        }
+      }
+    }
+    emitter.on('line_menu_action', onClickLineMenu)
+
+    return () => {
+      emitter.off('line_menu_action', onClickLineMenu)
+    }
+  }, [value, line])
+
+  React.useEffect(() => {
+    if (initialized.current) return
+    if (line && editorView && value) {
+      console.log('=====in 2')
+      try {
+        initialized.current = true
+        const lineNumber = parseInt(line)
+        const lineObject = editorView?.state?.doc?.line(lineNumber)
+        if (lineObject) {
+          setSelectedLines(editorView, lineObject.from)
+        }
+      } catch (e) {}
+    }
+  }, [value, line, editorView])
 
   return (
     <CodeEditor
@@ -93,7 +150,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       language={language}
       readonly
       extensions={extensions}
-      ref={editorRef}
+      viewDidUpdate={view => setEditorView(view)}
     />
   )
 }

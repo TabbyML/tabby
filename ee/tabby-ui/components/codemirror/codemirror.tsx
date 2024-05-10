@@ -26,10 +26,11 @@ interface CodeMirrorEditorProps {
   height?: string
   width?: string
   extensions?: Extension[]
+  viewDidUpdate?: (view: EditorView | null) => void
 }
 
 export interface CodeMirrorEditorRef {
-  editorView: EditorView | null
+  getView: () => EditorView | null
 }
 
 const External = Annotation.define<boolean>()
@@ -45,7 +46,8 @@ const CodeMirrorEditor = React.forwardRef<
     readonly = true,
     extensions: propsExtensions,
     height = null,
-    width = null
+    width = null,
+    viewDidUpdate
   } = props
 
   const initialized = React.useRef(false)
@@ -149,13 +151,19 @@ const CodeMirrorEditor = React.forwardRef<
         setEditorView(null)
       }
     },
-    [editorView]
+    []
   )
+
+  React.useEffect(() => {
+    viewDidUpdate?.(editorView)
+  }, [editorView])
 
   React.useImperativeHandle(
     ref,
     () => {
-      return { editorView }
+      return {
+        getView: () => editorView
+      }
     },
     [editorView]
   )

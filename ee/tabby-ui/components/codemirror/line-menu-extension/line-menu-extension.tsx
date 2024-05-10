@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { IconMore } from '@/components/ui/icons'
+import { emitter } from '@/app/files/lib/event-emitter'
 
 const selectLinesEffect = StateEffect.define<{ pos: number }>()
 
@@ -46,21 +47,33 @@ const selectedLinesState = StateField.define<RangeSet<GutterMarker>>({
 const lineMenuMarker = new (class extends GutterMarker {
   toDOM() {
     const dom = document.createElement('div')
-    dom.style.textAlign = 'right'
-    dom.className = 'breakpoint'
     const root = ReactDOM.createRoot(dom)
     root.render(
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button className="h-5" size="icon" variant="secondary">
+          <Button className="ml-1 h-5" size="icon" variant="secondary">
             <IconMore />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={e => {
+              emitter.emit('line_menu_action', {
+                action: 'copy_line'
+              })
+            }}
+          >
             Copy line
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={e => {
+              emitter.emit('line_menu_action', {
+                action: 'copy_permalink'
+              })
+            }}
+          >
             Copy permalink
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -71,6 +84,9 @@ const lineMenuMarker = new (class extends GutterMarker {
 })()
 
 const selectableLineNumberTheme = EditorView.theme({
+  '.cm-lineMenuGutter': {
+    width: '40px'
+  },
   '.cm-lineNumbers': {
     cursor: 'pointer',
     color: 'var(--line-number-color)',
@@ -81,22 +97,15 @@ const selectableLineNumberTheme = EditorView.theme({
   }
 })
 
-const selectedLineTheme = EditorView.theme({
-  '.cm-selectedLineGutter': {
-    backgroundColor: 'hsl(var(--selected-line))'
-  },
-  '.cm-selectedLine': {
-    backgroundColor: 'hsl(var(--selected-line))'
-  }
-})
-
-function setSelectedLines(view: EditorView, pos: number) {
+function setSelectedLines(view: EditorView, pos: number): number {
   const selectedLines = view.state.field(selectedLinesState)
   let hasSelectedLines = false
   selectedLines.between(pos, pos + 1, () => {
     hasSelectedLines = true
   })
-  if (!hasSelectedLines) {
+  if (hasSelectedLines) {
+    return -1
+  } else {
     const line = view.state.doc.lineAt(pos)
     view.dispatch({
       effects: [
@@ -104,6 +113,7 @@ function setSelectedLines(view: EditorView, pos: number) {
         lineHighlightEffect.of({ line: line.number, highlight: true })
       ]
     })
+    return line.number
   }
 }
 
@@ -156,39 +166,45 @@ const selectedLinesGutterHighlighter = gutterLineClass.compute(
   state => {
     let marks: any[] = []
     state.field(selectedLinesState).between(0, state.doc.length, (from, to) => {
-      console.log('from', from)
       marks.push(selectedLineGutterMarker.range(from))
     })
     return RangeSet.of(marks)
   }
 )
 
-const selectLinesGutter = [
-  selectedLinesState,
-  lineHighlineField,
-  gutter({
-    class: 'cm-lineMenuGutter',
-    markers: v => v.state.field(selectedLinesState),
-    initialSpacer: () => lineMenuMarker,
-    domEventHandlers: {
-      mousedown(view, line) {
-        setSelectedLines(view, line.from)
-        return true
+type SelectLInesGutterOptions = {
+  onSelectLine?: (v: number) => void
+}
+const selectLinesGutter = ({ onSelectLine }: SelectLInesGutterOptions) => {
+  return [
+    selectableLineNumberTheme,
+    selectedLinesState,
+    lineHighlineField,
+    gutter({
+      class: 'cm-lineMenuGutter',
+      markers: v => v.state.field(selectedLinesState),
+      initialSpacer: () => lineMenuMarker,
+      domEventHandlers: {
+        mousedown(view, line) {
+          const lineNumber = setSelectedLines(view, line.from)
+          onSelectLine?.(lineNumber)
+          return true
+        }
       }
-    }
-  }),
-  lineNumbers({
-    domEventHandlers: {
-      mousedown(view, line) {
-        // const lineNumber = view.state.doc.lineAt(line.from).number
-        setSelectedLines(view, line.from)
-        return false
+    }),
+    lineNumbers({
+      domEventHandlers: {
+        mousedown(view, line) {
+          // const lineNumber = view.state.doc.lineAt(line.from).number
+          const lineNumber = setSelectedLines(view, line.from)
+          onSelectLine?.(lineNumber)
+          return false
+        }
       }
-    }
-  }),
-  selectedLinesGutterHighlighter,
-  selectableLineNumberTheme
-  // selectedLineTheme,
-]
+    }),
+    selectedLinesGutterHighlighter
+    // selectedLineTheme,
+  ]
+}
 
 export { selectLinesGutter, setSelectedLines, clearSelectedLines }
