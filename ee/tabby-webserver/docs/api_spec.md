@@ -6,7 +6,7 @@
 
 Get file or directory content from local repositories
 
-**URL:** `/repositories/{name}/resolve/{path}`
+**URL:** `/repositories/{kind}/{id}/resolve/{path}`
 
 **Method:** `GET`
 
@@ -16,43 +16,58 @@ Get file or directory content from local repositories
 
 ```shell
 curl --request GET \
-  --url http://localhost:8080/repositories/https_github.com_TabbyML_tabby.git/resolve/
+  --url http://localhost:8080/repositories/git/lNrAwW/resolve/ \
+  -H "Authorization: Bearer {Token}"
 
 curl --request GET \
-  --url http://localhost:9090/repositories/https_github.com_TabbyML_tabby.git/resolve/ee/tabby-webserver/
+  --url http://localhost:9090/repositories/github/E16n1q/resolve/ee/tabby-webserver/ \
+  -H "Authorization: Bearer {Token}"
 ```
 
 - Get file content
 
 ```shell
 curl --request GET \
-  --url http://localhost:8080/repositories/https_github.com_TabbyML_tabby.git/resolve/package.json
+  --url http://localhost:8080/repositories/git/lNrAwW/resolve/package.json \
+  -H "Authorization: Bearer {Token}"
 
 curl --request GET \
-  --url http://localhost:9090/repositories/https_github.com_TabbyML_tabby.git/resolve/ee/tabby-webserver/src/api.rs
+  --url http://localhost:8080/repositories/git/lNrAwW/resolve/src/lib.rs \
+  -H "Authorization: Bearer {Token}"
 ```
 
 **Response examples:**
 
-- All directory query will return a list of string, with each string represents an entry under that directory. The `Content-Type` for directory query is `application/vnd.directory+json`.
+- All directory queries will return a list of strings, with each string representing an entry under that directory. The `Content-Type` for directory query is `application/vnd.directory+json`.
 
-For `/repositories/https_github.com_TabbyML_tabby.git/resolve/ee/tabby-webserver/`, the response is:
+For `/repositories/git/lNrAwW/resolve/` (for a pre-populated repository), the response is:
 
 ```json
 {
   "entries": [
-    { "kind": "dir",  "basename": "ee/tabby-webserver/src" },
-    { "kind": "dir",  "basename": "ee/tabby-webserver/ui" },
-    { "kind": "dir",  "basename": "ee/tabby-webserver/examples" },
-    { "kind": "file", "basename": "ee/tabby-webserver/Cargo.toml" },
-    { "kind": "dir",  "basename": "ee/tabby-webserver/graphql" }
+    {
+      "kind": "dir",
+      "basename": "src"
+    },
+    {
+      "kind": "file",
+      "basename": "Cargo.toml"
+    },
+    {
+      "kind": "file",
+      "basename": ".gitignore"
+    },
+    {
+      "kind": "file",
+      "basename": "Cargo.lock"
+    }
   ]
 }
 ```
 
 - The file query will return file content, the `Content-Type` will be guessed from the file extension.
 
-For request `/repositories/https_github.com_TabbyML_tabby.git/resolve/package.json`, the content type is `application/json`, and the response is:
+For the request `/repositories/git/lNrAwW/resolve/package.json`, the content type is `application/json`, and the response is as follows (the content of package.json in the Tabby repository):
 
 ```json
 {
@@ -61,7 +76,8 @@ For request `/repositories/https_github.com_TabbyML_tabby.git/resolve/package.js
     "clients/tabby-agent",
     "clients/vscode",
     "clients/vim",
-    "clients/intellij"
+    "clients/intellij",
+    "clients/example-vscode-lsp"
   ],
   "engines": {
     "node": ">=18"
@@ -69,77 +85,35 @@ For request `/repositories/https_github.com_TabbyML_tabby.git/resolve/package.js
 }
 ```
 
-For request `/repositories/https_github.com_TabbyML_tabby.git/resolve/ee/tabby-webserver/src/api.rs`, the content type is `text/x-rust`, and the response is:
+For request `/repositories/git/lNrAwW/resolve/ee/tabby-webserver/src/lib.rs` (again in the Tabby repository), the content type is `text/x-rust`, and the response is:
 
 ```text
-use async_trait::async_trait;
-use juniper::{GraphQLEnum, GraphQLObject};
-use serde::{Deserialize, Serialize};
-use tabby_common::api::{
-    code::{CodeSearch, CodeSearchError, SearchResponse},
-    event::RawEventLogger,
-};
-use thiserror::Error;
-use tokio_tungstenite::connect_async;
+//! Defines behavior for the tabby webserver which allows users to interact with enterprise features.
+//! Using the web interface (e.g chat playground) requires using this module with the `--webserver` flag on the command line.
+mod axum;
+mod hub;
+mod jwt;
+mod oauth;
+mod path;
+mod routes;
+mod service;
+mod webserver;
 
-use crate::websocket::WebSocketTransport;
+#[cfg(test)]
+pub use service::*;
 
-#[derive(GraphQLEnum, Serialize, Deserialize, Clone, Debug)]
-pub enum WorkerKind {
-    Completion,
-    Chat,
+pub mod public {
+
+    pub use super::{
+        /* used by tabby workers (consumer of /hub api) */
+        hub::{
+            create_scheduler_client, create_worker_client, RegisterWorkerRequest, SchedulerClient,
+            WorkerClient, WorkerKind,
+        },
+        webserver::Webserver,
+    };
 }
-
-......omit......
-```
-
-### Meta
-
-Get dataset entry for each indexed file in the repository
-
-**URL:** `/repositories/{name}/meta/{path}`
-
-**Method:** `GET`
-
-**Request example:**
-
-```shell
-curl --request GET \
-  --url http://localhost:9090/repositories/https_github.com_TabbyML_tabby.git/meta/ee/tabby-webserver/src/lib.rs
-```
-
-**Response example:**
-
-The `Content-Type` for successful response is always `application/json`.
-
-```json
-{
-  "git_url": "https://github.com/TabbyML/tabby.git",
-  "filepath": "ee/tabby-webserver/src/lib.rs",
-  "language": "rust",
-  "max_line_length": 88,
-  "avg_line_length": 26.340782,
-  "alphanum_fraction": 0.56416017,
-  "tags": [
-    {
-      "range": {
-        "start": 0,
-        "end": 12
-      },
-      "name_range": {
-        "start": 8,
-        "end": 11
-      },
-      "line_range": {
-        "start": 0,
-        "end": 12
-      },
-      "is_definition": true,
-      "syntax_type_name": "module"
-    },
-    ......omit......
-  ]
-}
+......omitted......
 ```
 
 ## OAuth api: `/oauth`
