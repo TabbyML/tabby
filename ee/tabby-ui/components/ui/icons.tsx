@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 // FIXME(wwayne): Review each icons and consider re-export from `lucide-react`.
-import { BookOpenText, Mail } from 'lucide-react'
+import { BookOpenText, ChevronsDownUp, GitFork, Mail, Star } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -561,44 +561,44 @@ function IconSlack({ className, ...props }: React.ComponentProps<'svg'>) {
       <g>
         <g>
           <path
-            style={{ fill: '#E01E5A' }}
+            style={{ fill: props.fill || '#E01E5A' }}
             d="M99.4,151.2c0,7.1-5.8,12.9-12.9,12.9c-7.1,0-12.9-5.8-12.9-12.9c0-7.1,5.8-12.9,12.9-12.9h12.9V151.2z"
           />
           <path
-            style={{ fill: '#E01E5A' }}
+            style={{ fill: props.fill || '#E01E5A' }}
             d="M105.9,151.2c0-7.1,5.8-12.9,12.9-12.9s12.9,5.8,12.9,12.9v32.3c0,7.1-5.8,12.9-12.9,12.9
         s-12.9-5.8-12.9-12.9V151.2z"
           />
         </g>
         <g>
           <path
-            style={{ fill: '#36C5F0' }}
+            style={{ fill: props.fill || '#36C5F0' }}
             d="M118.8,99.4c-7.1,0-12.9-5.8-12.9-12.9c0-7.1,5.8-12.9,12.9-12.9s12.9,5.8,12.9,12.9v12.9H118.8z"
           />
           <path
-            style={{ fill: '#36C5F0' }}
+            style={{ fill: props.fill || '#36C5F0' }}
             d="M118.8,105.9c7.1,0,12.9,5.8,12.9,12.9s-5.8,12.9-12.9,12.9H86.5c-7.1,0-12.9-5.8-12.9-12.9
         s5.8-12.9,12.9-12.9H118.8z"
           />
         </g>
         <g>
           <path
-            style={{ fill: '#2EB67D' }}
+            style={{ fill: props.fill || '#2EB67D' }}
             d="M170.6,118.8c0-7.1,5.8-12.9,12.9-12.9c7.1,0,12.9,5.8,12.9,12.9s-5.8,12.9-12.9,12.9h-12.9V118.8z"
           />
           <path
-            style={{ fill: '#2EB67D' }}
+            style={{ fill: props.fill || '#2EB67D' }}
             d="M164.1,118.8c0,7.1-5.8,12.9-12.9,12.9c-7.1,0-12.9-5.8-12.9-12.9V86.5c0-7.1,5.8-12.9,12.9-12.9
         c7.1,0,12.9,5.8,12.9,12.9V118.8z"
           />
         </g>
         <g>
           <path
-            style={{ fill: '#ECB22E' }}
+            style={{ fill: props.fill || '#ECB22E' }}
             d="M151.2,170.6c7.1,0,12.9,5.8,12.9,12.9c0,7.1-5.8,12.9-12.9,12.9c-7.1,0-12.9-5.8-12.9-12.9v-12.9H151.2z"
           />
           <path
-            style={{ fill: '#ECB22E' }}
+            style={{ fill: props.fill || '#ECB22E' }}
             d="M151.2,164.1c-7.1,0-12.9-5.8-12.9-12.9c0-7.1,5.8-12.9,12.9-12.9h32.3c7.1,0,12.9,5.8,12.9,12.9
         c0,7.1-5.8,12.9-12.9,12.9H151.2z"
           />
@@ -979,6 +979,61 @@ function IconGoogle({ className, ...props }: React.ComponentProps<'svg'>) {
   )
 }
 
+function IconGitLab({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      viewBox="0 0 25 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <path
+        d="m24.507 9.5-.034-.09L21.082.562a.896.896 0 0 0-1.694.091l-2.29 7.01H7.825L5.535.653a.898.898 0 0 0-1.694-.09L.451 9.411.416 9.5a6.297 6.297 0 0 0 2.09 7.278l.012.01.03.022 5.16 3.867 2.56 1.935 1.554 1.176a1.051 1.051 0 0 0 1.268 0l1.555-1.176 2.56-1.935 5.197-3.89.014-.01A6.297 6.297 0 0 0 24.507 9.5Z"
+        fill="#E24329"
+      ></path>
+      <path
+        d="m24.507 9.5-.034-.09a11.44 11.44 0 0 0-4.56 2.051l-7.447 5.632 4.742 3.584 5.197-3.89.014-.01A6.297 6.297 0 0 0 24.507 9.5Z"
+        fill="#FC6D26"
+      ></path>
+      <path
+        d="m7.707 20.677 2.56 1.935 1.555 1.176a1.051 1.051 0 0 0 1.268 0l1.555-1.176 2.56-1.935-4.743-3.584-4.755 3.584Z"
+        fill="#FCA326"
+      ></path>
+      <path
+        d="M5.01 11.461a11.43 11.43 0 0 0-4.56-2.05L.416 9.5a6.297 6.297 0 0 0 2.09 7.278l.012.01.03.022 5.16 3.867 4.745-3.584-7.444-5.632Z"
+        fill="#FC6D26"
+      ></path>
+    </svg>
+  )
+}
+
+function IconGit({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 92 92"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <defs>
+        <clipPath id="a">
+          <path d="M0 .113h91.887V92H0Zm0 0" />
+        </clipPath>
+      </defs>
+      <g clipPath="url(#a)">
+        <path
+          stroke="none"
+          fillRule="nonzero"
+          fill="#f03c2e"
+          fillOpacity="1"
+          d="M90.156 41.965 50.036 1.848a5.918 5.918 0 0 0-8.372 0l-8.328 8.332 10.566 10.566a7.03 7.03 0 0 1 7.23 1.684 7.034 7.034 0 0 1 1.669 7.277l10.187 10.184a7.028 7.028 0 0 1 7.278 1.672 7.04 7.04 0 0 1 0 9.957 7.05 7.05 0 0 1-9.965 0 7.044 7.044 0 0 1-1.528-7.66l-9.5-9.497V59.36a7.04 7.04 0 0 1 1.86 11.29 7.04 7.04 0 0 1-9.957 0 7.04 7.04 0 0 1 0-9.958 7.06 7.06 0 0 1 2.304-1.539V33.926a7.049 7.049 0 0 1-3.82-9.234L29.242 14.272 1.73 41.777a5.925 5.925 0 0 0 0 8.371L41.852 90.27a5.925 5.925 0 0 0 8.37 0l39.934-39.934a5.925 5.925 0 0 0 0-8.371"
+        />
+      </g>
+    </svg>
+  )
+}
+
 function IconLightingBolt({
   className,
   ...props
@@ -1323,12 +1378,49 @@ function IconMail({ className, ...props }: React.ComponentProps<typeof Mail>) {
   return <Mail className={cn('h4 w-4', className)} {...props} />
 }
 
+function IconChevronsDownUp({
+  className,
+  ...props
+}: React.ComponentProps<typeof ChevronsDownUp>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('h-4 w-4', className)}
+      {...props}
+    >
+      <path d="m7 20 5-5 5 5" />
+      <path d="m7 4 5 5 5-5" />
+    </svg>
+  )
+}
+
+const IconStar = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof Star>) => (
+  <Star className={cn('h4 w-4', className)} {...props} />
+)
+
+const IconGitFork = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof GitFork>) => (
+  <GitFork className={cn('h4 w-4', className)} {...props} />
+)
+
 export {
   IconEdit,
   IconNextChat,
   IconOpenAI,
   IconVercel,
   IconGitHub,
+  IconGit,
   IconSeparator,
   IconArrowDown,
   IconArrowRight,
@@ -1374,6 +1466,7 @@ export {
   IconCircle,
   IconGithub,
   IconGoogle,
+  IconGitLab,
   IconLightingBolt,
   IconScrollText,
   IconTerminalSquare,
@@ -1391,5 +1484,8 @@ export {
   IconBarChart,
   IconActivity,
   IconBookOpenText,
-  IconMail
+  IconMail,
+  IconChevronsDownUp,
+  IconStar,
+  IconGitFork
 }

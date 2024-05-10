@@ -15,7 +15,9 @@ import {
   DailyStatsQuery,
   Language
 } from '@/lib/gql/generates/graphql'
-import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
+import { useAllMembers } from '@/lib/hooks/use-all-members'
+import { useIsDemoMode } from '@/lib/hooks/use-server-info'
+import { getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +30,6 @@ import {
   CommandList,
   CommandSeparator
 } from '@/components/ui/command'
-import DatePickerWithRange from '@/components/ui/date-range-picker'
 import {
   IconActivity,
   IconCheck,
@@ -50,32 +51,32 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import DateRangePicker from '@/components/date-range-picker'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { SubHeader } from '@/components/sub-header'
 
-import { useAllMembers } from '../use-all-members'
 import { AnnualActivity } from './annual-activity'
 import { DailyActivity } from './daily-activity'
 
-const INITIAL_DATE_RANGE = 14
 const KEY_SELECT_ALL = 'all'
+const DEFAULT_DATE_RANGE = '-14d'
 
 function StatsSummary({
   dailyStats
 }: {
   dailyStats?: DailyStatsQuery['dailyStats']
 }) {
-  const totalCompletions = sum(dailyStats?.map(stats => stats.completions))
+  const totalViews = sum(dailyStats?.map(stats => stats.views))
   const totalAcceptances = sum(dailyStats?.map(stats => stats.selects))
   const acceptRate =
     totalAcceptances === 0
       ? 0
-      : ((totalAcceptances / totalCompletions) * 100).toFixed(2)
+      : ((totalAcceptances / totalViews) * 100).toFixed(2)
   return (
-    <div className="flex w-full items-center justify-center space-x-6 xl:justify-start">
+    <div className="flex w-full flex-col items-start justify-center space-y-3 md:flex-row md:items-center md:space-x-6 md:space-y-0 xl:justify-start">
       <Card className="flex flex-1 flex-col justify-between self-stretch bg-primary-foreground/30 lg:block">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Accept Rate</CardTitle>
+          <CardTitle className="text-sm font-medium">Acceptance Rate</CardTitle>
           <IconActivity className="text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -92,7 +93,7 @@ function StatsSummary({
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {numeral(totalCompletions).format('0,0')}
+            {numeral(totalViews).format('0,0')}
           </div>
         </CardContent>
       </Card>
@@ -114,14 +115,16 @@ function StatsSummary({
 
 export function Report() {
   const searchParams = useSearchParams()
-  const sample = searchParams.get('sample') === 'true'
   const [members] = useAllMembers()
+  const isDemoMode = useIsDemoMode()
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: moment().subtract(INITIAL_DATE_RANGE, 'day').toDate(),
+    from: moment().add(parseInt(DEFAULT_DATE_RANGE, 10), 'day').toDate(),
     to: moment().toDate()
   })
   const [selectedMember, setSelectedMember] = useState(KEY_SELECT_ALL)
   const [selectedLanguage, setSelectedLanguage] = useState<Language[]>([])
+
+  const sample = isDemoMode || searchParams.get('sample') === 'true'
 
   // Query stats of selected date range
   const [{ data: dailyStatsData, fetching: fetchingDailyState }] = useQuery({
@@ -129,8 +132,7 @@ export function Report() {
     variables: {
       start: moment(dateRange.from).startOf('day').utc().format(),
       end: moment(dateRange.to).endOf('day').utc().format(),
-      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember],
-      languages: selectedLanguage.length === 0 ? undefined : selectedLanguage
+      users: selectedMember === KEY_SELECT_ALL ? undefined : [selectedMember]
     }
   })
   let dailyStats: DailyStatsQuery['dailyStats'] | undefined
@@ -140,16 +142,19 @@ export function Report() {
       end: dateRange.to || dateRange.from!
     })
     dailyStats = daysBetweenRange.map(date => {
+      const languages = [Language.Typescript, Language.Python, Language.Rust]
       const rng = seedrandom(
         moment(date).format('YYYY-MM-DD') + selectedMember + selectedLanguage
       )
       const selects = Math.ceil(rng() * 20)
-      const completions = selects + Math.floor(rng() * 10)
+      const completions = Math.ceil(selects / 0.35)
       return {
-        start: moment(date).startOf('day').toDate(),
-        end: moment(date).endOf('day').toDate(),
+        start: moment(date).utc().format(),
+        end: moment(date).add(1, 'day').utc().format(),
         completions,
-        selects
+        selects,
+        views: completions,
+        language: languages[selects % languages.length]
       }
     })
   } else {
@@ -157,9 +162,15 @@ export function Report() {
       start: item.start,
       end: item.end,
       completions: item.completions,
-      selects: item.selects
+      selects: item.selects,
+      views: item.views,
+      language: item.language
     }))
   }
+  dailyStats = dailyStats?.filter(stats => {
+    if (selectedLanguage.length === 0) return true
+    return selectedLanguage.includes(stats.language)
+  })
 
   // Query yearly stats
   const [{ data: yearlyStatsData, fetching: fetchingYearlyStats }] = useQuery({
@@ -181,10 +192,11 @@ export function Report() {
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
-        start: moment(date).startOf('day').toDate(),
-        end: moment(date).endOf('day').toDate(),
+        start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
+        end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         completions,
-        selects
+        selects,
+        views: completions
       }
     })
   } else {
@@ -192,23 +204,13 @@ export function Report() {
       start: item.start,
       end: item.end,
       completions: item.completions,
-      selects: item.selects
+      selects: item.selects,
+      views: item.views
     }))
   }
 
-  const onDateOpenChange = (
-    isOpen: boolean,
-    dateRange: DateRange | undefined
-  ) => {
-    if (!isOpen) {
-      if (dateRange) {
-        setDateRange(dateRange)
-      }
-    }
-  }
-
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto w-[calc(100vw-2rem)] max-w-5xl md:w-auto">
       <div className="mb-4 flex flex-col items-center justify-between gap-y-2 lg:flex-row lg:items-end lg:gap-y-0">
         <SubHeader className="mb-0">
           Statistics around Tabby IDE / Extensions
@@ -249,7 +251,9 @@ export function Report() {
         fallback={<Skeleton className="mb-8 h-48" />}
       >
         <div className="mb-8">
-          <h1 className="mb-2 text-xl font-semibold">Activity</h1>
+          <h1 className="mb-2 text-center text-xl font-semibold md:text-start">
+            Activity
+          </h1>
           <AnnualActivity yearlyStats={yearlyStats} />
         </div>
       </LoadingWrapper>
@@ -268,27 +272,22 @@ export function Report() {
         }
       >
         <div className="mb-10 flex flex-col gap-y-5">
-          <div className="-mb-2 flex flex-col justify-between gap-y-1 lg:flex-row lg:items-end lg:gap-y-0">
+          <div className="-mb-2 flex flex-col items-center justify-between gap-y-1 md:flex-row md:gap-y-0">
             <h1 className="text-xl font-semibold">Usage</h1>
 
-            <div className="flex items-center gap-x-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-y-0">
               <Popover>
                 <PopoverTrigger asChild>
-                  <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed">
-                    <span className="mr-1.5 text-muted-foreground">
-                      Language:
-                    </span>
-                    <div className="w-full lg:w-[80px]">
+                  <div className="flex h-9 w-[240px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed md:w-[150px]">
+                    <div className="w-full">
                       {selectedLanguage.length === 0 && (
                         <p className="w-full overflow-hidden text-ellipsis">
-                          All
+                          All languages
                         </p>
                       )}
                       {selectedLanguage.length === 1 && (
                         <p className="w-full overflow-hidden text-ellipsis">
-                          {toProgrammingLanguageDisplayName(
-                            selectedLanguage[0]
-                          )}
+                          {getLanguageDisplayName(selectedLanguage[0])}
                         </p>
                       )}
                       {selectedLanguage.length > 1 && (
@@ -300,7 +299,10 @@ export function Report() {
                     <IconChevronUpDown className="h-3 w-3" />
                   </div>
                 </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0" align="end">
+                <PopoverContent
+                  className="w-[240px] p-0 md:w-[180px]"
+                  align="end"
+                >
                   <Command>
                     <CommandInput placeholder="Language" />
                     <CommandList>
@@ -338,9 +340,7 @@ export function Report() {
                                 >
                                   <IconCheck className={cn('h-4 w-4')} />
                                 </div>
-                                <span>
-                                  {toProgrammingLanguageDisplayName(value)}
-                                </span>
+                                <span>{getLanguageDisplayName(value)}</span>
                               </CommandItem>
                             )
                           })}
@@ -362,11 +362,17 @@ export function Report() {
                   </Command>
                 </PopoverContent>
               </Popover>
-              <DatePickerWithRange
-                buttonClassName="h-full"
-                contentAlign="end"
-                dateRange={dateRange}
-                onOpenChange={onDateOpenChange}
+
+              <DateRangePicker
+                options={[
+                  { label: 'Last 7 days', value: '-7d' },
+                  { label: 'Last 14 days', value: '-14d' },
+                  { label: 'Last 30 days', value: '-30d' }
+                ]}
+                defaultValue={DEFAULT_DATE_RANGE}
+                onSelect={setDateRange}
+                hasToday
+                hasYesterday
               />
             </div>
           </div>

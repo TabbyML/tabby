@@ -1,11 +1,65 @@
-export function getWordStartIndices(text: string): number[] {
-  const indices: number[] = [];
-  const re = /\b\w/g;
-  let match;
-  while ((match = re.exec(text)) != null) {
-    indices.push(match.index);
+import { commands, Position, Range, SemanticTokens, SemanticTokensLegend, TextDocument } from "vscode";
+
+export type SemanticSymbolInfo = {
+  position: Position;
+  type: string;
+};
+
+// reference: https://code.visualstudio.com/api/language-extensions/semantic-highlight-guide
+export async function extractSemanticSymbols(
+  document: TextDocument,
+  range: Range,
+): Promise<SemanticSymbolInfo[] | undefined> {
+  const providedTokens = await commands.executeCommand(
+    "vscode.provideDocumentRangeSemanticTokens",
+    document.uri,
+    range,
+  );
+  if (
+    typeof providedTokens === "object" &&
+    providedTokens !== null &&
+    "resultId" in providedTokens &&
+    "data" in providedTokens
+  ) {
+    const tokens = providedTokens as SemanticTokens;
+    const providedLegend = await commands.executeCommand(
+      "vscode.provideDocumentRangeSemanticTokensLegend",
+      document.uri,
+      range,
+    );
+    if (
+      typeof providedLegend === "object" &&
+      providedLegend !== null &&
+      "tokenTypes" in providedLegend &&
+      "tokenModifiers" in providedLegend
+    ) {
+      const legend = providedLegend as SemanticTokensLegend;
+
+      const semanticSymbols: SemanticSymbolInfo[] = [];
+      let line = 0;
+      let char = 0;
+      for (let i = 0; i + 4 < tokens.data.length; i += 5) {
+        const deltaLine = tokens.data[i]!;
+        const deltaChar = tokens.data[i + 1]!;
+        // i + 2 is token length, not used here
+        const type = legend.tokenTypes[tokens.data[i + 3]!] ?? "";
+        // i + 4 is type modifiers, not used here
+
+        line += deltaLine;
+        if (deltaLine > 0) {
+          char = deltaChar;
+        } else {
+          char += deltaChar;
+        }
+        semanticSymbols.push({
+          position: new Position(line, char),
+          type,
+        });
+      }
+      return semanticSymbols;
+    }
   }
-  return indices;
+  return undefined;
 }
 
 // Keywords appear in the code everywhere, but we don't want to use them for
@@ -73,7 +127,7 @@ const reservedKeywords = [
   "with",
   "yield",
 ];
-export function extractSematicSymbols(text: string): string {
+export function extractNonReservedWordList(text: string): string {
   const re = /\w+/g;
   return [
     ...new Set(text.match(re)?.filter((symbol) => symbol.length > 2 && !reservedKeywords.includes(symbol))).values(),

@@ -33,10 +33,12 @@ For an actual example of an issue or pull request adding the above support, plea
 * [PHP](https://www.php.net/)
 * [C#](https://learn.microsoft.com/en-us/dotnet/csharp/)
 * [Solidity](https://soliditylang.org/): Since v0.10.0
+* [R](https://www.r-project.org/): Since v0.12.0
+* [Dart](https://dart.dev/): Since v0.12.0
 
 ## Languages Missing Certain Support
 
-| Language | Stop Words (time to contribute: <5 min) | Repository Context (time to contribute: <1 hr) |
+| Language | Stop Words (time to contribute: ~5 min) | Repository Context (time to contribute: ~1 hr) |
 | :------: | :-------------------------------------: | :--------------------------------------------: |
 |   CSS    |                    🚫                    |                       🚫                        |
 | Haskell  |                    🚫                    |                       🚫                        |

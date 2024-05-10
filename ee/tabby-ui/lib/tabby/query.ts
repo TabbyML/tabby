@@ -28,8 +28,18 @@ export const listInvitations = graphql(/* GraphQL */ `
 `)
 
 export const listRepositories = graphql(/* GraphQL */ `
-  query repositories($after: String, $before: String, $first: Int, $last: Int) {
-    repositories(after: $after, before: $before, first: $first, last: $last) {
+  query gitRepositories(
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    gitRepositories(
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
       edges {
         node {
           id
@@ -134,14 +144,15 @@ export const queryDailyStatsInPastYear = graphql(/* GraphQL */ `
       end
       completions
       selects
+      views
     }
   }
 `)
 
 export const queryDailyStats = graphql(/* GraphQL */ `
   query DailyStats(
-    $start: DateTimeUtc!
-    $end: DateTimeUtc!
+    $start: DateTime!
+    $end: DateTime!
     $users: [ID!]
     $languages: [Language!]
   ) {
@@ -150,6 +161,150 @@ export const queryDailyStats = graphql(/* GraphQL */ `
       end
       completions
       selects
+      views
+      language
+    }
+  }
+`)
+
+export const listGithubRepositoryProviders = graphql(/* GraphQL */ `
+  query ListGithubRepositoryProviders(
+    $ids: [ID!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    githubRepositoryProviders(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          displayName
+          status
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGithubRepositories = graphql(/* GraphQL */ `
+  query ListGithubRepositories(
+    $providerIds: [ID!]!
+    $active: Boolean
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    githubRepositories(
+      providerIds: $providerIds
+      active: $active
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          vendorId
+          githubRepositoryProviderId
+          name
+          gitUrl
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGitlabRepositoryProviders = graphql(/* GraphQL */ `
+  query ListGitlabRepositoryProviders(
+    $ids: [ID!]
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    gitlabRepositoryProviders(
+      ids: $ids
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          displayName
+          status
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+`)
+
+export const listGitlabRepositories = graphql(/* GraphQL */ `
+  query ListGitlabRepositories(
+    $providerIds: [ID!]!
+    $active: Boolean
+    $after: String
+    $before: String
+    $first: Int
+    $last: Int
+  ) {
+    gitlabRepositories(
+      providerIds: $providerIds
+      active: $active
+      after: $after
+      before: $before
+      first: $first
+      last: $last
+    ) {
+      edges {
+        node {
+          id
+          vendorId
+          gitlabRepositoryProviderId
+          name
+          gitUrl
+          active
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
     }
   }
 `)

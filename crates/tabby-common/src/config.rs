@@ -79,6 +79,7 @@ impl RepositoryConfig {
     }
 
     pub fn canonicalize_url(url: &str) -> String {
+        let url = url.strip_suffix(".git").unwrap_or(url);
         url::Url::parse(url)
             .map(|mut url| {
                 let _ = url.set_password(None);
@@ -93,7 +94,7 @@ impl RepositoryConfig {
             let path = self.git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(sanitize_name(&self.git_url))
+            repositories_dir().join(sanitize_name(&self.canonical_git_url()))
         }
     }
 
@@ -171,7 +172,7 @@ mod tests {
         let repo = RepositoryConfig {
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
         };
-        assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby.git"));
+        assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby"));
     }
 
     #[test]
@@ -198,6 +199,11 @@ mod tests {
 
         assert_eq!(
             RepositoryConfig::canonicalize_url("https://github.com/TabbyML/tabby"),
+            "https://github.com/TabbyML/tabby"
+        );
+
+        assert_eq!(
+            RepositoryConfig::canonicalize_url("https://github.com/TabbyML/tabby.git"),
             "https://github.com/TabbyML/tabby"
         );
     }

@@ -36,6 +36,7 @@ fn initialize_server(gpu_device: Option<&str>) {
     cmd.arg("serve")
         .arg("--model")
         .arg("TabbyML/StarCoder-1B")
+        .arg("--no-webserver")
         .arg("--port")
         .arg("9090")
         .kill_on_drop(true);

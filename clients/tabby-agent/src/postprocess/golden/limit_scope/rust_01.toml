@@ -1,0 +1,27 @@
+description = 'Limit scope: rust 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'stop.rs'
+language = 'rust'
+# indentation = '  ' # not specified
+text = '''
+pub struct StopCondition {
+    stop_re: Option<Regex>,
+    max_decoding_length: ├usize,
+    max_decoding_time: Duration,
+}┤
+}
+'''
+
+[expected]
+text = '''
+pub struct StopCondition {
+    stop_re: Option<Regex>,
+    max_decoding_length: ├usize,
+    max_decoding_time: Duration,┤
+}
+'''
+notEqual = true

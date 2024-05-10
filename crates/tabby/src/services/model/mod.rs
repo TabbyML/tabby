@@ -8,9 +8,7 @@ use tabby_common::{
     terminal::{HeaderFormat, InfoMessage},
 };
 use tabby_download::download_model;
-use tabby_inference::{
-    chat::ChatCompletionStream, make_text_generation, TextGeneration, TextGenerationStream,
-};
+use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream};
 use tracing::info;
 
 use crate::{fatal, Device};
@@ -20,13 +18,12 @@ pub async fn load_chat_completion(
     device: &Device,
     parallelism: u8,
 ) -> Arc<dyn ChatCompletionStream> {
-    #[cfg(feature = "experimental-http")]
     if device == &Device::ExperimentalHttp {
         return http_api_bindings::create_chat(model_id);
     }
 
     let (engine, PromptInfo { chat_template, .. }) =
-        load_text_generation(model_id, device, parallelism).await;
+        load_completion(model_id, device, parallelism).await;
 
     let Some(chat_template) = chat_template else {
         fatal!("Chat model requires specifying prompt template");
@@ -35,12 +32,20 @@ pub async fn load_chat_completion(
     Arc::new(chat::make_chat_completion(engine, chat_template))
 }
 
-pub async fn load_text_generation(
+pub async fn load_code_generation(
     model_id: &str,
     device: &Device,
     parallelism: u8,
-) -> (Arc<dyn TextGeneration>, PromptInfo) {
-    #[cfg(feature = "experimental-http")]
+) -> (Arc<CodeGeneration>, PromptInfo) {
+    let (engine, prompt_info) = load_completion(model_id, device, parallelism).await;
+    (Arc::new(CodeGeneration::new(engine)), prompt_info)
+}
+
+async fn load_completion(
+    model_id: &str,
+    device: &Device,
+    parallelism: u8,
+) -> (Arc<dyn CompletionStream>, PromptInfo) {
     if device == &Device::ExperimentalHttp {
         let (engine, prompt_template, chat_template) = http_api_bindings::create(model_id);
         return (
@@ -61,7 +66,7 @@ pub async fn load_text_generation(
             parallelism,
         );
         let engine_info = PromptInfo::read(path.join("tabby.json"));
-        (Arc::new(make_text_generation(engine)), engine_info)
+        (Arc::new(engine), engine_info)
     } else {
         let (registry, name) = parse_model_id(model_id);
         let registry = ModelRegistry::new(registry).await;
@@ -69,7 +74,7 @@ pub async fn load_text_generation(
         let model_info = registry.get_model_info(name);
         let engine = create_ggml_engine(device, &model_path, parallelism);
         (
-            Arc::new(make_text_generation(engine)),
+            Arc::new(engine),
             PromptInfo {
                 prompt_template: model_info.prompt_template.clone(),
                 chat_template: model_info.chat_template.clone(),
@@ -91,11 +96,7 @@ impl PromptInfo {
     }
 }
 
-fn create_ggml_engine(
-    device: &Device,
-    model_path: &str,
-    parallelism: u8,
-) -> impl TextGenerationStream {
+fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> impl CompletionStream {
     if !device.ggml_use_gpu() {
         InfoMessage::new(
             "CPU Device",

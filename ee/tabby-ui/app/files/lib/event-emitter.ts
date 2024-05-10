@@ -6,6 +6,9 @@ type QuickActionEventPayload = {
   action: CodeBrowserQuickAction
   code: string
   language?: string
+  path?: string
+  lineFrom?: number
+  lineTo?: number
 }
 
 type CodeBrowserQuickActionEvents = {

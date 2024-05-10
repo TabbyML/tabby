@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 
 import { BlobHeader } from './blob-header'
 import { TFileTreeNode } from './file-tree'
+import { RepositoryKindIcon } from './repository-kind-icon'
 import { SourceCodeBrowserContext, TFileMapItem } from './source-code-browser'
-import { resolveFileNameFromPath } from './utils'
+import { resolveRepositoryInfoFromPath } from './utils'
 
 interface DirectoryViewProps extends React.HTMLAttributes<HTMLDivElement> {
   loading: boolean
@@ -70,12 +71,23 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
             )}
             <>
               {files.map(file => {
+                const isRepository = file.isRepository
+                const repoKind = file.repository?.kind
                 return (
                   <TableRow key={file.fullPath}>
                     <TableCell className="p-1 px-4 text-base">
                       <div className="flex items-center gap-2">
                         <div className="shrink-0">
-                          {file.file.kind === 'dir' ? (
+                          {isRepository ? (
+                            <RepositoryKindIcon
+                              kind={repoKind}
+                              fallback={
+                                <IconDirectorySolid
+                                  style={{ color: 'rgb(84, 174, 255)' }}
+                                />
+                              }
+                            />
+                          ) : file.file.kind === 'dir' ? (
                             <IconDirectorySolid
                               style={{ color: 'rgb(84, 174, 255)' }}
                             />
@@ -87,7 +99,7 @@ const DirectoryView: React.FC<DirectoryViewProps> = ({
                           onClick={e => onClickFile(file)}
                           className="cursor-pointer px-1 py-2 hover:text-primary hover:underline"
                         >
-                          {resolveFileNameFromPath(file.fullPath)}
+                          {file.name}
                         </span>
                       </div>
                     </TableCell>
@@ -121,17 +133,20 @@ function getCurrentDirFromTree(
   treeData: TFileTreeNode[],
   path: string | undefined
 ): TFileTreeNode[] {
-  // const regx = new RegExp(`${path}\/[\\w\.\-]+$`)
   if (!treeData?.length) return []
   if (!path) {
     const repos = treeData.map(x => omit(x, 'children')) || []
     return repos
   } else {
-    let pathSegments = path.split('/')
+    let { repositorySpecifier = '', basename = '' } =
+      resolveRepositoryInfoFromPath(path)
+    let pathSegments = [repositorySpecifier, ...basename.split('/')].filter(
+      Boolean
+    )
     let currentNodes: TFileTreeNode[] = treeData
-    while (pathSegments.length) {
-      let name = pathSegments.shift()
-      let node = find<TFileTreeNode>(currentNodes, t => t.name === name)
+    for (let i = 0; i < pathSegments.length; i++) {
+      const path = pathSegments.slice(0, i + 1).join('/')
+      let node = find<TFileTreeNode>(currentNodes, t => t.fullPath === path)
       if (node?.children) {
         currentNodes = node?.children
       } else {

@@ -18,6 +18,7 @@ If you encounter any problem or have any suggestion, please [open an issue](http
     - [Node.js Binary Path](#nodejs-binary-path)
     - [Completion Trigger Mode](#completion-trigger-mode)
     - [KeyBindings](#keybindings)
+  - [Known Conflicts](#known-conflicts)
   - [Contributing](#contributing)
   - [License](#license)
 

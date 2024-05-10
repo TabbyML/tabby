@@ -1,221 +1,162 @@
-use std::{fs, io::IsTerminal, ops::Range, path::Path};
+use std::{fs, io::IsTerminal, path::Path};
 
-use anyhow::Result;
+use ignore::Walk;
 use kdam::BarExt;
+use kv::Batch;
 use tabby_common::{
     config::RepositoryConfig,
     index::{register_tokenizers, CodeSearchSchema},
-    path::index_dir,
-    SourceFile,
+    path, SourceFile,
 };
-use tantivy::{directory::MmapDirectory, doc, Index};
-use tracing::warn;
+use tantivy::{directory::MmapDirectory, doc, Index, Term};
+use tracing::{debug, warn};
 
-use crate::utils::tqdm;
+use crate::{cache::CacheStore, code::CodeIntelligence, utils::tqdm};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
-static MAX_BODY_LINES_THRESHOLD: usize = 15;
 
-pub fn index_repositories(_config: &[RepositoryConfig]) -> Result<()> {
-    let code = CodeSearchSchema::new();
+pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
+    let code = CodeSearchSchema::default();
+    let index = open_or_create_index(&code, &path::index_dir());
+    add_changed_documents(cache, &code, config, &index);
+    remove_staled_documents(cache, &code, &index);
+}
 
-    fs::create_dir_all(index_dir())?;
-    let directory = MmapDirectory::open(index_dir())?;
-    let index = Index::open_or_create(directory, code.schema)?;
-    register_tokenizers(&index);
+fn add_changed_documents(
+    cache: &mut CacheStore,
+    code: &CodeSearchSchema,
+    config: &[RepositoryConfig],
+    index: &Index,
+) {
+    register_tokenizers(index);
 
     // Initialize the search index writer with an initial arena size of 150 MB.
-    let mut writer = index.writer(150_000_000)?;
-    writer.delete_all_documents()?;
+    let mut writer = index
+        .writer(150_000_000)
+        .expect("Failed to create index writer");
+
+    let total_file_size: usize = SourceFile::all()
+        .filter(is_valid_file)
+        .map(|x| x.read_file_size())
+        .sum();
 
     let mut pb = std::io::stdout()
         .is_terminal()
-        .then(SourceFile::all)
-        .transpose()?
-        .map(|iter| tqdm(iter.count()));
-    for file in SourceFile::all()? {
-        pb.as_mut().map(|b| b.update(1)).transpose()?;
+        .then(|| tqdm(total_file_size));
 
-        if file.max_line_length > MAX_LINE_LENGTH_THRESHOLD {
-            continue;
-        }
+    let intelligence = CodeIntelligence::default();
+    let mut indexed_files_batch = Batch::new();
+    for repository in config {
+        for file in Walk::new(repository.dir()) {
+            let file = match file {
+                Ok(file) => file,
+                Err(e) => {
+                    warn!("Failed to walk file tree for indexing: {e}");
+                    continue;
+                }
+            };
+            let Some(source_file) = cache.get_source_file(repository, file.path()) else {
+                continue;
+            };
+            if !is_valid_file(&source_file) {
+                continue;
+            }
+            let (file_id, indexed) = cache.check_indexed(file.path());
 
-        if file.avg_line_length > AVG_LINE_LENGTH_THRESHOLD {
-            continue;
-        }
+            if indexed {
+                continue;
+            }
+            let text = match source_file.read_content() {
+                Ok(content) => content,
+                Err(e) => {
+                    warn!(
+                        "Failed to read content of '{}': {}",
+                        source_file.filepath, e
+                    );
+                    continue;
+                }
+            };
 
-        for doc in from_source_file(file) {
-            writer.add_document(doc!(
-                    code.field_git_url => doc.git_url,
-                    code.field_filepath => doc.filepath,
-                    code.field_language => doc.language,
-                    code.field_name => doc.name,
-                    code.field_body => doc.body,
-                    code.field_kind => doc.kind,
-            ))?;
+            for body in intelligence.chunks(&text) {
+                pb.as_mut()
+                    .map(|b| b.update(body.len()))
+                    .transpose()
+                    .expect("Failed to update progress bar");
+
+                writer
+                    .add_document(doc! {
+                                code.field_git_url => source_file.git_url.clone(),
+                                code.field_source_file_key => file_id.to_string(),
+                                code.field_filepath => source_file.filepath.clone(),
+                                code.field_language => source_file.language.clone(),
+                                code.field_body => body,
+                    })
+                    .expect("Failed to add document");
+            }
+            indexed_files_batch
+                .set(&file_id, &String::new())
+                .expect("Failed to mark file as indexed");
         }
     }
 
-    writer.commit()?;
-    writer.wait_merging_threads()?;
+    // Commit updating indexed documents
+    writer.commit().expect("Failed to commit index");
+    writer
+        .wait_merging_threads()
+        .expect("Failed to wait for merging threads");
 
-    Ok(())
+    // Mark all indexed documents as indexed
+    cache.apply_indexed(indexed_files_batch);
 }
 
-/// Atomic repository document in index.
-struct IndexedDocument {
-    git_url: String,
-    filepath: String,
-    language: String,
-    name: String,
-    body: String,
-    kind: String,
+pub fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, index: &Index) {
+    // Create a new writer to commit deletion of removed indexed files
+    let mut writer = index
+        .writer(150_000_000)
+        .expect("Failed to create index writer");
+
+    let gc_commit = cache.prepare_garbage_collection_for_indexed_files(|key| {
+        writer.delete_term(Term::from_field_text(code.field_source_file_key, key));
+    });
+
+    // Commit garbage collection
+    writer
+        .commit()
+        .expect("Failed to commit garbage collection");
+
+    writer
+        .wait_merging_threads()
+        .expect("Failed to wait for merging threads on garbage collection");
+
+    gc_commit();
 }
 
-fn read_range(filename: &str, content: &str, range: Range<usize>) -> Option<String> {
-    let Some(content) = content.get(range.clone()) else {
-        warn!("Failed to read content '{range:?}' from '{filename}'");
-        return None;
-    };
-    Some(content.to_string())
+fn is_valid_file(file: &SourceFile) -> bool {
+    file.max_line_length <= MAX_LINE_LENGTH_THRESHOLD
+        && file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
 }
 
-fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
-    file.tags.into_iter().filter_map(move |tag| {
-        let path = Path::new(&file.basedir).join(&file.filepath);
-        let Ok(file_content) = std::fs::read_to_string(&path) else {
-            warn!("Failed to read file '{}'", path.display());
-            return None;
-        };
-        let name = read_range(&file.filepath, &file_content, tag.name_range)?;
-        let body = read_range(&file.filepath, &file_content, tag.range)?;
+fn open_or_create_index(code: &CodeSearchSchema, path: &Path) -> Index {
+    match open_or_create_index_impl(code, path) {
+        Ok(index) => index,
+        Err(err) => {
+            warn!(
+                "Failed to open index repositories: {}, removing index directory '{}'...",
+                err,
+                path.display()
+            );
+            fs::remove_dir_all(path).expect("Failed to remove index directory");
 
-        if body.lines().collect::<Vec<_>>().len() > MAX_BODY_LINES_THRESHOLD {
-            return None;
+            debug!("Reopening index repositories...");
+            open_or_create_index_impl(code, path).expect("Failed to open index")
         }
-
-        Some(IndexedDocument {
-            git_url: file.git_url.clone(),
-            filepath: file.filepath.clone(),
-            language: file.language.clone(),
-            name,
-            body,
-            kind: tag.syntax_type_name,
-        })
-    })
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use serde_json::{from_value, json};
-    use temp_testdir::TempDir;
-
-    use super::*;
-
-    fn test_source_file(basedir: &Path) -> SourceFile {
-        let filepath = "trainer.py";
-        let fullpath = basedir.join(filepath).display().to_string();
-        let file_content = "import os\nimport glob\nfrom dataclasses import dataclass, field\nfrom typing import List\n\nimport peft\nimport torch\nfrom transformers import (\n    AutoModelForCausalLM,\n    AutoTokenizer,\n    HfArgumentParser,\n    Trainer,\n    TrainingArguments,\n)\nfrom datasets import Dataset, load_dataset\n\n\nclass ConstantLengthDataset:\n    \"\"\"\n    Iterable dataset that returns constant length chunks of tokens from stream of text files.\n        Args:\n            tokenizer (Tokenizer): The processor used for proccessing the data.\n            dataset (dataset.Dataset): Dataset with text files.\n            infinite (bool): If True the iterator is reset after dataset reaches end else stops.\n            seq_length (int): Length of token sequences to return.\n            num_of_sequences (int): Number of token sequences to keep in buffer.\n            chars_per_token (int): Number of characters per token used to estimate number of tokens in text buffer.\n    \"\"\"\n\n    def __init__(\n        self,\n        tokenizer,\n        dataset,\n        infinite=False,\n        seq_length=1024,\n        num_of_sequences=1024,\n        chars_per_token=3.6,\n        content_field=\"content\",\n    ):\n        self.tokenizer = tokenizer\n        self.concat_token_id = tokenizer.eos_token_id\n        self.dataset = dataset\n        self.seq_length = seq_length\n        self.infinite = infinite\n        self.current_size = 0\n        self.max_buffer_size = seq_length * chars_per_token * num_of_sequences\n        self.content_field = content_field\n\n    def __call__(self):\n        def gen():\n            for x in self:\n                yield x\n\n        return gen()\n\n    def __iter__(self):\n        for buffer in self._read_dataset_into_buffer():\n            yield from self._tokenize(buffer)\n\n    def _tokenize(self, buffer):\n        tokenized_inputs = self.tokenizer(buffer, truncation=False)[\"input_ids\"]\n\n        all_token_ids = []\n        for tokenized_input in tokenized_inputs:\n            all_token_ids.extend(tokenized_input + [self.concat_token_id])\n\n        for i in range(0, len(all_token_ids), self.seq_length):\n            input_ids = all_token_ids[i : i + self.seq_length]\n\n            if len(input_ids) < self.seq_length:\n                input_ids = all_token_ids[-self.seq_length :]\n\n            if len(input_ids) == self.seq_length:\n                self.current_size += 1\n                yield dict(input_ids=input_ids, labels=input_ids)\n\n    def _read_dataset_into_buffer(self):\n        iterator = iter(self.dataset)\n        more_examples = True\n        while more_examples:\n            buffer, buffer_len = [], 0\n            while True:\n                if buffer_len >= self.max_buffer_size:\n                    break\n                try:\n                    buffer.append(next(iterator)[self.content_field])\n                    buffer_len += len(buffer[-1])\n                except StopIteration:\n                    if self.infinite:\n                        iterator = iter(self.dataset)\n                    else:\n                        more_examples = False\n                        break\n            yield buffer\n\n\n";
-        std::fs::write(fullpath, file_content).expect("Failed to write test file");
-        from_value(json!(
-        {
-            "git_url": "https://fake.com/tabbyml.git",
-            "basedir": basedir.display().to_string(),
-            "filepath": filepath,
-            "language": "python",
-            "max_line_length": 115,
-            "avg_line_length": 32.388393,
-            "alphanum_fraction": 0.6066319,
-            "tags": [
-              {
-                "range": {
-                  "start": 290,
-                  "end": 320
-                },
-                "name_range": {
-                  "start": 296,
-                  "end": 317
-                },
-                "utf16_column_range": {
-                  "start": 6,
-                  "end": 27
-                },
-                "span": {
-                  "start": {
-                    "row": 17,
-                    "column": 6
-                  },
-                  "end": {
-                    "row": 17,
-                    "column": 27
-                  }
-                },
-                "line_range": {
-                  "start": 290,
-                  "end": 318
-                },
-                "is_definition": true,
-                "syntax_type_name": "class"
-              },
-              {
-                "range": {
-                  "start": 953,
-                  "end": 970
-                },
-                "name_range": {
-                  "start": 957,
-                  "end": 965
-                },
-                "utf16_column_range": {
-                  "start": 8,
-                  "end": 16
-                },
-                "span": {
-                  "start": {
-                    "row": 29,
-                    "column": 8
-                  },
-                  "end": {
-                    "row": 29,
-                    "column": 16
-                  }
-                },
-                "line_range": {
-                  "start": 953,
-                  "end": 966
-                },
-                "is_definition": true,
-                "syntax_type_name": "function"
-              },
-            ]
-          }))
-        .expect("JSON is valid SourceFile")
-    }
-
-    #[test]
-    fn it_create_documents() {
-        let root = TempDir::default();
-
-        let source_file: SourceFile = test_source_file(&root);
-        let docs: Vec<_> = from_source_file(source_file).collect();
-        assert_eq!(docs.len(), 2);
-
-        assert_eq!(docs[0].name, "ConstantLengthDataset");
-        assert_eq!(docs[0].kind, "class");
-        assert!(
-            docs[0].body.starts_with("class ConstantLengthDataset"),
-            "body: {:?}",
-            docs[0].body
-        );
-
-        assert_eq!(docs[1].name, "__init__");
-        assert_eq!(docs[1].kind, "function");
-        assert!(
-            docs[1].body.starts_with("def __init__"),
-            "body: {:?}",
-            docs[1].body
-        );
-    }
+fn open_or_create_index_impl(code: &CodeSearchSchema, path: &Path) -> tantivy::Result<Index> {
+    fs::create_dir_all(path).expect("Failed to create index directory");
+    let directory = MmapDirectory::open(path).expect("Failed to open index directory");
+    Index::open_or_create(directory, code.schema.clone())
 }

@@ -11,7 +11,7 @@ use tabby_common::{
     },
     languages::get_language,
 };
-use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
+use tabby_inference::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
 use thiserror::Error;
 use utoipa::ToSchema;
 
@@ -226,14 +226,14 @@ pub struct DebugData {
 }
 
 pub struct CompletionService {
-    engine: Arc<dyn TextGeneration>,
+    engine: Arc<CodeGeneration>,
     logger: Arc<dyn EventLogger>,
     prompt_builder: completion_prompt::PromptBuilder,
 }
 
 impl CompletionService {
     fn new(
-        engine: Arc<dyn TextGeneration>,
+        engine: Arc<CodeGeneration>,
         code: Arc<dyn CodeSearch>,
         logger: Arc<dyn EventLogger>,
         prompt_template: Option<String>,
@@ -262,11 +262,11 @@ impl CompletionService {
         language: &str,
         temperature: Option<f32>,
         seed: Option<u64>,
-    ) -> TextGenerationOptions {
-        let mut builder = TextGenerationOptionsBuilder::default();
+    ) -> CodeGenerationOptions {
+        let mut builder = CodeGenerationOptionsBuilder::default();
         builder
             .max_input_length(1024 + 512)
-            .max_decoding_length(128)
+            .max_decoding_tokens(64)
             .language(Some(get_language(language)));
         temperature.inspect(|x| {
             builder.sampling_temperature(*x);
@@ -309,17 +309,19 @@ impl CompletionService {
         let text = self.engine.generate(&prompt, options).await;
         let segments = segments.cloned().map(|s| s.into());
 
-        self.logger.log(Event::Completion {
-            completion_id: completion_id.clone(),
-            language,
-            prompt: prompt.clone(),
-            segments,
-            choices: vec![api::event::Choice {
-                index: 0,
-                text: text.clone(),
-            }],
-            user: request.user.clone(),
-        });
+        self.logger.log(
+            request.user.clone(),
+            Event::Completion {
+                completion_id: completion_id.clone(),
+                language,
+                prompt: prompt.clone(),
+                segments,
+                choices: vec![api::event::Choice {
+                    index: 0,
+                    text: text.clone(),
+                }],
+            },
+        );
 
         let debug_data = request
             .debug_options
@@ -349,7 +351,7 @@ pub async fn create_completion_service(
         model::PromptInfo {
             prompt_template, ..
         },
-    ) = model::load_text_generation(model, device, parallelism).await;
+    ) = model::load_code_generation(model, device, parallelism).await;
 
     CompletionService::new(engine.clone(), code, logger, prompt_template)
 }

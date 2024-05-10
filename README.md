@@ -1,6 +1,8 @@
 <div align="center">
-
+  
 # 🐾 Tabby
+
+[📚 Docs](https://tabby.tabbyml.com) • [💬 Slack](https://links.tabbyml.com/join-slack) • [✨ Live Demo](https://links.tabbyml.com/live-demo)
 
 [![latest release](https://shields.io/github/v/release/TabbyML/tabby?sort=semver)](https://github.com/TabbyML/tabby/releases/latest)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
@@ -24,14 +26,18 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 
 ## 🔥 What's New
 
-* **03/20/2024** [v0.9](https://github.com/TabbyML/tabby/releases/tag/v0.9.1) released, highlighting a full feature admin UI.
-* **12/23/2023** Seamlessly [deploy Tabby on any cloud](https://tabby.tabbyml.com/docs/installation/skypilot/) with [SkyServe](https://skypilot.readthedocs.io/en/latest/serving/sky-serve.html) 🛫 from SkyPilot.
+* **04/22/2024** [v0.10.0](https://github.com/TabbyML/tabby/releases/tag/v0.10.0) released, featuring the latest **Reports** tab with team-wise analytics for Tabby usage.
+* **04/19/2024** 📣 Tabby now incorporates [locally relevant snippets](https://github.com/TabbyML/tabby/pull/1844)(declarations from local LSP, and recently modified code) for code completion!
+* **04/17/2024** CodeGemma and CodeQwen model series have now been added to the [official registry](https://tabby.tabbyml.com/docs/models/)!
+
 
 
 
 <details>
   <summary>Archived</summary>
 
+* **03/20/2024** [v0.9](https://github.com/TabbyML/tabby/releases/tag/v0.9.1) released, highlighting a full feature admin UI.
+* **12/23/2023** Seamlessly [deploy Tabby on any cloud](https://tabby.tabbyml.com/docs/installation/skypilot/) with [SkyServe](https://skypilot.readthedocs.io/en/latest/serving/sky-serve.html) 🛫 from SkyPilot.
 * **12/15/2023** [v0.7.0](https://github.com/TabbyML/tabby/releases/tag/v0.7.0) released with team management and secured access!
 * **10/15/2023** RAG-based code completion is enabled by detail in [v0.3.0](https://github.com/TabbyML/tabby/releases/tag/v0.3.0)🎉! Check out the [blogpost](https://tabby.tabbyml.com/blog/2023/10/16/repository-context-for-code-completion/) explaining how Tabby utilizes repo-level context to get even smarter!
 * **11/27/2023** [v0.6.0](https://github.com/TabbyML/tabby/releases/tag/v0.6.0) released!
@@ -98,6 +104,10 @@ apt-get install protobuf-compiler libopenblas-dev
 - 🎤 [Twitter / X](https://twitter.com/Tabby_ML) - engage with TabbyML for all things possible 
 - 📚 [LinkedIn](https://www.linkedin.com/company/tabbyml/) - follow for the latest from the community 
 - 💌 [Newsletter](https://newsletter.tabbyml.com/archive) - subscribe to unlock Tabby insights and secrets
+
+### 🔆 Activity
+
+![Git Repository Activity](https://repobeats.axiom.co/api/embed/e4ef0fbd12e586ef9ea7d72d1fb4f5c5b88d78d5.svg "Repobeats analytics image")
 
 ### 🌟 Star History
 

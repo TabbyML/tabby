@@ -340,12 +340,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     const maxSuffixLines = this.config.completion.prompt.maxSuffixLines;
     const { prefixLines, suffixLines } = context;
     const prefix = prefixLines.slice(Math.max(prefixLines.length - maxPrefixLines, 0)).join("");
-    let suffix;
-    if (this.config.completion.prompt.experimentalStripAutoClosingCharacters && context.mode !== "fill-in-line") {
-      suffix = "\n" + suffixLines.slice(1, maxSuffixLines).join("");
-    } else {
-      suffix = suffixLines.slice(0, maxSuffixLines).join("");
-    }
+    const suffix = suffixLines.slice(0, maxSuffixLines).join("");
     if (isBlank(prefix)) {
       return null;
     }

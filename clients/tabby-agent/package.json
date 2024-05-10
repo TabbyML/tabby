@@ -1,6 +1,6 @@
 {
   "name": "tabby-agent",
-  "version": "1.5.0",
+  "version": "1.6.0-dev",
   "description": "Generic client agent for Tabby AI coding assistant IDE extensions.",
   "homepage": "https://tabby.tabbyml.com/",
   "repository": "https://github.com/TabbyML/tabby",

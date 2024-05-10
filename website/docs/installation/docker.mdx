@@ -10,7 +10,11 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 <Tabs>
-  <TabItem value="cuda" label="CUDA (requires NVIDIA Container Toolkit)" default>
+  <TabItem value="cuda" label="CUDA" default>
+
+
+  For CUDA support in Tabby, install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+  After installation, you can start Tabby with the following command:
 
   ```bash title="run.sh"
   docker run -it --gpus all \

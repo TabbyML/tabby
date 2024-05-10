@@ -158,12 +158,10 @@ impl DbConn {
     }
 
     pub async fn reset_user_auth_token_by_id(&self, id: i64) -> Result<()> {
-        let updated_at = chrono::Utc::now();
         let token = generate_auth_token();
         query!(
-            r#"UPDATE users SET auth_token = ?, updated_at = ? WHERE id = ?"#,
+            r#"UPDATE users SET auth_token = ?, updated_at = DATETIME('now') WHERE id = ?"#,
             token,
-            updated_at,
             id
         )
         .execute(&self.pool)

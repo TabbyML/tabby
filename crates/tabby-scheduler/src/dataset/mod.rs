@@ -1,105 +1,60 @@
 mod deps;
 
 use std::{
-    collections::HashMap,
-    ffi::OsStr,
-    fs::{self, read_to_string},
-    io::{IsTerminal, Write},
+    fs::{self},
+    io::Write,
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
-use ignore::{DirEntry, Walk};
-use kdam::BarExt;
-use lazy_static::lazy_static;
+use ignore::Walk;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::RepositoryConfig,
     path::{dataset_dir, dependency_file},
     DependencyFile, SourceFile,
 };
-use tracing::error;
 
-use crate::{code::CodeIntelligence, utils::tqdm};
+use crate::cache::CacheStore;
 
 trait RepositoryExt {
-    fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
+    fn create_dataset(&self, cache: &mut CacheStore, writer: &mut impl Write) -> Result<()>;
 }
 
 impl RepositoryExt for RepositoryConfig {
-    fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
-        let basedir = self.dir();
-        let walk_dir_iter = || {
-            Walk::new(basedir.as_path())
-                .filter_map(Result::ok)
-                .filter(is_source_code)
-        };
+    fn create_dataset(&self, cache: &mut CacheStore, writer: &mut impl Write) -> Result<()> {
+        let dir = self.dir();
 
-        let mut pb = std::io::stdout()
-            .is_terminal()
-            .then(|| tqdm(walk_dir_iter().count()));
-        let walk_dir = walk_dir_iter();
+        let walk_dir_iter = || Walk::new(dir.as_path()).filter_map(Result::ok);
 
-        let mut code = CodeIntelligence::default();
-        for entry in walk_dir {
-            pb.as_mut().map(|b| b.update(1)).transpose()?;
-
-            let relative_path = entry
-                .path()
-                .strip_prefix(basedir.as_path())
-                .expect("Paths always begin with the prefix");
-            let language = get_language(
-                relative_path
-                    .extension()
-                    .ok_or_else(|| anyhow!("Unknown file extension for {relative_path:?}"))?,
-            )
-            .ok_or_else(|| anyhow!("Unknown language for {relative_path:?}"))?
-            .to_owned();
-            match read_to_string(entry.path()) {
-                Ok(file_content) => {
-                    let source_file = SourceFile {
-                        git_url: self.canonical_git_url(),
-                        basedir: basedir.display().to_string(),
-                        filepath: relative_path.display().to_string(),
-                        max_line_length: metrics::max_line_length(&file_content),
-                        avg_line_length: metrics::avg_line_length(&file_content),
-                        alphanum_fraction: metrics::alphanum_fraction(&file_content),
-                        tags: code.find_tags(&language, &file_content),
-                        language,
-                    };
-                    writer.write_json_lines([source_file.clone()])?;
-                }
-                Err(e) => {
-                    error!(
-                        "Cannot read '{}/{}': '{e}'",
-                        basedir.display(),
-                        relative_path.display()
-                    );
-                }
-            }
+        for entry in walk_dir_iter() {
+            let Some(source_file) = cache.get_source_file(self, entry.path()) else {
+                continue;
+            };
+            writer
+                .write_json_lines([source_file.clone()])
+                .expect("Failed to write dataset jsonl file");
         }
 
         Ok(())
     }
 }
 
-fn get_language(ext: &OsStr) -> Option<&str> {
-    let ext = ext.to_str().unwrap_or("");
-    EXTENSION_LANGUAGE.get(ext).copied()
-}
-
-fn is_source_code(entry: &DirEntry) -> bool {
-    if entry.file_type().is_some_and(|x| x.is_file()) {
-        entry.path().extension().and_then(get_language).is_some()
-    } else {
-        false
-    }
-}
-
-pub fn create_dataset(config: &[RepositoryConfig]) -> Result<()> {
+pub fn create_dataset(cache: &mut CacheStore, config: &[RepositoryConfig]) {
     fs::remove_dir_all(dataset_dir()).ok();
-    fs::create_dir_all(dataset_dir())?;
+    fs::create_dir_all(dataset_dir()).expect("Failed to create dataset directory");
 
+    // Collect dependencies
+    {
+        let mut deps = DependencyFile::default();
+        for repository in config {
+            deps::collect(repository.dir().as_path(), &mut deps);
+        }
+        serdeconv::to_json_file(&deps, dependency_file())
+            .expect("Failed to write dependencies json file");
+    }
+
+    // Create dataset
     let mut writer = FileRotate::new(
         SourceFile::files_jsonl(),
         AppendCount::new(usize::max_value()),
@@ -108,100 +63,11 @@ pub fn create_dataset(config: &[RepositoryConfig]) -> Result<()> {
         #[cfg(unix)]
         None,
     );
-
-    let mut deps = DependencyFile::default();
     for repository in config {
-        deps::collect(repository.dir().as_path(), &mut deps);
-        repository.create_dataset(&mut writer)?;
+        repository
+            .create_dataset(cache, &mut writer)
+            .expect("Failed to create dataset");
     }
 
-    serdeconv::to_json_file(&deps, dependency_file())?;
-
-    writer.flush()?;
-    Ok(())
-}
-
-mod metrics {
-    use std::cmp::max;
-
-    pub fn max_line_length(content: &str) -> usize {
-        content.lines().map(|x| x.len()).reduce(max).unwrap_or(0)
-    }
-
-    pub fn avg_line_length(content: &str) -> f32 {
-        let mut total = 0;
-        let mut len = 0;
-        for x in content.lines() {
-            len += 1;
-            total += x.len();
-        }
-
-        if len > 0 {
-            total as f32 / len as f32
-        } else {
-            0.0
-        }
-    }
-
-    pub fn alphanum_fraction(content: &str) -> f32 {
-        let num_alphanumn: f32 = content
-            .chars()
-            .map(|x| f32::from(u8::from(x.is_alphanumeric())))
-            .sum();
-        if !content.is_empty() {
-            num_alphanumn / content.len() as f32
-        } else {
-            0.0
-        }
-    }
-}
-
-lazy_static! {
-    static ref LANGUAGE_EXTENSION: HashMap<&'static str, Vec<&'static str>> = {
-        HashMap::from([
-            ("c", vec!["c", "h"]),
-            ("csharp", vec!["cs"]),
-            (
-                "cpp",
-                vec!["cpp", "hpp", "c++", "h++", "cc", "hh", "C", "H", "tcc"],
-            ),
-            ("css", vec!["css"]),
-            ("dockerfile", vec!["Dockerfile"]),
-            ("go", vec!["go"]),
-            ("haskell", vec!["hs"]),
-            ("html", vec!["html"]),
-            ("java", vec!["java"]),
-            ("kotlin", vec!["kt", "kts"]),
-            ("julia", vec!["jl"]),
-            ("lua", vec!["lua"]),
-            ("makefile", vec!["Makefile"]),
-            ("markdown", vec!["md", "markdown"]),
-            ("php", vec!["php", "php3", "php4", "php5", "phps", "phpt"]),
-            ("perl", vec!["pl", "pm", "pod", "perl"]),
-            ("powershell", vec!["ps1", "psd1", "psm1"]),
-            ("python", vec!["py"]),
-            ("ruby", vec!["rb"]),
-            ("rust", vec!["rs"]),
-            ("solidity", vec!["sol"]),
-            ("sql", vec!["sql"]),
-            ("scala", vec!["scala"]),
-            ("shellscript", vec!["sh", "bash", "command", "zsh"]),
-            (
-                "javascript-typescript",
-                vec!["ts", "mts", "js", "mjs", "jsx", "tsx"],
-            ),
-            ("tex", vec!["tex"]),
-            ("vb", vec!["vb"]),
-        ])
-    };
-    static ref EXTENSION_LANGUAGE: HashMap<&'static str, &'static str> = {
-        let mut map = HashMap::new();
-        for (lang, exts) in &*LANGUAGE_EXTENSION {
-            for ext in exts {
-                map.insert(*ext, *lang);
-            }
-        }
-
-        map
-    };
+    writer.flush().expect("Failed to flush writer");
 }

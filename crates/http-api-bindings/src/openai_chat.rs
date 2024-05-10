@@ -7,7 +7,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use tabby_common::api::chat::Message;
-use tabby_inference::chat::{ChatCompletionOptions, ChatCompletionStream};
+use tabby_inference::{ChatCompletionOptions, ChatCompletionStream};
 use tracing::{debug, warn};
 
 pub struct OpenAIChatEngine {
@@ -49,6 +49,7 @@ impl ChatCompletionStream for OpenAIChatEngine {
 
         let request = CreateChatCompletionRequestArgs::default()
             .seed(options.seed as i64)
+            .max_tokens(options.max_decoding_tokens as u16)
             .model(&self.model_name)
             .temperature(options.sampling_temperature)
             .stream(true)

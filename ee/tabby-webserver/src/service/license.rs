@@ -5,14 +5,13 @@ use jsonwebtoken as jwt;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use tabby_db::DbConn;
-
-use crate::{
-    env::demo_mode,
-    schema::{
-        license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
-        Result,
-    },
+use tabby_schema::{
+    is_demo_mode,
+    license::{LicenseInfo, LicenseService, LicenseStatus, LicenseType},
+    Result,
 };
+
+use crate::bail;
 
 lazy_static! {
     static ref LICENSE_DECODING_KEY: jwt::DecodingKey =
@@ -129,8 +128,8 @@ fn license_info_from_raw(raw: LicenseJWTPayload, seats_used: usize) -> Result<Li
 
 #[async_trait]
 impl LicenseService for LicenseServiceImpl {
-    async fn read_license(&self) -> Result<LicenseInfo> {
-        if demo_mode() {
+    async fn read(&self) -> Result<LicenseInfo> {
+        if is_demo_mode() {
             return self.make_demo_license().await;
         }
 
@@ -145,24 +144,24 @@ impl LicenseService for LicenseServiceImpl {
         Ok(license)
     }
 
-    async fn update_license(&self, license: String) -> Result<()> {
-        if demo_mode() {
-            return Err(anyhow!("Demo mode is enabled, cannot set license").into());
+    async fn update(&self, license: String) -> Result<()> {
+        if is_demo_mode() {
+            bail!("Modifying license is disabled in demo mode");
         }
 
         let raw = validate_license(&license).map_err(|_e| anyhow!("License is not valid"))?;
         let seats = self.db.count_active_users().await?;
         match license_info_from_raw(raw, seats)?.status {
             LicenseStatus::Ok => self.db.update_enterprise_license(Some(license)).await?,
-            LicenseStatus::Expired => return Err(anyhow!("License is expired").into()),
+            LicenseStatus::Expired => bail!("License is expired"),
             LicenseStatus::SeatsExceeded => {
-                return Err(anyhow!("License doesn't contain sufficient number of seats").into())
+                bail!("License doesn't contain sufficient number of seats")
             }
         };
         Ok(())
     }
 
-    async fn reset_license(&self) -> Result<()> {
+    async fn reset(&self) -> Result<()> {
         self.db.update_enterprise_license(None).await?;
         Ok(())
     }
@@ -211,16 +210,16 @@ mod tests {
         let db = DbConn::new_in_memory().await.unwrap();
         let service = new_license_service(db).await.unwrap();
 
-        assert!(service.update_license("bad_token".into()).await.is_err());
+        assert!(service.update("bad_token".into()).await.is_err());
 
-        service.update_license(VALID_TOKEN.into()).await.unwrap();
-        assert!(service.read_license().await.is_ok());
+        service.update(VALID_TOKEN.into()).await.unwrap();
+        assert!(service.read().await.is_ok());
 
-        assert!(service.update_license(EXPIRED_TOKEN.into()).await.is_err());
+        assert!(service.update(EXPIRED_TOKEN.into()).await.is_err());
 
-        service.reset_license().await.unwrap();
+        service.reset().await.unwrap();
         assert_eq!(
-            service.read_license().await.unwrap().seats,
+            service.read().await.unwrap().seats,
             LicenseInfo::seat_limits_for_community_license() as i32
         );
     }

@@ -11,7 +11,7 @@ use tabby_common::{
 };
 use tokio::time::sleep;
 use tower_http::timeout::TimeoutLayer;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
@@ -116,80 +116,69 @@ pub struct ServeArgs {
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
-    #[cfg(feature = "experimental-http")]
-    if args.device == Device::ExperimentalHttp {
-        tracing::warn!("HTTP device is unstable and does not comply with semver expectations.");
-    } else {
-        load_model(args).await;
-    }
-    #[cfg(not(feature = "experimental-http"))]
     load_model(args).await;
 
-    info!("Starting server, this might take a few minutes...");
+    debug!("Starting server, this might take a few minutes...");
 
     #[cfg(feature = "ee")]
+    #[allow(deprecated)]
     if args.webserver {
         warn!("'--webserver' is enabled by default since 0.11, and will be removed in the next major release. Please remove this flag from your command.");
     }
 
+    #[allow(unused_assignments)]
+    let mut webserver = None;
+
+    #[cfg(feature = "ee")]
+    {
+        webserver = Some(!args.no_webserver)
+    }
+
     #[cfg(feature = "ee")]
     let ws = if !args.no_webserver {
-        Some(tabby_webserver::public::WebserverHandle::new(create_event_logger()).await)
+        Some(tabby_webserver::public::Webserver::new(create_event_logger(), args.port).await)
     } else {
         None
     };
 
-    let logger: Arc<dyn EventLogger>;
-    let repository_access: Arc<dyn RepositoryAccess>;
-    #[cfg(feature = "ee")]
-    {
-        logger = ws
-            .as_ref()
-            .map(|ws| ws.logger())
-            .unwrap_or_else(|| Arc::new(create_event_logger()));
+    let mut logger: Arc<dyn EventLogger> = Arc::new(create_event_logger());
+    let mut repository_access: Arc<dyn RepositoryAccess> = Arc::new(ConfigRepositoryAccess);
 
-        repository_access = ws
-            .as_ref()
-            .map(|ws| ws.repository_access())
-            .unwrap_or_else(|| Arc::new(ConfigRepositoryAccess));
-    }
-    #[cfg(not(feature = "ee"))]
-    {
-        logger = Arc::new(create_event_logger());
-        repository_access = Arc::new(ConfigRepositoryAccess);
+    #[cfg(feature = "ee")]
+    if let Some(ws) = &ws {
+        logger = ws.logger();
+        repository_access = ws.repository_access();
     }
 
     let code = Arc::new(create_code_search(repository_access));
-    let api = api_router(args, config, logger.clone(), code.clone()).await;
-    let ui = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
+    let mut api = api_router(args, config, logger.clone(), code.clone(), webserver).await;
+    let mut ui = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
 
     #[cfg(feature = "ee")]
-    let (api, ui) = if !args.no_webserver {
-        let (api, ui) = ws
-            .unwrap()
-            .attach_webserver(api, ui, code, args.chat_model.is_some(), args.port)
-            .await;
-        (api, ui)
-    } else {
-        let ui = ui.fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
-        (api, ui)
+    if let Some(ws) = &ws {
+        let (new_api, new_ui) = ws.attach(api, ui, code, args.chat_model.is_some()).await;
+        api = new_api;
+        ui = new_ui;
     };
 
-    #[cfg(not(feature = "ee"))]
-    let ui = ui.fallback(|| async { axum::response::Redirect::temporary("/swagger-ui") });
-
-    start_heartbeat(args);
+    start_heartbeat(args, webserver);
     run_app(api, Some(ui), args.host, args.port).await
 }
 
 async fn load_model(args: &ServeArgs) {
-    if let Some(model) = &args.model {
-        download_model_if_needed(model).await;
+    if args.device != Device::ExperimentalHttp {
+        if let Some(model) = &args.model {
+            download_model_if_needed(model).await;
+        }
     }
 
-    if let Some(chat_model) = &args.chat_model {
-        download_model_if_needed(chat_model).await
+    let chat_device = args.chat_device.as_ref().unwrap_or(&args.device);
+    if chat_device != &Device::ExperimentalHttp {
+        if let Some(chat_model) = &args.chat_model {
+            download_model_if_needed(chat_model).await
+        }
     }
 }
 
@@ -198,6 +187,7 @@ async fn api_router(
     config: &Config,
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+    webserver: Option<bool>,
 ) -> Router {
     let completion_state = if let Some(model) = &args.model {
         Some(Arc::new(
@@ -232,8 +222,12 @@ async fn api_router(
 
     let health_state = Arc::new(health::HealthState::new(
         args.model.as_deref(),
-        args.chat_model.as_deref(),
         &args.device,
+        args.chat_model.as_deref(),
+        args.chat_model
+            .as_deref()
+            .map(|_| args.chat_device.as_ref().unwrap_or(&args.device)),
+        webserver,
     ));
 
     routers.push({
@@ -328,11 +322,15 @@ async fn api_router(
     root
 }
 
-fn start_heartbeat(args: &ServeArgs) {
+fn start_heartbeat(args: &ServeArgs, webserver: Option<bool>) {
     let state = health::HealthState::new(
         args.model.as_deref(),
-        args.chat_model.as_deref(),
         &args.device,
+        args.chat_model.as_deref(),
+        args.chat_model
+            .as_deref()
+            .map(|_| args.chat_device.as_ref().unwrap_or(&args.device)),
+        webserver,
     );
     tokio::spawn(async move {
         loop {

@@ -4,7 +4,6 @@ import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
 
-import { useMe } from '../hooks/use-me'
 import { useIsAdminInitialized } from '../hooks/use-server-info'
 import { useMutation } from './gql'
 import { AUTH_TOKEN_KEY } from './token-management'
@@ -126,7 +125,6 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
     status: 'loading',
     data: undefined
   })
-  const [, reexecuteQueryMe] = useMe()
 
   React.useEffect(() => {
     initialized.current = true
@@ -258,13 +256,14 @@ function useAuthenticatedSession() {
     if (status === 'authenticated') return
     if (isAdminInitialized === undefined) return
 
-    if (!isAdminInitialized) {
+    const isAdminSignup =
+      pathName === '/auth/signup' && searchParams.get('isAdmin') === 'true'
+
+    if (!isAdminSignup && !isAdminInitialized) {
       return router.replace('/auth/signup?isAdmin=true')
     }
 
-    const isAdminSignup =
-      pathName === '/auth/signup' && searchParams.get('isAdmin') === 'true'
-    if (!redirectWhitelist.includes(pathName) || isAdminSignup) {
+    if (!redirectWhitelist.includes(pathName)) {
       router.replace('/auth/signin')
     }
   }, [isAdminInitialized, status])

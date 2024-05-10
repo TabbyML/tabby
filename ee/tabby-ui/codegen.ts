@@ -3,7 +3,7 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: "../tabby-webserver/graphql/schema.graphql",
+  schema: "../tabby-schema/graphql/schema.graphql",
   documents: "./**/*.(tsx|ts)",
   ignoreNoDocuments: true,
   generates: {

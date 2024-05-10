@@ -1,0 +1,21 @@
+description = 'Replace range: typescript 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'print.ts'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+function print(obj: any) {
+  console.log("Obj: ├", obj);┤")
+}
+'''
+
+[expected]
+text = '''
+function print(obj: any) {
+  console.log("Obj: ├", obj);┤")╣
+}
+'''

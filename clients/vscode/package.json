@@ -7,7 +7,7 @@
   "repository": "https://github.com/TabbyML/tabby",
   "bugs": "https://github.com/TabbyML/tabby/issues",
   "license": "Apache-2.0",
-  "version": "1.5.0",
+  "version": "1.6.0-dev",
   "keywords": [
     "ai",
     "autocomplete",
@@ -72,7 +72,7 @@
       },
       {
         "command": "tabby.experimental.chat.explainCodeBlock",
-        "title": "Tabby: Explain Codes"
+        "title": "Tabby: Explain This"
       }
     ],
     "menus": {
@@ -87,14 +87,14 @@
         },
         {
           "command": "tabby.experimental.chat.explainCodeBlock",
-          "when": "editorHasSelection && chatModeEnabled && explainCodeSettingEnabled"
+          "when": "editorHasSelection && tabby.chatModeEnabled && tabby.explainCodeSettingEnabled"
         }
       ],
       "editor/context": [
         {
           "command": "tabby.experimental.chat.explainCodeBlock",
           "group": "1_close",
-          "when": "editorHasSelection && chatModeEnabled && explainCodeSettingEnabled"
+          "when": "editorHasSelection && tabby.chatModeEnabled && tabby.explainCodeSettingEnabled"
         }
       ]
     },
@@ -148,7 +148,7 @@
             "default": "",
             "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
             "patternErrorMessage": "Please enter a validate http or https URL.",
-            "markdownDescription": "Specify API Endpoint of Tabby.  \nIf leave empty, server endpoint in [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
+            "markdownDescription": "Specify the API endpoint for the Tabby server.  \nIf authentication is required, please [Set Credentials](command:tabby.setApiToken).  \nIf left empty, the server endpoint specified in the [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
           },
           "tabby.inlineCompletion.triggerMode": {
             "type": "string",
@@ -176,12 +176,7 @@
             "type": "boolean",
             "default": false,
             "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configurations#usage-collection)."
-          }
-        }
-      },
-      {
-        "title": "Tabby2",
-        "properties": {
+          },
           "tabby.experimental": {
             "default": {},
             "properties": {
@@ -269,6 +264,6 @@
   "dependencies": {
     "@orama/orama": "^2.0.15",
     "@xstate/fsm": "^2.0.1",
-    "tabby-agent": "1.5.0"
+    "tabby-agent": "1.6.0-dev"
   }
 }

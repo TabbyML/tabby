@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::Utc;
 use hash_ids::HashIds;
 use lazy_static::lazy_static;
 use sqlx::{query, FromRow};
@@ -21,8 +20,8 @@ pub struct RefreshTokenDAO {
 
 impl RefreshTokenDAO {
     pub fn is_expired(&self) -> bool {
-        let now = chrono::Utc::now();
-        *self.expires_at < now
+        let now = DateTimeUtc::now();
+        self.expires_at < now
     }
 }
 
@@ -62,7 +61,7 @@ impl DbConn {
     }
 
     pub async fn delete_expired_token(&self) -> Result<i32> {
-        let time = Utc::now();
+        let time = DateTimeUtc::now();
         let res = query!(r#"DELETE FROM refresh_tokens WHERE expires_at < ?"#, time)
             .execute(&self.pool)
             .await?;
@@ -106,29 +105,34 @@ pub fn generate_refresh_token(id: i64) -> String {
 #[cfg(test)]
 mod tests {
 
-    use std::ops::Add;
-
     use super::*;
 
     #[tokio::test]
     async fn test_create_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
-
-        let token = conn.create_refresh_token(1).await.unwrap();
+        let user_id = conn
+            .create_user("email@email".into(), None, true)
+            .await
+            .unwrap();
+        let token = conn.create_refresh_token(user_id).await.unwrap();
 
         let dao = conn.get_refresh_token(&token).await.unwrap().unwrap();
 
         assert_eq!(dao.user_id, 1);
         assert_eq!(dao.token, token);
-        assert!(*dao.expires_at > Utc::now().add(chrono::Duration::days(6)));
-        assert!(*dao.expires_at < Utc::now().add(chrono::Duration::days(7)));
+        assert!(dao.expires_at > DateTimeUtc::now() + chrono::Duration::days(6));
+        assert!(dao.expires_at < DateTimeUtc::now() + chrono::Duration::days(7));
     }
 
     #[tokio::test]
     async fn test_replace_refresh_token() {
         let conn = DbConn::new_in_memory().await.unwrap();
 
-        let old = conn.create_refresh_token(1).await.unwrap();
+        let user_id = conn
+            .create_user("email@email".into(), None, true)
+            .await
+            .unwrap();
+        let old = conn.create_refresh_token(user_id).await.unwrap();
         let new = conn.renew_refresh_token(1, &old).await.unwrap();
 
         let token = conn.get_refresh_token(&old).await.unwrap();

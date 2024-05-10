@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use sqlx::{query, FromRow};
 use tabby_db_macros::query_paged_as;
 
@@ -30,13 +30,13 @@ pub struct JobStatsDAO {
 
 /// db read/write operations for `job_runs` table
 impl DbConn {
-    pub async fn create_job_run(&self, job: String) -> Result<i32> {
+    pub async fn create_job_run(&self, job: String) -> Result<i64> {
         let rowid = query!(
             r#"INSERT INTO job_runs (job, start_ts, stdout, stderr) VALUES (?, DATETIME('now'), '', '')"#,
             job,
         ).execute(&self.pool).await?.last_insert_rowid();
 
-        Ok(rowid as i32)
+        Ok(rowid)
     }
 
     pub async fn update_job_stdout(&self, job_id: i64, stdout: String) -> Result<()> {
@@ -123,7 +123,7 @@ impl DbConn {
             None => "".into(),
         };
 
-        let cutoff = Utc::now() - Duration::days(7);
+        let cutoff = DateTimeUtc::now() - Duration::days(7);
 
         let stats = sqlx::query_as(&format!(
             r#"SELECT

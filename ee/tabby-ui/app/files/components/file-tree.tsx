@@ -5,6 +5,7 @@ import { isEmpty } from 'lodash-es'
 import { SWRResponse } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
+import { RepositoryListQuery } from '@/lib/gql/generates/graphql'
 import { useDebounceValue } from '@/lib/hooks/use-debounce'
 import fetcher from '@/lib/tabby/fetcher'
 import type { ResolveEntriesResponse, TFile } from '@/lib/types'
@@ -19,14 +20,16 @@ import {
 } from '@/components/ui/icons'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { TFileMap } from './source-code-browser'
-import { resolveFileNameFromPath, resolveRepoNameFromPath } from './utils'
+import { SourceCodeBrowserContext, TFileMap } from './source-code-browser'
+import { resolveFileNameFromPath, resolveRepositoryInfoFromPath } from './utils'
 
 type TFileTreeNode = {
   name: string
   file: TFile
   fullPath: string
   children?: Array<TFileTreeNode>
+  isRepository?: boolean
+  repository?: RepositoryListQuery['repositoryList'][0] | undefined
 }
 
 interface FileTreeProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -206,6 +209,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   level,
   root
 }) => {
+  const { activeRepo } = React.useContext(SourceCodeBrowserContext)
   const {
     fileMap,
     updateFileMap,
@@ -216,9 +220,17 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   } = React.useContext(FileTreeContext)
 
   const initialized = React.useRef(false)
-  const repositoryName = React.useMemo(() => {
-    return resolveRepoNameFromPath(node.fullPath)
-  }, [node.fullPath])
+
+  const activeRepoIdentity = React.useMemo(() => {
+    const kind = activeRepo?.kind
+    const repoId = activeRepo?.id
+    if (!kind || !repoId) return ''
+
+    return `${kind.toLowerCase()}/${repoId}`
+  }, [activeRepo])
+
+  const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+
   const basename = root ? '' : node.file.basename
   const expanded = expandedKeys.has(node.fullPath)
   const shouldFetchChildren =
@@ -229,7 +241,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
   const { data, isLoading }: SWRResponse<ResolveEntriesResponse> =
     useSWRImmutable(
       shouldFetchChildren
-        ? `/repositories/${repositoryName}/resolve/${basename}`
+        ? `/repositories/${activeRepoIdentity}/resolve/${basename}`
         : null,
       fetcher,
       {
@@ -242,7 +254,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 
     if (data?.entries?.length) {
       const patchMap: TFileMap = data.entries.reduce((sum, cur) => {
-        const path = `${repositoryName}/${cur.basename}`
+        const path = `${repositorySpecifier}/${cur.basename}`
         return {
           ...sum,
           [path]: {
@@ -263,7 +275,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     onSelectTreeNode?.(node)
   }
 
-  const [loading] = useDebounceValue(isLoading, 300)
+  const [loading] = useDebounceValue(isLoading, 100)
 
   const existingChildren = !!node?.children?.length
 
@@ -316,7 +328,14 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
 const FileTreeRenderer: React.FC = () => {
   const { initialized, activePath, fileMap, fileTreeData } =
     React.useContext(FileTreeContext)
-  const repoName = resolveRepoNameFromPath(activePath)
+  const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
+
+  const hasSelectedRepo = !!repositorySpecifier
+  const hasNoRepoEntries = hasSelectedRepo && !fileTreeData?.length
+  const fetchingRepoEntries =
+    activePath &&
+    fileMap?.[activePath]?.isRepository &&
+    !fileMap?.[activePath]?.treeExpanded
 
   if (!initialized) return <FileTreeSkeleton />
 
@@ -327,14 +346,18 @@ const FileTreeRenderer: React.FC = () => {
       </div>
     )
 
-  if (repoName && !fileTreeData?.length) {
+  if (!hasSelectedRepo) {
+    return null
+  }
+
+  if (hasNoRepoEntries) {
+    if (fetchingRepoEntries) {
+      return <FileTreeSkeleton />
+    }
+
     return (
       <div className="flex h-full items-center justify-center">No Data</div>
     )
-  }
-
-  if (!repoName) {
-    return null
   }
 
   return (
@@ -368,21 +391,26 @@ function mapToFileTree(fileMap: TFileMap | undefined): TFileTreeNode[] {
   const fileKeys = Object.keys(fileMap)
   for (const fileKey of fileKeys) {
     const file = fileMap[fileKey]
-    const pathSegments = fileKey.split('/')
+    const { repositorySpecifier = '', basename = '' } =
+      resolveRepositoryInfoFromPath(fileKey)
+    const pathSegments = [repositorySpecifier, ...basename?.split('/')].filter(
+      Boolean
+    )
     let currentNode = tree
-
     for (let i = 0; i < pathSegments.length; i++) {
-      const segment = pathSegments[i]
-      const existingNode = currentNode?.find(node => node.name === segment)
+      const p = pathSegments.slice(0, i + 1).join('/')
+      const existingNode = currentNode?.find(node => node.fullPath === p)
 
       if (existingNode) {
         currentNode = existingNode.children || []
       } else {
         const newNode: TFileTreeNode = {
           file: file.file,
-          name: segment,
+          name: file.name,
           fullPath: fileKey,
-          children: []
+          children: [],
+          isRepository: file.isRepository,
+          repository: file.repository
         }
         currentNode.push(newNode)
         currentNode = newNode.children as TFileTreeNode[]

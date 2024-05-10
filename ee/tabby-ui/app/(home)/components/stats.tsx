@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { eachDayOfInterval } from 'date-fns'
-import { sum } from 'lodash-es'
 import moment from 'moment'
 import { useTheme } from 'next-themes'
 import ReactActivityCalendar from 'react-activity-calendar'
@@ -28,93 +26,29 @@ import {
   Language
 } from '@/lib/gql/generates/graphql'
 import { useMe } from '@/lib/hooks/use-me'
-import { toProgrammingLanguageDisplayName } from '@/lib/language-utils'
-import { QueryVariables } from '@/lib/tabby/gql'
+import { useIsDemoMode } from '@/lib/hooks/use-server-info'
+import { getLanguageColor, getLanguageDisplayName } from '@/lib/language-utils'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import LoadingWrapper from '@/components/loading-wrapper'
 
-import languageColors from '../language-colors.json'
-import { CompletionCharts, type LanguageStats } from './completion-charts'
+import { CompletionCharts } from './completion-charts'
 
 const DATE_RANGE = 6
 
 type LanguageData = {
   name: Language | 'NONE'
-  selects: number
-  completions: number
+  views: number
 }[]
 
-// Find auto-completion stats of each language
-function useLanguageStats({
-  start,
-  end,
-  users
-}: {
-  start: Date
-  end: Date
-  users?: string
-}) {
-  const languages = Object.values(Language)
-  const [lanIdx, setLanIdx] = useState(0)
-  const [queryVariables, setQueryVariables] = useState<
-    QueryVariables<typeof queryDailyStats>
-  >({
-    start: moment(start).utc().format(),
-    end: moment(end).utc().format(),
-    users,
-    languages: languages[0]
-  })
-  const [languageStats, setLanguageStats] = useState<LanguageStats>(
-    {} as LanguageStats
-  )
-
-  const [{ data, fetching }] = useQuery({
-    query: queryDailyStats,
-    variables: queryVariables
-  })
-
-  useEffect(() => {
-    if (lanIdx >= languages.length) return
-    if (!fetching && data?.dailyStats) {
-      const language = languages[lanIdx]
-      const newLanguageStats = { ...languageStats }
-      newLanguageStats[language] = newLanguageStats[language] || {
-        selects: 0,
-        completions: 0,
-        name: Object.values(Language)[lanIdx]
-      }
-      newLanguageStats[language].selects += sum(
-        data.dailyStats.map(stats => stats.selects)
-      )
-      newLanguageStats[language].completions += sum(
-        data.dailyStats.map(stats => stats.completions)
-      )
-
-      const newLanIdx = lanIdx + 1
-      setLanguageStats(newLanguageStats)
-      setLanIdx(newLanIdx)
-      if (newLanIdx < languages.length) {
-        setQueryVariables({
-          start: moment(start).utc().format(),
-          end: moment(end).utc().format(),
-          users,
-          languages: languages[newLanIdx]
-        })
-      }
-    }
-  }, [queryVariables, lanIdx, fetching])
-
-  return [languageStats]
-}
-
-const getLanguageColorMap = (): Record<string, string> => {
-  return Object.entries(languageColors).reduce((acc, cur) => {
-    const [lan, color] = cur
-    return { ...acc, [lan.toLocaleLowerCase()]: color }
-  }, {})
-}
+type LanguageStats = Record<
+  Language,
+  {
+    views: number
+    name: Language
+  }
+>
 
 function ActivityCalendar({
   data
@@ -152,7 +86,7 @@ const LanguageLabel: React.FC<
   const { x, y, value, languageData, theme } = props
   const myLanguageData = languageData.find(data => data.name === value)
 
-  if (!myLanguageData || myLanguageData.completions === 0) {
+  if (!myLanguageData || myLanguageData.views === 0) {
     return null
   }
 
@@ -166,7 +100,7 @@ const LanguageLabel: React.FC<
       textAnchor="start"
       dominantBaseline="middle"
     >
-      {toProgrammingLanguageDisplayName(value as Language)}
+      {getLanguageDisplayName(value as Language)}
     </text>
   )
 }
@@ -180,24 +114,22 @@ function LanguageTooltip({
     name: string
     payload: {
       name: Language | 'NONE'
-      completions: number
-      selects: number
+      views: number
     }
   }[]
 }) {
   if (active && payload && payload.length) {
-    const { completions, selects, name } = payload[0].payload
-    const activities = completions + selects
-    if (!activities || name === 'NONE') return null
+    const { views, name } = payload[0].payload
+    if (!views || name === 'NONE') return null
     return (
       <Card>
         <CardContent className="flex flex-col gap-y-0.5 px-4 py-2 text-sm">
           <p className="flex items-center">
             <span className="mr-3 inline-block w-20">Completions:</span>
-            <b>{completions}</b>
+            <b>{views}</b>
           </p>
           <p className="text-muted-foreground">
-            {toProgrammingLanguageDisplayName(name)}
+            {getLanguageDisplayName(name)}
           </p>
         </CardContent>
       </Card>
@@ -211,9 +143,9 @@ export default function Stats() {
   const [{ data }] = useMe()
   const { theme } = useTheme()
   const searchParams = useSearchParams()
+  const isDemoMode = useIsDemoMode()
 
-  const sample = searchParams.get('sample') === 'true'
-  const colorMap = getLanguageColorMap()
+  const sample = isDemoMode || searchParams.get('sample') === 'true'
   const startDate = moment()
     .subtract(DATE_RANGE, 'day')
     .startOf('day')
@@ -231,20 +163,24 @@ export default function Stats() {
     }
   })
   let dailyStats: DailyStatsQuery['dailyStats'] | undefined
+
   if (sample) {
     const daysBetweenRange = eachDayOfInterval({
-      start: startDate,
-      end: endDate
+      start: moment().subtract(DATE_RANGE, 'day').toDate(),
+      end: moment().toDate()
     })
     dailyStats = daysBetweenRange.map(date => {
+      const languages = [Language.Typescript, Language.Python, Language.Rust]
       const rng = seedrandom(moment(date).format('YYYY-MM-DD') + data?.me.id)
       const selects = Math.ceil(rng() * 20)
-      const completions = selects + Math.floor(rng() * 25)
+      const completions = Math.ceil(selects / 0.35)
       return {
-        start: moment(date).startOf('day').toDate(),
-        end: moment(date).endOf('day').toDate(),
+        start: moment(date).utc().format(),
+        end: moment(date).add(1, 'day').utc().format(),
         completions,
-        selects
+        selects,
+        views: completions,
+        language: languages[selects % languages.length]
       }
     })
   } else {
@@ -252,7 +188,9 @@ export default function Stats() {
       start: item.start,
       end: item.end,
       completions: item.completions,
-      selects: item.selects
+      selects: item.selects,
+      views: item.views,
+      language: item.language
     }))
   }
 
@@ -275,10 +213,11 @@ export default function Stats() {
       const selects = Math.ceil(rng() * 20)
       const completions = selects + Math.floor(rng() * 10)
       return {
-        start: moment(date).startOf('day').toDate(),
-        end: moment(date).endOf('day').toDate(),
+        start: moment(date).format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
+        end: moment(date).add(1, 'day').format('YYYY-MM-DD[T]HH:mm:ss[Z]'),
         completions,
-        selects
+        selects,
+        views: completions
       }
     })
   } else {
@@ -286,15 +225,16 @@ export default function Stats() {
       start: item.start,
       end: item.end,
       completions: item.completions,
-      selects: item.selects
+      selects: item.selects,
+      views: item.views
     }))
   }
   const dailyCompletionMap: Record<string, number> =
     yearlyStats?.reduce((acc, cur) => {
-      const date = moment(cur.start).format('YYYY-MM-DD')
-      lastYearActivities += cur.completions
+      const date = moment.utc(cur.start).format('YYYY-MM-DD')
+      lastYearActivities += cur.views
       lastYearActivities += cur.selects
-      return { ...acc, [date]: cur.completions }
+      return { ...acc, [date]: cur.views }
     }, {}) || {}
   const activities = new Array(365)
     .fill('')
@@ -310,56 +250,36 @@ export default function Stats() {
     })
     .reverse()
 
-  // Query language stats
-  const [languageStats] = useLanguageStats({
-    start: moment(startDate).toDate(),
-    end: moment(endDate).toDate(),
-    users: data?.me?.id
+  // Prepare and structure data for populating the language usage charts
+  const languageStats = {} as LanguageStats
+  dailyStats?.forEach(stats => {
+    languageStats[stats.language] = languageStats[stats.language] || {
+      views: 0,
+      name: stats.language
+    }
+    languageStats[stats.language].views += stats.views
   })
-
-  let languageData: LanguageData | []
-  if (sample) {
-    const rng = seedrandom(data?.me.id)
-    const rustCompletion = Math.ceil(rng() * 40)
-    const pythonCompletion = Math.ceil(rng() * 25)
-    languageData = [
-      {
-        name: Language.Rust,
-        completions: rustCompletion,
-        selects: rustCompletion
-      },
-      {
-        name: Language.Python,
-        completions: pythonCompletion,
-        selects: pythonCompletion
+  let languageData: LanguageData = Object.entries(languageStats)
+    .map(([_, stats]) => {
+      return {
+        name: stats.name,
+        views: stats.views
       }
-    ]
-  } else {
-    languageData = Object.entries(languageStats)
-      .map(([_, stats]) => {
-        return {
-          name: stats.name,
-          selects: stats.selects,
-          completions: stats.completions
-        }
-      })
-      .filter(item => item.completions)
-      .slice(0, 5)
-  }
-  languageData = languageData.sort((a, b) => b.completions - a.completions)
+    })
+    .filter(item => item.views)
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 5)
   if (languageData.length === 0) {
-    // Placeholder when there is no completions
+    // Placeholder when there is no views
     languageData = [
       {
         name: 'NONE',
-        selects: 0,
-        completions: 0.01
+        views: 0.01
       }
     ]
   }
 
   if (!data?.me?.id) return <></>
-
   return (
     <div className="flex w-full flex-col gap-y-8">
       <LoadingWrapper
@@ -382,9 +302,8 @@ export default function Stats() {
       >
         <CompletionCharts
           dailyStats={dailyStats}
-          from={moment(startDate).toDate()}
-          to={moment(endDate).toDate()}
-          dateRange={DATE_RANGE}
+          from={moment().subtract(DATE_RANGE, 'day').toDate()}
+          to={moment().toDate()}
         />
       </LoadingWrapper>
 
@@ -407,7 +326,7 @@ export default function Stats() {
                 barCategoryGap={12}
                 margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
               >
-                <Bar dataKey="completions" radius={3}>
+                <Bar dataKey="views" radius={3}>
                   <LabelList
                     dataKey="name"
                     content={
@@ -418,7 +337,7 @@ export default function Stats() {
                     }
                   />
                   {languageData.map((entry, index) => {
-                    const lanColor = colorMap[entry.name.toLocaleLowerCase()]
+                    const lanColor = getLanguageColor(entry.name)
                     const color = lanColor
                       ? lanColor
                       : theme === 'dark'

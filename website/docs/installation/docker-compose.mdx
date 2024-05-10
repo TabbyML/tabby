@@ -9,7 +9,11 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 <Tabs>
-  <TabItem value="cuda" label="CUDA (requires NVIDIA Container Toolkit)">
+  <TabItem value="cuda" label="CUDA">
+
+
+  For CUDA support in Tabby, install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+  After installation, you can start Tabby with the following `docker-compose.yml`:
 
 ```yaml title="docker-compose.yml"
 version: '3.5'
