@@ -204,6 +204,9 @@ impl AuthenticationService for AuthenticationServiceImpl {
     }
 
     async fn update_user_avatar(&self, id: &ID, avatar: Option<Box<[u8]>>) -> Result<()> {
+        if is_demo_mode() {
+            bail!("Changing profile data is disabled in demo mode");
+        }
         if avatar.as_ref().is_some_and(|v| v.len() > 512 * 1024) {
             bail!("The image you are attempting to upload is too large. Please ensure the file size is under 512KB");
         }
