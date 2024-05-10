@@ -2,6 +2,7 @@ pub mod analytic;
 pub mod auth;
 pub mod constants;
 pub mod email;
+pub mod integration;
 pub mod job;
 pub mod license;
 pub mod repository;

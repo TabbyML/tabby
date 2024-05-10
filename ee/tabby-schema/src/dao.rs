@@ -4,20 +4,25 @@ use lazy_static::lazy_static;
 use tabby_db::{
     EmailSettingDAO, GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO,
     GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO, InvitationDAO, JobRunDAO,
-    OAuthCredentialDAO, RepositoryDAO, ServerSettingDAO, UserDAO, UserEventDAO,
+    OAuthCredentialDAO, ProvidedRepositoryDAO, RepositoryDAO, ServerSettingDAO, UserDAO,
+    UserEventDAO,
 };
 
-use crate::schema::{
-    auth::{self, OAuthCredential, OAuthProvider},
-    email::{AuthMethod, EmailSetting, Encryption},
-    job,
-    repository::{
-        GitRepository, GithubProvidedRepository, GithubRepositoryProvider,
-        GitlabProvidedRepository, GitlabRepositoryProvider, RepositoryProviderStatus,
+use crate::{
+    integration::IntegrationKind,
+    repository::ProvidedRepository,
+    schema::{
+        auth::{self, OAuthCredential, OAuthProvider},
+        email::{AuthMethod, EmailSetting, Encryption},
+        job,
+        repository::{
+            GitRepository, GithubProvidedRepository, GithubRepositoryProvider,
+            GitlabProvidedRepository, GitlabRepositoryProvider, RepositoryProviderStatus,
+        },
+        setting::{NetworkSetting, SecuritySetting},
+        user_event::{EventKind, UserEvent},
+        CoreError,
     },
-    setting::{NetworkSetting, SecuritySetting},
-    user_event::{EventKind, UserEvent},
-    CoreError,
 };
 
 impl From<InvitationDAO> for auth::Invitation {
@@ -122,6 +127,22 @@ impl From<ServerSettingDAO> for NetworkSetting {
         Self {
             external_url: value.network_external_url,
         }
+    }
+}
+
+impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
+    type Error = anyhow::Error;
+    fn try_from(value: ProvidedRepositoryDAO) -> Result<Self, Self::Error> {
+        Ok(Self {
+            integration_id: value.integration_access_token_id.as_id(),
+            active: value.active,
+            kind: IntegrationKind::from_enum_str(&value.kind)?,
+            display_name: value.name,
+            git_url: value.git_url,
+            vendor_id: value.vendor_id,
+            created_at: *value.created_at,
+            updated_at: *value.updated_at,
+        })
     }
 }
 
@@ -251,6 +272,23 @@ impl DbEnum for EventKind {
             "view" => Ok(EventKind::View),
             "dismiss" => Ok(EventKind::Dismiss),
             _ => bail!("{s} is not a valid value for EventKind"),
+        }
+    }
+}
+
+impl DbEnum for IntegrationKind {
+    fn as_enum_str(&self) -> &'static str {
+        match self {
+            IntegrationKind::Github => "github",
+            IntegrationKind::Gitlab => "gitlab",
+        }
+    }
+
+    fn from_enum_str(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "github" => Ok(IntegrationKind::Github),
+            "gitlab" => Ok(IntegrationKind::Gitlab),
+            _ => bail!("{s} is not a valid value for ProviderKind"),
         }
     }
 }

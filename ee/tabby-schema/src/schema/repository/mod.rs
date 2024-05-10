@@ -10,6 +10,9 @@ pub use github::{GithubProvidedRepository, GithubRepositoryProvider, GithubRepos
 mod gitlab;
 use std::{path::PathBuf, sync::Arc};
 
+mod third_party;
+pub use third_party::{ProvidedRepository, ThirdPartyRepositoryService};
+
 use async_trait::async_trait;
 pub use gitlab::{GitlabProvidedRepository, GitlabRepositoryProvider, GitlabRepositoryService};
 use juniper::{GraphQLEnum, GraphQLObject, ID};

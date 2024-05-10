@@ -7,6 +7,7 @@ use crate::{DateTimeUtc, DbConn};
 #[derive(FromRow)]
 pub struct ProvidedRepositoryDAO {
     pub id: i64,
+    pub kind: String,
     pub vendor_id: String,
     pub integration_access_token_id: i64,
     pub name: String,
@@ -51,7 +52,7 @@ impl DbConn {
     pub async fn get_provided_repository(&self, id: i64) -> Result<ProvidedRepositoryDAO> {
         let repo = query_as!(
             ProvidedRepositoryDAO,
-            "SELECT id, vendor_id, name, git_url, active, integration_access_token_id, created_at, updated_at FROM provided_repositories WHERE id = ?",
+            "SELECT id, vendor_id, kind, name, git_url, active, integration_access_token_id, created_at, updated_at FROM provided_repositories WHERE id = ?",
             id
         )
         .fetch_one(&self.pool)
@@ -95,6 +96,7 @@ impl DbConn {
                 "vendor_id",
                 "name",
                 "git_url",
+                "kind",
                 "active",
                 "integration_access_token_id",
                 "created_at" as "created_at: DateTimeUtc",

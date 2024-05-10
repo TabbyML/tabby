@@ -1,6 +1,7 @@
 mod git;
 mod github;
 mod gitlab;
+mod third_party;
 
 use std::sync::Arc;
 

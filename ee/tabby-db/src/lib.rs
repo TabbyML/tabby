@@ -15,6 +15,7 @@ pub use gitlab_repository_provider::{GitlabProvidedRepositoryDAO, GitlabReposito
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use oauth_credential::OAuthCredentialDAO;
+pub use provided_repositories::ProvidedRepositoryDAO;
 pub use repositories::RepositoryDAO;
 pub use server_setting::ServerSettingDAO;
 use sqlx::{
