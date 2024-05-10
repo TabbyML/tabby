@@ -43,7 +43,7 @@ class TaggedLogger implements Logger {
   }
 
   error(msg: string, error: any): void {
-    this.baseLogger.error(this.tagMsg(msg), error);
+    this.baseLogger.error(this.tagMsg(msg), { error });
   }
   warn(msg: string): void {
     this.baseLogger.warn(this.tagMsg(msg));
