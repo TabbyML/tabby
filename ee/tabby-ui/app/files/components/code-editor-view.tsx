@@ -19,7 +19,7 @@ import {
 import { SourceCodeBrowserContext } from './source-code-browser'
 import { resolveRepositoryInfoFromPath } from './utils'
 
-import '@/components/codemirror/line-menu-extension/line-menu.css'
+import './line-menu-extension/line-menu.css'
 
 import { isNaN } from 'lodash-es'
 
