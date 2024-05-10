@@ -31,12 +31,14 @@ interface UpdateProviderFormProps {
   defaultValues?: Partial<CreateRepositoryProviderFormValues>
   onSuccess?: () => void
   onDelete: () => void
+  onUpdate: () => void
 }
 
 export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   defaultValues,
   onSuccess,
   onDelete,
+  onUpdate,
   id
 }) => {
   const form = useRepositoryProviderForm(false, defaultValues)
@@ -60,12 +62,19 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   )
 
   const onSubmit = async (values: CreateRepositoryProviderFormValues) => {
-    await updateGithubRepositoryProvider({
+    const res = await updateGithubRepositoryProvider({
       input: {
         id,
         ...values
       }
     })
+    if (res?.data?.updateGithubRepositoryProvider) {
+      onUpdate?.()
+    } else {
+      toast.error(
+        res?.error?.message || 'Failed to update GitHub repository provider'
+      )
+    }
   }
 
   const handleDeleteRepositoryProvider = async () => {

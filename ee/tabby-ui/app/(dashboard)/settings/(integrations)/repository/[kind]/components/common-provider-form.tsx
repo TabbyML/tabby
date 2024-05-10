@@ -38,7 +38,7 @@ import { Input } from '@/components/ui/input'
 import { useRepositoryKind } from '../hooks/use-repository-kind'
 
 export const createRepositoryProviderFormSchema = z.object({
-  displayName: z.string(),
+  displayName: z.string().trim(),
   accessToken: z.string()
 })
 
