@@ -8,7 +8,7 @@ import { useMutation } from '@/lib/tabby/gql'
 
 import {
   CommonProviderForm,
-  RepositoryProviderFormValues,
+  CreateRepositoryProviderFormValues,
   useRepositoryProviderForm
 } from '../../components/common-provider-form'
 
@@ -28,18 +28,20 @@ const updateGithubRepositoryProviderMutation = graphql(/* GraphQL */ `
 
 interface UpdateProviderFormProps {
   id: string
-  defaultValues?: Partial<RepositoryProviderFormValues>
+  defaultValues?: Partial<CreateRepositoryProviderFormValues>
   onSuccess?: () => void
   onDelete: () => void
+  onUpdate: () => void
 }
 
 export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
   defaultValues,
   onSuccess,
   onDelete,
+  onUpdate,
   id
 }) => {
-  const form = useRepositoryProviderForm(defaultValues)
+  const form = useRepositoryProviderForm(false, defaultValues)
 
   const deleteGithubRepositoryProvider = useMutation(
     deleteGithubRepositoryProviderMutation
@@ -59,13 +61,16 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
     }
   )
 
-  const onSubmit = async (values: RepositoryProviderFormValues) => {
-    await updateGithubRepositoryProvider({
+  const onSubmit = async (values: CreateRepositoryProviderFormValues) => {
+    const res = await updateGithubRepositoryProvider({
       input: {
         id,
         ...values
       }
     })
+    if (res?.data?.updateGithubRepositoryProvider) {
+      onUpdate?.()
+    }
   }
 
   const handleDeleteRepositoryProvider = async () => {
@@ -86,6 +91,7 @@ export const UpdateProviderForm: React.FC<UpdateProviderFormProps> = ({
       deletable
       cancleable={false}
       form={form}
+      isNew={false}
     />
   )
 }
