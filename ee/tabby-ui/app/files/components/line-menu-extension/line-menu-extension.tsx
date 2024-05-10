@@ -126,7 +126,6 @@ function clearSelectedLines(view: EditorView) {
   })
 }
 
-// 定义 StateEffect 用于设置行高亮
 const lineHighlightEffect = StateEffect.define<{
   line?: number
   highlight: boolean
@@ -140,14 +139,12 @@ const lineHighlineField = StateField.define<DecorationSet>({
     for (let effect of tr.effects) {
       if (effect.is(lineHighlightEffect)) {
         if (effect.value.highlight && !isNil(effect.value.line)) {
-          // 添加行高亮装饰
           const deco = Decoration.line({ class: 'cm-selectedLine' })
           const line = tr.state.doc.line(effect.value.line)
           highlights = Decoration.none.update({
             add: [deco.range(line.from)]
           })
         } else {
-          // 如果没有指定行号，则移除所有高亮
           highlights = Decoration.none
         }
       }
