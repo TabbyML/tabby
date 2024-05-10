@@ -215,6 +215,7 @@ top_level_keywords = [
 
 [[config]]
 languages = ["css"]
+exts = ["css"]
 top_level_keywords = [
     "color",
     "font",
