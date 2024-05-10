@@ -1,0 +1,7 @@
+.cm-selectedLine {
+  background-color: rgba(255, 0, 0, 0.2); /* 行的高亮背景色 */
+}
+
+.cm-selectedLineGutter {
+  background-color: rgba(255, 0, 0, 0.2); /* 行号的高亮背景色 */
+}
