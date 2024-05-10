@@ -5,7 +5,6 @@ mod code;
 mod dataset;
 mod index;
 mod repository;
-mod utils;
 
 use std::sync::Arc;
 

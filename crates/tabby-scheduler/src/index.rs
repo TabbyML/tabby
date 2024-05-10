@@ -1,18 +1,16 @@
-use std::{fs, io::IsTerminal, path::Path};
+use std::{fs, path::Path};
 
 use ignore::Walk;
-use kdam::BarExt;
 use kv::Batch;
 use tabby_common::{
     config::RepositoryConfig,
     index::{register_tokenizers, CodeSearchSchema},
-    languages::get_language_by_ext,
     path, SourceFile,
 };
 use tantivy::{directory::MmapDirectory, doc, Index, Term};
 use tracing::{debug, warn};
 
-use crate::{cache::CacheStore, code::CodeIntelligence, utils::tqdm};
+use crate::{cache::CacheStore, code::CodeIntelligence};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -37,25 +35,6 @@ fn add_changed_documents(
     let mut writer = index
         .writer(150_000_000)
         .expect("Failed to create index writer");
-
-    let mut pb = std::io::stdout().is_terminal().then(|| {
-        let total_file_size = Walk::new(tabby_common::path::repositories_dir())
-            .filter_map(|entry| entry.ok())
-            .filter_map(|entry| {
-                let path = entry.path();
-                if !path.is_file() {
-                    return None;
-                }
-                get_language_by_ext(path.extension()?)?;
-                if cache.check_indexed(path).1 {
-                    None
-                } else {
-                    Some(())
-                }
-            })
-            .count();
-        tqdm(total_file_size)
-    });
 
     let intelligence = CodeIntelligence::default();
     let mut indexed_files_batch = Batch::new();
@@ -101,11 +80,6 @@ fn add_changed_documents(
                     })
                     .expect("Failed to add document");
             }
-
-            pb.as_mut()
-                .map(|b| b.update(1))
-                .transpose()
-                .expect("Failed to update progress bar");
 
             indexed_files_batch
                 .set(&file_id, &String::new())
