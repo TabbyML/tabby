@@ -215,7 +215,6 @@ top_level_keywords = [
 
 [[config]]
 languages = ["css"]
-line_comment = "/*"
 top_level_keywords = [
     "color",
     "font",
