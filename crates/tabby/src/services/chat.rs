@@ -7,7 +7,7 @@ use tabby_common::api::{
     chat::Message,
     event::{Event, EventLogger},
 };
-use tabby_inference::chat::{ChatCompletionOptionsBuilder, ChatCompletionStream};
+use tabby_inference::{ChatCompletionOptionsBuilder, ChatCompletionStream};
 use tracing::warn;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -122,7 +122,8 @@ impl ChatService {
             }
             yield ChatCompletionChunk::new(String::default(), completion_id.clone(), created, true);
 
-            self.logger.log(Event::ChatCompletion {
+            // FIXME(boxbeam): Log user for chat completion events
+            self.logger.log(None, Event::ChatCompletion {
                 completion_id,
                 input: convert_messages(&request.messages),
                 output: create_assistant_message(output)

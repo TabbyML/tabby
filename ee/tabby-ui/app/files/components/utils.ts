@@ -1,16 +1,53 @@
-import { isNil } from 'lodash-es'
+import { isNil, keyBy } from 'lodash-es'
 
+import {
+  RepositoryKind,
+  RepositoryListQuery
+} from '@/lib/gql/generates/graphql'
 import fetcher from '@/lib/tabby/fetcher'
 import { ResolveEntriesResponse, TFile } from '@/lib/types'
 
-function resolveRepoNameFromPath(path: string | undefined) {
-  if (!path) return ''
-  return path.split('/')?.[0]
-}
+function resolveRepositoryInfoFromPath(path: string | undefined): {
+  repositoryKind?: RepositoryKind
+  repositoryName?: string
+  basename?: string
+  repositorySpecifier?: string
+} {
+  const emptyResult = {}
+  if (!path) return emptyResult
+  const pathSegments = path.split('/')
+  const repositoryKindStr = pathSegments[0]
 
-function resolveBasenameFromPath(path?: string) {
-  if (!path) return ''
-  return path.split('/').slice(1).join('/')
+  if (!repositoryKindStr) {
+    return emptyResult
+  }
+
+  if (repositoryKindStr === 'git') {
+    if (pathSegments.length < 2) return emptyResult
+
+    const repositoryName = pathSegments[1]
+    return {
+      repositoryKind: RepositoryKind.Git,
+      repositoryName,
+      basename: pathSegments.slice(2).join('/'),
+      repositorySpecifier: `git/${repositoryName}`
+    }
+  } else if (['github', 'gitlab'].includes(repositoryKindStr)) {
+    if (pathSegments.length < 3) return emptyResult
+    const kind =
+      repositoryKindStr === 'github'
+        ? RepositoryKind.Github
+        : RepositoryKind.Gitlab
+    const repositoryName = [pathSegments[1], pathSegments[2]].join('/')
+
+    return {
+      repositoryKind: kind,
+      repositoryName,
+      basename: pathSegments.slice(3).join('/'),
+      repositorySpecifier: `${kind.toLowerCase()}/${repositoryName}`
+    }
+  }
+  return emptyResult
 }
 
 function resolveFileNameFromPath(path: string) {
@@ -19,7 +56,10 @@ function resolveFileNameFromPath(path: string) {
   return pathSegments[pathSegments.length - 1]
 }
 
-function getDirectoriesFromBasename(path: string, isDir?: boolean): string[] {
+function getDirectoriesFromBasename(
+  path: string | undefined,
+  isDir?: boolean
+): string[] {
   if (isNil(path)) return []
 
   let result = ['']
@@ -32,17 +72,24 @@ function getDirectoriesFromBasename(path: string, isDir?: boolean): string[] {
   return result
 }
 
-async function fetchEntriesFromPath(path: string | undefined) {
-  if (!path) return []
-  const repoName = resolveRepoNameFromPath(path)
-  const basename = resolveBasenameFromPath(path)
+async function fetchEntriesFromPath(
+  path: string | undefined,
+  repository: RepositoryListQuery['repositoryList'][0] | undefined
+) {
+  if (!path || !repository) return []
+
+  const { basename } = resolveRepositoryInfoFromPath(path)
   // array of dir basename that do not include the repo name.
   const directoryPaths = getDirectoriesFromBasename(basename)
   // fetch all dirs from path
   const requests: Array<() => Promise<ResolveEntriesResponse>> =
     directoryPaths.map(
       dir => () =>
-        fetcher(`/repositories/${repoName}/resolve/${dir}`).catch(e => [])
+        fetcher(
+          `/repositories/${repository.kind.toLowerCase()}/${
+            repository.id
+          }/resolve/${dir}`
+        ).catch(e => [])
     )
   const entries = await Promise.all(requests.map(fn => fn()))
   let result: TFile[] = []
@@ -54,10 +101,27 @@ async function fetchEntriesFromPath(path: string | undefined) {
   return result
 }
 
+function resolveRepoSpecifierFromRepoInfo(
+  repo:
+    | { kind: RepositoryKind | undefined; name: string | undefined }
+    | undefined
+) {
+  if (repo?.kind && repo?.name) {
+    return `${repo.kind.toLowerCase()}/${repo.name}`
+  }
+
+  return undefined
+}
+
+function repositoryList2Map(repos: RepositoryListQuery['repositoryList']) {
+  return keyBy(repos, o => `${o.kind.toLowerCase()}/${o.name}`)
+}
+
 export {
-  resolveRepoNameFromPath,
-  resolveBasenameFromPath,
+  resolveRepoSpecifierFromRepoInfo,
   resolveFileNameFromPath,
   getDirectoriesFromBasename,
-  fetchEntriesFromPath
+  fetchEntriesFromPath,
+  resolveRepositoryInfoFromPath,
+  repositoryList2Map
 }

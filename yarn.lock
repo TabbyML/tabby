@@ -298,6 +298,11 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
+"@orama/orama@^2.0.15":
+  version "2.0.15"
+  resolved "https://registry.yarnpkg.com/@orama/orama/-/orama-2.0.15.tgz#2622f622924f203b4e6c6fa41c4f8c6882f3c49b"
+  integrity sha512-9C11pL4kE2wdfsngnOwaZ4Hh5x76EI8KUQEf0DoxU4E/ytE8u8utFeisJIbaSMyjVofRvmWUyXeDzxFNnkhvvw==
+
 "@pkgjs/parseargs@^0.11.0":
   version "0.11.0"
   resolved "https://registry.yarnpkg.com/@pkgjs/parseargs/-/parseargs-0.11.0.tgz#a77ea742fab25775145434eb1d2328cf5013ac33"
@@ -3696,6 +3701,13 @@ semver@^7.3.4, semver@^7.3.5, semver@^7.3.7, semver@^7.5.2, semver@^7.5.4:
   dependencies:
     lru-cache "^6.0.0"
 
+semver@^7.6.0:
+  version "7.6.0"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.0.tgz#1a46a4db4bffcccd97b743b5005c8325f23d4e2d"
+  integrity sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==
+  dependencies:
+    lru-cache "^6.0.0"
+
 serialize-javascript@6.0.0:
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/serialize-javascript/-/serialize-javascript-6.0.0.tgz#efae5d88f45d7924141da8b5c3a7a7e663fefeb8"
@@ -3977,6 +3989,33 @@ supports-color@^9.4.0:
   version "9.4.0"
   resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-9.4.0.tgz#17bfcf686288f531db3dea3215510621ccb55954"
   integrity sha512-VL+lNrEoIXww1coLPOmiEmK/0sGigko5COxI09KzHc2VJXJsQ37UaQ+8quuxjDeA7+KnLGTWRyOXSLLR2Wb4jw==
+
+tabby-agent@1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/tabby-agent/-/tabby-agent-1.5.0.tgz#514ea471163948e999a19de177dcfa5327166aff"
+  integrity sha512-A502A5KUU8nO8T5J+Z6nq5hwXqG8/Yzh1dPcqwgm7W7Umm/f36OBUY5y22WQgySXOmTRyD0LKM59BdWXasxDEg==
+  dependencies:
+    chokidar "^3.5.3"
+    deep-equal "^2.2.1"
+    deepmerge-ts "^5.1.0"
+    dot-prop "^8.0.2"
+    fast-levenshtein "^3.0.0"
+    file-stream-rotator "^1.0.0"
+    fs-extra "^11.1.1"
+    jwt-decode "^3.1.2"
+    lru-cache "^9.1.1"
+    mac-ca "^2.0.3"
+    object-hash "^3.0.0"
+    openapi-fetch "^0.7.6"
+    pino "^8.14.1"
+    semver "^7.6.0"
+    stats-logscale "^1.0.9"
+    toml "^3.0.0"
+    uuid "^9.0.0"
+    vscode-languageserver "^9.0.1"
+    vscode-languageserver-textdocument "^1.0.11"
+    web-tree-sitter "^0.20.8"
+    win-ca "^3.5.1"
 
 tar-fs@^2.0.0, tar-fs@^2.1.1:
   version "2.1.1"

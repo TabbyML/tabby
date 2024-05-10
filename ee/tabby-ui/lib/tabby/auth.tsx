@@ -3,11 +3,10 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import useLocalStorage from 'use-local-storage'
 
 import { graphql } from '@/lib/gql/generates'
-import { isClientSide } from '@/lib/utils'
 
-import { useMe } from '../hooks/use-me'
 import { useIsAdminInitialized } from '../hooks/use-server-info'
 import { useMutation } from './gql'
+import { AUTH_TOKEN_KEY } from './token-management'
 
 interface AuthData {
   accessToken: string
@@ -56,37 +55,6 @@ interface RefreshAction {
 }
 
 type AuthActions = SignInAction | SignOutAction | RefreshAction
-
-const AUTH_TOKEN_KEY = '_tabby_auth'
-
-const getAuthToken = (): AuthData | undefined => {
-  if (isClientSide()) {
-    let tokenData = localStorage.getItem(AUTH_TOKEN_KEY)
-    if (!tokenData) return undefined
-    try {
-      return JSON.parse(tokenData)
-    } catch (e) {
-      return undefined
-    }
-  }
-  return undefined
-}
-const saveAuthToken = (authData: AuthData) => {
-  localStorage.setItem(AUTH_TOKEN_KEY, JSON.stringify(authData))
-}
-const clearAuthToken = () => {
-  localStorage.removeItem(AUTH_TOKEN_KEY)
-  // FIXME(liangfung)
-  // dispatching storageEvent to notify updating `authToken` in `AuthProvider`,
-  // the `useEffect` hook depending on `authToken` in `AuthProvider` will be fired and updating the authState
-  window.dispatchEvent(
-    new StorageEvent('storage', {
-      storageArea: window.localStorage,
-      url: window.location.href,
-      key: AUTH_TOKEN_KEY
-    })
-  )
-}
 
 function authReducer(state: AuthState, action: AuthActions): AuthState {
   switch (action.type) {
@@ -157,7 +125,6 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
     status: 'loading',
     data: undefined
   })
-  const [, reexecuteQueryMe] = useMe()
 
   React.useEffect(() => {
     initialized.current = true
@@ -173,8 +140,7 @@ const AuthProvider: React.FunctionComponent<AuthProviderProps> = ({
 
     // After being mounted, listen for changes in the access token
     if (authToken?.accessToken && authToken?.refreshToken) {
-      dispatch({ type: AuthActionType.SignIn, data: authToken })
-      reexecuteQueryMe()
+      dispatch({ type: AuthActionType.Refresh, data: authToken })
     } else {
       dispatch({ type: AuthActionType.SignOut })
     }
@@ -290,13 +256,14 @@ function useAuthenticatedSession() {
     if (status === 'authenticated') return
     if (isAdminInitialized === undefined) return
 
-    if (!isAdminInitialized) {
+    const isAdminSignup =
+      pathName === '/auth/signup' && searchParams.get('isAdmin') === 'true'
+
+    if (!isAdminSignup && !isAdminInitialized) {
       return router.replace('/auth/signup?isAdmin=true')
     }
 
-    const isAdminSignup =
-      pathName === '/auth/signup' && searchParams.get('isAdmin') === 'true'
-    if (!redirectWhitelist.includes(pathName) || isAdminSignup) {
+    if (!redirectWhitelist.includes(pathName)) {
       router.replace('/auth/signin')
     }
   }, [isAdminInitialized, status])
@@ -309,7 +276,7 @@ function useAuthenticatedApi(path: string | null): string | null {
   return path && status === 'authenticated' ? path : null
 }
 
-export type { AuthStore, JWTInfo, Session }
+export type { AuthStore, JWTInfo, Session, AuthData }
 
 export {
   AuthProvider,
@@ -318,9 +285,6 @@ export {
   useSession,
   useAuthenticatedSession,
   useAuthenticatedApi,
-  getAuthToken,
-  saveAuthToken,
-  clearAuthToken,
   AUTH_TOKEN_KEY,
   refreshTokenMutation,
   logoutAllSessionsMutation

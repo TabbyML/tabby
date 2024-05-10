@@ -2,15 +2,28 @@ use std::time::Duration;
 
 use serde::Deserialize;
 use tabby_db::DbConn;
+use tabby_schema::email::{AuthMethod, EmailService, EmailSettingInput, Encryption};
 use tokio::process::{Child, Command};
 
 use super::new_email_service;
-use crate::schema::email::{AuthMethod, EmailService, EmailSettingInput, Encryption};
 
 #[derive(Deserialize, Debug)]
-pub struct Mail {
-    pub sender: String,
+#[serde(rename_all = "PascalCase")]
+pub struct Message {
+    pub from: MailAddress,
     pub subject: String,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct MailAddress {
+    pub name: Option<String>,
+    pub address: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct MessageList {
+    messages: Vec<Message>,
 }
 
 pub struct TestEmailServer {
@@ -19,18 +32,19 @@ pub struct TestEmailServer {
 }
 
 impl TestEmailServer {
-    pub async fn list_mail(&self) -> Vec<Mail> {
-        let mails = reqwest::get("http://localhost:1080/api/messages")
+    pub async fn list_mail(&self) -> Vec<Message> {
+        let mails = reqwest::get("http://localhost:8025/api/v1/messages")
             .await
             .unwrap();
 
-        mails.json().await.unwrap()
+        let data = mails.json::<MessageList>().await.unwrap();
+        data.messages
     }
 
     pub async fn create_test_email_service(&self, db_conn: DbConn) -> impl EmailService {
         let service = new_email_service(db_conn).await.unwrap();
         service
-            .update_email_setting(default_email_settings())
+            .update_setting(default_email_settings())
             .await
             .unwrap();
         service
@@ -38,13 +52,21 @@ impl TestEmailServer {
 
     pub async fn start() -> TestEmailServer {
         tokio::time::sleep(Duration::from_millis(500)).await;
-        let mut cmd = Command::new("mailtutan");
-        cmd.kill_on_drop(true);
+        let mut cmd = Command::new("mailpit");
+        cmd.kill_on_drop(true)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
 
         let child = cmd
             .spawn()
-            .expect("You need to run `cargo install mailtutan` before running this test");
-        tokio::time::sleep(Duration::from_millis(500)).await;
+            .expect("You need to install `mailpit` before running this test");
+        loop {
+            if reqwest::get("http://localhost:8025").await.is_ok() {
+                break;
+            }
+
+            tokio::time::sleep(Duration::from_millis(1000)).await;
+        }
         TestEmailServer { child }
     }
 }

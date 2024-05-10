@@ -8,6 +8,7 @@ export interface HealthInfo {
   device: 'metal' | 'cpu' | 'cuda'
   model?: string
   chat_model?: string
+  chat_device?: string
   cpu_info: string
   cpu_count: number
   cuda_devices: string[]
@@ -18,5 +19,17 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-  return useSWR('/v1/health', fetcher)
+  return useSWR(
+    '/v1/health',
+    (url: string) => {
+      return fetcher(url, {
+        errorHandler: () => {
+          throw new Error('Unhealth')
+        }
+      })
+    },
+    {
+      shouldRetryOnError: false
+    }
+  )
 }

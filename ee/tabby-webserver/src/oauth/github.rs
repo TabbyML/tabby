@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use serde::Deserialize;
+use tabby_schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
 
 use super::OAuthClient;
-use crate::schema::auth::{AuthenticationService, OAuthCredential, OAuthProvider};
+use crate::bail;
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -54,7 +55,7 @@ impl GithubClient {
             .await?
         {
             Some(credential) => Ok(credential),
-            None => Err(anyhow::anyhow!("No Github OAuth credential found")),
+            None => bail!("No Github OAuth credential found"),
         }
     }
 
@@ -63,9 +64,7 @@ impl GithubClient {
         code: String,
         credential: OAuthCredential,
     ) -> Result<GithubOAuthResponse> {
-        let Some(client_secret) = credential.client_secret else {
-            return Err(anyhow!("No client_secret present"));
-        };
+        let client_secret = credential.client_secret;
 
         let params = [
             ("client_id", credential.client_id.as_str()),
@@ -92,10 +91,10 @@ impl OAuthClient for GithubClient {
         let credentials = self.read_credential().await?;
         let token_resp = self.exchange_access_token(code, credentials).await?;
         if !token_resp.error.is_empty() {
-            return Err(anyhow::anyhow!(
+            bail!(
                 "Failed to exchange access token: {}",
                 token_resp.error_description
-            ));
+            );
         }
 
         let resp = self
@@ -119,20 +118,35 @@ impl OAuthClient for GithubClient {
             }
         }
 
-        return Err(anyhow::anyhow!("No primary email address found"));
+        bail!("No primary email address found");
     }
 
     async fn get_authorization_url(&self) -> Result<String> {
         let credentials = self.read_credential().await?;
-        let mut url = reqwest::Url::parse("https://github.com/login/oauth/authorize")?;
-        let params = vec![
-            ("client_id", credentials.client_id.as_str()),
-            ("response_type", "code"),
-            ("scope", "read:user user:email"),
-        ];
-        for (k, v) in params {
-            url.query_pairs_mut().append_pair(k, v);
-        }
-        Ok(url.to_string())
+        create_authorization_url(&credentials.client_id)
+    }
+}
+
+fn create_authorization_url(client_id: &str) -> Result<String> {
+    let mut url = reqwest::Url::parse("https://github.com/login/oauth/authorize")?;
+    let params = vec![
+        ("client_id", client_id),
+        ("response_type", "code"),
+        ("scope", "read:user user:email"),
+    ];
+    for (k, v) in params {
+        url.query_pairs_mut().append_pair(k, v);
+    }
+    Ok(url.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::create_authorization_url;
+
+    #[test]
+    fn test_create_authorization_url() {
+        let url = create_authorization_url("client_id").unwrap();
+        assert_eq!(url, "https://github.com/login/oauth/authorize?client_id=client_id&response_type=code&scope=read%3Auser+user%3Aemail");
     }
 }

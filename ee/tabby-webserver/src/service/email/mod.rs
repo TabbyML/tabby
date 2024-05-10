@@ -18,15 +18,17 @@ mod templates;
 #[cfg(test)]
 pub mod testutils;
 
-use super::dao::DbEnum;
-use crate::schema::{
+use tabby_schema::{
     email::{AuthMethod, EmailService, EmailSetting, EmailSettingInput, Encryption},
     setting::SettingService,
-    CoreError, Result,
+    CoreError, DbEnum, Result,
 };
+
+use super::setting;
 
 struct EmailServiceImpl {
     db: DbConn,
+    setting: Arc<dyn SettingService>,
     smtp_server: Arc<RwLock<Option<AsyncSmtpTransport<Tokio1Executor>>>>,
     from: RwLock<String>,
 }
@@ -62,9 +64,10 @@ fn make_smtp_builder(
 }
 
 impl EmailServiceImpl {
-    fn new(db: DbConn) -> Self {
+    fn new(db: DbConn, setting: Arc<dyn SettingService>) -> Self {
         Self {
             db,
+            setting,
             smtp_server: Default::default(),
             from: Default::default(),
         }
@@ -139,7 +142,7 @@ impl EmailServiceImpl {
 
 pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
     let setting = db.read_email_setting().await?;
-    let service = EmailServiceImpl::new(db);
+    let service = EmailServiceImpl::new(db.clone(), Arc::new(setting::create(db)));
 
     // Optionally initialize the SMTP connection when the service is created
     if let Some(setting) = setting {
@@ -162,7 +165,7 @@ pub async fn new_email_service(db: DbConn) -> Result<impl EmailService> {
 
 #[async_trait]
 impl EmailService for EmailServiceImpl {
-    async fn read_email_setting(&self) -> Result<Option<EmailSetting>> {
+    async fn read_setting(&self) -> Result<Option<EmailSetting>> {
         let setting = self.db.read_email_setting().await?;
         let Some(setting) = setting else {
             return Ok(None);
@@ -176,7 +179,7 @@ impl EmailService for EmailServiceImpl {
         Ok(Some(setting))
     }
 
-    async fn update_email_setting(&self, input: EmailSettingInput) -> Result<()> {
+    async fn update_setting(&self, input: EmailSettingInput) -> Result<()> {
         self.db
             .update_email_setting(
                 input.smtp_username.clone(),
@@ -212,15 +215,15 @@ impl EmailService for EmailServiceImpl {
         Ok(())
     }
 
-    async fn delete_email_setting(&self) -> Result<()> {
+    async fn delete_setting(&self) -> Result<()> {
         self.db.delete_email_setting().await?;
         // When the SMTP credentials are deleted, close the SMTP server connection
         self.shutdown_smtp_connection().await;
         Ok(())
     }
 
-    async fn send_invitation_email(&self, email: String, code: String) -> Result<JoinHandle<()>> {
-        let network_setting = self.db.read_network_setting().await?;
+    async fn send_invitation(&self, email: String, code: String) -> Result<JoinHandle<()>> {
+        let network_setting = self.setting.read_network_setting().await?;
         let external_url = network_setting.external_url;
         let body = templates::invitation(&external_url, &code, &email);
         self.send_email_in_background(
@@ -231,26 +234,22 @@ impl EmailService for EmailServiceImpl {
         .await
     }
 
-    async fn send_signup_email(&self, email: String) -> Result<JoinHandle<()>> {
-        let external_url = self.db.read_network_setting().await?.external_url;
+    async fn send_signup(&self, email: String) -> Result<JoinHandle<()>> {
+        let external_url = self.setting.read_network_setting().await?.external_url;
 
         let body = templates::signup_success(&external_url, &email);
         self.send_email_in_background(email, "Welcome to Tabby!".into(), body)
             .await
     }
 
-    async fn send_password_reset_email(
-        &self,
-        email: String,
-        code: String,
-    ) -> Result<JoinHandle<()>> {
-        let external_url = self.db.read_network_setting().await?.external_url;
+    async fn send_password_reset(&self, email: String, code: String) -> Result<JoinHandle<()>> {
+        let external_url = self.setting.read_network_setting().await?.external_url;
         let body = templates::password_reset(&external_url, &email, &code);
         self.send_email_in_background(email, "Reset your Tabby account password".into(), body)
             .await
     }
 
-    async fn send_test_email(&self, to: String) -> Result<JoinHandle<()>> {
+    async fn send_test(&self, to: String) -> Result<JoinHandle<()>> {
         let body = templates::test();
         self.send_email_in_background(to, "Your mail server is ready to go!".into(), body)
             .await
@@ -273,7 +272,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_email_with_service() {
         let db: DbConn = DbConn::new_in_memory().await.unwrap();
-        let service = EmailServiceImpl::new(db);
+        let service = EmailServiceImpl::new(db.clone(), Arc::new(setting::create(db)));
 
         let update_input = EmailSettingInput {
             smtp_username: "test@example.com".into(),
@@ -284,16 +283,13 @@ mod tests {
             auth_method: AuthMethod::None,
             smtp_password: Some("123456".to_owned()),
         };
-        service.update_email_setting(update_input).await.unwrap();
-        let setting = service.read_email_setting().await.unwrap().unwrap();
+        service.update_setting(update_input).await.unwrap();
+        let setting = service.read_setting().await.unwrap().unwrap();
         assert_eq!(setting.smtp_username, "test@example.com");
 
-        service.delete_email_setting().await.unwrap();
+        service.delete_setting().await.unwrap();
     }
 
-    /*
-     * Requires https://github.com/mailtutan/mailtutan
-     */
     #[tokio::test]
     #[serial]
     async fn test_send_email() {
@@ -303,27 +299,19 @@ mod tests {
             .await;
 
         let handle = service
-            .send_invitation_email("user@localhost".into(), "12345".into())
+            .send_invitation("user@localhost".into(), "12345".into())
             .await
             .unwrap();
 
         handle.await.unwrap();
 
-        let handle = service
-            .send_test_email("user@localhost".into())
-            .await
-            .unwrap();
+        let handle = service.send_test("user@localhost".into()).await.unwrap();
 
         handle.await.unwrap();
 
         let mails = mail_server.list_mail().await;
-        let default_from = service
-            .read_email_setting()
-            .await
-            .unwrap()
-            .unwrap()
-            .from_address;
-        assert!(mails[0].sender.contains(&default_from));
+        let default_from = service.read_setting().await.unwrap().unwrap().from_address;
+        assert!(mails[0].from.address.contains(&default_from));
     }
 
     #[tokio::test]
@@ -334,10 +322,7 @@ mod tests {
             .create_test_email_service(DbConn::new_in_memory().await.unwrap())
             .await;
 
-        let handle = service
-            .send_test_email("user@localhost".into())
-            .await
-            .unwrap();
+        let handle = service.send_test("user@localhost".into()).await.unwrap();
 
         handle.await.unwrap();
 

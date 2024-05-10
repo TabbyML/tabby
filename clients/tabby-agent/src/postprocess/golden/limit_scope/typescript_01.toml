@@ -1,0 +1,30 @@
+description = 'Limit scope: typescript 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'foo.ts'
+language = 'typescript'
+# indentation = '  ' # not specified
+text = '''
+export class Foo {
+  private _foo: number;
+  
+  constructor() {
+    this._foo = 1;
+  }
+  
+  update(value): Foo {
+    ├this._foo = value;
+    return this;┤
+  }
+
+  get foo(): number {
+    return this._foo;
+  }
+}
+'''
+
+[expected]
+unchanged = true

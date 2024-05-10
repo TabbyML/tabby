@@ -130,36 +130,6 @@ def app():
 
 Once we deploy this model with `modal serve app.py`, it will output the url of the web endpoint, in a form of `https://<USERNAME>--tabby-server-starcoder-1b-app-dev.modal.run`.
 
-To test if the server is working, you can send a post request to the web endpoint.
-
-```shell
-curl --location 'https://<USERNAME>--tabby-server-starcoder-1b-app-dev.modal.run/v1/completions' \
---header 'Content-Type: application/json' \
---data '{
-  "language": "python",
-  "segments": {
-    "prefix": "def fib(n):\n    ",
-    "suffix": "\n        return fib(n - 1) + fib(n - 2)"
-  }
-}'
-```
-
-If you can get json response like in the following case, the app server is up and have fun!
-
-```json
-{
-    "id": "cmpl-4196b0c7-f417-4c48-9329-4a56aa86baea",
-    "choices": [
-        {
-            "index": 0,
-            "text": "if n == 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:"
-        }
-    ]
-}
-```
-
-
-
 ![App Running](./app-running.png)
 
 Now it can be used as tabby server url in tabby editor extensions!

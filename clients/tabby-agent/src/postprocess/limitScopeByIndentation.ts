@@ -7,7 +7,7 @@ function parseIndentationContext(
   inputLines: string[],
   inputLinesForDetection: string[],
   context: CompletionContext,
-  config: AgentConfig["postprocess"]["limitScope"]["indentation"],
+  _config: AgentConfig["postprocess"]["limitScope"],
 ): { indentLevelLimit: number; allowClosingLine: boolean } {
   const result = {
     indentLevelLimit: 0,
@@ -49,13 +49,9 @@ function parseIndentationContext(
 
   if (!isCurrentLineInCompletionBlank && !isCurrentLineInPrefixBlank) {
     // if two reference lines are contacted at current line, it is continuing uncompleted sentence
-    if (config.experimentalKeepBlockScopeWhenCompletingLine) {
-      result.indentLevelLimit = referenceLineInPrefixIndent;
-    } else {
-      result.indentLevelLimit = referenceLineInPrefixIndent + 1; // + 1 for comparison, no matter how many spaces indent
-      // allow closing line only if first line is opening a new indent block
-      result.allowClosingLine &&= isBlockOpeningLine(inputLinesForDetection, 0);
-    }
+    result.indentLevelLimit = referenceLineInPrefixIndent + 1; // + 1 for comparison, no matter how many spaces indent
+    // allow closing line only if first line is opening a new indent block
+    result.allowClosingLine &&= isBlockOpeningLine(inputLinesForDetection, 0);
   } else if (referenceLineInCompletionIndent > referenceLineInPrefixIndent) {
     // if reference line in completion has more indent than reference line in prefix, it is opening a new indent block
     result.indentLevelLimit = referenceLineInPrefixIndent + 1;
@@ -81,9 +77,7 @@ function parseIndentationContext(
   return result;
 }
 
-export function limitScopeByIndentation(
-  config: AgentConfig["postprocess"]["limitScope"]["indentation"],
-): PostprocessFilter {
+export function limitScopeByIndentation(config: AgentConfig["postprocess"]["limitScope"]): PostprocessFilter {
   return (input: string, context: CompletionContext) => {
     const { prefixLines, suffixLines, currentLinePrefix } = context;
     const inputLines = splitLines(input);

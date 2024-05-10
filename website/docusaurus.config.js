@@ -1,14 +1,14 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const lightCodeTheme = require('prism-react-renderer/themes/palenight');
-const darkCodeTheme = require('prism-react-renderer/themes/dracula');
+import {themes as prismThemes} from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
-const config = {
+export default {
   title: 'Tabby',
   tagline: 'Opensource, self-hosted AI coding assistant',
   favicon: 'img/favicon.ico',
+  trailingSlash: true,
 
   // Set the production url of your site here
   url: 'https://tabby.tabbyml.com',
@@ -54,7 +54,6 @@ const config = {
           editUrl:
             'https://github.com/TabbyML/tabby/edit/main/website',
           admonitions: {
-            tag: ':::',
             keywords: ['note', 'tip', 'info', 'caution', 'warning', 'danger', 'subscription'],
           },
         },
@@ -157,8 +156,8 @@ const config = {
         copyright: `Copyright © ${new Date().getFullYear()} TabbyML, Inc.`,
       },
       prism: {
-        theme: lightCodeTheme,
-        darkTheme: darkCodeTheme,
+        theme: prismThemes.palenight,
+        darkTheme: prismThemes.dracula,
         additionalLanguages: ['toml', 'rust', 'scheme'],
       },
       colorMode: {
@@ -196,10 +195,16 @@ const config = {
             to: '/blog/2024/02/05/create-tabby-extension-with-language-server-protocol',
             from: '/blog/running-tabby-as-a-language-server'
           },
+          {
+            to: '/docs/installation/docker',
+            from: '/docs/self-hosting/docker'
+          },
+          {
+            to: '/docs/extensions/installation/vscode',
+            from: '/docs/extensions/vscode'
+          },
         ]
       },
     ],
   ],
 };
-
-module.exports = config;

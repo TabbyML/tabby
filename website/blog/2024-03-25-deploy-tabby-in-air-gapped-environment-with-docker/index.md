@@ -48,7 +48,7 @@ docker build -t tabby-offline .
 3. Save the Docker image to a tar file:
 
 ```bash
-docker build -t tabby-offline .
+docker save -o tabby-offline.tar tabby-offline
 ```
 
 4. Copy the `tabby-offline.tar` file to the computer without internet access.

@@ -9,6 +9,7 @@
 		path /repositories/*
 		path /oauth/*
 		path /avatar/*
+		path /integrations/github/*
 
 		path /swagger-ui
 		path /swagger-ui/*

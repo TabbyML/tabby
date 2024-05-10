@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_stream::stream;
+use async_trait::async_trait;
 use futures::stream::BoxStream;
 use minijinja::{context, Environment};
 use tabby_common::api::chat::Message;
 use tabby_inference::{
-    chat::{self, ChatCompletionStream},
-    TextGeneration, TextGenerationOptions, TextGenerationStream,
+    ChatCompletionOptions, ChatCompletionStream, CompletionOptionsBuilder, CompletionStream,
 };
 
 struct ChatPromptBuilder {
@@ -37,34 +37,38 @@ impl ChatPromptBuilder {
 }
 
 struct ChatCompletionImpl {
-    engine: Arc<dyn TextGeneration>,
+    engine: Arc<dyn CompletionStream>,
     prompt_builder: ChatPromptBuilder,
 }
 
-impl chat::ChatPromptBuilder for ChatCompletionImpl {
-    fn build_chat_prompt(&self, messages: &[Message]) -> anyhow::Result<String> {
-        self.prompt_builder.build(messages)
-    }
-}
+#[async_trait]
+impl ChatCompletionStream for ChatCompletionImpl {
+    async fn chat_completion(
+        &self,
+        messages: &[Message],
+        options: ChatCompletionOptions,
+    ) -> Result<BoxStream<String>> {
+        let options = CompletionOptionsBuilder::default()
+            .max_input_length(2048)
+            .seed(options.seed)
+            .max_decoding_tokens(options.max_decoding_tokens)
+            .sampling_temperature(options.sampling_temperature)
+            .build()?;
 
-#[async_trait::async_trait]
-impl TextGenerationStream for ChatCompletionImpl {
-    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> BoxStream<String> {
-        let prompt = prompt.to_owned();
+        let prompt = self.prompt_builder.build(messages)?;
+
         let s = stream! {
-            for await (streaming, text) in self.engine.generate_stream(&prompt, options).await {
-                if streaming {
-                    yield text;
-                }
+            for await content in self.engine.generate(&prompt, options).await {
+                yield content;
             }
         };
 
-        Box::pin(s)
+        Ok(Box::pin(s))
     }
 }
 
 pub fn make_chat_completion(
-    engine: Arc<dyn TextGeneration>,
+    engine: Arc<dyn CompletionStream>,
     prompt_template: String,
 ) -> impl ChatCompletionStream {
     ChatCompletionImpl {

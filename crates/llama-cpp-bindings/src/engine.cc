@@ -57,10 +57,10 @@ struct Request {
 
 std::string llama_token_to_piece(const struct llama_context * ctx, llama_token token) {
     std::vector<char> result(8, 0);
-    const int n_tokens = llama_token_to_piece(llama_get_model(ctx), token, result.data(), result.size());
+    const int n_tokens = llama_token_to_piece(llama_get_model(ctx), token, result.data(), result.size(), true);
     if (n_tokens < 0) {
         result.resize(-n_tokens);
-        int check = llama_token_to_piece(llama_get_model(ctx), token, result.data(), result.size());
+        int check = llama_token_to_piece(llama_get_model(ctx), token, result.data(), result.size(), true);
         GGML_ASSERT(check == -n_tokens);
     } else {
         result.resize(n_tokens);
@@ -138,17 +138,6 @@ bool llama_should_add_bos_token(const llama_model * model) {
     return add_bos != -1 ? bool(add_bos) : (llama_vocab_type(model) == LLAMA_VOCAB_TYPE_SPM);
 }
 
-// FIXME: Hack for codellama / codegemma to simplify tabby's implementation.
-static const char* ADDITIONAL_EOS_TOKENS[] = {
-  // CodeLlama
-    " <EOT>",
-
-  // CodeGemma
-  "<|fim_prefix|>",
-  "<|fim_suffix|>",
-  "<|fim_middle|>",
-  "<|file_separator|>",
-};
 
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
@@ -178,15 +167,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         llama_kv_cache_clear(ctx_.get());
       }
 
-      eos_tokens_.push_back(llama_token_eos(model_.get()));
-
-      for (const auto eos_token : ADDITIONAL_EOS_TOKENS) {
-        auto tokens = llama_tokenize(model_.get(), eos_token, false, true);
-        // If vocabulary contains additional EOS tokens (thus tokenize length == 1), add them to eos_tokens_.
-        if (tokens.size() == 1) {
-          eos_tokens_.push_back(tokens[0]);
-        }
-      }
+      eos_token_ = llama_token_eos(model_.get());
   }
 
   ~TextInferenceEngineImpl() {
@@ -306,7 +287,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         const auto token_str = llama_token_to_piece(ctx, next_token);
         request.generated_text += token_str;
 
-        const bool is_eos = std::find(eos_tokens_.begin(), eos_tokens_.end(), next_token) != eos_tokens_.end();
+        const bool is_eos = eos_token_ == next_token;
 
         bool incomplete = false;
         for (size_t i = 1; i < 5 && i <= request.generated_text.size(); ++i)
@@ -362,7 +343,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   std::deque<Request> requests_;
   std::deque<Request> pending_requests_;
   std::unordered_set<uint32_t> stopped_requests_;
-  std::vector<llama_token> eos_tokens_;
+  llama_token eos_token_;
 
   uint32_t parallelism_;
 
@@ -403,7 +384,18 @@ std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model
   static BackendInitializer initializer;
 
   llama_model_params model_params = llama_model_default_params();
-  model_params.n_gpu_layers = use_gpu ? 9999 : 0;
+  // set the number of model layers to offload to the GPU
+  int n_gpu_layers = 0;
+  if (use_gpu) {
+    if (const char* n_gpu_layers_str = std::getenv("LLAMA_CPP_N_GPU_LAYERS")) {
+      n_gpu_layers = std::stoi(n_gpu_layers_str);
+    } else {
+      // by default, set a high number to offload all layers to GPU
+      n_gpu_layers = 9999;
+    }
+  }
+  model_params.n_gpu_layers = n_gpu_layers;
+
   llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), model_params);
 
   if (!model) {

@@ -13,7 +13,7 @@ lazy_static! {
         env::var("TABBY_MODEL_CACHE_ROOT").ok().map(PathBuf::from);
 }
 
-#[cfg(feature = "testutils")]
+#[cfg(any(feature = "testutils", test))]
 pub fn set_tabby_root(path: PathBuf) {
     println!("SET TABBY ROOT: '{}'", path.display());
     let cell = TABBY_ROOT.lock().unwrap();
@@ -59,6 +59,10 @@ pub fn models_dir() -> PathBuf {
 
 pub fn events_dir() -> PathBuf {
     tabby_root().join("events")
+}
+
+pub fn cache_dir() -> PathBuf {
+    tabby_root().join("cache")
 }
 
 mod registry {}

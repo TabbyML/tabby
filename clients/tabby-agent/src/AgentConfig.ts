@@ -7,7 +7,6 @@ export type AgentConfig = {
   };
   completion: {
     prompt: {
-      experimentalStripAutoClosingCharacters: boolean;
       maxPrefixLines: number;
       maxSuffixLines: number;
       fillDeclarations: {
@@ -16,6 +15,30 @@ export type AgentConfig = {
         maxSnippets: number;
         // max number of characters per snippet
         maxCharsPerSnippet: number;
+      };
+      collectSnippetsFromRecentChangedFiles: {
+        enabled: boolean;
+        // max number of snippets
+        maxSnippets: number;
+        indexing: {
+          // Interval in ms for indexing worker to check pending task
+          checkingChangesInterval: number;
+          // Debouncing interval in ms for sending changes to indexing task
+          changesDebouncingInterval: number;
+
+          // Determine the crop window at changed location for indexing
+          // Line before changed location
+          prefixLines: number;
+          // Line after changed location
+          suffixLines: number;
+
+          // Max number of chunks in memory
+          maxChunks: number;
+          // chars per code chunk
+          chunkSize: number;
+          // overlap lines between neighbor chunks
+          overlapLines: number;
+        };
       };
       clipboard: {
         minChars: number;
@@ -28,20 +51,8 @@ export type AgentConfig = {
     };
   };
   postprocess: {
-    limitScope: {
-      // Prefer to use syntax parser than indentation
-      experimentalSyntax: boolean;
-      indentation: {
-        // When completion is continuing the current line, limit the scope to:
-        // false(default): the line scope, meaning use the next indent level as the limit.
-        // true: the block scope, meaning use the current indent level as the limit.
-        experimentalKeepBlockScopeWhenCompletingLine: boolean;
-      };
-    };
-    calculateReplaceRange: {
-      // Prefer to use syntax parser than bracket stack
-      experimentalSyntax: boolean;
-    };
+    limitScope: any;
+    calculateReplaceRange: any;
   };
   logs: {
     level: "debug" | "error" | "silent";
@@ -74,13 +85,25 @@ export const defaultAgentConfig: AgentConfig = {
   },
   completion: {
     prompt: {
-      experimentalStripAutoClosingCharacters: false,
       maxPrefixLines: 20,
       maxSuffixLines: 20,
       fillDeclarations: {
         enabled: true,
         maxSnippets: 5,
         maxCharsPerSnippet: 500,
+      },
+      collectSnippetsFromRecentChangedFiles: {
+        enabled: true,
+        maxSnippets: 3,
+        indexing: {
+          checkingChangesInterval: 500,
+          changesDebouncingInterval: 1000,
+          prefixLines: 20,
+          suffixLines: 20,
+          maxChunks: 100,
+          chunkSize: 500,
+          overlapLines: 1,
+        },
       },
       clipboard: {
         minChars: 3,
@@ -93,15 +116,8 @@ export const defaultAgentConfig: AgentConfig = {
     },
   },
   postprocess: {
-    limitScope: {
-      experimentalSyntax: false,
-      indentation: {
-        experimentalKeepBlockScopeWhenCompletingLine: false,
-      },
-    },
-    calculateReplaceRange: {
-      experimentalSyntax: false,
-    },
+    limitScope: {},
+    calculateReplaceRange: {},
   },
   logs: {
     level: "silent",

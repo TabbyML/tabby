@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { noop } from 'lodash-es'
 
 import { graphql } from '@/lib/gql/generates'
@@ -122,7 +122,7 @@ function MainPanel() {
 
   return (
     <div className="flex flex-1 justify-center lg:mt-[10vh]">
-      <div className="mx-auto flex w-screen flex-col px-5 py-20 md:w-auto md:flex-row md:justify-center md:px-0 md:py-10 lg:gap-x-10">
+      <div className="mx-auto flex w-screen flex-col px-5 py-20 lg:w-auto lg:flex-row lg:justify-center lg:gap-x-10 lg:px-0 lg:py-10">
         <div className="relative mb-5 flex flex-col rounded-lg pb-4 lg:mb-0 lg:mt-12 lg:w-64">
           <UserAvatar className="h-20 w-20 border-4 border-background" />
 
@@ -138,26 +138,26 @@ function MainPanel() {
           <Separator className="my-4" />
           <Configuration />
 
-          <div className="mt-auto flex flex-col gap-1 md:mb-[28px]">
-            <MenuLink href="/profile" Icon={IconGear}>
+          <div className="mt-auto flex flex-col gap-1 lg:mb-[28px]">
+            <MenuLink href="/profile" icon={<IconGear />}>
               Settings
             </MenuLink>
             {isChatEnabled && (
-              <MenuLink href="/playground" Icon={IconChat} target="_blank">
+              <MenuLink href="/playground" icon={<IconChat />} target="_blank">
                 Chat Playground
               </MenuLink>
             )}
-            <MenuLink href="/files" Icon={IconCode} target="_blank">
+            <MenuLink href="/files" icon={<IconCode />} target="_blank">
               Code Browser
             </MenuLink>
-            <MenuLink Icon={IconLogout} href="/" onClick={handleSignOut}>
+            <MenuLink icon={<IconLogout />} onClick={handleSignOut}>
               <span>Sign out</span>
               {signOutLoading && <IconSpinner className="ml-1" />}
             </MenuLink>
           </div>
         </div>
 
-        <div className="md:min-h-[700px] md:w-[calc(100vw-30rem)] xl:w-[62rem]">
+        <div className="lg:min-h-[700px] lg:w-[calc(100vw-30rem)] xl:w-[62rem]">
           <Stats />
         </div>
       </div>
@@ -167,20 +167,37 @@ function MainPanel() {
 
 function MenuLink({
   children,
-  Icon,
-  ...props
-}: { Icon: React.ComponentType<{ className: string }> } & React.ComponentProps<
-  typeof Link
->) {
+  icon,
+  href,
+  target,
+  onClick
+}: {
+  children: React.ReactNode
+  icon: React.ReactNode
+  href?: string
+  target?: string
+  onClick?: () => void
+}) {
+  const router = useRouter()
+
+  const onClickMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    e.stopPropagation()
+    if (onClick) return onClick()
+    if (href) {
+      if (target === '_blank') return window.open(href)
+      router.push(href)
+    }
+  }
+
   return (
     <div className="flex items-center gap-2">
-      <Icon className="text-muted-foreground" />
-      <Link
-        className="flex items-center gap-1 text-sm transition-opacity hover:opacity-50"
-        {...props}
+      <div className="text-muted-foreground">{icon}</div>
+      <div
+        className="flex cursor-pointer items-center gap-1 text-sm transition-opacity hover:opacity-50"
+        onClick={onClickMenu}
       >
         {children}
-      </Link>
+      </div>
     </div>
   )
 }

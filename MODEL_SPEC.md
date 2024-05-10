@@ -29,4 +29,4 @@ The **chat_template** field is optional. When it is present, it is assumed that 
 
 This directory contains binary files used by the [llama.cpp](https://github.com/ggerganov/llama.cpp) inference engine. Tabby utilizes ggml for inference on `cpu`, `cuda` and `metal` devices.
 
-Currently, only `q8_0.v2.gguf` in this directory is in use. You can refer to the instructions in llama.cpp to learn how to acquire it.
+Currently, only `q8_0.v2.gguf` (or, starting with 0.11, `model.gguf`) in this directory is in use. You can refer to the instructions in llama.cpp to learn how to acquire it.

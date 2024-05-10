@@ -84,7 +84,7 @@ export const Avatar = () => {
         <input
           id="avatar-file"
           type="file"
-          accept="image/*"
+          accept="image/png, image/jpeg"
           className="hidden"
           onChange={onPreviewAvatar}
         />

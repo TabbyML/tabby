@@ -2,8 +2,6 @@ use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use lazy_static::lazy_static;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -28,7 +26,7 @@ impl Config {
             cfg_path.display()
         ))?;
 
-        if let Err(e) = cfg.validate_names() {
+        if let Err(e) = cfg.validate_dirs() {
             cfg = Default::default();
             InfoMessage::new(
                 "Parsing config failed",
@@ -54,39 +52,26 @@ impl Config {
             .expect("Failed to write config file");
     }
 
-    fn validate_names(&self) -> Result<()> {
-        let mut names = HashSet::new();
+    fn validate_dirs(&self) -> Result<()> {
+        let mut dirs = HashSet::new();
         for repo in self.repositories.iter() {
-            let name = repo.name();
-            if !RepositoryConfig::validate_name(&name) {
-                return Err(anyhow!("Invalid characters in repository name: {}", name));
-            }
-            if !names.insert(repo.name()) {
-                return Err(anyhow!("Duplicate name in `repositories`: {}", repo.name()));
+            let dir = repo.dir().display().to_string();
+            if !dirs.insert(dir.clone()) {
+                return Err(anyhow!("Duplicate directory in `repositories`: {}", dir));
             }
         }
         Ok(())
     }
 }
 
-lazy_static! {
-    pub static ref REPOSITORY_NAME_REGEX: Regex = Regex::new("^[a-zA-Z][\\w.-]+$").unwrap();
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RepositoryConfig {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
     pub git_url: String,
 }
 
 impl RepositoryConfig {
-    #[cfg(feature = "testutils")]
     pub fn new(git_url: String) -> Self {
-        Self {
-            name: None,
-            git_url,
-        }
+        Self { git_url }
     }
 
     pub fn canonical_git_url(&self) -> String {
@@ -94,6 +79,7 @@ impl RepositoryConfig {
     }
 
     pub fn canonicalize_url(url: &str) -> String {
+        let url = url.strip_suffix(".git").unwrap_or(url);
         url::Url::parse(url)
             .map(|mut url| {
                 let _ = url.set_password(None);
@@ -103,34 +89,17 @@ impl RepositoryConfig {
             .unwrap_or_else(|_| url.to_string())
     }
 
-    pub fn new_named(name: String, git_url: String) -> Self {
-        Self {
-            name: Some(name),
-            git_url,
-        }
-    }
-
-    pub fn validate_name(name: &str) -> bool {
-        REPOSITORY_NAME_REGEX.is_match(name)
-    }
-
     pub fn dir(&self) -> PathBuf {
         if self.is_local_dir() {
             let path = self.git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
-            repositories_dir().join(self.name())
+            repositories_dir().join(sanitize_name(&self.canonical_git_url()))
         }
     }
 
     pub fn is_local_dir(&self) -> bool {
         self.git_url.starts_with("file://")
-    }
-
-    pub fn name(&self) -> String {
-        self.name
-            .clone()
-            .unwrap_or_else(|| sanitize_name(&self.git_url))
     }
 }
 
@@ -187,14 +156,12 @@ mod tests {
     #[test]
     fn it_parses_local_dir() {
         let repo = RepositoryConfig {
-            name: None,
             git_url: "file:///home/user".to_owned(),
         };
         assert!(repo.is_local_dir());
         assert_eq!(repo.dir().display().to_string(), "/home/user");
 
         let repo = RepositoryConfig {
-            name: None,
             git_url: "https://github.com/TabbyML/tabby".to_owned(),
         };
         assert!(!repo.is_local_dir());
@@ -203,21 +170,9 @@ mod tests {
     #[test]
     fn test_repository_config_name() {
         let repo = RepositoryConfig {
-            name: None,
             git_url: "https://github.com/TabbyML/tabby.git".to_owned(),
         };
-        assert_eq!(repo.name(), "https_github.com_TabbyML_tabby.git");
-    }
-
-    #[test]
-    fn test_validate_repository_name() {
-        assert!(!RepositoryConfig::validate_name("3tabby"));
-        assert!(!RepositoryConfig::validate_name("_tabby"));
-        assert!(RepositoryConfig::validate_name("tabby"));
-        assert!(RepositoryConfig::validate_name("tabby_ml"));
-        assert!(RepositoryConfig::validate_name(
-            "https_github.com_TabbyML_tabby.git"
-        ));
+        assert!(repo.dir().ends_with("https_github.com_TabbyML_tabby"));
     }
 
     #[test]
@@ -244,6 +199,11 @@ mod tests {
 
         assert_eq!(
             RepositoryConfig::canonicalize_url("https://github.com/TabbyML/tabby"),
+            "https://github.com/TabbyML/tabby"
+        );
+
+        assert_eq!(
+            RepositoryConfig::canonicalize_url("https://github.com/TabbyML/tabby.git"),
             "https://github.com/TabbyML/tabby"
         );
     }

@@ -12,9 +12,9 @@ pub mod usage;
 
 use std::{
     fs::File,
-    io::{BufReader, Error},
+    io::BufReader,
     ops::Range,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use path::dataset_dir;
@@ -38,14 +38,24 @@ impl SourceFile {
         dataset_dir().join("files.jsonl")
     }
 
-    pub fn all() -> Result<impl Iterator<Item = Self>, Error> {
+    pub fn all() -> impl Iterator<Item = Self> {
         let files = glob::glob(format!("{}*", Self::files_jsonl().display()).as_str()).unwrap();
-        let iter = files.filter_map(|x| x.ok()).flat_map(|path| {
+
+        files.filter_map(|x| x.ok()).flat_map(|path| {
             let fp = BufReader::new(File::open(path).unwrap());
             let reader = JsonLinesReader::new(fp);
             reader.read_all::<SourceFile>().filter_map(|x| x.ok())
-        });
-        Ok(iter)
+        })
+    }
+
+    pub fn read_content(&self) -> std::io::Result<String> {
+        let path = Path::new(&self.basedir).join(&self.filepath);
+        std::fs::read_to_string(path)
+    }
+
+    pub fn read_file_size(&self) -> usize {
+        let path = Path::new(&self.basedir).join(&self.filepath);
+        std::fs::metadata(path).map(|x| x.len()).unwrap_or_default() as usize
     }
 }
 

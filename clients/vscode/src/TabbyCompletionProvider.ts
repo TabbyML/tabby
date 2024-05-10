@@ -21,7 +21,8 @@ import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-ag
 import { API as GitAPI } from "./types/git";
 import { logger } from "./logger";
 import { agent } from "./agent";
-import { getWordStartIndices } from "./utils";
+import { RecentlyChangedCodeSearch } from "./RecentlyChangedCodeSearch";
+import { extractSemanticSymbols, extractNonReservedWordList } from "./utils";
 
 type DisplayedCompletion = {
   id: string;
@@ -36,6 +37,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
   private loading: boolean = false;
   private displayedCompletion: DisplayedCompletion | null = null;
   private gitApi: GitAPI | null = null;
+
+  recentlyChangedCodeSearch: RecentlyChangedCodeSearch | null = null;
 
   public constructor() {
     super();
@@ -111,6 +114,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       workspace: workspace.getWorkspaceFolder(document.uri)?.uri.toString(),
       git: this.getGitContext(document.uri),
       declarations: await this.collectDeclarationSnippets(document, position),
+      relevantSnippetsFromChangedFiles: await this.collectSnippetsFromRecentlyChangedFiles(document, position),
     };
 
     const abortController = new AbortController();
@@ -323,13 +327,13 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
   private async collectDeclarationSnippets(
     document: TextDocument,
     position: Position,
-  ): Promise<{ filepath: string; text: string }[] | undefined> {
+  ): Promise<{ filepath: string; offset: number; text: string }[] | undefined> {
     const config = agent().getConfig().completion.prompt;
     if (!config.fillDeclarations.enabled) {
       return undefined;
     }
     this.logger.trace("Begin collectDeclarationSnippets", { document, position });
-    const snippets: { filepath: string; text: string }[] = [];
+    const snippets: { filepath: string; offset: number; text: string }[] = [];
     const snippetLocations: LocationLink[] = [];
     // Find symbol positions in the previous lines
     const prefixRange = new Range(
@@ -338,19 +342,33 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       position.line,
       position.character,
     );
-    const prefixText = document.getText(prefixRange);
-    const prefixRangeStartOffset = document.offsetAt(prefixRange.start);
-    const symbolPositions = getWordStartIndices(prefixText).map((offset) =>
-      document.positionAt(prefixRangeStartOffset + offset),
-    );
-    this.logger.trace("Found symbol positions in prefix text", { prefixText, symbolPositions });
+    const allowedSymbolTypes = [
+      "class",
+      "decorator",
+      "enum",
+      "function",
+      "interface",
+      "macro",
+      "method",
+      "namespace",
+      "struct",
+      "type",
+      "typeParameter",
+    ];
+    const allSymbols = await extractSemanticSymbols(document, prefixRange);
+    if (!allSymbols) {
+      this.logger.trace("End collectDeclarationSnippets early, symbols provider not available.");
+      return undefined;
+    }
+    const symbols = allSymbols.filter((symbol) => allowedSymbolTypes.includes(symbol.type));
+    this.logger.trace("Found symbols in prefix text", { symbols });
     // Loop through the symbol positions backwards
-    for (let symbolIndex = symbolPositions.length - 1; symbolIndex >= 0; symbolIndex--) {
+    for (let symbolIndex = symbols.length - 1; symbolIndex >= 0; symbolIndex--) {
       if (snippets.length >= config.fillDeclarations.maxSnippets) {
         // Stop collecting snippets if the max number of snippets is reached
         break;
       }
-      const symbolPosition = symbolPositions[symbolIndex];
+      const symbolPosition = symbols[symbolIndex]!.position;
       const declarationLinks = await commands.executeCommand(
         "vscode.executeDefinitionProvider",
         document.uri,
@@ -383,9 +401,10 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
           this.logger.trace("Skipping snippet as it is already collected");
           continue;
         }
-        let text = new TextDecoder()
-          .decode(await workspace.fs.readFile(declarationLink.targetUri))
-          .split("\n")
+        const fileText = new TextDecoder().decode(await workspace.fs.readFile(declarationLink.targetUri)).split("\n");
+        const offsetText = fileText.slice(0, declarationLink.targetRange.start.line).join("\n");
+        const offset = offsetText.length;
+        let text = fileText
           .slice(declarationLink.targetRange.start.line, declarationLink.targetRange.end.line + 1)
           .join("\n");
         if (text.length > config.fillDeclarations.maxCharsPerSnippet) {
@@ -395,12 +414,38 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         }
         if (text.length > 0) {
           this.logger.trace("Collected declaration snippet", { text });
-          snippets.push({ filepath: declarationLink.targetUri.toString(), text });
+          snippets.push({ filepath: declarationLink.targetUri.toString(), offset, text });
           snippetLocations.push(declarationLink);
         }
       }
     }
     this.logger.trace("End collectDeclarationSnippets", { snippets });
+    return snippets;
+  }
+
+  private async collectSnippetsFromRecentlyChangedFiles(
+    document: TextDocument,
+    position: Position,
+  ): Promise<{ filepath: string; offset: number; text: string; score: number }[] | undefined> {
+    const config = agent().getConfig().completion.prompt;
+    if (!config.collectSnippetsFromRecentChangedFiles.enabled || !this.recentlyChangedCodeSearch) {
+      return undefined;
+    }
+    this.logger.trace("Begin collectSnippetsFromRecentlyChangedFiles", { document, position });
+    const prefixRange = new Range(
+      Math.max(0, position.line - config.maxPrefixLines + 1),
+      0,
+      position.line,
+      position.character,
+    );
+    const prefixText = document.getText(prefixRange);
+    const query = extractNonReservedWordList(prefixText);
+    const snippets = await this.recentlyChangedCodeSearch.collectRelevantSnippets(
+      query,
+      document,
+      config.collectSnippetsFromRecentChangedFiles.maxSnippets,
+    );
+    this.logger.trace("End collectSnippetsFromRecentlyChangedFiles", { snippets });
     return snippets;
   }
 }

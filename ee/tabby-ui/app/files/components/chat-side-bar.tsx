@@ -22,7 +22,14 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
 
-  const getPrompt = ({ action, code, language }: QuickActionEventPayload) => {
+  const getPrompt = ({
+    action,
+    code,
+    language,
+    path,
+    lineFrom,
+    lineTo
+  }: QuickActionEventPayload) => {
     let builtInPrompt = ''
     switch (action) {
       case 'explain':
@@ -37,7 +44,10 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
       default:
         break
     }
-    return `${builtInPrompt}\n${'```'}${language ?? ''}\n${code}\n${'```'}\n`
+    const codeBlockMeta = `${
+      language ?? ''
+    } is_reference=1 path=${path} line_from=${lineFrom} line_to=${lineTo}`
+    return `${builtInPrompt}\n${'```'}${codeBlockMeta}\n${code}\n${'```'}\n`
   }
 
   React.useEffect(() => {

@@ -1,65 +1,70 @@
 mod analytic;
 mod auth;
-mod dao;
+pub mod background_job;
 mod email;
 pub mod event_logger;
-mod github_repository_provider;
 mod job;
 mod license;
 mod proxy;
-mod repository;
+pub mod repository;
 mod setting;
+mod user_event;
 mod worker;
 
 use std::{net::SocketAddr, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
-    http::{HeaderName, HeaderValue, Request},
+    body::Body,
+    http::{HeaderName, HeaderValue, Request, StatusCode},
     middleware::Next,
     response::IntoResponse,
 };
-pub(in crate::service) use dao::{AsID, AsRowid};
-use hyper::{client::HttpConnector, Body, Client, StatusCode};
+use hyper::{HeaderMap, Uri};
+use hyper_util::{
+    client::legacy::{connect::HttpConnector, Client},
+    rt,
+};
 use juniper::ID;
 use tabby_common::{
     api::{code::CodeSearch, event::EventLogger},
     constants::USER_HEADER_FIELD_NAME,
 };
 use tabby_db::DbConn;
-use tracing::{info, warn};
-
-use self::{
-    analytic::new_analytic_service, auth::new_authentication_service, email::new_email_service,
-    github_repository_provider::new_github_repository_provider_service,
-    license::new_license_service,
-};
-use crate::schema::{
+use tabby_schema::{
     analytic::AnalyticService,
     auth::AuthenticationService,
     email::EmailService,
-    github_repository_provider::GithubRepositoryProviderService,
+    is_demo_mode,
     job::JobService,
     license::{IsLicenseValid, LicenseService},
     repository::RepositoryService,
     setting::SettingService,
+    user_event::UserEventService,
     worker::{RegisterWorkerError, Worker, WorkerKind, WorkerService},
-    CoreError, Result, ServiceLocator,
+    AsID, AsRowid, CoreError, Result, ServiceLocator,
 };
+use tracing::{info, warn};
 
+use self::{
+    analytic::new_analytic_service, email::new_email_service, license::new_license_service,
+};
 struct ServerContext {
-    client: Client<HttpConnector>,
+    client: Client<HttpConnector, Body>,
     completion: worker::WorkerGroup,
     chat: worker::WorkerGroup,
     db_conn: DbConn,
     mail: Arc<dyn EmailService>,
     auth: Arc<dyn AuthenticationService>,
     license: Arc<dyn LicenseService>,
-    github_repository_provider: Arc<dyn GithubRepositoryProviderService>,
     repository: Arc<dyn RepositoryService>,
+    user_event: Arc<dyn UserEventService>,
+    job: Arc<dyn JobService>,
 
     logger: Arc<dyn EventLogger>,
     code: Arc<dyn CodeSearch>,
+
+    setting: Arc<dyn SettingService>,
 
     is_chat_enabled_locally: bool,
 }
@@ -82,35 +87,39 @@ impl ServerContext {
                 .await
                 .expect("failed to initialize license service"),
         );
+        let user_event = Arc::new(user_event::create(db_conn.clone()));
+        let job = Arc::new(job::create(db_conn.clone()).await);
+        let setting = Arc::new(setting::create(db_conn.clone()));
         Self {
-            client: Client::default(),
+            client: Client::builder(rt::TokioExecutor::new()).build(HttpConnector::new()),
             completion: worker::WorkerGroup::default(),
             chat: worker::WorkerGroup::default(),
             mail: mail.clone(),
-            auth: Arc::new(new_authentication_service(
+            auth: Arc::new(auth::create(
                 db_conn.clone(),
                 mail,
                 license.clone(),
+                setting.clone(),
             )),
             license,
-            github_repository_provider: Arc::new(new_github_repository_provider_service(
-                db_conn.clone(),
-            )),
             repository,
-            db_conn,
+            user_event,
+            job,
             logger,
             code,
+            setting,
+            db_conn,
             is_chat_enabled_locally,
         }
     }
 
-    async fn authorize_request(&self, request: &Request<Body>) -> (bool, Option<ID>) {
-        let path = request.uri().path();
+    /// Returns whether a request is authorized to access the content, and the user ID if authentication was used.
+    async fn authorize_request(&self, uri: &Uri, headers: &HeaderMap) -> (bool, Option<ID>) {
+        let path = uri.path();
         if !(path.starts_with("/v1/") || path.starts_with("/v1beta/")) {
             return (true, None);
         }
-        let authorization = request
-            .headers()
+        let authorization = headers
             .get("authorization")
             .map(HeaderValue::to_str)
             .and_then(Result::ok);
@@ -126,21 +135,14 @@ impl ServerContext {
 
         // Allow JWT based access (from web browser), regardless of the license status.
         if let Ok(jwt) = self.auth.verify_access_token(token).await {
-            return (true, Some(jwt.sub.0));
+            return (true, Some(jwt.sub));
         }
 
-        let is_license_valid = self
-            .license
-            .read_license()
-            .await
-            .ensure_valid_license()
-            .is_ok();
+        let is_license_valid = self.license.read().await.ensure_valid_license().is_ok();
+        let requires_owner = !is_license_valid || is_demo_mode();
+
         // If there's no valid license, only allows owner access.
-        match self
-            .db_conn
-            .verify_auth_token(token, !is_license_valid)
-            .await
-        {
+        match self.db_conn.verify_auth_token(token, requires_owner).await {
             Ok(id) => (true, Some(id.as_id())),
             Err(_) => (false, None),
         }
@@ -160,11 +162,11 @@ impl WorkerService for ServerContext {
         Ok(self.db_conn.reset_registration_token().await?)
     }
 
-    async fn list_workers(&self) -> Vec<Worker> {
+    async fn list(&self) -> Vec<Worker> {
         [self.completion.list().await, self.chat.list().await].concat()
     }
 
-    async fn register_worker(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
+    async fn register(&self, worker: Worker) -> Result<Worker, RegisterWorkerError> {
         let worker_group = match worker.kind {
             WorkerKind::Completion => &self.completion,
             WorkerKind::Chat => &self.chat,
@@ -173,7 +175,7 @@ impl WorkerService for ServerContext {
         let count_workers = worker_group.list().await.len();
         let license = self
             .license
-            .read_license()
+            .read()
             .await
             .map_err(|_| RegisterWorkerError::RequiresTeamOrEnterpriseLicense)?;
 
@@ -189,7 +191,7 @@ impl WorkerService for ServerContext {
         Ok(worker)
     }
 
-    async fn unregister_worker(&self, worker_addr: &str) {
+    async fn unregister(&self, worker_addr: &str) {
         let kind = if self.chat.unregister(worker_addr).await {
             WorkerKind::Chat
         } else if self.completion.unregister(worker_addr).await {
@@ -208,9 +210,11 @@ impl WorkerService for ServerContext {
     async fn dispatch_request(
         &self,
         mut request: Request<Body>,
-        next: Next<Body>,
+        next: Next,
     ) -> axum::response::Response {
-        let (auth, user) = self.authorize_request(&request).await;
+        let (auth, user) = self
+            .authorize_request(request.uri(), request.headers())
+            .await;
         if !auth {
             return axum::response::Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
@@ -235,7 +239,9 @@ impl WorkerService for ServerContext {
         let path = request.uri().path();
         let worker = if path.starts_with("/v1/completions") {
             self.completion.select().await
-        } else if path.starts_with("/v1beta/chat/completions") {
+        } else if path.starts_with("/v1/chat/completions")
+            || path.starts_with("/v1beta/chat/completions")
+        {
             self.chat.select().await
         } else {
             None
@@ -264,51 +270,57 @@ impl WorkerService for ServerContext {
     }
 }
 
-impl ServiceLocator for Arc<ServerContext> {
+struct ArcServerContext(Arc<ServerContext>);
+
+impl ArcServerContext {
+    pub fn new(server_context: ServerContext) -> Self {
+        Self(Arc::new(server_context))
+    }
+}
+
+impl ServiceLocator for ArcServerContext {
     fn auth(&self) -> Arc<dyn AuthenticationService> {
-        self.auth.clone()
+        self.0.auth.clone()
     }
 
     fn worker(&self) -> Arc<dyn WorkerService> {
-        self.clone()
+        self.0.clone()
     }
 
     fn code(&self) -> Arc<dyn CodeSearch> {
-        self.code.clone()
+        self.0.code.clone()
     }
 
     fn logger(&self) -> Arc<dyn EventLogger> {
-        self.logger.clone()
+        self.0.logger.clone()
     }
 
     fn job(&self) -> Arc<dyn JobService> {
-        Arc::new(self.db_conn.clone())
+        self.0.job.clone()
     }
 
     fn repository(&self) -> Arc<dyn RepositoryService> {
-        self.repository.clone()
+        self.0.repository.clone()
     }
 
     fn email(&self) -> Arc<dyn EmailService> {
-        self.mail.clone()
+        self.0.mail.clone()
     }
 
     fn setting(&self) -> Arc<dyn SettingService> {
-        Arc::new(self.db_conn.clone())
+        self.0.setting.clone()
     }
 
     fn license(&self) -> Arc<dyn LicenseService> {
-        self.license.clone()
+        self.0.license.clone()
     }
 
     fn analytic(&self) -> Arc<dyn AnalyticService> {
-        new_analytic_service(self.db_conn.clone())
+        new_analytic_service(self.0.db_conn.clone())
     }
 
-    fn github_repository_provider(
-        &self,
-    ) -> Arc<dyn crate::schema::github_repository_provider::GithubRepositoryProviderService> {
-        self.github_repository_provider.clone()
+    fn user_event(&self) -> Arc<dyn UserEventService> {
+        self.0.user_event.clone()
     }
 }
 
@@ -319,7 +331,7 @@ pub async fn create_service_locator(
     db: DbConn,
     is_chat_enabled: bool,
 ) -> Arc<dyn ServiceLocator> {
-    Arc::new(Arc::new(
+    Arc::new(ArcServerContext::new(
         ServerContext::new(logger, code, repository, db, is_chat_enabled).await,
     ))
 }

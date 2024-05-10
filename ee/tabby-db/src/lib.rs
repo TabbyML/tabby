@@ -1,11 +1,17 @@
-use std::{ops::Deref, path::Path, sync::Arc};
+use std::{
+    fmt::Display,
+    ops::{Add, Deref, Sub},
+    path::Path,
+    sync::Arc,
+};
 
 use anyhow::anyhow;
 use cache::Cache;
 use cached::TimedSizedCache;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 pub use email_setting::EmailSettingDAO;
-pub use github_repository_provider::GithubRepositoryProviderDAO;
+pub use github_repository_provider::{GithubProvidedRepositoryDAO, GithubRepositoryProviderDAO};
+pub use gitlab_repository_provider::{GitlabProvidedRepositoryDAO, GitlabRepositoryProviderDAO};
 pub use invitations::InvitationDAO;
 pub use job_runs::JobRunDAO;
 pub use oauth_credential::OAuthCredentialDAO;
@@ -17,19 +23,24 @@ use sqlx::{
 };
 use tokio::sync::Mutex;
 use user_completions::UserCompletionDailyStatsDAO;
+pub use user_events::UserEventDAO;
 pub use users::UserDAO;
 
 pub mod cache;
 mod email_setting;
 mod github_repository_provider;
+mod gitlab_repository_provider;
+mod integration_access_tokens;
 mod invitations;
 mod job_runs;
 mod oauth_credential;
 mod password_reset;
+mod provided_repositories;
 mod refresh_tokens;
 mod repositories;
 mod server_setting;
 mod user_completions;
+mod user_events;
 mod users;
 
 use anyhow::Result;
@@ -62,6 +73,10 @@ fn make_pagination_query_with_condition(
         .select(&field_names.join(", "))
         .order_by("id ASC");
 
+    if let Some(condition) = condition {
+        source = source.where_and(&condition)
+    }
+
     if backwards {
         source = source.order_by("id DESC");
         if let Some(skip_id) = skip_id {
@@ -80,10 +95,6 @@ fn make_pagination_query_with_condition(
     }
 
     select = select.from(&format!("({source})"));
-    if let Some(condition) = condition {
-        select = select.where_and(&condition)
-    }
-
     select.as_string()
 }
 
@@ -257,6 +268,34 @@ where
 #[derive(Default, Clone)]
 pub struct DateTimeUtc(DateTime<Utc>);
 
+impl Display for DateTimeUtc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_sqlite_datetime())
+    }
+}
+
+impl std::fmt::Debug for DateTimeUtc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_sqlite_datetime())
+    }
+}
+
+impl Add<Duration> for DateTimeUtc {
+    type Output = Self;
+
+    fn add(self, rhs: Duration) -> Self::Output {
+        ((self.0) + rhs).into()
+    }
+}
+
+impl Sub<Duration> for DateTimeUtc {
+    type Output = Self;
+
+    fn sub(self, rhs: Duration) -> Self::Output {
+        ((self.0) - rhs).into()
+    }
+}
+
 impl From<DateTime<Utc>> for DateTimeUtc {
     fn from(value: DateTime<Utc>) -> Self {
         Self(value)
@@ -289,7 +328,7 @@ impl<'a> Encode<'a, Sqlite> for DateTimeUtc {
         &self,
         buf: &mut <Sqlite as sqlx::database::HasArguments<'a>>::ArgumentBuffer,
     ) -> sqlx::encode::IsNull {
-        self.0.encode_by_ref(buf)
+        <String as Encode<Sqlite>>::encode(self.as_sqlite_datetime(), buf)
     }
 }
 
@@ -307,9 +346,31 @@ impl Deref for DateTimeUtc {
     }
 }
 
+impl PartialEq for DateTimeUtc {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl PartialOrd for DateTimeUtc {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Copy for DateTimeUtc {}
+
 impl DateTimeUtc {
-    pub fn into_inner(self) -> DateTime<Utc> {
-        self.0
+    pub fn now() -> Self {
+        Self(Utc::now())
+    }
+
+    pub fn from_timestamp(secs: i64, subsec_nanos: u32) -> Option<Self> {
+        DateTime::from_timestamp(secs, subsec_nanos).map(Self)
+    }
+
+    fn as_sqlite_datetime(&self) -> String {
+        self.0.format("%F %X").to_string()
     }
 }
 
@@ -349,6 +410,34 @@ mod tests {
         let new_token = conn.read_registration_token().await.unwrap();
         assert_eq!(new_token.len(), 36);
         assert_ne!(old_token, new_token);
+    }
+
+    #[tokio::test]
+    async fn test_timestamp_format() {
+        let db = DbConn::new_in_memory().await.unwrap();
+
+        let time = DateTimeUtc::now();
+
+        let time_str = time.as_sqlite_datetime();
+        let sql_time: String = sqlx::query_scalar::<_, String>("SELECT ?;")
+            .bind(time)
+            .fetch_one(&db.pool)
+            .await
+            .unwrap();
+
+        assert_eq!(time_str, sql_time);
+
+        let sql_time: String = sqlx::query_scalar::<_, String>("SELECT DATETIME('now');")
+            .fetch_one(&db.pool)
+            .await
+            .unwrap();
+        assert_eq!(sql_time, DateTimeUtc::now().as_sqlite_datetime());
+
+        // No assertions, these will fail at compiletime if adding/subtracting from these types
+        // yields DateTime<Utc>, which could be dangerous
+        let time = DateTimeUtc::now();
+        let _added_time: DateTimeUtc = time + Duration::milliseconds(1);
+        let _subbed_time: DateTimeUtc = time - Duration::milliseconds(1);
     }
 }
 

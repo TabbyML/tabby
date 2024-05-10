@@ -1,0 +1,10 @@
+id: use-basic-job
+message: Use BasicJob / CronJob for worker creation.
+severity: error
+language: rust
+files:
+- ./ee/tabby-webserver/src/service/background_job/**
+ignores:
+- ./ee/tabby-webserver/src/service/background_job/helper/mod.rs
+rule:
+  pattern: WorkerBuilder

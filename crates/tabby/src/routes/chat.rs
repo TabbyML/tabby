@@ -1,23 +1,21 @@
 use std::sync::Arc;
 
 use axum::{
-    body::StreamBody,
     extract::State,
-    http::HeaderValue,
-    response::{IntoResponse, Response},
+    response::sse::{Event, KeepAlive, Sse},
     Json,
 };
-use futures::StreamExt;
+use futures::{Stream, StreamExt};
 use tracing::instrument;
 
 use crate::services::chat::{ChatCompletionRequest, ChatService};
 
 #[utoipa::path(
     post,
-    path = "/v1beta/chat/completions",
+    path = "/v1/chat/completions",
     request_body = ChatCompletionRequest,
     operation_id = "chat_completions",
-    tag = "v1beta",
+    tag = "v1",
     responses(
         (status = 200, description = "Success", body = ChatCompletionChunk, content_type = "text/event-stream"),
         (status = 405, description = "When chat model is not specified, the endpoint returns 405 Method Not Allowed"),
@@ -31,16 +29,11 @@ use crate::services::chat::{ChatCompletionRequest, ChatService};
 pub async fn chat_completions(
     State(state): State<Arc<ChatService>>,
     Json(request): Json<ChatCompletionRequest>,
-) -> Response {
+) -> Sse<impl Stream<Item = Result<Event, serde_json::Error>>> {
     let stream = state.generate(request).await;
-    let s = stream.map(|chunk| match serde_json::to_string(&chunk) {
-        Ok(s) => Ok(format!("data: {s}\n\n")),
-        Err(e) => Err(anyhow::Error::from(e)),
-    });
-    let mut resp = StreamBody::new(s).into_response();
-    resp.headers_mut().append(
-        "Content-Type",
-        HeaderValue::from_str("text/event-stream").unwrap(),
-    );
-    resp
+    Sse::new(stream.map(|chunk| match serde_json::to_string(&chunk) {
+        Ok(s) => Ok(Event::default().data(s)),
+        Err(err) => Err(err),
+    }))
+    .keep_alive(KeepAlive::default())
 }

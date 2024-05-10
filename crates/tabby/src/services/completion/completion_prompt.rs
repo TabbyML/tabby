@@ -99,7 +99,10 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
         return prefix.to_owned();
     }
 
-    let comment_char = &get_language(language).line_comment;
+    let Some(comment_char) = &get_language(language).line_comment else {
+        return prefix.to_owned();
+    };
+
     let mut lines: Vec<String> = vec![];
 
     for (i, snippet) in snippets.iter().enumerate() {
@@ -198,6 +201,10 @@ async fn collect_snippets(
         }
         Err(CodeSearchError::QueryParserError(err)) => {
             warn!("Failed to parse query: {}", err);
+            return ret;
+        }
+        Err(CodeSearchError::Other(err)) => {
+            warn!("Failed to search: {}", err);
             return ret;
         }
     };

@@ -1,3 +1,5 @@
+'use client'
+
 import NiceAvatar, { genConfig } from 'react-nice-avatar'
 import { mutate } from 'swr'
 import useSWRImmutable from 'swr/immutable'
@@ -12,27 +14,41 @@ import {
 } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 
+const NOT_FOUND_ERROR = 'not_found'
+let shouldFetchAvatar = true
+
 export function UserAvatar({ className }: { className?: string }) {
   const [{ data }] = useMe()
-  const avatarUrl = !data?.me?.email ? null : `/avatar/${data.me.id}`
-  const { data: avatarImageSrc, isLoading } = useSWRImmutable(
-    avatarUrl,
-    (url: string) => {
-      return fetcher(url, {
-        responseFormatter: async response => {
-          if (!response.ok) return undefined
-          const blob = await response.blob()
-          const buffer = Buffer.from(await blob.arrayBuffer())
-          return `data:image/png;base64,${buffer.toString('base64')}`
-        }
-      })
-    }
-  )
+  const userId = data?.me.id
 
-  if (!data?.me?.email) return null
+  const avatarUrl = (userId && `/avatar/${data.me.id}`) || null
+  const {
+    data: avatarImageSrc,
+    isLoading,
+    error
+  } = useSWRImmutable(avatarUrl, (url: string) => {
+    if (!shouldFetchAvatar) return undefined
+    return fetcher(url, {
+      responseFormatter: async response => {
+        const blob = await response.blob()
+        const buffer = Buffer.from(await blob.arrayBuffer())
+        return `data:image/png;base64,${buffer.toString('base64')}`
+      },
+      errorHandler: response => {
+        if (response.status === 404) throw new Error(NOT_FOUND_ERROR)
+        return undefined
+      }
+    })
+  })
+
+  if (!userId) return null
 
   if (isLoading) {
     return <Skeleton className={cn('h-16 w-16 rounded-full', className)} />
+  }
+
+  if (error?.message === NOT_FOUND_ERROR) {
+    shouldFetchAvatar = false
   }
 
   if (!avatarImageSrc) {
@@ -53,5 +69,6 @@ export function UserAvatar({ className }: { className?: string }) {
 }
 
 export const mutateAvatar = (userId: string) => {
+  shouldFetchAvatar = true
   mutate(`/avatar/${userId}`)
 }

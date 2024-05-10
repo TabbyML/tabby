@@ -38,12 +38,12 @@ COPY . .
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features rocm,prod --release --package tabby && \
+    cargo build --no-default-features --features rocm,prod --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features prod --release --package tabby && \
+    cargo build --no-default-features --features prod --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/tabby-cpu
 
 FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime
@@ -51,6 +51,7 @@ FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
+    curl \
     openssh-client \
     ca-certificates \
     libssl3 \

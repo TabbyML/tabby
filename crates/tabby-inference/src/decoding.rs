@@ -24,16 +24,11 @@ impl Default for StopConditionFactory {
 type CachedTrie<'a> = dashmap::mapref::one::Ref<'a, String, Trie<u8>>;
 
 impl StopConditionFactory {
-    pub fn create(
-        &self,
-        text: &str,
-        max_decoding_length: usize,
-        language: Option<&'static Language>,
-    ) -> StopCondition {
+    pub fn create(&self, text: &str, language: Option<&'static Language>) -> StopCondition {
         if let Some(language) = language {
-            StopCondition::new(self.get_trie(language), max_decoding_length, text)
+            StopCondition::new(self.get_trie(language), text)
         } else {
-            StopCondition::new(None, max_decoding_length, text)
+            StopCondition::new(None, text)
         }
     }
 
@@ -42,7 +37,7 @@ impl StopConditionFactory {
         if stop_words.is_empty() {
             None
         } else {
-            let hashkey = language.get_hashkey();
+            let hashkey = language.language().to_owned();
             let mut trie = self.stop_trie_cache.get(&hashkey);
             if trie.is_none() {
                 self.stop_trie_cache
@@ -65,16 +60,14 @@ fn create_stop_trie(stop_words: Vec<String>) -> Trie<u8> {
 
 pub struct StopCondition<'a> {
     stop_trie: Option<CachedTrie<'a>>,
-    max_decoding_length: usize,
     reversed_text: String,
     num_decoded: usize,
 }
 
 impl<'a> StopCondition<'a> {
-    pub fn new(stop_trie: Option<CachedTrie<'a>>, max_decoding_length: usize, text: &str) -> Self {
+    pub fn new(stop_trie: Option<CachedTrie<'a>>, text: &str) -> Self {
         Self {
             stop_trie,
-            max_decoding_length,
             reversed_text: reverse(text),
             num_decoded: 0,
         }
@@ -93,7 +86,7 @@ impl<'a> StopCondition<'a> {
                 }
             }
         }
-        (self.num_decoded >= self.max_decoding_length, 0)
+        (false, 0)
     }
 }
 
@@ -121,7 +114,7 @@ mod tests {
     #[test]
     fn test_stop_condition_max_length() {
         let factory = StopConditionFactory::default();
-        let mut cond = factory.create("", 4, Some(&UNKNOWN_LANGUAGE));
+        let mut cond = factory.create("", Some(&UNKNOWN_LANGUAGE));
         let (should_stop, _) = cond.should_stop("1");
         assert!(!should_stop);
         let (should_stop, _) = cond.should_stop("2");
@@ -129,6 +122,6 @@ mod tests {
         let (should_stop, _) = cond.should_stop("3");
         assert!(!should_stop);
         let (should_stop, _) = cond.should_stop("4");
-        assert!(should_stop)
+        assert!(!should_stop)
     }
 }

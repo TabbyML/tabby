@@ -29,11 +29,7 @@ apt-get install protobuf-compiler libopenblas-dev
 choco install protoc
 ```
 
-Some of the tests require mailtutan SMTP server which you can install with:
-
-```bash
-cargo install mailtutan
-```
+Some of the tests require mailpit SMTP server which you can install following this [instruction](https://github.com/axllent/mailpit?tab=readme-ov-file#installation)
 
 Before proceeding, ensure that all tests are passing locally:
 
@@ -45,6 +41,11 @@ This will help ensure everything is working correctly and avoid surprises with l
 
 Golden tests, which run models and check their outputs against previous "golden snapshots", should be skipped for most development purposes, as they take a very long time to run (especially the tests running the models on CPU). You may still want to run them if your changes relate to the functioning of or integration with the generative models, but skipping them is recommended otherwise.
 
+Optionally, to use a GPU make sure you have the correct drivers and libraries installed for your device:
+
+> **CUDA for Nvidia** - [Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html), [Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)
+> **ROCm for AMD** - [Linux](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/tutorial/quick-start.html), [Windows](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/)
+
 ## Building and Running
 
 Tabby can be run through `cargo` in much the same manner as docker:
@@ -53,7 +54,7 @@ Tabby can be run through `cargo` in much the same manner as docker:
 cargo run serve --model TabbyML/StarCoder-1B
 ```
 
-This will run Tabby locally on CPU, which is not optimal for performance. Depending on your GPU and its compatibility, you may be able to run Tabby with GPU acceleration. Please make sure you have CUDA or ROCm installed, for Nvidia or AMD graphics cards respectively. No extra library installation is necessary for Apple silicon (M1/M2) using Metal.
+This will run Tabby locally on CPU, which is not optimal for performance. Depending on your GPU and its compatibilities, you may be able to run Tabby with GPU acceleration. First insure you have the dependencies for your Nvidia or AMD GPU installed. No extra library installation is necessary for Apple silicon (M1/M2) using Metal.
 
 To run Tabby locally with CUDA (NVIDIA):
 

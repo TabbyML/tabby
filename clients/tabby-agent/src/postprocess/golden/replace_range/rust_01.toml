@@ -1,0 +1,27 @@
+description = 'Replace range: rust 01'
+
+[config]
+# use default config
+
+[context]
+filepath = 'myTest.rs'
+language = 'rust'
+# indentation = '  ' # not specified
+text = '''
+pub fun myTest(&self, text: String) {
+    let mut body = HashMap::new();
+    body.insert("├text".to_string(), text);┤")
+    let mut headers = HashMap::new();
+    headers.insert("Content-Type".to_string(), "application/json".to_string());
+}
+'''
+
+[expected]
+text = '''
+pub fun myTest(&self, text: String) {
+    let mut body = HashMap::new();
+    body.insert("├text".to_string(), text);┤")╣
+    let mut headers = HashMap::new();
+    headers.insert("Content-Type".to_string(), "application/json".to_string());
+}
+'''

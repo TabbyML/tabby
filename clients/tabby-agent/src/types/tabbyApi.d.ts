@@ -151,7 +151,7 @@ export interface components {
       /**
        * @description Filepath of the file where the snippet is from.
        * - When the file belongs to the same workspace as the current file,
-       * this is a relative filepath, that has the same root as the current file.
+       * this is a relative filepath, use the same rule as [Segments::filepath].
        * - When the file located outside the workspace, such as in a dependency package,
        * this is a file URI with an absolute filepath.
        */
@@ -212,8 +212,8 @@ export interface components {
       suffix?: string | null;
       /**
        * @description The relative path of the file that is being edited.
-       * - When `git_url` is set, this is the path of the file in the git repository.
-       * - When `git_url` is empty, this is the path of the file in the workspace.
+       * - When [Segments::git_url] is set, this is the path of the file in the git repository.
+       * - When [Segments::git_url] is empty, this is the path of the file in the workspace.
        */
       filepath?: string | null;
       /**
@@ -223,10 +223,23 @@ export interface components {
        */
       git_url?: string | null;
       /**
-       * @description The relevant declaration code snippets provided by editor.
-       * It'll contains declarations extracted from `prefix` segments using LSP.
+       * @description The relevant declaration code snippets provided by the editor's LSP,
+       * contain declarations of symbols extracted from [Segments::prefix].
        */
       declarations?: components["schemas"]["Declaration"][] | null;
+      /**
+       * @description The relevant code snippets extracted from recently edited files.
+       * These snippets are selected from candidates found within code chunks
+       * based on the edited location.
+       * The current editing file is excluded from the search candidates.
+       *
+       * When provided alongside [Segments::declarations], the snippets have
+       * already been deduplicated to ensure no duplication with entries
+       * in [Segments::declarations].
+       *
+       * Sorted in descending order of [Snippet::score].
+       */
+      relevant_snippets_from_changed_files?: components["schemas"]["Snippet"][] | null;
       /** @description Clipboard content when requesting code completion. */
       clipboard?: string | null;
     };

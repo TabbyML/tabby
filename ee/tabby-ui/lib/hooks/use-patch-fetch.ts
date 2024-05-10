@@ -27,7 +27,7 @@ export function usePatchFetch(options?: PatchFetchOptions) {
         'Content-Type': 'application/json'
       }
 
-      const res = await fetcher(`/v1beta/chat/completions`, {
+      const res = await fetcher(`/v1/chat/completions`, {
         ...requestInit,
         body: mergeMessagesByRole(requestInit?.body),
         method: 'POST',

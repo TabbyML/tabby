@@ -14,16 +14,25 @@ pub struct HealthState {
     model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     chat_model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    chat_device: Option<String>,
     device: String,
     arch: String,
     cpu_info: String,
     cpu_count: usize,
     cuda_devices: Vec<String>,
     version: Version,
+    webserver: Option<bool>,
 }
 
 impl HealthState {
-    pub fn new(model: Option<&str>, chat_model: Option<&str>, device: &Device) -> Self {
+    pub fn new(
+        model: Option<&str>,
+        device: &Device,
+        chat_model: Option<&str>,
+        chat_device: Option<&Device>,
+        webserver: Option<bool>,
+    ) -> Self {
         let (cpu_info, cpu_count) = read_cpu_info();
 
         let cuda_devices = match read_cuda_devices() {
@@ -31,15 +40,32 @@ impl HealthState {
             Err(_) => vec![],
         };
 
+        let http_model_name = Some("Remote");
+        let is_model_http = device == &Device::ExperimentalHttp;
+        let model = if is_model_http {
+            http_model_name
+        } else {
+            model
+        };
+
+        let is_chat_model_http = chat_device == Some(&Device::ExperimentalHttp);
+        let chat_model = if is_chat_model_http {
+            http_model_name
+        } else {
+            chat_model
+        };
+
         Self {
-            model: model.map(|x| x.to_owned()),
+            model: model.map(|x| x.to_string()),
             chat_model: chat_model.map(|x| x.to_owned()),
+            chat_device: chat_device.map(|x| x.to_string()),
             device: device.to_string(),
             arch: ARCH.to_string(),
             cpu_info,
             cpu_count,
             cuda_devices,
             version: Version::new(),
+            webserver,
         }
     }
 }

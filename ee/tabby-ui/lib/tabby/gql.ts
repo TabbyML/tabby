@@ -16,16 +16,12 @@ import {
 } from 'urql'
 
 import {
-  ListInvitationsQueryVariables,
-  RepositoriesQueryVariables
+  GitRepositoriesQueryVariables,
+  ListInvitationsQueryVariables
 } from '../gql/generates/graphql'
-import {
-  clearAuthToken,
-  getAuthToken,
-  refreshTokenMutation,
-  saveAuthToken
-} from './auth'
+import { refreshTokenMutation } from './auth'
 import { listInvitations, listRepositories } from './query'
+import { getAuthToken, isTokenExpired, tokenManager } from './token-management'
 
 interface ValidationError {
   path: string
@@ -89,9 +85,6 @@ function makeFormErrorHandler<T extends FieldValues>(form: UseFormReturn<T>) {
   }
 }
 
-const isTokenExpired = (exp: number) => {
-  return Date.now() > exp * 1000
-}
 const client = new Client({
   url: `/graphql`,
   requestPolicy: 'cache-and-network',
@@ -100,7 +93,8 @@ const client = new Client({
       keys: {
         CompletionStats: () => null,
         ServerInfo: () => null,
-        RepositorySearch: () => null
+        RepositorySearch: () => null,
+        RepositoryList: () => null
       },
       resolvers: {
         Query: {
@@ -134,21 +128,22 @@ const client = new Client({
                 })
             }
           },
-          deleteRepository(result, args, cache, info) {
-            if (result.deleteRepository) {
+          deleteGitRepository(result, args, cache, info) {
+            if (result.deleteGitRepository) {
               cache
                 .inspectFields('Query')
-                .filter(field => field.fieldName === 'repositories')
+                .filter(field => field.fieldName === 'gitRepositories')
                 .forEach(field => {
                   cache.updateQuery(
                     {
                       query: listRepositories,
-                      variables: field.arguments as RepositoriesQueryVariables
+                      variables:
+                        field.arguments as GitRepositoriesQueryVariables
                     },
                     data => {
-                      if (data?.repositories?.edges) {
-                        data.repositories.edges =
-                          data.repositories.edges.filter(
+                      if (data?.gitRepositories?.edges) {
+                        data.gitRepositories.edges =
+                          data.gitRepositories.edges.filter(
                             e => e.node.id !== args.id
                           )
                       }
@@ -168,6 +163,10 @@ const client = new Client({
 
       return {
         addAuthToOperation(operation) {
+          // Sync tokens on every operation
+          const authData = getAuthToken()
+          accessToken = authData?.accessToken
+          refreshToken = authData?.refreshToken
           if (!accessToken) return operation
           return utils.appendHeaders(operation, {
             Authorization: `Bearer ${accessToken}`
@@ -185,12 +184,25 @@ const client = new Client({
           refreshToken = authData?.refreshToken
 
           if (
+            operation.kind === 'query' &&
+            operation.query.definitions.some(definition => {
+              return (
+                definition.kind === 'OperationDefinition' &&
+                definition.name?.value &&
+                ['GetServerInfo'].includes(definition.name.value)
+              )
+            })
+          ) {
+            return false
+          }
+
+          if (
             operation.kind === 'mutation' &&
             operation.query.definitions.some(definition => {
               return (
                 definition.kind === 'OperationDefinition' &&
                 definition.name?.value &&
-                ['tokenAuth', 'registerUser'].includes(definition.name.value)
+                ['tokenAuth', 'register'].includes(definition.name.value)
               )
             })
           ) {
@@ -211,10 +223,10 @@ const client = new Client({
           }
 
           if (accessToken) {
-            // Check whether `token` JWT is expired
             try {
               const { exp } = jwtDecode(accessToken)
-              return exp ? isTokenExpired(exp) : true
+              // Check whether `token` JWT is expired
+              return isTokenExpired(exp)
             } catch (e) {
               return true
             }
@@ -223,26 +235,16 @@ const client = new Client({
           }
         },
         async refreshAuth() {
-          // if not refreshToken, do logout
-          if (refreshToken) {
-            const result = await utils.mutate(refreshTokenMutation, {
-              refreshToken
-            })
-            if (result.data?.refreshToken) {
-              // Update our local variables and write to our storage
-              accessToken = result.data.refreshToken.accessToken
-              refreshToken = result.data.refreshToken.refreshToken
-              saveAuthToken({
-                accessToken,
+          return tokenManager.refreshToken(async () => {
+            const refreshToken = getAuthToken()?.refreshToken
+            if (!refreshToken) return undefined
+
+            return utils
+              .mutate(refreshTokenMutation, {
                 refreshToken
               })
-            } else {
-              clearAuthToken()
-            }
-          } else {
-            // This is where auth has gone wrong and we need to clean up and redirect to a login page
-            clearAuthToken()
-          }
+              .then(res => res?.data?.refreshToken)
+          })
         }
       }
     }),
