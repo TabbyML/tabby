@@ -19,7 +19,7 @@ import {
 import { EventEmitter } from "events";
 import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-agent";
 import { API as GitAPI } from "./types/git";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 import { agent } from "./agent";
 import { RecentlyChangedCodeSearch } from "./RecentlyChangedCodeSearch";
 import { extractSemanticSymbols, extractNonReservedWordList } from "./utils";
@@ -31,7 +31,7 @@ type DisplayedCompletion = {
 };
 
 export class TabbyCompletionProvider extends EventEmitter implements InlineCompletionItemProvider {
-  private readonly logger = logger();
+  private readonly logger = getLogger();
   private triggerMode: "automatic" | "manual" | "disabled" = "automatic";
   private onGoingRequestAbortController: AbortController | null = null;
   private loading: boolean = false;
@@ -53,6 +53,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     if (gitExt && gitExt.isActive) {
       this.gitApi = gitExt.exports.getAPI(1); // version: 1
     }
+
+    this.logger.info("Created completion provider.");
   }
 
   public getTriggerMode(): "automatic" | "manual" | "disabled" {
@@ -69,7 +71,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     context: InlineCompletionContext,
     token: CancellationToken,
   ): Promise<InlineCompletionItem[] | null> {
-    this.logger.debug("Call provideInlineCompletionItems.");
+    this.logger.debug("Function provideInlineCompletionItems called.");
 
     if (this.displayedCompletion) {
       // auto dismiss by new completion
@@ -166,9 +168,6 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         this.loading = false;
         this.emit("loadingStatusUpdated");
       }
-      if (error.name !== "AbortError") {
-        this.logger.error("Error when providing completions", { error });
-      }
     }
 
     return null;
@@ -229,10 +228,9 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         choice_index: completion.choices[0]!.index,
         view_id: id,
       };
-      this.logger.debug(`Post event ${event}`, { postBody });
       agent().postEvent(postBody);
-    } catch (error: any) {
-      this.logger.error("Error when posting event", { error });
+    } catch (error) {
+      // ignore error
     }
   }
 
@@ -303,10 +301,10 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
   }
 
   private getGitContext(uri: Uri): CompletionRequest["git"] | undefined {
-    this.logger.trace("Begin getGitContext", { uri });
+    this.logger.debug("Fetching git context...");
     const repo = this.gitApi?.getRepository(uri);
     if (!repo) {
-      this.logger.trace("End getGitContext, no repo available.");
+      this.logger.debug("No git repo available.");
       return undefined;
     }
     const context = {
@@ -320,7 +318,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
           return remote.url.length > 0;
         }),
     };
-    this.logger.trace("End getGitContext", { context });
+    this.logger.debug("Completed fetching git context.");
+    this.logger.trace("Git context:", context);
     return context;
   }
 
@@ -332,7 +331,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     if (!config.fillDeclarations.enabled) {
       return undefined;
     }
-    this.logger.trace("Begin collectDeclarationSnippets", { document, position });
+    this.logger.debug("Collecting declaration snippets...");
+    this.logger.trace("Collecting snippets for:", { document: document.uri.toString(), position });
     const snippets: { filepath: string; offset: number; text: string }[] = [];
     const snippetLocations: LocationLink[] = [];
     // Find symbol positions in the previous lines
@@ -357,11 +357,11 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     ];
     const allSymbols = await extractSemanticSymbols(document, prefixRange);
     if (!allSymbols) {
-      this.logger.trace("End collectDeclarationSnippets early, symbols provider not available.");
+      this.logger.debug("Stop collecting declaration early due to symbols provider not available.");
       return undefined;
     }
     const symbols = allSymbols.filter((symbol) => allowedSymbolTypes.includes(symbol.type));
-    this.logger.trace("Found symbols in prefix text", { symbols });
+    this.logger.trace("Found symbols in prefix text:", { symbols });
     // Loop through the symbol positions backwards
     for (let symbolIndex = symbols.length - 1; symbolIndex >= 0; symbolIndex--) {
       if (snippets.length >= config.fillDeclarations.maxSnippets) {
@@ -381,14 +381,17 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         "targetRange" in declarationLinks[0]
       ) {
         const declarationLink = declarationLinks[0] as LocationLink;
-        this.logger.trace("Processing declaration link", { declarationLink });
+        this.logger.trace("Processing declaration link...", {
+          path: declarationLink.targetUri.toString(),
+          range: declarationLink.targetRange,
+        });
         if (
           declarationLink.targetUri.toString() == document.uri.toString() &&
           prefixRange.contains(declarationLink.targetRange.start)
         ) {
           // this symbol's declaration is already contained in the prefix range
           // this also includes the case of the symbol's declaration is at this position itself
-          this.logger.trace("Skipping snippet as it is contained in the prefix");
+          this.logger.trace("Skipping snippet as it is contained in the prefix.");
           continue;
         }
         if (
@@ -398,7 +401,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
               link.targetRange.isEqual(declarationLink.targetRange),
           )
         ) {
-          this.logger.trace("Skipping snippet as it is already collected");
+          this.logger.trace("Skipping snippet as it is already collected.");
           continue;
         }
         const fileText = new TextDecoder().decode(await workspace.fs.readFile(declarationLink.targetUri)).split("\n");
@@ -413,13 +416,14 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
           text = text.slice(0, text.lastIndexOf("\n") + 1);
         }
         if (text.length > 0) {
-          this.logger.trace("Collected declaration snippet", { text });
+          this.logger.trace("Collected declaration snippet:", { text });
           snippets.push({ filepath: declarationLink.targetUri.toString(), offset, text });
           snippetLocations.push(declarationLink);
         }
       }
     }
-    this.logger.trace("End collectDeclarationSnippets", { snippets });
+    this.logger.debug("Completed collecting declaration snippets.");
+    this.logger.trace("Collected snippets:", snippets);
     return snippets;
   }
 
@@ -431,7 +435,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     if (!config.collectSnippetsFromRecentChangedFiles.enabled || !this.recentlyChangedCodeSearch) {
       return undefined;
     }
-    this.logger.trace("Begin collectSnippetsFromRecentlyChangedFiles", { document, position });
+    this.logger.debug("Collecting snippets from recently changed files...");
+    this.logger.trace("Collecting snippets for:", { document: document.uri.toString(), position });
     const prefixRange = new Range(
       Math.max(0, position.line - config.maxPrefixLines + 1),
       0,
@@ -445,7 +450,8 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       document,
       config.collectSnippetsFromRecentChangedFiles.maxSnippets,
     );
-    this.logger.trace("End collectSnippetsFromRecentlyChangedFiles", { snippets });
+    this.logger.debug("Completed collecting snippets from recently changed files.");
+    this.logger.trace("Collected snippets:", snippets);
     return snippets;
   }
 }

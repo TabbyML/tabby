@@ -11,11 +11,11 @@ export function trimMultiLineInSingleLineMode(): PostprocessFilter {
       if (inputLine.endsWith(suffix)) {
         const trimmedInputLine = inputLine.slice(0, -suffix.length);
         if (trimmedInputLine.length > 0) {
-          logger.debug({ inputLines, trimmedInputLine }, "Trim content with multiple lines");
+          logger.trace("Trim content with multiple lines.", { inputLines, trimmedInputLine });
           return trimmedInputLine;
         }
       }
-      logger.debug({ inputLines }, "Drop content with multiple lines");
+      logger.trace("Drop content with multiple lines.", { inputLines });
       return null;
     }
     return input;

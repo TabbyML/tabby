@@ -18,16 +18,15 @@ export function calculateReplaceRangeByBracketStack(
   }
   if (suffixText.startsWith(unpaired)) {
     choice.replaceRange.end = context.position + unpaired.length;
-    logger.trace(
-      { context, completion: choice.text, range: choice.replaceRange, unpaired },
-      "Adjust replace range by bracket stack",
-    );
   } else if (unpaired.startsWith(suffixText)) {
     choice.replaceRange.end = context.position + suffixText.length;
-    logger.trace(
-      { context, completion: choice.text, range: choice.replaceRange, unpaired },
-      "Adjust replace range by bracket stack",
-    );
   }
+  logger.trace("Adjust replace range by bracket stack.", {
+    position: context.position,
+    currentLineSuffix,
+    completionText: choice.text,
+    unpaired,
+    replaceRange: choice.replaceRange,
+  });
   return choice;
 }

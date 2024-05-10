@@ -34,7 +34,7 @@ export function removeDuplicatedBlockClosingLine(): PostprocessFilter {
       inputEndingLine.startsWith(suffixBeginningLine.trimEnd()) ||
       suffixBeginningLine.startsWith(inputEndingLine.trimEnd())
     ) {
-      logger.debug({ inputLines, suffixLines }, "Removing duplicated block closing line");
+      logger.trace("Remove duplicated block closing line.", { inputLines, suffixLines });
       return inputLines
         .slice(0, inputLines.length - 1)
         .join("")

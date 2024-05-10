@@ -4,7 +4,6 @@ import type {
   SlowCompletionResponseTimeIssue,
   ConnectionFailedIssue,
 } from "tabby-agent";
-import { logger } from "./logger";
 import { agent } from "./agent";
 
 function showInformationWhenInitializing() {
@@ -79,7 +78,6 @@ function showInformationWhenInlineSuggestDisabled() {
     .then((selection) => {
       switch (selection) {
         case "Enable":
-          logger().debug(`Set editor.inlineSuggest.enabled: true.`);
           workspace.getConfiguration("editor").update("inlineSuggest.enabled", true, ConfigurationTarget.Global, false);
           break;
         case "Settings":
