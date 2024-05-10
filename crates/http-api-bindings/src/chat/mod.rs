@@ -3,8 +3,7 @@ mod openai_chat;
 use std::sync::Arc;
 
 use openai_chat::OpenAIChatEngine;
-
-use tabby_inference::{ChatCompletionStream};
+use tabby_inference::ChatCompletionStream;
 
 use crate::{get_optional_param, get_param};
 

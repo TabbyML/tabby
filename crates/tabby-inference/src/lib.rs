@@ -3,10 +3,12 @@ mod chat;
 mod code;
 mod completion;
 mod decoding;
+mod embedding;
 
 pub use chat::{ChatCompletionOptions, ChatCompletionOptionsBuilder, ChatCompletionStream};
 pub use code::{CodeGeneration, CodeGenerationOptions, CodeGenerationOptionsBuilder};
 pub use completion::{CompletionOptions, CompletionOptionsBuilder, CompletionStream};
+pub use embedding::Embedding;
 
 fn default_seed() -> u64 {
     std::time::SystemTime::now()

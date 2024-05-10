@@ -5,8 +5,7 @@ use std::sync::Arc;
 
 use llama::LlamaCppEngine;
 use openai::OpenAIEngine;
-
-use tabby_inference::{CompletionStream};
+use tabby_inference::CompletionStream;
 
 use crate::{get_optional_param, get_param};
 
