@@ -1,17 +1,21 @@
-# v0.11.0 [UNRELEASED]
+# v0.11.0
 
 ## Notice
 
 * The `--webserver` flag is now enabled by default in `tabby serve`. To turn off the webserver and only use OSS features, use the `--no-webserver` flag.
-* `/v1beta/chat/completions` is now moved to `/v1/chat/completions`, while the old endpoint is still available for backward compatibility.
+* The `/v1beta/chat/completions` endpoint has been moved to `/v1/chat/completions`, while the old endpoint is still available for backward compatibility.
 
 ## Features
-* Upgrade [llama.cpp](https://github.com/ggerganov/llama.cpp) to [b2715](https://github.com/ggerganov/llama.cpp/releases/tag/b2715).
-* Support integration of repositories from GitHub and GitLab using personal access tokens.
+* Upgraded [llama.cpp](https://github.com/ggerganov/llama.cpp) to version [b2715](https://github.com/ggerganov/llama.cpp/releases/tag/b2715).
+* Added support for integrating repositories from GitHub and GitLab using personal access tokens.
+* Introduced a new **Activities** page to view user activities.
+* Implemented incremental indexing for faster repository context updates.
+* Added storage usage statistics in the **System** page.
+* Included an `Ask Tabby` feature in the source code browser to provide in-context help from AI.
 
 ## Fixes and Improvements
-* Changed the default model filename from `q8_0.v2.gguf` to `model.gguf` in MODEL_SPEC.md
-* Activities from deactivated users are no longer counted in reports
+* Changed the default model filename from `q8_0.v2.gguf` to `model.gguf` in MODEL_SPEC.md.
+* Excluded activities from deactivated users in reports.
 
 # v0.10.0 (04/22/2024)
 
