@@ -112,10 +112,12 @@ export function limitScopeByIndentation(config: AgentConfig["postprocess"]["limi
       index++;
     }
     if (index < inputLines.length) {
-      logger.debug(
-        { inputLines, prefixLines, suffixLines, scopeLineCount: index },
-        "Remove content out of indent scope",
-      );
+      logger.trace("Remove content out of indent scope.", {
+        inputLines,
+        prefixLines,
+        suffixLines,
+        trimAtInputLine: index,
+      });
       return inputLines.slice(0, index).join("").trimEnd();
     }
     return input;

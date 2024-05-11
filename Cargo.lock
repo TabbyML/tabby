@@ -1822,12 +1822,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glob"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
-
-[[package]]
 name = "globset"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2631,16 +2625,6 @@ checksum = "e6208a839bd4ca2131924a238311d088d6604ea267c0917903392bad7b70a92c"
 dependencies = [
  "futures",
  "juniper",
-]
-
-[[package]]
-name = "kdam"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e352f4e1acc6a3d0919eaeb014ca63e5da9450a12ef7106fe2936a07a1648d44"
-dependencies = [
- "terminal_size",
- "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -5480,12 +5464,10 @@ version = "0.11.0-dev.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "glob",
  "home",
  "lazy_static",
  "reqwest 0.12.4",
  "serde",
- "serde-jsonlines 0.4.0",
  "serde_json",
  "serdeconv",
  "tantivy",
@@ -5559,7 +5541,6 @@ dependencies = [
  "file-rotate",
  "futures",
  "ignore",
- "kdam",
  "kv",
  "lazy_static",
  "mdka",
@@ -5893,16 +5874,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be55cf8942feac5c765c2c993422806843c9a9a45d4d5c407ad6dd2ea95eb9b6"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "terminal_size"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21bebf2b7c9e0a515f6e0f8c51dc0f8e4696391e6f1ff30379559f8365fb0df7"
-dependencies = [
- "rustix 0.38.17",
- "windows-sys 0.48.0",
 ]
 
 [[package]]

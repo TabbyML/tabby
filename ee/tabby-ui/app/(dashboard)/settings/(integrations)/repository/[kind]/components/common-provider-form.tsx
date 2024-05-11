@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isEmpty } from 'lodash-es'
-import { useForm, UseFormReturn } from 'react-hook-form'
+import { DefaultValues, useForm, UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
@@ -37,32 +37,45 @@ import { Input } from '@/components/ui/input'
 
 import { useRepositoryKind } from '../hooks/use-repository-kind'
 
-export const repositoryProviderFormSchema = z.object({
-  displayName: z.string(),
+export const createRepositoryProviderFormSchema = z.object({
+  displayName: z.string().trim(),
   accessToken: z.string()
 })
 
-export type RepositoryProviderFormValues = z.infer<
-  typeof repositoryProviderFormSchema
+export const updateRepositoryProviderFormSchema =
+  createRepositoryProviderFormSchema.extend({
+    accessToken: z.string().optional()
+  })
+
+export type CreateRepositoryProviderFormValues = z.infer<
+  typeof createRepositoryProviderFormSchema
 >
 
-interface GithubProviderFormProps {
-  isNew?: boolean
-  form: UseFormReturn<RepositoryProviderFormValues>
+export type UpdateRepositoryProviderFormValues = z.infer<
+  typeof updateRepositoryProviderFormSchema
+>
+
+type FormValues<T extends boolean> = T extends true
+  ? CreateRepositoryProviderFormValues
+  : UpdateRepositoryProviderFormValues
+
+interface GithubProviderFormProps<T extends boolean> {
+  isNew: T
+  form: UseFormReturn<UpdateRepositoryProviderFormValues>
   onSubmit: (values: any) => Promise<any>
   onDelete?: () => Promise<any>
   cancleable?: boolean
   deletable?: boolean
 }
 
-export const CommonProviderForm: React.FC<GithubProviderFormProps> = ({
+export function CommonProviderForm<T extends boolean>({
   isNew,
   form,
   onSubmit,
   onDelete,
   cancleable = true,
   deletable
-}) => {
+}: GithubProviderFormProps<T>) {
   const kind = useRepositoryKind()
   const router = useRouter()
 
@@ -228,12 +241,16 @@ export const CommonProviderForm: React.FC<GithubProviderFormProps> = ({
   )
 }
 
-export function useRepositoryProviderForm(
-  defaultValues?: Partial<RepositoryProviderFormValues>
-) {
-  return useForm<z.infer<typeof repositoryProviderFormSchema>>({
-    resolver: zodResolver(repositoryProviderFormSchema),
-    defaultValues
+export function useRepositoryProviderForm<T extends boolean>(
+  isNew: T,
+  defaultValues?: Partial<FormValues<T>>
+): UseFormReturn<FormValues<T>> {
+  const schema = isNew
+    ? createRepositoryProviderFormSchema
+    : updateRepositoryProviderFormSchema
+  return useForm<FormValues<T>>({
+    resolver: zodResolver(schema),
+    defaultValues: defaultValues as DefaultValues<FormValues<T>>
   })
 }
 

@@ -290,9 +290,6 @@ mod tests {
         service.delete_setting().await.unwrap();
     }
 
-    /*
-     * Requires https://github.com/mailtutan/mailtutan
-     */
     #[tokio::test]
     #[serial]
     async fn test_send_email() {
@@ -314,7 +311,7 @@ mod tests {
 
         let mails = mail_server.list_mail().await;
         let default_from = service.read_setting().await.unwrap().unwrap().from_address;
-        assert!(mails[0].sender.contains(&default_from));
+        assert!(mails[0].from.address.contains(&default_from));
     }
 
     #[tokio::test]

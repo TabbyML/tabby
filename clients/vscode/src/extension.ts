@@ -1,17 +1,19 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import { ExtensionContext, commands, languages, workspace } from "vscode";
-import { logger } from "./logger";
+import { getLogger } from "./logger";
 import { createAgentInstance, disposeAgentInstance } from "./agent";
 import { tabbyCommands } from "./commands";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 import { RecentlyChangedCodeSearch } from "./RecentlyChangedCodeSearch";
 
+const logger = getLogger();
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: ExtensionContext) {
-  logger().info("Activating Tabby extension");
+  logger.info("Activating Tabby extension...");
   const agent = await createAgentInstance(context);
   const completionProvider = new TabbyCompletionProvider();
   context.subscriptions.push(languages.registerInlineCompletionItemProvider({ pattern: "**" }, completionProvider));
@@ -62,10 +64,12 @@ export async function activate(context: ExtensionContext) {
     }
   });
   updateIsExplainCodeEnabledContextVariable();
+  logger.info("Tabby extension activated.");
 }
 
 // this method is called when your extension is deactivated
 export async function deactivate() {
-  logger().info("Deactivating Tabby extension");
+  logger.info("Deactivating Tabby extension...");
   await disposeAgentInstance();
+  logger.info("Tabby extension deactivated.");
 }

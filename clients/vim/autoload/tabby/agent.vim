@@ -52,7 +52,7 @@ function! s:OnError(data)
 endfunction
 
 function! s:OnExit()
-  let s:tabby = {}
+  let s:tabby = 0
   let s:tabby_status = 'exited'
 endfunction
 
@@ -61,7 +61,7 @@ function! tabby#agent#Close()
     return
   endif
   call tabby#job#Stop(s:tabby)
-  let s:tabby = {}
+  let s:tabby = 0
   let s:tabby_status = 'exited'
 endfunction
 

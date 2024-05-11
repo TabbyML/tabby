@@ -29,11 +29,7 @@ apt-get install protobuf-compiler libopenblas-dev
 choco install protoc
 ```
 
-Some of the tests require mailtutan SMTP server which you can install with:
-
-```bash
-cargo install mailtutan
-```
+Some of the tests require mailpit SMTP server which you can install following this [instruction](https://github.com/axllent/mailpit?tab=readme-ov-file#installation)
 
 Before proceeding, ensure that all tests are passing locally:
 
@@ -102,7 +98,7 @@ Tabby is broken up into several crates, each responsible for a different part of
 - `crates/tabby-scheduler` - Defines jobs that need to run periodically for syncing and indexing code
 - `crates/tabby-inference` - Defines interfaces for interacting with text generation models
 - `crates/llama-cpp-bindings` - Raw bindings to talk with the actual models in C++ from Rust
-- `ee/tabby-webserver` - The webserver for Tabby with privilege management and a chatbot playground. Also includes GraphQL API implementation. Must use `--webserver` on CLI to enable
+- `ee/tabby-webserver` - The webserver for Tabby with privilege management and a chatbot playground. Also includes GraphQL API implementation.
 - `ee/tabby-db` - The database backing the webserver
 - `ee/tabby-ui` - Frontend for the Tabby webserver
 

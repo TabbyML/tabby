@@ -22,6 +22,8 @@ import {
   ResizablePanel,
   ResizablePanelGroup
 } from '@/components/ui/resizable'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
+import { ListSkeleton } from '@/components/skeleton'
 import { useTopbarProgress } from '@/components/topbar-progress-indicator'
 
 import { emitter, QuickActionEventPayload } from '../lib/event-emitter'
@@ -259,7 +261,7 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath, fileMap, initialized])
 
   // fetch raw file
-  const { data: rawFileResponse, isLoading: isRawFileLoading } =
+  const { data: rawFileResponse, isLoading: fetchingRawFile } =
     useSWRImmutable<{
       blob?: Blob
       contentLength?: number
@@ -289,14 +291,6 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
         }
       }
     )
-
-  React.useEffect(() => {
-    if (isRawFileLoading) {
-      setProgress(true)
-    } else {
-      setProgress(false)
-    }
-  }, [isRawFileLoading])
 
   const fileBlob = rawFileResponse?.blob
   const contentLength = rawFileResponse?.contentLength
@@ -353,18 +347,35 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
   }, [activePath])
 
   React.useEffect(() => {
+    if (!initialized) return
+    if (fetchingSubTree || fetchingRawFile) {
+      setProgress(true)
+    } else if (!fetchingSubTree && !fetchingRawFile) {
+      setProgress(false)
+    }
+  }, [fetchingSubTree, fetchingRawFile])
+
+  React.useEffect(() => {
     const onFetchSubTree = () => {
-      if (subTree?.entries?.length && activePath) {
+      if (Array.isArray(subTree?.entries) && activePath) {
         const { repositorySpecifier } =
           resolveRepositoryInfoFromPath(activePath)
         let patchMap: TFileMap = {}
-        for (const entry of subTree.entries) {
-          const path = `${repositorySpecifier}/${entry.basename}`
-          patchMap[path] = {
-            file: entry,
-            name: resolveFileNameFromPath(path),
-            fullPath: path,
-            treeExpanded: false
+        if (fileMap?.[activePath]) {
+          patchMap[activePath] = {
+            ...fileMap[activePath],
+            treeExpanded: true
+          }
+        }
+        if (subTree?.entries?.length) {
+          for (const entry of subTree.entries) {
+            const path = `${repositorySpecifier}/${entry.basename}`
+            patchMap[path] = {
+              file: entry,
+              name: resolveFileNameFromPath(path),
+              fullPath: path,
+              treeExpanded: false
+            }
           }
         }
         updateFileMap(patchMap)
@@ -436,25 +447,29 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
       <ResizablePanel defaultSize={80} minSize={30}>
         <div className="flex h-full flex-col overflow-y-auto px-4 pb-4">
           <FileDirectoryBreadcrumb className="py-4" />
-          <div>
-            {showDirectoryView && (
-              <DirectoryView
-                loading={fetchingSubTree}
-                initialized={initialized}
-                className={`rounded-lg border`}
-              />
-            )}
-            {showTextFileView && (
-              <TextFileView blob={fileBlob} contentLength={contentLength} />
-            )}
-            {showRawFileView && (
-              <RawFileView
-                blob={fileBlob}
-                isImage={fileViewType === 'image'}
-                contentLength={contentLength}
-              />
-            )}
-          </div>
+          {!initialized ? (
+            <ListSkeleton className="rounded-lg border p-4" />
+          ) : (
+            <div>
+              {showDirectoryView && (
+                <DirectoryView
+                  loading={fetchingSubTree}
+                  initialized={initialized}
+                  className={`rounded-lg border`}
+                />
+              )}
+              {showTextFileView && (
+                <TextFileView blob={fileBlob} contentLength={contentLength} />
+              )}
+              {showRawFileView && (
+                <RawFileView
+                  blob={fileBlob}
+                  isImage={fileViewType === 'image'}
+                  contentLength={contentLength}
+                />
+              )}
+            </div>
+          )}
         </div>
       </ResizablePanel>
       <>
@@ -479,9 +494,15 @@ const SourceCodeBrowserRenderer: React.FC<SourceCodeBrowserProps> = ({
 }
 
 const SourceCodeBrowser: React.FC<SourceCodeBrowserProps> = props => {
+  const [isShowDemoBanner] = useShowDemoBanner()
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
   return (
     <SourceCodeBrowserContextProvider>
-      <SourceCodeBrowserRenderer className="source-code-browser" {...props} />
+      <div className="transition-all" style={style}>
+        <SourceCodeBrowserRenderer className="source-code-browser" {...props} />
+      </div>
     </SourceCodeBrowserContextProvider>
   )
 }

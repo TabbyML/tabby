@@ -2,34 +2,72 @@ use std::{
     fs::read_to_string,
     path::{Path, PathBuf},
     process::Command,
+    str::FromStr,
 };
 
 use anyhow::{bail, Context, Result};
-use kv::{Batch, Bucket, Config, Item, Json, Store};
+use kv::{Batch, Bucket, Config, Json, Store};
+use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
 use tracing::{info, warn};
 
 use crate::code::CodeIntelligence;
 
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
+const INDEX_BUCKET_KEY: &str = "indexed_files";
 
-fn get_git_hash(path: &Path) -> Result<String> {
-    let path = path.display().to_string();
-    let output = Command::new("git").args(["hash-object", &path]).output()?;
-    Ok(String::from_utf8(output.stdout)?.trim().to_string())
+fn cmd_stdout(cmd: &str, args: &[&str]) -> Result<String> {
+    Ok(
+        String::from_utf8(Command::new(cmd).args(args).output()?.stdout)?
+            .trim()
+            .to_string(),
+    )
 }
 
-fn compute_source_file_key(path: &Path) -> Result<String> {
-    if !path.is_file() {
-        bail!("Path is not a file");
-    }
+fn get_git_hash(path: &Path) -> Result<String> {
+    cmd_stdout("git", &["hash-object", &path.display().to_string()])
+}
 
-    let git_hash = get_git_hash(path)?;
-    let ext = path.extension().context("Failed to get extension")?;
-    let Some(lang) = get_language_by_ext(ext) else {
-        bail!("Unknown language for extension {:?}", ext);
-    };
-    Ok(format!("{}-{}", lang.language(), git_hash))
+#[derive(Deserialize, Serialize, Debug)]
+struct SourceFileKey {
+    path: PathBuf,
+    language: String,
+    git_hash: String,
+}
+
+impl FromStr for SourceFileKey {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(s)
+    }
+}
+
+impl TryFrom<&Path> for SourceFileKey {
+    type Error = anyhow::Error;
+
+    fn try_from(path: &Path) -> Result<Self> {
+        if !path.is_file() {
+            bail!("Path is not a file");
+        }
+
+        let git_hash = get_git_hash(path)?;
+        let ext = path.extension().context("Failed to get extension")?;
+        let Some(lang) = get_language_by_ext(ext) else {
+            bail!("Unknown language for extension {:?}", ext);
+        };
+        Ok(Self {
+            path: path.to_owned(),
+            language: lang.language().to_string(),
+            git_hash: git_hash.to_string(),
+        })
+    }
+}
+
+impl ToString for SourceFileKey {
+    fn to_string(&self) -> String {
+        serde_json::to_string(&self).expect("Failed to serialize SourceFileKey")
+    }
 }
 
 pub struct CacheStore {
@@ -45,12 +83,71 @@ impl CacheStore {
         }
     }
 
+    fn index_bucket(&self) -> Bucket<String, String> {
+        self.store
+            .bucket(Some(INDEX_BUCKET_KEY))
+            .expect("Failed to access indexed files bucket")
+    }
+
+    pub fn check_indexed(&self, path: &Path) -> (String, bool) {
+        let key = SourceFileKey::try_from(path)
+            .expect("Failed to create source file key")
+            .to_string();
+        let indexed = self
+            .index_bucket()
+            .contains(&key)
+            .expect("Failed to read index bucket");
+        (key, indexed)
+    }
+
+    pub fn apply_indexed(&self, batch: Batch<String, String>) {
+        self.index_bucket()
+            .batch(batch)
+            .expect("Failed to commit batched index update")
+    }
+
+    #[must_use]
+    pub fn prepare_garbage_collection_for_indexed_files(
+        &self,
+        key_remover: impl Fn(&String),
+    ) -> impl FnOnce() + '_ {
+        info!("Started cleaning up 'indexed_files' bucket");
+        let bucket = self.index_bucket();
+        let mut batch = Batch::new();
+
+        let mut num_keep = 0;
+        let mut num_removed = 0;
+
+        bucket
+            .iter()
+            .filter_map(|item| {
+                let item = item.expect("Failed to read item");
+                let item_key: String = item.key().expect("Failed to get key");
+                if is_item_key_matched(&item_key) {
+                    num_keep += 1;
+                    None
+                } else {
+                    num_removed += 1;
+                    Some(item_key)
+                }
+            })
+            .inspect(key_remover)
+            .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
+
+        info!("Finished garbage collection for 'indexed_files': {num_keep} items kept, {num_removed} items removed");
+        move || {
+            bucket
+                .batch(batch)
+                .expect("Failed to execute batched delete")
+        }
+    }
+
     pub fn get_source_file(
         &mut self,
         config: &RepositoryConfig,
         path: &Path,
     ) -> Option<SourceFile> {
-        let key = compute_source_file_key(path).ok()?;
+        let key: String = SourceFileKey::try_from(path).ok()?.to_string();
 
         let dataset_bucket: Bucket<String, Json<Option<SourceFile>>> = self
             .store
@@ -73,9 +170,9 @@ impl CacheStore {
         }
     }
 
-    pub fn garbage_collection(&self) {
-        info!("Running garbage collection");
-        let bucket = self
+    pub fn garbage_collection_for_source_files(&self) {
+        info!("Started cleaning up 'source_files' bucket");
+        let bucket: Bucket<String, Json<SourceFile>> = self
             .store
             .bucket(Some(SOURCE_FILE_BUCKET_KEY))
             .expect("Could not access dataset bucket");
@@ -88,39 +185,36 @@ impl CacheStore {
             .iter()
             .filter_map(|item| {
                 let item = item.expect("Failed to read item");
-                if is_item_key_matched(&item) {
+                let item_key: String = item.key().expect("Failed to get key");
+                if is_item_key_matched(&item_key) {
                     num_keep += 1;
                     None
                 } else {
                     num_removed += 1;
-                    Some(item.key().expect("Failed to get key"))
+                    Some(item_key)
                 }
             })
             .for_each(|key| batch.remove(&key).expect("Failed to remove key"));
 
         info!(
-            "Finished garbage collection: {} items kept, {} items removed",
+            "Finished garbage collection for 'source_files': {} items kept, {} items removed",
             num_keep, num_removed
         );
         bucket.batch(batch).expect("to batch remove staled files");
     }
 }
 
-fn is_item_key_matched(item: &Item<String, Json<SourceFile>>) -> bool {
-    let Ok(item_key) = item.key::<String>() else {
+fn is_item_key_matched(item_key: &str) -> bool {
+    let Ok(key) = item_key.parse::<SourceFileKey>() else {
         return false;
     };
 
-    let Ok(Json(file)) = item.value() else {
+    let Ok(file_key) = SourceFileKey::try_from(key.path.as_path()) else {
         return false;
     };
 
-    let filepath = PathBuf::from(file.basedir).join(file.filepath);
-    let Ok(file_key) = compute_source_file_key(&filepath) else {
-        return false;
-    };
-
-    file_key == item_key
+    // If key doesn't match, means file has been removed / modified.
+    file_key.to_string() == item_key
 }
 
 fn create_source_file(

@@ -110,12 +110,14 @@ impl ResolveState {
 
     /// Resolve a file
     pub async fn resolve_file(&self, root: PathBuf, repo: &ResolveParams) -> Result<Response> {
-        let uri = if !repo.path_str().starts_with('/') {
-            let path = format!("/{}", repo.path_str());
-            Uri::from_str(path.as_str())?
+        let path = if !repo.path_str().starts_with('/') {
+            format!("/{}", repo.path_str())
         } else {
-            Uri::from_str(repo.path_str())?
+            repo.path_str().to_string()
         };
+
+        let encoded_path = encode_path(&path)?;
+        let uri = Uri::from_str(&encoded_path)?;
 
         let req = Request::builder().uri(uri).body(Body::empty())?;
         let resp = ServeDir::new(root).oneshot(req).await?;
@@ -130,5 +132,23 @@ impl ResolveState {
             .await
             .ok()?;
         Some(repository.dir)
+    }
+}
+
+fn encode_path(path: &str) -> Result<String> {
+    let url = url::Url::from_file_path(path).map_err(|_| anyhow::anyhow!("Invalid path"))?;
+    Ok(url.path().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::encode_path;
+
+    #[test]
+    fn test_encode_path() {
+        assert_eq!(
+            encode_path("/foo/c dbar/a & c").unwrap(),
+            "/foo/c%20dbar/a%20&%20c"
+        );
     }
 }

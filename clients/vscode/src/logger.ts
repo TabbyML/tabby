@@ -9,7 +9,7 @@ export function getLogChannel(): LogOutputChannel {
   return instance;
 }
 
-export function logger(tag: string = "Tabby"): LogOutputChannel {
+export function getLogger(tag: string = "Tabby"): LogOutputChannel {
   const rawLogger = getLogChannel();
   const tagMessage = (message: string) => {
     return `[${tag}] ${message}`;

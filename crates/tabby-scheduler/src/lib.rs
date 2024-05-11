@@ -5,7 +5,6 @@ mod code;
 mod dataset;
 mod index;
 mod repository;
-mod utils;
 
 use std::sync::Arc;
 
@@ -22,9 +21,9 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
             .await
             .expect("Must be able to retrieve repositories for sync");
         job_sync(&mut cache, &repositories);
-        job_index(&repositories);
+        job_index(&mut cache, &repositories);
 
-        cache.garbage_collection();
+        cache.garbage_collection_for_source_files();
     } else {
         let access = Arc::new(access);
         let scheduler = JobScheduler::new()
@@ -52,8 +51,8 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
                             .expect("Must be able to retrieve repositories for sync");
 
                         job_sync(&mut cache, &repositories);
-                        job_index(&repositories);
-                        cache.garbage_collection();
+                        job_index(&mut cache, &repositories);
+                        cache.garbage_collection_for_source_files();
                     })
                 })
                 .expect("Failed to create job"),
@@ -69,9 +68,9 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
     }
 }
 
-fn job_index(repositories: &[RepositoryConfig]) {
+fn job_index(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
     println!("Indexing repositories...");
-    index::index_repositories(repositories);
+    index::index_repositories(cache, repositories);
 }
 
 fn job_sync(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {

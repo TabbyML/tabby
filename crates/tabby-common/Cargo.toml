@@ -10,12 +10,10 @@ home = "0.5.5"
 lazy_static = { workspace = true }
 serde = { workspace = true }
 serdeconv = { workspace = true }
-serde-jsonlines = { workspace = true }
 reqwest = { workspace = true, features = [ "json" ] }
 uuid = { version = "1.4.1", features = ["v4"] }
 tantivy.workspace = true
 anyhow.workspace = true
-glob = "0.3.1"
 utoipa.workspace = true
 serde_json.workspace = true
 async-trait.workspace = true

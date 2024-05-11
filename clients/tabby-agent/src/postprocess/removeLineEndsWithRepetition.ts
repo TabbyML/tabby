@@ -19,14 +19,11 @@ export function removeLineEndsWithRepetition(): PostprocessFilter {
     for (const test of repetitionTests) {
       const match = inputLines[index]!.match(test);
       if (match) {
-        logger.debug(
-          {
-            inputLines,
-            lineNumber: index,
-            match,
-          },
-          "Remove line ends with repetition.",
-        );
+        logger.trace("Remove line ends with repetition.", {
+          inputLines,
+          lineNumber: index,
+          match,
+        });
         if (index < 1) return null;
         return inputLines.slice(0, index).join("").trimEnd();
       }

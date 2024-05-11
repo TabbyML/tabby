@@ -275,7 +275,7 @@ const DirectoryTreeNode: React.FC<DirectoryTreeNodeProps> = ({
     onSelectTreeNode?.(node)
   }
 
-  const [loading] = useDebounceValue(isLoading, 300)
+  const [loading] = useDebounceValue(isLoading, 100)
 
   const existingChildren = !!node?.children?.length
 
@@ -330,6 +330,13 @@ const FileTreeRenderer: React.FC = () => {
     React.useContext(FileTreeContext)
   const { repositorySpecifier } = resolveRepositoryInfoFromPath(activePath)
 
+  const hasSelectedRepo = !!repositorySpecifier
+  const hasNoRepoEntries = hasSelectedRepo && !fileTreeData?.length
+  const fetchingRepoEntries =
+    activePath &&
+    fileMap?.[activePath]?.isRepository &&
+    !fileMap?.[activePath]?.treeExpanded
+
   if (!initialized) return <FileTreeSkeleton />
 
   if (isEmpty(fileMap))
@@ -339,14 +346,18 @@ const FileTreeRenderer: React.FC = () => {
       </div>
     )
 
-  if (repositorySpecifier && !fileTreeData?.length) {
+  if (!hasSelectedRepo) {
+    return null
+  }
+
+  if (hasNoRepoEntries) {
+    if (fetchingRepoEntries) {
+      return <FileTreeSkeleton />
+    }
+
     return (
       <div className="flex h-full items-center justify-center">No Data</div>
     )
-  }
-
-  if (!repositorySpecifier) {
-    return null
   }
 
   return (
