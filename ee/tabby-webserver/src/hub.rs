@@ -5,16 +5,12 @@ use async_trait::async_trait;
 use axum::{extract::Request, http::HeaderName};
 use axum_extra::headers::Header;
 use serde::{Deserialize, Serialize};
-use tabby_common::{
-    api::{
-        code::{CodeSearch, CodeSearchError, SearchResponse},
-        event::{EventLogger, LogEntry},
-    },
-    config::{RepositoryAccess, RepositoryConfig},
+use tabby_common::api::{
+    code::{CodeSearch, CodeSearchError, SearchResponse},
+    event::{EventLogger, LogEntry},
 };
 use tabby_schema::worker::Worker;
 pub use tabby_schema::worker::WorkerKind;
-use tarpc::context::Context;
 use tokio_tungstenite::connect_async;
 
 use crate::axum::websocket::WebSocketTransport;
@@ -32,8 +28,6 @@ pub trait Hub {
         limit: usize,
         offset: usize,
     ) -> SearchResponse;
-
-    async fn list_repositories() -> Vec<RepositoryConfig>;
 }
 
 fn tracing_context() -> tarpc::context::Context {
@@ -125,7 +119,6 @@ impl CodeSearch for WorkerClient {
 
 #[derive(Serialize, Deserialize)]
 pub enum ConnectHubRequest {
-    Scheduler,
     Worker(RegisterWorkerRequest),
 }
 
@@ -182,21 +175,5 @@ impl Header for ConnectHubRequest {
 
     fn encode<E: Extend<axum::http::HeaderValue>>(&self, _values: &mut E) {
         todo!()
-    }
-}
-
-#[derive(Clone)]
-pub struct SchedulerClient(HubClient);
-
-pub async fn create_scheduler_client(addr: &str, token: &str) -> SchedulerClient {
-    let request = build_client_request(addr, token, ConnectHubRequest::Scheduler);
-    let (socket, _) = connect_async(request).await.unwrap();
-    SchedulerClient(HubClient::new(Default::default(), WebSocketTransport::from(socket)).spawn())
-}
-
-#[async_trait]
-impl RepositoryAccess for SchedulerClient {
-    async fn list_repositories(&self) -> Result<Vec<RepositoryConfig>> {
-        Ok(self.0.list_repositories(Context::current()).await?)
     }
 }

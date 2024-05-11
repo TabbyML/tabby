@@ -10,10 +10,7 @@ use axum::{
     response::IntoResponse,
 };
 use axum_extra::TypedHeader;
-use tabby_common::{
-    api::{code::SearchResponse, event::LogEntry},
-    config::{RepositoryAccess, RepositoryConfig},
-};
+use tabby_common::api::{code::SearchResponse, event::LogEntry};
 use tabby_schema::ServiceLocator;
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
@@ -25,18 +22,11 @@ use crate::{
 
 pub(crate) struct HubState {
     locator: Arc<dyn ServiceLocator>,
-    repository_access: Arc<dyn RepositoryAccess>,
 }
 
 impl HubState {
-    pub fn new(
-        locator: Arc<dyn ServiceLocator>,
-        repository_access: Arc<dyn RepositoryAccess>,
-    ) -> Self {
-        HubState {
-            locator,
-            repository_access,
-        }
+    pub fn new(locator: Arc<dyn ServiceLocator>) -> Self {
+        HubState { locator }
     }
 }
 
@@ -78,7 +68,6 @@ async fn handle_socket(
     let transport = WebSocketTransport::from(socket);
     let server = BaseChannel::with_defaults(transport);
     let addr = match req {
-        ConnectHubRequest::Scheduler => None,
         ConnectHubRequest::Worker(worker) => {
             let worker = worker.create_worker(addr);
             let addr = worker.addr.clone();
@@ -91,31 +80,18 @@ async fn handle_socket(
             }
         }
     };
-    let imp = Arc::new(HubImpl::new(
-        state.locator.clone(),
-        state.repository_access.clone(),
-        addr,
-    ));
+    let imp = Arc::new(HubImpl::new(state.locator.clone(), addr));
     tokio::spawn(server.execute(imp.serve())).await.unwrap()
 }
 
 struct HubImpl {
     ctx: Arc<dyn ServiceLocator>,
-    repository_access: Arc<dyn RepositoryAccess>,
     worker_addr: Option<String>,
 }
 
 impl HubImpl {
-    fn new(
-        ctx: Arc<dyn ServiceLocator>,
-        repository_access: Arc<dyn RepositoryAccess>,
-        worker_addr: Option<String>,
-    ) -> Self {
-        Self {
-            ctx,
-            worker_addr,
-            repository_access,
-        }
+    fn new(ctx: Arc<dyn ServiceLocator>, worker_addr: Option<String>) -> Self {
+        Self { ctx, worker_addr }
     }
 }
 
@@ -173,14 +149,5 @@ impl Hub for Arc<HubImpl> {
                 SearchResponse::default()
             }
         }
-    }
-    async fn list_repositories(self, _context: tarpc::context::Context) -> Vec<RepositoryConfig> {
-        self.repository_access
-            .list_repositories()
-            .await
-            .unwrap_or_else(|e| {
-                warn!("Failed to retrieve list of repositories: {e}");
-                vec![]
-            })
     }
 }
