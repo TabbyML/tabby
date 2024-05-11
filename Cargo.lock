@@ -2134,6 +2134,7 @@ dependencies = [
  "serde_json",
  "tabby-common",
  "tabby-inference",
+ "tokio",
  "tracing",
 ]
 
