@@ -1,7 +1,7 @@
 {
   "name": "tabby-chat-panel",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.0.0-dev.3",
   "packageManager": "yarn@1.22.22",
   "keywords": [],
   "sideEffects": false,
