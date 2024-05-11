@@ -16,17 +16,22 @@ use crate::{cache::CacheStore, code::CodeIntelligence};
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
-pub fn index_repositories(cache: &mut CacheStore, config: &[RepositoryConfig]) {
+pub fn index_repository(cache: &mut CacheStore, repository: &RepositoryConfig) {
     let code = CodeSearchSchema::default();
     let index = open_or_create_index(&code, &path::index_dir());
-    add_changed_documents(cache, &code, config, &index);
+    add_changed_documents(cache, &code, repository, &index);
+}
+
+pub fn garbage_collection(cache: &mut CacheStore) {
+    let code = CodeSearchSchema::default();
+    let index = open_or_create_index(&code, &path::index_dir());
     remove_staled_documents(cache, &code, &index);
 }
 
 fn add_changed_documents(
     cache: &mut CacheStore,
     code: &CodeSearchSchema,
-    config: &[RepositoryConfig],
+    repository: &RepositoryConfig,
     index: &Index,
 ) {
     register_tokenizers(index);
@@ -38,53 +43,51 @@ fn add_changed_documents(
 
     let intelligence = CodeIntelligence::default();
     let mut indexed_files_batch = Batch::new();
-    for repository in config {
-        for file in Walk::new(repository.dir()) {
-            let file = match file {
-                Ok(file) => file,
-                Err(e) => {
-                    warn!("Failed to walk file tree for indexing: {e}");
-                    continue;
-                }
-            };
-            let Some(source_file) = cache.get_source_file(repository, file.path()) else {
-                continue;
-            };
-            if !is_valid_file(&source_file) {
+    for file in Walk::new(repository.dir()) {
+        let file = match file {
+            Ok(file) => file,
+            Err(e) => {
+                warn!("Failed to walk file tree for indexing: {e}");
                 continue;
             }
-            let (file_id, indexed) = cache.check_indexed(file.path());
-
-            if indexed {
-                continue;
-            }
-            let text = match source_file.read_content() {
-                Ok(content) => content,
-                Err(e) => {
-                    warn!(
-                        "Failed to read content of '{}': {}",
-                        source_file.filepath, e
-                    );
-                    continue;
-                }
-            };
-
-            for body in intelligence.chunks(&text) {
-                writer
-                    .add_document(doc! {
-                                code.field_git_url => source_file.git_url.clone(),
-                                code.field_source_file_key => file_id.to_string(),
-                                code.field_filepath => source_file.filepath.clone(),
-                                code.field_language => source_file.language.clone(),
-                                code.field_body => body,
-                    })
-                    .expect("Failed to add document");
-            }
-
-            indexed_files_batch
-                .set(&file_id, &String::new())
-                .expect("Failed to mark file as indexed");
+        };
+        let Some(source_file) = cache.get_source_file(repository, file.path()) else {
+            continue;
+        };
+        if !is_valid_file(&source_file) {
+            continue;
         }
+        let (file_id, indexed) = cache.check_indexed(file.path());
+
+        if indexed {
+            continue;
+        }
+        let text = match source_file.read_content() {
+            Ok(content) => content,
+            Err(e) => {
+                warn!(
+                    "Failed to read content of '{}': {}",
+                    source_file.filepath, e
+                );
+                continue;
+            }
+        };
+
+        for body in intelligence.chunks(&text) {
+            writer
+                .add_document(doc! {
+                            code.field_git_url => source_file.git_url.clone(),
+                            code.field_source_file_key => file_id.to_string(),
+                            code.field_filepath => source_file.filepath.clone(),
+                            code.field_language => source_file.language.clone(),
+                            code.field_body => body,
+                })
+                .expect("Failed to add document");
+        }
+
+        indexed_files_batch
+            .set(&file_id, &String::new())
+            .expect("Failed to mark file as indexed");
     }
 
     // Commit updating indexed documents

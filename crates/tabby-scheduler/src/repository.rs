@@ -1,10 +1,15 @@
-use std::{collections::HashSet, fs, path::Path, process::Command};
+use std::{
+    fs::{self, OpenOptions},
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use tabby_common::{config::RepositoryConfig, path::repositories_dir};
-use tracing::warn;
+use tracing::{debug, warn};
 
 trait RepositoryExt {
     fn sync(&self);
+    fn last_sync(&self) -> PathBuf;
 }
 
 impl RepositoryExt for RepositoryConfig {
@@ -28,6 +33,7 @@ impl RepositoryExt for RepositoryConfig {
                 .expect("Failed to read status");
 
             if let Some(code) = status.code() {
+                finished = code == 0;
                 if code != 0 {
                     warn!(
                         "Failed to clone `{}`. Please check your repository configuration.",
@@ -37,7 +43,39 @@ impl RepositoryExt for RepositoryConfig {
                 }
             }
         }
+
+        if finished {
+            debug!("Repository `{}` is up to date", dir.display());
+            touch(&get_last_repository_sync_filepath(&self.dir()));
+        }
     }
+
+    fn last_sync(&self) -> PathBuf {
+        self.dir()
+            .join(".git")
+            .join("tabby")
+            .join("last_repository_sync")
+    }
+}
+
+fn touch(path: &Path) {
+    std::fs::create_dir_all(path.parent().expect("Failed to read parent"))
+        .expect("Failed to create directory");
+    OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open(path)
+        .expect("Failed to touch file");
+}
+
+fn get_last_repository_sync_filepath(path: &Path) -> PathBuf {
+    path.join(".git").join("tabby").join("last_repository_sync")
+}
+
+fn get_last_repository_sync_time(path: &Path) -> Option<std::time::SystemTime> {
+    fs::metadata(get_last_repository_sync_filepath(path))
+        .ok()
+        .and_then(|metadata| metadata.modified().ok())
 }
 
 fn pull_remote(path: &Path) -> bool {
@@ -61,22 +99,19 @@ fn pull_remote(path: &Path) -> bool {
     true
 }
 
-pub fn sync_repositories(repositories: &[RepositoryConfig]) {
-    // Ensure repositories_dir exist.
-    std::fs::create_dir_all(repositories_dir()).expect("Failed to create repositories directory");
-
-    let mut names = HashSet::new();
-    for repository in repositories {
-        names.insert(repository.dir());
-        if repository.is_local_dir() {
-            if !repository.dir().exists() {
-                panic!("Directory {} does not exist", repository.dir().display());
-            }
-        } else {
-            repository.sync();
+pub fn sync_repository(repository: &RepositoryConfig) {
+    if repository.is_local_dir() {
+        if !repository.dir().exists() {
+            panic!("Directory {} does not exist", repository.dir().display());
         }
+    } else {
+        repository.sync();
     }
 
+    garbage_collection();
+}
+
+fn garbage_collection() {
     for file in fs::read_dir(repositories_dir())
         .expect("Failed to read repository dir")
         .filter_map(Result::ok)
@@ -88,11 +123,20 @@ pub fn sync_repositories(repositories: &[RepositoryConfig]) {
             // There shouldn't be any files under repositories dir.
             fs::remove_file(file.path())
                 .unwrap_or_else(|_| panic!("Failed to remove file {:?}", filename))
-        } else if metadata.is_dir() && !names.contains(&file.path()) {
-            warn!("An unrelated directory {:?} was found in repositories directory, It will now be removed...", file.path().display());
-            fs::remove_dir_all(file.path()).unwrap_or_else(|_| {
-                panic!("Failed to remove directory {:?}", file.path().display())
-            });
+        } else if metadata.is_dir() {
+            let is_garbage = if let Some(mtime) = get_last_repository_sync_time(&file.path()) {
+                // if stale for 2 day, consider it as garbage.
+                mtime.elapsed().unwrap_or_default().as_secs() > 2 * 24 * 60 * 60
+            } else {
+                true
+            };
+
+            if is_garbage {
+                warn!("An unrelated directory {:?} was found in repositories directory, It will now be removed...", file.path().display());
+                fs::remove_dir_all(file.path()).unwrap_or_else(|_| {
+                    panic!("Failed to remove directory {:?}", file.path().display())
+                });
+            }
         }
     }
 }
