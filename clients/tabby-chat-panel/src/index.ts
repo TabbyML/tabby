@@ -2,12 +2,12 @@ import type { Thread, ThreadOptions } from '@quilted/threads'
 
 export interface LineRange {
   start: number
-  end: number
+  end?: number
 }
 
 export interface FileContext {
   kind: 'file'
-  range: LineRange
+  range?: LineRange
   language?: string
   path: string
 }
