@@ -7,9 +7,14 @@
 Get file or directory content from local repositories
 
 **URL:** `/repositories/{kind}/{id}/resolve/{path}`
+**Parameters:**
+- `kind`: The kind (or provider) of the repository, one of `git`, `github`, or `gitlab`.
+  - Found at https://github.com/TabbyML/tabby/blob/main/ee/tabby-schema/src/schema/repository/mod.rs#L32
+- `id`: The object ID identifying the repository within its kind - short alphanumeric key (like `E16n1q`)
+  - Encoded rowids generated from https://github.com/TabbyML/tabby/blob/main/ee/tabby-schema/src/dao.rs#L219
 
 **Method:** `GET`
-**Authorization:** Auth token used for GraphQL queries
+**Authorization:** Auth token used for GraphQL queries. Using curl, pass `-H "Authorization: Bearer {Token}"` for authorization. All `resolve` endpoints are authenticated.
 
 **Request examples:**
 
@@ -18,11 +23,9 @@ Get file or directory content from local repositories
 ```shell
 curl --request GET \
   --url http://localhost:8080/repositories/git/lNrAwW/resolve/ \
-  -H "Authorization: Bearer {Token}"
 
 curl --request GET \
   --url http://localhost:9090/repositories/github/E16n1q/resolve/ee/tabby-webserver/ \
-  -H "Authorization: Bearer {Token}"
 ```
 
 - Get file content
@@ -30,11 +33,9 @@ curl --request GET \
 ```shell
 curl --request GET \
   --url http://localhost:8080/repositories/git/lNrAwW/resolve/package.json \
-  -H "Authorization: Bearer {Token}"
 
 curl --request GET \
   --url http://localhost:8080/repositories/git/lNrAwW/resolve/src/lib.rs \
-  -H "Authorization: Bearer {Token}"
 ```
 
 **Response examples:**
