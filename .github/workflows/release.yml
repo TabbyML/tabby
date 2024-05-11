@@ -42,22 +42,22 @@ jobs:
             target: aarch64-apple-darwin
             binary: aarch64-apple-darwin
             build_args: --features prod
-          - os: dimerun-k3-ubuntu2204
+          - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014
             container: quay.io/pypa/manylinux2014_x86_64
             build_args: --features static-ssl,prod
-          - os: dimerun-k3-ubuntu2204
+          - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
             build_args: --features static-ssl,cuda,prod
-          - os: dimerun-k3-ubuntu2204
+          - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda122
             container: sameli/manylinux2014_x86_64_cuda_12.2
             build_args: --features static-ssl,cuda,prod
-          - os: dimerun-k3-ubuntu2204
+          - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-vulkan
             container: quay.io/pypa/manylinux2014_x86_64
