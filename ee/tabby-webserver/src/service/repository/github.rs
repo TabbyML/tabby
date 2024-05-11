@@ -1,10 +1,8 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use juniper::ID;
+use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 use tabby_schema::{
     repository::{
@@ -13,16 +11,20 @@ use tabby_schema::{
     },
     AsID, AsRowid, Result,
 };
+use tokio::sync::mpsc::UnboundedSender;
 use url::Url;
 
-use crate::service::{background_job::BackgroundJob, graphql_pagination_to_filter};
+use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 struct GithubRepositoryProviderServiceImpl {
     db: DbConn,
-    background_job: Arc<dyn BackgroundJob>,
+    background_job: UnboundedSender<BackgroundJobEvent>,
 }
 
-pub fn create(db: DbConn, background_job: Arc<dyn BackgroundJob>) -> impl GithubRepositoryService {
+pub fn create(
+    db: DbConn,
+    background_job: UnboundedSender<BackgroundJobEvent>,
+) -> impl GithubRepositoryService {
     GithubRepositoryProviderServiceImpl { db, background_job }
 }
 
@@ -33,7 +35,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
             .db
             .create_github_provider(display_name, access_token)
             .await?;
-        self.background_job.trigger_sync_github(id).await;
+        let _ = self.background_job.send(BackgroundJobEvent::SyncGithub(id));
         Ok(id.as_id())
     }
 
@@ -93,11 +95,26 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
     }
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()> {
+        let id = id.as_rowid()?;
         self.db
-            .update_github_provided_repository_active(id.as_rowid()?, active)
+            .update_github_provided_repository_active(id, active)
             .await?;
         if active {
-            self.background_job.trigger_scheduler().await;
+            let repository = self.db.get_github_provided_repository(id).await?;
+            let provider = self
+                .db
+                .get_github_provider(repository.github_repository_provider_id)
+                .await?;
+
+            if let Some(git_url) =
+                make_git_url(&repository.git_url, provider.access_token.as_deref())
+            {
+                let _ =
+                    self.background_job
+                        .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
+                            git_url,
+                        )));
+            }
         }
         Ok(())
     }
@@ -112,7 +129,7 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         self.db
             .update_github_provider(id, display_name, access_token)
             .await?;
-        self.background_job.trigger_sync_github(id).await;
+        let _ = self.background_job.send(BackgroundJobEvent::SyncGithub(id));
         Ok(())
     }
 
@@ -133,15 +150,25 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
         let urls = repos
             .into_iter()
             .filter_map(|repo| {
-                let mut url = Url::parse(&repo.git_url).ok()?;
-                url.set_username(tokens.get(&repo.github_repository_provider_id.to_string())?)
-                    .ok()?;
-                Some(url.to_string())
+                let id = repo.github_repository_provider_id.to_string();
+                let access_token = tokens.get(&id).map(|s| s.as_str());
+                make_git_url(&repo.git_url, access_token)
             })
             .collect();
 
         Ok(urls)
     }
+}
+
+fn make_git_url(git_url: &str, access_token: Option<&str>) -> Option<String> {
+    let Some(access_token) = access_token else {
+        return None;
+    };
+
+    let mut url = Url::parse(git_url).ok()?;
+    url.set_username(access_token).ok()?;
+
+    Some(url.to_string())
 }
 
 #[async_trait]
@@ -176,7 +203,11 @@ mod tests {
     use tabby_schema::AsID;
 
     use super::*;
-    use crate::background_job::create_fake;
+
+    fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
+        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
+        sender
+    }
 
     #[tokio::test]
     async fn test_github_provided_repositories() {

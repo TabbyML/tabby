@@ -15,8 +15,9 @@ use tabby_schema::{
     },
     Result,
 };
+use tokio::sync::mpsc::UnboundedSender;
 
-use super::background_job::BackgroundJob;
+use crate::service::background_job::BackgroundJobEvent;
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
@@ -24,11 +25,14 @@ struct RepositoryServiceImpl {
     gitlab: Arc<dyn GitlabRepositoryService>,
 }
 
-pub fn create(db: DbConn, background: Arc<dyn BackgroundJob>) -> Arc<dyn RepositoryService> {
+pub fn create(
+    db: DbConn,
+    background: UnboundedSender<BackgroundJobEvent>,
+) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(git::create(db.clone(), background.clone())),
         github: Arc::new(github::create(db.clone(), background.clone())),
-        gitlab: Arc::new(gitlab::create(db, background)),
+        gitlab: Arc::new(gitlab::create(db, background.clone())),
     })
 }
 
@@ -137,7 +141,11 @@ mod tests {
     use tabby_db::DbConn;
 
     use super::*;
-    use crate::background_job::create_fake;
+
+    fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
+        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
+        sender
+    }
 
     #[tokio::test]
     async fn test_list_repositories() {
