@@ -127,9 +127,11 @@ impl GithubRepositoryService for GithubRepositoryProviderServiceImpl {
     ) -> Result<()> {
         let id = id.as_rowid()?;
         self.db
-            .update_github_provider(id, display_name, access_token)
+            .update_github_provider(id, display_name, access_token.clone())
             .await?;
-        let _ = self.background_job.send(BackgroundJobEvent::SyncGithub(id));
+        if access_token.is_some() {
+            let _ = self.background_job.send(BackgroundJobEvent::SyncGithub(id));
+        }
         Ok(())
     }
 

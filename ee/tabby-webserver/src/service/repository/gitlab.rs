@@ -100,10 +100,10 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
             .update_gitlab_provided_repository_active(id, active)
             .await?;
         if active {
-            let repository = self.db.get_github_provided_repository(id).await?;
+            let repository = self.db.get_gitlab_provided_repository(id).await?;
             let provider = self
                 .db
-                .get_github_provider(repository.github_repository_provider_id)
+                .get_gitlab_provider(repository.gitlab_repository_provider_id)
                 .await?;
 
             if let Some(git_url) =
@@ -127,9 +127,11 @@ impl GitlabRepositoryService for GitlabRepositoryProviderServiceImpl {
     ) -> Result<()> {
         let id = id.as_rowid()?;
         self.db
-            .update_gitlab_provider(id, display_name, access_token)
+            .update_gitlab_provider(id, display_name, access_token.clone())
             .await?;
-        let _ = self.background_job.send(BackgroundJobEvent::SyncGitlab(id));
+        if access_token.is_some() {
+            let _ = self.background_job.send(BackgroundJobEvent::SyncGitlab(id));
+        }
         Ok(())
     }
 
