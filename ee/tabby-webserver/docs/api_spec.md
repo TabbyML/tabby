@@ -12,6 +12,8 @@ Get file or directory content from local repositories
   - Found at https://github.com/TabbyML/tabby/blob/main/ee/tabby-schema/src/schema/repository/mod.rs#L32
 - `id`: The object ID identifying the repository within its kind - short alphanumeric key (like `E16n1q`)
   - Encoded rowids generated from https://github.com/TabbyML/tabby/blob/main/ee/tabby-schema/src/dao.rs#L219
+  - Refers to table `repositories`, `github_provided_repositories`, or `gitlab_provided_repositories`
+    - In future refactoring, `github_provided_repositories` and `gitlab_provided_repositories` will be merged into `provided_repositories`
 
 **Method:** `GET`
 **Authorization:** Auth token used for GraphQL queries. Using curl, pass `-H "Authorization: Bearer {Token}"` for authorization. All `resolve` endpoints are authenticated.
