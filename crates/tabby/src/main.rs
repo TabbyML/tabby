@@ -2,6 +2,7 @@ mod routes;
 mod services;
 
 mod download;
+mod model;
 mod serve;
 
 #[cfg(feature = "ee")]
@@ -37,6 +38,16 @@ pub enum Commands {
 
     /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
+
+    /// Install, list, and delete models for local use.
+    /// Subcommands generally take a model ID, formatted as [registry/]model.
+    /// Examples: TabbyML/StarCoder-1B, or StarCoder-1B.
+    /// TabbyML will be used as the default registry if none is specified.
+    /// Registries are pulled from GitHub (https://github.com/REGISTRY/registry-tabby) by default.
+    /// If the registry is not available on GitHub, the Tabby data directory (~/.tabby/models/REGISTRY) will be used.
+    /// For more information on the registry format, see https://github.com/TabbyML/tabby/blob/main/MODEL_SPEC.md.
+    #[command(subcommand)]
+    Model(model::ModelArgs),
 
     /// Run completion model as worker
     #[cfg(feature = "ee")]
@@ -146,6 +157,7 @@ async fn main() {
         Commands::WorkerChat(ref args) => {
             worker::main(tabby_webserver::public::WorkerKind::Chat, args).await
         }
+        Commands::Model(args) => model::main(args).await,
     }
 }
 

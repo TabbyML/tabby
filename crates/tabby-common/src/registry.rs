@@ -70,7 +70,7 @@ impl ModelRegistry {
         }
     }
 
-    fn get_model_dir(&self, name: &str) -> PathBuf {
+    pub fn get_model_dir(&self, name: &str) -> PathBuf {
         models_dir().join(&self.name).join(name)
     }
 
@@ -109,10 +109,12 @@ impl ModelRegistry {
     }
 }
 
+pub static DEFAULT_MODEL_REGISTRY_NAME: &str = "TabbyML";
+
 pub fn parse_model_id(model_id: &str) -> (&str, &str) {
     let parts: Vec<_> = model_id.split('/').collect();
     if parts.len() == 1 {
-        ("TabbyML", parts[0])
+        (DEFAULT_MODEL_REGISTRY_NAME, parts[0])
     } else if parts.len() == 2 {
         (parts[0], parts[1])
     } else {
