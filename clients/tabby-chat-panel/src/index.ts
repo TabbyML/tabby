@@ -1,4 +1,4 @@
-import { MessageEndpoint, createEndpoint, fromIframe, fromInsideIframe } from '@remote-ui/rpc'
+import type { Thread, ThreadOptions } from '@quilted/threads'
 
 export interface LineRange {
   start: number
@@ -19,24 +19,40 @@ export interface FetcherOptions {
 }
 
 export interface InitRequest {
-  message?: string
-  selectContext?: Context
-  relevantContext?: Array<Context>
-  fetcherOptions?: FetcherOptions
+  fetcherOptions: FetcherOptions
 }
 
 export interface Api {
   init: (request: InitRequest) => void
+  sendMessage: (message: ChatMessage) => void
 }
 
-export function createClient(endpoint: MessageEndpoint) {
-  return createEndpoint<Api>(endpoint)
+export interface ChatMessage {
+  message: string
+  selectContext?: Context
+  relevantContext?: Array<Context>
 }
 
-export function createServer(endpoint: MessageEndpoint, api: Api) {
-    const server = createEndpoint(endpoint)
-    server.expose({
+type CreateThreadFn =
+  ((target: any, opts: ThreadOptions<Api>) => Record<string, any>) |
+  ((opts: ThreadOptions<Api>) => Record<string, any>)
+
+export function createClient(createFn: CreateThreadFn, target: any) {
+  return createFn(target, {
+    callable: ['init', 'sendMessage'],
+  }) as Api
+}
+
+export function createServer(createFn: CreateThreadFn, api: Api, target?: any) {
+  const opts: ThreadOptions<Api> = {
+    expose: {
       init: api.init,
-    })
-    return server;
+      sendMessage: api.sendMessage,
+    },
+  }
+  if (target)
+    return createFn(target, opts)
+
+  const createFnWithoutTarget = createFn as (opts: ThreadOptions<Api>) => Thread<Record<string, any>>
+  return createFnWithoutTarget(opts)
 }

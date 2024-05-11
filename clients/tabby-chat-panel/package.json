@@ -45,7 +45,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remote-ui/rpc": "^1.4.5",
+    "@quilted/threads": "^2.1.2",
     "react": "^18.3.1"
   },
   "devDependencies": {

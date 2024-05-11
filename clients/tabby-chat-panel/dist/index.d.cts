@@ -1,30 +1,33 @@
-import * as _remote_ui_rpc from '@remote-ui/rpc';
-import { MessageEndpoint } from '@remote-ui/rpc';
+import { ThreadOptions } from '@quilted/threads';
 
-interface LineRange {
+type LineRange = {
     start: number;
     end: number;
-}
-interface FileContext {
+};
+type FileContext = {
     kind: 'file';
     range: LineRange;
     filename: string;
     link: string;
-}
+};
 type Context = FileContext;
 interface FetcherOptions {
     authorization: string;
 }
 interface InitRequest {
-    message?: string;
-    selectContext?: Context;
-    relevantContext?: Array<Context>;
-    fetcherOptions?: FetcherOptions;
+    fetcherOptions: FetcherOptions;
 }
 interface Api {
     init: (request: InitRequest) => void;
+    sendMessage: (message: ChatMessage) => void;
 }
-declare function createClient(endpoint: MessageEndpoint): _remote_ui_rpc.Endpoint<Api>;
-declare function createServer(endpoint: MessageEndpoint, api: Api): _remote_ui_rpc.Endpoint<unknown>;
+interface ChatMessage {
+    message: string;
+    selectContext?: Context;
+    relevantContext?: Array<Context>;
+}
+type CreateThreadFn = ((target: any, opts: ThreadOptions<Api>) => Record<string, any>) | ((opts: ThreadOptions<Api>) => Record<string, any>);
+declare function createClient(createFn: CreateThreadFn, target: any): Api;
+declare function createServer(createFn: CreateThreadFn, api: Api, target?: any): Record<string, any>;
 
-export { type Api, type Context, type FetcherOptions, type FileContext, type InitRequest, type LineRange, createClient, createServer };
+export { type Api, type ChatMessage, type Context, type FetcherOptions, type FileContext, type InitRequest, type LineRange, createClient, createServer };

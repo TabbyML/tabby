@@ -1,16 +1,21 @@
 'use strict';
 
-const rpc = require('@remote-ui/rpc');
-
-function createClient(endpoint) {
-  return rpc.createEndpoint(endpoint);
-}
-function createServer(endpoint, api) {
-  const server = rpc.createEndpoint(endpoint);
-  server.expose({
-    init: api.init
+function createClient(createFn, target) {
+  return createFn(target, {
+    callable: ["init", "sendMessage"]
   });
-  return server;
+}
+function createServer(createFn, api, target) {
+  const opts = {
+    expose: {
+      init: api.init,
+      sendMessage: api.sendMessage
+    }
+  };
+  if (target)
+    return createFn(target, opts);
+  const createFnWithoutTarget = createFn;
+  return createFnWithoutTarget(opts);
 }
 
 exports.createClient = createClient;
