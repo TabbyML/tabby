@@ -8,8 +8,8 @@ export interface LineRange {
 export interface FileContext {
   kind: 'file'
   range: LineRange
-  filename: string
-  link: string
+  language?: string
+  path: string
 }
 
 export type Context = FileContext
