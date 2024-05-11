@@ -1,4 +1,4 @@
-use std::process::Stdio;
+use std::sync::Arc;
 
 use anyhow::Context;
 use apalis::{
@@ -8,17 +8,25 @@ use apalis::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
-use tabby_schema::bail;
-use tokio::io::AsyncBufReadExt;
+use tabby_scheduler::RepositoryManager;
 
 use super::{
-    ceprintln, cprintln,
+    cprintln,
     helper::{BasicJob, CronJob, JobLogger},
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SchedulerJob;
+pub struct SchedulerJob {
+    repository: RepositoryConfig,
+}
+
+impl SchedulerJob {
+    pub fn new(repository: RepositoryConfig) -> Self {
+        Self { repository }
+    }
+}
 
 impl Job for SchedulerJob {
     const NAME: &'static str = "scheduler";
@@ -29,78 +37,41 @@ impl CronJob for SchedulerJob {
 }
 
 impl SchedulerJob {
-    async fn run_impl(
-        self,
-        job_logger: Data<JobLogger>,
-        db: Data<DbConn>,
-        local_port: Data<u16>,
-    ) -> anyhow::Result<()> {
-        let local_port = *local_port;
-        let exe = std::env::current_exe()?;
-
-        let mut child = tokio::process::Command::new(exe)
-            .arg("scheduler")
-            .arg("--now")
-            .arg("--url")
-            .arg(format!("localhost:{local_port}"))
-            .arg("--token")
-            .arg(db.read_registration_token().await?)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
-
-        {
-            // Pipe stdout
-            let stdout = child.stdout.take().context("Failed to acquire stdout")?;
-            let logger = job_logger.clone();
-            tokio::spawn(async move {
-                let stdout = tokio::io::BufReader::new(stdout);
-                let mut stdout = stdout.lines();
-                while let Ok(Some(line)) = stdout.next_line().await {
-                    cprintln!(logger, "{line}");
-                }
-            });
-        }
-
-        {
-            // Pipe stderr
-            let stderr = child.stderr.take().context("Failed to acquire stderr")?;
-            let logger = job_logger.clone();
-            tokio::spawn(async move {
-                let stderr = tokio::io::BufReader::new(stderr);
-                let mut stdout = stderr.lines();
-                while let Ok(Some(line)) = stdout.next_line().await {
-                    ceprintln!(logger, "{line}");
-                }
-            });
-        }
-        if let Some(exit_code) = child.wait().await.ok().and_then(|s| s.code()) {
-            if exit_code != 0 {
-                bail!("scheduler exited with code {exit_code}")
-            }
-        }
-
+    async fn run(self, job_logger: Data<JobLogger>) -> tabby_schema::Result<()> {
+        let repository = self.repository.clone();
+        tokio::spawn(async move {
+            let mut manager = RepositoryManager::default();
+            cprintln!(
+                job_logger,
+                "Refreshing repository {}",
+                repository.canonical_git_url()
+            );
+            manager.refresh(&repository);
+            manager.garbage_collection();
+        })
+        .await
+        .context("Job execution failed")?;
         Ok(())
-    }
-
-    async fn run(
-        self,
-        logger: Data<JobLogger>,
-        db: Data<DbConn>,
-        local_port: Data<u16>,
-    ) -> tabby_schema::Result<()> {
-        Ok(self.run_impl(logger, db, local_port).await?)
     }
 
     async fn cron(
         _now: DateTime<Utc>,
+        repository_access: Data<Arc<dyn RepositoryAccess>>,
         storage: Data<SqliteStorage<SchedulerJob>>,
     ) -> tabby_schema::Result<()> {
-        let mut storage = (*storage).clone();
-        storage
-            .push(SchedulerJob)
+        let repositories = repository_access
+            .list_repositories()
             .await
-            .expect("unable to push job");
+            .context("Must be able to retrieve repositories for sync")?;
+
+        let mut storage = (*storage).clone();
+
+        for repository in repositories {
+            storage
+                .push(SchedulerJob::new(repository))
+                .await
+                .context("unable to push job")?;
+        }
         Ok(())
     }
 
@@ -108,18 +79,15 @@ impl SchedulerJob {
         monitor: Monitor<TokioExecutor>,
         pool: SqlitePool,
         db: DbConn,
-        local_port: u16,
+        repository_access: Arc<dyn RepositoryAccess>,
     ) -> (SqliteStorage<SchedulerJob>, Monitor<TokioExecutor>) {
         let storage = SqliteStorage::new(pool);
         let monitor = monitor
-            .register(
-                Self::basic_worker(storage.clone(), db.clone())
-                    .data(local_port)
-                    .build_fn(Self::run),
-            )
+            .register(Self::basic_worker(storage.clone(), db.clone()).build_fn(Self::run))
             .register(
                 Self::cron_worker(db.clone())
                     .data(storage.clone())
+                    .data(repository_access)
                     .build_fn(SchedulerJob::cron),
             );
         (storage, monitor)

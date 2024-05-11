@@ -5646,6 +5646,7 @@ dependencies = [
  "serial_test 3.0.0",
  "tabby-common",
  "tabby-db",
+ "tabby-scheduler",
  "tabby-schema",
  "tabby-search",
  "tarpc",

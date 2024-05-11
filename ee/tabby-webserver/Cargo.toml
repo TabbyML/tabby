@@ -32,6 +32,7 @@ rust-embed = "8.0.0"
 serde.workspace = true
 serde_json.workspace = true
 tabby-common = { path = "../../crates/tabby-common" }
+tabby-scheduler = { path = "../../crates/tabby-scheduler" }
 tabby-schema = { path = "../../ee/tabby-schema" }
 tabby-db = { path = "../../ee/tabby-db" }
 tarpc = { version = "0.33.0", features = ["serde-transport"] }

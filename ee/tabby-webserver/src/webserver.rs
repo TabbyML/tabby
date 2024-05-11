@@ -15,7 +15,8 @@ use crate::{
     path::db_file,
     routes,
     service::{
-        background_job, create_service_locator, event_logger::create_event_logger, repository,
+        background_job, background_job::BackgroundJobEvent, create_service_locator,
+        event_logger::create_event_logger, repository,
     },
 };
 
@@ -26,7 +27,7 @@ pub struct Webserver {
 }
 
 impl Webserver {
-    pub async fn new(logger1: impl EventLogger + 'static, local_port: u16) -> Self {
+    pub async fn new(logger1: impl EventLogger + 'static, _local_port: u16) -> Self {
         let db = DbConn::new(db_file().as_path())
             .await
             .expect("Must be able to initialize db");
@@ -34,8 +35,11 @@ impl Webserver {
             .await
             .expect("Must be able to finalize stale job runs");
 
-        let background_job = background_job::create(db.clone(), local_port).await;
-        let repository = repository::create(db.clone(), background_job);
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<BackgroundJobEvent>();
+
+        let repository = repository::create(db.clone(), sender);
+
+        background_job::start(db.clone(), repository.clone().access(), receiver).await;
 
         let logger2 = create_event_logger(db.clone());
         let logger = Arc::new(ComposedLogger::new(logger1, logger2));

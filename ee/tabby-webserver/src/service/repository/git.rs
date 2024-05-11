@@ -1,21 +1,24 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use juniper::ID;
+use tabby_common::config::RepositoryConfig;
 use tabby_db::DbConn;
 use tabby_schema::{
     repository::{GitRepository, GitRepositoryService, Repository, RepositoryProvider},
     AsID, AsRowid, Result,
 };
+use tokio::sync::mpsc::UnboundedSender;
 
-use crate::service::{background_job::BackgroundJob, graphql_pagination_to_filter};
+use crate::service::{background_job::BackgroundJobEvent, graphql_pagination_to_filter};
 
 struct GitRepositoryServiceImpl {
     db: DbConn,
-    background_job: Arc<dyn BackgroundJob>,
+    background_job: UnboundedSender<BackgroundJobEvent>,
 }
 
-pub fn create(db: DbConn, background_job: Arc<dyn BackgroundJob>) -> impl GitRepositoryService {
+pub fn create(
+    db: DbConn,
+    background_job: UnboundedSender<BackgroundJobEvent>,
+) -> impl GitRepositoryService {
     GitRepositoryServiceImpl { db, background_job }
 }
 
@@ -37,8 +40,16 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
     }
 
     async fn create(&self, name: String, git_url: String) -> Result<ID> {
-        let id = self.db.create_repository(name, git_url).await?.as_id();
-        self.background_job.trigger_scheduler().await;
+        let id = self
+            .db
+            .create_repository(name, git_url.clone())
+            .await?
+            .as_id();
+        let _ = self
+            .background_job
+            .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
+                git_url,
+            )));
         Ok(id)
     }
 
@@ -48,9 +59,13 @@ impl GitRepositoryService for GitRepositoryServiceImpl {
 
     async fn update(&self, id: &ID, name: String, git_url: String) -> Result<bool> {
         self.db
-            .update_repository(id.as_rowid()?, name, git_url)
+            .update_repository(id.as_rowid()?, name, git_url.clone())
             .await?;
-        self.background_job.trigger_scheduler().await;
+        let _ = self
+            .background_job
+            .send(BackgroundJobEvent::Scheduler(RepositoryConfig::new(
+                git_url,
+            )));
         Ok(true)
     }
 }
@@ -77,7 +92,11 @@ mod tests {
     use tabby_db::DbConn;
 
     use super::*;
-    use crate::background_job::create_fake;
+
+    fn create_fake() -> UnboundedSender<BackgroundJobEvent> {
+        let (sender, _) = tokio::sync::mpsc::unbounded_channel();
+        sender
+    }
 
     #[tokio::test]
     pub async fn test_duplicate_repository_error() {

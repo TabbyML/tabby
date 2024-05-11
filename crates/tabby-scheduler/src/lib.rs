@@ -83,7 +83,7 @@ impl RepositoryManager {
     pub fn refresh(&mut self, repository: &RepositoryConfig) {
         self.is_dirty = true;
 
-        info!("Refreshing repository: {}", repository.git_url);
+        info!("Refreshing repository: {}", repository.canonical_git_url());
         repository::sync_repository(repository);
 
         let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
