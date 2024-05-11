@@ -87,7 +87,7 @@ async fn to_document(data: KatanaRequestResponse) -> Option<CrawledDocument> {
 
     Some(CrawledDocument::new(
         data.request.endpoint,
-        md.into(),
+        md,
         metadata.into(),
     ))
 }
