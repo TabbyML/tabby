@@ -80,3 +80,5 @@ fn job_sync(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
     println!("Creating dataset...");
     dataset::create_dataset(cache, repositories);
 }
+
+pub mod crawl;
