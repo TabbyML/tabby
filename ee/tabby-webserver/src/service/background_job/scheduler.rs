@@ -41,7 +41,11 @@ impl SchedulerJob {
         let repository = self.repository.clone();
         tokio::spawn(async move {
             let mut manager = RepositoryManager::default();
-            cprintln!(job_logger, "Refreshing repository {}", repository.canonical_git_url());
+            cprintln!(
+                job_logger,
+                "Refreshing repository {}",
+                repository.canonical_git_url()
+            );
             manager.refresh(&repository);
             manager.garbage_collection();
         })
