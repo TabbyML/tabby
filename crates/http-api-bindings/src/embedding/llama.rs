@@ -1,9 +1,6 @@
-
 use async_trait::async_trait;
-
-
 use serde::{Deserialize, Serialize};
-use tabby_inference::{Embedding};
+use tabby_inference::Embedding;
 
 pub struct LlamaCppEngine {
     client: reqwest::Client,
