@@ -54,16 +54,6 @@ pub struct SchedulerArgs {
     /// If true, runs scheduler jobs immediately.
     #[clap(long, default_value_t = false)]
     now: bool,
-
-    /// URL to register this worker.
-    #[cfg(feature = "ee")]
-    #[clap(long)]
-    url: Option<String>,
-
-    /// Server token to register this worker to.
-    #[cfg(feature = "ee")]
-    #[clap(long)]
-    token: Option<String>,
 }
 
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
@@ -145,15 +135,6 @@ async fn main() {
     match cli.command {
         Commands::Serve(ref args) => serve::main(&config, args).await,
         Commands::Download(ref args) => download::main(args).await,
-        #[cfg(feature = "ee")]
-        Commands::Scheduler(SchedulerArgs {
-            now,
-            url: Some(url),
-            token: Some(token),
-        }) => {
-            let client = tabby_webserver::public::create_scheduler_client(&url, &token).await;
-            tabby_scheduler::scheduler(now, client).await
-        }
         Commands::Scheduler(SchedulerArgs { now, .. }) => {
             tabby_scheduler::scheduler(now, ConfigRepositoryAccess).await
         }

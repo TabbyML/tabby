@@ -15,7 +15,7 @@ use axum::{
 };
 use juniper::ID;
 use juniper_axum::{graphiql, playground};
-use tabby_common::{api::server_setting::ServerSetting, config::RepositoryAccess};
+use tabby_common::api::server_setting::ServerSetting;
 use tabby_schema::{auth::AuthenticationService, create_schema, Schema, ServiceLocator};
 use tracing::{error, warn};
 
@@ -25,12 +25,7 @@ use crate::{
     jwt::validate_jwt,
 };
 
-pub fn create(
-    ctx: Arc<dyn ServiceLocator>,
-    access: Arc<dyn RepositoryAccess>,
-    api: Router,
-    ui: Router,
-) -> (Router, Router) {
+pub fn create(ctx: Arc<dyn ServiceLocator>, api: Router, ui: Router) -> (Router, Router) {
     let schema = Arc::new(create_schema());
 
     let api = api
@@ -50,8 +45,7 @@ pub fn create(
         .layer(Extension(schema))
         .route(
             "/hub",
-            routing::get(hub::ws_handler)
-                .with_state(HubState::new(ctx.clone(), access.clone()).into()),
+            routing::get(hub::ws_handler).with_state(HubState::new(ctx.clone()).into()),
         )
         .nest(
             "/repositories",

@@ -74,6 +74,6 @@ impl Webserver {
         )
         .await;
 
-        routes::create(ctx, self.repository_access(), api, ui)
+        routes::create(ctx, api, ui)
     }
 }
