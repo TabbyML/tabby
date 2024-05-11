@@ -38,7 +38,7 @@
 
     --radius: 0.5rem;
 
-    --selection: 200, 100%, 90%
+    --selection: 200, 100%, 90%;
   }
 
   .dark {
@@ -74,7 +74,7 @@
 
     --ring: 39 32% 87%;
 
-    --selection: 221, 13%, 28%
+    --selection: 221, 13%, 28%;
   }
 }
 
