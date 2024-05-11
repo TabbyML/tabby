@@ -1,7 +1,6 @@
-use std::{fs, io::IsTerminal, path::Path};
+use std::{fs, path::Path};
 
 use ignore::Walk;
-use kdam::BarExt;
 use kv::Batch;
 use tabby_common::{
     config::RepositoryConfig,
@@ -11,7 +10,7 @@ use tabby_common::{
 use tantivy::{directory::MmapDirectory, doc, Index, Term};
 use tracing::{debug, warn};
 
-use crate::{cache::CacheStore, code::CodeIntelligence, utils::tqdm};
+use crate::{cache::CacheStore, code::CodeIntelligence};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
@@ -36,15 +35,6 @@ fn add_changed_documents(
     let mut writer = index
         .writer(150_000_000)
         .expect("Failed to create index writer");
-
-    let total_file_size: usize = SourceFile::all()
-        .filter(is_valid_file)
-        .map(|x| x.read_file_size())
-        .sum();
-
-    let mut pb = std::io::stdout()
-        .is_terminal()
-        .then(|| tqdm(total_file_size));
 
     let intelligence = CodeIntelligence::default();
     let mut indexed_files_batch = Batch::new();
@@ -80,11 +70,6 @@ fn add_changed_documents(
             };
 
             for body in intelligence.chunks(&text) {
-                pb.as_mut()
-                    .map(|b| b.update(body.len()))
-                    .transpose()
-                    .expect("Failed to update progress bar");
-
                 writer
                     .add_document(doc! {
                                 code.field_git_url => source_file.git_url.clone(),
@@ -95,6 +80,7 @@ fn add_changed_documents(
                     })
                     .expect("Failed to add document");
             }
+
             indexed_files_batch
                 .set(&file_id, &String::new())
                 .expect("Failed to mark file as indexed");
