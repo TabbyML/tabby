@@ -8,22 +8,17 @@ mod repository;
 
 use std::sync::Arc;
 
-use cache::CacheStore;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{info, warn};
 
 pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
     if now {
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
         let repositories = access
             .list_repositories()
             .await
             .expect("Must be able to retrieve repositories for sync");
-        job_sync(&mut cache, &repositories);
-        job_index(&mut cache, &repositories);
-
-        cache.garbage_collection_for_source_files();
+        scheduler_pipeline(&repositories);
     } else {
         let access = Arc::new(access);
         let scheduler = JobScheduler::new()
@@ -43,16 +38,12 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
                             return;
                         };
 
-                        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-
                         let repositories = access
                             .list_repositories()
                             .await
                             .expect("Must be able to retrieve repositories for sync");
 
-                        job_sync(&mut cache, &repositories);
-                        job_index(&mut cache, &repositories);
-                        cache.garbage_collection_for_source_files();
+                        scheduler_pipeline(&repositories);
                     })
                 })
                 .expect("Failed to create job"),
@@ -68,15 +59,49 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
     }
 }
 
-fn job_index(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
-    println!("Indexing repositories...");
-    index::index_repositories(cache, repositories);
+fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
+    let mut manager = RepositoryManager::default();
+    for repository in repositories {
+        manager.refresh(repository);
+    }
+
+    create_dataset(repositories);
+    manager.garbage_collection();
 }
 
-fn job_sync(cache: &mut CacheStore, repositories: &[RepositoryConfig]) {
-    println!("Syncing {} repositories...", repositories.len());
-    repository::sync_repositories(repositories);
+fn create_dataset(repositories: &[RepositoryConfig]) {
+    let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
+    dataset::create_dataset(&mut cache, repositories);
+}
 
-    println!("Creating dataset...");
-    dataset::create_dataset(cache, repositories);
+#[derive(Default)]
+pub struct RepositoryManager {
+    is_dirty: bool,
+}
+
+impl RepositoryManager {
+    pub fn refresh(&mut self, repository: &RepositoryConfig) {
+        self.is_dirty = true;
+
+        info!("Refreshing repository: {}", repository.git_url);
+        repository::sync_repository(repository);
+
+        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
+        index::index_repository(&mut cache, repository);
+    }
+
+    pub fn garbage_collection(&mut self) {
+        self.is_dirty = false;
+        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
+        cache.garbage_collection_for_source_files();
+        index::garbage_collection(&mut cache);
+    }
+}
+
+impl Drop for RepositoryManager {
+    fn drop(&mut self) {
+        if self.is_dirty {
+            warn!("Garbage collection was expected to be invoked at least once but was not.")
+        }
+    }
 }
