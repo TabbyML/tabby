@@ -14,6 +14,7 @@ pub struct UserDAO {
 
     pub id: i64,
     pub email: String,
+    pub name: Option<String>,
     pub password_encrypted: Option<String>,
     pub is_admin: bool,
 
@@ -28,7 +29,7 @@ macro_rules! select {
     ($str:literal $(,)? $($val:expr),*) => {
         query_as!(
             UserDAO,
-            r#"SELECT id as "id!", email, password_encrypted, is_admin, created_at as "created_at!", updated_at as "updated_at!", auth_token, active FROM users WHERE "# + $str,
+            r#"SELECT id as "id!", email, name, password_encrypted, is_admin, created_at as "created_at!", updated_at as "updated_at!", auth_token, active FROM users WHERE "# + $str,
             $($val),*
         )
     }
@@ -123,6 +124,7 @@ impl DbConn {
             [
                 "id"!,
                 "email",
+                "name",
                 "password_encrypted",
                 "is_admin",
                 "created_at"!,
@@ -256,6 +258,13 @@ impl DbConn {
             })
             .await
     }
+
+    pub async fn update_user_name(&self, id: i64, name: String) -> Result<()> {
+        query!("UPDATE users SET name = ? WHERE id = ?;", name, id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
 }
 
 fn generate_auth_token() -> String {
@@ -290,6 +299,20 @@ mod tests {
 
         // Setting an already inactive user to inactive should error
         assert!(conn.update_user_active(id, false).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_name() {
+        let conn = DbConn::new_in_memory().await.unwrap();
+        let id = create_user(&conn).await;
+
+        let user = conn.get_user(id).await.unwrap().unwrap();
+        assert_eq!(user.name, None);
+
+        conn.update_user_name(id, "test".into()).await.unwrap();
+
+        let user = conn.get_user(id).await.unwrap().unwrap();
+        assert_eq!(user.name, Some("test".into()));
     }
 
     #[tokio::test]

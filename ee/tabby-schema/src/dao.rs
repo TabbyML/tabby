@@ -52,6 +52,7 @@ impl From<UserDAO> for auth::User {
         auth::User {
             id: val.id.as_id(),
             email: val.email,
+            name: val.name.unwrap_or_default(),
             is_owner,
             is_admin: val.is_admin,
             auth_token: val.auth_token,

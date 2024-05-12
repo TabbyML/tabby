@@ -616,6 +616,17 @@ impl Mutation {
         Ok(true)
     }
 
+    async fn update_user_name(ctx: &Context, id: ID, name: String) -> Result<bool> {
+        let claims = check_claims(ctx)?;
+        if claims.sub != id {
+            return Err(CoreError::Unauthorized(
+                "You cannot change another user's name",
+            ));
+        }
+        ctx.locator.auth().update_user_name(&id, name).await?;
+        Ok(true)
+    }
+
     async fn register(
         ctx: &Context,
         email: String,
