@@ -6,7 +6,7 @@ use futures::stream::BoxStream;
 use serde_json::json;
 use tabby_inference::{CompletionOptions, CompletionStream, Embedding};
 use tokio::task::JoinHandle;
-use tracing::{warn};
+use tracing::warn;
 
 pub struct LlamaCppServer {
     port: u16,

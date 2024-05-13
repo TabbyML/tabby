@@ -69,8 +69,7 @@ fn main() {
         make_output_binary(&out, "llama-server")
     };
 
-    std::fs::rename(server_binary, &renamed_server_binary)
-        .expect("Failed to rename server binary");
+    std::fs::rename(server_binary, &renamed_server_binary).expect("Failed to rename server binary");
     copy_to_output(&renamed_server_binary)
         .expect("Failed to copy server binary to output directory");
 }
