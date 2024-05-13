@@ -1,7 +1,6 @@
 use tabby_common::{index::DocSearchSchema, path};
 use tantivy::{doc, Index, IndexWriter, Term};
 
-
 use crate::tantivy_utils::open_or_create_index;
 
 struct Document {
