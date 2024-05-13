@@ -36,6 +36,7 @@ mdka = "1.2.4"
 readable-readability = "0.4.0"
 url.workspace = true
 voca_rs = "1.15.2"
+tabby-inference = { path = "../tabby-inference" }
 
 [dev-dependencies]
 temp_testdir = { workspace = true }

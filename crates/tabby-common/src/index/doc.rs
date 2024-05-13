@@ -11,7 +11,7 @@ pub struct DocSearchSchema {
 
     pub field_title: Field,
     pub field_link: Field,
-    pub field_snippet: Field,
+    pub field_body: Field,
 }
 
 impl DocSearchSchema {
@@ -22,7 +22,7 @@ impl DocSearchSchema {
         let field_embedding_token = builder.add_text_field("embedding_token", STRING);
         let field_title = builder.add_text_field("title", STORED);
         let field_link = builder.add_text_field("link", STORED);
-        let field_snippet = builder.add_text_field("snippet", STORED);
+        let field_body = builder.add_text_field("body", STORED);
 
         let schema = builder.build();
 
@@ -32,7 +32,7 @@ impl DocSearchSchema {
             field_embedding_token,
             field_title,
             field_link,
-            field_snippet,
+            field_body,
         }
     }
 }

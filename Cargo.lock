@@ -5449,6 +5449,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tabby-common",
+ "tabby-inference",
  "tantivy",
  "temp_testdir",
  "text-splitter",
