@@ -1,7 +1,8 @@
-use crate::{integration::IntegrationKind, schema::Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use juniper::ID;
+
+use crate::{integration::IntegrationKind, schema::Result};
 
 pub struct ProvidedRepository {
     pub integration_id: ID,

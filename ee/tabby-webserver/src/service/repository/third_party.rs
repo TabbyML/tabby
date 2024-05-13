@@ -1,20 +1,19 @@
-use chrono::{DateTime, Utc};
-use juniper::ID;
 use std::sync::Arc;
+
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use fetch::fetch_all_repos;
+use juniper::ID;
+use tabby_db::DbConn;
 use tabby_schema::{
     integration::{IntegrationKind, IntegrationService},
-    repository::ProvidedRepository,
+    repository::{ProvidedRepository, ThirdPartyRepositoryService},
     AsRowid, DbEnum, Result,
 };
 use tracing::{debug, error};
 use url::Url;
 
-use async_trait::async_trait;
-use tabby_db::DbConn;
-use tabby_schema::repository::ThirdPartyRepositoryService;
-
 use crate::service::graphql_pagination_to_filter;
-use fetch::fetch_all_repos;
 
 mod fetch;
 
@@ -95,7 +94,7 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
         Ok(urls)
     }
 
-    async fn sync_repositories(&self, kind: IntegrationKind) -> Result<()> {
+    async fn sync_repositories(&self, _kind: IntegrationKind) -> Result<()> {
         todo!("Loop over integrations and call refresh_repositories_for_provider");
         Ok(())
     }
@@ -173,7 +172,7 @@ async fn refresh_repositories_for_provider(
         .update_integration_error(provider_id.clone(), None)
         .await?;
     let num_removed = repository
-        .delete_outdated_repositories(provider_id, start.into())
+        .delete_outdated_repositories(provider_id, start)
         .await?;
     debug!("Removed {} outdated repositories", num_removed);
     Ok(())

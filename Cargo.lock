@@ -5473,7 +5473,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test 3.0.0",
- "strum",
  "tabby-common",
  "tabby-db",
  "tabby-scheduler",
