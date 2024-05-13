@@ -1,43 +1,71 @@
 use std::{
+    net::TcpListener,
     process::{ExitStatus, Stdio},
     sync::Arc,
 };
 
+use anyhow::Result;
+use async_trait::async_trait;
+use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_inference::{ChatCompletionStream, CompletionStream, Embedding};
+use tabby_inference::{
+    ChatCompletionOptions, ChatCompletionStream, CompletionOptions, CompletionStream, Embedding,
+};
 use tokio::task::JoinHandle;
-use tracing::warn;
+use tracing::{info, warn};
 
-struct LlamaCppServer {
+pub struct LlamaCppServer {
+    port: u16,
     handle: JoinHandle<()>,
+    completion: Arc<dyn CompletionStream>,
+    embedding: Arc<dyn Embedding>,
 }
 
-const SERVER_PORT: u16 = 30888;
+#[async_trait]
+impl CompletionStream for LlamaCppServer {
+    async fn generate(&self, prompt: &str, options: CompletionOptions) -> BoxStream<String> {
+        self.completion.generate(prompt, options).await
+    }
+}
+
+#[async_trait]
+impl Embedding for LlamaCppServer {
+    async fn embed(&self, prompt: &str) -> Result<Vec<f32>> {
+        self.embedding.embed(prompt).await
+    }
+}
 
 impl LlamaCppServer {
     pub fn new(model_path: &str, use_gpu: bool, parallelism: u8) -> Self {
-        let mut num_gpu_layers = std::env::var("LLAMA_CPP_N_GPU_LAYERS").unwrap_or("9999".into());
-        if !use_gpu {
-            num_gpu_layers = "0".to_string();
-        }
-
         let model_path = model_path.to_owned();
+        let port = get_available_port();
         let handle = tokio::spawn(async move {
             loop {
-                let mut process = tokio::process::Command::new("llama-server")
+                let mut command = tokio::process::Command::new("llama-server");
+
+                command
                     .arg("-m")
                     .arg(&model_path)
                     .arg("--port")
-                    .arg(SERVER_PORT.to_string())
-                    .arg("-ngl")
-                    .arg(&num_gpu_layers)
+                    .arg(port.to_string())
                     .arg("-np")
                     .arg(parallelism.to_string())
+                    .arg("--log-disable")
                     .kill_on_drop(true)
-                    .stderr(Stdio::inherit())
-                    .stdout(Stdio::inherit())
-                    .spawn()
-                    .expect("Failed to spawn llama-cpp-server");
+                    .stderr(Stdio::null())
+                    .stdout(Stdio::null());
+
+                if let Ok(n_threads) = std::env::var("LLAMA_CPP_N_THREADS") {
+                    command.arg("-t").arg(n_threads);
+                }
+
+                if use_gpu {
+                    let num_gpu_layers =
+                        std::env::var("LLAMA_CPP_N_GPU_LAYERS").unwrap_or("9999".into());
+                    command.arg("-ngl").arg(&num_gpu_layers);
+                }
+
+                let mut process = command.spawn().expect("Failed to spawn llama-cpp-server");
 
                 let status_code = process
                     .wait()
@@ -47,18 +75,26 @@ impl LlamaCppServer {
                     .unwrap_or(-1);
 
                 if status_code != 0 {
-                    warn!("llama-server exited with status code {}, restarting...", status_code);
+                    warn!(
+                        "llama-server exited with status code {}, restarting...",
+                        status_code
+                    );
                 }
             }
         });
 
-        Self { handle }
+        Self {
+            handle,
+            port,
+            completion: make_completion(port),
+            embedding: make_embedding(port),
+        }
     }
 
-    async fn wait_for_health(&self) {
+    pub async fn start(&self) {
         let client = reqwest::Client::new();
         loop {
-            let Ok(resp) = client.get(api_endpoint() + "/health").send().await else {
+            let Ok(resp) = client.get(api_endpoint(self.port) + "/health").send().await else {
                 continue;
             };
 
@@ -67,34 +103,37 @@ impl LlamaCppServer {
             }
         }
     }
+}
 
-    pub fn completion(&self, prompt_template: String) -> Arc<dyn CompletionStream> {
-        let model_spec: String = serde_json::to_string(&json!({
-            "kind": "llama",
-            "api_endpoint": api_endpoint(),
-            "prompt_template": prompt_template,
-        }))
-        .expect("Failed to serialize model spec");
-        let (engine, _, _) = http_api_bindings::create(&model_spec);
-        engine
-    }
+fn make_completion(port: u16) -> Arc<dyn CompletionStream> {
+    let model_spec: String = serde_json::to_string(&json!({
+        "kind": "llama",
+        "api_endpoint": api_endpoint(port),
+    }))
+    .expect("Failed to serialize model spec");
+    let (engine, _, _) = http_api_bindings::create(&model_spec);
+    engine
+}
 
-    pub fn chat(&self) -> Arc<dyn ChatCompletionStream> {
-        let model_spec: String = serde_json::to_string(&json!({
-            "kind": "openai-chat",
-            "api_endpoint": format!("http://localhost:{SERVER_PORT}/v1"),
-        }))
-        .expect("Failed to serialize model spec");
-        http_api_bindings::create_chat(&model_spec)
-    }
+pub fn make_embedding(port: u16) -> Arc<dyn Embedding> {
+    let model_spec: String = serde_json::to_string(&json!({
+        "kind": "llama",
+        "api_endpoint": api_endpoint(port),
+    }))
+    .expect("Failed to serialize model spec");
+    http_api_bindings::create_embedding(&model_spec)
+}
 
-    pub fn embedding(self) -> Arc<dyn Embedding> {
-        let model_spec: String = serde_json::to_string(&json!({
-            "kind": "llama",
-            "api_endpoint": format!("http://localhost:{SERVER_PORT}"),
-        }))
-        .expect("Failed to serialize model spec");
-        http_api_bindings::create_embedding(&model_spec)
+fn get_available_port() -> u16 {
+    (30888..40000)
+        .find(|port| port_is_available(*port))
+        .expect("Failed to find available port")
+}
+
+fn port_is_available(port: u16) -> bool {
+    match TcpListener::bind(("127.0.0.1", port)) {
+        Ok(_) => true,
+        Err(_) => false,
     }
 }
 
@@ -104,8 +143,8 @@ impl Drop for LlamaCppServer {
     }
 }
 
-fn api_endpoint() -> String {
-    format!("http://localhost:{SERVER_PORT}")
+fn api_endpoint(port: u16) -> String {
+    format!("http://localhost:{port}")
 }
 
 #[cfg(test)]
@@ -123,13 +162,11 @@ mod tests {
         let (registry, name) = parse_model_id(model_id);
         let registry = ModelRegistry::new(registry).await;
         let model_path = registry.get_model_path(name).display().to_string();
-        let model_info = registry.get_model_info(name);
 
         let server = LlamaCppServer::new(&model_path, false, 1);
-        server.wait_for_health().await;
+        server.start().await;
 
-        let completion = server.completion(model_info.prompt_template.clone().unwrap());
-        let s = completion
+        let s = server
             .generate(
                 "def fib(n):",
                 CompletionOptionsBuilder::default()

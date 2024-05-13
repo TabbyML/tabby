@@ -64,17 +64,17 @@ async fn load_completion(
             device,
             model_path.display().to_string().as_str(),
             parallelism,
-        );
+        ).await;
         let engine_info = PromptInfo::read(path.join("tabby.json"));
-        (Arc::new(engine), engine_info)
+        (engine, engine_info)
     } else {
         let (registry, name) = parse_model_id(model_id);
         let registry = ModelRegistry::new(registry).await;
         let model_path = registry.get_model_path(name).display().to_string();
         let model_info = registry.get_model_info(name);
-        let engine = create_ggml_engine(device, &model_path, parallelism);
+        let engine = create_ggml_engine(device, &model_path, parallelism).await;
         (
-            Arc::new(engine),
+            engine,
             PromptInfo {
                 prompt_template: model_info.prompt_template.clone(),
                 chat_template: model_info.chat_template.clone(),
@@ -96,7 +96,11 @@ impl PromptInfo {
     }
 }
 
-fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> impl CompletionStream {
+async fn create_ggml_engine(
+    device: &Device,
+    model_path: &str,
+    parallelism: u8,
+) -> Arc<dyn CompletionStream> {
     if !device.ggml_use_gpu() {
         InfoMessage::new(
             "CPU Device",
@@ -107,14 +111,11 @@ fn create_ggml_engine(device: &Device, model_path: &str, parallelism: u8) -> imp
             ],
         );
     }
-    let options = llama_cpp_bindings::LlamaTextGenerationOptionsBuilder::default()
-        .model_path(model_path.to_owned())
-        .use_gpu(device.ggml_use_gpu())
-        .parallelism(parallelism)
-        .build()
-        .expect("Failed to create llama text generation options");
 
-    llama_cpp_bindings::LlamaTextGeneration::new(options)
+    let server =
+        llama_cpp_server::LlamaCppServer::new(model_path, device.ggml_use_gpu(), parallelism);
+    server.start().await;
+    Arc::new(server)
 }
 
 pub async fn download_model_if_needed(model: &str) {
