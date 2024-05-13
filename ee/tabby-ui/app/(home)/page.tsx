@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { noop } from 'lodash-es'
+import Link from 'next/link'
+import { useTheme } from 'next-themes'
 
+import { cn } from '@/lib/utils'
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
@@ -11,7 +14,7 @@ import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useSignOut } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import {
   IconChat,
@@ -20,7 +23,9 @@ import {
   IconLogout,
   IconMail,
   IconRotate,
-  IconSpinner
+  IconSpinner,
+  IconVSCode,
+  IconJetBrains
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -41,6 +46,7 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 function Configuration({ className }: { className?: string }) {
   const [{ data }, reexecuteQuery] = useMe()
   const externalUrl = useExternalURL()
+  const { theme } = useTheme()
 
   const resetUserAuthToken = useMutation(resetUserAuthTokenDocument, {
     onCompleted: () => reexecuteQuery()
@@ -100,6 +106,24 @@ function Configuration({ className }: { className?: string }) {
           for details
         </span>
       </CardFooter>
+
+      <div className="flex gap-x-3 justify-between mt-4 mb-6 lg:mb-0">
+        <Link
+          className={cn(buttonVariants({ variant: theme === 'dark' ? 'default' : 'outline' }), "flex flex-1 items-center")}
+          href="https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby"
+          target='_blank'>
+            <IconVSCode  />
+            <p className="text-xs ml-1">VS Code</p>
+        </Link>
+        <Link
+          className={cn(buttonVariants({ variant: theme === 'dark' ? 'default' : 'outline' }), "flex flex-1 items-center")}
+          href="https://plugins.jetbrains.com/plugin/22379-tabby"
+          target='_blank'>
+            <IconJetBrains />
+            <p className="text-xs ml-1">JetBrains</p>
+        </Link>
+        
+      </div>
     </div>
   )
 }
