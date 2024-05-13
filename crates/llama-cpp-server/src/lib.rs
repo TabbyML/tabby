@@ -175,7 +175,7 @@ mod tests {
         let registry = ModelRegistry::new(registry).await;
         let model_path = registry.get_model_path(name).display().to_string();
 
-        let server = LlamaCppServer::new("cpu", &model_path, false, 1);
+        let server = LlamaCppServer::new("cpu", &model_path, 1);
         server.start().await;
 
         let s = server
