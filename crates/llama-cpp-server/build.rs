@@ -1,7 +1,7 @@
 use std::env;
 
 use cmake::Config;
-use omnicopy_to_output::copy_to_output_by_path;
+use omnicopy_to_output::copy_to_output;
 
 fn main() {
     let mut config = Config::new("../llama-cpp-bindings/llama.cpp");
@@ -56,8 +56,8 @@ fn main() {
     }
 
     let out = config.build();
-    let server_binary = out.join("bin").join("server");
+    let server_binary =
+        out.join("bin").join("server").display().to_string() + env::consts::EXE_SUFFIX;
 
-    copy_to_output_by_path(&server_binary)
-        .expect("Failed to copy server binary to output directory");
+    copy_to_output(&server_binary).expect("Failed to copy server binary to output directory");
 }
