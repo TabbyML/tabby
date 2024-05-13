@@ -21,9 +21,6 @@ async-trait.workspace = true
 tokio = { workspace = true, features = ["process"] }
 anyhow.workspace = true
 
-[dev-dependencies]
-tabby-common = { path = "../tabby-common" }
-
 [build-dependencies]
 cmake = "0.1"
 omnicopy_to_output = "0.1.1"
