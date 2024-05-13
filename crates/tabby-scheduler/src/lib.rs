@@ -1,9 +1,12 @@
 //! Responsible for scheduling all of the background jobs for tabby.
 //! Includes syncing respositories and updating indices.
+
+pub mod crawl;
+
 mod code;
 pub use code::CodeIndex;
 
-pub mod crawl;
+mod doc;
 
 use std::sync::Arc;
 
@@ -65,4 +68,37 @@ fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
     }
 
     code.garbage_collection();
+}
+
+mod tantivy_utils {
+    use std::{fs, path::Path};
+
+    use tabby_common::index::register_tokenizers;
+    use tantivy::{directory::MmapDirectory, schema::Schema, Index};
+    use tracing::{debug, warn};
+
+    pub fn open_or_create_index(code: &Schema, path: &Path) -> Index {
+        let index = match open_or_create_index_impl(code, path) {
+            Ok(index) => index,
+            Err(err) => {
+                warn!(
+                    "Failed to open index repositories: {}, removing index directory '{}'...",
+                    err,
+                    path.display()
+                );
+                fs::remove_dir_all(path).expect("Failed to remove index directory");
+
+                debug!("Reopening index repositories...");
+                open_or_create_index_impl(code, path).expect("Failed to open index")
+            }
+        };
+        register_tokenizers(&index);
+        index
+    }
+
+    fn open_or_create_index_impl(code: &Schema, path: &Path) -> tantivy::Result<Index> {
+        fs::create_dir_all(path).expect("Failed to create index directory");
+        let directory = MmapDirectory::open(path).expect("Failed to open index directory");
+        Index::open_or_create(directory, code.clone())
+    }
 }
