@@ -7,10 +7,9 @@ mod code;
 pub use code::CodeIndex;
 
 mod doc;
-pub use doc::DocIndex;
-
 use std::sync::Arc;
 
+pub use doc::{DocIndex, SourceDocument};
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{info, warn};

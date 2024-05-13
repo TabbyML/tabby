@@ -45,3 +45,4 @@ tracing-test = "0.1"
 tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread"] }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
+tracing-subscriber = { workspace = true }
