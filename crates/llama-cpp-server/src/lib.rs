@@ -33,7 +33,7 @@ impl LlamaCppServer {
     pub fn new(device: &str, model_path: &str, parallelism: u8) -> Self {
         let use_gpu = device != "cpu";
         let Some(binary_name) = find_binary_name(Some(device)) else {
-            panic!("Failed to find llama-server binary for device {device}, please make sure you have corresponding llama-server binary locates in the same directory as the current executable");
+            panic!("Failed to find llama-server binary for device {device}, please make sure you have corresponding llama-server binary locates in the same directory as the current executable.");
         };
 
         let model_path = model_path.to_owned();
