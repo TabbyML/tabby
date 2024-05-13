@@ -1,19 +1,26 @@
+use chrono::{DateTime, Utc};
 use juniper::ID;
-use std::marker::PhantomData;
-use strum::IntoEnumIterator;
+use std::sync::Arc;
 use tabby_schema::{
-    integration::IntegrationKind, repository::ProvidedRepository, AsRowid, DbEnum, Result,
+    integration::{IntegrationKind, IntegrationService},
+    repository::ProvidedRepository,
+    AsRowid, DbEnum, Result,
 };
+use tracing::{debug, error};
 use url::Url;
 
 use async_trait::async_trait;
 use tabby_db::DbConn;
-use tabby_schema::repository::{RepositoryProvider, ThirdPartyRepositoryService};
+use tabby_schema::repository::ThirdPartyRepositoryService;
 
 use crate::service::graphql_pagination_to_filter;
+use fetch::fetch_all_repos;
+
+mod fetch;
 
 struct ThirdPartyRepositoryServiceImpl {
     db: DbConn,
+    integration: Arc<dyn IntegrationService>,
 }
 
 #[async_trait]
@@ -56,7 +63,120 @@ impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
 
     async fn list_active_git_urls(&self) -> Result<Vec<String>> {
         let mut urls = vec![];
+
+        let integrations = self
+            .integration
+            .list_integrations(None, None, None, None, None, None)
+            .await?;
+
+        for integration in integrations {
+            let repositories = self
+                .list_repositories(
+                    Some(vec![integration.id.clone()]),
+                    None,
+                    Some(true),
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+                .await?;
+
+            for repository in repositories {
+                let url = format_authenticated_url(
+                    &repository.kind,
+                    &repository.git_url,
+                    &integration.access_token,
+                )?;
+                urls.push(url);
+            }
+        }
+
+        Ok(urls)
     }
+
+    async fn sync_repositories(&self, kind: IntegrationKind) -> Result<()> {
+        todo!("Loop over integrations and call refresh_repositories_for_provider");
+        Ok(())
+    }
+
+    async fn upsert_repository(
+        &self,
+        integration_id: ID,
+        vendor_id: String,
+        display_name: String,
+        git_url: String,
+    ) -> Result<()> {
+        self.db
+            .upsert_provided_repository(
+                integration_id.as_rowid()?,
+                vendor_id,
+                display_name,
+                git_url,
+            )
+            .await?;
+        Ok(())
+    }
+
+    async fn delete_outdated_repositories(
+        &self,
+        integration_id: ID,
+        before: DateTime<Utc>,
+    ) -> Result<usize> {
+        Ok(self
+            .db
+            .delete_outdated_provided_repositories(integration_id.as_rowid()?, before.into())
+            .await?)
+    }
+}
+
+async fn refresh_repositories_for_provider(
+    repository: Arc<dyn ThirdPartyRepositoryService>,
+    integration: Arc<dyn IntegrationService>,
+    provider_id: ID,
+) -> Result<()> {
+    let provider = integration.get_integration(provider_id.clone()).await?;
+    debug!(
+        "Refreshing repositories for provider: {}",
+        provider.display_name
+    );
+
+    let start = Utc::now();
+    let repos = match fetch_all_repos(provider.kind.clone(), &provider.access_token).await {
+        Ok(repos) => repos,
+        Err((e, true)) => {
+            integration
+                .update_integration_error(provider.id.clone(), Some("".into()))
+                .await?;
+            error!(
+                "Credentials for integration {} are expired or invalid",
+                provider.display_name
+            );
+            return Err(e.into());
+        }
+        Err((e, false)) => {
+            error!("Failed to fetch repositories from github: {e}");
+            return Err(e.into());
+        }
+    };
+    for repo in repos {
+        debug!("importing: {}", repo.name);
+
+        let id = repo.vendor_id;
+
+        repository
+            .upsert_repository(provider_id.clone(), id, repo.name, repo.git_url)
+            .await?;
+    }
+
+    integration
+        .update_integration_error(provider_id.clone(), None)
+        .await?;
+    let num_removed = repository
+        .delete_outdated_repositories(provider_id, start.into())
+        .await?;
+    debug!("Removed {} outdated repositories", num_removed);
+    Ok(())
 }
 
 fn format_authenticated_url(

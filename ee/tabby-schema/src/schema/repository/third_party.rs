@@ -28,5 +28,18 @@ pub trait ThirdPartyRepositoryService: Send + Sync {
     ) -> Result<Vec<ProvidedRepository>>;
 
     async fn update_repository_active(&self, id: ID, active: bool) -> Result<()>;
+    async fn upsert_repository(
+        &self,
+        integration_id: ID,
+        vendor_id: String,
+        display_name: String,
+        git_url: String,
+    ) -> Result<()>;
     async fn list_active_git_urls(&self) -> Result<Vec<String>>;
+    async fn sync_repositories(&self, kind: IntegrationKind) -> Result<()>;
+    async fn delete_outdated_repositories(
+        &self,
+        integration_id: ID,
+        before: DateTime<Utc>,
+    ) -> Result<usize>;
 }

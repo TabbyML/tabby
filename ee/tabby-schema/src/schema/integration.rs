@@ -47,6 +47,6 @@ pub trait IntegrationService: Send + Sync {
         first: Option<usize>,
         last: Option<usize>,
     ) -> Result<Vec<IntegrationAccessToken>>;
-
-    async fn sync_resources(&self, id: ID) -> Result<()>;
+    async fn get_integration(&self, id: ID) -> Result<IntegrationAccessToken>;
+    async fn update_integration_error(&self, id: ID, error: Option<String>) -> Result<()>;
 }
