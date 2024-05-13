@@ -67,9 +67,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
-        api::code::SearchResponse,
-        api::code::Hit,
-        api::code::HitDocument,
+        api::code::CodeSearchResponse,
+        api::code::CodeSearchHit,
+        api::code::CodeSearchDocument,
         api::server_setting::ServerSetting
     )),
     modifiers(&SecurityAddon),

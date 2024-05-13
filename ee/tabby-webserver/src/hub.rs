@@ -6,7 +6,7 @@ use axum::{extract::Request, http::HeaderName};
 use axum_extra::headers::Header;
 use serde::{Deserialize, Serialize};
 use tabby_common::api::{
-    code::{CodeSearch, CodeSearchError, SearchResponse},
+    code::{CodeSearch, CodeSearchError, CodeSearchResponse},
     event::{EventLogger, LogEntry},
 };
 use tabby_schema::worker::Worker;
@@ -19,7 +19,7 @@ use crate::axum::websocket::WebSocketTransport;
 pub trait Hub {
     async fn write_log(x: LogEntry);
 
-    async fn search(q: String, limit: usize, offset: usize) -> SearchResponse;
+    async fn search(q: String, limit: usize, offset: usize) -> CodeSearchResponse;
 
     async fn search_in_language(
         git_url: String,
@@ -27,7 +27,7 @@ pub trait Hub {
         tokens: Vec<String>,
         limit: usize,
         offset: usize,
-    ) -> SearchResponse;
+    ) -> CodeSearchResponse;
 }
 
 fn tracing_context() -> tarpc::context::Context {
@@ -80,7 +80,7 @@ impl CodeSearch for WorkerClient {
         q: &str,
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
         match self
             .0
             .search(tracing_context(), q.to_owned(), limit, offset)
@@ -98,7 +98,7 @@ impl CodeSearch for WorkerClient {
         tokens: &[String],
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
         match self
             .0
             .search_in_language(

@@ -4,28 +4,27 @@ use thiserror::Error;
 use utoipa::ToSchema;
 
 #[derive(Default, Serialize, Deserialize, Debug, ToSchema)]
-pub struct CodeSearchResponse {
+pub struct DocSearchResponse {
     pub num_hits: usize,
-    pub hits: Vec<CodeSearchHit>,
+    pub hits: Vec<DocSearchHit>,
 }
 
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
-pub struct CodeSearchHit {
+pub struct DocSearchHit {
     pub score: f32,
-    pub doc: CodeSearchDocument,
+    pub doc: DocSearchDocument,
     pub id: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
-pub struct CodeSearchDocument {
-    pub body: String,
-    pub filepath: String,
-    pub git_url: String,
-    pub language: String,
+pub struct DocSearchDocument {
+    pub title: String,
+    pub link: String,
+    pub snippet: String,
 }
 
 #[derive(Error, Debug)]
-pub enum CodeSearchError {
+pub enum DocSearchError {
     #[error("index not ready")]
     NotReady,
 
@@ -40,20 +39,11 @@ pub enum CodeSearchError {
 }
 
 #[async_trait]
-pub trait CodeSearch: Send + Sync {
+pub trait DocSearch: Send + Sync {
     async fn search(
         &self,
         q: &str,
         limit: usize,
         offset: usize,
-    ) -> Result<CodeSearchResponse, CodeSearchError>;
-
-    async fn search_in_language(
-        &self,
-        git_url: &str,
-        language: &str,
-        tokens: &[String],
-        limit: usize,
-        offset: usize,
-    ) -> Result<CodeSearchResponse, CodeSearchError>;
+    ) -> Result<DocSearchResponse, DocSearchError>;
 }

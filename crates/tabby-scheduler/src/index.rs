@@ -5,12 +5,15 @@ use kv::Batch;
 use tabby_common::{
     config::RepositoryConfig,
     index::{register_tokenizers, CodeSearchSchema},
-    path, SourceFile,
+    path,
 };
 use tantivy::{directory::MmapDirectory, doc, Index, Term};
 use tracing::{debug, warn};
 
-use crate::{cache::CacheStore, code::CodeIntelligence};
+use crate::{
+    cache::CacheStore,
+    code::{CodeIntelligence, SourceFile},
+};
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;

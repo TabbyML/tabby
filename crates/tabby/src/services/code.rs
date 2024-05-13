@@ -5,7 +5,9 @@ use async_trait::async_trait;
 use cached::{CachedAsync, TimedCache};
 use parse_git_url::GitUrl;
 use tabby_common::{
-    api::code::{CodeSearch, CodeSearchError, Hit, HitDocument, SearchResponse},
+    api::code::{
+        CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchResponse,
+    },
     config::{RepositoryAccess, RepositoryConfig},
     index::{self, register_tokenizers, CodeSearchSchema},
     path,
@@ -69,10 +71,10 @@ impl CodeSearchImpl {
         }
     }
 
-    fn create_hit(&self, score: f32, doc: Document, doc_address: DocAddress) -> Hit {
-        Hit {
+    fn create_hit(&self, score: f32, doc: Document, doc_address: DocAddress) -> CodeSearchHit {
+        CodeSearchHit {
             score,
-            doc: HitDocument {
+            doc: CodeSearchDocument {
                 body: get_field(&doc, self.schema.field_body),
                 filepath: get_field(&doc, self.schema.field_filepath),
                 git_url: get_field(&doc, self.schema.field_git_url),
@@ -87,11 +89,11 @@ impl CodeSearchImpl {
         q: &dyn tantivy::query::Query,
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
         let searcher = self.reader.searcher();
         let (top_docs, num_hits) =
             { searcher.search(q, &(TopDocs::with_limit(limit).and_offset(offset), Count))? };
-        let hits: Vec<Hit> = {
+        let hits: Vec<CodeSearchHit> = {
             top_docs
                 .iter()
                 .map(|(score, doc_address)| {
@@ -100,7 +102,7 @@ impl CodeSearchImpl {
                 })
                 .collect()
         };
-        Ok(SearchResponse { num_hits, hits })
+        Ok(CodeSearchResponse { num_hits, hits })
     }
 }
 
@@ -111,7 +113,7 @@ impl CodeSearch for CodeSearchImpl {
         q: &str,
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
         let query = self.query_parser.parse_query(q)?;
         self.search_with_query(&query, limit, offset).await
     }
@@ -123,7 +125,7 @@ impl CodeSearch for CodeSearchImpl {
         tokens: &[String],
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
         let language_query = self.schema.language_query(language);
         let body_query = self.schema.body_query(tokens);
 
@@ -137,7 +139,7 @@ impl CodeSearch for CodeSearchImpl {
             .await?;
 
         let Some(git_url) = closest_match(git_url, repos.iter()) else {
-            return Ok(SearchResponse::default());
+            return Ok(CodeSearchResponse::default());
         };
 
         let git_url_query = self.schema.git_url_query(git_url);
@@ -204,7 +206,7 @@ impl CodeSearch for CodeSearchService {
         q: &str,
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
         if let Some(imp) = self.search.lock().await.as_ref() {
             imp.search(q, limit, offset).await
         } else {
@@ -219,7 +221,7 @@ impl CodeSearch for CodeSearchService {
         tokens: &[String],
         limit: usize,
         offset: usize,
-    ) -> Result<SearchResponse, CodeSearchError> {
+    ) -> Result<CodeSearchResponse, CodeSearchError> {
         if let Some(imp) = self.search.lock().await.as_ref() {
             imp.search_in_language(git_url, language, tokens, limit, offset)
                 .await

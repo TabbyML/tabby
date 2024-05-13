@@ -37,16 +37,8 @@ pub fn repositories_dir() -> PathBuf {
     tabby_root().join("repositories")
 }
 
-pub fn dependency_file() -> PathBuf {
-    dataset_dir().join("deps.json")
-}
-
 pub fn index_dir() -> PathBuf {
     tabby_root().join("index")
-}
-
-pub fn dataset_dir() -> PathBuf {
-    tabby_root().join("dataset")
 }
 
 pub fn models_dir() -> PathBuf {
