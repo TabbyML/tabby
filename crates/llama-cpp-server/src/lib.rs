@@ -30,7 +30,13 @@ impl Embedding for LlamaCppServer {
 }
 
 impl LlamaCppServer {
-    pub fn new(model_path: &str, use_gpu: bool, parallelism: u8) -> Self {
+    pub fn new(device: &str, model_path: &str, parallelism: u8) -> Self {
+        let use_gpu = device != "cpu";
+        let mut binary_name = "llama-server".to_owned();
+        if device != "cpu" && device != "metal" {
+            binary_name = binary_name + "-" + device;
+        }
+
         let model_path = model_path.to_owned();
         let port = get_available_port();
         let handle = tokio::spawn(async move {
@@ -39,7 +45,7 @@ impl LlamaCppServer {
                     .expect("Failed to get current executable path")
                     .parent()
                     .expect("Failed to get parent directory")
-                    .join("server")
+                    .join(&binary_name)
                     .display()
                     .to_string()
                     + std::env::consts::EXE_SUFFIX;
@@ -67,7 +73,12 @@ impl LlamaCppServer {
                     command.arg("-ngl").arg(&num_gpu_layers);
                 }
 
-                let mut process = command.spawn().expect("Failed to spawn llama-cpp-server");
+                let mut process = command.spawn().unwrap_or_else(|e| {
+                    panic!(
+                        "Failed to start llama-server with command {:?}: {}",
+                        command, e
+                    )
+                });
 
                 let status_code = process
                     .wait()
@@ -162,7 +173,7 @@ mod tests {
         let registry = ModelRegistry::new(registry).await;
         let model_path = registry.get_model_path(name).display().to_string();
 
-        let server = LlamaCppServer::new(&model_path, false, 1);
+        let server = LlamaCppServer::new("cpu", &model_path, false, 1);
         server.start().await;
 
         let s = server

@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, path::Path};
 
 use cmake::Config;
 use omnicopy_to_output::copy_to_output;
@@ -56,8 +56,23 @@ fn main() {
     }
 
     let out = config.build();
-    let server_binary =
-        out.join("bin").join("server").display().to_string() + env::consts::EXE_SUFFIX;
+    let server_binary = make_output_binary(&out, "server");
+    let renamed_server_binary = if cfg!(feature = "cuda") {
+        make_output_binary(&out, "llama-server-cuda")
+    } else if cfg!(feature = "rocm") {
+        make_output_binary(&out, "llama-server-rocm")
+    } else if cfg!(feature = "vulkan") {
+        make_output_binary(&out, "llama-server-vulkan")
+    } else {
+        make_output_binary(&out, "llama-server")
+    };
 
-    copy_to_output(&server_binary).expect("Failed to copy server binary to output directory");
+    std::fs::rename(&server_binary, &renamed_server_binary)
+        .expect("Failed to rename server binary");
+    copy_to_output(&renamed_server_binary)
+        .expect("Failed to copy server binary to output directory");
+}
+
+fn make_output_binary(out: &Path, name: &str) -> String {
+    out.join("bin").join(name).display().to_string() + env::consts::EXE_SUFFIX
 }
