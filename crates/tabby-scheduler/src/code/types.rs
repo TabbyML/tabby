@@ -3,7 +3,7 @@ use std::{ops::Range, path::Path};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct SourceFile {
+pub struct SourceCode {
     pub git_url: String,
     pub basedir: String,
     pub filepath: String,
@@ -14,7 +14,7 @@ pub struct SourceFile {
     pub tags: Vec<Tag>,
 }
 
-impl SourceFile {
+impl SourceCode {
     pub fn read_content(&self) -> std::io::Result<String> {
         let path = Path::new(&self.basedir).join(&self.filepath);
         std::fs::read_to_string(path)

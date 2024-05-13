@@ -8,17 +8,16 @@ use tracing::warn;
 
 use crate::tantivy_utils::open_or_create_index;
 
-struct Document {
+pub struct SourceDocument {
     pub id: String,
     pub title: String,
     pub link: String,
     pub body: String,
 }
 
-struct DocIndex {
+pub struct DocIndex {
     embedding: Arc<dyn Embedding>,
     doc: DocSearchSchema,
-    index: Index,
     writer: IndexWriter,
     splitter: TextSplitter<Characters>,
 }
@@ -40,13 +39,12 @@ impl DocIndex {
         Self {
             embedding,
             doc,
-            index,
             writer,
             splitter: TextSplitter::default().with_trim_chunks(true),
         }
     }
 
-    pub async fn add(&mut self, document: Document) {
+    pub async fn add(&mut self, document: SourceDocument) {
         // Delete the document if it already exists
         self.writer
             .delete_term(Term::from_field_text(self.doc.field_id, &document.id));

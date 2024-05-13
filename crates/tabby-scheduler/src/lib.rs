@@ -7,6 +7,7 @@ mod code;
 pub use code::CodeIndex;
 
 mod doc;
+pub use doc::DocIndex;
 
 use std::sync::Arc;
 
