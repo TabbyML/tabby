@@ -8,9 +8,9 @@ homepage.workspace = true
 [features]
 default = ["ee", "dep:color-eyre"]
 ee = ["dep:tabby-webserver"]
-cuda = ["llama-cpp-server/cuda"]
-rocm = ["llama-cpp-server/rocm"]
-vulkan = ["llama-cpp-server/vulkan"]
+cuda = []
+rocm = []
+vulkan = []
 # If compiling on a system without OpenSSL installed, or cross-compiling for a different
 # architecture, enable this feature to compile OpenSSL as part of the build.
 # See https://docs.rs/openssl/#vendored for more.
