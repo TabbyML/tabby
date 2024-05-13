@@ -2777,8 +2777,11 @@ dependencies = [
 name = "llama-cpp-server"
 version = "0.12.0-dev.0"
 dependencies = [
+ "futures",
  "http-api-bindings",
+ "reqwest 0.12.4",
  "serde_json",
+ "tabby-common",
  "tabby-inference",
  "tokio",
 ]

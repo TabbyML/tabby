@@ -37,7 +37,7 @@ tabby-schema = { path = "../../ee/tabby-schema" }
 tabby-db = { path = "../../ee/tabby-db" }
 tarpc = { version = "0.33.0", features = ["serde-transport"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["fs", "process"] }
+tokio = { workspace = true, features = ["fs"] }
 tokio-tungstenite = "0.21"
 tower = { version = "0.4", features = ["util", "limit"] }
 tower-http = { workspace = true, features = ["fs", "trace"] }
