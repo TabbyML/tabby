@@ -85,6 +85,7 @@ fn build_llama_cpp() {
         println!("cargo:rustc-link-search=native={}/hip/lib", rocm_root);
         println!("cargo:rustc-link-search=native={}/rocblas/lib", rocm_root);
         println!("cargo:rustc-link-search=native={}/hipblas/lib", rocm_root);
+        println!("cargo:rustc-link-search=native={}/lib", rocm_root);
         println!("cargo:rustc-link-lib=amdhip64");
         println!("cargo:rustc-link-lib=rocblas");
         println!("cargo:rustc-link-lib=hipblas");
