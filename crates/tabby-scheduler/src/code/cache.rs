@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext};
 use tracing::info;
 
-use crate::code::{CodeIntelligence, SourceFile};
+use super::intelligence::{CodeIntelligence, SourceFile};
 
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
 const INDEX_BUCKET_KEY: &str = "indexed_files";

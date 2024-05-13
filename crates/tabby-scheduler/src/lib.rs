@@ -1,9 +1,12 @@
 //! Responsible for scheduling all of the background jobs for tabby.
 //! Includes syncing respositories and updating indices.
-mod cache;
+
+pub mod crawl;
+
 mod code;
-mod index;
-mod repository;
+pub use code::CodeIndex;
+
+mod doc;
 
 use std::sync::Arc;
 
@@ -59,44 +62,43 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
 }
 
 fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
-    let mut manager = RepositoryManager::default();
+    let mut code = CodeIndex::default();
     for repository in repositories {
-        manager.refresh(repository);
+        code.refresh(repository);
     }
 
-    manager.garbage_collection();
+    code.garbage_collection();
 }
 
-#[derive(Default)]
-pub struct RepositoryManager {
-    is_dirty: bool,
-}
+mod tantivy_utils {
+    use std::{fs, path::Path};
 
-impl RepositoryManager {
-    pub fn refresh(&mut self, repository: &RepositoryConfig) {
-        self.is_dirty = true;
+    use tabby_common::index::register_tokenizers;
+    use tantivy::{directory::MmapDirectory, schema::Schema, Index};
+    use tracing::{debug, warn};
 
-        info!("Refreshing repository: {}", repository.canonical_git_url());
-        repository::sync_repository(repository);
+    pub fn open_or_create_index(code: &Schema, path: &Path) -> Index {
+        let index = match open_or_create_index_impl(code, path) {
+            Ok(index) => index,
+            Err(err) => {
+                warn!(
+                    "Failed to open index repositories: {}, removing index directory '{}'...",
+                    err,
+                    path.display()
+                );
+                fs::remove_dir_all(path).expect("Failed to remove index directory");
 
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        index::index_repository(&mut cache, repository);
+                debug!("Reopening index repositories...");
+                open_or_create_index_impl(code, path).expect("Failed to open index")
+            }
+        };
+        register_tokenizers(&index);
+        index
     }
 
-    pub fn garbage_collection(&mut self) {
-        self.is_dirty = false;
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        cache.garbage_collection_for_source_files();
-        index::garbage_collection(&mut cache);
+    fn open_or_create_index_impl(code: &Schema, path: &Path) -> tantivy::Result<Index> {
+        fs::create_dir_all(path).expect("Failed to create index directory");
+        let directory = MmapDirectory::open(path).expect("Failed to open index directory");
+        Index::open_or_create(directory, code.clone())
     }
 }
-
-impl Drop for RepositoryManager {
-    fn drop(&mut self) {
-        if self.is_dirty {
-            warn!("Garbage collection was expected to be invoked at least once but was not.")
-        }
-    }
-}
-
-pub mod crawl;

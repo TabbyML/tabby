@@ -41,6 +41,10 @@ pub fn index_dir() -> PathBuf {
     tabby_root().join("index")
 }
 
+pub fn doc_index_dir() -> PathBuf {
+    tabby_root().join("doc_index")
+}
+
 pub fn models_dir() -> PathBuf {
     if let Some(cache_root) = &*TABBY_MODEL_CACHE_ROOT {
         cache_root.clone()
