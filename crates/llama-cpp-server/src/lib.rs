@@ -1,5 +1,5 @@
 use std::{
-    process::{ExitStatus, Stdio},
+    process::{Stdio},
     sync::Arc,
 };
 
@@ -47,7 +47,10 @@ impl LlamaCppServer {
                     .unwrap_or(-1);
 
                 if status_code != 0 {
-                    warn!("llama-server exited with status code {}, restarting...", status_code);
+                    warn!(
+                        "llama-server exited with status code {}, restarting...",
+                        status_code
+                    );
                 }
             }
         });
