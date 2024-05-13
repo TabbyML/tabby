@@ -2,7 +2,6 @@
 //! Includes syncing respositories and updating indices.
 mod cache;
 mod code;
-mod dataset;
 mod index;
 mod repository;
 
@@ -65,13 +64,7 @@ fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
         manager.refresh(repository);
     }
 
-    create_dataset(repositories);
     manager.garbage_collection();
-}
-
-fn create_dataset(repositories: &[RepositoryConfig]) {
-    let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-    dataset::create_dataset(&mut cache, repositories);
 }
 
 #[derive(Default)]

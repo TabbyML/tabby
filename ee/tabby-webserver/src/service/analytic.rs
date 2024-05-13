@@ -74,9 +74,8 @@ impl AnalyticService for AnalyticServiceImpl {
     async fn disk_usage_stats(&self) -> Result<DiskUsageStats> {
         Ok(DiskUsageStats {
             events: dir_size(tabby_common::path::events_dir()).await?,
-            indexed_repositories: dir_size(tabby_common::path::dataset_dir())
+            indexed_repositories: dir_size(tabby_common::path::index_dir())
                 .await?
-                .combine(dir_size(tabby_common::path::index_dir()).await?)
                 .combine(dir_size(tabby_common::path::cache_dir()).await?),
             database: dir_size(crate::path::tabby_ee_root()).await?,
             models: dir_size(tabby_common::path::models_dir()).await?,

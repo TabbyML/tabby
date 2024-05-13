@@ -1,5 +1,4 @@
 use std::{
-    fs::read_to_string,
     path::{Path, PathBuf},
     process::Command,
     str::FromStr,
@@ -8,10 +7,10 @@ use std::{
 use anyhow::{bail, Context, Result};
 use kv::{Batch, Bucket, Config, Json, Store};
 use serde::{Deserialize, Serialize};
-use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext, SourceFile};
-use tracing::{info, warn};
+use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext};
+use tracing::info;
 
-use crate::code::CodeIntelligence;
+use crate::code::{CodeIntelligence, SourceFile};
 
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
 const INDEX_BUCKET_KEY: &str = "indexed_files";
@@ -161,7 +160,7 @@ impl CacheStore {
         {
             source_file
         } else {
-            let source_file = create_source_file(config, path, &mut self.code);
+            let source_file = self.code.create_source_file(config, path);
             let json = Json(source_file);
             dataset_bucket
                 .set(&key, &json)
@@ -215,81 +214,4 @@ fn is_item_key_matched(item_key: &str) -> bool {
 
     // If key doesn't match, means file has been removed / modified.
     file_key.to_string() == item_key
-}
-
-fn create_source_file(
-    config: &RepositoryConfig,
-    path: &Path,
-    code: &mut CodeIntelligence,
-) -> Option<SourceFile> {
-    if path.is_dir() || !path.exists() {
-        return None;
-    }
-    let relative_path = path
-        .strip_prefix(&config.dir())
-        .expect("Paths always begin with the prefix");
-
-    let Some(ext) = relative_path.extension() else {
-        return None;
-    };
-
-    let Some(language_info) = get_language_by_ext(ext) else {
-        warn!("Unknown language for extension {:?}", ext);
-        return None;
-    };
-
-    let language = language_info.language();
-    let contents = match read_to_string(path) {
-        Ok(x) => x,
-        Err(_) => {
-            warn!("Failed to read {path:?}, skipping...");
-            return None;
-        }
-    };
-    let source_file = SourceFile {
-        git_url: config.canonical_git_url(),
-        basedir: config.dir().display().to_string(),
-        filepath: relative_path.display().to_string(),
-        max_line_length: metrics::max_line_length(&contents),
-        avg_line_length: metrics::avg_line_length(&contents),
-        alphanum_fraction: metrics::alphanum_fraction(&contents),
-        tags: code.find_tags(language, &contents),
-        language: language.into(),
-    };
-    Some(source_file)
-}
-
-mod metrics {
-    use std::cmp::max;
-
-    pub fn max_line_length(content: &str) -> usize {
-        content.lines().map(|x| x.len()).reduce(max).unwrap_or(0)
-    }
-
-    pub fn avg_line_length(content: &str) -> f32 {
-        let mut total = 0;
-        let mut len = 0;
-        for x in content.lines() {
-            len += 1;
-            total += x.len();
-        }
-
-        if len > 0 {
-            total as f32 / len as f32
-        } else {
-            0.0
-        }
-    }
-
-    pub fn alphanum_fraction(content: &str) -> f32 {
-        let num_alphanumn: f32 = content
-            .chars()
-            .map(|x| f32::from(u8::from(x.is_alphanumeric())))
-            .sum();
-        if !content.is_empty() {
-            num_alphanumn / content.len() as f32
-        } else {
-            0.0
-        }
-    }
 }

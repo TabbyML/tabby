@@ -640,19 +640,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ade8366b8bd5ba243f0a58f036cc0ca8a2f069cff1a2351ef1cac6b083e16fc0"
 
 [[package]]
-name = "cargo-lock"
-version = "9.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e11c675378efb449ed3ce8de78d75d0d80542fc98487c26aba28eb3b82feac72"
-dependencies = [
- "petgraph",
- "semver",
- "serde",
- "toml 0.7.4",
- "url",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1482,26 +1469,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "file-rotate"
-version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddf221ceec4517f3cb764dae3541b2bd87666fc8832e51322fbb97250b468c71"
-dependencies = [
- "chrono",
- "flate2",
-]
-
-[[package]]
 name = "finl_unicode"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fcfdc7a0362c9f4444381a9e697c79d435fe65b52a37466fc2c1184cee9edc6"
-
-[[package]]
-name = "fixedbitset"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "flate2"
@@ -1832,16 +1803,6 @@ dependencies = [
  "log",
  "regex-automata 0.4.6",
  "regex-syntax 0.8.2",
-]
-
-[[package]]
-name = "globwalk"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9db17aec586697a93219b19726b5b68307eba92898c34b170857343fe67c99d"
-dependencies = [
- "ignore",
- "walkdir",
 ]
 
 [[package]]
@@ -3165,17 +3126,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "npm-package-json"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df163f89771bd6654d5e116952b9ab2d0b952cd8e3315ddaa615f6d2bfbb1fde"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "ntapi"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3521,18 +3471,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
-name = "package-lock-json-parser"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8707d34f4a67f9c733970b8afc7b82d8623bc0746ff17b460aa6f2ea5ef487d3"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
-]
-
-[[package]]
 name = "parking"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3681,16 +3619,6 @@ dependencies = [
  "once_cell",
  "pest",
  "sha2",
-]
-
-[[package]]
-name = "petgraph"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dd7d28ee937e54fe3080c91faa1c3a46c06de6252988a7f4592ba2310ef22a4"
-dependencies = [
- "fixedbitset",
- "indexmap 1.9.3",
 ]
 
 [[package]]
@@ -4162,19 +4090,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
-name = "requirements"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2643e903f79d8e6bc310ee0def974d12a33561d14e0728511b6ba5e8be0791c3"
-dependencies = [
- "globwalk",
- "pest",
- "pest_derive",
- "regex",
- "walkdir",
-]
-
-[[package]]
 name = "reqwest"
 version = "0.11.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4635,9 +4550,6 @@ name = "semver"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "836fa6a3e1e547f9a2c4040802ec865b5d85f4014efe00555d7090a3dcaa1090"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "serde"
@@ -4646,16 +4558,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c9f6e76df036c77cd94996771fb40db98187f096dd0b9af39c6c6e452ba966a"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde-jsonlines"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4684abdec99c1de7e507a3516c82385ff74d54c385973846b079bfd9f5920d35"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -5434,7 +5336,7 @@ dependencies = [
  "reqwest 0.12.4",
  "reqwest-eventsource",
  "serde",
- "serde-jsonlines 0.5.0",
+ "serde-jsonlines",
  "serde_json",
  "serdeconv",
  "serial_test 3.0.0",
@@ -5538,21 +5440,14 @@ dependencies = [
  "anyhow",
  "async-stream",
  "async-trait",
- "cargo-lock",
- "file-rotate",
  "futures",
  "ignore",
  "kv",
  "lazy_static",
  "mdka",
- "npm-package-json",
- "package-lock-json-parser",
  "readable-readability",
- "requirements",
  "serde",
- "serde-jsonlines 0.4.0",
  "serde_json",
- "serdeconv",
  "tabby-common",
  "tantivy",
  "temp_testdir",
@@ -5575,7 +5470,6 @@ dependencies = [
  "tree-sitter-typescript",
  "url",
  "voca_rs",
- "yarn-lock-parser",
 ]
 
 [[package]]
@@ -7226,16 +7120,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
-]
-
-[[package]]
-name = "yarn-lock-parser"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d0603904f8482a1a2a038c9f89c75b0e435392513c3abd3d284123381bbe51f"
-dependencies = [
- "nom",
- "thiserror",
 ]
 
 [[package]]

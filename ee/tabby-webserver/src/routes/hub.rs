@@ -10,7 +10,7 @@ use axum::{
     response::IntoResponse,
 };
 use axum_extra::TypedHeader;
-use tabby_common::api::{code::SearchResponse, event::LogEntry};
+use tabby_common::api::{code::CodeSearchResponse, event::LogEntry};
 use tabby_schema::ServiceLocator;
 use tarpc::server::{BaseChannel, Channel};
 use tracing::warn;
@@ -118,12 +118,12 @@ impl Hub for Arc<HubImpl> {
         q: String,
         limit: usize,
         offset: usize,
-    ) -> SearchResponse {
+    ) -> CodeSearchResponse {
         match self.ctx.code().search(&q, limit, offset).await {
             Ok(serp) => serp,
             Err(err) => {
                 warn!("Failed to search: {}", err);
-                SearchResponse::default()
+                CodeSearchResponse::default()
             }
         }
     }
@@ -136,7 +136,7 @@ impl Hub for Arc<HubImpl> {
         tokens: Vec<String>,
         limit: usize,
         offset: usize,
-    ) -> SearchResponse {
+    ) -> CodeSearchResponse {
         match self
             .ctx
             .code()
@@ -146,7 +146,7 @@ impl Hub for Arc<HubImpl> {
             Ok(serp) => serp,
             Err(err) => {
                 warn!("Failed to search: {}", err);
-                SearchResponse::default()
+                CodeSearchResponse::default()
             }
         }
     }
