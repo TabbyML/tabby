@@ -10,9 +10,9 @@ use tabby_common::{
 use tantivy::{directory::MmapDirectory, doc, Index, Term};
 use tracing::{debug, warn};
 
-use crate::{
+use super::{
     cache::CacheStore,
-    code::{CodeIntelligence, SourceFile},
+    intelligence::{CodeIntelligence, SourceFile},
 };
 
 // Magic numbers

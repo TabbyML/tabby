@@ -1,9 +1,9 @@
 //! Responsible for scheduling all of the background jobs for tabby.
 //! Includes syncing respositories and updating indices.
-mod cache;
 mod code;
-mod index;
-mod repository;
+pub use code::CodeIndex;
+
+pub mod crawl;
 
 use std::sync::Arc;
 
@@ -59,44 +59,10 @@ pub async fn scheduler<T: RepositoryAccess + 'static>(now: bool, access: T) {
 }
 
 fn scheduler_pipeline(repositories: &[RepositoryConfig]) {
-    let mut manager = RepositoryManager::default();
+    let mut code = CodeIndex::default();
     for repository in repositories {
-        manager.refresh(repository);
+        code.refresh(repository);
     }
 
-    manager.garbage_collection();
+    code.garbage_collection();
 }
-
-#[derive(Default)]
-pub struct RepositoryManager {
-    is_dirty: bool,
-}
-
-impl RepositoryManager {
-    pub fn refresh(&mut self, repository: &RepositoryConfig) {
-        self.is_dirty = true;
-
-        info!("Refreshing repository: {}", repository.canonical_git_url());
-        repository::sync_repository(repository);
-
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        index::index_repository(&mut cache, repository);
-    }
-
-    pub fn garbage_collection(&mut self) {
-        self.is_dirty = false;
-        let mut cache = cache::CacheStore::new(tabby_common::path::cache_dir());
-        cache.garbage_collection_for_source_files();
-        index::garbage_collection(&mut cache);
-    }
-}
-
-impl Drop for RepositoryManager {
-    fn drop(&mut self) {
-        if self.is_dirty {
-            warn!("Garbage collection was expected to be invoked at least once but was not.")
-        }
-    }
-}
-
-pub mod crawl;

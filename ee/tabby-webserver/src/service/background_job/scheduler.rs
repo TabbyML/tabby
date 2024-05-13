@@ -10,7 +10,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
-use tabby_scheduler::RepositoryManager;
+use tabby_scheduler::CodeIndex;
 
 use super::{
     cprintln,
@@ -40,14 +40,14 @@ impl SchedulerJob {
     async fn run(self, job_logger: Data<JobLogger>) -> tabby_schema::Result<()> {
         let repository = self.repository.clone();
         tokio::spawn(async move {
-            let mut manager = RepositoryManager::default();
+            let mut code = CodeIndex::default();
             cprintln!(
                 job_logger,
                 "Refreshing repository {}",
                 repository.canonical_git_url()
             );
-            manager.refresh(&repository);
-            manager.garbage_collection();
+            code.refresh(&repository);
+            code.garbage_collection();
         })
         .await
         .context("Job execution failed")?;
