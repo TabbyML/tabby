@@ -13,6 +13,7 @@ http-api-bindings = { path = "../http-api-bindings" }
 reqwest.workspace = true
 serde_json.workspace = true
 tabby-inference = { path = "../tabby-inference" }
+tracing.workspace = true
 tokio = { workspace = true, features = ["process"] }
 
 [dev-dependencies]

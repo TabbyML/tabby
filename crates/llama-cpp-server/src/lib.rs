@@ -6,6 +6,7 @@ use std::{
 use serde_json::json;
 use tabby_inference::{ChatCompletionStream, CompletionStream, Embedding};
 use tokio::task::JoinHandle;
+use tracing::warn;
 
 struct LlamaCppServer {
     handle: JoinHandle<()>,
@@ -19,29 +20,36 @@ impl LlamaCppServer {
         if !use_gpu {
             num_gpu_layers = "0".to_string();
         }
-        let mut process = tokio::process::Command::new("llama-server")
-            .arg("-m")
-            .arg(model_path)
-            .arg("--port")
-            .arg(SERVER_PORT.to_string())
-            .arg("-ngl")
-            .arg(num_gpu_layers)
-            .arg("-np")
-            .arg(parallelism.to_string())
-            .kill_on_drop(true)
-            .stderr(Stdio::null())
-            .stdout(Stdio::null())
-            .spawn()
-            .expect("Failed to spawn llama-cpp-server");
 
+        let model_path = model_path.to_owned();
         let handle = tokio::spawn(async move {
-            let status_code = process
-                .wait()
-                .await
-                .ok()
-                .and_then(|s| s.code())
-                .unwrap_or(-1);
-            println!("Exist with exit code {}", status_code);
+            loop {
+                let mut process = tokio::process::Command::new("llama-server")
+                    .arg("-m")
+                    .arg(&model_path)
+                    .arg("--port")
+                    .arg(SERVER_PORT.to_string())
+                    .arg("-ngl")
+                    .arg(&num_gpu_layers)
+                    .arg("-np")
+                    .arg(parallelism.to_string())
+                    .kill_on_drop(true)
+                    .stderr(Stdio::inherit())
+                    .stdout(Stdio::inherit())
+                    .spawn()
+                    .expect("Failed to spawn llama-cpp-server");
+
+                let status_code = process
+                    .wait()
+                    .await
+                    .ok()
+                    .and_then(|s| s.code())
+                    .unwrap_or(-1);
+
+                if status_code != 0 {
+                    warn!("llama-server exited with status code {}, restarting...", status_code);
+                }
+            }
         });
 
         Self { handle }
@@ -87,6 +95,12 @@ impl LlamaCppServer {
         }))
         .expect("Failed to serialize model spec");
         http_api_bindings::create_embedding(&model_spec)
+    }
+}
+
+impl Drop for LlamaCppServer {
+    fn drop(&mut self) {
+        self.handle.abort();
     }
 }
 
