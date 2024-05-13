@@ -64,7 +64,8 @@ async fn load_completion(
             device,
             model_path.display().to_string().as_str(),
             parallelism,
-        ).await;
+        )
+        .await;
         let engine_info = PromptInfo::read(path.join("tabby.json"));
         (engine, engine_info)
     } else {

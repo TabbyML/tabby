@@ -1,18 +1,12 @@
-use std::{
-    net::TcpListener,
-    process::{ExitStatus, Stdio},
-    sync::Arc,
-};
+use std::{net::TcpListener, process::Stdio, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::json;
-use tabby_inference::{
-    ChatCompletionOptions, ChatCompletionStream, CompletionOptions, CompletionStream, Embedding,
-};
+use tabby_inference::{CompletionOptions, CompletionStream, Embedding};
 use tokio::task::JoinHandle;
-use tracing::{info, warn};
+use tracing::warn;
 
 pub struct LlamaCppServer {
     port: u16,
@@ -131,10 +125,7 @@ fn get_available_port() -> u16 {
 }
 
 fn port_is_available(port: u16) -> bool {
-    match TcpListener::bind(("127.0.0.1", port)) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    TcpListener::bind(("127.0.0.1", port)).is_ok()
 }
 
 impl Drop for LlamaCppServer {
