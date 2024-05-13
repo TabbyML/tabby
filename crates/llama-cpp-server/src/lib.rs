@@ -35,7 +35,15 @@ impl LlamaCppServer {
         let port = get_available_port();
         let handle = tokio::spawn(async move {
             loop {
-                let mut command = tokio::process::Command::new("llama-server");
+                let server_binary = std::env::current_exe()
+                    .expect("Failed to get current executable path")
+                    .parent()
+                    .expect("Failed to get parent directory")
+                    .join("server")
+                    .display()
+                    .to_string()
+                    + std::env::consts::EXE_SUFFIX;
+                let mut command = tokio::process::Command::new(server_binary);
 
                 command
                     .arg("-m")
