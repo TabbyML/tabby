@@ -9,7 +9,7 @@ use tracing::debug;
 
 #[tokio::main]
 async fn main() {
-    let _ = tracing_subscriber::fmt()
+    tracing_subscriber::fmt()
         .with_env_filter("tabby=debug,crawl_and_index=debug")
         .init();
 

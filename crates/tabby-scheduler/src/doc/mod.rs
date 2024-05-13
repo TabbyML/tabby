@@ -2,7 +2,7 @@ use std::{collections::HashSet, sync::Arc};
 
 use tabby_common::{index::DocSearchSchema, path};
 use tabby_inference::Embedding;
-use tantivy::{doc, Index, IndexWriter, Term};
+use tantivy::{doc, IndexWriter, Term};
 use text_splitter::{Characters, TextSplitter};
 use tracing::warn;
 
