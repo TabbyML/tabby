@@ -1,0 +1,14 @@
+[package]
+name = "llama-cpp-server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+http-api-bindings = { version = "0.12.0-dev.0", path = "../http-api-bindings" }
+serde_json.workspace = true
+tabby-inference = { version = "0.12.0-dev.0", path = "../tabby-inference" }
+tokio.workspace = true

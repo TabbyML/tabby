@@ -2774,6 +2774,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "llama-cpp-server"
+version = "0.12.0-dev.0"
+dependencies = [
+ "http-api-bindings",
+ "serde_json",
+ "tabby-inference",
+ "tokio",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
