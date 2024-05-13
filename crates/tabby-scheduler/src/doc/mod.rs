@@ -1,6 +1,6 @@
 use tabby_common::{index::DocSearchSchema, path};
 use tantivy::{doc, Index, IndexWriter, Term};
-use tracing::warn;
+
 
 use crate::tantivy_utils::open_or_create_index;
 
@@ -52,6 +52,8 @@ impl DocIndex {
 
     pub fn commit(mut self) {
         self.writer.commit().expect("Failed to commit changes");
-        self.writer.wait_merging_threads().expect("Failed to wait for merging threads");
+        self.writer
+            .wait_merging_threads()
+            .expect("Failed to wait for merging threads");
     }
 }
