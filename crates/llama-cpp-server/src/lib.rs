@@ -1,7 +1,4 @@
-use std::{
-    process::{Stdio},
-    sync::Arc,
-};
+use std::{process::Stdio, sync::Arc};
 
 use serde_json::json;
 use tabby_inference::{ChatCompletionStream, CompletionStream, Embedding};
