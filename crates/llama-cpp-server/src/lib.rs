@@ -6,7 +6,7 @@ use futures::stream::BoxStream;
 use serde_json::json;
 use tabby_inference::{CompletionOptions, CompletionStream, Embedding};
 use tokio::task::JoinHandle;
-use tracing::warn;
+use tracing::{warn};
 
 pub struct LlamaCppServer {
     port: u16,
@@ -32,12 +32,9 @@ impl Embedding for LlamaCppServer {
 impl LlamaCppServer {
     pub fn new(device: &str, model_path: &str, parallelism: u8) -> Self {
         let use_gpu = device != "cpu";
-        let mut binary_name = "llama-server".to_owned();
-        if cfg!(target_os = "macos") {
-            binary_name = binary_name + "-metal";
-        } else if device != "cpu" {
-            binary_name = binary_name + "-" + device;
-        }
+        let Some(binary_name) = find_binary_name(Some(device)) else {
+            panic!("Failed to find llama-server binary for device {device}, please make sure you have corresponding llama-server binary locates in the same directory as the current executable");
+        };
 
         let model_path = model_path.to_owned();
         let port = get_available_port();
@@ -118,6 +115,29 @@ impl LlamaCppServer {
             }
         }
     }
+}
+
+fn find_binary_name(suffix: Option<&str>) -> Option<String> {
+    let current_exe = std::env::current_exe().expect("Failed to get current executable path");
+    let binary_dir = current_exe
+        .parent()
+        .expect("Failed to get parent directory");
+    let binary_name = if let Some(suffix) = suffix {
+        format!("llama-server-{}", suffix)
+    } else {
+        "llama-server".to_owned()
+    };
+    std::fs::read_dir(binary_dir)
+        .expect("Failed to read directory")
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| {
+            entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with(&binary_name)
+        })
+        .map(|entry| entry.path().display().to_string())
+        .next()
 }
 
 fn make_completion(port: u16) -> Arc<dyn CompletionStream> {

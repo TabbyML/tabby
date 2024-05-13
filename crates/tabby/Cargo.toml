@@ -6,7 +6,7 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["ee", "dep:color-eyre"]
+default = ["ee"]
 ee = ["dep:tabby-webserver"]
 cuda = []
 rocm = []
@@ -57,7 +57,7 @@ axum-prometheus = "0.6"
 uuid.workspace = true
 cached = { workspace = true, features = ["async"] }
 parse-git-url = "0.5.1"
-color-eyre = { version = "0.6.3", optional = true }
+color-eyre = { version = "0.6.3" }
 
 [dependencies.openssl]
 optional = true

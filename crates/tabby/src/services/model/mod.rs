@@ -114,8 +114,7 @@ async fn create_ggml_engine(
     }
 
     let device_str = device.to_string().to_lowercase();
-    let server =
-        llama_cpp_server::LlamaCppServer::new(&device_str, model_path, parallelism);
+    let server = llama_cpp_server::LlamaCppServer::new(&device_str, model_path, parallelism);
     server.start().await;
     Arc::new(server)
 }

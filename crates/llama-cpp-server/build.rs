@@ -57,8 +57,7 @@ fn main() {
 
     let out = config.build();
     let server_binary = make_output_binary(&out, "server");
-    let renamed_server_binary = 
-    if cfg!(target_os = "macos") {
+    let renamed_server_binary = if cfg!(target_os = "macos") {
         make_output_binary(&out, "llama-server-metal")
     } else if cfg!(feature = "cuda") {
         make_output_binary(&out, "llama-server-cuda")
@@ -70,7 +69,7 @@ fn main() {
         make_output_binary(&out, "llama-server")
     };
 
-    std::fs::rename(&server_binary, &renamed_server_binary)
+    std::fs::rename(server_binary, &renamed_server_binary)
         .expect("Failed to rename server binary");
     copy_to_output(&renamed_server_binary)
         .expect("Failed to copy server binary to output directory");
