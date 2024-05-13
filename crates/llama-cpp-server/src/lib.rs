@@ -33,7 +33,9 @@ impl LlamaCppServer {
     pub fn new(device: &str, model_path: &str, parallelism: u8) -> Self {
         let use_gpu = device != "cpu";
         let mut binary_name = "llama-server".to_owned();
-        if device != "cpu" && device != "metal" {
+        if cfg!(target_os = "macos") {
+            binary_name = binary_name + "-metal";
+        } else if device != "cpu" {
             binary_name = binary_name + "-" + device;
         }
 

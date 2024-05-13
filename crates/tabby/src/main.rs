@@ -61,19 +61,15 @@ pub enum Device {
     #[strum(serialize = "cpu")]
     Cpu,
 
-    #[cfg(feature = "cuda")]
     #[strum(serialize = "cuda")]
     Cuda,
 
-    #[cfg(feature = "rocm")]
     #[strum(serialize = "rocm")]
     Rocm,
 
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     #[strum(serialize = "metal")]
     Metal,
 
-    #[cfg(feature = "vulkan")]
     #[strum(serialize = "vulkan")]
     Vulkan,
 
@@ -83,34 +79,11 @@ pub enum Device {
 }
 
 impl Device {
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Metal
-    }
-
-    #[cfg(feature = "cuda")]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Cuda
-    }
-
-    #[cfg(feature = "rocm")]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Rocm
-    }
-
-    #[cfg(feature = "vulkan")]
-    pub fn ggml_use_gpu(&self) -> bool {
-        *self == Device::Vulkan
-    }
-
-    #[cfg(not(any(
-        all(target_os = "macos", target_arch = "aarch64"),
-        feature = "cuda",
-        feature = "rocm",
-        feature = "vulkan",
-    )))]
-    pub fn ggml_use_gpu(&self) -> bool {
-        false
+        match self {
+            Device::Metal | Device::Vulkan | Device::Cuda | Device::Rocm => true,
+            Device::Cpu | Device::ExperimentalHttp => false,
+        }
     }
 }
 

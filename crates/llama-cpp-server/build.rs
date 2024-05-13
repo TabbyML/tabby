@@ -57,7 +57,10 @@ fn main() {
 
     let out = config.build();
     let server_binary = make_output_binary(&out, "server");
-    let renamed_server_binary = if cfg!(feature = "cuda") {
+    let renamed_server_binary = 
+    if cfg!(target_os = "macos") {
+        make_output_binary(&out, "llama-server-metal")
+    } else if cfg!(feature = "cuda") {
         make_output_binary(&out, "llama-server-cuda")
     } else if cfg!(feature = "rocm") {
         make_output_binary(&out, "llama-server-rocm")
