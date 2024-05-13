@@ -33,6 +33,7 @@ pub fn usage_id_file() -> PathBuf {
     tabby_root().join("usage_anonymous_id")
 }
 
+// FIXME: migrate to /code_index/repositories
 pub fn repositories_dir() -> PathBuf {
     tabby_root().join("repositories")
 }
