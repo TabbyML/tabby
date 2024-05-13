@@ -93,7 +93,7 @@ export const listUserEvents = graphql(/* GraphQL */ `
 `)
 
 export default function Activity() {
-  const defaultFromDate = moment().add(parseInt(DEFAULT_DATE_RANGE, 10), 'day')
+  const defaultFromDate = moment().add(parseInt(DEFAULT_DATE_RANGE, 10), 'hour')
   const defaultToDate = moment()
 
   const [members] = useAllMembers()
