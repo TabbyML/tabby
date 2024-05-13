@@ -2,7 +2,11 @@ use tantivy::schema::{Field, Schema, STORED, STRING};
 
 pub struct DocSearchSchema {
     pub schema: Schema,
+    /// Binarized embedding tokens with the following mapping:
+    /// * [-1, 0] -> 0
+    /// * (0, 1] -> 1
     pub field_embedding_token: Field,
+
     pub field_title: Field,
     pub field_link: Field,
     pub field_snippet: Field,
