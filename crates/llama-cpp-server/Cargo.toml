@@ -5,7 +5,10 @@ edition.workspace = true
 authors.workspace = true
 homepage.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+cuda = []
+rocm = []
+vulkan = []
 
 [dependencies]
 futures.workspace = true
@@ -20,3 +23,7 @@ anyhow.workspace = true
 
 [dev-dependencies]
 tabby-common = { path = "../tabby-common" }
+
+[build-dependencies]
+cmake = "0.1"
+omnicopy_to_output = "0.1.1"
