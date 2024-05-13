@@ -6,7 +6,7 @@ use tracing::warn;
 
 use super::{
     cache::CacheStore,
-    intelligence::{CodeIntelligence, SourceFile},
+    intelligence::{CodeIntelligence, SourceCode},
 };
 use crate::tantivy_utils::open_or_create_index;
 
@@ -118,7 +118,7 @@ pub fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, 
     gc_commit();
 }
 
-fn is_valid_file(file: &SourceFile) -> bool {
+fn is_valid_file(file: &SourceCode) -> bool {
     file.max_line_length <= MAX_LINE_LENGTH_THRESHOLD
         && file.avg_line_length <= AVG_LINE_LENGTH_THRESHOLD
 }

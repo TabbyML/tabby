@@ -6,7 +6,7 @@ use tracing::warn;
 use tree_sitter_tags::TagsContext;
 
 use super::languages;
-pub use super::types::{Point, SourceFile, Tag};
+pub use super::types::{Point, SourceCode, Tag};
 
 pub struct CodeIntelligence {
     context: TagsContext,
@@ -61,7 +61,7 @@ impl CodeIntelligence {
         &mut self,
         config: &RepositoryConfig,
         path: &Path,
-    ) -> Option<SourceFile> {
+    ) -> Option<SourceCode> {
         if path.is_dir() || !path.exists() {
             return None;
         }
@@ -86,7 +86,7 @@ impl CodeIntelligence {
                 return None;
             }
         };
-        let source_file = SourceFile {
+        let source_file = SourceCode {
             git_url: config.canonical_git_url(),
             basedir: config.dir().display().to_string(),
             filepath: relative_path.display().to_string(),

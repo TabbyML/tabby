@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{config::RepositoryConfig, languages::get_language_by_ext};
 use tracing::info;
 
-use super::intelligence::{CodeIntelligence, SourceFile};
+use super::intelligence::{CodeIntelligence, SourceCode};
 
 const SOURCE_FILE_BUCKET_KEY: &str = "source_files";
 const INDEX_BUCKET_KEY: &str = "indexed_files";
@@ -145,10 +145,10 @@ impl CacheStore {
         &mut self,
         config: &RepositoryConfig,
         path: &Path,
-    ) -> Option<SourceFile> {
+    ) -> Option<SourceCode> {
         let key: String = SourceFileKey::try_from(path).ok()?.to_string();
 
-        let dataset_bucket: Bucket<String, Json<Option<SourceFile>>> = self
+        let dataset_bucket: Bucket<String, Json<Option<SourceCode>>> = self
             .store
             .bucket(Some(SOURCE_FILE_BUCKET_KEY))
             .expect("Could not access dataset bucket");
@@ -171,7 +171,7 @@ impl CacheStore {
 
     pub fn garbage_collection_for_source_files(&self) {
         info!("Started cleaning up 'source_files' bucket");
-        let bucket: Bucket<String, Json<SourceFile>> = self
+        let bucket: Bucket<String, Json<SourceCode>> = self
             .store
             .bucket(Some(SOURCE_FILE_BUCKET_KEY))
             .expect("Could not access dataset bucket");
