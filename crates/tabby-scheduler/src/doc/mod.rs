@@ -80,6 +80,10 @@ impl DocIndex {
     /// into binarized tokens by thresholding on zero.
     /// 
     /// The current implementation deduplicates tokens at the document level, but this may require further consideration in the future.
+    /// We split the document into chunks and compute the embedding for each chunk, and convert embeddings
+    /// to binarized tokens by thresholding on zero.
+    /// 
+    /// Current implementation deduplicate tokens at the document level, this might need further revise in future.
     async fn compute_embedding_tokens(&self, content: &str) -> Option<Vec<String>> {
         let mut tokens = HashSet::new();
         for chunk in self.splitter.chunks(content, CHUNK_SIZE) {
