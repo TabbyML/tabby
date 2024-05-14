@@ -17,7 +17,7 @@ use tantivy::{
     query::{BooleanQuery, QueryParser},
     query_grammar::Occur,
     schema::{Field, Value},
-    DocAddress, Document, Index, IndexReader, TantivyDocument,
+    DocAddress, Index, IndexReader, TantivyDocument,
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::debug;
