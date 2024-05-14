@@ -6,11 +6,11 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["ee", "dep:color-eyre"]
+default = ["ee"]
 ee = ["dep:tabby-webserver"]
-cuda = ["llama-cpp-bindings/cuda"]
-rocm = ["llama-cpp-bindings/rocm"]
-vulkan = ["llama-cpp-bindings/vulkan"]
+cuda = []
+rocm = []
+vulkan = []
 # If compiling on a system without OpenSSL installed, or cross-compiling for a different
 # architecture, enable this feature to compile OpenSSL as part of the build.
 # See https://docs.rs/openssl/#vendored for more.
@@ -47,7 +47,7 @@ async-stream = { workspace = true }
 minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
 regex.workspace = true
-llama-cpp-bindings = { path = "../llama-cpp-bindings" }
+llama-cpp-server = { path = "../llama-cpp-server" }
 futures.workspace = true
 async-trait.workspace = true
 tabby-webserver = { path = "../../ee/tabby-webserver", optional = true }
@@ -57,7 +57,7 @@ axum-prometheus = "0.6"
 uuid.workspace = true
 cached = { workspace = true, features = ["async"] }
 parse-git-url = "0.5.1"
-color-eyre = { version = "0.6.3", optional = true }
+color-eyre = { version = "0.6.3" }
 
 [dependencies.openssl]
 optional = true

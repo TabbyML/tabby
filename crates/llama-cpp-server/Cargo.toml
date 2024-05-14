@@ -1,0 +1,26 @@
+[package]
+name = "llama-cpp-server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+
+[features]
+cuda = []
+rocm = []
+vulkan = []
+
+[dependencies]
+futures.workspace = true
+http-api-bindings = { path = "../http-api-bindings" }
+reqwest.workspace = true
+serde_json.workspace = true
+tabby-inference = { path = "../tabby-inference" }
+tracing.workspace = true
+async-trait.workspace = true
+tokio = { workspace = true, features = ["process"] }
+anyhow.workspace = true
+
+[build-dependencies]
+cmake = "0.1"
+omnicopy_to_output = "0.1.1"
