@@ -1,4 +1,4 @@
-import type { Thread, ThreadOptions } from '@quilted/threads'
+import { createThreadFromIframe, createThreadFromInsideIframe } from '@quilted/threads'
 
 export interface LineRange {
   start: number
@@ -7,9 +7,8 @@ export interface LineRange {
 
 export interface FileContext {
   kind: 'file'
-  range?: LineRange
-  language?: string
-  path: string
+  range: LineRange
+  filepath: string
 }
 
 export type Context = FileContext
@@ -33,26 +32,15 @@ export interface ChatMessage {
   relevantContext?: Array<Context>
 }
 
-type CreateThreadFn =
-  ((target: any, opts: ThreadOptions<Api>) => Record<string, any>) |
-  ((opts: ThreadOptions<Api>) => Record<string, any>)
-
-export function createClient(createFn: CreateThreadFn, target: any) {
-  return createFn(target, {
-    callable: ['init', 'sendMessage'],
-  }) as Api
+export function createClient(target: HTMLIFrameElement) {
+  return createThreadFromIframe(target)
 }
 
-export function createServer(createFn: CreateThreadFn, api: Api, target?: any) {
-  const opts: ThreadOptions<Api> = {
+export function createServer(api: Api) {
+  return createThreadFromInsideIframe({
     expose: {
       init: api.init,
       sendMessage: api.sendMessage,
     },
-  }
-  if (target)
-    return createFn(target, opts)
-
-  const createFnWithoutTarget = createFn as (opts: ThreadOptions<Api>) => Thread<Record<string, any>>
-  return createFnWithoutTarget(opts)
+  })
 }

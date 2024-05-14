@@ -1,6 +1,5 @@
 import type { RefObject } from 'react'
 import { useEffect, useMemo, useState } from 'react'
-import { createThreadFromIframe, createThreadFromInsideIframe } from '@quilted/threads'
 
 import type { Api } from './index'
 import { createClient, createServer } from './index'
@@ -8,7 +7,7 @@ import { createClient, createServer } from './index'
 function useClient(iframeRef: RefObject<HTMLIFrameElement>) {
   return useMemo(() => {
     if (iframeRef.current)
-      return createClient(createThreadFromIframe, iframeRef.current)
+      return createClient(iframeRef.current)
   }, [iframeRef.current])
 }
 
@@ -21,7 +20,7 @@ function useServer(api: Api) {
 
   return useMemo(() => {
     if (isInIframe)
-      return createServer(createThreadFromInsideIframe, api)
+      return createServer(api)
   }, [isInIframe])
 }
 
