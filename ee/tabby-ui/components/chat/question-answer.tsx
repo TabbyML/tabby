@@ -1,3 +1,6 @@
+// Inspired by Chatbot-UI and modified to fit the needs of this project
+// @see https://github.com/mckaywrigley/chatbot-ui/blob/main/components/Chat/ChatMessage.tsx
+
 import React from 'react'
 import Image from 'next/image'
 import tabbyLogo from '@/assets/tabby.png'
@@ -5,6 +8,12 @@ import { compact, isNil } from 'lodash-es'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
+import {
+  AssistantMessage,
+  Context,
+  QuestionAnswerPair,
+  UserMessage
+} from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
 import { CodeBlock } from '@/components/ui/codeblock'
 import { MemoizedReactMarkdown } from '@/components/markdown'
@@ -21,20 +30,37 @@ import { IconFile, IconRefresh, IconTrash } from '../ui/icons'
 import { Separator } from '../ui/separator'
 import { Skeleton } from '../ui/skeleton'
 import { UserAvatar } from '../user-avatar'
-import {
-  AssistantMessage,
-  ChatContext,
-  Context,
-  QuestionAnswerPair,
-  UserMessage
-} from './chat'
+import { ChatContext } from './chat'
 
-export interface ChatMessageProps {
+interface QuestionAnswerListProps {
+  messages: QuestionAnswerPair[]
+  isLoading: boolean
+}
+function QuestionAnswerList({ messages, isLoading }: QuestionAnswerListProps) {
+  return (
+    <div className="relative mx-auto max-w-2xl px-4">
+      {messages?.map((message, index) => {
+        const isLastItem = index === messages.length - 1
+        return (
+          <React.Fragment key={message.user.id}>
+            <QuestionAnswerItem
+              isLoading={isLastItem ? isLoading : false}
+              message={message}
+            />
+            {!isLastItem && <Separator className="my-4 md:my-8" />}
+          </React.Fragment>
+        )
+      })}
+    </div>
+  )
+}
+
+interface QuestionAnswerItemProps {
   message: QuestionAnswerPair
   isLoading: boolean
 }
 
-export function QuestionAnswerItem({ message, isLoading }: ChatMessageProps) {
+function QuestionAnswerItem({ message, isLoading }: QuestionAnswerItemProps) {
   const { user, assistant } = message
   const selectContext = user.selectContext
   const relevantContext = user.relevantContext
@@ -56,40 +82,6 @@ export function QuestionAnswerItem({ message, isLoading }: ChatMessageProps) {
       )}
     </>
   )
-}
-
-interface QuestionAnswerListProps {
-  messages: QuestionAnswerPair[]
-  isLoading: boolean
-}
-export function QuestionAnswerList({
-  messages,
-  isLoading
-}: QuestionAnswerListProps) {
-  return (
-    <div className="relative mx-auto max-w-2xl px-4">
-      {messages?.map((message, index) => {
-        const isLastItem = index === messages.length - 1
-        return (
-          <React.Fragment key={message.user.id}>
-            <QuestionAnswerItem
-              isLoading={isLastItem ? isLoading : false}
-              message={message}
-            />
-            {!isLastItem && <Separator className="my-4 md:my-8" />}
-          </React.Fragment>
-        )
-      })}
-    </div>
-  )
-}
-
-interface AssistantMessageCardProps {
-  userMessageId: string
-  isLoading: boolean
-  message: AssistantMessage
-  selectContext?: Context
-  relevantContext?: Array<Context>
 }
 
 function UserMessageCard(props: { message: UserMessage }) {
@@ -118,6 +110,14 @@ function UserMessageCard(props: { message: UserMessage }) {
       </div>
     </div>
   )
+}
+
+interface AssistantMessageCardProps {
+  userMessageId: string
+  isLoading: boolean
+  message: AssistantMessage
+  selectContext?: Context
+  relevantContext?: Array<Context>
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
@@ -212,7 +212,7 @@ function MessageMarkdown({ message }: { message: string }) {
   )
 }
 
-export function MessagePendingIndicator() {
+function MessagePendingIndicator() {
   return (
     <div className="mb-4 flex items-start md:-ml-12">
       <div className="shrink-0 select-none rounded-full border bg-background shadow">
@@ -328,3 +328,5 @@ function parseMetaDataString(metaData: string | undefined) {
 
   return metadataObj
 }
+
+export { QuestionAnswerList }

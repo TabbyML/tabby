@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconRefresh, IconStop, IconTrash } from '@/components/ui/icons'
 import { ButtonScrollToBottom } from '@/components/button-scroll-to-bottom'
+import { PromptForm, PromptFormRef } from '@/components/chat/prompt-form'
 import { FooterText } from '@/components/footer'
-import { PromptForm, PromptFormRef } from '@/components/prompt-form'
 
 export interface ChatPanelProps
   extends Pick<
@@ -29,7 +29,6 @@ export function ChatPanel({
   id,
   isLoading,
   stop,
-  append,
   reload,
   input,
   setInput,

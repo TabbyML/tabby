@@ -1,4 +1,36 @@
-import { type Message } from 'ai'
+interface LineRange {
+  start: number
+  end: number
+}
+
+export interface FileContext {
+  kind: 'file'
+  range: LineRange
+  filePath: string
+  link: string
+  language?: string
+  // FIXME(jueliang): add code snippet here for client side mock
+  content: string
+}
+
+export type Context = FileContext
+
+export interface UserMessage {
+  id: string
+  message: string
+  selectContext?: Context
+  relevantContext?: Array<Context>
+}
+
+export interface AssistantMessage {
+  id: string
+  message: string
+}
+
+export interface QuestionAnswerPair {
+  user: UserMessage
+  assistant?: AssistantMessage
+}
 
 export interface Chat extends Record<string, any> {
   id: string
@@ -6,7 +38,7 @@ export interface Chat extends Record<string, any> {
   createdAt: Date
   userId: string
   path: string
-  messages: Message[]
+  messages: QuestionAnswerPair[]
   sharePath?: string
 }
 
@@ -26,4 +58,4 @@ export type SearchReponse = {
   num_hits?: number
 }
 
-export type MessageActionType = 'edit' | 'delete' | 'regenerate'
+export type MessageActionType = 'delete' | 'regenerate'

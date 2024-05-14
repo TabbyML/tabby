@@ -3,48 +3,20 @@ import { useChat, type Message, type UseChatHelpers } from 'ai/react'
 import { findIndex, omit } from 'lodash-es'
 import { toast } from 'sonner'
 
+import {
+  AssistantMessage,
+  Context,
+  FileContext,
+  MessageActionType,
+  QuestionAnswerPair,
+  UserMessage
+} from '@/lib/types/chat'
 import { cn, nanoid } from '@/lib/utils'
 
-import { ChatPanel } from '../chat-panel'
-import { ChatScrollAnchor } from '../chat-scroll-anchor'
-import { EmptyScreen } from '../empty-screen'
+import { ChatPanel } from './chat-panel'
+import { ChatScrollAnchor } from './chat-scroll-anchor'
+import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
-
-interface LineRange {
-  start: number
-  end: number
-}
-
-export interface FileContext {
-  kind: 'file'
-  range: LineRange
-  filePath: string
-  link: string
-  language?: string
-  // FIXME(jueliang): add code snippet here for client side mock
-  content: string
-}
-
-export type Context = FileContext
-
-export interface UserMessage {
-  id: string
-  message: string
-  selectContext?: Context
-  relevantContext?: Array<Context>
-}
-
-export interface AssistantMessage {
-  id: string
-  message: string
-}
-
-export interface QuestionAnswerPair {
-  user: UserMessage
-  assistant?: AssistantMessage
-}
-
-export type MessageActionType = 'delete' | 'regenerate'
 
 type ChatContextValue = {
   handleMessageAction: (
@@ -249,6 +221,7 @@ function ChatRenderer(
 
   React.useEffect(() => {
     if (!loaded.current) return
+    console.log(qaPairs)
     onThreadUpdates(qaPairs)
   }, [qaPairs])
 
