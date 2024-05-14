@@ -112,7 +112,7 @@ function Configuration({ className }: { className?: string }) {
       <div className="mb-6 mt-3 flex gap-x-3 lg:mb-0">
         <IDELink
           href="https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby"
-          name="VS Code"
+          name="Visual Studio Code"
           icon={<IconVSCode className="h-5 w-5" />}
         />
         <IDELink
