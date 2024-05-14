@@ -1,13 +1,13 @@
 'use strict';
 
 const react = require('react');
-const threads = require('@quilted/threads');
 const index = require('./index.cjs');
+require('@quilted/threads');
 
 function useClient(iframeRef) {
   return react.useMemo(() => {
     if (iframeRef.current)
-      return index.createClient(threads.createThreadFromIframe, iframeRef.current);
+      return index.createClient(iframeRef.current);
   }, [iframeRef.current]);
 }
 function useServer(api) {
@@ -16,9 +16,8 @@ function useServer(api) {
     setIsInIframe(window.self !== window.top);
   }, []);
   return react.useMemo(() => {
-    if (isInIframe) {
-      return index.createServer(threads.createThreadFromInsideIframe, api);
-    }
+    if (isInIframe)
+      return index.createServer(api);
   }, [isInIframe]);
 }
 

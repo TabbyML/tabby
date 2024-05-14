@@ -1,11 +1,11 @@
 import { useMemo, useState, useEffect } from 'react';
-import { createThreadFromIframe, createThreadFromInsideIframe } from '@quilted/threads';
 import { createClient, createServer } from './index.mjs';
+import '@quilted/threads';
 
 function useClient(iframeRef) {
   return useMemo(() => {
     if (iframeRef.current)
-      return createClient(createThreadFromIframe, iframeRef.current);
+      return createClient(iframeRef.current);
   }, [iframeRef.current]);
 }
 function useServer(api) {
@@ -14,9 +14,8 @@ function useServer(api) {
     setIsInIframe(window.self !== window.top);
   }, []);
   return useMemo(() => {
-    if (isInIframe) {
-      return createServer(createThreadFromInsideIframe, api);
-    }
+    if (isInIframe)
+      return createServer(api);
   }, [isInIframe]);
 }
 

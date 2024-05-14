@@ -1,15 +1,14 @@
-import { ThreadOptions } from '@quilted/threads';
+import * as _quilted_threads from '@quilted/threads';
 
-type LineRange = {
+interface LineRange {
     start: number;
-    end: number;
-};
-type FileContext = {
+    end?: number;
+}
+interface FileContext {
     kind: 'file';
     range: LineRange;
-    filename: string;
-    link: string;
-};
+    filepath: string;
+}
 type Context = FileContext;
 interface FetcherOptions {
     authorization: string;
@@ -26,8 +25,7 @@ interface ChatMessage {
     selectContext?: Context;
     relevantContext?: Array<Context>;
 }
-type CreateThreadFn = ((target: any, opts: ThreadOptions<Api>) => Record<string, any>) | ((opts: ThreadOptions<Api>) => Record<string, any>);
-declare function createClient(createFn: CreateThreadFn, target: any): Api;
-declare function createServer(createFn: CreateThreadFn, api: Api, target?: any): Record<string, any>;
+declare function createClient(target: HTMLIFrameElement): _quilted_threads.Thread<Record<string, never>>;
+declare function createServer(api: Api): _quilted_threads.Thread<Record<string, never>>;
 
 export { type Api, type ChatMessage, type Context, type FetcherOptions, type FileContext, type InitRequest, type LineRange, createClient, createServer };
