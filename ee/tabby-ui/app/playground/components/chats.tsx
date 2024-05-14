@@ -118,48 +118,6 @@ export default function Chats() {
     }
   }
 
-  // todo remove, just for mock
-  // const sent = React.useRef(false)
-  // React.useEffect(() => {
-  //   setTimeout(() => {
-  //     if (sent.current) return
-  //     chatRef.current?.sendUserChat({
-  //       id: nanoid(),
-  //       message: 'explain',
-  //       selectContext: {
-  //         kind: 'file',
-  //         content: `pub struct FileSearch {
-  //           pub r#type: String,
-  //           pub path: String,
-
-  //           /// matched indices for fuzzy search query.
-  //           pub indices: Vec<i32>,
-  //       }`,
-  //         range: {
-  //           start: 6,
-  //           end: 12
-  //         },
-  //         filePath: 'tabby/ee/tabby-search/src/lib.rs',
-  //         link: '/files?path=git/tabby/ee/tabby-search/src/lib.rs&line=6'
-  //       },
-  //       relevantContext: [
-  //         {
-  //           kind: 'file',
-  //           content: `interface CopyButtonProps extends ButtonProps {
-  //             value: string
-  //           }`,
-  //           range: {
-  //             start: 10,
-  //             end: 12
-  //           },
-  //           filePath: 'tabby/ee/tabby-ui/components/copy-button.tsx',
-  //           link: '/files?path=git/tabby/ee/tabby-ui/components/copy-button.tsx&line=10'
-  //         }
-  //       ]
-  //     })
-  //     sent.current = true
-  //   }, 5000)
-  // }, [])
   React.useEffect(() => {
     return () => persistChat.flush()
   }, [])
