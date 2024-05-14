@@ -22,7 +22,7 @@ env:
   RUST_TOOLCHAIN: 1.76.0
 
 jobs:
-  release-llama-serverbinary:
+  release-llama-server-binary:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     strategy:
@@ -245,7 +245,7 @@ jobs:
 
   pre-release:
     if: github.event_name == 'push'
-    needs: release-binary
+    needs: [release-llama-server-binary, release-binary]
     runs-on: ubuntu-latest
     permissions:
       contents: write
