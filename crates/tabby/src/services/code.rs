@@ -16,8 +16,8 @@ use tantivy::{
     collector::{Count, TopDocs},
     query::{BooleanQuery, QueryParser},
     query_grammar::Occur,
-    schema::Field,
-    DocAddress, Document, Index, IndexReader,
+    schema::{Field, Value},
+    DocAddress, Index, IndexReader, TantivyDocument,
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::debug;
@@ -44,7 +44,7 @@ impl CodeSearchImpl {
         );
         let reader = index
             .reader_builder()
-            .reload_policy(tantivy::ReloadPolicy::OnCommit)
+            .reload_policy(tantivy::ReloadPolicy::OnCommitWithDelay)
             .try_into()?;
         Ok(Self {
             repository_access,
@@ -71,7 +71,12 @@ impl CodeSearchImpl {
         }
     }
 
-    fn create_hit(&self, score: f32, doc: Document, doc_address: DocAddress) -> CodeSearchHit {
+    fn create_hit(
+        &self,
+        score: f32,
+        doc: TantivyDocument,
+        doc_address: DocAddress,
+    ) -> CodeSearchHit {
         CodeSearchHit {
             score,
             doc: CodeSearchDocument {
@@ -167,9 +172,9 @@ fn closest_match<'a>(
         .map(|x| x.git_url.as_str())
 }
 
-fn get_field(doc: &Document, field: Field) -> String {
+fn get_field(doc: &TantivyDocument, field: Field) -> String {
     doc.get_first(field)
-        .and_then(|x| x.as_text())
+        .and_then(|x| x.as_str().to_owned())
         .expect("Missing field")
         .to_owned()
 }

@@ -1,7 +1,7 @@
 use ignore::Walk;
 use kv::Batch;
 use tabby_common::{config::RepositoryConfig, index::CodeSearchSchema, path};
-use tantivy::{doc, Index, Term};
+use tantivy::{doc, Index, IndexWriter, TantivyDocument, Term};
 use tracing::warn;
 
 use super::{
@@ -98,7 +98,7 @@ fn add_changed_documents(
 
 pub fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, index: &Index) {
     // Create a new writer to commit deletion of removed indexed files
-    let mut writer = index
+    let mut writer: IndexWriter<TantivyDocument> = index
         .writer(150_000_000)
         .expect("Failed to create index writer");
 

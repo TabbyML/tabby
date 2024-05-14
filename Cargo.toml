@@ -34,7 +34,7 @@ tokio-cron-scheduler = "0.9.4"
 tracing-subscriber = "0.3"
 anyhow = "1.0.71"
 serde-jsonlines = "0.4.0"
-tantivy = "0.21.0"
+tantivy = "0.22"
 async-trait = "0.1.72"
 reqwest = { version = "0.12" }
 derive_builder = "0.12.0"
