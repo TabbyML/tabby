@@ -44,11 +44,10 @@ export default function Chats() {
       if (!chatRef.current || chatRef.current.isLoading) return
 
       const { data } = event
-      if (data.action === 'append') {
+      if (data.action === 'sendUserChat') {
         chatRef.current.sendUserChat({
           id: nanoid(),
-          // todo should be context and content
-          message: data.payload
+          ...data.payload
         })
         return
       }
@@ -68,6 +67,7 @@ export default function Chats() {
   const persistChat = useDebounceCallback(
     (chatId: string, messages: QuestionAnswerPair[]) => {
       if (!storedChat && messages?.length) {
+        debugger
         addChat(activeChatId, truncateText(messages?.[0]?.user?.message))
       } else if (storedChat) {
         updateMessages(chatId, messages)
@@ -83,8 +83,18 @@ export default function Chats() {
   }
 
   const onNavigateToContext = (context: ChatContext) => {
-    // console.log(context)
     // todo check if is embed
+    if (!context.filePath || !context.link) return
+    const isInIframe = window.self !== window.top
+    if (isInIframe) {
+      window.top?.postMessage({
+        action: 'navigateToContext',
+        path: context.filePath,
+        line: context.range.start
+      })
+    } else {
+      window.open(context.link)
+    }
   }
 
   const onChatLoaded = () => {

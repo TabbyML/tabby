@@ -2,6 +2,7 @@ import React from 'react'
 
 import { useStore } from '@/lib/hooks/use-store'
 import { useChatStore } from '@/lib/stores/chat-store'
+import { UserMessage } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { IconClose } from '@/components/ui/icons'
@@ -22,41 +23,47 @@ export const ChatSideBar: React.FC<ChatSideBarProps> = ({
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
 
-  const getPrompt = ({
-    action,
-    code,
-    language,
-    path,
-    lineFrom,
-    lineTo
-  }: QuickActionEventPayload) => {
+  const getPrompt = ({ action }: QuickActionEventPayload) => {
     let builtInPrompt = ''
     switch (action) {
       case 'explain':
-        builtInPrompt = 'Explain the following code:'
+        builtInPrompt = 'Explain the selected code:'
         break
       case 'generate_unittest':
-        builtInPrompt = 'Generate a unit test for the following code:'
+        builtInPrompt = 'Generate a unit test for the selected code:'
         break
       case 'generate_doc':
-        builtInPrompt = 'Generate documentation for the following code:'
+        builtInPrompt = 'Generate documentation for the selected code:'
         break
       default:
         break
     }
-    const codeBlockMeta = `${
-      language ?? ''
-    } is_reference=1 path=${path} line_from=${lineFrom} line_to=${lineTo}`
-    return `${builtInPrompt}\n${'```'}${codeBlockMeta}\n${code}\n${'```'}\n`
+
+    return builtInPrompt
   }
 
   React.useEffect(() => {
     const contentWindow = iframeRef.current?.contentWindow
 
     if (pendingEvent) {
+      const { lineFrom, lineTo, language, code, path } = pendingEvent
       contentWindow?.postMessage({
-        action: 'append',
-        payload: getPrompt(pendingEvent)
+        action: 'sendUserChat',
+        payload: {
+          message: getPrompt(pendingEvent),
+          selectContext: {
+            content: code,
+            range: {
+              start: lineFrom,
+              end: lineTo
+            },
+            language,
+            filePath: path,
+            link: `/files?path=${encodeURIComponent(path ?? '')}&line=${
+              lineFrom ?? ''
+            }`
+          }
+        } as UserMessage
       })
       setPendingEvent(undefined)
     }

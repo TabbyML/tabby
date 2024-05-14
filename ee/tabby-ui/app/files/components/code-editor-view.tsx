@@ -91,7 +91,7 @@ const CodeEditorView: React.FC<CodeEditorViewProps> = ({ value, language }) => {
       isChatEnabled &&
       activePath
     ) {
-      result.push(ActionBarWidgetExtension({ language, path: filePath }))
+      result.push(ActionBarWidgetExtension({ language, path: activePath }))
     }
     if (value && tags) {
       result.push(
