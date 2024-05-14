@@ -26,9 +26,9 @@ const CHUNK_SIZE: usize = 2048;
 
 fn make_embedding_token(i: usize, is_one: bool) -> String {
     if is_one {
-        return format!("embedding_one_{i}");
+        format!("embedding_one_{i}")
     } else {
-        return format!("embedding_zero_{i}");
+        format!("embedding_zero_{i}")
     }
 }
 
