@@ -97,6 +97,15 @@ export class CompletionItem {
     return new CompletionItem(this.context, this.fullText, this.replacePrefix, replaceSuffix, this.eventId);
   }
 
+  // Generate a CompletionItem by trying to apply this CompletionItem to the new context.
+  withContext(context: CompletionContext): CompletionItem {
+    if (context.hash === this.context.hash) {
+      return new CompletionItem(context, this.fullText, this.replacePrefix, this.replaceSuffix, this.eventId);
+    } else {
+      return CompletionItem.createBlankItem(context);
+    }
+  }
+
   // Generate a CompletionItem based on this CompletionItem.
   // Simulate as if the user typed over the same text as the completion.
   forward(chars: number): CompletionItem {
@@ -178,16 +187,31 @@ export class CompletionSolution {
 
   add(...items: CompletionItem[]): void {
     this.items.push(
-      ...items.filter((item, index, arr) => {
-        return (
-          item.context.hash === this.context.hash &&
-          !item.isBlank &&
-          // deduplicate
-          arr.findIndex((i) => i.isSameWith(item)) === index &&
-          this.items.findIndex((i) => i.isSameWith(item)) === -1
-        );
-      }),
+      ...items
+        .map((item) => item.withContext(this.context))
+        .filter((item, index, arr) => {
+          return (
+            !item.isBlank &&
+            // deduplicate
+            arr.findIndex((i) => i.isSameWith(item)) === index &&
+            this.items.findIndex((i) => i.isSameWith(item)) === -1
+          );
+        }),
     );
+  }
+
+  // Generate a CompletionSolution by trying to apply this CompletionSolution to the new context.
+  withContext(context: CompletionContext): CompletionSolution {
+    if (context.hash === this.context.hash) {
+      return new CompletionSolution(context, this.items, this.isCompleted);
+    } else {
+      return new CompletionSolution(context);
+    }
+  }
+
+  // Generate a CompletionSolution by replacing all items.
+  withItems(...items: CompletionItem[]): CompletionSolution {
+    return new CompletionSolution(this.context, items, this.isCompleted);
   }
 
   toInlineCompletionList(): InlineCompletionList {

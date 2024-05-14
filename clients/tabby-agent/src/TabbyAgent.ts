@@ -517,7 +517,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
       throw new Error("Agent is not initialized");
     }
     this.logger.debug("Function providedCompletions called.");
-    this.logger.trace("Completion request:", request);
 
     // Mutex Control
     if (this.completionMutexAbortController) {
@@ -558,7 +557,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
           { signal },
         );
 
-        solution = cachedSolution;
+        solution = cachedSolution.withContext(context);
         this.logger.info("Completion cache hit.");
       } else if (!request.manually) {
         // No cached solution
@@ -580,12 +579,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
         this.logger.info(`Fetching completion...`);
         try {
           const response = await this.fetchCompletion(
-            solution.context.language,
-            solution.context.buildSegments(this.config.completion.prompt),
+            context.language,
+            context.buildSegments(this.config.completion.prompt),
             undefined,
             signal,
           );
-          const completionItem = CompletionItem.createFromResponse(solution.context, response);
+          const completionItem = CompletionItem.createFromResponse(context, response);
           // postprocess: preCache
           solution.add(...(await preCacheProcess([completionItem], this.config.postprocess)));
         } catch (error) {
@@ -599,7 +598,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         // TriggerKind is Manual
         // We need to fetch the more choices
 
-        solution = cachedSolution ?? new CompletionSolution(context);
+        solution = cachedSolution?.withContext(context) ?? new CompletionSolution(context);
         this.logger.info(`Fetching more completions...`);
 
         try {
@@ -610,12 +609,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
           ) {
             tries++;
             const response = await this.fetchCompletion(
-              solution.context.language,
-              solution.context.buildSegments(this.config.completion.prompt),
+              context.language,
+              context.buildSegments(this.config.completion.prompt),
               this.config.completion.solution.temperature,
               signal,
             );
-            const completionItem = CompletionItem.createFromResponse(solution.context, response);
+            const completionItem = CompletionItem.createFromResponse(context, response);
             // postprocess: preCache
             solution.add(...(await preCacheProcess([completionItem], this.config.postprocess)));
             if (signal.aborted) {
@@ -637,11 +636,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         this.completionCache.update(solution);
 
         // postprocess: postCache
-        solution = new CompletionSolution(
-          solution.context,
-          await postCacheProcess(solution.items, this.config.postprocess),
-          solution.isCompleted,
-        );
+        solution = solution.withItems(...(await postCacheProcess(solution.items, this.config.postprocess)));
         if (signal.aborted) {
           throw signal.reason;
         }

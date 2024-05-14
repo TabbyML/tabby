@@ -18,7 +18,6 @@ export class CompletionCache {
 
   update(value: CompletionSolution): void {
     this.logger.debug(`Updating completion cache, cache number before updating: ${this.cache.size}`);
-    this.logger.trace("Updating cache with:", { value });
     const solutions = [value, ...this.generateForwardSolutions(value)];
     solutions.forEach((solution) => {
       const cachedSolution = this.cache.get(solution.context.hash);
