@@ -1,3 +1,4 @@
+use serde_json::map::Iter;
 use tantivy::schema::{Field, Schema, STORED, STRING};
 
 pub struct DocSearchSchema {
@@ -34,6 +35,18 @@ impl DocSearchSchema {
             field_link,
             field_body,
         }
+    }
+
+    pub fn binarize_embedding<'a>(
+        embedding: impl Iterator<Item = &'a f32> + 'a,
+    ) -> impl Iterator<Item = String> + 'a {
+        embedding.enumerate().map(|(i, value)| {
+            if *value <= 0.0 {
+                format!("embedding_zero_{}", i)
+            } else {
+                format!("embedding_one_{}", i)
+            }
+        })
     }
 }
 

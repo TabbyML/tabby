@@ -24,14 +24,6 @@ pub struct DocIndex {
 
 const CHUNK_SIZE: usize = 2048;
 
-fn make_embedding_token(i: usize, is_one: bool) -> String {
-    if is_one {
-        format!("embedding_one_{i}")
-    } else {
-        format!("embedding_zero_{i}")
-    }
-}
-
 impl DocIndex {
     pub fn new(embedding: Arc<dyn Embedding>) -> Self {
         let doc = DocSearchSchema::default();
@@ -93,8 +85,8 @@ impl DocIndex {
                 }
             };
 
-            for (i, value) in embedding.iter().enumerate() {
-                tokens.insert(make_embedding_token(i, *value > 0.0));
+            for token in DocSearchSchema::binarize_embedding(embedding.iter()) {
+                tokens.insert(token);
             }
         }
 
