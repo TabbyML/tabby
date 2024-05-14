@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { noop } from 'lodash-es'
 import Link from 'next/link'
-import { useTheme } from 'next-themes'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
@@ -50,7 +49,6 @@ const resetUserAuthTokenDocument = graphql(/* GraphQL */ `
 function Configuration({ className }: { className?: string }) {
   const [{ data }, reexecuteQuery] = useMe()
   const externalUrl = useExternalURL()
-  const { theme } = useTheme()
 
   const resetUserAuthToken = useMutation(resetUserAuthTokenDocument, {
     onCompleted: () => reexecuteQuery()
