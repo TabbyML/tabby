@@ -34,14 +34,15 @@ import { ChatContext } from './chat'
 
 interface QuestionAnswerListProps {
   messages: QuestionAnswerPair[]
-  isLoading: boolean
 }
-function QuestionAnswerList({ messages, isLoading }: QuestionAnswerListProps) {
+function QuestionAnswerList({ messages }: QuestionAnswerListProps) {
+  const { isLoading } = React.useContext(ChatContext)
   return (
     <div className="relative mx-auto max-w-2xl px-4">
       {messages?.map((message, index) => {
         const isLastItem = index === messages.length - 1
         return (
+          // use userMessageId as QuestionAnswerItem ID
           <React.Fragment key={message.user.id}>
             <QuestionAnswerItem
               isLoading={isLastItem ? isLoading : false}
@@ -121,7 +122,8 @@ interface AssistantMessageCardProps {
 }
 
 function AssistantMessageCard(props: AssistantMessageCardProps) {
-  const { handleMessageAction } = React.useContext(ChatContext)
+  const { handleMessageAction, isLoading: isGenerating } =
+    React.useContext(ChatContext)
   const { message, selectContext, relevantContext, isLoading, userMessageId } =
     props
 
@@ -145,14 +147,16 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
           <MessageMarkdown message={message.message} />
         )}
         <ChatMessageActionsWrapper>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={e => handleMessageAction(userMessageId, 'regenerate')}
-          >
-            <IconRefresh />
-            <span className="sr-only">Regenerate message</span>
-          </Button>
+          {!isGenerating && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={e => handleMessageAction(userMessageId, 'regenerate')}
+            >
+              <IconRefresh />
+              <span className="sr-only">Regenerate message</span>
+            </Button>
+          )}
           <CopyButton value={message.message} />
         </ChatMessageActionsWrapper>
       </div>
@@ -279,7 +283,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
               .join('/')
             return (
               <div
-                className="cursor-pointer rounded-md border p-2"
+                className="cursor-pointer rounded-md border p-2 hover:bg-accent"
                 key={item.filePath}
                 onClick={e => onNavigateToContext?.(item)}
               >

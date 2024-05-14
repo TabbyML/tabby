@@ -22,6 +22,10 @@ export interface UserMessage {
   relevantContext?: Array<Context>
 }
 
+export type UserMessageWithOptionalId = Omit<UserMessage, 'id'> & {
+  id?: string
+}
+
 export interface AssistantMessage {
   id: string
   message: string

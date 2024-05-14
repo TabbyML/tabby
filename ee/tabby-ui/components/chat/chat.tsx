@@ -9,7 +9,8 @@ import {
   FileContext,
   MessageActionType,
   QuestionAnswerPair,
-  UserMessage
+  UserMessage,
+  UserMessageWithOptionalId
 } from '@/lib/types/chat'
 import { cn, nanoid } from '@/lib/utils'
 
@@ -19,6 +20,7 @@ import { EmptyScreen } from './empty-screen'
 import { QuestionAnswerList } from './question-answer'
 
 type ChatContextValue = {
+  isLoading: boolean
   handleMessageAction: (
     userMessageId: string,
     action: MessageActionType
@@ -65,7 +67,9 @@ function fileContextToMessageContent(context: FileContext | undefined): string {
 }
 
 export interface ChatRef extends Omit<UseChatHelpers, 'append' | 'messages'> {
-  sendUserChat: (message: UserMessage) => Promise<string | null | undefined>
+  sendUserChat: (
+    message: UserMessageWithOptionalId
+  ) => Promise<string | null | undefined>
 }
 
 interface ChatProps extends React.ComponentProps<'div'> {
@@ -115,8 +119,10 @@ function ChatRenderer(
   const { messages, append, stop, isLoading, input, setInput, setMessages } =
     useChatHelpers
 
-  const onDeleteMessage = (userMessageId: string) => {
+  const onDeleteMessage = async (userMessageId: string) => {
+    // Stop generating first.
     stop()
+
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
     // setmessage returns by useChatHelpers
@@ -198,23 +204,28 @@ function ChatRenderer(
     }
   }, [messages, isLoading])
 
-  const sendUserChat = (userMessage: UserMessage) => {
+  const sendUserChat = (userMessage: UserMessageWithOptionalId) => {
+    // If no id is provided, set a fallback id.
+    const newUserMessage = {
+      ...userMessage,
+      id: userMessage.id ?? nanoid()
+    }
     setQaPairs(pairs => [
       ...pairs,
       {
-        user: userMessage,
+        user: newUserMessage,
+        // For placeholder, and it also conveniently handles streaming responses and displays reference context.
         assistant: {
           id: nanoid(),
           message: ''
         }
       }
     ])
-    return append(userMessageToMessage(userMessage))
+    return append(userMessageToMessage(newUserMessage))
   }
 
   const handleSubmit = async (value: string) => {
     return sendUserChat({
-      id: nanoid(),
       message: value
     })
   }
@@ -245,6 +256,7 @@ function ChatRenderer(
   return (
     <ChatContext.Provider
       value={{
+        isLoading: useChatHelpers.isLoading,
         onNavigateToContext,
         handleMessageAction
       }}
@@ -253,10 +265,7 @@ function ChatRenderer(
         <div className="w-full max-w-2xl px-4">
           <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
             {qaPairs?.length ? (
-              <QuestionAnswerList
-                messages={qaPairs}
-                isLoading={useChatHelpers.isLoading}
-              />
+              <QuestionAnswerList messages={qaPairs} />
             ) : (
               <EmptyScreen setInput={useChatHelpers.setInput} />
             )}

@@ -10,7 +10,7 @@ import { addChat, updateMessages } from '@/lib/stores/chat-actions'
 import { useChatStore } from '@/lib/stores/chat-store'
 import { getChatById } from '@/lib/stores/utils'
 import { Context as ChatContext, QuestionAnswerPair } from '@/lib/types/chat'
-import { nanoid, truncateText } from '@/lib/utils'
+import { truncateText } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat/chat'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
@@ -46,7 +46,6 @@ export default function Chats() {
       const { data } = event
       if (data.action === 'sendUserChat') {
         chatRef.current.sendUserChat({
-          id: nanoid(),
           ...data.payload
         })
         return
@@ -104,7 +103,6 @@ export default function Chats() {
       // request initialMessage
       chatRef.current
         .sendUserChat({
-          id: nanoid(),
           message: initialMessage
         })
         .then(() => {
