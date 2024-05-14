@@ -78,15 +78,6 @@ pub enum Device {
     ExperimentalHttp,
 }
 
-impl Device {
-    pub fn ggml_use_gpu(&self) -> bool {
-        match self {
-            Device::Metal | Device::Vulkan | Device::Cuda | Device::Rocm => true,
-            Device::Cpu | Device::ExperimentalHttp => false,
-        }
-    }
-}
-
 #[tokio::main]
 async fn main() {
     color_eyre::install().expect("Must be able to install color_eyre");

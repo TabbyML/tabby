@@ -3,10 +3,7 @@ mod chat;
 use std::{fs, path::PathBuf, sync::Arc};
 
 use serde::Deserialize;
-use tabby_common::{
-    registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH},
-    terminal::{HeaderFormat, InfoMessage},
-};
+use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
 use tabby_download::download_model;
 use tabby_inference::{ChatCompletionStream, CodeGeneration, CompletionStream};
 use tracing::info;
@@ -102,19 +99,8 @@ async fn create_ggml_engine(
     model_path: &str,
     parallelism: u8,
 ) -> Arc<dyn CompletionStream> {
-    if !device.ggml_use_gpu() {
-        InfoMessage::new(
-            "CPU Device",
-            HeaderFormat::BoldBlue,
-            &[
-                "Tabby is currently running on the CPU. Completions may be slow, but it will suffice for testing purposes.",
-                "For better performance, consider deploying Tabby on a GPU device."
-            ],
-        );
-    }
-
-    let device_str = device.to_string().to_lowercase();
-    let server = llama_cpp_server::LlamaCppServer::new(&device_str, model_path, parallelism);
+    let server =
+        llama_cpp_server::LlamaCppServer::new(device != &Device::Cpu, model_path, parallelism);
     server.start().await;
     Arc::new(server)
 }
