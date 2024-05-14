@@ -266,7 +266,6 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
       type="single"
       collapsible
       className="bg-background text-foreground"
-      defaultValue="references"
     >
       <AccordionItem value="references" className="my-0 border-0">
         <AccordionTrigger className="my-0 py-2">
