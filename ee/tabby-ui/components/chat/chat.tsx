@@ -221,7 +221,6 @@ function ChatRenderer(
 
   React.useEffect(() => {
     if (!loaded.current) return
-    console.log(qaPairs)
     onThreadUpdates(qaPairs)
   }, [qaPairs])
 
