@@ -101,6 +101,7 @@ interface ChatProps extends React.ComponentProps<'div'> {
   api?: string
   headers?: Record<string, string> | Headers
   initialMessages?: QuestionAnswerPair[]
+  onLoaded?: () => void
   onThreadUpdates: (messages: QuestionAnswerPair[]) => void
   onNavigateToContext: (context: Context) => void
 }
@@ -112,13 +113,14 @@ function ChatRenderer(
     initialMessages,
     headers,
     api,
+    onLoaded,
     onThreadUpdates,
     onNavigateToContext
   }: ChatProps,
   ref: React.ForwardedRef<ChatRef>
 ) {
   const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
-  const didMount = React.useRef(false)
+  const loaded = React.useRef(false)
   const transformedInitialMessages = React.useMemo(() => {
     return toMessages(initialMessages)
   }, [])
@@ -246,7 +248,7 @@ function ChatRenderer(
   }
 
   React.useEffect(() => {
-    if (!didMount.current) return
+    if (!loaded.current) return
     onThreadUpdates(qaPairs)
   }, [qaPairs])
 
@@ -260,6 +262,13 @@ function ChatRenderer(
     },
     [useChatHelpers]
   )
+
+  React.useEffect(() => {
+    if (loaded?.current) return
+
+    loaded.current = true
+    onLoaded?.()
+  }, [])
 
   return (
     <ChatContext.Provider

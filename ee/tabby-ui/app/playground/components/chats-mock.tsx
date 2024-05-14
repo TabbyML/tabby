@@ -33,31 +33,6 @@ export default function Chats() {
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
 
   React.useEffect(() => {
-    if (!shouldConsumeInitialMessage.current) return
-    if (!chatRef.current?.sendUserChat) return
-
-    if (activeChatId && initialMessage) {
-      // request initialMessage
-      chatRef.current
-        .sendUserChat({
-          id: nanoid(),
-          message: initialMessage
-        })
-        .then(() => {
-          // Remove the initialMessage params after the request is completed.
-          updateSearchParams({
-            del: 'initialMessage'
-          })
-        })
-      // store as a new chat
-      // todo localstorage
-      // addChat(activeChatId, truncateText(initialMessage))
-
-      shouldConsumeInitialMessage.current = false
-    }
-  }, [chatRef.current?.sendUserChat])
-
-  React.useEffect(() => {
     const onMessage = async (event: MessageEvent) => {
       if (event.origin !== window.origin || !event.data) {
         return
@@ -84,7 +59,7 @@ export default function Chats() {
     return () => {
       window.removeEventListener('message', onMessage)
     }
-  }, [chatRef.current])
+  }, [])
 
   const onThreadUpdates = (messages: QuestionAnswerPair[]) => {
     console.log(messages)
@@ -94,39 +69,62 @@ export default function Chats() {
     console.log(context)
   }
 
-  const sent = React.useRef(false)
-  React.useEffect(() => {
-    setTimeout(() => {
-      if (sent.current) return
-      chatRef.current?.sendUserChat({
-        id: nanoid(),
-        message: 'explain',
-        selectContext: {
-          kind: 'file',
-          content: 'do not display',
-          range: {
-            start: 4,
-            end: 10
-          },
-          filePath: 'ee/tabby-ui/layout.tsx',
-          link: 'xxxxxx'
-        },
-        relevantContext: [
-          {
-            kind: 'file',
-            content: 'do not display',
-            range: {
-              start: 99,
-              end: 100
-            },
-            filePath: 'ee/tabby-ui/path/to/file/test.tsx',
-            link: 'xxxxxx'
-          }
-        ]
-      })
-      sent.current = true
-    }, 5000)
-  }, [])
+  const onChatLoaded = () => {
+    if (!shouldConsumeInitialMessage.current) return
+    if (!chatRef.current?.sendUserChat) return
+    if (activeChatId && initialMessage) {
+      // request initialMessage
+      chatRef.current
+        .sendUserChat({
+          id: nanoid(),
+          message: initialMessage
+        })
+        .then(() => {
+          // Remove the initialMessage params after the request is completed.
+          updateSearchParams({
+            del: 'initialMessage'
+          })
+        })
+      // todo store as a new chat with localstorage
+      // addChat(activeChatId, truncateText(initialMessage))
+
+      shouldConsumeInitialMessage.current = false
+    }
+  }
+
+  // const sent = React.useRef(false)
+  // React.useEffect(() => {
+  //   setTimeout(() => {
+  //     if (sent.current) return
+  //     chatRef.current?.sendUserChat({
+  //       id: nanoid(),
+  //       message: 'explain',
+  //       selectContext: {
+  //         kind: 'file',
+  //         content: 'do not display',
+  //         range: {
+  //           start: 4,
+  //           end: 10
+  //         },
+  //         filePath: 'ee/tabby-ui/layout.tsx',
+  //         link: 'xxxxxx'
+  //       },
+  //       relevantContext: [
+  //         {
+  //           kind: 'file',
+  //           content: 'do not display',
+  //           range: {
+  //             start: 99,
+  //             end: 100
+  //           },
+  //           filePath: 'ee/tabby-ui/path/to/file/test.tsx',
+  //           link: 'xxxxxx'
+  //         }
+  //       ]
+  //     })
+  //     sent.current = true
+  //   }, 5000)
+  // }, [])
 
   return (
     <div className="grid flex-1 overflow-hidden lg:grid-cols-[280px_1fr]">
@@ -147,6 +145,7 @@ export default function Chats() {
           ref={chatRef}
           onThreadUpdates={onThreadUpdates}
           onNavigateToContext={onNavigateToContext}
+          onLoaded={onChatLoaded}
         />
       </LoadingWrapper>
     </div>
