@@ -623,7 +623,9 @@ impl Mutation {
                 "You cannot change another user's name",
             ));
         }
-        ctx.locator.auth().update_user_name(&id, name).await?;
+        let input = auth::UpdateUserNameInput { name };
+        input.validate()?;
+        ctx.locator.auth().update_user_name(&id, input.name).await?;
         Ok(true)
     }
 

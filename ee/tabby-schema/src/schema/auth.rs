@@ -279,6 +279,26 @@ pub struct PasswordChangeInput {
     pub new_password2: String,
 }
 
+#[derive(Validate)]
+pub struct UpdateUserNameInput {
+    #[validate(length(
+        min = 2,
+        code = "username",
+        message = "Username must be at least 2 characters"
+    ))]
+    #[validate(length(
+        max = 20,
+        code = "username",
+        message = "Username must be at most 20 characters"
+    ))]
+    #[validate(regex(
+        code = "username",
+        path = "crate::schema::constants::USERNAME_REGEX",
+        message = "Invalid username, only alphanumeric characters, _ and - are allowed"
+    ))]
+    pub name: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, GraphQLObject)]
 #[graphql(context = Context)]
 pub struct Invitation {

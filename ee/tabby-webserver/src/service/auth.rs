@@ -223,9 +223,6 @@ impl AuthenticationService for AuthenticationServiceImpl {
         if is_demo_mode() {
             bail!("Changing profile data is disabled in demo mode");
         }
-        if name.is_empty() || name.len() > 100 {
-            bail!("Name must be between 1 and 10 characters");
-        }
         let id = id.as_rowid()?;
         self.db.update_user_name(id, name).await?;
         Ok(())
