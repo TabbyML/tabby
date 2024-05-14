@@ -61,7 +61,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - run: bash ./ci/prepare_build_environment.sh
+      - run: sudo bash ./ci/prepare_build_environment.sh
 
       - run: make fix
 
