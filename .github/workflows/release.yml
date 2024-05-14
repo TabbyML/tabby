@@ -244,7 +244,6 @@ jobs:
           path: tabby_${{ matrix.binary }}${{ matrix.ext }}
 
   pre-release:
-    if: github.event_name == 'push'
     needs: [release-llama-server-binary, release-binary]
     runs-on: ubuntu-latest
     permissions:
@@ -253,10 +252,33 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v3
 
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Creating distribution bundles
+        run: >
+          for llama_server in llama-server_*/llama-server_*; do
+            for tabby in tabby_*/tabby_*; do
+              llaman=$(basename $llama_server)
+              tabbyn=$(basename $tabby)
+
+              llamav=${llaman#llama-server_}
+              tabbyv=${tabbyn#tabby_}
+              if [[ $llamav == *"$tabbyv"* ]]; then
+                echo "Creating bundle for $llamav"
+                distdir=dist/tabby_$llamav
+                mkdir -p $distdir
+                cp $llama_server $distdir/llama-server
+                cp $tabby $distdir/tabby
+              fi
+            done
+          done
+
       - uses: ncipollo/release-action@v1
+        if: github.event_name == 'push'
         with:
           allowUpdates: true          
           prerelease: true
-          artifacts: "tabby_*/tabby_*,llama-server_*/llama-server_*"
+          artifacts: "dist/tabby_*"
           tag: ${{ github.ref_name }}
           removeArtifacts: true
