@@ -6,7 +6,6 @@ import { noop } from 'lodash-es'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 
-import { cn } from '@/lib/utils'
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
@@ -14,7 +13,7 @@ import { useExternalURL } from '@/lib/hooks/use-network-setting'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useSignOut } from '@/lib/tabby/auth'
 import { useMutation } from '@/lib/tabby/gql'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { CardContent, CardFooter } from '@/components/ui/card'
 import {
   IconChat,
@@ -34,6 +33,11 @@ import { CopyButton } from '@/components/copy-button'
 import SlackDialog from '@/components/slack-dialog'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { UserAvatar } from '@/components/user-avatar'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 
 import Stats from './components/stats'
 
@@ -107,24 +111,45 @@ function Configuration({ className }: { className?: string }) {
         </span>
       </CardFooter>
 
-      <div className="flex gap-x-3 justify-between mt-4 mb-6 lg:mb-0">
-        <Link
-          className={cn(buttonVariants({ variant: theme === 'dark' ? 'default' : 'outline' }), "flex flex-1 items-center")}
+      <div className="mb-6 mt-3 flex gap-x-3 lg:mb-0">
+        <IDELink
           href="https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby"
-          target='_blank'>
-            <IconVSCode  />
-            <p className="text-xs ml-1">VS Code</p>
-        </Link>
-        <Link
-          className={cn(buttonVariants({ variant: theme === 'dark' ? 'default' : 'outline' }), "flex flex-1 items-center")}
+          name='VS Code'
+          icon={<IconVSCode className="h-5 w-5" />}
+        />
+        <IDELink
           href="https://plugins.jetbrains.com/plugin/22379-tabby"
-          target='_blank'>
-            <IconJetBrains />
-            <p className="text-xs ml-1">JetBrains</p>
-        </Link>
-        
+          name='JetBrains'
+          icon={<IconJetBrains className="h-5 w-5" />}
+        />
       </div>
     </div>
+  )
+}
+
+function IDELink ({
+  href,
+  name,
+  icon
+}: {
+  href: string;
+  name: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger>
+        <Link
+          href={href}
+          className="transition-all hover:opacity-80 dark:text-muted-foreground"
+          target='_blank'>
+            {icon}
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{name}</p>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
