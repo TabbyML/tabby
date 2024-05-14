@@ -30,10 +30,9 @@ impl Embedding for LlamaCppServer {
 }
 
 impl LlamaCppServer {
-    pub fn new(device: &str, model_path: &str, parallelism: u8) -> Self {
-        let use_gpu = device != "cpu";
-        let Some(binary_name) = find_binary_name(Some(device)) else {
-            panic!("Failed to find llama-server binary for device {device}, please make sure you have corresponding llama-server binary locates in the same directory as the current executable.");
+    pub fn new(use_gpu: bool, model_path: &str, parallelism: u8) -> Self {
+        let Some(binary_name) = find_binary_name() else {
+            panic!("Failed to locate llama-server binary, please make sure you have llama-server binary locates in the same directory as the current executable.");
         };
 
         let model_path = model_path.to_owned();
@@ -117,16 +116,12 @@ impl LlamaCppServer {
     }
 }
 
-fn find_binary_name(suffix: Option<&str>) -> Option<String> {
+fn find_binary_name() -> Option<String> {
     let current_exe = std::env::current_exe().expect("Failed to get current executable path");
     let binary_dir = current_exe
         .parent()
         .expect("Failed to get parent directory");
-    let binary_name = if let Some(suffix) = suffix {
-        format!("llama-server-{}", suffix)
-    } else {
-        "llama-server".to_owned()
-    };
+    let binary_name = "llama-server".to_owned();
     std::fs::read_dir(binary_dir)
         .expect("Failed to read directory")
         .filter_map(|entry| entry.ok())

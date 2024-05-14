@@ -22,7 +22,7 @@ env:
   RUST_TOOLCHAIN: 1.76.0
 
 jobs:
-  release-binary:
+  release-llama-server-binary:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     strategy:
@@ -41,50 +41,50 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             binary: aarch64-apple-darwin
-            build_args: --no-default-features --features prod
+            build_args: --features binary
           - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014
             container: quay.io/pypa/manylinux2014_x86_64
-            build_args: --no-default-features --features static-ssl,prod
+            build_args: --features binary
           - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda117
             container: sameli/manylinux2014_x86_64_cuda_11.7
-            build_args: --no-default-features --features static-ssl,cuda,prod
+            build_args: --features binary,cuda
           - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-cuda122
             container: sameli/manylinux2014_x86_64_cuda_12.2
-            build_args: --no-default-features --features static-ssl,cuda,prod
+            build_args: --features binary,cuda
           - os: buildjet-2vcpu-ubuntu-2204
             target: x86_64-unknown-linux-gnu
             binary: x86_64-manylinux2014-vulkan
             container: quay.io/pypa/manylinux2014_x86_64
-            build_args: --no-default-features --features static-ssl,vulkan,prod
+            build_args: --features binary,vulkan
             vulkan_sdk: '1.3.239.0'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc
-            build_args: --no-default-features --features prod
+            build_args: --features binary
             ext: .exe
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-vulkan
             ext: .exe
-            build_args: --no-default-features --features vulkan,prod
+            build_args: --features vulkan,binary
             vulkan_sdk: '1.3.280.0'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-cuda117
             ext: .exe
-            build_args: --no-default-features --features cuda,prod
+            build_args: --features cuda,binary
             windows_cuda: '11.7.1'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: x86_64-windows-msvc-cuda122
             ext: .exe
-            build_args: --no-default-features --features cuda,prod
+            build_args: --features cuda,binary
             windows_cuda: '12.2.0'
 
     env:
@@ -148,6 +148,89 @@ jobs:
         if: matrix.vulkan_sdk != ''
 
       - name: Bulid release binary
+        run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package llama-cpp-server
+
+      - name: Rename release binary
+        run: mv target/${{ matrix.target }}/release/llama-server${{ matrix.ext }} llama-server_${{ matrix.binary }}${{ matrix.ext }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          retention-days: 3
+          name: llama-server_${{ matrix.binary }}${{ matrix.ext }}
+          path: llama-server_${{ matrix.binary }}${{ matrix.ext }}
+
+  release-binary:
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    strategy:
+      matrix:
+        binary:
+          - aarch64-apple-darwin
+          - x86_64-manylinux2014
+          - x86_64-windows-msvc
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary: aarch64-apple-darwin
+            build_args: --no-default-features --features prod
+          - os: buildjet-2vcpu-ubuntu-2204
+            target: x86_64-unknown-linux-gnu
+            binary: x86_64-manylinux2014
+            container: quay.io/pypa/manylinux2014_x86_64
+            build_args: --no-default-features --features static-ssl,prod
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: x86_64-windows-msvc
+            build_args: --no-default-features --features prod
+            ext: .exe
+
+    env:
+      SCCACHE_GHA_ENABLED: true
+      RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: 0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          target: ${{ matrix.target }}
+          components: clippy
+
+      - name: Set default rust version
+        run: rustup default ${{ env.RUST_TOOLCHAIN }}
+
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+        with:
+          version: "v0.4.0"
+
+      - name: Cargo registry cache
+        uses: actions/cache@v3
+        with:
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-${{ runner.os }}-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+
+      - name: Prepare build environment for macOS & Linux
+        run: bash ./ci/prepare_build_environment.sh
+        if: runner.os != 'Windows'
+
+      - name: Prepare build environment for Windows
+        run: ./ci/prepare_build_environment.ps1
+        if: runner.os == 'Windows'
+
+      - name: Bulid release binary
         run: cargo build ${{ matrix.build_args }} --release --target ${{ matrix.target }} --package tabby
 
       - name: Rename release binary
@@ -162,7 +245,7 @@ jobs:
 
   pre-release:
     if: github.event_name == 'push'
-    needs: release-binary
+    needs: [release-llama-server-binary, release-binary]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -174,6 +257,6 @@ jobs:
         with:
           allowUpdates: true          
           prerelease: true
-          artifacts: "tabby_*/tabby_*"
+          artifacts: "tabby_*/tabby_*,llama-server_*/llama-server_*"
           tag: ${{ github.ref_name }}
           removeArtifacts: true
