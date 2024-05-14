@@ -24,8 +24,12 @@ pub struct DocIndex {
 
 const CHUNK_SIZE: usize = 2048;
 
-fn make_embedding_token(i: usize) -> String {
-    format!("embedding_{i}")
+fn make_embedding_token(i: usize, is_one: bool) -> String {
+    if is_one {
+        format!("embedding_one_{i}")
+    } else {
+        format!("embedding_zero_{i}")
+    }
 }
 
 impl DocIndex {
@@ -90,9 +94,7 @@ impl DocIndex {
             };
 
             for (i, value) in embedding.iter().enumerate() {
-                if *value > 0.0 {
-                    tokens.insert(make_embedding_token(i));
-                }
+                tokens.insert(make_embedding_token(i, *value > 0.0));
             }
         }
 
