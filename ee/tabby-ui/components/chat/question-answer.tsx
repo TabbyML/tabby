@@ -92,7 +92,7 @@ function UserMessageCard(props: { message: UserMessage }) {
       className={cn('group relative mb-4 flex items-start md:-ml-12')}
       {...props}
     >
-      <div className="shrink-0 select-none rounded-full border bg-background shadow">
+      <div className="bg-background shrink-0 select-none rounded-full border shadow">
         <UserAvatar className="h-8 w-8" />
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
@@ -134,7 +134,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       className={cn('group relative mb-4 flex items-start md:-ml-12')}
       {...props}
     >
-      <div className="shrink-0 select-none rounded-full border bg-background shadow">
+      <div className="bg-background shrink-0 select-none rounded-full border shadow">
         <IconTabby className="h-8 w-8" />
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
@@ -163,7 +163,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 function MessageMarkdown({ message }: { message: string }) {
   return (
     <MemoizedReactMarkdown
-      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
+      className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 break-words"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         p({ children }) {
@@ -214,14 +214,9 @@ function MessageMarkdown({ message }: { message: string }) {
 
 function MessagePendingIndicator() {
   return (
-    <div className="mb-4 flex items-start md:-ml-12">
-      <div className="shrink-0 select-none rounded-full border bg-background shadow">
-        <IconTabby className="h-8 w-8" />
-      </div>
-      <div className="ml-4 flex-1 space-y-2 px-1">
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-full" />
-      </div>
+    <div className="space-y-2 px-1">
+      <Skeleton className="h-3 w-full" />
+      <Skeleton className="h-3 w-full" />
     </div>
   )
 }
@@ -303,7 +298,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
                       </span>
                     )}
                   </span>
-                  <span className="ml-2 text-xs text-muted-foreground">
+                  <span className="text-muted-foreground ml-2 text-xs">
                     {path}
                   </span>
                 </div>

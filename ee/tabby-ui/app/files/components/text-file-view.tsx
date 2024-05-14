@@ -78,7 +78,7 @@ export const TextFileView: React.FC<TextFileViewProps> = ({
           </Tabs>
         )}
       </BlobHeader>
-      <div className="rounded-b-lg border border-t-0 p-2">
+      <div className="rounded-b-lg border border-t-0 py-2">
         <Suspense fallback={<ListSkeleton />}>
           {showMarkdown ? (
             <MarkdownView value={value} />
