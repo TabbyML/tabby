@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { noop } from 'lodash-es'
-import Link from 'next/link'
 
 import { graphql } from '@/lib/gql/generates'
 import { useHealth } from '@/lib/hooks/use-health'
@@ -18,25 +18,25 @@ import {
   IconChat,
   IconCode,
   IconGear,
+  IconJetBrains,
   IconLogout,
   IconMail,
   IconRotate,
   IconSpinner,
-  IconVSCode,
-  IconJetBrains
+  IconVSCode
 } from '@/components/ui/icons'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { CopyButton } from '@/components/copy-button'
-import SlackDialog from '@/components/slack-dialog'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { UserAvatar } from '@/components/user-avatar'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { CopyButton } from '@/components/copy-button'
+import SlackDialog from '@/components/slack-dialog'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { UserAvatar } from '@/components/user-avatar'
 
 import Stats from './components/stats'
 
@@ -112,12 +112,12 @@ function Configuration({ className }: { className?: string }) {
       <div className="mb-6 mt-3 flex gap-x-3 lg:mb-0">
         <IDELink
           href="https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby"
-          name='VS Code'
+          name="VS Code"
           icon={<IconVSCode className="h-5 w-5" />}
         />
         <IDELink
           href="https://plugins.jetbrains.com/plugin/22379-tabby"
-          name='JetBrains'
+          name="JetBrains"
           icon={<IconJetBrains className="h-5 w-5" />}
         />
       </div>
@@ -125,14 +125,14 @@ function Configuration({ className }: { className?: string }) {
   )
 }
 
-function IDELink ({
+function IDELink({
   href,
   name,
   icon
 }: {
-  href: string;
-  name: string;
-  icon: React.ReactNode;
+  href: string
+  name: string
+  icon: React.ReactNode
 }) {
   return (
     <Tooltip>
@@ -140,8 +140,9 @@ function IDELink ({
         <Link
           href={href}
           className="transition-all hover:opacity-80 dark:text-muted-foreground"
-          target='_blank'>
-            {icon}
+          target="_blank"
+        >
+          {icon}
         </Link>
       </TooltipTrigger>
       <TooltipContent>
