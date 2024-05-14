@@ -41,6 +41,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --no-default-features --features rocm,prod --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
+# For compatibility with the legacy cpu build.
+RUN cp target/release/tabby /opt/tabby/bin/tabby-cpu
+
 FROM ${BASE_ROCM_RUN_CONTAINER} AS runtime
 
 RUN apt-get update && \

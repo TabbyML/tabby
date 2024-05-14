@@ -41,6 +41,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --no-default-features --features cuda,prod --release --package tabby && \
     cp target/release/tabby /opt/tabby/bin/
 
+# For compatibility with the legacy cpu build.
+RUN cp target/release/tabby /opt/tabby/bin/tabby-cpu
+
 FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
 
 RUN apt-get update && \
