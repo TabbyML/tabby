@@ -4,6 +4,10 @@ use cmake::Config;
 use omnicopy_to_output::copy_to_output;
 
 fn main() {
+    if !cfg!(feature = "binary") {
+        return;
+    }
+
     let mut config = Config::new("../llama-cpp-bindings/llama.cpp");
     config.profile("Release");
     config.define("LLAMA_NATIVE", "OFF");

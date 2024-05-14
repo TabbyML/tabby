@@ -6,9 +6,10 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-cuda = []
-rocm = []
-vulkan = []
+binary = []
+cuda = ["binary"]
+rocm = ["binary"]
+vulkan = ["binary"]
 
 [dependencies]
 futures.workspace = true
