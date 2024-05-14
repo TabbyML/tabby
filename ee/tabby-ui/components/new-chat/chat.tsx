@@ -1,14 +1,14 @@
 import React from 'react'
 import { useChat, type Message, type UseChatHelpers } from 'ai/react'
+import { findIndex, omit } from 'lodash-es'
 import { toast } from 'sonner'
-import { nanoid } from 'ai'
-import { cn } from '@/lib/utils'
+
+import { cn, nanoid } from '@/lib/utils'
+
+import { ChatPanel } from '../chat-panel'
 import { ChatScrollAnchor } from '../chat-scroll-anchor'
 import { EmptyScreen } from '../empty-screen'
-import { ChatList } from './chat-list'
-import { find, findIndex } from 'lodash-es'
-import { ChatPanel } from '../chat-panel'
-
+import { QuestionAnswerList } from './question-answer'
 
 interface LineRange {
   start: number
@@ -16,23 +16,22 @@ interface LineRange {
 }
 
 export interface FileContext {
-  kind: "file"
-  range: LineRange,
-  filename: string,
+  kind: 'file'
+  range: LineRange
+  filePath: string
   link: string
-  providerId: string
-  repositoryId: string
+  language?: string
   // FIXME(jueliang): add code snippet here for client side mock
   content: string
 }
 
-export type ChatContext = FileContext
+export type Context = FileContext
 
 export interface UserMessage {
   id: string
   message: string
-  selectContext?: ChatContext
-  relevantContext?: Array<ChatContext>
+  selectContext?: Context
+  relevantContext?: Array<Context>
 }
 
 export interface AssistantMessage {
@@ -41,24 +40,23 @@ export interface AssistantMessage {
 }
 
 export interface QuestionAnswerPair {
-  user: UserMessage,
-  assistant: AssistantMessage
+  user: UserMessage
+  assistant?: AssistantMessage
 }
 
-function QuestionAnswerItem({ message }: { message: QuestionAnswerPair }) {
-  // todo refenrence context ?
-  return (
-    <div>QuestionAnswerItem</div>
-  )
+export type MessageActionType = 'delete' | 'regenerate'
+
+type ChatContextValue = {
+  handleMessageAction: (
+    userMessageId: string,
+    action: MessageActionType
+  ) => void
+  onNavigateToContext?: (context: Context) => void
 }
 
-function UserMessageCard({ message }: { message: UserMessage }) {
-  return <div>user message card</div>
-}
-
-function AssistantMessageCard({ message }: { message: AssistantMessage }) {
-  return <div>assistant message card</div>
-}
+export const ChatContext = React.createContext<ChatContextValue>(
+  {} as ChatContextValue
+)
 
 function toMessages(qaPairs: QuestionAnswerPair[] | undefined): Message[] {
   if (!qaPairs?.length) return []
@@ -80,8 +78,7 @@ function toMessages(qaPairs: QuestionAnswerPair[] | undefined): Message[] {
 }
 
 function userMessageToMessage(userMessage: UserMessage): Message {
-  // todo deal with undefined
-  const { selectContext, relevantContext, message, id } = userMessage
+  const { selectContext, message, id } = userMessage
   return {
     id,
     role: 'user',
@@ -91,70 +88,48 @@ function userMessageToMessage(userMessage: UserMessage): Message {
 
 function fileContextToMessageContent(context: FileContext | undefined): string {
   if (!context) return ''
-  const { link, range, filename, content, providerId, repositoryId } = context
-  const metaMessage = `is_reference=1 file_name=${filename} provider_id=${providerId} repository_id=${repositoryId} start_line=${range.start} end_line=${range.end} file_name=${filename} link=${link}`
-  return `\n${'```'} ${metaMessage}\n${content}\n${'```'}\n`
+  const { content, language } = context
+  return `\n${'```'}${language ?? ''} is_reference=1 \n${content}\n${'```'}\n`
 }
 
-// function toQAPaires(messages: Message[] | undefined): QuestionAnswerPair[] {
-//   if (!messages?.length) return []
-//   let lastUserMessage: Message | undefined
-//   let lastAssisantMessage: Message | undefined
-
-//   let result: QuestionAnswerPair[] = []
-//   let len = messages.length
-//   for (let message of messages) {
-//     if (message.role === 'user') {
-//       if (!lastUserMessage) {
-//         lastUserMessage = message
-//       } else {
-//         lastUserMessage = 
-//       }
-//     } else {
-
-//     }
-//   }
-// }
-
-// function mergeUserMessage(message1: Message, message2: Message): UserMessage {
-//   return {
-//     message: `${message1.content}\n${message2.content}`,
-//   }
-// }
-
-// function messageToUserMessage(message: Message): UserMessage {
-//   return {
-//     message: message.content,
-//     relevantContext
-
-//   }
-// }
-
-function getSelectContextFromMessage() {
-
+export interface ChatRef extends Omit<UseChatHelpers, 'append' | 'messages'> {
+  sendUserChat: (message: UserMessage) => Promise<string | null | undefined>
 }
-
-export interface ChatRef extends UseChatHelpers { }
 
 interface ChatProps extends React.ComponentProps<'div'> {
+  chatId: string
+  api?: string
+  headers?: Record<string, string> | Headers
   initialMessages?: QuestionAnswerPair[]
-  id?: string
-  // todo data type
-  onThreadUpdates: (id: string, messages: Message[]) => void
+  onThreadUpdates: (messages: QuestionAnswerPair[]) => void
+  onNavigateToContext: (context: Context) => void
 }
 
-
-function Chat({ id, initialMessages, onThreadUpdates, className }: ChatProps) {
-
-  const [isStreamResponsePending, setIsStreamResponsePending] =
-    React.useState(false)
-  const transformedMessages = toMessages(initialMessages)
+function ChatRenderer(
+  {
+    className,
+    chatId,
+    initialMessages,
+    headers,
+    api,
+    onThreadUpdates,
+    onNavigateToContext
+  }: ChatProps,
+  ref: React.ForwardedRef<ChatRef>
+) {
+  const [qaPairs, setQaPairs] = React.useState(initialMessages ?? [])
+  const didMount = React.useRef(false)
+  const transformedInitialMessages = React.useMemo(() => {
+    return toMessages(initialMessages)
+  }, [])
 
   const useChatHelpers = useChat({
-    initialMessages: transformedMessages,
-    id,
+    initialMessages: transformedInitialMessages,
+    id: chatId,
+    api,
+    headers,
     body: {
-      id
+      id: chatId
     },
     onResponse(response) {
       if (response.status === 401) {
@@ -163,72 +138,62 @@ function Chat({ id, initialMessages, onThreadUpdates, className }: ChatProps) {
     }
   })
 
-  const {
-    messages,
-    append,
-    reload,
-    stop,
-    isLoading,
-    input,
-    setInput,
-    setMessages
-  } = useChatHelpers
+  const { messages, append, stop, isLoading, input, setInput, setMessages } =
+    useChatHelpers
 
-  const handleSubmit = async (value: string) => {
-    // if (findIndex(chats, { id }) === -1) {
-    //   addChat(id, truncateText(value))
-    // } else if (selectedMessageId) {
-    //   let messageIdx = findIndex(messages, { id: selectedMessageId })
-    //   setMessages(messages.slice(0, messageIdx))
-    //   setSelectedMessageId(undefined)
-    // }
-    await append({
-      id: nanoid(),
-      content: value,
-      role: 'user'
-    })
-    // todo onthreadUpdate
+  const onDeleteMessage = (userMessageId: string) => {
+    stop()
+    const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
+    setQaPairs(nextQaPairs)
+    // setmessage returns by useChatHelpers
+    setMessages(toMessages(nextQaPairs))
   }
-  const onEditMessage = (messageId: string) => {
-    const message = find(messages, { id: messageId })
-    if (message) {
-      setInput(message.content)
-      // setSelectedMessageId(messageId)
+
+  const onRegenerateResponse = async (userMessageid: string) => {
+    const qaPairIndex = findIndex(qaPairs, o => o.user.id === userMessageid)
+    if (qaPairIndex > -1) {
+      const qaPair = qaPairs[qaPairIndex]
+      let nextQaPairs: QuestionAnswerPair[] = [
+        ...qaPairs.slice(0, qaPairIndex),
+        {
+          ...qaPair,
+          assistant: {
+            ...qaPair.assistant,
+            id: qaPair.assistant?.id || nanoid(),
+            // clear assistant message
+            message: ''
+          }
+        }
+      ]
+      setQaPairs(nextQaPairs)
+      // exclude the last pair
+      setMessages(toMessages(nextQaPairs.slice(0, -1)))
+      // 'append' the userMessage of last pair to trigger chat api
+      return append(userMessageToMessage(qaPair.user))
     }
   }
 
-  const onDeleteMessage = (messageId: string) => {
-    const message = find(messages, { id: messageId })
-    if (message) {
-      setMessages(messages.filter(m => m.id !== messageId))
-    }
-  }
-
-  const onRegenerateResponse = (messageId: string) => {
-    const messageIndex = findIndex(messages, { id: messageId })
-    const prevMessage = messages?.[messageIndex - 1]
-    if (prevMessage?.role === 'user') {
-      setMessages(messages.slice(0, messageIndex - 1))
-      append(prevMessage)
-    }
+  // Reload the last AI chat response
+  const onReload = async () => {
+    if (!qaPairs?.length) return
+    const lastUserMessageId = qaPairs[qaPairs.length - 1].user.id
+    return onRegenerateResponse(lastUserMessageId)
   }
 
   const onStop = () => {
-    setIsStreamResponsePending(false)
     stop()
   }
 
-
   const handleMessageAction = (
-    messageId: string,
+    userMessageId: string,
     actionType: 'delete' | 'regenerate'
   ) => {
     switch (actionType) {
       case 'delete':
-        onDeleteMessage(messageId)
+        onDeleteMessage(userMessageId)
         break
       case 'regenerate':
-        onRegenerateResponse(messageId)
+        onRegenerateResponse(userMessageId)
         break
       default:
         break
@@ -236,42 +201,103 @@ function Chat({ id, initialMessages, onThreadUpdates, className }: ChatProps) {
   }
 
   React.useEffect(() => {
-    if (id) {
-      onThreadUpdates?.(id, messages)
+    if (!isLoading || !qaPairs?.length) return
+
+    const loadingMessage = messages[messages.length - 1]
+    if (loadingMessage?.role === 'assistant') {
+      const assisatntMessage = qaPairs[qaPairs.length - 1].assistant
+      const nextAssistantMessage: AssistantMessage = {
+        ...assisatntMessage,
+        id: assisatntMessage?.id || loadingMessage.id,
+        message: loadingMessage.content
+      }
+
+      // merge assistantMessage
+      const newQaPairs = [...qaPairs]
+      const loadingQaPairs = newQaPairs[qaPairs.length - 1]
+
+      newQaPairs[qaPairs.length - 1] = {
+        ...loadingQaPairs,
+        assistant: nextAssistantMessage
+      }
+      setQaPairs(newQaPairs)
     }
-  }, [messages])
+  }, [messages, isLoading])
+
+  const sendUserChat = (userMessage: UserMessage) => {
+    setQaPairs(pairs => [
+      ...pairs,
+      {
+        user: userMessage,
+        assistant: {
+          id: nanoid(),
+          message: ''
+        }
+      }
+    ])
+    return append(userMessageToMessage(userMessage))
+  }
+
+  const handleSubmit = async (value: string) => {
+    return sendUserChat({
+      id: nanoid(),
+      message: value
+    })
+  }
+
+  React.useEffect(() => {
+    if (!didMount.current) return
+    onThreadUpdates(qaPairs)
+  }, [qaPairs])
+
+  React.useImperativeHandle(
+    ref,
+    () => {
+      return {
+        ...omit(useChatHelpers, ['append', 'messages']),
+        sendUserChat
+      }
+    },
+    [useChatHelpers]
+  )
 
   return (
-    <div className="flex justify-center overflow-x-hidden">
-      <div className="w-full max-w-2xl px-4">
-        <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
-          {messages.length ? (
-            <>
-              <ChatList
-                messages={messages}
-                handleMessageAction={handleMessageAction}
-                isStreamResponsePending={isStreamResponsePending}
+    <ChatContext.Provider
+      value={{
+        onNavigateToContext,
+        handleMessageAction
+      }}
+    >
+      <div className="flex justify-center overflow-x-hidden">
+        <div className="w-full max-w-2xl px-4">
+          <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
+            {qaPairs?.length ? (
+              <QuestionAnswerList
+                messages={qaPairs}
+                isLoading={useChatHelpers.isLoading}
               />
-              <ChatScrollAnchor trackVisibility={isLoading} />
-            </>
-          ) : (
-            <EmptyScreen setInput={setInput} />
-          )}
+            ) : (
+              <EmptyScreen setInput={useChatHelpers.setInput} />
+            )}
+            <ChatScrollAnchor trackVisibility={isLoading} />
+          </div>
+          <ChatPanel
+            onSubmit={handleSubmit}
+            className="fixed inset-x-0 bottom-0 lg:ml-[280px]"
+            id={chatId}
+            isLoading={isLoading}
+            stop={onStop}
+            append={append}
+            reload={onReload}
+            messages={messages}
+            input={input}
+            setInput={setInput}
+            setMessages={setMessages}
+          />
         </div>
-        <ChatPanel
-          onSubmit={handleSubmit}
-          className="fixed inset-x-0 bottom-0 lg:ml-[280px]"
-          id={id}
-          isLoading={isLoading}
-          stop={onStop}
-          append={append}
-          reload={reload}
-          messages={messages}
-          input={input}
-          setInput={setInput}
-          setMessages={setMessages}
-        />
       </div>
-    </div>
+    </ChatContext.Provider>
   )
 }
+
+export const Chat = React.forwardRef<ChatRef, ChatProps>(ChatRenderer)

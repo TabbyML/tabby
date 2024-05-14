@@ -22,7 +22,7 @@ export interface ChatPanelProps
   > {
   id?: string
   className?: string
-  onSubmit: (content: string) => Promise<void>
+  onSubmit: (content: string) => Promise<any>
 }
 
 export function ChatPanel({
