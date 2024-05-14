@@ -8,7 +8,7 @@ install_protobuf_centos() {
 }
 
 install_mailpit() {
-  sudo bash < <(curl -sL https://raw.githubusercontent.com/axllent/mailpit/develop/install.sh)
+  bash < <(curl -sL https://raw.githubusercontent.com/axllent/mailpit/develop/install.sh)
 }
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -18,7 +18,7 @@ fi
 
 if [[ "$OSTYPE" == "linux"* ]]; then
   if command -v apt-get ; then
-    sudo apt-get -y install protobuf-compiler libopenblas-dev sqlite3 graphviz
+    apt-get -y install protobuf-compiler libopenblas-dev sqlite3 graphviz
   else
     # Build from manylinux2014 container
     yum -y install openblas-devel perl-IPC-Cmd unzip curl openssl-devel
