@@ -29,6 +29,7 @@ import {
   isCanceledError,
   isUnauthorizedError,
   errorToString,
+  parseChatResponse,
 } from "./utils";
 import { Auth } from "./Auth";
 import { AgentConfig, PartialAgentConfig, defaultAgentConfig } from "./AgentConfig";
@@ -777,5 +778,55 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.healthCheck(); // schedule a health check
       return false;
     }
+  }
+
+  public async generateCommitMessage(
+    diff: string,
+    options?: AbortSignalOption & { useBetaVersion?: boolean },
+  ): Promise<string> {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
+    const requestId = uuid();
+    try {
+      if (!this.api) {
+        throw new Error("http client not initialized");
+      }
+      const requestPath = options?.useBetaVersion ? "/v1beta/chat/completions" : "/v1/chat/completions";
+      const promptTemplate = this.config.experimentalChat.generateCommitMessage.promptTemplate;
+      const messages = [
+        {
+          role: "user",
+          content: promptTemplate.replace("{{diff}}", diff),
+        },
+      ];
+      const requestOptions = {
+        body: { messages },
+        signal: this.createAbortSignal(options),
+        parseAs: "stream" as ParseAs,
+      };
+      const requestDescription = `POST ${this.config.server.endpoint + requestPath}`;
+      this.logger.debug(`Chat request: ${requestDescription}. [${requestId}]`);
+      this.logger.trace(`Chat request body: [${requestId}]`, requestOptions.body);
+      const response = await this.api.POST(requestPath, requestOptions);
+      this.logger.debug(`Chat response status: ${response.response.status}. [${requestId}]`);
+      if (response.error || !response.response.ok) {
+        throw new HttpError(response.response);
+      }
+      const responseMessage = await parseChatResponse(response.response, requestOptions.signal);
+      this.logger.trace(`Chat response message: [${requestId}]`, { responseMessage });
+      return responseMessage.trim();
+    } catch (error) {
+      if (error instanceof HttpError && error.status == 404 && !options?.useBetaVersion) {
+        return await this.generateCommitMessage(diff, { ...options, useBetaVersion: true });
+      }
+      if (isUnauthorizedError(error)) {
+        this.logger.debug(`Chat request failed due to unauthorized. [${requestId}]`);
+      } else {
+        this.logger.error(`Chat request failed. [${requestId}]`, error);
+      }
+      this.healthCheck(); // schedule a health check
+    }
+    return "";
   }
 }

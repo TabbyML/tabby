@@ -25,7 +25,7 @@ export type LogEventRequest = ApiComponents["schemas"]["LogEventRequest"] & {
   select_kind?: "line";
 };
 
-export type AbortSignalOption = { signal: AbortSignal };
+export type AbortSignalOption = { signal?: AbortSignal };
 
 export type SlowCompletionResponseTimeIssue = {
   name: "slowCompletionResponseTime";
@@ -152,6 +152,14 @@ export interface AgentFunction {
    * @throws Error if agent is not initialized
    */
   postEvent(event: LogEventRequest, options?: AbortSignalOption): Promise<boolean>;
+
+  /**
+   * Generate a commit message for the given diff.
+   * @param diff The diff to generate a commit message for.
+   * @returns
+   * @throws Error if agent is not initialized
+   */
+  generateCommitMessage(diff: string, options?: AbortSignalOption): Promise<string>;
 }
 
 export type StatusChangedEvent = {

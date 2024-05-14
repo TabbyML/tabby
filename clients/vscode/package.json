@@ -73,6 +73,11 @@
       {
         "command": "tabby.experimental.chat.explainCodeBlock",
         "title": "Tabby: Explain This"
+      },
+      {
+        "command": "tabby.experimental.chat.generateCommitMessage",
+        "title": "Generate Commit Message",
+        "category": "Tabby"
       }
     ],
     "menus": {
@@ -87,14 +92,18 @@
         },
         {
           "command": "tabby.experimental.chat.explainCodeBlock",
-          "when": "editorHasSelection && tabby.chatModeEnabled && tabby.explainCodeSettingEnabled"
+          "when": "editorHasSelection && tabby.chatEnabled && tabby.explainCodeBlockEnabled"
+        },
+        {
+          "command": "tabby.experimental.chat.generateCommitMessage",
+          "when": "tabby.chatEnabled && tabby.generateCommitMessageEnabled"
         }
       ],
       "editor/context": [
         {
           "command": "tabby.experimental.chat.explainCodeBlock",
           "group": "1_close",
-          "when": "editorHasSelection && tabby.chatModeEnabled && tabby.explainCodeSettingEnabled"
+          "when": "editorHasSelection && tabby.chatEnabled && tabby.explainCodeBlockEnabled"
         }
       ]
     },
@@ -181,6 +190,10 @@
             "default": {},
             "properties": {
               "chat.explainCodeBlock": {
+                "type": "boolean",
+                "default": false
+              },
+              "chat.generateCommitMessage": {
                 "type": "boolean",
                 "default": false
               }
