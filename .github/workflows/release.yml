@@ -270,6 +270,8 @@ jobs:
                 mkdir -p $distdir
                 cp $llama_server $distdir/llama-server
                 cp $tabby $distdir/tabby
+                zip -r $distdir.zip $distdir
+                rm -rf $distdir
               fi
             done
           done
@@ -279,6 +281,6 @@ jobs:
         with:
           allowUpdates: true          
           prerelease: true
-          artifacts: "dist/tabby_*"
+          artifacts: "dist/tabby_*.zip"
           tag: ${{ github.ref_name }}
           removeArtifacts: true
