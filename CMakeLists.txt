@@ -475,7 +475,6 @@ if (WITH_CUDA)
   # flags for flash attention
   list(APPEND CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
   list(APPEND CUDA_NVCC_FLAGS "--expt-extended-lambda")
-  list(APPEND CUDA_NVCC_FLAGS "--use_fast_math")
 
   message(STATUS "NVCC host compiler: ${CUDA_HOST_COMPILER}")
   message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
