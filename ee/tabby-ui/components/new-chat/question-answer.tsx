@@ -100,7 +100,7 @@ function UserMessageCard(props: { message: UserMessage }) {
       className={cn('group relative mb-4 flex items-start md:-ml-12')}
       {...props}
     >
-      <div className="bg-background shrink-0 select-none rounded-full border shadow">
+      <div className="shrink-0 select-none rounded-full border bg-background shadow">
         <UserAvatar className="h-8 w-8" />
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
@@ -134,7 +134,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
       className={cn('group relative mb-4 flex items-start md:-ml-12')}
       {...props}
     >
-      <div className="bg-background shrink-0 select-none rounded-full border shadow">
+      <div className="shrink-0 select-none rounded-full border bg-background shadow">
         <IconTabby className="h-8 w-8" />
       </div>
       <div className="ml-4 flex-1 space-y-2 overflow-hidden px-1">
@@ -163,7 +163,7 @@ function AssistantMessageCard(props: AssistantMessageCardProps) {
 function MessageMarkdown({ message }: { message: string }) {
   return (
     <MemoizedReactMarkdown
-      className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0 break-words"
+      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:mt-1 prose-pre:p-0"
       remarkPlugins={[remarkGfm, remarkMath]}
       components={{
         p({ children }) {
@@ -215,7 +215,7 @@ function MessageMarkdown({ message }: { message: string }) {
 export function MessagePendingIndicator() {
   return (
     <div className="mb-4 flex items-start md:-ml-12">
-      <div className="bg-background shrink-0 select-none rounded-full border shadow">
+      <div className="shrink-0 select-none rounded-full border bg-background shadow">
         <IconTabby className="h-8 w-8" />
       </div>
       <div className="ml-4 flex-1 space-y-2 px-1">
@@ -303,7 +303,7 @@ const CodeReferences = ({ contexts }: ContextReferencesProps) => {
                       </span>
                     )}
                   </span>
-                  <span className="text-muted-foreground ml-2 text-xs">
+                  <span className="ml-2 text-xs text-muted-foreground">
                     {path}
                   </span>
                 </div>
