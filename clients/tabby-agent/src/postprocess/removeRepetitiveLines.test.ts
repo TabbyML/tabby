@@ -1,21 +1,19 @@
-import { expect } from "chai";
-import { documentContext, inline } from "./testUtils";
+import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { removeRepetitiveLines } from "./removeRepetitiveLines";
 
 describe("postprocess", () => {
   describe("removeRepetitiveLines", () => {
-    it("should remove repetitive lines", () => {
-      const context = {
-        ...documentContext`
+    const filter = removeRepetitiveLines();
+    it("should remove repetitive lines", async () => {
+      const context = documentContext`
         function hello() {
           console.log("hello");
         }
         hello();
         hello();
         ║
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
         ├hello();
         hello();
@@ -27,21 +25,19 @@ describe("postprocess", () => {
         hello();
         hello();
         hello();┤
-        `;
+      `;
       const expected = inline`
         ├hello();┤
       `;
-      expect(removeRepetitiveLines()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should remove repetitive lines with patterns", () => {
-      const context = {
-        ...documentContext`
+    it("should remove repetitive lines with patterns", async () => {
+      const context = documentContext`
         const a = 1;
         ║
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
         ├const b = 1;
         const c = 1;
@@ -55,8 +51,8 @@ describe("postprocess", () => {
         const k =┤`;
       const expected = inline`
         ├const b = 1;┤
-        `;
-      expect(removeRepetitiveLines()(completion, context)).to.eq(expected);
+      `;
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 });

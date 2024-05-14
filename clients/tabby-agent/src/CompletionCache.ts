@@ -1,207 +1,70 @@
 import { LRUCache } from "lru-cache";
-import { CompletionContext, CompletionResponse } from "./CompletionContext";
+import { CompletionSolution, CompletionItem } from "./CompletionSolution";
 import { getLogger } from "./logger";
-import { splitLines, autoClosingPairs, findUnpairedAutoClosingChars } from "./utils";
-
-type CompletionCacheKey = CompletionContext;
-type CompletionCacheValue = CompletionResponse;
 
 export class CompletionCache {
   private readonly logger = getLogger("CompletionCache");
-  private options = {
-    maxCount: 10000,
-    prebuildCache: {
-      enabled: true,
-      perCharacter: {
-        lines: 1,
-        max: 50,
-      },
-      perLine: {
-        max: 10,
-      },
-      autoClosingPairCheck: {
-        max: 3,
-      },
-    },
+  private readonly config = {
+    maxCount: 1000,
+    forwardCachingChars: 50,
   };
-  private cache = new LRUCache<string, { value: CompletionCacheValue; rebuildFlag: boolean }>({
-    max: this.options.maxCount,
+  private cache = new LRUCache<string, CompletionSolution>({
+    max: this.config.maxCount,
   });
 
-  has(key: CompletionCacheKey): boolean {
-    return this.cache.has(key.hash);
+  has(key: string): boolean {
+    return this.cache.has(key);
   }
 
-  buildCache(key: CompletionCacheKey, value: CompletionCacheValue): void {
-    this.logger.debug("Updating completion cache...");
-    this.logger.trace("Building cache with:", { key, value });
-    const entries = this.createCacheEntries(key, value);
-    entries.forEach((entry) => {
-      this.cache.set(entry.key.hash, { value: entry.value, rebuildFlag: entry.rebuildFlag });
-    });
-    this.logger.debug(`Completion cache updated, cache size: ${this.cache.size}`);
-  }
-
-  get(key: CompletionCacheKey): CompletionCacheValue | undefined {
-    const entry = this.cache.get(key.hash);
-    if (entry?.rebuildFlag) {
-      this.buildCache(key, entry?.value);
-    }
-    return entry?.value;
-  }
-
-  private createCacheEntries(
-    key: CompletionCacheKey,
-    value: CompletionCacheValue,
-  ): { key: CompletionCacheKey; value: CompletionCacheValue; rebuildFlag: boolean }[] {
-    const list = [{ key, value, rebuildFlag: false }];
-    if (this.options.prebuildCache.enabled) {
-      for (const choice of value.choices) {
-        const completionText = choice.text.slice(key.position - choice.replaceRange.start);
-        const perLinePositions = this.getPerLinePositions(completionText);
-        for (const position of perLinePositions) {
-          const completionTextPrefix = completionText.slice(0, position);
-          const completionTextPrefixWithAutoClosedChars = this.generateAutoClosedPrefixes(completionTextPrefix);
-          for (const prefix of [completionTextPrefix, ...completionTextPrefixWithAutoClosedChars]) {
-            const entry = {
-              key: new CompletionContext({
-                ...key,
-                text: key.text.slice(0, key.position) + prefix + key.text.slice(key.position),
-                position: key.position + position,
-              }),
-              value: {
-                ...value,
-                choices: [
-                  {
-                    index: choice.index,
-                    text: completionText.slice(position),
-                    replaceRange: {
-                      start: key.position + position,
-                      end: key.position + position,
-                    },
-                  },
-                ],
-              },
-              rebuildFlag: true,
-            };
-            list.push(entry);
-          }
-        }
-        const perCharacterPositions = this.getPerCharacterPositions(completionText);
-        for (const position of perCharacterPositions) {
-          let lineStart = position;
-          while (lineStart > 0 && completionText[lineStart - 1] !== "\n") {
-            lineStart--;
-          }
-          const completionTextPrefix = completionText.slice(0, position);
-          const completionTextPrefixWithAutoClosedChars = this.generateAutoClosedPrefixes(completionTextPrefix);
-          for (const prefix of [completionTextPrefix, ...completionTextPrefixWithAutoClosedChars]) {
-            const entry = {
-              key: new CompletionContext({
-                ...key,
-                text: key.text.slice(0, key.position) + prefix + key.text.slice(key.position),
-                position: key.position + position,
-              }),
-              value: {
-                ...value,
-                choices: [
-                  {
-                    index: choice.index,
-                    text: completionText.slice(lineStart),
-                    replaceRange: {
-                      start: key.position + lineStart,
-                      end: key.position + position,
-                    },
-                  },
-                ],
-              },
-              rebuildFlag: false,
-            };
-            list.push(entry);
-          }
-        }
-      }
-    }
-    const result = list.reduce<typeof list>((prev, curr) => {
-      const found = prev.find((entry) => entry.key.hash === curr.key.hash);
-      if (found) {
-        found.value.choices.push(...curr.value.choices);
-        found.rebuildFlag = found.rebuildFlag || curr.rebuildFlag;
+  update(value: CompletionSolution): void {
+    this.logger.debug(`Updating completion cache, cache number before updating: ${this.cache.size}`);
+    this.logger.trace("Updating cache with:", { value });
+    const solutions = [value, ...this.generateForwardSolutions(value)];
+    solutions.forEach((solution) => {
+      const cachedSolution = this.cache.get(solution.context.hash);
+      if (cachedSolution) {
+        this.cache.set(solution.context.hash, CompletionSolution.merge(cachedSolution, solution));
       } else {
-        prev.push(curr);
+        this.cache.set(solution.context.hash, solution);
       }
-      return prev;
-    }, []);
-    return result;
+    });
+    this.logger.debug(`Updated entries number: ${solutions.length}`);
+    this.logger.debug(`Completion cache updated, cache number: ${this.cache.size}`);
   }
 
-  // positions for every line end (before newline character) and line begin (after indent)
-  private getPerLinePositions(completion: string): number[] {
-    const result: number[] = [];
-    const option = this.options.prebuildCache;
-    const lines = splitLines(completion);
-    let index = 0;
-    let offset = 0;
-    // `index < lines.length - 1` to exclude the last line
-    while (index < lines.length - 1 && index < option.perLine.max) {
-      offset += lines[index]?.length ?? 0;
-      result.push(offset - 1); // cache at the end of the line (before newline character)
-      result.push(offset); // cache at the beginning of the next line (after newline character)
-      let offsetNextLineBegin = offset;
-      while (offsetNextLineBegin < completion.length && completion[offsetNextLineBegin]!.match(/\s/)) {
-        offsetNextLineBegin++;
+  get(key: string): CompletionSolution | undefined {
+    return this.cache.get(key);
+  }
+
+  private generateForwardSolutions(solution: CompletionSolution): CompletionSolution[] {
+    const forwardSolutions: CompletionSolution[] = [];
+    const pushForwardSolution = (item: CompletionItem) => {
+      const existSolution = forwardSolutions.find((solution) => solution.context.hash === item.context.hash);
+      if (existSolution) {
+        existSolution.add(item);
+      } else {
+        forwardSolutions.push(new CompletionSolution(item.context, [item]));
       }
-      result.push(offsetNextLineBegin); // cache at the beginning of the next line (after indent)
-      index++;
+    };
+    for (const item of solution.items) {
+      // Forward at current line
+      for (let chars = 1; chars < Math.min(this.config.forwardCachingChars, item.currentLine.length); chars++) {
+        pushForwardSolution(item.forward(chars));
+      }
+      if (item.lines.length > 2) {
+        // current line end
+        pushForwardSolution(item.forward(item.currentLine.length - 1));
+        // next line start
+        pushForwardSolution(item.forward(item.currentLine.length));
+        const nextLine = item.lines[1]!;
+        let spaces = nextLine.search(/\S/);
+        if (spaces < 0) {
+          spaces = nextLine.length - 1;
+        }
+        // next line start, after indent spaces
+        pushForwardSolution(item.forward(item.currentLine.length + spaces));
+      }
     }
-    return result;
-  }
-
-  // positions for every character in the leading lines
-  private getPerCharacterPositions(completion: string): number[] {
-    const result: number[] = [];
-    const option = this.options.prebuildCache;
-    const text = splitLines(completion).slice(0, option.perCharacter.lines).join("");
-    let offset = 0;
-    while (offset < text.length && offset < option.perCharacter.max) {
-      result.push(offset);
-      offset++;
-    }
-    return result;
-  }
-
-  // FIXME: add unit tests
-  // "function(" => ["function()"]
-  // "call([" => ["call([]", "call([])" ]
-  // "function(arg" => ["function(arg)" ]
-  private generateAutoClosedPrefixes(prefix: string): string[] {
-    const result: string[] = [];
-    const unpaired = findUnpairedAutoClosingChars(prefix);
-    let checkIndex = 0;
-    let autoClosing = "";
-    while (checkIndex < unpaired.length && checkIndex < this.options.prebuildCache.autoClosingPairCheck.max) {
-      autoClosingPairs
-        .filter((pair) => {
-          let pattern;
-          if ("open" in pair) {
-            pattern = pair.open;
-          } else {
-            pattern = pair.openOrClose;
-          }
-          return pattern.chars === unpaired[unpaired.length - 1 - checkIndex];
-        })
-        .forEach((pair) => {
-          let pattern;
-          if ("close" in pair) {
-            pattern = pair.close;
-          } else {
-            pattern = pair.openOrClose;
-          }
-          autoClosing += pattern.chars;
-          result.push(prefix + autoClosing);
-        });
-      checkIndex++;
-    }
-    return result;
+    return forwardSolutions;
   }
 }

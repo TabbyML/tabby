@@ -49,6 +49,14 @@ export type AgentConfig = {
       mode: "adaptive" | "fixed";
       interval: number;
     };
+    solution: {
+      // The max number of unique choices to be fetched before stopping
+      maxItems: number;
+      // The max number of attempts to fetch choices before stopping
+      maxTries: number;
+      // The temperature for fetching the second and subsequent choices
+      temperature: number;
+    };
   };
   postprocess: {
     limitScope: any;
@@ -114,6 +122,11 @@ export const defaultAgentConfig: AgentConfig = {
     debounce: {
       mode: "adaptive",
       interval: 250, // ms
+    },
+    solution: {
+      maxItems: 3,
+      maxTries: 6,
+      temperature: 0.8,
     },
   },
   postprocess: {

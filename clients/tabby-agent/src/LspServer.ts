@@ -186,9 +186,9 @@ export class LspServer {
     const wordPrefix = linePrefix.match(/(\w+)$/)?.[0] ?? "";
 
     return {
-      isIncomplete: true,
-      items: response.choices.map((choice): CompletionItem => {
-        const insertionText = choice.text.slice(document.offsetAt(position) - choice.replaceRange.start);
+      isIncomplete: response.isIncomplete,
+      items: response.items.map((item): CompletionItem => {
+        const insertionText = item.insertText.slice(document.offsetAt(position) - item.range.start);
 
         const lines = splitLines(insertionText);
         const firstLine = lines[0] || "";
@@ -208,13 +208,10 @@ export class LspServer {
             newText: wordPrefix + insertionText,
             range: {
               start: { line: position.line, character: position.character - wordPrefix.length },
-              end: document.positionAt(choice.replaceRange.end),
+              end: document.positionAt(item.range.end),
             },
           },
-          data: {
-            completionId: response.id,
-            choiceIndex: choice.index,
-          },
+          data: item.data,
         };
       }),
     };

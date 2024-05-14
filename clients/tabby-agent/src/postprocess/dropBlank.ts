@@ -1,8 +1,12 @@
 import { PostprocessFilter } from "./base";
+import { CompletionItem } from "../CompletionSolution";
 import { isBlank } from "../utils";
 
 export function dropBlank(): PostprocessFilter {
-  return (input: string) => {
-    return isBlank(input) ? null : input;
+  return (item: CompletionItem): CompletionItem => {
+    if (isBlank(item.fullText) || isBlank(item.text)) {
+      return CompletionItem.createBlankItem(item.context);
+    }
+    return item;
   };
 }

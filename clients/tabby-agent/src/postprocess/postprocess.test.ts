@@ -6,16 +6,17 @@ import glob from "glob";
 import { expect } from "chai";
 import { deepmerge } from "deepmerge-ts";
 import { AgentConfig, defaultAgentConfig } from "../AgentConfig";
-import { CompletionContext, CompletionResponse } from "../CompletionContext";
-import { preCacheProcess, postCacheProcess } from ".";
+import { CompletionItem } from "../CompletionSolution";
+import { CompletionContext } from "../CompletionContext";
+import { preCacheProcess, postCacheProcess } from "./index";
 
 type PostprocessConfig = AgentConfig["postprocess"];
 
 type DocumentContext = {
   prefix: string;
-  prefixReplaceRange: string;
+  replacePrefix: string;
   completion: string;
-  suffixReplaceRange: string;
+  replaceSuffix: string;
   suffix: string;
 };
 
@@ -32,51 +33,30 @@ function parseDocContext(text: string): DocumentContext {
   }
   return {
     prefix: text.slice(0, replaceStart),
-    prefixReplaceRange: text.slice(replaceStart + 1, insertStart),
+    replacePrefix: text.slice(replaceStart + 1, insertStart),
     completion: text.slice(insertStart + 1, insertEnd),
-    suffixReplaceRange: text.slice(insertEnd + 1, replaceEnd),
+    replaceSuffix: text.slice(insertEnd + 1, replaceEnd),
     suffix: text.slice(replaceEnd + 1),
   };
 }
 
 function getDoc(context: DocumentContext): string {
-  return context.prefix + context.prefixReplaceRange + context.suffixReplaceRange + context.suffix;
+  return context.prefix + context.replacePrefix + context.replaceSuffix + context.suffix;
 }
 
 function getPosition(context: DocumentContext): number {
-  return context.prefix.length + context.prefixReplaceRange.length;
+  return context.prefix.length + context.replacePrefix.length;
 }
 
-function getCompletion(context: DocumentContext): string {
-  return context.prefixReplaceRange + context.completion;
-}
-
-function getReplaceRange(context: DocumentContext) {
-  return {
-    start: context.prefix.length,
-    end: context.prefix.length + context.prefixReplaceRange.length + context.suffixReplaceRange.length,
-  };
-}
-
-function buildChoices(context: DocumentContext) {
-  const text = getCompletion(context);
-  if (text.length === 0) {
-    return [];
-  }
-  return [
-    {
-      index: 0,
-      text,
-      replaceRange: getReplaceRange(context),
-    },
-  ];
+function getCompletionFullText(context: DocumentContext): string {
+  return context.replacePrefix + context.completion;
 }
 
 describe("postprocess golden test", () => {
-  const postprocess = async (context: CompletionContext, config: PostprocessConfig, response: CompletionResponse) => {
-    let processed = await preCacheProcess(context, config, response);
-    processed = await postCacheProcess(context, config, processed);
-    return processed;
+  const postprocess = async (item: CompletionItem, config: PostprocessConfig): Promise<CompletionItem> => {
+    let processed = await preCacheProcess([item], config);
+    processed = await postCacheProcess(processed, config);
+    return processed[0]!;
   };
 
   const files = glob.sync(path.join(__dirname, "golden/**/*.toml"));
@@ -86,22 +66,23 @@ describe("postprocess golden test", () => {
     it(testCase["description"] ?? file, async () => {
       const config = deepmerge(defaultAgentConfig["postprocess"], testCase["config"] ?? {}) as PostprocessConfig;
       const docContext = parseDocContext(testCase["context"]?.["text"] ?? "");
-      const completionContext = new CompletionContext({
+      const context = new CompletionContext({
         filepath: testCase["context"]?.["filepath"] ?? uuid(),
         language: testCase["context"]?.["language"] ?? "plaintext",
         text: getDoc(docContext),
         position: getPosition(docContext),
         indentation: testCase["context"]?.["indentation"],
       });
-      const completionId = "test-" + uuid();
-      const completionResponse = {
-        id: completionId,
-        choices: buildChoices(docContext),
-      };
-      const unchanged: CompletionResponse = JSON.parse(JSON.stringify(completionResponse));
-      const output = await postprocess(completionContext, config, completionResponse);
+      const completionItem = new CompletionItem(
+        context,
+        getCompletionFullText(docContext),
+        docContext.replacePrefix,
+        docContext.replaceSuffix,
+      );
+      const unchanged = completionItem;
+      const output = await postprocess(completionItem, config);
 
-      const checkExpected = (expected: CompletionResponse) => {
+      const checkExpected = (expected: CompletionItem) => {
         if (testCase["expected"]?.["notEqual"]) {
           expect(output).to.not.deep.equal(expected);
         } else {
@@ -112,17 +93,16 @@ describe("postprocess golden test", () => {
       if (testCase["expected"]?.["unchanged"]) {
         checkExpected(unchanged);
       } else if (testCase["expected"]?.["discard"]) {
-        const expected = {
-          id: completionId,
-          choices: [],
-        };
+        const expected = CompletionItem.createBlankItem(context);
         checkExpected(expected);
       } else {
         const expectedContext = parseDocContext(testCase["expected"]?.["text"] ?? "");
-        const expected = {
-          id: completionId,
-          choices: buildChoices(expectedContext),
-        };
+        const expected = new CompletionItem(
+          context,
+          getCompletionFullText(expectedContext),
+          expectedContext.replacePrefix,
+          expectedContext.replaceSuffix,
+        );
         checkExpected(expected);
       }
     });

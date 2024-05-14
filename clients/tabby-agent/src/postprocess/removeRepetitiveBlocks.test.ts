@@ -1,20 +1,18 @@
-import { expect } from "chai";
-import { documentContext, inline } from "./testUtils";
+import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { removeRepetitiveBlocks } from "./removeRepetitiveBlocks";
 
 describe("postprocess", () => {
   describe("removeRepetitiveBlocks", () => {
-    it("should remove repetitive blocks", () => {
-      const context = {
-        ...documentContext`
+    const filter = removeRepetitiveBlocks();
+    it("should remove repetitive blocks", async () => {
+      const context = documentContext`
         function myFuncA() {
           console.log("myFuncA called.");
         }
 
         ║
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
         ├function myFuncB() {
           console.log("myFuncB called.");
@@ -42,13 +40,13 @@ describe("postprocess", () => {
 
         function myFuncH() {
           console.log("myFuncH ┤
-        `;
+      `;
       const expected = inline`
         ├function myFuncB() {
           console.log("myFuncB called.");
         }┤
       `;
-      expect(removeRepetitiveBlocks()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 });

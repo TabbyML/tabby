@@ -1,10 +1,10 @@
-import { CompletionContext } from "../CompletionContext";
+import { CompletionItem } from "../CompletionSolution";
 import { PostprocessFilter, logger } from "./base";
-import { splitLines } from "../utils";
 
 export function trimMultiLineInSingleLineMode(): PostprocessFilter {
-  return (input: string, context: CompletionContext) => {
-    const inputLines = splitLines(input);
+  return (item: CompletionItem): CompletionItem => {
+    const context = item.context;
+    const inputLines = item.lines;
     if (context.mode === "fill-in-line" && inputLines.length > 1) {
       const suffix = context.currentLineSuffix.trimEnd();
       const inputLine = inputLines[0]!.trimEnd();
@@ -12,12 +12,12 @@ export function trimMultiLineInSingleLineMode(): PostprocessFilter {
         const trimmedInputLine = inputLine.slice(0, -suffix.length);
         if (trimmedInputLine.length > 0) {
           logger.trace("Trim content with multiple lines.", { inputLines, trimmedInputLine });
-          return trimmedInputLine;
+          return item.withText(trimmedInputLine);
         }
       }
       logger.trace("Drop content with multiple lines.", { inputLines });
-      return null;
+      return CompletionItem.createBlankItem(context);
     }
-    return input;
+    return item;
   };
 }

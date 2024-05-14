@@ -1,6 +1,7 @@
-import { CompletionContext, CompletionResponse } from "../CompletionContext";
+import { CompletionItem } from "../CompletionSolution";
 import { AgentConfig } from "../AgentConfig";
-import { applyFilter, applyChoiceFilter } from "./base";
+import "../ArrayExt";
+import { PostprocessFilter, PostprocessFilterFactory } from "./base";
 import { removeRepetitiveBlocks } from "./removeRepetitiveBlocks";
 import { removeRepetitiveLines } from "./removeRepetitiveLines";
 import { removeLineEndsWithRepetition } from "./removeLineEndsWithRepetition";
@@ -13,32 +14,45 @@ import { dropDuplicated } from "./dropDuplicated";
 import { dropBlank } from "./dropBlank";
 import { calculateReplaceRange } from "./calculateReplaceRange";
 
+type ItemListFilter = (items: CompletionItem[]) => Promise<CompletionItem[]>;
+
+function createListFilter(filterFactory: PostprocessFilterFactory, config: unknown): ItemListFilter {
+  const filter: PostprocessFilter = filterFactory(config);
+  return async (items: CompletionItem[]): Promise<CompletionItem[]> => {
+    return await items.mapAsync(filter);
+  };
+}
+
 export async function preCacheProcess(
-  context: CompletionContext,
-  _: AgentConfig["postprocess"],
-  response: CompletionResponse,
-): Promise<CompletionResponse> {
-  return Promise.resolve(response)
-    .then(applyFilter(trimMultiLineInSingleLineMode(), context))
-    .then(applyFilter(removeLineEndsWithRepetition(), context))
-    .then(applyFilter(dropDuplicated(), context))
-    .then(applyFilter(trimSpace(), context))
-    .then(applyFilter(dropBlank(), context));
+  items: CompletionItem[],
+  _config: AgentConfig["postprocess"],
+): Promise<CompletionItem[]> {
+  const applyFilter = (filterFactory: PostprocessFilterFactory): ItemListFilter => {
+    return createListFilter(filterFactory, _config);
+  };
+  return Promise.resolve(items)
+    .then(applyFilter(trimMultiLineInSingleLineMode))
+    .then(applyFilter(removeLineEndsWithRepetition))
+    .then(applyFilter(dropDuplicated))
+    .then(applyFilter(trimSpace))
+    .then(applyFilter(dropBlank));
 }
 
 export async function postCacheProcess(
-  context: CompletionContext,
-  config: AgentConfig["postprocess"],
-  response: CompletionResponse,
-): Promise<CompletionResponse> {
-  return Promise.resolve(response)
-    .then(applyFilter(removeRepetitiveBlocks(), context))
-    .then(applyFilter(removeRepetitiveLines(), context))
-    .then(applyFilter(limitScope(config["limitScope"]), context))
-    .then(applyFilter(removeDuplicatedBlockClosingLine(), context))
-    .then(applyFilter(formatIndentation(), context))
-    .then(applyFilter(dropDuplicated(), context))
-    .then(applyFilter(trimSpace(), context))
-    .then(applyFilter(dropBlank(), context))
-    .then(applyChoiceFilter(calculateReplaceRange(config["calculateReplaceRange"]), context));
+  items: CompletionItem[],
+  _config: AgentConfig["postprocess"],
+): Promise<CompletionItem[]> {
+  const applyFilter = (filterFactory: PostprocessFilterFactory): ItemListFilter => {
+    return createListFilter(filterFactory, _config);
+  };
+  return Promise.resolve(items)
+    .then(applyFilter(removeRepetitiveBlocks))
+    .then(applyFilter(removeRepetitiveLines))
+    .then(applyFilter(limitScope))
+    .then(applyFilter(removeDuplicatedBlockClosingLine))
+    .then(applyFilter(formatIndentation))
+    .then(applyFilter(dropDuplicated))
+    .then(applyFilter(trimSpace))
+    .then(applyFilter(dropBlank))
+    .then(applyFilter(calculateReplaceRange));
 }
