@@ -6,7 +6,7 @@ authors.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["ee"]
+default = ["ee", "llama-cpp-server/binary"]
 ee = ["dep:tabby-webserver"]
 cuda = ["llama-cpp-server/cuda"]
 rocm = ["llama-cpp-server/rocm"]
