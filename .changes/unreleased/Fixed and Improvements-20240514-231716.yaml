@@ -1,3 +1,0 @@
-kind: Fixed and Improvements
-body: 'fix display of files where path contains special characters: https://github.com/TabbyML/tabby/issues/2081'
-time: 2024-05-14T23:17:16.887771-07:00
