@@ -41,7 +41,7 @@ tabby-inference = { path = "../tabby-inference" }
 [dev-dependencies]
 temp_testdir = { workspace = true }
 tabby-common = { path = "../tabby-common", features = [ "testutils" ] }
-tracing-test = "0.1"
+tracing-test = "0.2"
 tokio = { workspace = true, features = ["rt", "macros", "rt-multi-thread"] }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
