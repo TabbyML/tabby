@@ -259,8 +259,11 @@ jobs:
         run: >
           for llama_server in llama-server_*/llama-server_*; do
             for tabby in tabby_*/tabby_*; do
-              llaman=$(basename $llama_server)
-              tabbyn=$(basename $tabby)
+              llamab=$(basename $llama_server)
+              tabbyb=$(basename $tabby)
+
+              llaman=${llamab%.*}
+              tabbyn=${tabbyb%.*}
 
               llamav=${llaman#llama-server_}
               tabbyv=${tabbyn#tabby_}
