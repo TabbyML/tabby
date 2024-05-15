@@ -87,6 +87,7 @@ mod events;
 mod health;
 mod search;
 mod server_setting;
+mod docsearch;
 
 pub use chat::*;
 pub use completions::*;
@@ -94,3 +95,4 @@ pub use events::*;
 pub use health::*;
 pub use search::*;
 pub use server_setting::*;
+pub use docsearch::*;
