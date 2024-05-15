@@ -1,13 +1,12 @@
 import { CompletionContext } from "../CompletionContext";
-import { AgentConfig } from "../AgentConfig";
+import { CompletionItem } from "../CompletionSolution";
 import { PostprocessFilter, logger } from "./base";
-import { isBlank, splitLines, getIndentationLevel, isBlockOpeningLine, isBlockClosingLine } from "../utils";
+import { isBlank, getIndentationLevel, isBlockOpeningLine, isBlockClosingLine } from "../utils";
 
 function parseIndentationContext(
   inputLines: string[],
   inputLinesForDetection: string[],
   context: CompletionContext,
-  _config: AgentConfig["postprocess"]["limitScope"],
 ): { indentLevelLimit: number; allowClosingLine: boolean } {
   const result = {
     indentLevelLimit: 0,
@@ -77,14 +76,14 @@ function parseIndentationContext(
   return result;
 }
 
-export function limitScopeByIndentation(config: AgentConfig["postprocess"]["limitScope"]): PostprocessFilter {
-  return (input: string, context: CompletionContext) => {
+export function limitScopeByIndentation(): PostprocessFilter {
+  return (item: CompletionItem): CompletionItem => {
+    const { context, lines: inputLines } = item;
     const { prefixLines, suffixLines, currentLinePrefix } = context;
-    const inputLines = splitLines(input);
     const inputLinesForDetection = inputLines.map((line, index) => {
       return index === 0 ? currentLinePrefix + line : line;
     });
-    const indentContext = parseIndentationContext(inputLines, inputLinesForDetection, context, config);
+    const indentContext = parseIndentationContext(inputLines, inputLinesForDetection, context);
     let index = 1;
     while (index < inputLines.length) {
       const line = inputLines[index]!;
@@ -118,8 +117,8 @@ export function limitScopeByIndentation(config: AgentConfig["postprocess"]["limi
         suffixLines,
         trimAtInputLine: index,
       });
-      return inputLines.slice(0, index).join("").trimEnd();
+      return item.withText(inputLines.slice(0, index).join("").trimEnd());
     }
-    return input;
+    return item;
   };
 }

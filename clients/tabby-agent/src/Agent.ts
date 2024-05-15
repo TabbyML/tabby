@@ -2,8 +2,9 @@ import type { components as ApiComponents } from "./types/tabbyApi";
 import type { AgentConfig, PartialAgentConfig } from "./AgentConfig";
 import type { DataStore } from "./dataStore";
 import type { Logger } from "./logger";
-import type { CompletionRequest, CompletionResponse } from "./CompletionContext";
-
+import type { CompletionRequest } from "./CompletionContext";
+import type { InlineCompletionList } from "./CompletionSolution";
+type CompletionResponse = InlineCompletionList;
 export type { CompletionRequest, CompletionResponse };
 
 export type ClientProperties = Partial<{

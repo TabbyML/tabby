@@ -26,7 +26,8 @@ import { extractSemanticSymbols, extractNonReservedWordList } from "./utils";
 
 type DisplayedCompletion = {
   id: string;
-  completion: CompletionResponse;
+  completions: CompletionResponse;
+  index: number;
   displayedAt: number;
 };
 
@@ -138,29 +139,27 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         return null;
       }
 
-      // Assume only one choice is provided, do not support multiple choices for now
-      if (result.choices.length > 0) {
-        const choice = result.choices[0]!;
+      if (result.items.length > 0) {
         this.handleEvent("show", result);
 
-        return [
-          new InlineCompletionItem(
-            choice.text,
+        return result.items.map((item, index) => {
+          return new InlineCompletionItem(
+            item.insertText,
             new Range(
-              document.positionAt(choice.replaceRange.start - additionalContext.prefix.length),
-              document.positionAt(choice.replaceRange.end - additionalContext.prefix.length),
+              document.positionAt(item.range.start - additionalContext.prefix.length),
+              document.positionAt(item.range.end - additionalContext.prefix.length),
             ),
             {
               title: "",
               command: "tabby.applyCallback",
               arguments: [
                 () => {
-                  this.handleEvent("accept");
+                  this.handleEvent("accept", result, index);
                 },
               ],
             },
-          ),
-        ];
+          );
+        });
       }
     } catch (error: any) {
       if (this.onGoingRequestAbortController === abortController) {
@@ -173,20 +172,27 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     return null;
   }
 
+  // FIXME: We don't listen to the user cycling through the items,
+  // so we don't know the 'index' (except for the 'accept' event).
+  // For now, just use the first item to report other events.
   public handleEvent(
     event: "show" | "accept" | "dismiss" | "accept_word" | "accept_line",
-    completion?: CompletionResponse,
+    completions?: CompletionResponse,
+    index: number = 0,
   ) {
-    if (event === "show" && completion) {
-      const cmplId = completion.id.replace("cmpl-", "");
+    if (event === "show" && completions) {
+      const item = completions.items[index];
+      const cmplId = item?.data?.eventId?.completionId.replace("cmpl-", "");
       const timestamp = Date.now();
       this.displayedCompletion = {
         id: `view-${cmplId}-at-${timestamp}`,
-        completion,
+        completions,
+        index,
         displayedAt: timestamp,
       };
       this.postEvent(event, this.displayedCompletion);
     } else if (this.displayedCompletion) {
+      this.displayedCompletion.index = index;
       this.postEvent(event, this.displayedCompletion);
       this.displayedCompletion = null;
     }
@@ -196,7 +202,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     event: "show" | "accept" | "dismiss" | "accept_word" | "accept_line",
     displayedCompletion: DisplayedCompletion,
   ) {
-    const { id, completion, displayedAt } = displayedCompletion;
+    const { id, completions, index, displayedAt } = displayedCompletion;
     const elapsed = Date.now() - displayedAt;
     let eventData: { type: string; select_kind?: "line"; elapsed?: number };
     switch (event) {
@@ -221,11 +227,11 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
         return;
     }
     try {
+      const eventId = completions.items[index]!.data!.eventId!;
       const postBody: LogEventRequest = {
         ...eventData,
-        completion_id: completion.id,
-        // Assume only one choice is provided for now
-        choice_index: completion.choices[0]!.index,
+        completion_id: eventId.completionId,
+        choice_index: eventId.choiceIndex,
         view_id: id,
       };
       agent().postEvent(postBody);

@@ -1,32 +1,30 @@
-import { expect } from "chai";
-import { documentContext, inline } from "./testUtils";
+import { CompletionItem } from "../CompletionSolution";
+import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { trimMultiLineInSingleLineMode } from "./trimMultiLineInSingleLineMode";
 
 describe("postprocess", () => {
   describe("trimMultiLineInSingleLineMode", () => {
-    it("should trim multiline completions, when the suffix have non-auto-closed chars in the current line.", () => {
-      const context = {
-        ...documentContext`
+    const filter = trimMultiLineInSingleLineMode();
+    it("should trim multiline completions, when the suffix have non-auto-closed chars in the current line.", async () => {
+      const context = documentContext`
         let error = new Error("Something went wrong");
         console.log(║message);
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                     ├message);
         throw error;┤
       `;
-      expect(trimMultiLineInSingleLineMode()(completion, context)).to.be.null;
+      const expected = CompletionItem.createBlankItem(context);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should trim multiline completions, when the suffix have non-auto-closed chars in the current line.", () => {
-      const context = {
-        ...documentContext`
+    it("should trim multiline completions, when the suffix have non-auto-closed chars in the current line.", async () => {
+      const context = documentContext`
         let error = new Error("Something went wrong");
         console.log(║message);
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                     ├error, message);
         throw error;┤
@@ -34,30 +32,27 @@ describe("postprocess", () => {
       const expected = inline`
                     ├error, ┤
       `;
-      expect(trimMultiLineInSingleLineMode()(completion, context)).to.eq(expected);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should allow singleline completions, when the suffix have non-auto-closed chars in the current line.", () => {
-      const context = {
-        ...documentContext`
+    it("should allow singleline completions, when the suffix have non-auto-closed chars in the current line.", async () => {
+      const context = documentContext`
         let error = new Error("Something went wrong");
         console.log(║message);
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                     ├error, ┤
       `;
-      expect(trimMultiLineInSingleLineMode()(completion, context)).to.eq(completion);
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should allow multiline completions, when the suffix only have auto-closed chars that will be replaced in the current line, such as `)]}`.", () => {
-      const context = {
-        ...documentContext`
+    it("should allow multiline completions, when the suffix only have auto-closed chars that will be replaced in the current line, such as `)]}`.", async () => {
+      const context = documentContext`
         function findMax(arr) {║}
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       const completion = inline`
                                ├
           let max = arr[0];
@@ -69,7 +64,8 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      expect(trimMultiLineInSingleLineMode()(completion, context)).to.eq(completion);
+      const expected = completion;
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 });

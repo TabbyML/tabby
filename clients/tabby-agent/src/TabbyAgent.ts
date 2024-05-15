@@ -1,5 +1,4 @@
 import { EventEmitter } from "events";
-import path from "path";
 import { v4 as uuid } from "uuid";
 import deepEqual from "deep-equal";
 import { deepmerge } from "deepmerge-ts";
@@ -36,11 +35,12 @@ import { AgentConfig, PartialAgentConfig, defaultAgentConfig } from "./AgentConf
 import { configFile } from "./configFile";
 import { CompletionCache } from "./CompletionCache";
 import { CompletionDebounce } from "./CompletionDebounce";
+import { CompletionStats, RequestStats } from "./CompletionStats";
 import { CompletionContext } from "./CompletionContext";
+import { CompletionSolution, CompletionItem, emptyInlineCompletionList } from "./CompletionSolution";
 import { preCacheProcess, postCacheProcess } from "./postprocess";
 import { getLogger, logDestinations, fileLogger } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
-import { CompletionProviderStats, CompletionProviderStatsEntry } from "./CompletionProviderStats";
 import { loadTlsCaCerts } from "./loadCaCerts";
 
 export class TabbyAgent extends EventEmitter implements Agent {
@@ -60,7 +60,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private completionCache = new CompletionCache();
   private completionDebounce = new CompletionDebounce();
   private completionMutexAbortController?: AbortController;
-  private completionProviderStats = new CompletionProviderStats();
+  private completionStats = new CompletionStats();
+  private completionRequestStats = new RequestStats();
   static readonly tryConnectInterval = 1000 * 30; // 30s
   private tryingConnectTimer: ReturnType<typeof setInterval>;
   static readonly submitStatsInterval = 1000 * 60 * 60 * 24; // 24h
@@ -117,7 +118,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     // If server config changed, clear server related state
     if (!deepEqual(oldConfig.server, this.config.server)) {
       this.serverHealthState = undefined;
-      this.completionProviderStats.resetWindowed();
+      this.completionRequestStats.reset();
       this.popIssue("slowCompletionResponseTime");
       this.popIssue("highCompletionTimeoutRate");
       this.popIssue("connectionFailed");
@@ -175,12 +176,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
       case "highCompletionTimeoutRate":
         return {
           name: "highCompletionTimeoutRate",
-          completionResponseStats: this.completionProviderStats.windowed().stats,
+          completionResponseStats: this.completionRequestStats.stats().stats,
         };
       case "slowCompletionResponseTime":
         return {
           name: "slowCompletionResponseTime",
-          completionResponseStats: this.completionProviderStats.windowed().stats,
+          completionResponseStats: this.completionRequestStats.stats().stats,
         };
       case "connectionFailed":
         return {
@@ -218,10 +219,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   private async submitStats() {
-    const stats = this.completionProviderStats.stats();
-    if (stats.completion_request.count > 0) {
+    const stats = this.completionStats.stats();
+    if (stats["completion_request"]["count"] > 0) {
       await this.anonymousUsageLogger.event("AgentStats", { stats });
-      this.completionProviderStats.reset();
+      this.completionStats.reset();
     }
   }
 
@@ -342,98 +343,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
         this.logger.error(`Fetch server provided config request failed. [${requestId}]`, error);
       }
     }
-  }
-
-  private async createSegments(context: CompletionContext): Promise<TabbyApiComponents["schemas"]["Segments"] | null> {
-    // max lines in prefix and suffix configurable
-    const maxPrefixLines = this.config.completion.prompt.maxPrefixLines;
-    const maxSuffixLines = this.config.completion.prompt.maxSuffixLines;
-    const { prefixLines, suffixLines } = context;
-    const prefix = prefixLines.slice(Math.max(prefixLines.length - maxPrefixLines, 0)).join("");
-    const suffix = suffixLines.slice(0, maxSuffixLines).join("");
-    if (isBlank(prefix)) {
-      return null;
-    }
-
-    // filepath && git_url
-    let relativeFilepathRoot: string | undefined = undefined;
-    let filepath: string | undefined = undefined;
-    let gitUrl: string | undefined = undefined;
-    const { workspace, git } = context;
-    if (git && git.remotes.length > 0) {
-      // find remote url: origin > upstream > first
-      const remote =
-        git.remotes.find((remote) => remote.name === "origin") ||
-        git.remotes.find((remote) => remote.name === "upstream") ||
-        git.remotes[0];
-      if (remote) {
-        relativeFilepathRoot = git.root;
-        gitUrl = remote.url;
-      }
-    }
-    // if relativeFilepathRoot is not set by git context, use path relative to workspace
-    if (!relativeFilepathRoot && workspace) {
-      relativeFilepathRoot = workspace;
-    }
-    if (relativeFilepathRoot) {
-      filepath = path.relative(relativeFilepathRoot, context.filepath);
-    }
-
-    // declarations
-    const declarations = context.declarations?.map((declaration) => {
-      let declarationFilepath = declaration.filepath;
-      if (relativeFilepathRoot && declarationFilepath.startsWith(relativeFilepathRoot)) {
-        declarationFilepath = path.relative(relativeFilepathRoot, declarationFilepath);
-      }
-      return {
-        filepath: declarationFilepath,
-        body: declaration.text,
-      };
-    });
-
-    // snippets
-    const relevantSnippetsFromChangedFiles = context.relevantSnippetsFromChangedFiles
-      // deduplicate
-      ?.filter(
-        (snippet) =>
-          // Remove snippet if find a declaration from the same file and range is overlapping
-          !context.declarations?.find((declaration) => {
-            return (
-              declaration.filepath === snippet.filepath &&
-              // Is range overlapping
-              Math.max(declaration.offset, snippet.offset) <=
-                Math.min(declaration.offset + declaration.text.length, snippet.offset + snippet.text.length)
-            );
-          }),
-      )
-      .map((snippet) => {
-        let snippetFilepath = snippet.filepath;
-        if (relativeFilepathRoot && snippetFilepath.startsWith(relativeFilepathRoot)) {
-          snippetFilepath = path.relative(relativeFilepathRoot, snippetFilepath);
-        }
-        return {
-          filepath: snippetFilepath,
-          body: snippet.text,
-          score: snippet.score,
-        };
-      })
-      .sort((a, b) => b.score - a.score);
-
-    // clipboard
-    let clipboard = undefined;
-    const clipboardConfig = this.config.completion.prompt.clipboard;
-    if (context.clipboard.length >= clipboardConfig.minChars && context.clipboard.length <= clipboardConfig.maxChars) {
-      clipboard = context.clipboard;
-    }
-    return {
-      prefix,
-      suffix,
-      filepath,
-      git_url: gitUrl,
-      declarations,
-      relevant_snippets_from_changed_files: relevantSnippetsFromChangedFiles,
-      clipboard,
-    };
   }
 
   public async initialize(options: AgentInitOptions): Promise<boolean> {
@@ -608,7 +517,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
       throw new Error("Agent is not initialized");
     }
     this.logger.debug("Function providedCompletions called.");
-    this.logger.trace("Completion request:", request);
+
+    // Mutex Control
     if (this.completionMutexAbortController) {
       const reason = new Error("Aborted due to new request.");
       reason.name = "AbortError";
@@ -617,24 +527,27 @@ export class TabbyAgent extends EventEmitter implements Agent {
     this.completionMutexAbortController = new AbortController();
     const signal = abortSignalFromAnyOf([this.completionMutexAbortController.signal, options?.signal]);
 
-    let completionResponse: CompletionResponse;
-    let stats: CompletionProviderStatsEntry | undefined = {
-      triggerMode: request.manually ? "manual" : "auto",
-      cacheHit: false,
-      aborted: false,
-      requestSent: false,
-      requestLatency: 0,
-      requestCanceled: false,
-      requestTimeout: false,
-    };
-    let requestStartedAt: number | undefined;
-
+    // Processing request
     const context = new CompletionContext(request);
+    if (!context.isValid()) {
+      // Early return if request is not valid
+      return emptyInlineCompletionList;
+    }
+
+    let solution: CompletionSolution | undefined = undefined;
+    let cachedSolution: CompletionSolution | undefined = undefined;
+    if (this.completionCache.has(context.hash)) {
+      cachedSolution = this.completionCache.get(context.hash);
+    }
+
     try {
-      if (this.completionCache.has(context)) {
-        // Cache hit
-        stats.cacheHit = true;
-        // Debounce before returning cached response
+      // Resolve solution
+      if (cachedSolution && (!request.manually || cachedSolution.isCompleted)) {
+        // Found cached solution
+        // TriggerKind is Automatic, or the solution is completed
+        // Return cached solution, do not need to fetch more choices
+
+        // Debounce before continue processing cached solution
         await this.completionDebounce.debounce(
           {
             request,
@@ -644,154 +557,191 @@ export class TabbyAgent extends EventEmitter implements Agent {
           { signal },
         );
 
+        solution = cachedSolution.withContext(context);
         this.logger.info("Completion cache hit.");
-        completionResponse = this.completionCache.get(context)!;
-      } else {
-        // Cache miss
-        stats.cacheHit = false;
-        const segments = await this.createSegments(context);
-        if (!segments) {
-          stats = undefined; // no need to record stats when no segments
-          this.logger.info("No context segment available.");
-          completionResponse = {
-            id: "agent-" + uuid(),
-            choices: [],
-          };
-        } else {
-          // Debounce before sending request
-          await this.completionDebounce.debounce(
-            {
-              request,
-              config: this.config.completion.debounce,
-              responseTime: this.completionProviderStats.windowed().stats.averageResponseTime,
-            },
-            options,
-          );
+      } else if (!request.manually) {
+        // No cached solution
+        // TriggerKind is Automatic
+        // We need to fetch the first choice
 
-          // Send http request
-          this.logger.info(`Fetching completions...`);
-          const requestId = uuid();
-          stats.requestSent = true;
-          requestStartedAt = performance.now();
-          try {
-            if (!this.api) {
-              throw new Error("http client not initialized");
-            }
-            const requestPath = "/v1/completions";
-            const requestOptions = {
-              body: {
-                language: request.language,
-                segments,
-                user: this.auth?.user,
-              },
-              signal: this.createAbortSignal({ signal }),
-            };
-            const requestDescription = `POST ${this.config.server.endpoint + requestPath}`;
-            this.logger.debug(`Completion request: ${requestDescription}. [${requestId}]`);
-            this.logger.trace(`Completion request body: [${requestId}]`, requestOptions.body);
-            const response = await this.api.POST(requestPath, requestOptions);
-            this.logger.debug(`Completion response status: ${response.response.status}. [${requestId}]`);
-            if (response.error || !response.response.ok) {
-              throw new HttpError(response.response);
-            }
-            this.logger.trace(`Completion response data: [${requestId}]`, response.data);
-            const responseData = response.data;
-            stats.requestLatency = performance.now() - requestStartedAt;
-            completionResponse = {
-              id: responseData.id,
-              choices: responseData.choices.map((choice) => {
-                return {
-                  index: choice.index,
-                  text: choice.text,
-                  replaceRange: {
-                    start: request.position,
-                    end: request.position,
-                  },
-                };
-              }),
-            };
-          } catch (error) {
-            if (isCanceledError(error)) {
-              this.logger.info(`Fetching completions canceled.`);
-              this.logger.debug(`Completion request canceled. [${requestId}]`);
-              stats.requestCanceled = true;
-              stats.requestLatency = performance.now() - requestStartedAt;
-            } else {
-              this.logger.info(`Fetching completions failed.`);
-              if (isTimeoutError(error)) {
-                this.logger.debug(`Completion request timed out. [${requestId}]`);
-                stats.requestTimeout = true;
-                stats.requestLatency = NaN;
-              } else if (isUnauthorizedError(error)) {
-                this.logger.debug(`Completion request failed due to unauthorized. [${requestId}]`);
-                this.healthCheck(); // schedule a health check
-              } else {
-                this.logger.error(`Completion request failed. [${requestId}]`, error);
-                this.healthCheck(); // schedule a health check
-              }
-            }
-            // rethrow error
-            throw error;
+        // Debounce before fetching
+        await this.completionDebounce.debounce(
+          {
+            request,
+            config: this.config.completion.debounce,
+            responseTime: this.completionRequestStats.stats().stats.averageResponseTime,
+          },
+          { signal },
+        );
+
+        solution = new CompletionSolution(context);
+        // Fetch the completion
+        this.logger.info(`Fetching completion...`);
+        try {
+          const response = await this.fetchCompletion(
+            context.language,
+            context.buildSegments(this.config.completion.prompt),
+            undefined,
+            signal,
+          );
+          const completionItem = CompletionItem.createFromResponse(context, response);
+          // postprocess: preCache
+          solution.add(...(await preCacheProcess([completionItem], this.config.postprocess)));
+        } catch (error) {
+          if (isCanceledError(error)) {
+            this.logger.info(`Fetching completion canceled.`);
+            solution = undefined;
           }
-          // Postprocess (pre-cache)
-          completionResponse = await preCacheProcess(context, this.config.postprocess, completionResponse);
-          if (signal.aborted) {
-            throw signal.reason;
+        }
+      } else {
+        // No cached solution, or cached solution is not completed
+        // TriggerKind is Manual
+        // We need to fetch the more choices
+
+        solution = cachedSolution?.withContext(context) ?? new CompletionSolution(context);
+        this.logger.info(`Fetching more completions...`);
+
+        try {
+          let tries = 0;
+          while (
+            solution.items.length < this.config.completion.solution.maxItems &&
+            tries < this.config.completion.solution.maxTries
+          ) {
+            tries++;
+            const response = await this.fetchCompletion(
+              context.language,
+              context.buildSegments(this.config.completion.prompt),
+              this.config.completion.solution.temperature,
+              signal,
+            );
+            const completionItem = CompletionItem.createFromResponse(context, response);
+            // postprocess: preCache
+            solution.add(...(await preCacheProcess([completionItem], this.config.postprocess)));
+            if (signal.aborted) {
+              throw signal.reason;
+            }
           }
-          // Build cache
-          this.completionCache.buildCache(context, JSON.parse(JSON.stringify(completionResponse)));
+          // Mark the solution as completed
+          solution.isCompleted = true;
+        } catch (error) {
+          if (isCanceledError(error)) {
+            this.logger.info(`Fetching completion canceled.`);
+            solution = undefined;
+          }
         }
       }
-      // Postprocess (post-cache)
-      completionResponse = await postCacheProcess(context, this.config.postprocess, completionResponse);
-      if (signal.aborted) {
-        throw signal.reason;
+      // Postprocess solution
+      if (solution) {
+        // Update Cache
+        this.completionCache.update(solution);
+
+        // postprocess: postCache
+        solution = solution.withItems(...(await postCacheProcess(solution.items, this.config.postprocess)));
+        if (signal.aborted) {
+          throw signal.reason;
+        }
       }
     } catch (error) {
-      if (isCanceledError(error) || isTimeoutError(error)) {
-        if (stats) {
-          stats.aborted = true;
-        }
+      if (!isCanceledError(error)) {
+        this.logger.error(`Providing completions failed.`, error);
+      }
+    }
+    if (solution) {
+      const result = solution.toInlineCompletionList();
+      this.logger.info(`Completed processing completions, choices returned: ${result.items.length}.`);
+      this.logger.trace("Completion solution:", { result });
+      return result;
+    }
+    return emptyInlineCompletionList;
+  }
+
+  private async fetchCompletion(
+    language: string,
+    segments: TabbyApiComponents["schemas"]["Segments"],
+    temperature: number | undefined,
+    signal?: AbortSignal,
+  ): Promise<TabbyApiComponents["schemas"]["CompletionResponse"]> {
+    const requestId = uuid();
+    const stats = {
+      latency: NaN,
+      canceled: false,
+      timeout: false,
+      notAvailable: false,
+    };
+    const requestStartedAt = performance.now();
+    try {
+      if (!this.api) {
+        throw new Error("http client not initialized");
+      }
+      const requestPath = "/v1/completions";
+      const requestOptions = {
+        body: {
+          language,
+          segments,
+          temperature,
+        },
+        signal: this.createAbortSignal({ signal }),
+      };
+      const requestDescription = `POST ${this.config.server.endpoint + requestPath}`;
+      this.logger.debug(`Completion request: ${requestDescription}. [${requestId}]`);
+      this.logger.trace(`Completion request body: [${requestId}]`, requestOptions.body);
+      const response = await this.api.POST(requestPath, requestOptions);
+      this.logger.debug(`Completion response status: ${response.response.status}. [${requestId}]`);
+      if (response.error || !response.response.ok) {
+        throw new HttpError(response.response);
+      }
+      this.logger.trace(`Completion response data: [${requestId}]`, response.data);
+      stats.latency = performance.now() - requestStartedAt;
+      return response.data;
+    } catch (error) {
+      if (isCanceledError(error)) {
+        this.logger.debug(`Completion request canceled. [${requestId}]`);
+        stats.canceled = true;
+      } else if (isTimeoutError(error)) {
+        this.logger.debug(`Completion request timed out. [${requestId}]`);
+        stats.timeout = true;
+      } else if (isUnauthorizedError(error)) {
+        this.logger.debug(`Completion request failed due to unauthorized. [${requestId}]`);
+        stats.notAvailable = true;
+        this.healthCheck(); // schedule a health check
       } else {
-        // unexpected error
-        stats = undefined;
+        this.logger.error(`Completion request failed. [${requestId}]`, error);
+        stats.notAvailable = true;
+        this.healthCheck(); // schedule a health check
       }
       // rethrow error
       throw error;
     } finally {
-      if (stats) {
-        this.completionProviderStats.add(stats);
-
-        if (stats.requestSent && !stats.requestCanceled) {
-          const windowedStats = this.completionProviderStats.windowed();
-          const checkResult = this.completionProviderStats.check(windowedStats);
-          switch (checkResult) {
-            case "healthy":
-              this.popIssue("slowCompletionResponseTime");
-              this.popIssue("highCompletionTimeoutRate");
-              break;
-            case "highTimeoutRate":
-              this.popIssue("slowCompletionResponseTime");
-              this.pushIssue("highCompletionTimeoutRate");
-              break;
-            case "slowResponseTime":
-              this.popIssue("highCompletionTimeoutRate");
-              this.pushIssue("slowCompletionResponseTime");
-              break;
-          }
+      if (!stats.notAvailable) {
+        this.completionStats.addRequestStatsEntry(stats);
+      }
+      if (!stats.notAvailable && !stats.canceled) {
+        this.completionRequestStats.add(stats.latency);
+        const statsResult = this.completionRequestStats.stats();
+        const checkResult = RequestStats.check(statsResult);
+        switch (checkResult) {
+          case "healthy":
+            this.popIssue("slowCompletionResponseTime");
+            this.popIssue("highCompletionTimeoutRate");
+            break;
+          case "highTimeoutRate":
+            this.popIssue("slowCompletionResponseTime");
+            this.pushIssue("highCompletionTimeoutRate");
+            break;
+          case "slowResponseTime":
+            this.popIssue("highCompletionTimeoutRate");
+            this.pushIssue("slowCompletionResponseTime");
+            break;
         }
       }
     }
-    this.logger.info(`Completed processing completions, choices returned: ${completionResponse.choices.length}.`);
-    this.logger.trace("Completion response:", { context, completionResponse });
-    return completionResponse;
   }
 
   public async postEvent(request: LogEventRequest, options?: AbortSignalOption): Promise<boolean> {
     if (this.status === "notInitialized") {
       throw new Error("Agent is not initialized");
     }
-    this.completionProviderStats.addEvent(request.type);
+    this.completionStats.addEvent(request.type);
     const requestId = uuid();
     try {
       if (!this.api) {

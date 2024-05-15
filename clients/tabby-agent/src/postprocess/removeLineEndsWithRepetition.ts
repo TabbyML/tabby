@@ -1,5 +1,6 @@
+import { CompletionItem } from "../CompletionSolution";
 import { PostprocessFilter, logger } from "./base";
-import { splitLines, isBlank } from "../utils";
+import { isBlank } from "../utils";
 
 const repetitionTests = [
   /(.{3,}?)\1{5,}$/g, // match a 3+ characters pattern repeating 5+ times
@@ -7,14 +8,17 @@ const repetitionTests = [
 ];
 
 export function removeLineEndsWithRepetition(): PostprocessFilter {
-  return (input: string) => {
+  return (item: CompletionItem): CompletionItem => {
+    const context = item.context;
     // only test last non-blank line
-    const inputLines = splitLines(input);
+    const inputLines = item.lines;
     let index = inputLines.length - 1;
     while (index >= 0 && isBlank(inputLines[index]!)) {
       index--;
     }
-    if (index < 0) return input;
+    if (index < 0) {
+      return item;
+    }
     // if matches repetition test, remove this line
     for (const test of repetitionTests) {
       const match = inputLines[index]!.match(test);
@@ -24,11 +28,13 @@ export function removeLineEndsWithRepetition(): PostprocessFilter {
           lineNumber: index,
           match,
         });
-        if (index < 1) return null;
-        return inputLines.slice(0, index).join("").trimEnd();
+        if (index < 1) {
+          return CompletionItem.createBlankItem(context);
+        }
+        return item.withText(inputLines.slice(0, index).join("").trimEnd());
       }
     }
     // no repetition found
-    return input;
+    return item;
   };
 }

@@ -1,9 +1,10 @@
+import { CompletionItem } from "../CompletionSolution";
 import { PostprocessFilter, logger } from "./base";
-import { splitLines, isBlank, calcDistance } from "../utils";
+import { isBlank, calcDistance } from "../utils";
 
 export function removeRepetitiveLines(): PostprocessFilter {
-  return (input: string) => {
-    const inputLines = splitLines(input);
+  return (item: CompletionItem): CompletionItem => {
+    const inputLines = item.lines;
     let repetitionCount = 0;
     const repetitionThreshold = 5;
     // skip last line, it could be a not completed line
@@ -35,11 +36,13 @@ export function removeRepetitiveLines(): PostprocessFilter {
         inputLines,
         repetitionCount,
       });
-      return inputLines
-        .slice(0, index + 1)
-        .join("")
-        .trimEnd();
+      return item.withText(
+        inputLines
+          .slice(0, index + 1)
+          .join("")
+          .trimEnd(),
+      );
     }
-    return input;
+    return item;
   };
 }

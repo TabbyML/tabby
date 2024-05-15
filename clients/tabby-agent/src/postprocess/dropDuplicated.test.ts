@@ -1,40 +1,39 @@
-import { expect } from "chai";
-import { documentContext, inline } from "./testUtils";
+import { documentContext, inline, assertFilterResult } from "./testUtils";
 import { dropDuplicated } from "./dropDuplicated";
+import { CompletionItem } from "../CompletionSolution";
 
 describe("postprocess", () => {
   describe("dropDuplicated", () => {
-    it("should drop completion duplicated with suffix", () => {
-      const context = {
-        ...documentContext`
+    const filter = dropDuplicated();
+    it("should drop completion duplicated with suffix", async () => {
+      const context = documentContext`
         let sum = (a, b) => {
           ║return a + b;
         };
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       // completion give a `;` at end but context have not
       const completion = inline`
           ├return a + b;┤
       `;
-      expect(dropDuplicated()(completion, context)).to.be.null;
+      const expected = CompletionItem.createBlankItem(context);
+      await assertFilterResult(filter, context, completion, expected);
     });
 
-    it("should drop completion similar to suffix", () => {
-      const context = {
-        ...documentContext`
+    it("should drop completion similar to suffix", async () => {
+      const context = documentContext`
         let sum = (a, b) => {
           return a + b;
           ║
         };
-        `,
-        language: "javascript",
-      };
+      `;
+      context.language = "javascript";
       // the difference is a `\n`
       const completion = inline`
           ├}┤
       `;
-      expect(dropDuplicated()(completion, context)).to.be.null;
+      const expected = CompletionItem.createBlankItem(context);
+      await assertFilterResult(filter, context, completion, expected);
     });
   });
 });

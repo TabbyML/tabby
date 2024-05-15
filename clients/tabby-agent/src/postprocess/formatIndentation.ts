@@ -1,6 +1,6 @@
-import { CompletionContext } from "../CompletionContext";
+import { CompletionItem } from "../CompletionSolution";
 import { PostprocessFilter, logger } from "./base";
-import { isBlank, splitLines } from "../utils";
+import { isBlank } from "../utils";
 
 function detectIndentation(lines: string[]): string | null {
   const matches = {
@@ -45,13 +45,14 @@ function getIndentLevel(line: string, indentation: string): number {
 }
 
 export function formatIndentation(): PostprocessFilter {
-  return (input: string, context: CompletionContext) => {
+  return (item: CompletionItem): CompletionItem => {
+    const context = item.context;
     const { prefixLines, suffixLines, currentLinePrefix, indentation } = context;
-    const inputLines = splitLines(input);
+    const inputLines = item.lines;
 
     // if no indentation is specified
     if (!indentation) {
-      return input;
+      return item;
     }
 
     // if there is any indentation in context, the server output should have learned from it
@@ -59,11 +60,11 @@ export function formatIndentation(): PostprocessFilter {
       ? prefixLines.slice(0, prefixLines.length - 1)
       : prefixLines;
     if (prefixLines.length > 1 && detectIndentation(prefixLinesForDetection) !== null) {
-      return input;
+      return item;
     }
     const suffixLinesForDetection = suffixLines.slice(1);
     if (suffixLines.length > 1 && detectIndentation(suffixLinesForDetection) !== null) {
-      return input;
+      return item;
     }
 
     // if the input is well indented with specific indentation
@@ -72,7 +73,7 @@ export function formatIndentation(): PostprocessFilter {
     });
     const inputIndentation = detectIndentation(inputLinesForDetection);
     if (inputIndentation === null || inputIndentation === indentation) {
-      return input;
+      return item;
     }
 
     // otherwise, do formatting
@@ -95,6 +96,6 @@ export function formatIndentation(): PostprocessFilter {
       }
     });
     logger.trace("Format indentation.", { inputLines, formatted });
-    return formatted.join("");
+    return item.withText(formatted.join(""));
   };
 }

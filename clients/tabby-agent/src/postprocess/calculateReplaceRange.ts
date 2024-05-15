@@ -1,11 +1,9 @@
-import { AgentConfig } from "../AgentConfig";
-import { PostprocessChoiceFilter } from "./base";
+import { PostprocessFilter } from "./base";
 import { calculateReplaceRangeByBracketStack } from "./calculateReplaceRangeByBracketStack";
+import { CompletionItem } from "../CompletionSolution";
 
-export function calculateReplaceRange(
-  _config: AgentConfig["postprocess"]["calculateReplaceRange"],
-): PostprocessChoiceFilter {
-  return async (choice, context) => {
-    return calculateReplaceRangeByBracketStack(choice, context);
+export function calculateReplaceRange(): PostprocessFilter {
+  return async (item: CompletionItem): Promise<CompletionItem> => {
+    return calculateReplaceRangeByBracketStack(item);
   };
 }
