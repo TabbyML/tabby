@@ -19,7 +19,7 @@ static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 pub fn index_repository(cache: &mut CacheStore, repository: &RepositoryConfig) {
     let code = CodeSearchSchema::instance();
     let index = open_or_create_index(&code.schema, &path::index_dir());
-    add_changed_documents(cache, code, repository, &index);
+    add_changed_documents(cache, repository, &index);
 }
 
 pub fn garbage_collection(cache: &mut CacheStore) {
@@ -30,7 +30,6 @@ pub fn garbage_collection(cache: &mut CacheStore) {
 
 fn add_changed_documents(
     cache: &mut CacheStore,
-    _code: &CodeSearchSchema,
     repository: &RepositoryConfig,
     index: &Index,
 ) {
