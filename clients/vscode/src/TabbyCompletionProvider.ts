@@ -142,7 +142,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       if (result.items.length > 0) {
         this.handleEvent("show", result);
 
-        return result.items.map((item) => {
+        return result.items.map((item, index) => {
           return new InlineCompletionItem(
             item.insertText,
             new Range(
@@ -154,7 +154,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
               command: "tabby.applyCallback",
               arguments: [
                 () => {
-                  this.handleEvent("accept");
+                  this.handleEvent("accept", result, index);
                 },
               ],
             },
@@ -172,14 +172,15 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     return null;
   }
 
+  // FIXME: We don't listen to the user cycling through the items,
+  // so we don't know the 'index' (except for the 'accept' event).
+  // For now, just use the first item to report other events.
   public handleEvent(
     event: "show" | "accept" | "dismiss" | "accept_word" | "accept_line",
     completions?: CompletionResponse,
+    index: number = 0,
   ) {
     if (event === "show" && completions) {
-      // FIXME: We don't listen to user cycling through the items
-      // so we just use the first item for report event for now
-      const index = 0;
       const item = completions.items[index];
       const cmplId = item?.data?.eventId?.completionId.replace("cmpl-", "");
       const timestamp = Date.now();
@@ -191,6 +192,7 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       };
       this.postEvent(event, this.displayedCompletion);
     } else if (this.displayedCompletion) {
+      this.displayedCompletion.index = index;
       this.postEvent(event, this.displayedCompletion);
       this.displayedCompletion = null;
     }
