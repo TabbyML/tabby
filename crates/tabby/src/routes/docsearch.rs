@@ -7,7 +7,9 @@ use axum::{
 };
 use hyper::StatusCode;
 use serde::Deserialize;
-use tabby_common::api::{code::{CodeSearchError, CodeSearchResponse, }, doc::{DocSearch, DocSearchError, DocSearchResponse}};
+use tabby_common::api::{
+    doc::{DocSearch, DocSearchError, DocSearchResponse},
+};
 use tracing::{instrument, warn};
 use utoipa::IntoParams;
 

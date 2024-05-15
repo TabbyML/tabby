@@ -1,6 +1,4 @@
 use std::{
-    clone,
-    collections::{HashMap, HashSet},
     sync::Arc,
     time::Duration,
 };
@@ -9,15 +7,14 @@ use anyhow::Result;
 use async_trait::async_trait;
 use tabby_common::{
     api::doc::{DocSearch, DocSearchDocument, DocSearchError, DocSearchHit, DocSearchResponse},
-    index::{self, DocSearchSchema},
+    index::{self},
     path,
 };
 use tabby_inference::Embedding;
 use tantivy::{
-    collector::{Count, TopDocs},
-    query::{QueryParser, TermQuery, TermSetQuery},
+    collector::{TopDocs},
     schema::{self, Value},
-    Index, IndexReader, TantivyDocument, Term,
+    Index, IndexReader, TantivyDocument,
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::debug;
@@ -101,7 +98,7 @@ impl DocSearch for DocSearchImpl {
     }
 }
 
-fn get_text<'a>(doc: &'a TantivyDocument, field: schema::Field) -> &'a str {
+fn get_text(doc: &TantivyDocument, field: schema::Field) -> &str {
     doc.get_first(field).unwrap().as_str().unwrap()
 }
 
