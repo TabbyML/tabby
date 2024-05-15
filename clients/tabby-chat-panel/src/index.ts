@@ -2,7 +2,7 @@ import { createThreadFromIframe, createThreadFromInsideIframe } from '@quilted/t
 
 export interface LineRange {
   start: number
-  end?: number
+  end: number
 }
 
 export interface FileContext {
