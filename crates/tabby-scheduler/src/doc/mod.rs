@@ -45,15 +45,20 @@ impl DocIndex {
         self.writer
             .delete_term(Term::from_field_text(self.doc.field_id, &document.id));
 
-        // Add the chunks
-        self.iter_chunks(document.id.clone(), document.body.clone())
+        self.iter_docs(document)
             .await
             .for_each(|doc| async {
-                self.writer.add_document(doc).expect("Failed to add chunk");
+                self.writer
+                    .add_document(doc)
+                    .expect("Failed to add document");
             })
             .await;
+    }
 
-        // Add the document
+    async fn iter_docs(&self, document: SourceDocument) -> impl Stream<Item = TantivyDocument> {
+        let id = document.id.clone();
+        let content = document.body.clone();
+
         let doc = doc! {
             self.doc.field_id => document.id,
             self.doc.field_title => document.title,
@@ -61,10 +66,7 @@ impl DocIndex {
             self.doc.field_body => document.body,
         };
 
-        // Add the document
-        self.writer
-            .add_document(doc)
-            .expect("Failed to add document");
+        futures::stream::once(async { doc }).chain(self.iter_chunks(id, content).await)
     }
 
     /// This function splits the document into chunks and computes the embedding for each chunk. It then converts the embeddings
@@ -77,11 +79,13 @@ impl DocIndex {
         let splitter = TextSplitter::default().with_trim_chunks(true);
         let embedding = self.embedding.clone();
 
+        let field_id = self.doc.field_id;
         let field_chunk_id = self.doc.field_chunk_id;
         let field_chunk_embedding_token = self.doc.field_chunk_embedding_token;
         stream! {
             for (chunk_id, chunk) in splitter.chunks(&content, CHUNK_SIZE).enumerate() {
                 let mut doc = doc! {
+                    field_id => id.clone(),
                     field_chunk_id => chunk_id.to_string()
                 };
 
@@ -109,5 +113,61 @@ impl DocIndex {
         self.writer
             .wait_merging_threads()
             .expect("Failed to wait for merging threads");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use async_trait::async_trait;
+    use tantivy::schema::Value;
+
+    use super::*;
+
+    struct DummyEmbedding;
+
+    #[async_trait]
+    impl Embedding for DummyEmbedding {
+        async fn embed(&self, prompt: &str) -> anyhow::Result<Vec<f32>> {
+            Ok(vec![0.0; prompt.len()])
+        }
+    }
+
+    fn new_test_index() -> DocIndex {
+        DocIndex::new(Arc::new(DummyEmbedding))
+    }
+
+    fn is_empty(doc: &TantivyDocument, field: tantivy::schema::Field) -> bool {
+        doc.get_first(field).is_none()
+    }
+
+    fn get_text(doc: &TantivyDocument, field: tantivy::schema::Field) -> String {
+        doc.get_first(field).unwrap().as_str().unwrap().to_string()
+    }
+
+    #[tokio::test]
+    async fn test_iter_docs() {
+        let index = new_test_index();
+        let document = SourceDocument {
+            id: "test".to_string(),
+            title: "Test".to_string(),
+            link: "https://example.com".to_string(),
+            body: "Hello, world!".to_string(),
+        };
+        let docs = index.iter_docs(document).await.collect::<Vec<_>>().await;
+        assert_eq!(2, docs.len());
+
+        // Check document
+        assert_eq!("test", get_text(&docs[0], index.doc.field_id));
+        assert!(is_empty(&docs[0], index.doc.field_chunk_id));
+        assert!(is_empty(&docs[0], index.doc.field_chunk_embedding_token));
+
+        // Check chunks.
+        assert_eq!("test", get_text(&docs[1], index.doc.field_id));
+        assert!(is_empty(&docs[1], index.doc.field_title));
+        assert!(is_empty(&docs[1], index.doc.field_link));
+        assert!(is_empty(&docs[1], index.doc.field_body));
+
+        assert_eq!("0", get_text(&docs[1], index.doc.field_chunk_id));
+        assert_eq!("embedding_zero_0", get_text(&docs[1], index.doc.field_chunk_embedding_token));
     }
 }
