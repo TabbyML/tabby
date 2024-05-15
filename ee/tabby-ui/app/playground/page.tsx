@@ -7,9 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function IndexPage() {
-  return (
-    <main className="flex flex-1 flex-col">
-      <Chats />
-    </main>
-  )
+  return <Chats />
 }

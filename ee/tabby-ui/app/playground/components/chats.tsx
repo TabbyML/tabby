@@ -66,7 +66,6 @@ export default function Chats() {
   const persistChat = useDebounceCallback(
     (chatId: string, messages: QuestionAnswerPair[]) => {
       if (!storedChat && messages?.length) {
-        debugger
         addChat(activeChatId, truncateText(messages?.[0]?.user?.message))
       } else if (storedChat) {
         updateMessages(chatId, messages)

@@ -51,12 +51,12 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
   }
 
   const style = isShowDemoBanner
-    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
-    : { height: '100vh' }
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})`, top: BANNER_HEIGHT }
+    : { height: '100vh', top: 0 }
   return (
     <>
-      <div className={cn('transition-all', className)} style={style}>
-        <div className="flex w-[279px] flex-col gap-2">
+      <div className={cn('transition-all', className)}>
+        <div className="flex w-[279px] flex-col gap-2 fixed" style={style}>
           <div className="shrink-0 pb-0 pl-3 pt-2">
             <Button
               className="h-12 w-full justify-start"

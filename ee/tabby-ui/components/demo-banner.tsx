@@ -70,7 +70,7 @@ export function DemoBanner() {
   return (
     <div
       className={cn(
-        'flex items-center justify-between bg-primary px-4 text-primary-foreground transition-all md:px-5',
+        'flex items-center justify-between bg-primary px-4 text-primary-foreground transition-all md:px-5 sticky top-0 z-10',
         {
           'opacity-100 pointer-events-auto': isShowDemoBanner,
           'opacity-0 pointer-events-none': !isShowDemoBanner
