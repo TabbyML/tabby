@@ -1,7 +1,9 @@
 use ignore::Walk;
 use kv::Batch;
-use tabby_common::{api::code::CodeSearchDocument, config::RepositoryConfig, index::CodeSearchSchema, path};
-use tantivy::{doc, Index, IndexWriter, Term};
+use tabby_common::{
+    api::code::CodeSearchDocument, config::RepositoryConfig, index::CodeSearchSchema, path,
+};
+use tantivy::{Index, IndexWriter, Term};
 use tracing::warn;
 
 use super::{
@@ -17,18 +19,18 @@ static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 pub fn index_repository(cache: &mut CacheStore, repository: &RepositoryConfig) {
     let code = CodeSearchSchema::instance();
     let index = open_or_create_index(&code.schema, &path::index_dir());
-    add_changed_documents(cache, &code, repository, &index);
+    add_changed_documents(cache, code, repository, &index);
 }
 
 pub fn garbage_collection(cache: &mut CacheStore) {
     let code = CodeSearchSchema::instance();
     let index = open_or_create_index(&code.schema, &path::index_dir());
-    remove_staled_documents(cache, &code, &index);
+    remove_staled_documents(cache, code, &index);
 }
 
 fn add_changed_documents(
     cache: &mut CacheStore,
-    code: &CodeSearchSchema,
+    _code: &CodeSearchSchema,
     repository: &RepositoryConfig,
     index: &Index,
 ) {

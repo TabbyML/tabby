@@ -3,12 +3,8 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use tantivy::{
     schema::{
-        self,
-        document::{
-            DeserializeError, DocumentDeserialize, ReferenceValue, ReferenceValueLeaf,
-            ValueDeserialize,
-        },
-        FieldValue, OwnedValue, Value,
+        document::{DeserializeError, DocumentDeserialize, ReferenceValue, ReferenceValueLeaf},
+        Value,
     },
     Document,
 };
@@ -128,7 +124,7 @@ impl<'a> Value<'a> for Str<'a> {
     type ObjectIter = std::iter::Empty<(&'a str, Self)>;
 
     fn as_value(&self) -> tantivy::schema::document::ReferenceValue<'a, Self> {
-        ReferenceValue::Leaf(ReferenceValueLeaf::Str(&self.0))
+        ReferenceValue::Leaf(ReferenceValueLeaf::Str(self.0))
     }
 }
 

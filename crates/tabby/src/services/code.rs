@@ -9,15 +9,15 @@ use tabby_common::{
         CodeSearch, CodeSearchDocument, CodeSearchError, CodeSearchHit, CodeSearchResponse,
     },
     config::{RepositoryAccess, RepositoryConfig},
-    index::{self, register_tokenizers, CodeSearchSchema},
+    index::{self, register_tokenizers},
     path,
 };
 use tantivy::{
     collector::{Count, TopDocs},
     query::{BooleanQuery, QueryParser},
     query_grammar::Occur,
-    schema::{Field, Value},
-    DocAddress, Index, IndexReader, TantivyDocument,
+    schema::Value,
+    DocAddress, Index, IndexReader,
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::debug;
