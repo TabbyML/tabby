@@ -17,7 +17,7 @@ use tantivy::{
     query::{BooleanQuery, QueryParser},
     query_grammar::Occur,
     schema::Value,
-    DocAddress, Index, IndexReader,
+    Index, IndexReader,
 };
 use tokio::{sync::Mutex, time::sleep};
 use tracing::debug;
@@ -69,17 +69,8 @@ impl CodeSearchImpl {
         }
     }
 
-    fn create_hit(
-        &self,
-        score: f32,
-        doc: CodeSearchDocument,
-        doc_address: DocAddress,
-    ) -> CodeSearchHit {
-        CodeSearchHit {
-            score,
-            doc,
-            id: doc_address.doc_id,
-        }
+    fn create_hit(&self, score: f32, doc: CodeSearchDocument) -> CodeSearchHit {
+        CodeSearchHit { score, doc }
     }
 
     async fn search_with_query(
@@ -96,7 +87,7 @@ impl CodeSearchImpl {
                 .iter()
                 .map(|(score, doc_address)| {
                     let doc = searcher.doc(*doc_address).unwrap();
-                    self.create_hit(*score, doc, *doc_address)
+                    self.create_hit(*score, doc)
                 })
                 .collect()
         };
