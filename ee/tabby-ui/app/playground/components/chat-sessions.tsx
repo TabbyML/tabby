@@ -19,21 +19,20 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip'
-import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 import { ListSkeleton } from '@/components/skeleton'
 
 import { ClearChatsButton } from './clear-chats-button'
 import { EditChatTitleDialog } from './edit-chat-title-dialog'
 
 interface ChatSessionsProps {
-  className?: string
+  className?: string,
+  style?: Record<string, string>
 }
 
-export const ChatSessions = ({ className }: ChatSessionsProps) => {
+export const ChatSessions = ({ className, style }: ChatSessionsProps) => {
   const _hasHydrated = useStore(useChatStore, state => state._hasHydrated)
   const chats = useStore(useChatStore, state => state.chats)
   const activeChatId = useStore(useChatStore, state => state.activeChatId)
-  const [isShowDemoBanner] = useShowDemoBanner()
 
   const onDeleteClick = (
     e: React.MouseEvent<HTMLButtonElement>,
@@ -50,13 +49,10 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
     clearChats()
   }
 
-  const style = isShowDemoBanner
-    ? { height: `calc(100vh - ${BANNER_HEIGHT})`, top: BANNER_HEIGHT }
-    : { height: '100vh', top: 0 }
   return (
     <>
-      <div className={cn('transition-all', className)}>
-        <div className="fixed flex w-[279px] flex-col gap-2" style={style}>
+      <div className={className}>
+        <div className="flex w-[279px] flex-col gap-2 transition-all" style={style}>
           <div className="shrink-0 pb-0 pl-3 pt-2">
             <Button
               className="h-12 w-full justify-start"

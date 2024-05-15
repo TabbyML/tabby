@@ -14,6 +14,8 @@ import { truncateText } from '@/lib/utils'
 import { Chat, ChatRef } from '@/components/chat/chat'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { ListSkeleton } from '@/components/skeleton'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { BANNER_HEIGHT, useShowDemoBanner } from '@/components/demo-banner'
 
 import { ChatSessions } from './chat-sessions'
 
@@ -25,6 +27,7 @@ export default function Chats() {
   const initialMessage = searchParams.get('initialMessage')?.toString()
   const shouldConsumeInitialMessage = React.useRef(!!initialMessage)
   const chatRef = React.useRef<ChatRef>(null)
+  const [isShowDemoBanner] = useShowDemoBanner()
 
   const _hasHydrated = useStore(useChatStore, state => state._hasHydrated)
 
@@ -119,9 +122,14 @@ export default function Chats() {
     return () => persistChat.flush()
   }, [])
 
+  const style = isShowDemoBanner
+    ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
+    : { height: '100vh' }
   return (
     <div className="grid flex-1 overflow-hidden lg:grid-cols-[280px_1fr]">
-      <ChatSessions className="hidden w-[280px] border-r lg:block" />
+      <ChatSessions
+        className="hidden w-[280px] border-r lg:block"
+        style={style} />
       <LoadingWrapper
         delay={0}
         loading={!_hasHydrated || !activeChatId}
@@ -131,15 +139,17 @@ export default function Chats() {
           </div>
         }
       >
-        <Chat
-          chatId={activeChatId as string}
-          key={activeChatId}
-          initialMessages={initialMessages ?? emptyQaParise}
-          ref={chatRef}
-          onThreadUpdates={onThreadUpdates}
-          onNavigateToContext={onNavigateToContext}
-          onLoaded={onChatLoaded}
-        />
+        <ScrollArea className="transition-all" style={style}>
+          <Chat
+            chatId={activeChatId as string}
+            key={activeChatId}
+            initialMessages={initialMessages ?? emptyQaParise}
+            ref={chatRef}
+            onThreadUpdates={onThreadUpdates}
+            onNavigateToContext={onNavigateToContext}
+            onLoaded={onChatLoaded}
+          />
+        </ScrollArea>
       </LoadingWrapper>
     </div>
   )
