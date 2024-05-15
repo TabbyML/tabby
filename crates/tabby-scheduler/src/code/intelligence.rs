@@ -177,7 +177,9 @@ mod tests {
         set_tabby_root(get_tabby_root());
         let config = get_repository_config();
         let mut code = CodeIntelligence::default();
-        let source_file = code.create_source_file(&config, &get_rust_source_file()).expect("Failed to create source file");
+        let source_file = code
+            .create_source_file(&config, &get_rust_source_file())
+            .expect("Failed to create source file");
 
         // check source_file properties
         assert_eq!(source_file.language, "rust");
