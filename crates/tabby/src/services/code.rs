@@ -166,13 +166,6 @@ fn closest_match<'a>(
         .map(|x| x.git_url.as_str())
 }
 
-fn get_field(doc: &TantivyDocument, field: Field) -> String {
-    doc.get_first(field)
-        .and_then(|x| x.as_str().to_owned())
-        .expect("Missing field")
-        .to_owned()
-}
-
 struct CodeSearchService {
     search: Arc<Mutex<Option<CodeSearchImpl>>>,
 }
