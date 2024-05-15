@@ -1,7 +1,4 @@
-use std::{
-    sync::Arc,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -12,7 +9,7 @@ use tabby_common::{
 };
 use tabby_inference::Embedding;
 use tantivy::{
-    collector::{TopDocs},
+    collector::TopDocs,
     schema::{self, Value},
     Index, IndexReader, TantivyDocument,
 };
