@@ -56,7 +56,7 @@ export const ChatSessions = ({ className }: ChatSessionsProps) => {
   return (
     <>
       <div className={cn('transition-all', className)}>
-        <div className="flex w-[279px] flex-col gap-2 fixed" style={style}>
+        <div className="fixed flex w-[279px] flex-col gap-2" style={style}>
           <div className="shrink-0 pb-0 pl-3 pt-2">
             <Button
               className="h-12 w-full justify-start"
