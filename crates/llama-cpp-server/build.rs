@@ -4,7 +4,7 @@ use cmake::Config;
 use omnicopy_to_output::copy_to_output;
 
 fn main() {
-    if !cfg!(feature = "binary") {
+    if !cfg!(feature = "binary") || env::var("CI_COVERAGE").is_ok() {
         return;
     }
 
