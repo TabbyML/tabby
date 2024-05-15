@@ -1,7 +1,7 @@
 use ignore::Walk;
 use kv::Batch;
-use tabby_common::{config::RepositoryConfig, index::CodeSearchSchema, path};
-use tantivy::{doc, Index, IndexWriter, TantivyDocument, Term};
+use tabby_common::{api::code::CodeSearchDocument, config::RepositoryConfig, index::CodeSearchSchema, path};
+use tantivy::{doc, Index, IndexWriter, Term};
 use tracing::warn;
 
 use super::{
@@ -15,13 +15,13 @@ static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 
 pub fn index_repository(cache: &mut CacheStore, repository: &RepositoryConfig) {
-    let code = CodeSearchSchema::default();
+    let code = CodeSearchSchema::instance();
     let index = open_or_create_index(&code.schema, &path::index_dir());
     add_changed_documents(cache, &code, repository, &index);
 }
 
 pub fn garbage_collection(cache: &mut CacheStore) {
-    let code = CodeSearchSchema::default();
+    let code = CodeSearchSchema::instance();
     let index = open_or_create_index(&code.schema, &path::index_dir());
     remove_staled_documents(cache, &code, &index);
 }
@@ -71,12 +71,12 @@ fn add_changed_documents(
 
         for body in intelligence.chunks(&text) {
             writer
-                .add_document(doc! {
-                            code.field_git_url => source_file.git_url.clone(),
-                            code.field_source_file_key => file_id.to_string(),
-                            code.field_filepath => source_file.filepath.clone(),
-                            code.field_language => source_file.language.clone(),
-                            code.field_body => body,
+                .add_document(CodeSearchDocument {
+                    filepath: source_file.filepath.clone(),
+                    git_url: source_file.git_url.clone(),
+                    language: source_file.language.clone(),
+                    file_id: file_id.clone(),
+                    body: body.to_owned(),
                 })
                 .expect("Failed to add document");
         }
@@ -96,14 +96,14 @@ fn add_changed_documents(
     cache.apply_indexed(indexed_files_batch);
 }
 
-pub fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, index: &Index) {
+fn remove_staled_documents(cache: &mut CacheStore, code: &CodeSearchSchema, index: &Index) {
     // Create a new writer to commit deletion of removed indexed files
-    let mut writer: IndexWriter<TantivyDocument> = index
+    let mut writer: IndexWriter<CodeSearchDocument> = index
         .writer(150_000_000)
         .expect("Failed to create index writer");
 
     let gc_commit = cache.prepare_garbage_collection_for_indexed_files(|key| {
-        writer.delete_term(Term::from_field_text(code.field_source_file_key, key));
+        writer.delete_term(Term::from_field_text(code.field_file_id, key));
     });
 
     // Commit garbage collection

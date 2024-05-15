@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use tantivy::{
     query::{TermQuery, TermSetQuery},
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, STRING},
@@ -19,14 +20,13 @@ pub struct CodeSearchSchema {
     pub schema: Schema,
     pub field_git_url: Field,
     pub field_filepath: Field,
-    /// Indexed field uniquely identifying a file in a repository, stringified SourceFileKey
-    pub field_source_file_key: Field,
+    pub field_file_id: Field,
     pub field_language: Field,
     pub field_body: Field,
 }
 
 impl CodeSearchSchema {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let mut builder = Schema::builder();
 
         let code_indexing_options = TextFieldIndexing::default()
@@ -47,17 +47,19 @@ impl CodeSearchSchema {
             schema,
             field_git_url,
             field_filepath,
-            field_source_file_key,
+            field_file_id: field_source_file_key,
             field_language,
             field_body,
         }
     }
+
+    pub fn instance() -> &'static Self {
+        &CODE_SEARCH_SCHEMA
+    }
 }
 
-impl Default for CodeSearchSchema {
-    fn default() -> Self {
-        Self::new()
-    }
+lazy_static! {
+    static ref CODE_SEARCH_SCHEMA: CodeSearchSchema = CodeSearchSchema::new();
 }
 
 impl CodeSearchSchema {
@@ -96,7 +98,7 @@ mod tests {
 
     #[test]
     fn test_language_query() {
-        let schema = CodeSearchSchema::new();
+        let schema = CodeSearchSchema::instance();
         let lhs = schema.language_query("javascript-typescript");
         assert_eq!(lhs.term(), schema.language_query("javascript").term());
         assert_eq!(lhs.term(), schema.language_query("typescript").term());

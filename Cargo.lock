@@ -5391,6 +5391,7 @@ version = "0.12.0-dev.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "derive_builder 0.12.0",
  "home",
  "lazy_static",
  "reqwest 0.12.4",

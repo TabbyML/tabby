@@ -26,14 +26,13 @@ struct CodeSearchImpl {
     reader: IndexReader,
     query_parser: QueryParser,
 
-    schema: CodeSearchSchema,
     repository_access: Arc<dyn RepositoryAccess>,
     repo_cache: Mutex<TimedCache<(), Vec<RepositoryConfig>>>,
 }
 
 impl CodeSearchImpl {
     fn load(repository_access: Arc<dyn RepositoryAccess>) -> Result<Self> {
-        let code_schema = index::CodeSearchSchema::new();
+        let code_schema = index::CodeSearchSchema::instance();
         let index = Index::open_in_dir(path::index_dir())?;
         register_tokenizers(&index);
 
@@ -50,7 +49,6 @@ impl CodeSearchImpl {
             repository_access,
             reader,
             query_parser,
-            schema: code_schema,
             repo_cache: Mutex::new(TimedCache::with_lifespan(10 * 60)),
         })
     }
@@ -74,17 +72,12 @@ impl CodeSearchImpl {
     fn create_hit(
         &self,
         score: f32,
-        doc: TantivyDocument,
+        doc: CodeSearchDocument,
         doc_address: DocAddress,
     ) -> CodeSearchHit {
         CodeSearchHit {
             score,
-            doc: CodeSearchDocument {
-                body: get_field(&doc, self.schema.field_body),
-                filepath: get_field(&doc, self.schema.field_filepath),
-                git_url: get_field(&doc, self.schema.field_git_url),
-                language: get_field(&doc, self.schema.field_language),
-            },
+            doc,
             id: doc_address.doc_id,
         }
     }
@@ -131,8 +124,9 @@ impl CodeSearch for CodeSearchImpl {
         limit: usize,
         offset: usize,
     ) -> Result<CodeSearchResponse, CodeSearchError> {
-        let language_query = self.schema.language_query(language);
-        let body_query = self.schema.body_query(tokens);
+        let schema = index::CodeSearchSchema::instance();
+        let language_query = schema.language_query(language);
+        let body_query = schema.body_query(tokens);
 
         let mut cache = self.repo_cache.lock().await;
 
@@ -147,7 +141,7 @@ impl CodeSearch for CodeSearchImpl {
             return Ok(CodeSearchResponse::default());
         };
 
-        let git_url_query = self.schema.git_url_query(git_url);
+        let git_url_query = schema.git_url_query(git_url);
 
         let query = BooleanQuery::new(vec![
             (Occur::Must, language_query),
