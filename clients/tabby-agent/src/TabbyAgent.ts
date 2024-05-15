@@ -781,23 +781,51 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public async generateCommitMessage(
-    diff: string,
+    diff: string | string[],
     options?: AbortSignalOption & { useBetaVersion?: boolean },
   ): Promise<string> {
     if (this.status === "notInitialized") {
       throw new Error("Agent is not initialized");
     }
+
+    // select diffs from the list to generate a prompt under the prompt size limit
+    const { maxDiffLength, promptTemplate } = this.config.experimentalChat.generateCommitMessage;
+    let splitDiffs: string[];
+    if (typeof diff === "string") {
+      splitDiffs = diff.split(/\n(?=diff)/);
+    } else {
+      splitDiffs = diff;
+    }
+    let selectedDiff = "";
+    for (const item of splitDiffs) {
+      if (selectedDiff.length + item.length < maxDiffLength) {
+        selectedDiff += item + "\n";
+      }
+    }
+    if (isBlank(selectedDiff)) {
+      // This may happen when all separated diffs are larger than the limit.
+      if (typeof diff === "string") {
+        selectedDiff = diff.substring(0, maxDiffLength);
+      } else {
+        selectedDiff = diff.join("\n").substring(0, maxDiffLength);
+      }
+    }
+    if (isBlank(selectedDiff)) {
+      // early return if selectedDiff is still empty
+      return "";
+    }
+
+    // request chat api
     const requestId = uuid();
     try {
       if (!this.api) {
         throw new Error("http client not initialized");
       }
       const requestPath = options?.useBetaVersion ? "/v1beta/chat/completions" : "/v1/chat/completions";
-      const promptTemplate = this.config.experimentalChat.generateCommitMessage.promptTemplate;
       const messages = [
         {
           role: "user",
-          content: promptTemplate.replace("{{diff}}", diff),
+          content: promptTemplate.replace("{{diff}}", selectedDiff),
         },
       ];
       const requestOptions = {

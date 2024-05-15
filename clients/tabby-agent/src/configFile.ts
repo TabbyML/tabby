@@ -79,6 +79,7 @@ const typeCheckSchema: Record<string, string> = {
   "completion.solution.temperature": "number",
   experimentalChat: "object",
   "experimentalChat.generateCommitMessage": "object",
+  "experimentalChat.generateCommitMessage.maxDiffLength": "number",
   "experimentalChat.generateCommitMessage.promptTemplate": "string",
   logs: "object",
   "logs.level": "string",

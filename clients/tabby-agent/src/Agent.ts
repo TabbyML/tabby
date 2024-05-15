@@ -155,11 +155,13 @@ export interface AgentFunction {
 
   /**
    * Generate a commit message for the given diff.
-   * @param diff The diff to generate a commit message for.
+   * @param diff The diff to generate a commit message for. It could be a list of diff for each single
+   *             file, sorted by the priority. This will be useful when the full diff is too large,
+   *             agent will select from the split diffs to generate a prompt under the tokens limit.
    * @returns
    * @throws Error if agent is not initialized
    */
-  generateCommitMessage(diff: string, options?: AbortSignalOption): Promise<string>;
+  generateCommitMessage(diff: string | string[], options?: AbortSignalOption): Promise<string>;
 }
 
 export type StatusChangedEvent = {

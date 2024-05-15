@@ -346,9 +346,10 @@ const generateCommitMessage: Command = {
       window.showInformationMessage("No Git repositories found.");
       return;
     }
-    let repo: Repository | undefined = undefined;
+    // Select repo
+    let selectedRepo: Repository | undefined = undefined;
     if (repos.length == 1) {
-      repo = repos[0];
+      selectedRepo = repos[0];
     } else {
       const selected = await window.showQuickPick(
         repos
@@ -374,19 +375,23 @@ const generateCommitMessage: Command = {
           }),
         { placeHolder: "Select a Git repository" },
       );
-      repo = selected?.value;
+      selectedRepo = selected?.value;
     }
-    if (!repo) {
+    if (!selectedRepo) {
       return;
     }
+    const repo = selectedRepo;
+    // Get the diff
     let diff = (await repo.diff(true)).trim();
     if (diff.length < 1) {
       // if cached diff is empty, use uncached instead
       diff = (await repo.diff(false)).trim();
     }
     if (diff.length < 1) {
+      // uncached diff is still empty, return
       return;
     }
+    // Focus on scm view
     commands.executeCommand("workbench.view.scm");
     window.withProgress(
       {
@@ -400,10 +405,21 @@ const generateCommitMessage: Command = {
           abortController.abort();
         });
         const signal = abortController.signal;
-        if (repo && diff.length > 0) {
-          const message = await agent().generateCommitMessage(diff, { signal });
-          repo.inputBox.value = message;
-        }
+        // Split diffs and sort by priority (modified timestamp) ascending
+        const diffsWithPriority = await Promise.all(
+          diff.split(/\n(?=diff)/).map(async (item) => {
+            let priority = Number.MAX_SAFE_INTEGER;
+            const filepath = /diff --git a\/.* b\/(.*)$/gm.exec(item)?.[1];
+            if (filepath) {
+              const uri = Uri.joinPath(repo.rootUri, filepath);
+              priority = (await workspace.fs.stat(uri)).mtime;
+            }
+            return { diff: item, priority };
+          }),
+        );
+        const diffs = diffsWithPriority.sort((a, b) => a.priority - b.priority).map((item) => item.diff);
+        const message = await agent().generateCommitMessage(diffs, { signal });
+        repo.inputBox.value = message;
       },
     );
   },
