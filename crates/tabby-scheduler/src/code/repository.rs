@@ -72,10 +72,16 @@ fn get_last_repository_sync_filepath(path: &Path) -> PathBuf {
     path.join(".git").join("tabby").join("last_repository_sync")
 }
 
-fn get_last_repository_sync_time(path: &Path) -> Option<std::time::SystemTime> {
-    fs::metadata(get_last_repository_sync_filepath(path))
-        .ok()
-        .and_then(|metadata| metadata.modified().ok())
+fn get_last_repository_sync_time(path: &Path) -> std::time::SystemTime {
+    let filepath = get_last_repository_sync_filepath(path);
+    if !filepath.exists() {
+        touch(&filepath);
+    }
+
+    fs::metadata(get_last_repository_sync_filepath(&filepath))
+        .expect("Failed to read metadata")
+        .modified()
+        .expect("Failed to read modified")
 }
 
 fn pull_remote(path: &Path) -> bool {
@@ -124,12 +130,10 @@ fn garbage_collection() {
             fs::remove_file(file.path())
                 .unwrap_or_else(|_| panic!("Failed to remove file {:?}", filename))
         } else if metadata.is_dir() {
-            let is_garbage = if let Some(mtime) = get_last_repository_sync_time(&file.path()) {
-                // if stale for 2 day, consider it as garbage.
-                mtime.elapsed().unwrap_or_default().as_secs() > 2 * 24 * 60 * 60
-            } else {
-                true
-            };
+            let mtime = get_last_repository_sync_time(&file.path());
+
+            // if stale for 2 day, consider it as garbage.
+            let is_garbage = mtime.elapsed().unwrap_or_default().as_secs() > 2 * 24 * 60 * 60;
 
             if is_garbage {
                 warn!("An unrelated directory {:?} was found in repositories directory, It will now be removed...", file.path().display());
