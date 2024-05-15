@@ -126,7 +126,7 @@ impl DbConn {
         });
         conditions.extend(id_condition);
 
-        let kind_condition = kind.map(|kind| format!("kind = {kind}"));
+        let kind_condition = kind.map(|kind| format!("kind = '{kind}'"));
         conditions.extend(kind_condition);
 
         let condition = (!conditions.is_empty()).then(|| conditions.join(" AND "));

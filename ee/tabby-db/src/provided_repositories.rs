@@ -82,7 +82,7 @@ impl DbConn {
         let active_filter = active.map(|active| format!("active = {active}"));
         conditions.extend(active_filter);
 
-        let kind_filter = kind.map(|kind| format!("kind = {kind}"));
+        let kind_filter = kind.map(|kind| format!("kind = '{kind}'"));
         conditions.extend(kind_filter);
 
         let condition = (!conditions.is_empty()).then(|| conditions.join(" AND "));
