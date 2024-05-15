@@ -9,11 +9,12 @@ use tabby_common::{
     config::RepositoryAccess,
 };
 use tabby_db::DbConn;
-use tabby_schema::repository::RepositoryService;
+use tabby_schema::{integration::IntegrationService, repository::RepositoryService};
 
 use crate::{
     path::db_file,
     routes,
+    service::integration,
     service::{
         background_job, background_job::BackgroundJobEvent, create_service_locator,
         event_logger::create_event_logger, repository,
@@ -24,6 +25,7 @@ pub struct Webserver {
     db: DbConn,
     logger: Arc<dyn EventLogger>,
     repository: Arc<dyn RepositoryService>,
+    integration: Arc<dyn IntegrationService>,
 }
 
 impl Webserver {
@@ -37,7 +39,8 @@ impl Webserver {
 
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<BackgroundJobEvent>();
 
-        let repository = repository::create(db.clone(), sender);
+        let integration = Arc::new(integration::create(db.clone()));
+        let repository = repository::create(db.clone(), integration.clone(), sender);
 
         background_job::start(db.clone(), repository.clone().access(), receiver).await;
 
@@ -47,6 +50,7 @@ impl Webserver {
             db,
             logger,
             repository,
+            integration,
         }
     }
 
@@ -69,6 +73,7 @@ impl Webserver {
             self.logger(),
             code,
             self.repository.clone(),
+            self.integration.clone(),
             self.db.clone(),
             is_chat_enabled,
         )

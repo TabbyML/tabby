@@ -101,5 +101,6 @@ pub trait RepositoryService: Send + Sync + RepositoryAccess {
     fn git(&self) -> Arc<dyn GitRepositoryService>;
     fn github(&self) -> Arc<dyn GithubRepositoryService>;
     fn gitlab(&self) -> Arc<dyn GitlabRepositoryService>;
+    fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService>;
     fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess>;
 }

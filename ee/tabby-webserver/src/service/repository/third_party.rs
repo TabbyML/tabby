@@ -22,6 +22,13 @@ struct ThirdPartyRepositoryServiceImpl {
     integration: Arc<dyn IntegrationService>,
 }
 
+pub fn create(
+    db: DbConn,
+    integration: Arc<dyn IntegrationService>,
+) -> impl ThirdPartyRepositoryService {
+    ThirdPartyRepositoryServiceImpl { db, integration }
+}
+
 #[async_trait]
 impl ThirdPartyRepositoryService for ThirdPartyRepositoryServiceImpl {
     async fn list_repositories(

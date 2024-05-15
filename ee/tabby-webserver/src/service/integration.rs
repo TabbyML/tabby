@@ -12,6 +12,10 @@ struct IntegrationServiceImpl {
     db: DbConn,
 }
 
+pub fn create(db: DbConn) -> impl IntegrationService {
+    IntegrationServiceImpl { db }
+}
+
 #[async_trait]
 impl IntegrationService for IntegrationServiceImpl {
     async fn create_integration(

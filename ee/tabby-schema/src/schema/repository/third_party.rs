@@ -5,6 +5,7 @@ use juniper::ID;
 use crate::{integration::IntegrationKind, schema::Result};
 
 pub struct ProvidedRepository {
+    pub id: ID,
     pub integration_id: ID,
     pub active: bool,
     pub display_name: String,

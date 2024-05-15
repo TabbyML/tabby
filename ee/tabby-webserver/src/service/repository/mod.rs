@@ -10,9 +10,11 @@ use juniper::ID;
 use tabby_common::config::{RepositoryAccess, RepositoryConfig};
 use tabby_db::DbConn;
 use tabby_schema::{
+    integration::IntegrationService,
     repository::{
         FileEntrySearchResult, GitRepositoryService, GithubRepositoryService,
         GitlabRepositoryService, Repository, RepositoryKind, RepositoryService,
+        ThirdPartyRepositoryService,
     },
     Result,
 };
@@ -22,18 +24,21 @@ use crate::service::background_job::BackgroundJobEvent;
 
 struct RepositoryServiceImpl {
     git: Arc<dyn GitRepositoryService>,
+    third_party: Arc<dyn ThirdPartyRepositoryService>,
     github: Arc<dyn GithubRepositoryService>,
     gitlab: Arc<dyn GitlabRepositoryService>,
 }
 
 pub fn create(
     db: DbConn,
+    integration: Arc<dyn IntegrationService>,
     background: UnboundedSender<BackgroundJobEvent>,
 ) -> Arc<dyn RepositoryService> {
     Arc::new(RepositoryServiceImpl {
         git: Arc::new(git::create(db.clone(), background.clone())),
         github: Arc::new(github::create(db.clone(), background.clone())),
-        gitlab: Arc::new(gitlab::create(db, background.clone())),
+        gitlab: Arc::new(gitlab::create(db.clone(), background.clone())),
+        third_party: Arc::new(third_party::create(db, integration)),
     })
 }
 
@@ -82,6 +87,10 @@ impl RepositoryService for RepositoryServiceImpl {
 
     fn gitlab(&self) -> Arc<dyn GitlabRepositoryService> {
         self.gitlab.clone()
+    }
+
+    fn third_party(&self) -> Arc<dyn ThirdPartyRepositoryService> {
+        self.third_party.clone()
     }
 
     fn access(self: Arc<Self>) -> Arc<dyn RepositoryAccess> {
@@ -151,7 +160,8 @@ mod tests {
     #[tokio::test]
     async fn test_list_repositories() {
         let db = DbConn::new_in_memory().await.unwrap();
-        let service = create(db.clone(), create_fake());
+        let integration = Arc::new(crate::service::integration::create(db.clone()));
+        let service = create(db.clone(), integration, create_fake());
         service
             .git()
             .create("test_git_repo".into(), "http://test_git_repo".into())

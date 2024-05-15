@@ -134,6 +134,7 @@ impl TryFrom<ProvidedRepositoryDAO> for ProvidedRepository {
     type Error = anyhow::Error;
     fn try_from(value: ProvidedRepositoryDAO) -> Result<Self, Self::Error> {
         Ok(Self {
+            id: value.id.as_id(),
             integration_id: value.integration_access_token_id.as_id(),
             active: value.active,
             display_name: value.name,
@@ -177,6 +178,32 @@ impl From<GithubRepositoryProviderDAO> for GithubRepositoryProvider {
                 value.synced_at.is_some(),
             ),
             access_token: value.access_token,
+        }
+    }
+}
+
+impl From<ProvidedRepository> for GithubProvidedRepository {
+    fn from(value: ProvidedRepository) -> Self {
+        Self {
+            id: value.id,
+            vendor_id: value.vendor_id,
+            github_repository_provider_id: value.integration_id,
+            name: value.display_name,
+            git_url: value.git_url,
+            active: value.active,
+        }
+    }
+}
+
+impl From<ProvidedRepository> for GitlabProvidedRepository {
+    fn from(value: ProvidedRepository) -> Self {
+        Self {
+            id: value.id,
+            vendor_id: value.vendor_id,
+            gitlab_repository_provider_id: value.integration_id,
+            name: value.display_name,
+            git_url: value.git_url,
+            active: value.active,
         }
     }
 }
